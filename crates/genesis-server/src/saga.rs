@@ -8,7 +8,7 @@
 
 use crate::app::AppState;
 use crate::error::{validation_error, ApiError, ApiResult};
-use crate::store::{put_change, EventMeta, NewOutbox};
+use crate::store::{insert_change_tx, put_change, EventMeta, NewOutbox};
 use axum::http::StatusCode;
 use chrono::Utc;
 use genesis_core::change::{KeyAllocation, OrgChangeProposal, OrgChangeRecord};
@@ -31,6 +31,19 @@ pub async fn submit(
         return Err(ApiError::bad_request("client_request_id is required"));
     }
     let guard = app.kernel.lock().await;
+    if let Some(stored) = app.store.find_change_by_request(client_request_id)? {
+        // Repeated client request. A record left PROPOSED by an older build
+        // is validated now instead of being returned unchanged forever.
+        drop(guard);
+        let stored = if stored.status == ChangeStatus::Proposed {
+            let checked = validate_stored(app, &stored.change_id).await?;
+            spawn_run(app, &checked);
+            checked
+        } else {
+            stored
+        };
+        return Ok((StatusCode::OK, stored));
+    }
     let state = app.current_state()?;
     let alloc = KeyAllocation::allocate(&proposal);
     let catalog = local_catalog(&state);
@@ -42,27 +55,14 @@ pub async fn submit(
         proposal: proposal.clone(),
         allocation: alloc,
         provisioned: Default::default(),
+        ready: Default::default(),
         errors: vec![],
         committed_revision: None,
         submitted_by: submitted_by.to_owned(),
         created_at: now,
         updated_at: now,
     };
-    let (stored, fresh) = app.store.insert_change(client_request_id, &record)?;
-    if !fresh {
-        // Repeated client request: return what we already have.
-        return Ok((StatusCode::OK, stored));
-    }
-    let mut effects = vec![EventKind::ChangeProposed {
-        change_id: record.change_id.clone(),
-        expected_revision: proposal.expected_org_revision,
-        operations: proposal
-            .operations
-            .iter()
-            .map(|o| o.name().to_owned())
-            .collect(),
-        rationale: proposal.rationale.clone(),
-    }];
+    let mut effects = vec![proposed_event(&record)];
     let next = match &verdict {
         Ok(_) => ChangeStatus::Validated,
         Err(_) => ChangeStatus::Rejected,
@@ -76,23 +76,19 @@ pub async fn submit(
     if let Err(errs) = &verdict {
         record.errors = errs.clone();
     }
+    // The record, its request identity and its events are written in one
+    // transaction: a stored change is never stranded in PROPOSED.
     let events = app.store.append_events(
         effects,
         &EventMeta::default().caused_by(record.change_id.to_string()),
-        |tx| put_change(tx, &record),
+        |tx| insert_change_tx(tx, client_request_id, &record),
     )?;
     drop(guard);
     app.broadcast(&events);
 
     match verdict {
         Ok(_) => {
-            let app2 = app.clone();
-            let id = record.change_id.clone();
-            tokio::spawn(async move {
-                if let Err(e) = run(&app2, &id).await {
-                    tracing::error!(change = %id, error = %e.message, "change saga failed");
-                }
-            });
+            spawn_run(app, &record);
             Ok((StatusCode::ACCEPTED, record))
         }
         Err(errs) => {
@@ -101,6 +97,65 @@ pub async fn submit(
             Err(err)
         }
     }
+}
+
+fn proposed_event(record: &OrgChangeRecord) -> EventKind {
+    EventKind::ChangeProposed {
+        change_id: record.change_id.clone(),
+        expected_revision: record.proposal.expected_org_revision,
+        operations: record
+            .proposal
+            .operations
+            .iter()
+            .map(|o| o.name().to_owned())
+            .collect(),
+        rationale: record.proposal.rationale.clone(),
+    }
+}
+
+fn spawn_run(app: &AppState, record: &OrgChangeRecord) {
+    if record.status != ChangeStatus::Validated {
+        return;
+    }
+    let app2 = app.clone();
+    let id = record.change_id.clone();
+    tokio::spawn(async move {
+        if let Err(e) = run(&app2, &id).await {
+            tracing::error!(change = %id, error = %e.message, "change saga failed");
+        }
+    });
+}
+
+/// Validate a stored PROPOSED record against current state and persist the
+/// verdict. Used for records written before submission became atomic.
+async fn validate_stored(app: &AppState, change_id: &ChangeId) -> ApiResult<OrgChangeRecord> {
+    let _guard = app.kernel.lock().await;
+    let mut record = app.store.get_change(change_id)?;
+    if record.status != ChangeStatus::Proposed {
+        return Ok(record);
+    }
+    let state = app.current_state()?;
+    let catalog = local_catalog(&state);
+    let verdict = engine::validate(
+        &state,
+        &record.proposal,
+        &record.allocation,
+        &catalog,
+        Utc::now(),
+    );
+    let (next, reasons) = match &verdict {
+        Ok(_) => (ChangeStatus::Validated, vec![]),
+        Err(errs) => {
+            record.errors = errs.clone();
+            (
+                ChangeStatus::Rejected,
+                errs.iter().map(|e| e.to_string()).collect(),
+            )
+        }
+    };
+    let t = transition(&mut record, next, reasons)?;
+    save(app, &record, vec![t])?;
+    Ok(record)
 }
 
 fn transition(
@@ -135,6 +190,9 @@ fn save(app: &AppState, record: &OrgChangeRecord, effects: Vec<EventKind>) -> Ap
 /// restart: completed steps are skipped.
 pub async fn run(app: &AppState, change_id: &ChangeId) -> ApiResult<OrgChangeRecord> {
     let mut record = app.store.get_change(change_id)?;
+    if record.status == ChangeStatus::Proposed {
+        record = validate_stored(app, change_id).await?;
+    }
     if record.status == ChangeStatus::Validated {
         let e = transition(&mut record, ChangeStatus::Provisioning, vec![])?;
         save(app, &record, vec![e])?;
@@ -143,55 +201,64 @@ pub async fn run(app: &AppState, change_id: &ChangeId) -> ApiResult<OrgChangeRec
     if record.status == ChangeStatus::Provisioning {
         let roles = engine::roles_to_provision(&record.proposal, &record.allocation);
         for role in roles {
-            if record.provisioned.contains_key(&role.key) {
-                continue; // already provisioned before a restart
+            if record.ready.contains(&role.key) {
+                continue; // provisioned and ready before a restart
             }
-            let req = ProvisionRequest {
-                org_id: app.org_id.clone(),
-                change_id: record.change_id.clone(),
-                role: role.clone(),
+            // One deadline covers creation and readiness for this role.
+            let deadline = tokio::time::Instant::now() + app.provision_timeout;
+            let provisioner = match app.providers.provisioner(role.provider) {
+                Ok(p) => p,
+                Err(err) => return fail(app, record, &role.key, err.to_string()),
             };
-            let result = async {
-                let provisioner = app.providers.provisioner(role.provider)?;
-                let binding =
-                    tokio::time::timeout(app.provision_timeout, provisioner.provision(&req))
-                        .await
-                        .map_err(|_| genesis_providers::ProviderError::Timeout)??;
-                let ready = provisioner.check_ready(&binding).await?;
-                if !ready {
-                    return Err(genesis_providers::ProviderError::Rejected(
-                        "readiness check did not pass".into(),
-                    ));
+            if !record.provisioned.contains_key(&role.key) {
+                let req = ProvisionRequest {
+                    org_id: app.org_id.clone(),
+                    change_id: record.change_id.clone(),
+                    role: role.clone(),
+                };
+                let created = tokio::time::timeout_at(deadline, provisioner.provision(&req))
+                    .await
+                    .map_err(|_| genesis_providers::ProviderError::Timeout)
+                    .and_then(|r| r);
+                match created {
+                    Ok(binding) => {
+                        // Persist the resource identity before anything else
+                        // can fail, so reconciliation and cleanup can find it.
+                        let ev = EventKind::RoleProvisioned {
+                            change_id: record.change_id.clone(),
+                            role_key: role.key.clone(),
+                            role_id: role.role_id.clone(),
+                            provider: role.provider,
+                            provider_agent_id: binding.provider_agent_id.clone(),
+                            dev_stub: binding.provider == Provider::DevStub,
+                        };
+                        record.provisioned.insert(role.key.clone(), binding);
+                        record.updated_at = Utc::now();
+                        save(app, &record, vec![ev])?;
+                    }
+                    Err(err) => return fail(app, record, &role.key, err.to_string()),
                 }
-                Ok(binding)
             }
-            .await;
-            match result {
-                Ok(binding) => {
-                    let ev = EventKind::RoleProvisioned {
-                        change_id: record.change_id.clone(),
-                        role_key: role.key.clone(),
-                        role_id: role.role_id.clone(),
-                        provider: role.provider,
-                        provider_agent_id: binding.provider_agent_id.clone(),
-                        dev_stub: binding.provider == Provider::DevStub,
-                    };
-                    record.provisioned.insert(role.key.clone(), binding);
+            let binding = record.provisioned[&role.key].clone();
+            let readiness = tokio::time::timeout_at(deadline, provisioner.check_ready(&binding))
+                .await
+                .map_err(|_| genesis_providers::ProviderError::Timeout)
+                .and_then(|r| r);
+            match readiness {
+                Ok(true) => {
+                    record.ready.insert(role.key.clone());
                     record.updated_at = Utc::now();
-                    save(app, &record, vec![ev])?;
+                    save(app, &record, vec![])?;
                 }
-                Err(err) => {
-                    let msg = err.to_string();
-                    let failed = EventKind::ProvisioningFailed {
-                        change_id: record.change_id.clone(),
-                        role_key: role.key.clone(),
-                        error: msg.clone(),
-                    };
-                    let reasons = vec![format!("provisioning `{}` failed: {msg}", role.key)];
-                    let t = transition(&mut record, ChangeStatus::Failed, reasons)?;
-                    save(app, &record, vec![failed, t])?;
-                    return Ok(record);
+                Ok(false) => {
+                    return fail(
+                        app,
+                        record,
+                        &role.key,
+                        "readiness check did not pass".into(),
+                    )
                 }
+                Err(err) => return fail(app, record, &role.key, format!("readiness: {err}")),
             }
         }
         let e = transition(&mut record, ChangeStatus::Ready, vec![])?;
@@ -201,6 +268,33 @@ pub async fn run(app: &AppState, change_id: &ChangeId) -> ApiResult<OrgChangeRec
     if record.status == ChangeStatus::Ready {
         commit(app, &mut record).await?;
     }
+    Ok(record)
+}
+
+/// End provisioning as FAILED. Any provider binding already created stays on
+/// the record and in the failure event for reconciliation and cleanup.
+fn fail(
+    app: &AppState,
+    mut record: OrgChangeRecord,
+    role_key: &str,
+    error: String,
+) -> ApiResult<OrgChangeRecord> {
+    let provider_agent_id = record
+        .provisioned
+        .get(role_key)
+        .map(|b| b.provider_agent_id.clone());
+    let failed = EventKind::ProvisioningFailed {
+        change_id: record.change_id.clone(),
+        role_key: role_key.to_owned(),
+        error: error.clone(),
+        provider_agent_id: provider_agent_id.clone(),
+    };
+    let mut reasons = vec![format!("provisioning `{role_key}` failed: {error}")];
+    if let Some(id) = provider_agent_id {
+        reasons.push(format!("provider resource retained for cleanup: {id}"));
+    }
+    let t = transition(&mut record, ChangeStatus::Failed, reasons)?;
+    save(app, &record, vec![failed, t])?;
     Ok(record)
 }
 
@@ -304,7 +398,10 @@ pub async fn resume_pending(app: &AppState) -> ApiResult<usize> {
         .filter(|c| {
             matches!(
                 c.status,
-                ChangeStatus::Validated | ChangeStatus::Provisioning | ChangeStatus::Ready
+                ChangeStatus::Proposed
+                    | ChangeStatus::Validated
+                    | ChangeStatus::Provisioning
+                    | ChangeStatus::Ready
             )
         })
         .collect();

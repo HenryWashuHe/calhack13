@@ -247,6 +247,10 @@ export type DomainEvent = {
         change_id: string;
         role_key: string;
         error: string;
+        /**
+         * Provider resource created before the failure, kept for cleanup.
+         */
+        provider_agent_id?: string | null;
       };
     }
   | {
@@ -766,6 +770,10 @@ export interface OrgChangeRecord {
   provisioned?: {
     [k: string]: AgentBinding;
   };
+  /**
+   * Role keys whose provider readiness check has passed. A provisioned binding without readiness is kept for reconciliation and cleanup.
+   */
+  ready?: string[];
   errors?: ValidationError[];
   committed_revision?: number | null;
   submitted_by: string;
