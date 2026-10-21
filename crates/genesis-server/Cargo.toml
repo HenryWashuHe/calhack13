@@ -16,6 +16,9 @@ path = "src/lib.rs"
 [dependencies]
 genesis-core.workspace = true
 genesis-providers.workspace = true
+genesis-apify = { path = "../genesis-apify" }
+genesis-forge = { path = "../genesis-forge" }
+genesis-verification = { path = "../genesis-verification" }
 anyhow.workspace = true
 async-stream = "0.3"
 axum.workspace = true

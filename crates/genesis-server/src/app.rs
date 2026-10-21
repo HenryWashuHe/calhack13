@@ -61,6 +61,8 @@ pub struct AppState {
     pub(crate) saga_gates: SagaGates,
     pub registry: Option<RegistryClient>,
     pub provision_timeout: Duration,
+    pub evidence_policy: Arc<crate::capability_evidence::EvidencePolicy>,
+    pub capability_runtime: Arc<crate::capability_runtime::CapabilityRuntime>,
 }
 
 /// Result of a kernel mutation.

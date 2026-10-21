@@ -1,0 +1,148 @@
+//! Temporary independent review probes: these assert observed bugs, not desired behavior.
+use chrono::Utc;
+use genesis_core::capability::StaticCatalog;
+use genesis_core::change::*;
+use genesis_core::engine::*;
+use genesis_core::ids::*;
+use genesis_core::lifecycle::*;
+use genesis_core::model::*;
+use std::collections::BTreeMap;
+
+fn role(key: &str) -> BootstrapRole {
+    BootstrapRole { key: key.into(), name: key.into(), charter: "owns work".into(),
+        authority: AuthorityGrant::default(), reports_to: None }
+}
+
+fn bootstrap_spec() -> MissionBootstrap {
+    MissionBootstrap { goal: "Review mission".into(), constraints: vec![], deadline: None,
+        success_checks: vec![], roles: vec![role("owner"), role("old_executor"), role("new_executor")],
+        responsibilities: vec![BootstrapResponsibility { purpose: "Open work".into(),
+            owner: "owner".into(), trigger: String::new(), termination: String::new() }] }
+}
+
+fn seed() -> (OrgState, ObservationId) {
+    let state = OrgState::new(OrgId::new("review"), "Review", Constitution::default());
+    let (out, mission) = bootstrap_mission(&state, &bootstrap_spec(), Utc::now()).unwrap();
+    let (out, obs) = record_observation(&out.state, &mission, "review", "Changed requirement", None, Utc::now()).unwrap();
+    (out.state, obs)
+}
+
+fn id(st: &OrgState, name: &str) -> RoleId {
+    st.roles.values().find(|r| r.name == name).unwrap().role_id.clone()
+}
+
+fn change(st: &OrgState, obs: &ObservationId, operations: Vec<OrgOp>) -> OrgState {
+    let p = OrgChangeProposal { expected_org_revision: st.revision,
+        trigger_evidence_ids: vec![obs.clone()], rationale: "Review mutation".into(),
+        operations, budget_limit_cents: None };
+    commit(st, &p, &KeyAllocation::allocate(&p), &BTreeMap::new(), &StaticCatalog::default(), Utc::now()).unwrap().state
+}
+
+fn delegate(st: &OrgState, obs: &ObservationId, executor: &RoleId) -> OrgState {
+    let rid = st.responsibilities.keys().next().unwrap().clone();
+    change(st, obs, vec![OrgOp::DelegateTask { responsibility: ResponsibilityRef::Existing { responsibility_id: rid },
+        executor: ExecutorRef::Role { role: RoleRef::existing(executor.clone()) }, task: "Execute work".into() }])
+}
+
+#[test]
+fn review_replaced_executor_keeps_result_epoch_valid() {
+    let (st, obs) = seed();
+    let old = id(&st, "old_executor");
+    let new = id(&st, "new_executor");
+    let st = delegate(&st, &obs, &old);
+    let rid = st.responsibilities.keys().next().unwrap().clone();
+    let grant = authorize_dispatch(&st, &old, &rid, None).unwrap();
+    let st = delegate(&st, &obs, &new);
+    assert!(authorize_dispatch(&st, &old, &rid, None).is_err());
+    assert!(check_result_epoch(&st, &rid, grant.epoch).is_ok(), "revoked executor's old result is still accepted");
+}
+
+#[test]
+fn review_retired_executor_keeps_result_epoch_valid() {
+    let (st, obs) = seed();
+    let old = id(&st, "old_executor");
+    let st = delegate(&st, &obs, &old);
+    let rid = st.responsibilities.keys().next().unwrap().clone();
+    let grant = authorize_dispatch(&st, &old, &rid, None).unwrap();
+    let st = change(&st, &obs, vec![OrgOp::RetireRole { role_id: old.clone(), handoffs: vec![] }]);
+    assert_eq!(st.roles[&old].state, RoleState::Retired);
+    assert!(check_result_epoch(&st, &rid, grant.epoch).is_ok(), "retired executor's old result is still accepted");
+}
+
+#[test]
+fn review_completed_responsibility_keeps_result_epoch_valid() {
+    let (st, _) = seed();
+    let rid = st.responsibilities.keys().next().unwrap();
+    let grant = authorize_dispatch(&st, &id(&st, "owner"), rid, None).unwrap();
+    let st = complete_responsibility(&st, rid).unwrap().state;
+    assert!(check_result_epoch(&st, rid, grant.epoch).is_ok(), "a second in-flight result can still commit after completion");
+}
+
+#[test]
+fn review_bootstrap_accepts_reporting_cycle() {
+    let st = OrgState::new(OrgId::new("review"), "Review", Constitution::default());
+    let mut spec = bootstrap_spec();
+    spec.roles[0].reports_to = Some("old_executor".into());
+    spec.roles[1].reports_to = Some("owner".into());
+    let (out, _) = bootstrap_mission(&st, &spec, Utc::now()).unwrap();
+    let owner = id(&out.state, "owner");
+    assert!(out.state.reports_transitively_to(&owner, &owner));
+}
+
+#[test]
+fn review_transfer_leaves_requirement_owner_stale() {
+    let (st, obs) = seed();
+    let mission = st.missions.keys().next().unwrap();
+    let (out, req) = record_requirement(&st, mission, "New need", std::slice::from_ref(&obs), "Done").unwrap();
+    let old = id(&out.state, "owner");
+    let new = id(&out.state, "new_executor");
+    let st = change(&out.state, &obs, vec![OrgOp::AssignResponsibility {
+        target: ResponsibilityTarget::FromRequirement { key: "requirement_owner".into(), requirement_id: req.clone(),
+            purpose: "Satisfy need".into(), trigger: "change".into(), termination: "done".into() },
+        owner: RoleRef::existing(old.clone()) }]);
+    let rid = st.responsibilities.values().find(|r| r.requirement_id.as_ref() == Some(&req)).unwrap().responsibility_id.clone();
+    let st = change(&st, &obs, vec![OrgOp::ReassignResponsibility { responsibility_id: rid.clone(), from: old.clone(), to: RoleRef::existing(new.clone()) }]);
+    assert_eq!(st.responsibilities[&rid].owner, Owner::Role(new));
+    assert_eq!(st.requirements[&req].owner, Owner::Role(old), "requirement and responsibility disagree");
+}
+
+#[test]
+fn review_budget_overflow_panics_or_bypasses_constitution() {
+    let st = OrgState::new(OrgId::new("review"), "Review", Constitution::default());
+    let mut spec = bootstrap_spec();
+    spec.roles[0].authority.budget_cents = u64::MAX;
+    spec.roles[1].authority.budget_cents = 1;
+    let result = std::panic::catch_unwind(|| bootstrap_mission(&st, &spec, Utc::now()));
+    if cfg!(debug_assertions) {
+        assert!(result.is_err(), "debug server panics on untrusted budget input");
+    } else {
+        let (out, _) = result.unwrap().unwrap();
+        assert_eq!(out.state.allocated_budget_cents(), 0, "release accepts huge budgets under zero constitution limit");
+    }
+}
+
+#[test]
+fn review_untrusted_proposal_budget_overflow_panics_or_passes() {
+    let (mut st, obs) = seed();
+    let mission = st.missions.keys().next().unwrap().clone();
+    let mut operations = Vec::new();
+    for (key, amount) in [("huge", u64::MAX), ("one", 1)] {
+        let (out, req) = record_requirement(&st, &mission, key, std::slice::from_ref(&obs), "Done").unwrap();
+        st = out.state;
+        operations.push(OrgOp::CreateRole { key: key.into(), name: key.into(), charter: "Do work".into(),
+            authority: AuthorityGrant::new(Vec::<String>::new(), amount), reports_to: None,
+            provider: Provider::Elastic, justification: RoleJustification::IndependentOwnership });
+        operations.push(OrgOp::AssignResponsibility {
+            target: ResponsibilityTarget::FromRequirement { key: key.into(), requirement_id: req,
+                purpose: "Do work".into(), trigger: "New".into(), termination: "Done".into() },
+            owner: RoleRef::new_key(key) });
+    }
+    let p = OrgChangeProposal { expected_org_revision: st.revision, trigger_evidence_ids: vec![obs],
+        rationale: "Review budget".into(), operations, budget_limit_cents: Some(0) };
+    let result = std::panic::catch_unwind(|| validate(&st, &p, &KeyAllocation::allocate(&p), &StaticCatalog::default(), Utc::now()));
+    if cfg!(debug_assertions) {
+        assert!(result.is_err(), "untrusted proposal crashes validation");
+    } else {
+        assert!(result.unwrap().is_ok(), "untrusted proposal bypasses constitution and change budget limits");
+    }
+}
