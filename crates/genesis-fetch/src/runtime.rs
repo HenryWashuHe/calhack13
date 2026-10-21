@@ -152,7 +152,7 @@ impl RuntimeStore {
             return Err(RuntimeError::Invalid);
         }
         connection.busy_timeout(Duration::from_secs(2))?;
-        connection.execute_batch("PRAGMA synchronous=FULL; CREATE TABLE IF NOT EXISTS fetch_meta (key TEXT PRIMARY KEY,value TEXT NOT NULL); CREATE TABLE IF NOT EXISTS fetch_contracts (id TEXT PRIMARY KEY,data TEXT NOT NULL); CREATE TABLE IF NOT EXISTS fetch_outbox (id TEXT PRIMARY KEY,contract_id TEXT NOT NULL,peer TEXT NOT NULL,data TEXT NOT NULL,digest TEXT NOT NULL,queued INTEGER NOT NULL DEFAULT 0); CREATE TABLE IF NOT EXISTS fetch_inbox (id TEXT PRIMARY KEY,digest TEXT NOT NULL,disposition TEXT NOT NULL,data TEXT NOT NULL);")?;
+        connection.execute_batch("PRAGMA synchronous=FULL; CREATE TABLE IF NOT EXISTS fetch_meta (key TEXT PRIMARY KEY,value TEXT NOT NULL); CREATE TABLE IF NOT EXISTS fetch_contracts (id TEXT PRIMARY KEY,data TEXT NOT NULL); CREATE TABLE IF NOT EXISTS fetch_outbox (id TEXT PRIMARY KEY,contract_id TEXT NOT NULL,peer TEXT NOT NULL,data TEXT NOT NULL,digest TEXT NOT NULL,queued INTEGER NOT NULL DEFAULT 0); CREATE TABLE IF NOT EXISTS fetch_inbox (id TEXT PRIMARY KEY,digest TEXT NOT NULL,disposition TEXT NOT NULL,data TEXT NOT NULL); CREATE TABLE IF NOT EXISTS fetch_rejected (sequence INTEGER PRIMARY KEY,data TEXT NOT NULL);")?;
         let tx = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
         for (key, value) in [("schema", "1"), ("org", org_id), ("bridge", bridge_address)] {
             tx.execute(
@@ -222,7 +222,8 @@ impl RuntimeStore {
         if message.expires_at <= now {
             return Err(RuntimeError::Invalid);
         }
-        capacity(&tx, "fetch_outbox")?;
+        let control = matches!(message.body, Body::ReleaseContract { .. });
+        capacity_limit(&tx, "fetch_outbox", if control { 20_000 } else { 10_000 })?;
         let mut contract = load(&tx, &message.contract_id)?;
         match &message.body {
             Body::RecruitRequest {
@@ -308,7 +309,7 @@ impl RuntimeStore {
             "INSERT INTO fetch_outbox(id,contract_id,peer,data,digest) VALUES (?1,?2,?3,?4,?5)",
             params![message.message_id, message.contract_id, peer, data, digest],
         )?;
-        storage_capacity(&tx)?;
+        storage_capacity(&tx, control)?;
         tx.commit()?;
         Ok(contract)
     }
@@ -413,7 +414,14 @@ impl RuntimeStore {
                 if old == digest {
                     Disposition::Duplicate
                 } else {
-                    reject("message_identity_conflict")
+                    {
+                        capacity(&tx, "fetch_rejected")?;
+                        tx.execute(
+                            "INSERT INTO fetch_rejected VALUES (?1,?2)",
+                            params![item.sequence, encode(item)?],
+                        )?;
+                        reject("message_identity_conflict")
+                    }
                 }
             } else {
                 capacity(&tx, "fetch_inbox")?;
@@ -438,7 +446,7 @@ impl RuntimeStore {
             "UPDATE fetch_meta SET value=?1 WHERE key='cursor'",
             [last.to_string()],
         )?;
-        storage_capacity(&tx)?;
+        storage_capacity(&tx, false)?;
         tx.commit()?;
         Ok(results)
     }
@@ -586,7 +594,7 @@ fn cursor(connection: &Connection) -> Result<u64, RuntimeError> {
 }
 fn encode<T: Serialize>(value: &T) -> Result<String, RuntimeError> {
     let data = serde_json::to_string(value).map_err(|_| RuntimeError::Invalid)?;
-    if data.len() > 16 * 1024 * 1024 {
+    if data.len() > 8 * 1024 * 1024 - 64 * 1024 {
         Err(RuntimeError::Capacity)
     } else {
         Ok(data)
@@ -604,7 +612,7 @@ fn load(connection: &Connection, id: &str) -> Result<Option<Contract>, RuntimeEr
         })
         .optional()?;
     data.map(|data| {
-        if data.len() > 16 * 1024 * 1024 {
+        if data.len() > 8 * 1024 * 1024 {
             return Err(RuntimeError::Invalid);
         }
         let c: Contract = decode_json(data.as_bytes()).map_err(|_| RuntimeError::Invalid)?;
@@ -635,23 +643,38 @@ fn load(connection: &Connection, id: &str) -> Result<Option<Contract>, RuntimeEr
     .transpose()
 }
 fn save(tx: &Transaction<'_>, contract: &Contract) -> Result<(), RuntimeError> {
-    tx.execute("INSERT INTO fetch_contracts(id,data) VALUES (?1,?2) ON CONFLICT(id) DO UPDATE SET data=excluded.data",params![contract.recruit.contract_id,encode(contract)?])?;
+    tx.execute("INSERT INTO fetch_contracts(id,data) VALUES (?1,?2) ON CONFLICT(id) DO UPDATE SET data=excluded.data",params![contract.recruit.contract_id,encode_contract(contract)?])?;
     Ok(())
 }
 fn capacity(tx: &Transaction<'_>, table: &str) -> Result<(), RuntimeError> {
+    capacity_limit(tx, table, 10_000)
+}
+fn capacity_limit(tx: &Transaction<'_>, table: &str, limit: u64) -> Result<(), RuntimeError> {
     let count: u64 = tx.query_row(&format!("SELECT COUNT(*) FROM {table}"), [], |r| r.get(0))?;
-    if count >= 10000 {
+    if count >= limit {
         Err(RuntimeError::Capacity)
     } else {
         Ok(())
     }
 }
 
-fn storage_capacity(tx: &Transaction<'_>) -> Result<(), RuntimeError> {
-    let used:u64=tx.query_row("SELECT COALESCE((SELECT SUM(length(CAST(data AS BLOB))) FROM fetch_contracts),0)+COALESCE((SELECT SUM(length(CAST(data AS BLOB))) FROM fetch_outbox),0)+COALESCE((SELECT SUM(length(CAST(data AS BLOB))) FROM fetch_inbox),0)",[],|r|r.get(0))?;
-    if used > 64 * 1024 * 1024 {
+fn storage_capacity(tx: &Transaction<'_>, control: bool) -> Result<(), RuntimeError> {
+    let used:u64=tx.query_row("SELECT COALESCE((SELECT SUM(length(CAST(data AS BLOB))) FROM fetch_contracts),0)+COALESCE((SELECT SUM(length(CAST(data AS BLOB))) FROM fetch_outbox),0)+COALESCE((SELECT SUM(length(CAST(data AS BLOB))) FROM fetch_inbox),0)+COALESCE((SELECT SUM(length(CAST(data AS BLOB))) FROM fetch_rejected),0)",[],|r|r.get(0))?;
+    if used > (if control { 256 } else { 64 }) * 1024 * 1024 {
         Err(RuntimeError::Capacity)
     } else {
         Ok(())
+    }
+}
+
+fn encode_contract(c: &Contract) -> Result<String, RuntimeError> {
+    if c.phase != ContractPhase::Released {
+        return encode(c);
+    }
+    let data = serde_json::to_string(c).map_err(|_| RuntimeError::Invalid)?;
+    if data.len() > 8 * 1024 * 1024 {
+        Err(RuntimeError::Capacity)
+    } else {
+        Ok(data)
     }
 }

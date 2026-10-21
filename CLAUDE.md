@@ -20,7 +20,7 @@ Codex has pushed the CREAO runtime in [PR #6](https://github.com/HenryWashuHe/ge
 branch `codex/creao-runtime`; see
 [the CREAO handoff](docs/CREAO_RUNTIME.md). It exposes durable pending/created/collected
 progress, not a ready synchronous role. Coordinate the pending/readiness saga hook
-after the PR #3 fixes. Fetch remains unassigned.
+after the PR #3 fixes. Codex owns Fetch on `codex/fetch-recruitment`; see [FETCH_RUNTIME.md](docs/FETCH_RUNTIME.md).
 The scoped capability-route ownership above supersedes the older general API
 ownership record; the whole-kernel credit fallback remains inactive.
 
@@ -31,3 +31,9 @@ UI ownership remains with Claude unless separately reassigned.
 See [the handoff record](docs/AGENT_HANDOFF.md) for current ownership and the
 information to leave at a checkpoint. Commit and push often: the agents work on
 different machines, so unpushed changes are not visible to the other agent.
+
+Latest integration: PR #5 and PR #6 now include the `efa3b4f` kernel fixes. The
+follow-up A→B→A delegation fencing bug is posted on PR #3 and remains Claude-owned.
+Codex reserves `crates/genesis-fetch`, `services/fetch-bridge`, their tests, the
+Fetch proof script and docs. The planner branch is Claude-owned; no planner edits
+are included in this workstream.
