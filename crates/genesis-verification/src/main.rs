@@ -1,4 +1,4 @@
-use genesis_verification::{verify, ArtifactPin, ExecutionEvidence, OracleSuite};
+use genesis_verification::{decode_json, verify, ArtifactPin, ExecutionEvidence, OracleSuite};
 use serde::de::DeserializeOwned;
 use std::collections::BTreeMap;
 use std::fs::File;
@@ -30,13 +30,20 @@ fn run() -> Result<u8, String> {
         if !["--suite", "--artifact", "--runs"].contains(&flag.as_str()) {
             return Err(format!("unknown argument {flag:?}\n{HELP}"));
         }
-        let path = iter.next().filter(|p| !p.starts_with("--"))
+        let path = iter
+            .next()
+            .filter(|p| !p.starts_with("--"))
             .ok_or_else(|| format!("missing path for {flag}"))?;
         if paths.insert(flag.as_str(), path.as_str()).is_some() {
             return Err(format!("duplicate argument {flag}"));
         }
     }
-    let get = |key| paths.get(key).copied().ok_or_else(|| format!("missing {key}\n{HELP}"));
+    let get = |key| {
+        paths
+            .get(key)
+            .copied()
+            .ok_or_else(|| format!("missing {key}\n{HELP}"))
+    };
     let suite: OracleSuite = read_json(get("--suite")?)?;
     let artifact: ArtifactPin = read_json(get("--artifact")?)?;
     let runs: Vec<ExecutionEvidence> = read_json(get("--runs")?)?;
@@ -51,13 +58,11 @@ fn run() -> Result<u8, String> {
 fn read_json<T: DeserializeOwned>(path: &str) -> Result<T, String> {
     let file = File::open(path).map_err(|e| format!("cannot open {path:?}: {e}"))?;
     let mut bytes = Vec::new();
-    file.take(MAX_FILE_BYTES + 1).read_to_end(&mut bytes)
+    file.take(MAX_FILE_BYTES + 1)
+        .read_to_end(&mut bytes)
         .map_err(|e| format!("cannot read {path:?}: {e}"))?;
     if bytes.len() as u64 > MAX_FILE_BYTES {
         return Err(format!("{path:?} exceeds the 8 MiB input limit"));
     }
-    serde_json::from_slice(&bytes).map_err(|e| {
-        // Don't echo raw data/unknown field names from an untrusted JSON payload.
-        format!("invalid JSON/schema in {path:?} at line {}, column {}", e.line(), e.column())
-    })
+    decode_json(&bytes).map_err(|e| format!("invalid JSON/schema in {path:?}: {e}"))
 }

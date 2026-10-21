@@ -67,8 +67,13 @@ pub enum RunStatus {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "status", rename_all = "snake_case", deny_unknown_fields)]
 pub enum ExtractionOutcome {
-    Supported { venues: Vec<Venue> },
-    Unsupported { reason: UnsupportedReason, evidence: EvidenceRef },
+    Supported {
+        venues: Vec<Venue>,
+    },
+    Unsupported {
+        reason: UnsupportedReason,
+        evidence: EvidenceRef,
+    },
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -186,8 +191,12 @@ pub struct AcceptedVerification {
 }
 
 impl AcceptedVerification {
-    pub fn report(&self) -> &VerificationReport { &self.report }
-    pub fn artifact(&self) -> &ArtifactPin { &self.report.artifact }
+    pub fn report(&self) -> &VerificationReport {
+        &self.report
+    }
+    pub fn artifact(&self) -> &ArtifactPin {
+        &self.report.artifact
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -203,7 +212,9 @@ impl VerificationOutcome {
             Self::Rejected(report) => report,
         }
     }
-    pub fn is_accepted(&self) -> bool { matches!(self, Self::Accepted(_)) }
+    pub fn is_accepted(&self) -> bool {
+        matches!(self, Self::Accepted(_))
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

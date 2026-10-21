@@ -1,0 +1,154 @@
+[
+  {
+    "case_id": "table-listings",
+    "artifact": {
+      "capability_id": "offline-venue-extractor",
+      "capability_version": "0.0.1",
+      "source_sha256": "181b6365b1e0d05746a09dd3c3e91485b4946099b918136bba6ee8b9f2cb16fd",
+      "actor_id": "synthetic-actor",
+      "build_id": "synthetic-build",
+      "build_number": "0.0.1"
+    },
+    "input_sha256": "4e13204a4c1bfd5fd44b7ed53d519f5ea106731848609e4ee086e2564d980b94",
+    "source": {
+      "url": "https://fixtures.genesis.example/venues/table.html",
+      "sha256": "cfd1346d006d2c97a93c3ebf29b78d066ea26204552dfe9f9671d5509761ffe2"
+    },
+    "run_id": "synthetic-run-table-listings",
+    "dataset_id": "synthetic-dataset-table-listings",
+    "status": "succeeded",
+    "output": {
+      "status": "supported",
+      "venues": [
+        {
+          "venue_id": "makers-loft",
+          "capacity": 90,
+          "price": {
+            "minor_units": 25000,
+            "currency": "USD"
+          },
+          "window": {
+            "start": "2026-11-15T02:00:00Z",
+            "end": "2026-11-15T06:00:00Z"
+          },
+          "availability": "unavailable",
+          "step_free": false,
+          "evidence": {
+            "source_url": "https://fixtures.genesis.example/venues/table.html",
+            "snapshot_sha256": "cfd1346d006d2c97a93c3ebf29b78d066ea26204552dfe9f9671d5509761ffe2",
+            "locator": "#makers-loft"
+          }
+        },
+        {
+          "venue_id": "grand-hall",
+          "capacity": 180,
+          "price": {
+            "minor_units": 75000,
+            "currency": "USD"
+          },
+          "window": {
+            "start": "2026-11-15T02:00:00Z",
+            "end": "2026-11-15T06:00:00Z"
+          },
+          "availability": "available",
+          "step_free": true,
+          "evidence": {
+            "source_url": "https://fixtures.genesis.example/venues/table.html",
+            "snapshot_sha256": "cfd1346d006d2c97a93c3ebf29b78d066ea26204552dfe9f9671d5509761ffe2",
+            "locator": "#grand-hall"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "case_id": "card-listings",
+    "artifact": {
+      "capability_id": "offline-venue-extractor",
+      "capability_version": "0.0.1",
+      "source_sha256": "181b6365b1e0d05746a09dd3c3e91485b4946099b918136bba6ee8b9f2cb16fd",
+      "actor_id": "synthetic-actor",
+      "build_id": "synthetic-build",
+      "build_number": "0.0.1"
+    },
+    "input_sha256": "f268ef0750c4104d1bfc7c23a1d94adfd11e28bc965ec2fdce1aee71599c00cc",
+    "source": {
+      "url": "https://fixtures.genesis.example/venues/cards.html",
+      "sha256": "57d1277f490ab8b0989d48b558a6ea5e7fb410e8e073bd80da1fc7a00f210136"
+    },
+    "run_id": "synthetic-run-card-listings",
+    "dataset_id": "synthetic-dataset-card-listings",
+    "status": "succeeded",
+    "output": {
+      "status": "supported",
+      "venues": [
+        {
+          "venue_id": "hill-auditorium",
+          "capacity": 220,
+          "price": {
+            "minor_units": 99000,
+            "currency": "CAD"
+          },
+          "window": {
+            "start": "2026-11-15T21:00:00Z",
+            "end": "2026-11-16T02:00:00Z"
+          },
+          "availability": "unavailable",
+          "step_free": false,
+          "evidence": {
+            "source_url": "https://fixtures.genesis.example/venues/cards.html",
+            "snapshot_sha256": "57d1277f490ab8b0989d48b558a6ea5e7fb410e8e073bd80da1fc7a00f210136",
+            "locator": "#hill-auditorium"
+          }
+        },
+        {
+          "venue_id": "lakeside-room",
+          "capacity": 140,
+          "price": {
+            "minor_units": 64000,
+            "currency": "CAD"
+          },
+          "window": {
+            "start": "2026-11-15T20:00:00Z",
+            "end": "2026-11-16T01:00:00Z"
+          },
+          "availability": "available",
+          "step_free": true,
+          "evidence": {
+            "source_url": "https://fixtures.genesis.example/venues/cards.html",
+            "snapshot_sha256": "57d1277f490ab8b0989d48b558a6ea5e7fb410e8e073bd80da1fc7a00f210136",
+            "locator": "#lakeside-room"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "case_id": "missing-price",
+    "artifact": {
+      "capability_id": "offline-venue-extractor",
+      "capability_version": "0.0.1",
+      "source_sha256": "181b6365b1e0d05746a09dd3c3e91485b4946099b918136bba6ee8b9f2cb16fd",
+      "actor_id": "synthetic-actor",
+      "build_id": "synthetic-build",
+      "build_number": "0.0.1"
+    },
+    "input_sha256": "76d3b01bdb00f238bde19d38b1b6031f55125dcbc20e6539276b7c310b66b4e4",
+    "source": {
+      "url": "https://fixtures.genesis.example/venues/missing-data.html",
+      "sha256": "ea0bc617af2c2c4d12408c61cbf0bb371e85fc047df3d92361fe5febaafd0022"
+    },
+    "run_id": "synthetic-run-missing-price",
+    "dataset_id": "synthetic-dataset-missing-price",
+    "status": "succeeded",
+    "output": {
+      "status": "unsupported",
+      "reason": "missing_required_data",
+      "evidence": {
+        "source_url": "https://fixtures.genesis.example/venues/missing-data.html",
+        "snapshot_sha256": "ea0bc617af2c2c4d12408c61cbf0bb371e85fc047df3d92361fe5febaafd0022",
+        "locator": "#incomplete-gallery"
+      }
+    }
+  }
+]
