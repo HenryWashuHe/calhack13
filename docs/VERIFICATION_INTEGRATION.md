@@ -43,6 +43,8 @@ Decode external bytes with `genesis_verification::decode_json` before constructi
 
 The companion [`genesis-apify`](../crates/genesis-apify/README.md) crate implements pinned execution and authenticated receipt collection through Apify's HTTP API. Its mock transport tests prove request/response handling locally; an account-backed smoke run remains required. It does not generate or build Actor source, capture source snapshots, or commit kernel state.
 
+For durable jobs, call `ApifyClient::submit(&request)`, persist the returned `RunTicket` with the current job/attempt, then call `resume(&request, &ticket)`. Recovery uses the same saved request and ticket. `resume` checks their binding, rechecks provider metadata and collects output without creating another run. The `execute` convenience call combines submission and collection for local tools; it does not persist a ticket between them. A lost POST response is still an unknown external outcome requiring reconciliation, so never blindly retry submission after an ambiguous error.
+
 ## What the evidence means
 
 | Evidence | Checked by the acceptance core | Trusted upstream responsibility |
@@ -77,3 +79,5 @@ Do not relabel A's report or change a case's input while retaining its old recei
 The crate's [README](../crates/genesis-verification/README.md) has runnable commands. Its static HTML snapshots cover table and card layouts, unavailable venues, different currencies and windows, and a missing-price response. The accepted sample uses different row ordering and equivalent UTC timestamps. `runs.rejected.json` changes one capacity while preserving a successful provider status, demonstrating why provider success alone cannot advance the capability.
 
 All sample receipts are synthetic and the source pin hashes a descriptive text file, not a runnable Actor. This proves the acceptance decision and JSON contract locally. Live Actor generation/build/execution, authenticated receipt collection, durable state transitions, and the second organization's end-to-end installation must be verified by the provider and kernel integrations.
+
+Run `bash scripts/check-capability-core.sh` to reproduce formatting, tests and Clippy for both crates. Hosted CI is not installed: the GitHub token lacks workflow-write permission. The proposed workflow and installation note are in [`docs/ci`](ci/README.md).
