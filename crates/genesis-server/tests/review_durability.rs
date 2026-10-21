@@ -455,3 +455,60 @@ async fn readiness_failure_retains_provider_identity() {
     }));
     assert_eq!(saga::resume_pending(&app).await.unwrap(), 0);
 }
+
+/// Finding 8: a subscriber that lags by more than one catch-up page plus the
+/// broadcast buffer still receives every event, in order, exactly once.
+#[tokio::test]
+async fn lagging_sse_subscriber_receives_every_event() {
+    use genesis_core::events::EventKind;
+    const N: u64 = 8_000;
+    let cfg = OrgConfig::dev("review", "Review");
+    let app = build_org(&cfg, None).unwrap();
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let url = format!("http://{}/api/v1/events", listener.local_addr().unwrap());
+    let router = app.clone().router();
+    let server = tokio::spawn(async move {
+        axum::serve(listener, router).await.unwrap();
+    });
+    let mut response = reqwest::Client::new()
+        .get(&url)
+        .bearer_auth(&cfg.tokens.operator)
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let start = app.store.events_after(0, 100).unwrap().len() as u64;
+
+    // Broadcast without yielding (current-thread runtime): the subscriber
+    // overflows the broadcast buffer before it reads anything.
+    let effects = (0..N)
+        .map(|i| EventKind::RoleActivated {
+            role_id: RoleId::new(format!("role-{i}")),
+        })
+        .collect();
+    let events = app
+        .store
+        .append_events(effects, &EventMeta::default(), |_| Ok(()))
+        .unwrap();
+    app.broadcast(&events);
+
+    let mut ids = Vec::new();
+    let mut buf = String::new();
+    let read = async {
+        while ids.last().copied() != Some(start + N) {
+            let chunk = response.chunk().await.unwrap().expect("stream ended");
+            buf.push_str(std::str::from_utf8(&chunk).unwrap());
+            while let Some(end) = buf.find('\n') {
+                let line: String = buf.drain(..=end).collect();
+                if let Some(id) = line.trim_end().strip_prefix("id:") {
+                    ids.push(id.trim().parse::<u64>().unwrap());
+                }
+            }
+        }
+    };
+    tokio::time::timeout(Duration::from_secs(20), read)
+        .await
+        .expect("all events delivered");
+    assert_eq!(ids, (1..=start + N).collect::<Vec<_>>());
+    server.abort();
+}
