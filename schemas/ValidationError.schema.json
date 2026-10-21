@@ -1,0 +1,61 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ValidationError",
+  "type": "object",
+  "required": [
+    "code",
+    "message"
+  ],
+  "properties": {
+    "code": {
+      "$ref": "#/definitions/ValidationCode"
+    },
+    "op_index": {
+      "description": "Index of the offending operation in the proposal, if any.",
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint",
+      "minimum": 0.0
+    },
+    "message": {
+      "type": "string"
+    }
+  },
+  "definitions": {
+    "ValidationCode": {
+      "type": "string",
+      "enum": [
+        "empty_change",
+        "revision_conflict",
+        "missing_evidence",
+        "unknown_evidence",
+        "duplicate_key",
+        "unknown_key",
+        "unknown_role",
+        "unknown_responsibility",
+        "unknown_requirement",
+        "unknown_contract",
+        "unknown_mission",
+        "role_not_active",
+        "authority_exceeds_constitution",
+        "budget_exceeded",
+        "change_budget_exceeded",
+        "role_limit_exceeded",
+        "contract_limit_exceeded",
+        "accountability_conflict",
+        "responsibility_not_open",
+        "requirement_not_unmet",
+        "capability_unknown",
+        "capability_not_approved",
+        "reporting_cycle",
+        "retirement_drops_obligations",
+        "new_role_without_responsibility",
+        "not_provisioned",
+        "invalid_transition",
+        "invalid_input"
+      ]
+    }
+  }
+}

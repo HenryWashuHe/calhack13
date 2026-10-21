@@ -1,0 +1,130 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MissionBootstrap",
+  "description": "Body of `POST /api/v1/missions`: a mission plus its initial organization.",
+  "type": "object",
+  "required": [
+    "goal"
+  ],
+  "properties": {
+    "goal": {
+      "type": "string"
+    },
+    "constraints": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "deadline": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "success_checks": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "roles": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/BootstrapRole"
+      }
+    },
+    "responsibilities": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/BootstrapResponsibility"
+      }
+    }
+  },
+  "definitions": {
+    "BootstrapRole": {
+      "type": "object",
+      "required": [
+        "charter",
+        "key",
+        "name"
+      ],
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "charter": {
+          "type": "string"
+        },
+        "authority": {
+          "default": {
+            "budget_cents": 0,
+            "scopes": []
+          },
+          "allOf": [
+            {
+              "$ref": "#/definitions/AuthorityGrant"
+            }
+          ]
+        },
+        "reports_to": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "AuthorityGrant": {
+      "description": "Scopes and budget a role may exercise. Scopes are free-form strings such as `\"ledger.reserve_venue\"`; the constitution lists which scopes exist.",
+      "type": "object",
+      "properties": {
+        "scopes": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "budget_cents": {
+          "default": 0,
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        }
+      }
+    },
+    "BootstrapResponsibility": {
+      "type": "object",
+      "required": [
+        "owner",
+        "purpose"
+      ],
+      "properties": {
+        "purpose": {
+          "type": "string"
+        },
+        "owner": {
+          "type": "string"
+        },
+        "trigger": {
+          "default": "",
+          "type": "string"
+        },
+        "termination": {
+          "default": "",
+          "type": "string"
+        }
+      }
+    }
+  }
+}

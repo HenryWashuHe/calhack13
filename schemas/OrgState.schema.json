@@ -1,0 +1,778 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "OrgState",
+  "description": "The organization aggregate. One serialized copy is stored per revision.",
+  "type": "object",
+  "required": [
+    "constitution",
+    "name",
+    "org_id",
+    "revision"
+  ],
+  "properties": {
+    "org_id": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "revision": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0.0
+    },
+    "constitution": {
+      "$ref": "#/definitions/Constitution"
+    },
+    "missions": {
+      "default": {},
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/Mission"
+      }
+    },
+    "observations": {
+      "default": {},
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/Observation"
+      }
+    },
+    "requirements": {
+      "default": {},
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/Requirement"
+      }
+    },
+    "responsibilities": {
+      "default": {},
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/Responsibility"
+      }
+    },
+    "roles": {
+      "default": {},
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/Role"
+      }
+    },
+    "assignments": {
+      "default": {},
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/Assignment"
+      }
+    },
+    "contracts": {
+      "default": {},
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/ContractorAgreement"
+      }
+    },
+    "installations": {
+      "default": {},
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/Installation"
+      }
+    }
+  },
+  "definitions": {
+    "Constitution": {
+      "description": "Organization-wide limits. A role can never exceed these.",
+      "type": "object",
+      "required": [
+        "budget_cents",
+        "max_active_contracts",
+        "max_active_roles",
+        "scopes"
+      ],
+      "properties": {
+        "scopes": {
+          "description": "Every scope that may be granted inside this organization.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "budget_cents": {
+          "description": "Total budget that can be allocated across non-retired roles.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "max_active_roles": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        },
+        "max_active_contracts": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        }
+      }
+    },
+    "Mission": {
+      "type": "object",
+      "required": [
+        "created_at",
+        "goal",
+        "mission_id",
+        "status"
+      ],
+      "properties": {
+        "mission_id": {
+          "type": "string"
+        },
+        "goal": {
+          "type": "string"
+        },
+        "constraints": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "deadline": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "success_checks": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "status": {
+          "$ref": "#/definitions/MissionStatus"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "MissionStatus": {
+      "type": "string",
+      "enum": [
+        "ACTIVE",
+        "SUCCEEDED",
+        "FAILED"
+      ]
+    },
+    "Observation": {
+      "type": "object",
+      "required": [
+        "mission_id",
+        "observation_id",
+        "observed_at",
+        "source",
+        "summary"
+      ],
+      "properties": {
+        "observation_id": {
+          "type": "string"
+        },
+        "mission_id": {
+          "type": "string"
+        },
+        "source": {
+          "description": "Where the evidence came from, e.g. `\"venue-portal\"` or `\"operator\"`.",
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "evidence_ref": {
+          "description": "Pointer to raw evidence (URL, dataset ID, ...).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "observed_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "Requirement": {
+      "type": "object",
+      "required": [
+        "acceptance",
+        "mission_id",
+        "owner",
+        "requirement_id",
+        "status",
+        "summary",
+        "triggering_evidence"
+      ],
+      "properties": {
+        "requirement_id": {
+          "type": "string"
+        },
+        "mission_id": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "triggering_evidence": {
+          "description": "Observations that caused this requirement. Must be non-empty.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "acceptance": {
+          "description": "Predicate that tells when the requirement is satisfied.",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/definitions/RequirementStatus"
+        },
+        "owner": {
+          "$ref": "#/definitions/Owner"
+        }
+      }
+    },
+    "RequirementStatus": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "ASSIGNED",
+            "SATISFIED"
+          ]
+        },
+        {
+          "description": "Owned by the mission controller until assigned.",
+          "type": "string",
+          "enum": [
+            "UNMET"
+          ]
+        }
+      ]
+    },
+    "Owner": {
+      "description": "Accountable owner of a requirement or responsibility.",
+      "oneOf": [
+        {
+          "description": "Unassigned work stays with the mission controller.",
+          "type": "object",
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "mission_controller"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "id",
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "role"
+              ]
+            },
+            "id": {
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "Responsibility": {
+      "type": "object",
+      "required": [
+        "epoch",
+        "mission_id",
+        "owner",
+        "purpose",
+        "responsibility_id",
+        "status",
+        "termination",
+        "trigger"
+      ],
+      "properties": {
+        "responsibility_id": {
+          "type": "string"
+        },
+        "mission_id": {
+          "type": "string"
+        },
+        "purpose": {
+          "type": "string"
+        },
+        "requirement_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "owner": {
+          "description": "Exactly one accountable owner.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Owner"
+            }
+          ]
+        },
+        "executor": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Executor"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "trigger": {
+          "description": "What wakes this responsibility up (event, schedule, ...).",
+          "type": "string"
+        },
+        "termination": {
+          "description": "When the responsibility ends.",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/definitions/ResponsibilityStatus"
+        },
+        "epoch": {
+          "description": "Ownership epoch. Advanced on every transfer; stale results are fenced.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        }
+      }
+    },
+    "Executor": {
+      "description": "Who currently executes a responsibility. Delegation changes the executor, never the accountable owner.",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "id",
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "role"
+              ]
+            },
+            "id": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "id",
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "contractor"
+              ]
+            },
+            "id": {
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "ResponsibilityStatus": {
+      "type": "string",
+      "enum": [
+        "OPEN",
+        "COMPLETED",
+        "CANCELLED"
+      ]
+    },
+    "Role": {
+      "type": "object",
+      "required": [
+        "authority",
+        "charter",
+        "created_in_revision",
+        "name",
+        "role_id",
+        "state"
+      ],
+      "properties": {
+        "role_id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "charter": {
+          "type": "string"
+        },
+        "authority": {
+          "$ref": "#/definitions/AuthorityGrant"
+        },
+        "reports_to": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "state": {
+          "$ref": "#/definitions/RoleState"
+        },
+        "binding": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/AgentBinding"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "capabilities": {
+          "description": "Exact capability versions attached to this role.",
+          "default": [],
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CapabilityRef"
+          }
+        },
+        "created_in_revision": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "retired_in_revision": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0.0
+        }
+      }
+    },
+    "AuthorityGrant": {
+      "description": "Scopes and budget a role may exercise. Scopes are free-form strings such as `\"ledger.reserve_venue\"`; the constitution lists which scopes exist.",
+      "type": "object",
+      "properties": {
+        "scopes": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "budget_cents": {
+          "default": 0,
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        }
+      }
+    },
+    "RoleState": {
+      "description": "Role lifecycle (TECH_SPEC §5).\n\n`PROPOSED -> PROVISIONING -> READY -> ACTIVE -> DRAINING -> RETIRED`, with `PROVISIONING_FAILED` as the failure exit of provisioning.",
+      "type": "string",
+      "enum": [
+        "PROPOSED",
+        "PROVISIONING",
+        "READY",
+        "ACTIVE",
+        "DRAINING",
+        "RETIRED",
+        "PROVISIONING_FAILED"
+      ]
+    },
+    "AgentBinding": {
+      "description": "Provider-side implementation of a role.",
+      "type": "object",
+      "required": [
+        "config_digest",
+        "provider",
+        "provider_agent_id"
+      ],
+      "properties": {
+        "provider": {
+          "$ref": "#/definitions/Provider"
+        },
+        "provider_agent_id": {
+          "description": "Provider's own identifier (Elastic agent ID, Fetch address, CREAO agent ID).",
+          "type": "string"
+        },
+        "config_digest": {
+          "description": "Digest of the effective configuration sent to the provider.",
+          "type": "string"
+        },
+        "conversation_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "Provider": {
+      "description": "Who implements a role or runs a job.",
+      "oneOf": [
+        {
+          "description": "Elastic Agent Builder on Serverless: internal specialists.",
+          "type": "string",
+          "enum": [
+            "elastic"
+          ]
+        },
+        {
+          "description": "Fetch.ai uAgents: independent external specialists.",
+          "type": "string",
+          "enum": [
+            "fetch"
+          ]
+        },
+        {
+          "description": "CREAO: persistent operational roles.",
+          "type": "string",
+          "enum": [
+            "creao"
+          ]
+        },
+        {
+          "description": "Apify: executable capabilities (Actors). Never an employee.",
+          "type": "string",
+          "enum": [
+            "apify"
+          ]
+        },
+        {
+          "description": "Implemented by the kernel itself (e.g. the mission controller).",
+          "type": "string",
+          "enum": [
+            "internal"
+          ]
+        },
+        {
+          "description": "Development-only stand-in. The UI must label it as not a live integration.",
+          "type": "string",
+          "enum": [
+            "dev_stub"
+          ]
+        }
+      ]
+    },
+    "CapabilityRef": {
+      "description": "Exact reference to an approved capability version. There is no `latest`.",
+      "type": "object",
+      "required": [
+        "capability_id",
+        "version"
+      ],
+      "properties": {
+        "capability_id": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      }
+    },
+    "Assignment": {
+      "type": "object",
+      "required": [
+        "assignment_id",
+        "epoch",
+        "responsibility_id",
+        "role_id",
+        "state"
+      ],
+      "properties": {
+        "assignment_id": {
+          "type": "string"
+        },
+        "role_id": {
+          "type": "string"
+        },
+        "responsibility_id": {
+          "type": "string"
+        },
+        "epoch": {
+          "description": "Copy of the responsibility epoch at assignment time.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "state": {
+          "$ref": "#/definitions/AssignmentState"
+        },
+        "lease_expires_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        }
+      }
+    },
+    "AssignmentState": {
+      "description": "Assignment of a role to a responsibility holder, fenced by epoch.",
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "ACTIVE",
+            "RELEASED"
+          ]
+        },
+        {
+          "description": "Superseded by a newer epoch; results from it are rejected.",
+          "type": "string",
+          "enum": [
+            "FENCED"
+          ]
+        }
+      ]
+    },
+    "ContractorAgreement": {
+      "type": "object",
+      "required": [
+        "contract_id",
+        "protocol",
+        "scope",
+        "specialist_address",
+        "state"
+      ],
+      "properties": {
+        "contract_id": {
+          "type": "string"
+        },
+        "specialist_address": {
+          "description": "Agentverse address of the independent specialist.",
+          "type": "string"
+        },
+        "protocol": {
+          "type": "string"
+        },
+        "scope": {
+          "type": "string"
+        },
+        "deadline": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "state": {
+          "$ref": "#/definitions/ContractState"
+        },
+        "supervising_role": {
+          "description": "Role that supervises the contractor, if any.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "ContractState": {
+      "description": "External contractor agreement (Fetch specialist).",
+      "type": "string",
+      "enum": [
+        "REQUESTED",
+        "OFFERED",
+        "ACCEPTED",
+        "RELEASED",
+        "DECLINED"
+      ]
+    },
+    "Installation": {
+      "description": "Org-local installation of a capability version.",
+      "type": "object",
+      "required": [
+        "capability",
+        "installation_id",
+        "installed_at",
+        "source_digest",
+        "status"
+      ],
+      "properties": {
+        "installation_id": {
+          "type": "string"
+        },
+        "capability": {
+          "$ref": "#/definitions/CapabilityRef"
+        },
+        "status": {
+          "$ref": "#/definitions/InstallationStatus"
+        },
+        "configuration": {
+          "description": "Local configuration supplied by this organization.",
+          "default": null
+        },
+        "acceptance_report_ref": {
+          "description": "Reference to the local acceptance report, once run.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source_digest": {
+          "type": "string"
+        },
+        "installed_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "InstallationStatus": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "ACCEPTED",
+            "REJECTED",
+            "UNINSTALLED"
+          ]
+        },
+        {
+          "description": "Manifest fetched; compatibility passed; local acceptance pending.",
+          "type": "string",
+          "enum": [
+            "CHECKING"
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,129 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DispatchRequest",
+  "description": "Body of `POST /api/v1/jobs`.",
+  "type": "object",
+  "required": [
+    "client_request_id",
+    "responsibility_id",
+    "role_id",
+    "task"
+  ],
+  "properties": {
+    "client_request_id": {
+      "description": "Client request ID for deduplication.",
+      "type": "string"
+    },
+    "role_id": {
+      "type": "string"
+    },
+    "responsibility_id": {
+      "type": "string"
+    },
+    "task": {
+      "type": "string"
+    },
+    "input": {
+      "default": null
+    },
+    "required_scope": {
+      "description": "Scope required for this work, checked against the role's authority.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "capability": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/CapabilityRef"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "provider": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/Provider"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "deadline": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    }
+  },
+  "definitions": {
+    "CapabilityRef": {
+      "description": "Exact reference to an approved capability version. There is no `latest`.",
+      "type": "object",
+      "required": [
+        "capability_id",
+        "version"
+      ],
+      "properties": {
+        "capability_id": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      }
+    },
+    "Provider": {
+      "description": "Who implements a role or runs a job.",
+      "oneOf": [
+        {
+          "description": "Elastic Agent Builder on Serverless: internal specialists.",
+          "type": "string",
+          "enum": [
+            "elastic"
+          ]
+        },
+        {
+          "description": "Fetch.ai uAgents: independent external specialists.",
+          "type": "string",
+          "enum": [
+            "fetch"
+          ]
+        },
+        {
+          "description": "CREAO: persistent operational roles.",
+          "type": "string",
+          "enum": [
+            "creao"
+          ]
+        },
+        {
+          "description": "Apify: executable capabilities (Actors). Never an employee.",
+          "type": "string",
+          "enum": [
+            "apify"
+          ]
+        },
+        {
+          "description": "Implemented by the kernel itself (e.g. the mission controller).",
+          "type": "string",
+          "enum": [
+            "internal"
+          ]
+        },
+        {
+          "description": "Development-only stand-in. The UI must label it as not a live integration.",
+          "type": "string",
+          "enum": [
+            "dev_stub"
+          ]
+        }
+      ]
+    }
+  }
+}
