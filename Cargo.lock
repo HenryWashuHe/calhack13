@@ -561,6 +561,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "genesis-elastic"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "chrono",
+ "genesis-core",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "genesis-forge"
 version = "0.1.0"
 dependencies = [
