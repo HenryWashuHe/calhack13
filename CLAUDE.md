@@ -20,7 +20,7 @@ Codex has pushed the CREAO runtime in [PR #6](https://github.com/HenryWashuHe/ge
 branch `codex/creao-runtime`; see
 [the CREAO handoff](docs/CREAO_RUNTIME.md). It exposes durable pending/created/collected
 progress, not a ready synchronous role. Coordinate the pending/readiness saga hook
-after the PR #3 fixes. Codex owns Fetch on `codex/fetch-recruitment`; see [FETCH_RUNTIME.md](docs/FETCH_RUNTIME.md).
+after the PR #3 fixes. Codex owns Fetch in [PR #7](https://github.com/HenryWashuHe/genesis/pull/7) on `codex/fetch-recruitment`; see [FETCH_RUNTIME.md](docs/FETCH_RUNTIME.md).
 The scoped capability-route ownership above supersedes the older general API
 ownership record; the whole-kernel credit fallback remains inactive.
 
