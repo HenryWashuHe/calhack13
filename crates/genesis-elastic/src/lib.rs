@@ -17,6 +17,7 @@
 //! `POST /_bulk`, `POST /{index}/_search`) with `Authorization: ApiKey`.
 //! Errors are sanitized: response bodies are never echoed into messages.
 
+pub mod agent_builder;
 #[cfg(feature = "fake")]
 pub mod fake;
 pub mod projection;
@@ -27,6 +28,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 use std::time::Duration;
 
+pub use agent_builder::{AgentBuilder, AgentBuilderConfig, ConverseResult};
 pub use projection::{capability_doc, org_docs};
 
 /// Connection settings for the Elasticsearch data endpoint.

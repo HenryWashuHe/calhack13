@@ -8,6 +8,8 @@ publish.workspace = true
 
 [dependencies]
 genesis-core.workspace = true
+genesis-providers.workspace = true
+async-trait.workspace = true
 chrono.workspace = true
 reqwest.workspace = true
 serde.workspace = true

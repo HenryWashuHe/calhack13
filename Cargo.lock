@@ -564,10 +564,12 @@ dependencies = [
 name = "genesis-elastic"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "axum",
  "chrono",
  "genesis-core",
  "genesis-elastic",
+ "genesis-providers",
  "reqwest",
  "serde",
  "serde_json",

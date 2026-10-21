@@ -216,3 +216,154 @@ pub async fn start() -> (ElasticClient, Shared) {
     .unwrap();
     (client, shared)
 }
+
+/// State of the fake Kibana Agent Builder API.
+#[derive(Default)]
+pub struct FakeKibanaState {
+    pub tools: BTreeMap<String, Value>,
+    pub agents: BTreeMap<String, Value>,
+    /// Number of POST requests per collection ("tools", "agents", "converse").
+    pub posts: BTreeMap<String, usize>,
+    /// Every request path, including any `/s/{space}` prefix.
+    pub paths: Vec<String>,
+    /// Requests that were writes but lacked `kbn-xsrf: true`.
+    pub missing_xsrf: usize,
+    pub auth: Vec<String>,
+    /// Store the next created agent but answer 409, as if a concurrent or
+    /// earlier request had created it.
+    pub conflict_after_create: bool,
+    /// Answer converse with a pending human-in-the-loop prompt.
+    pub awaiting_prompt: bool,
+}
+
+pub type KibanaShared = Arc<Mutex<FakeKibanaState>>;
+
+fn kibana_record(s: &KibanaShared, method: &str, path: &str, headers: &HeaderMap) {
+    let mut f = s.lock().unwrap();
+    f.paths.push(format!("{method} {path}"));
+    f.auth.push(
+        headers
+            .get("authorization")
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("")
+            .into(),
+    );
+    if method != "GET" && headers.get("kbn-xsrf").and_then(|v| v.to_str().ok()) != Some("true") {
+        f.missing_xsrf += 1;
+    }
+}
+
+fn not_found() -> (StatusCode, Json<Value>) {
+    (
+        StatusCode::NOT_FOUND,
+        Json(json!({"statusCode": 404, "error": "Not Found", "message": "secret-ish detail"})),
+    )
+}
+
+async fn kibana_get(
+    State(s): State<KibanaShared>,
+    Path(params): Path<std::collections::HashMap<String, String>>,
+    axum::extract::OriginalUri(uri): axum::extract::OriginalUri,
+    headers: HeaderMap,
+) -> (StatusCode, Json<Value>) {
+    kibana_record(&s, "GET", uri.path(), &headers);
+    let (collection, id) = (params["collection"].clone(), params["id"].clone());
+    let f = s.lock().unwrap();
+    let map = match collection.as_str() {
+        "tools" => &f.tools,
+        "agents" => &f.agents,
+        _ => return not_found(),
+    };
+    match map.get(&id) {
+        Some(v) => (StatusCode::OK, Json(v.clone())),
+        None => not_found(),
+    }
+}
+
+async fn kibana_post(
+    State(s): State<KibanaShared>,
+    Path(params): Path<std::collections::HashMap<String, String>>,
+    axum::extract::OriginalUri(uri): axum::extract::OriginalUri,
+    headers: HeaderMap,
+    Json(body): Json<Value>,
+) -> (StatusCode, Json<Value>) {
+    kibana_record(&s, "POST", uri.path(), &headers);
+    let collection = params["collection"].clone();
+    let mut f = s.lock().unwrap();
+    *f.posts.entry(collection.clone()).or_default() += 1;
+    if collection == "converse" {
+        let agent = body["agent_id"].as_str().unwrap_or("").to_owned();
+        let Some(a) = f.agents.get(&agent) else {
+            return not_found();
+        };
+        if f.awaiting_prompt {
+            return (
+                StatusCode::OK,
+                Json(
+                    json!({"conversation_id": "conv-1", "round_id": "round-1", "status": "awaiting_prompt",
+                            "response": {"prompts": [{"type": "confirmation", "id": "p1"}]}}),
+                ),
+            );
+        }
+        let tool = a["configuration"]["tools"][0]["tool_ids"][0].clone();
+        let conv = body["conversation_id"]
+            .as_str()
+            .unwrap_or("conv-1")
+            .to_owned();
+        return (
+            StatusCode::OK,
+            Json(json!({
+                "conversation_id": conv, "round_id": "round-1", "status": "completed",
+                "steps": [{"type": "reasoning", "reasoning": "search"},
+                          {"type": "tool_call", "tool_id": tool, "params": {}, "results": []}],
+                "response": {"message": format!("answer to: {}", body["input"].as_str().unwrap_or(""))}
+            })),
+        );
+    }
+    let id = body["id"].as_str().unwrap_or("").to_owned();
+    let conflict = f.conflict_after_create && collection == "agents";
+    let map = match collection.as_str() {
+        "tools" => &mut f.tools,
+        "agents" => &mut f.agents,
+        _ => return not_found(),
+    };
+    if map.contains_key(&id) {
+        return (
+            StatusCode::CONFLICT,
+            Json(json!({"statusCode": 409, "error": "Conflict", "message": "exists"})),
+        );
+    }
+    let mut stored = body.clone();
+    if collection == "agents" {
+        stored["type"] = json!("chat");
+    }
+    stored["readonly"] = json!(false);
+    map.insert(id, stored.clone());
+    if conflict {
+        f.conflict_after_create = false;
+        return (
+            StatusCode::CONFLICT,
+            Json(json!({"statusCode": 409, "error": "Conflict", "message": "exists"})),
+        );
+    }
+    (StatusCode::OK, Json(stored))
+}
+
+/// Start a fake Kibana Agent Builder API; returns its base URL.
+pub async fn start_kibana() -> (String, KibanaShared) {
+    let shared: KibanaShared = Arc::default();
+    let api = Router::new()
+        .route("/api/agent_builder/{collection}", post(kibana_post))
+        .route(
+            "/api/agent_builder/{collection}/{id}",
+            axum::routing::get(kibana_get),
+        );
+    let app = Router::new()
+        .merge(api.clone())
+        .nest("/s/{space}", api)
+        .with_state(shared.clone());
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let url = format!("http://{}", listener.local_addr().unwrap());
+    tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
+    (url, shared)
+}
