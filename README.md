@@ -14,7 +14,8 @@ The Rust capability implementation now creates source-bearing Actors, resumes pi
 4. [Research report](GENESIS-organization-evolution-research.md) — competitive research, sponsor division, risks, and demo design.
 5. [Capability forge integration](docs/FORGE_INTEGRATION.md) — runnable commands, source packaging, checkpoint recovery, and the kernel boundary.
 6. [Organization capability API](docs/CAPABILITY_EXECUTION.md) — trusted publication, independent adoption, persisted runs, and recovery.
-7. [Current implementation split](docs/NEXT_IMPLEMENTATION_SPLIT.md) — Codex capability work and Claude kernel/UI/Elastic assignments.
+7. [Persistent CREAO specialists](docs/CREAO_RUNTIME.md) — asynchronous creation/execution, shared account limits, recovery and the pending kernel hook.
+8. [Current implementation split](docs/NEXT_IMPLEMENTATION_SPLIT.md) — Codex capability work and Claude kernel/UI/Elastic assignments.
 
 ## Run the capability checks
 

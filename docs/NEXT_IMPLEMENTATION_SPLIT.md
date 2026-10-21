@@ -59,3 +59,18 @@ to absorb already-merged PR #2; retarget the stacked integration PR to main once
 PR #3 merges. Preserve the small managed-capability guards in `routes/jobs.rs` while
 fixing general dispatch atomicity. Shared changes are registrations/dependencies,
 `Store::lock` visibility, CLI configuration and child-worker cancellation.
+
+
+## Next Codex goal: persistent CREAO specialists
+
+The capability milestone is pushed through `130fd88` in PR #5. Codex continues on
+`codex/creao-runtime`, reserving the new `crates/genesis-creao` client/runtime,
+`genesis-providers/src/creao.rs`, related tests/docs and narrow registrations.
+CREAO operations will retain creation/run IDs, share a durable account limiter,
+and recover known runs with GETs without treating native completion as authority.
+Claude retains all issue #4 fixes and Elastic/UI. Fetch remains unassigned.
+
+The current generic provisioning saga cannot represent a pending CREAO creation
+without failing it. Codex will expose typed progress and durable operations at the
+provider boundary; the pending/readiness integration hook must be coordinated with
+Claude rather than hiding an asynchronous create inside an unrecoverable call.

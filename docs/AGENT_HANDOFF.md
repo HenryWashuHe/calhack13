@@ -21,7 +21,10 @@ regressions and automatic-worker/database-restart validation.
 Claude should fix PR #3 first, merge main (PR #2 is merged), then integrate the
 capability branch and implement Elastic/UI evidence. Repository assignments are
 posted; they do not prove the other machine has read them. No whole-kernel takeover
-has been activated. Fetch and CREAO live adapters remain separate unassigned work.
+has been activated. Fetch remains unassigned. Codex has taken the CREAO client/runtime on
+`codex/creao-runtime`; [CREAO_RUNTIME.md](CREAO_RUNTIME.md) records the implemented
+provider boundary, offline CLI and pending kernel/readiness hook. Native completion
+is not role activation, and the live-account smoke gate is still open.
 
 ## Ownership before the scoped integration handoff
 
