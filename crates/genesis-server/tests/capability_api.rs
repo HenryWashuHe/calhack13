@@ -7,7 +7,7 @@ use genesis_apify::{ApifyClient, RunLimits, SourceFile};
 use genesis_forge::{CandidateSpec, ForgeSession, SourcePackage};
 use genesis_providers::{ApifyCapabilityExecutor, DevStub, ProviderSet};
 use genesis_server::registry::{self, RegistryState};
-use genesis_server::{build_org, parse_publishers, OrgConfig};
+use genesis_server::{build_org, parse_publishers, serve_org, OrgConfig};
 use genesis_verification::{decode_json, ArtifactPin, ExecutionEvidence, OracleSuite};
 use reqwest::StatusCode;
 use serde_json::{json, Value};
@@ -101,6 +101,7 @@ fn manifest(publisher: &str) -> Value {
 struct Server {
     url: String,
     task: tokio::task::JoinHandle<()>,
+    process_shutdown: Option<tokio::sync::oneshot::Sender<()>>,
 }
 
 impl Server {
@@ -108,12 +109,56 @@ impl Server {
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
         let url = format!("http://{}", listener.local_addr().unwrap());
         let task = tokio::spawn(async move { axum::serve(listener, router).await.unwrap() });
-        Self { url, task }
+        Self {
+            url,
+            task,
+            process_shutdown: None,
+        }
+    }
+
+    /// A dedicated runtime models process shutdown: all background workers are
+    /// gone before the same SQLite database is opened by the replacement server.
+    async fn start_org(app: genesis_server::app::AppState) -> Self {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let url = format!("http://{}", listener.local_addr().unwrap());
+        let listener = listener.into_std().unwrap();
+        let (shutdown, stopped) = tokio::sync::oneshot::channel();
+        let task = tokio::task::spawn_blocking(move || {
+            let runtime = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+                .unwrap();
+            runtime.block_on(async move {
+                let listener = TcpListener::from_std(listener).unwrap();
+                tokio::select! {
+                    result = serve_org(app, listener) => result.unwrap(),
+                    _ = stopped => {}
+                }
+            });
+        });
+        Self {
+            url,
+            task,
+            process_shutdown: Some(shutdown),
+        }
+    }
+
+    async fn stop(mut self) {
+        if let Some(shutdown) = self.process_shutdown.take() {
+            let _ = shutdown.send(());
+            (&mut self.task).await.unwrap();
+        } else {
+            self.task.abort();
+            let _ = (&mut self.task).await;
+        }
     }
 }
 
 impl Drop for Server {
     fn drop(&mut self) {
+        if let Some(shutdown) = self.process_shutdown.take() {
+            let _ = shutdown.send(());
+        }
         self.task.abort();
     }
 }
@@ -311,6 +356,19 @@ impl Org {
         }
     }
 
+    async fn start_with_worker(config: &OrgConfig, mock: &ApifyMock) -> Self {
+        let app = build_org(config, Some(mock.providers())).unwrap();
+        Self {
+            server: Server::start_org(app).await,
+            id: config.org_id.as_str().to_owned(),
+            http: reqwest::Client::builder()
+                .timeout(Duration::from_secs(5))
+                .no_proxy()
+                .build()
+                .unwrap(),
+        }
+    }
+
     async fn request(
         &self,
         method: reqwest::Method,
@@ -434,6 +492,29 @@ impl Org {
             let response = self.get(&format!("/capability-runs/{id}")).await;
             assert_eq!(response["phase"], "collected", "{response}");
         }
+    }
+
+    async fn wait_for_worker(&self, ids: &[String]) {
+        tokio::time::timeout(Duration::from_secs(8), async {
+            loop {
+                let mut complete = true;
+                for id in ids {
+                    let record = self.get(&format!("/capability-runs/{id}")).await;
+                    let phase = record["phase"].as_str().unwrap();
+                    assert!(
+                        !["failed", "rejected", "needs_reconciliation"].contains(&phase),
+                        "automatic worker failed: {record}"
+                    );
+                    complete &= phase == "collected";
+                }
+                if complete {
+                    return;
+                }
+                tokio::time::sleep(Duration::from_millis(25)).await;
+            }
+        })
+        .await
+        .expect("automatic worker did not collect all cases within 8 seconds");
     }
 
     async fn accept(&self, installed: &Installed, ids: &[String]) -> Value {
@@ -608,4 +689,83 @@ async fn normal_run_rejects_changed_input_replay_and_generic_passed_results() {
     assert_eq!(mock.submissions(), 4);
     assert!(a.get("/ledger").await.as_array().unwrap().is_empty());
     mock.assert_no_oracle_or_synthesis_requests();
+}
+
+#[tokio::test]
+async fn automatic_worker_and_accepted_installation_survive_sqlite_restart() {
+    let registry = registry().await;
+    let mock = ApifyMock::start().await;
+    let database = tempfile::tempdir().unwrap();
+    let mut config = OrgConfig::dev("org_a", "Persistent organization");
+    config.db = Some(database.path().join("organization.sqlite"));
+    config.registry_url = Some(registry.url.clone());
+    config.registry_token = Some("org_a-registry".into());
+    config.oracle_suites = vec![suite()];
+    config.forge_checkpoints = vec![checkpoint()];
+
+    let a = Org::start_with_worker(&config, &mock).await;
+    a.publish().await;
+    let installed = a.seed_and_install().await;
+    let case_jobs = a.checks(&installed).await;
+    // No /step calls: serve_org's real background worker submits and collects.
+    a.wait_for_worker(&case_jobs).await;
+    let accepted = a.accept(&installed, &case_jobs).await;
+    a.attach(&installed).await;
+    let accepted_reference = accepted["installation"]["acceptance_report_ref"].clone();
+    assert!(accepted_reference
+        .as_str()
+        .unwrap()
+        .starts_with("verification:"));
+    assert_eq!(mock.submissions(), 3);
+    a.server.stop().await;
+
+    // Rebuild every in-memory object from the same persisted database and
+    // immutable backend catalog. No synthesis or acceptance is repeated.
+    let restarted = Org::start_with_worker(&config, &mock).await;
+    let state = restarted.get("/organization").await;
+    let restored = &state["installations"][&installed.id];
+    assert_eq!(restored["status"], "ACCEPTED");
+    assert_eq!(restored["acceptance_report_ref"], accepted_reference);
+    assert_eq!(
+        restored["source_digest"],
+        checkpoint().artifact().unwrap().source_sha256
+    );
+    for id in &case_jobs {
+        let record = restarted.get(&format!("/capability-runs/{id}")).await;
+        assert_eq!(record["phase"], "collected");
+        assert_eq!(
+            record["request"]["artifact"],
+            json!(checkpoint().artifact().unwrap())
+        );
+    }
+    assert_eq!(mock.submissions(), 3);
+
+    let (status, job) = restarted
+        .post(
+            "/capability-runs",
+            json!({
+                "client_request_id":"after-process-restart","installation_id":installed.id,
+                "role_id":installed.role,"responsibility_id":installed.responsibility,
+                "suite_id":suite().suite_id,"input":suite().cases[0].input,
+            }),
+        )
+        .await;
+    assert_eq!(status, StatusCode::ACCEPTED, "{job}");
+    let job_id = job["job_id"].as_str().unwrap().to_owned();
+    restarted
+        .wait_for_worker(std::slice::from_ref(&job_id))
+        .await;
+    assert_eq!(
+        restarted.get(&format!("/jobs/{job_id}")).await["status"],
+        "VERIFYING"
+    );
+    assert_eq!(mock.submissions(), 4);
+    assert!(restarted
+        .get("/ledger")
+        .await
+        .as_array()
+        .unwrap()
+        .is_empty());
+    mock.assert_no_oracle_or_synthesis_requests();
+    restarted.server.stop().await;
 }
