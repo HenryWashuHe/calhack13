@@ -16,7 +16,8 @@ capability execution and independent local acceptance in
 Claude's immediate assignment is [issue #4](https://github.com/HenryWashuHe/genesis/issues/4):
 fix the reproduced kernel/saga/dispatch/SSE/UI findings in PR #3, then implement
 Elastic specialist provisioning/retrieval and display the new capability evidence.
-Codex is now implementing the CREAO runtime on `codex/creao-runtime`; see
+Codex has pushed the CREAO runtime in [PR #6](https://github.com/HenryWashuHe/genesis/pull/6),
+branch `codex/creao-runtime`; see
 [the CREAO handoff](docs/CREAO_RUNTIME.md). It exposes durable pending/created/collected
 progress, not a ready synchronous role. Coordinate the pending/readiness saga hook
 after the PR #3 fixes. Fetch remains unassigned.
