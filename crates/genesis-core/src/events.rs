@@ -2,7 +2,7 @@
 //! consumers read them in sequence order.
 
 use crate::ids::*;
-use crate::lifecycle::{ChangeStatus, JobStatus};
+use crate::lifecycle::{ChangeStatus, ContractState, JobStatus};
 use crate::model::{CapabilityRef, Executor, Provider};
 use chrono::{DateTime, Utc};
 use schemars::JsonSchema;
@@ -111,6 +111,11 @@ pub enum EventKind {
         contract_id: ContractId,
         specialist_address: String,
         scope: String,
+    },
+    ContractStateChanged {
+        contract_id: ContractId,
+        from: ContractState,
+        to: ContractState,
     },
     CapabilityAttached {
         role_id: RoleId,
