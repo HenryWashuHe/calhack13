@@ -5,6 +5,11 @@ on:
     paths:
       - "crates/genesis-verification/**"
       - "crates/genesis-apify/**"
+      - "crates/genesis-forge/**"
+      - "actors/venue-extractor-template/**"
+      - "scripts/check-capability-core.sh"
+      - "scripts/demo-local-capability.mjs"
+      - "docs/ci/capability-core.yml.example"
       - ".github/workflows/capability-core.yml"
       - "Cargo.toml"
       - "Cargo.lock"
@@ -13,6 +18,11 @@ on:
     paths:
       - "crates/genesis-verification/**"
       - "crates/genesis-apify/**"
+      - "crates/genesis-forge/**"
+      - "actors/venue-extractor-template/**"
+      - "scripts/check-capability-core.sh"
+      - "scripts/demo-local-capability.mjs"
+      - "docs/ci/capability-core.yml.example"
       - ".github/workflows/capability-core.yml"
       - "Cargo.toml"
       - "Cargo.lock"
@@ -29,7 +39,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        crate: [genesis-verification, genesis-apify]
+        crate: [genesis-verification, genesis-apify, genesis-forge]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Install pinned Rust toolchain
@@ -43,3 +53,33 @@ jobs:
         run: cargo +1.94.0 test --locked --manifest-path crates/genesis-verification/Cargo.toml --features serde_json/preserve_order
       - name: Reject lint warnings
         run: cargo +1.94.0 clippy --locked --manifest-path crates/${{ matrix.crate }}/Cargo.toml --all-targets -- -D warnings
+
+  actor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0; verified in actions/setup-node
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: actors/venue-extractor-template/package-lock.json
+      - name: Install locked Actor dependencies
+        working-directory: actors/venue-extractor-template
+        run: npm ci --include=dev --ignore-scripts --no-audit --no-fund
+      - name: Compile Actor and test HTTP extraction and local SDK storage
+        working-directory: actors/venue-extractor-template
+        run: npm test
+
+  local-capability-demo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0; verified in actions/setup-node
+        with:
+          node-version: "24"
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.94.0 --profile minimal
+      - name: Demonstrate package reuse and independent rejection locally
+        env:
+          RUSTUP_TOOLCHAIN: "1.94.0"
+        run: node scripts/demo-local-capability.mjs
