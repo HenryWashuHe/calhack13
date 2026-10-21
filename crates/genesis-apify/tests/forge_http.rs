@@ -636,3 +636,60 @@ async fn tampered_tickets_fail_before_network() {
         assert!(!format!("{error:?}").contains(TOKEN));
     }
 }
+
+#[tokio::test]
+async fn public_ticket_preflight_rejects_schema_ids_and_foreign_build_version() {
+    let (actor, ticket) = tickets().await;
+    actor.validate_for(&definition()).unwrap();
+    ticket.validate_for(&definition(), &actor).unwrap();
+    for (field, value) in [
+        ("schema_version", json!(999)),
+        ("actor_id", json!("")),
+        ("actor_id", json!("../outside")),
+        ("version_number", json!("0.2")),
+        ("definition_sha256", json!("a".repeat(64))),
+    ] {
+        let mut saved = serde_json::to_value(&actor).unwrap();
+        saved[field] = value;
+        let invalid: ActorTicket = serde_json::from_value(saved).unwrap();
+        assert_eq!(
+            invalid.validate_for(&definition()).unwrap_err().kind,
+            ForgeErrorKind::TicketMismatch
+        );
+        assert_eq!(
+            ticket
+                .validate_for(&definition(), &invalid)
+                .unwrap_err()
+                .kind,
+            ForgeErrorKind::TicketMismatch
+        );
+    }
+    for (field, value) in [
+        ("schema_version", json!(999)),
+        ("actor_id", json!("other")),
+        ("build_id", json!("")),
+        ("build_id", json!("../outside")),
+        ("build_number", json!("0.2.1")),
+        ("build_number", json!("0.1.0")),
+        ("build_number", json!("0.1.100000")),
+        ("version_number", json!("0.2")),
+        ("definition_sha256", json!("a".repeat(64))),
+    ] {
+        let mut saved = serde_json::to_value(&ticket).unwrap();
+        saved[field] = value;
+        let invalid: BuildTicket = serde_json::from_value(saved).unwrap();
+        assert_eq!(
+            invalid
+                .validate_for(&definition(), &actor)
+                .unwrap_err()
+                .kind,
+            ForgeErrorKind::TicketMismatch
+        );
+    }
+    let mut changed = definition();
+    changed.source_files[0].content.push('!');
+    assert_eq!(
+        actor.validate_for(&changed).unwrap_err().kind,
+        ForgeErrorKind::TicketMismatch
+    );
+}
