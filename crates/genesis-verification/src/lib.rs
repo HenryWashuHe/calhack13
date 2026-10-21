@@ -7,4 +7,4 @@ mod verify;
 
 pub use json::{decode_json, JsonDecodeError};
 pub use model::*;
-pub use verify::{json_sha256, verify};
+pub use verify::{json_sha256, validate_artifact, validate_suite, verify};
