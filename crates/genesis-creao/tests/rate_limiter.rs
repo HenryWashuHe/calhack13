@@ -189,3 +189,50 @@ async fn expired_deadline_does_not_take_a_reservation_and_errors_are_sanitized()
         Err(LimiterError::InvalidConfiguration)
     );
 }
+
+#[tokio::test]
+async fn reader_blocking_commit_retries_without_leaking_a_reservation() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("account-limits.db");
+    let limiter = AccountLimiter::open(&path, "account", one()).unwrap();
+    let reader = rusqlite::Connection::open(&path).unwrap();
+    // A deferred transaction holding a read lock permits BEGIN IMMEDIATE but
+    // blocks its later COMMIT in rollback-journal mode. This is a different
+    // contention boundary from another writer blocking BEGIN IMMEDIATE.
+    reader
+        .execute_batch("BEGIN DEFERRED; SELECT * FROM creao_account_limits;")
+        .unwrap();
+    assert_eq!(
+        limiter
+            .acquire(
+                RequestKind::Read,
+                Instant::now() + Duration::from_millis(40)
+            )
+            .await,
+        Err(LimiterError::DeadlineExceeded)
+    );
+    reader.execute_batch("ROLLBACK;").unwrap();
+    let count: u32 = reader
+        .query_row(
+            "SELECT COUNT(*) FROM creao_account_reservations",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(
+        count, 0,
+        "failed commits must roll back attempted reservations"
+    );
+    limiter
+        .acquire(RequestKind::Read, deadline())
+        .await
+        .unwrap();
+    let count: u32 = reader
+        .query_row(
+            "SELECT COUNT(*) FROM creao_account_reservations",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(count, 1);
+}

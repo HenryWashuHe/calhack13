@@ -316,8 +316,16 @@ impl AccountLimiter {
             .map_err(|_| LimiterError::Storage)?;
             Reservation::Granted
         };
-        tx.commit().map_err(|_| LimiterError::Storage)?;
-        Ok(reservation)
+        match tx.commit() {
+            Ok(()) => Ok(reservation),
+            // In rollback-journal mode BEGIN IMMEDIATE can succeed while a
+            // reader still holds a shared lock; COMMIT then needs that reader
+            // to finish. rusqlite rolls back the consumed transaction on error.
+            // Retry only once rollback has restored autocommit, so a failed
+            // commit cannot leave a reservation behind or be counted twice.
+            Err(error) if busy(&error) && connection.is_autocommit() => Ok(Reservation::Busy),
+            Err(_) => Err(LimiterError::Storage),
+        }
     }
 }
 
