@@ -580,6 +580,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "genesis-fetch"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "chrono",
+ "clap",
+ "genesis-verification",
+ "reqwest",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
 name = "genesis-forge"
 version = "0.1.0"
 dependencies = [
