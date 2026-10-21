@@ -96,4 +96,13 @@ src/extractor.ts
 
 Tests, the baseline, README, portal fixtures, oracle data, local storage, `node_modules`, and compiled output are excluded. The package lock pins npm dependency resolutions. The Docker tag pins the Node major version but remains mutable; a source digest alone does not attest the final container image. The forge must retain the actual provider build ID/number and independently verify that build.
 
+The lockfile overrides `get-uri`'s transitive `basic-ftp` dependency to 6.2.3
+because its declared 5.x range includes the known
+[directory-listing denial of service](https://github.com/advisories/GHSA-c475-qrg2-pj4r).
+The 6.x API retains the methods used by `get-uri`; its intentional behavior change
+denies separate FTP transfer hosts by default. This Actor fetches only HTTPS,
+but the SDK's optional proxy dependency still brings that package into the image.
+The override is exercised by the SDK local-storage checks and the cross-language
+demo; no FTP support is claimed by GENESIS.
+
 The runtime uses the current official [`Actor.getInput`, `Actor.main`, and `Actor.pushData` APIs](https://docs.apify.com/sdk/js/reference/class/Actor). Actor metadata and the input schema follow [Apify's Actor definition format](https://docs.apify.com/actors/development/actor-definition/actor-json). The [official Docker guidance](https://docs.apify.com/sdk/js/docs/concepts/docker-images) recommends a versioned slim base with dependencies declared in `package.json`; the build stage explicitly includes development dependencies despite the base image's production environment.
