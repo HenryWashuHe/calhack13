@@ -45,6 +45,7 @@ Rust is the core implementation language. The Fetch sidecar keeps the official P
 - **Fetch.ai:** discover and recruit independently running specialists.
 - **Elastic Agent Builder on Serverless:** create internal specialists and skills; retrieve organization evidence and shared capabilities.
 - **Apify:** create, build, and execute missing web capabilities.
+- [Apify sponsor announcement notes](docs/APIFY_SPONSOR_NOTES.md): meaningful-use demo, announced credits, and the separate AI Chat category.
 - **CREAO:** create reusable agents for continuing operational responsibilities.
 - **GENESIS:** own roles, authority, budgets, assignments, lifecycle, verification gates, and adoption decisions.
 
