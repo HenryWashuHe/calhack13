@@ -49,13 +49,23 @@ impl Default for RunLimits {
 }
 
 /// Trusted backend context. Do not construct from generated Actor metadata.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct RunRequest {
     pub case_id: String,
     pub artifact: ArtifactPin,
     pub input: Value,
     /// Backend-captured fixture/source; the cloud does not attest this digest.
     pub source: SourceSnapshot,
+}
+
+impl RunRequest {
+    /// Validate restored backend context without network access, using the
+    /// default input size limit (256 KiB). Deserialization is not authentication.
+    /// A client's own configured bounds are also enforced before execution.
+    pub fn validate(&self) -> Result<(), Error> {
+        validated_run_input(self, RunLimits::default().max_input_bytes).map(|_| ())
+    }
 }
 
 /// Persist this receipt in trusted kernel storage before waiting for completion.
