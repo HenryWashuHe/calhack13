@@ -1,0 +1,16 @@
+[package]
+name = "genesis-providers"
+description = "Provider adapter traits for Elastic, Fetch, CREAO and Apify, plus a labeled development stub"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+genesis-core.workspace = true
+async-trait.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+uuid.workspace = true

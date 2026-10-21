@@ -1,0 +1,218 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Job",
+  "description": "Every dispatch carries this envelope.",
+  "type": "object",
+  "required": [
+    "assignment_id",
+    "attempt_id",
+    "attempt_no",
+    "correlation_id",
+    "created_at",
+    "epoch",
+    "idempotency_key",
+    "job_id",
+    "mission_id",
+    "org_id",
+    "responsibility_id",
+    "role_id",
+    "status",
+    "task",
+    "updated_at"
+  ],
+  "properties": {
+    "job_id": {
+      "type": "string"
+    },
+    "org_id": {
+      "type": "string"
+    },
+    "mission_id": {
+      "type": "string"
+    },
+    "role_id": {
+      "type": "string"
+    },
+    "responsibility_id": {
+      "type": "string"
+    },
+    "assignment_id": {
+      "type": "string"
+    },
+    "epoch": {
+      "description": "Responsibility epoch at dispatch time. Results must carry the same epoch.",
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0.0
+    },
+    "task": {
+      "type": "string"
+    },
+    "input": {
+      "default": null
+    },
+    "attempt_id": {
+      "type": "string"
+    },
+    "attempt_no": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0.0
+    },
+    "correlation_id": {
+      "type": "string"
+    },
+    "idempotency_key": {
+      "type": "string"
+    },
+    "deadline": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "capability": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/CapabilityRef"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "provider": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/Provider"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "status": {
+      "$ref": "#/definitions/JobStatus"
+    },
+    "provider_refs": {
+      "description": "Provider identifiers (run ID, dataset ID, conversation ID, ...).",
+      "default": {},
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "raw_status": {
+      "description": "Last provider-native status string, preserved for diagnosis.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "result": true,
+    "rejection_reason": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "definitions": {
+    "CapabilityRef": {
+      "description": "Exact reference to an approved capability version. There is no `latest`.",
+      "type": "object",
+      "required": [
+        "capability_id",
+        "version"
+      ],
+      "properties": {
+        "capability_id": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      }
+    },
+    "Provider": {
+      "description": "Who implements a role or runs a job.",
+      "oneOf": [
+        {
+          "description": "Elastic Agent Builder on Serverless: internal specialists.",
+          "type": "string",
+          "enum": [
+            "elastic"
+          ]
+        },
+        {
+          "description": "Fetch.ai uAgents: independent external specialists.",
+          "type": "string",
+          "enum": [
+            "fetch"
+          ]
+        },
+        {
+          "description": "CREAO: persistent operational roles.",
+          "type": "string",
+          "enum": [
+            "creao"
+          ]
+        },
+        {
+          "description": "Apify: executable capabilities (Actors). Never an employee.",
+          "type": "string",
+          "enum": [
+            "apify"
+          ]
+        },
+        {
+          "description": "Implemented by the kernel itself (e.g. the mission controller).",
+          "type": "string",
+          "enum": [
+            "internal"
+          ]
+        },
+        {
+          "description": "Development-only stand-in. The UI must label it as not a live integration.",
+          "type": "string",
+          "enum": [
+            "dev_stub"
+          ]
+        }
+      ]
+    },
+    "JobStatus": {
+      "description": "Normalized job status (TECH_SPEC §6). Provider-native statuses are kept separately on the job record.",
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "QUEUED",
+            "SUBMITTING",
+            "RUNNING",
+            "VERIFYING",
+            "SUCCEEDED",
+            "FAILED",
+            "RESULT_REJECTED"
+          ]
+        },
+        {
+          "description": "The outcome is not known (e.g. a dropped stream). Never treated as success.",
+          "type": "string",
+          "enum": [
+            "UNKNOWN"
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "JobResultSubmission",
+  "description": "Body of `POST /api/v1/jobs/{id}/results`, sent by provider adapters.",
+  "type": "object",
+  "required": [
+    "attempt_id",
+    "domain_verified",
+    "epoch",
+    "outcome",
+    "provider_status"
+  ],
+  "properties": {
+    "attempt_id": {
+      "type": "string"
+    },
+    "epoch": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0.0
+    },
+    "outcome": {
+      "$ref": "#/definitions/ResultOutcome"
+    },
+    "provider_status": {
+      "description": "Provider-native status, stored verbatim.",
+      "type": "string"
+    },
+    "provider_refs": {
+      "default": {},
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "output": {
+      "default": null
+    },
+    "operation_id": {
+      "description": "Logical ledger operation. Duplicate deliveries with the same ID produce one ledger effect.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "domain_verified": {
+      "description": "Domain verification of the output, done by the caller's checker. Provider success without domain verification never marks success.",
+      "type": "boolean"
+    },
+    "completes_responsibility": {
+      "description": "Mark the responsibility complete when this result is accepted.",
+      "default": false,
+      "type": "boolean"
+    }
+  },
+  "definitions": {
+    "ResultOutcome": {
+      "type": "string",
+      "enum": [
+        "succeeded",
+        "failed",
+        "unknown"
+      ]
+    }
+  }
+}
