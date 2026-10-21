@@ -1,0 +1,8 @@
+{
+  "actorSpecification": 1,
+  "name": "genesis-venue-extractor",
+  "title": "GENESIS scoped venue extractor",
+  "version": "0.1",
+  "dockerfile": "../Dockerfile",
+  "input": "./input_schema.json"
+}

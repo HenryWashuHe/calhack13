@@ -728,3 +728,44 @@ async fn full_provider_receipts_pass_verifier_but_successful_wrong_output_does_n
             .all(|receipt| receipt.status == RunStatus::Succeeded));
     }
 }
+
+#[tokio::test]
+async fn public_run_ticket_preflight_rejects_schema_ids_and_request_substitution() {
+    let mock = Mock::serve(vec![Reply::json(build()), Reply::json(run("RUNNING"))]).await;
+    let ticket = mock.client(limits()).submit(&request()).await.unwrap();
+    mock.finish().await;
+    ticket.validate_for(&request()).unwrap();
+    for (field, value) in [
+        ("schema_version", json!(999)),
+        ("run_id", json!("")),
+        ("run_id", json!("../outside")),
+        ("dataset_id", json!("../outside")),
+        ("request_sha256", json!("a".repeat(64))),
+    ] {
+        let mut saved = serde_json::to_value(&ticket).unwrap();
+        saved[field] = value;
+        let invalid: RunTicket = serde_json::from_value(saved).unwrap();
+        assert_eq!(
+            invalid.validate_for(&request()).unwrap_err().kind,
+            ErrorKind::TicketMismatch
+        );
+    }
+    let mut changed = request();
+    changed.input["url"] = json!("https://different.example");
+    assert_eq!(
+        ticket.validate_for(&changed).unwrap_err().kind,
+        ErrorKind::TicketMismatch
+    );
+    let mut changed = request();
+    changed.artifact.source_sha256 = "c".repeat(64);
+    assert_eq!(
+        ticket.validate_for(&changed).unwrap_err().kind,
+        ErrorKind::TicketMismatch
+    );
+    let mut invalid = request();
+    invalid.input = json!({"oversized":"x".repeat(8*1024*1024)});
+    assert_eq!(
+        ticket.validate_for(&invalid).unwrap_err().kind,
+        ErrorKind::InvalidRequest
+    );
+}
