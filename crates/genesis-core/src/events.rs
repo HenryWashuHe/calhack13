@@ -75,6 +75,9 @@ pub enum EventKind {
         change_id: ChangeId,
         role_key: String,
         error: String,
+        /// Provider resource created before the failure, kept for cleanup.
+        #[serde(default)]
+        provider_agent_id: Option<String>,
     },
     RoleCreated {
         role_id: RoleId,

@@ -33,6 +33,15 @@
         "$ref": "#/definitions/AgentBinding"
       }
     },
+    "ready": {
+      "description": "Role keys whose provider readiness check has passed. A provisioned binding without readiness is kept for reconciliation and cleanup.",
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
     "errors": {
       "default": [],
       "type": "array",

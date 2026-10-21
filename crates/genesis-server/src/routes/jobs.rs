@@ -3,7 +3,7 @@
 use crate::app::AppState;
 use crate::auth::Principal;
 use crate::error::{ApiError, ApiResult};
-use crate::store::{insert_commitment, put_job, EventMeta, NewOutbox, OutboxItem};
+use crate::store::{insert_commitment, insert_job_tx, put_job, EventMeta, NewOutbox, OutboxItem};
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::Json;
@@ -106,16 +106,19 @@ pub async fn dispatch(
         ));
     }
     let _guard = app.kernel.lock().await;
-    let state = app.current_state()?;
-    let (job, effects, outbox) = new_job(&app, &state, &req)?;
-    let (stored, fresh) = app.store.insert_job(&req.client_request_id, &job)?;
-    if !fresh {
+    if let Some(stored) = app.store.find_job_by_request(&req.client_request_id)? {
         return Ok((StatusCode::OK, Json(stored)));
     }
+    let state = app.current_state()?;
+    let (job, effects, outbox) = new_job(&app, &state, &req)?;
     let meta = EventMeta::mission(job.mission_id.clone()).caused_by(req.client_request_id.clone());
+    // Job, request identity, dispatch event and outbox commit together, so a
+    // stored job always has a pending delivery.
     let events = app
         .store
-        .commit_state(state.revision, &state, effects, &meta, outbox, |_| Ok(()))?;
+        .commit_state(state.revision, &state, effects, &meta, outbox, |tx| {
+            insert_job_tx(tx, &req.client_request_id, &job)
+        })?;
     app.broadcast(&events);
     Ok((StatusCode::CREATED, Json(job)))
 }
@@ -211,7 +214,7 @@ pub async fn submit_result(
             got: sub.epoch,
         })
     } else {
-        engine::check_result_epoch(&state, &job.responsibility_id, sub.epoch)
+        engine::check_job_result(&state, &job.role_id, &job.responsibility_id, sub.epoch)
     };
     if let Err(e) = epoch_check {
         let reason = e.to_string();
@@ -233,7 +236,13 @@ pub async fn submit_result(
             .store
             .append_events(effects, &meta, |tx| put_job(tx, &job))?;
         app.broadcast(&events);
-        return Err(ApiError::from(e).with_details(json!({ "job": job })));
+        // A fenced result is a conflict with current ownership, not a
+        // permissions problem of the adapter that delivered it.
+        let err = match e {
+            DispatchError::StaleEpoch { .. } => ApiError::from(e),
+            other => ApiError::new(StatusCode::CONFLICT, "result_fenced", other.to_string()),
+        };
+        return Err(err.with_details(json!({ "job": job })));
     }
 
     let mut new_state = state.clone();
