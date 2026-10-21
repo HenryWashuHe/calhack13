@@ -89,6 +89,44 @@ automatic cancellation, account-wide rate limits, or a global budget. Those belo
 to the kernel's job lifecycle. The client exposes explicit errors instead of
 retrying an ambiguous side effect.
 
+## Creating and building capabilities
+
+`ActorDefinition` contains an Actor name, a two-part source version, and UTF-8
+`SourceFile { name, content }` entries. Its `validate()` and `definition_sha256()`
+methods perform local preflight with an 8 MiB serialized ceiling. The client's
+`RunLimits.max_input_bytes` also caps uploads; raise its 256 KiB default for larger
+lockfiles. Files use relative paths, reject duplicates and file/directory
+collisions, and are sorted by path for a stable request digest.
+
+`create_actor` uploads one `SOURCE_FILES` version to a **new private Actor** and
+returns an `ActorTicket`. It requests limited permissions and no injected
+environment variables. Inline files use `format: "TEXT"`; existing Actors are not
+modified. An unscoped account token with Actor creation rights is needed for this
+operation. [Create API](https://docs.apify.com/api/v2/actors-post)
+
+Persist the Actor ticket before calling `start_build`. The adapter first reads
+the version and compares the complete file set and contents. A mismatch stops
+before the build POST. [Version API](https://docs.apify.com/api/v2/actor-version-get)
+The build request supplies the exact source version, disables cache and beta
+packages, and returns a `BuildTicket` immediately. Save it before calling
+`resume_build`, which makes only GET requests. Build submission does **not** have
+the run API's timeout/memory/charge parameters; local request and polling deadlines
+do not cap provider build cost or stop a remote build. [Build API](https://docs.apify.com/api/v2/actors-builds-post)
+
+A successful build must retain its Actor ID, build ID, exact build number, and
+matching `actVersion` source snapshot. Missing source files, changed content,
+unknown filenames, changed source versions, or unknown status never produce a
+`BuiltActor`. The completed value exposes getters for those identifiers and the
+canonical definition digest. It is not deserializable as a success claim, and it
+does not establish extraction accuracy. [Build status API](https://docs.apify.com/api/v2/actor-build-get)
+
+Both tickets are serializable records for trusted backend storage. Their
+fingerprints bind the request, not authority or a cryptographic provider
+attestation. Forge errors preserve safe known Actor/build IDs and flag possibly
+successful submissions; lost POST responses require reconciliation before any
+retry. Every explicit `create_actor` or `start_build` call is a new side effect;
+the kernel must prevent duplicate dispatch. No POST is retried automatically.
+
 ## Local validation
 
 ```sh
