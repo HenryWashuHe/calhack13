@@ -1,0 +1,353 @@
+use crate::model::{
+    account_fingerprint, agent_observation, bounded_serialize, bounded_tree, error, observation,
+    uuid, MAX_INPUT, MAX_RESPONSE,
+};
+use crate::{
+    AccountLimiter, AgentObservation, Error, ErrorKind, LimiterError, Limits, OperationRequest,
+    RequestKind, RunObservation, RunTicket, Stage,
+};
+use genesis_verification::decode_json;
+use reqwest::{
+    header::{HeaderValue, AUTHORIZATION, CONTENT_TYPE, RETRY_AFTER},
+    Client, Method, Url,
+};
+use serde_json::Value;
+use std::{fmt, time::Duration};
+use tokio::time::{timeout_at, Instant};
+
+/// Clone shares the HTTP pool and the same durable account quota coordinator.
+/// Create separate clients with the SAME limiter namespace for the same account.
+#[derive(Clone)]
+pub struct CreaoClient {
+    client: Client,
+    base: Url,
+    authorization: HeaderValue,
+    limits: Limits,
+    limiter: AccountLimiter,
+}
+impl fmt::Debug for CreaoClient {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("CreaoClient")
+            .field("authorization", &"[REDACTED]")
+            .field("limits", &self.limits)
+            .finish_non_exhaustive()
+    }
+}
+impl CreaoClient {
+    pub fn new(token: &str, limits: Limits, limiter: AccountLimiter) -> Result<Self, Error> {
+        Self::configured(
+            token,
+            limits,
+            limiter,
+            "https://developer.creao.ai/v1",
+            false,
+        )
+    }
+    /// Only literal loopback HTTP URLs ending in `/v1` are permitted. Never use
+    /// a real account credential against a test endpoint.
+    pub fn for_local_testing(
+        token: &str,
+        limits: Limits,
+        limiter: AccountLimiter,
+        base: &str,
+    ) -> Result<Self, Error> {
+        Self::configured(token, limits, limiter, base, true)
+    }
+    fn configured(
+        token: &str,
+        limits: Limits,
+        limiter: AccountLimiter,
+        base: &str,
+        local: bool,
+    ) -> Result<Self, Error> {
+        let invalid = || error(ErrorKind::InvalidConfiguration, Stage::Configuration);
+        let base = Url::parse(base).map_err(|_| invalid())?;
+        let loopback = base
+            .host_str()
+            .and_then(|host| {
+                host.trim_matches(['[', ']'])
+                    .parse::<std::net::IpAddr>()
+                    .ok()
+            })
+            .is_some_and(|ip| ip.is_loopback());
+        if (local && (base.scheme() != "http" || !loopback))
+            || (!local
+                && (base.scheme() != "https"
+                    || base.host_str() != Some("developer.creao.ai")
+                    || base.port().is_some()))
+            || base.path() != "/v1"
+            || base.query().is_some()
+            || base.fragment().is_some()
+            || !base.username().is_empty()
+            || base.password().is_some()
+            || !token.starts_with("cr_sk_")
+            || !(7..=4096).contains(&token.len())
+            || !token
+                .bytes()
+                .all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-')
+            || limiter.namespace().contains(token)
+            || limits.request_timeout.is_zero()
+            || limits.request_timeout > Duration::from_secs(3600)
+            || !(1..=MAX_INPUT).contains(&limits.max_input_bytes)
+            || !(1..=MAX_RESPONSE).contains(&limits.max_response_bytes)
+        {
+            return Err(invalid());
+        }
+        let mut authorization =
+            HeaderValue::from_str(&format!("Bearer {token}")).map_err(|_| invalid())?;
+        authorization.set_sensitive(true);
+        let client = Client::builder()
+            .timeout(limits.request_timeout)
+            .redirect(reqwest::redirect::Policy::none())
+            .retry(reqwest::retry::never())
+            .no_proxy()
+            .build()
+            .map_err(|_| invalid())?;
+        Ok(Self {
+            client,
+            base,
+            authorization,
+            limits,
+            limiter,
+        })
+    }
+    pub fn account_namespace(&self) -> &str {
+        self.limiter.namespace()
+    }
+
+    /// Inspect an existing personal agent. This is a provider readiness input,
+    /// not an organizational role activation or a proof that guarded writes ran.
+    pub async fn get_agent(&self, agent_id: &str) -> Result<AgentObservation, Error> {
+        if !uuid(agent_id) {
+            return Err(error(ErrorKind::InvalidRequest, Stage::Configuration));
+        }
+        let raw = self
+            .request(
+                Method::GET,
+                &format!("agents/{agent_id}"),
+                None,
+                RequestKind::Read,
+                Stage::AgentInspection,
+            )
+            .await?;
+        agent_observation(raw, agent_id)
+    }
+
+    /// Attempt one POST and return its durable receipt without polling. Caller
+    /// must persist submission intent BEFORE calling, and the ticket afterward.
+    /// An ambiguous error requires reconciliation, never an automatic new POST.
+    pub async fn submit(&self, request: &OperationRequest) -> Result<RunTicket, Error> {
+        let payload = request.payload(self.limits.max_input_bytes)?;
+        if self.contains_credential(&payload) {
+            return Err(error(ErrorKind::InvalidRequest, Stage::Configuration));
+        }
+        let bytes = bounded_serialize(&payload, self.limits.max_input_bytes)
+            .map_err(|_| error(ErrorKind::InvalidRequest, Stage::Configuration))?;
+        let kind = match request {
+            OperationRequest::CreateAgent(_) => RequestKind::ManagementWrite,
+            OperationRequest::CreateRun(_) => RequestKind::Run,
+        };
+        let raw = self
+            .request(
+                Method::POST,
+                request.path(),
+                Some(bytes),
+                kind,
+                Stage::Submission,
+            )
+            .await?;
+        let observed = observation(raw, request, None, Stage::Submission).map_err(|mut e| {
+            e.post_may_have_run = true;
+            e
+        })?;
+        Ok(RunTicket {
+            schema_version: 1,
+            account_namespace: self.limiter.namespace().to_owned(),
+            request_sha256: account_fingerprint(request, self.limiter.namespace())?,
+            run_id: observed.run_id,
+            agent_id: observed.agent_id,
+            conversation_id: observed.conversation_id,
+            workspace_id: observed.workspace_id,
+            model: observed.model,
+        })
+    }
+
+    /// Exactly one GET for a known run. No submission, sleeping poll loop,
+    /// implicit retry, or automatic organization-state mutation occurs here.
+    /// Persist `ticket.refine(request, &observation)` with each returned
+    /// observation so subsequent polls retain identities first learned by GET.
+    pub async fn poll(
+        &self,
+        request: &OperationRequest,
+        ticket: &RunTicket,
+    ) -> Result<RunObservation, Error> {
+        let payload = request.payload(self.limits.max_input_bytes)?;
+        ticket.validate_for_account(request, self.limiter.namespace())?;
+        if self.contains_credential(&payload)
+            || ticket
+                .model
+                .as_deref()
+                .is_some_and(|v| v.contains(self.token()))
+        {
+            return Err(error(ErrorKind::TicketMismatch, Stage::Configuration));
+        }
+        let raw = self
+            .request(
+                Method::GET,
+                &format!("runs/{}", ticket.run_id),
+                None,
+                RequestKind::Read,
+                Stage::Poll,
+            )
+            .await?;
+        observation(raw, request, Some(ticket), Stage::Poll)
+    }
+
+    fn token(&self) -> &str {
+        // Construction checked ASCII and the literal Bearer prefix.
+        self.authorization
+            .to_str()
+            .expect("validated header")
+            .strip_prefix("Bearer ")
+            .expect("validated prefix")
+    }
+    fn contains_credential(&self, value: &Value) -> bool {
+        let token = self.token();
+        let mut pending = vec![value];
+        while let Some(item) = pending.pop() {
+            match item {
+                Value::String(s) if s.contains(token) => return true,
+                Value::Array(items) => pending.extend(items),
+                Value::Object(items) => {
+                    if items.keys().any(|key| key.contains(token)) {
+                        return true;
+                    }
+                    pending.extend(items.values());
+                }
+                _ => {}
+            }
+        }
+        false
+    }
+
+    async fn request(
+        &self,
+        method: Method,
+        path: &str,
+        body: Option<Vec<u8>>,
+        kind: RequestKind,
+        stage: Stage,
+    ) -> Result<Value, Error> {
+        let deadline = Instant::now() + self.limits.request_timeout;
+        self.limiter.acquire(kind, deadline).await.map_err(|e| {
+            error(
+                if matches!(e, LimiterError::DeadlineExceeded) {
+                    ErrorKind::DeadlineExceeded
+                } else {
+                    ErrorKind::LimiterUnavailable
+                },
+                stage,
+            )
+        })?;
+        if Instant::now() >= deadline {
+            return Err(error(ErrorKind::DeadlineExceeded, stage));
+        }
+        let mut url = self.base.clone();
+        url.set_path(&format!("/v1/{path}"));
+        let post = method == Method::POST;
+        let mut request = self
+            .client
+            .request(method, url)
+            .header(AUTHORIZATION, self.authorization.clone());
+        if let Some(body) = body {
+            request = request.header(CONTENT_TYPE, "application/json").body(body);
+        }
+        let action = async {
+            let mut response = request.send().await.map_err(|e| {
+                error(
+                    if e.is_timeout() {
+                        ErrorKind::DeadlineExceeded
+                    } else {
+                        ErrorKind::Transport
+                    },
+                    stage,
+                )
+            })?;
+            let status = response.status().as_u16();
+            let expected = if post { 202 } else { 200 };
+            if status != expected {
+                let mut e = error(ErrorKind::HttpStatus, stage);
+                e.http_status = Some(status);
+                if status == 429 {
+                    let seconds = response
+                        .headers()
+                        .get(RETRY_AFTER)
+                        .and_then(|h| h.to_str().ok())
+                        .filter(|s| !s.is_empty() && s.bytes().all(|b| b.is_ascii_digit()))
+                        .and_then(|s| s.parse::<u64>().ok())
+                        .unwrap_or(60)
+                        .min(86400);
+                    e.retry_after_secs = Some(seconds);
+                    let limiter = self.limiter.clone();
+                    tokio::task::spawn_blocking(move || {
+                        limiter.defer_for(Duration::from_secs(seconds))
+                    })
+                    .await
+                    .map_err(|_| error(ErrorKind::LimiterUnavailable, stage))?
+                    .map_err(|_| {
+                        e.kind = ErrorKind::LimiterUnavailable;
+                        e.clone()
+                    })?;
+                }
+                return Err(e);
+            }
+            if response
+                .content_length()
+                .is_some_and(|n| n > self.limits.max_response_bytes as u64)
+            {
+                return Err(error(ErrorKind::ResponseTooLarge, stage));
+            }
+            let mut bytes = Vec::new();
+            while let Some(chunk) = response.chunk().await.map_err(|e| {
+                error(
+                    if e.is_timeout() {
+                        ErrorKind::DeadlineExceeded
+                    } else {
+                        ErrorKind::Transport
+                    },
+                    stage,
+                )
+            })? {
+                if chunk.len() > self.limits.max_response_bytes - bytes.len() {
+                    return Err(error(ErrorKind::ResponseTooLarge, stage));
+                }
+                bytes.extend_from_slice(&chunk);
+            }
+            if bytes
+                .windows(self.token().len())
+                .any(|window| window == self.token().as_bytes())
+            {
+                return Err(error(ErrorKind::CredentialEcho, stage));
+            }
+            let raw: Value =
+                decode_json(&bytes).map_err(|_| error(ErrorKind::MalformedResponse, stage))?;
+            if !bounded_tree(&raw, self.limits.max_response_bytes) {
+                return Err(error(ErrorKind::ResponseTooLarge, stage));
+            }
+            if self.contains_credential(&raw) {
+                return Err(error(ErrorKind::CredentialEcho, stage));
+            }
+            if Instant::now() >= deadline {
+                return Err(error(ErrorKind::DeadlineExceeded, stage));
+            }
+            Ok(raw)
+        };
+        timeout_at(deadline, action)
+            .await
+            .unwrap_or_else(|_| Err(error(ErrorKind::DeadlineExceeded, stage)))
+            .map_err(|mut e| {
+                e.post_may_have_run = post;
+                e
+            })
+    }
+}
