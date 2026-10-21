@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { Api } from "../lib/api";
 import type { OrgChangeRecord, OrgState } from "../lib/contracts";
 import { buildTree, executedBy, ownedBy, pendingRoles, RoleNode, short } from "../lib/graph";
+import { HistoryEntry, historyView } from "../lib/snapshot";
 import { ProviderBadge, StateChip } from "./Chips";
 
 function Duties({ state, roleId }: { state: OrgState; roleId: string }) {
@@ -128,31 +129,30 @@ export function OrgPanel({
 }) {
   const [showRetired, setShowRetired] = useState(true);
   const [viewRevision, setViewRevision] = useState<number | null>(null);
-  const [historical, setHistorical] = useState<OrgState | null>(null);
-  const [historyError, setHistoryError] = useState<string | null>(null);
+  const [entry, setEntry] = useState<HistoryEntry | null>(null);
   const live = viewRevision === null;
 
   useEffect(() => {
-    if (viewRevision === null) {
-      setHistorical(null);
-      return;
-    }
+    // Drop the previous revision's snapshot immediately; it is never shown
+    // under another revision's label.
+    setEntry(null);
+    if (viewRevision === null) return;
     let cancelled = false;
     api
       .get<OrgState>(`/organization/revisions/${viewRevision}`)
       .then((s) => {
-        if (!cancelled) {
-          setHistorical(s);
-          setHistoryError(null);
-        }
+        if (!cancelled) setEntry({ revision: viewRevision, state: s });
       })
-      .catch((e: Error) => !cancelled && setHistoryError(e.message));
+      .catch((e: unknown) => {
+        if (!cancelled) setEntry({ revision: viewRevision, error: e instanceof Error ? e.message : String(e) });
+      });
     return () => {
       cancelled = true;
     };
   }, [api, viewRevision]);
 
-  const shown = live ? state : historical;
+  const history = historyView(viewRevision, entry);
+  const shown = history.kind === "live" ? state : history.kind === "ready" ? history.state : null;
   const pending = useMemo(() => (live ? pendingRoles(changes, state) : []), [live, changes, state]);
   const tree = useMemo(
     () => (shown ? buildTree(shown, pending, { showRetired }) : []),
@@ -203,7 +203,12 @@ export function OrgPanel({
             Viewing revision r{viewRevision} as it was committed. In-flight changes are hidden.
           </div>
         )}
-        {historyError && <div className="notice bad">{historyError}</div>}
+        {history.kind === "loading" && <p className="empty">Loading revision r{history.revision}…</p>}
+        {history.kind === "error" && (
+          <div className="notice bad" role="alert">
+            Could not load revision r{history.revision}: {history.message}
+          </div>
+        )}
         {shown && tree.length === 0 && <p className="empty">No roles yet.</p>}
         {shown && (
           <ul className="tree">
