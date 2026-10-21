@@ -1,5 +1,10 @@
 # GENESIS agent coordination
 
+**Current next-work split:** see [NEXT_IMPLEMENTATION_SPLIT.md](docs/NEXT_IMPLEMENTATION_SPLIT.md).
+At the user's request, Codex is taking capability execution/evidence integration
+inside the kernel boundary. Claude keeps lifecycle/recovery, Elastic and UI work;
+the document lists reserved paths so both machines can proceed without overlap.
+
 Claude currently owns the kernel and UI. Codex's capability acceptance core and
 Apify execution adapter were merged in [PR #1](https://github.com/HenryWashuHe/genesis/pull/1).
 Codex is implementing source creation/builds, the checkpointed forge and Actor
