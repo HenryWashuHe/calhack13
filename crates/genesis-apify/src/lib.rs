@@ -1,5 +1,6 @@
 //! Executes a backend-pinned Apify build and produces verifier input from cloud
 //! metadata. Dataset contents remain untrusted. This is not organization authority.
+#![doc = include_str!("../README.md")]
 
 use genesis_verification::{
     decode_json, json_sha256, ArtifactPin, ExecutionEvidence, RunStatus, SourceSnapshot,
@@ -7,7 +8,7 @@ use genesis_verification::{
 use reqwest::header::{HeaderValue, AUTHORIZATION};
 use reqwest::{Client, Method, Url};
 use serde::de::DeserializeOwned;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::fmt;
 use std::time::Duration;
@@ -51,6 +52,23 @@ pub struct RunRequest {
     pub source: SourceSnapshot,
 }
 
+/// Persist this receipt in trusted kernel storage before waiting for completion.
+/// Deserialization is for trusted storage recovery, not a public client claim.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RunTicket {
+    schema_version: u32,
+    run_id: String,
+    request_sha256: String,
+    dataset_id: Option<String>,
+}
+
+impl RunTicket {
+    pub fn run_id(&self) -> &str {
+        &self.run_id
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Stage {
     Configuration,
@@ -64,6 +82,7 @@ pub enum Stage {
 pub enum ErrorKind {
     InvalidConfiguration,
     InvalidRequest,
+    TicketMismatch,
     Transport,
     HttpStatus(u16),
     DeadlineExceeded,
@@ -207,6 +226,57 @@ impl ApifyClient {
     pub async fn execute(&self, request: &RunRequest) -> Result<ExecutionEvidence, Error> {
         let input_bytes = self.validate_request(request)?;
         let deadline = Instant::now() + self.limits.deadline;
+        let (ticket, mut run) = self.submit_inner(request, input_bytes, deadline).await?;
+        self.collect(request, &ticket, &mut run, deadline)
+            .await
+            .map_err(|e| after_submission(e, Some(&ticket.run_id)))
+    }
+
+    /// Submit once and immediately return a persistable ticket, without polling.
+    /// Save the ticket durably, then call `resume`. A lost POST response remains
+    /// ambiguous: no automatic resubmission or exactly-once guarantee is implied.
+    pub async fn submit(&self, request: &RunRequest) -> Result<RunTicket, Error> {
+        let input_bytes = self.validate_request(request)?;
+        let deadline = Instant::now() + self.limits.deadline;
+        self.submit_inner(request, input_bytes, deadline)
+            .await
+            .map(|(ticket, _)| ticket)
+    }
+
+    /// Recheck and collect a known run without submitting another Actor run.
+    /// The request and ticket must both come from trusted kernel storage.
+    pub async fn resume(
+        &self,
+        request: &RunRequest,
+        ticket: &RunTicket,
+    ) -> Result<ExecutionEvidence, Error> {
+        self.validate_request(request)?;
+        if ticket.schema_version != 1
+            || !valid_id(&ticket.run_id)
+            || self.contains_credential(&ticket.run_id)
+            || !digest(&ticket.request_sha256)
+            || ticket
+                .dataset_id
+                .as_ref()
+                .is_some_and(|id| !valid_id(id) || self.contains_credential(id))
+            || ticket.request_sha256 != request_fingerprint(request)
+        {
+            return Err(error(ErrorKind::TicketMismatch, Stage::Configuration));
+        }
+        let deadline = Instant::now() + self.limits.deadline;
+        let action = async {
+            self.validate_build(request, deadline).await?;
+            let mut run: Run = self
+                .get_data(&["v2", "actor-runs", &ticket.run_id], Stage::Poll, deadline)
+                .await?;
+            self.collect(request, ticket, &mut run, deadline).await
+        };
+        action
+            .await
+            .map_err(|e| after_submission(e, Some(&ticket.run_id)))
+    }
+
+    async fn validate_build(&self, request: &RunRequest, deadline: Instant) -> Result<(), Error> {
         let build: Build = self
             .get_data(
                 &["v2", "actor-builds", &request.artifact.build_id],
@@ -223,6 +293,16 @@ impl ApifyClient {
         if build.status != "SUCCEEDED" {
             return Err(error(ErrorKind::BuildNotSucceeded, Stage::Build));
         }
+        Ok(())
+    }
+
+    async fn submit_inner(
+        &self,
+        request: &RunRequest,
+        input_bytes: Vec<u8>,
+        deadline: Instant,
+    ) -> Result<(RunTicket, Run), Error> {
+        self.validate_build(request, deadline).await?;
         let mut url = self.url(&["v2", "actors", &request.artifact.actor_id, "runs"])?;
         url.query_pairs_mut()
             .append_pair("build", &request.artifact.build_number)
@@ -243,60 +323,53 @@ impl ApifyClient {
                 deadline,
             )
             .await;
-        let mut run: Run = result
+        let run: Run = result
             .and_then(|r| decode::<Envelope<Run>>(&r.bytes, Stage::Submission).map(|v| v.data))
             .map_err(|mut e| {
                 e.submission_may_have_occurred = true;
                 e
             })?;
+        self.validate_provider_secrets(&run)
+            .map_err(|e| after_submission(e, None))?;
         let run_id = if valid_id(&run.id) {
             Some(run.id.clone())
         } else {
             None
         };
-        let result = self.collect(request, &mut run, deadline).await;
-        result.map_err(|mut e| {
-            e.run_id = run_id;
-            e.submission_may_have_occurred = true;
-            e
-        })
+        validate_run(request, &run.id, None, &run)
+            .map_err(|e| after_submission(e, run_id.as_deref()))?;
+        let ticket = RunTicket {
+            schema_version: 1,
+            run_id: run.id.clone(),
+            request_sha256: request_fingerprint(request),
+            dataset_id: run.default_dataset_id.clone(),
+        };
+        Ok((ticket, run))
     }
 
     async fn collect(
         &self,
         request: &RunRequest,
+        ticket: &RunTicket,
         run: &mut Run,
         deadline: Instant,
     ) -> Result<ExecutionEvidence, Error> {
-        let original_id = run.id.clone();
-        let mut dataset_id: Option<String> = None;
+        let original_id = &ticket.run_id;
+        let mut dataset_id = ticket.dataset_id.clone();
         loop {
-            if !valid_id(&run.id)
-                || run.id != original_id
-                || run.act_id != request.artifact.actor_id
-                || run.build_id != request.artifact.build_id
-            {
-                return Err(error(ErrorKind::ProvenanceMismatch, Stage::Poll));
-            }
+            self.validate_provider_secrets(run)?;
+            let succeeded = validate_run(request, original_id, dataset_id.as_deref(), run)?;
             if let Some(id) = &run.default_dataset_id {
-                if !valid_id(id) || dataset_id.as_ref().is_some_and(|previous| previous != id) {
-                    return Err(error(ErrorKind::ProvenanceMismatch, Stage::Poll));
-                }
                 dataset_id = Some(id.clone());
             }
-            match run.status.as_str() {
-                "SUCCEEDED" => break,
-                "READY" | "RUNNING" | "TIMING-OUT" | "ABORTING" => {}
-                "FAILED" | "TIMED-OUT" | "ABORTED" => {
-                    return Err(error(ErrorKind::RunFailed, Stage::Poll))
-                }
-                _ => return Err(error(ErrorKind::UnknownRunStatus, Stage::Poll)),
+            if succeeded {
+                break;
             }
             timeout_at(deadline, sleep(self.limits.poll_interval))
                 .await
                 .map_err(|_| error(ErrorKind::DeadlineExceeded, Stage::Poll))?;
             *run = self
-                .get_data(&["v2", "actor-runs", &original_id], Stage::Poll, deadline)
+                .get_data(&["v2", "actor-runs", original_id], Stage::Poll, deadline)
                 .await?;
         }
         // A successful terminal record itself must identify its output store.
@@ -336,7 +409,7 @@ impl ApifyClient {
             artifact: request.artifact.clone(),
             input_sha256: json_sha256(&request.input),
             source: request.source.clone(),
-            run_id: original_id,
+            run_id: original_id.clone(),
             dataset_id: dataset_id.clone(),
             status: RunStatus::Succeeded,
             output: items.remove(0),
@@ -354,8 +427,9 @@ impl ApifyClient {
             || !digest(&pin.source_sha256)
             || !digest(&request.source.sha256)
             || !request.input.is_object()
-            || !bounded_tree(&request.input)
+            || !bounded_tree(&request.input, self.limits.max_input_bytes)
             || !numeric_build(&pin.build_number)
+            || !valid_label(&request.source.url)
         {
             return Err(invalid());
         }
@@ -365,15 +439,35 @@ impl ApifyClient {
             || !source.username().is_empty()
             || source.password().is_some()
             || source.fragment().is_some()
-            || request.source.url.len() > 4096
         {
             return Err(invalid());
         }
-        let bytes = serde_json::to_vec(&request.input).map_err(|_| invalid())?;
-        if bytes.len() > self.limits.max_input_bytes {
-            return Err(invalid());
+        let mut writer = BoundedWriter {
+            bytes: Vec::new(),
+            limit: self.limits.max_input_bytes,
+        };
+        serde_json::to_writer(&mut writer, &request.input).map_err(|_| invalid())?;
+        Ok(writer.bytes)
+    }
+
+    fn contains_credential(&self, value: &str) -> bool {
+        self.authorization
+            .to_str()
+            .ok()
+            .and_then(|header| header.strip_prefix("Bearer "))
+            .is_some_and(|token| value.contains(token))
+    }
+
+    fn validate_provider_secrets(&self, run: &Run) -> Result<(), Error> {
+        if self.contains_credential(&run.id)
+            || run
+                .default_dataset_id
+                .as_ref()
+                .is_some_and(|id| self.contains_credential(id))
+        {
+            return Err(error(ErrorKind::MalformedResponse, Stage::Poll));
         }
-        Ok(bytes)
+        Ok(())
     }
 
     fn url(&self, segments: &[&str]) -> Result<Url, Error> {
@@ -454,6 +548,68 @@ impl ApifyClient {
 fn decode<T: DeserializeOwned>(bytes: &[u8], stage: Stage) -> Result<T, Error> {
     decode_json(bytes).map_err(|_| error(ErrorKind::MalformedResponse, stage))
 }
+
+fn request_fingerprint(request: &RunRequest) -> String {
+    json_sha256(&serde_json::json!({
+        "schema_version": 1,
+        "case_id": &request.case_id,
+        "artifact": &request.artifact,
+        "source": &request.source,
+        "input_sha256": json_sha256(&request.input),
+    }))
+}
+
+fn validate_run(
+    request: &RunRequest,
+    original_id: &str,
+    previous_dataset: Option<&str>,
+    run: &Run,
+) -> Result<bool, Error> {
+    if !valid_id(&run.id)
+        || run.id != original_id
+        || run.act_id != request.artifact.actor_id
+        || run.build_id != request.artifact.build_id
+    {
+        return Err(error(ErrorKind::ProvenanceMismatch, Stage::Poll));
+    }
+    if let Some(id) = &run.default_dataset_id {
+        if !valid_id(id) || previous_dataset.is_some_and(|previous| previous != id) {
+            return Err(error(ErrorKind::ProvenanceMismatch, Stage::Poll));
+        }
+    }
+    match run.status.as_str() {
+        "SUCCEEDED" if run.default_dataset_id.is_none() => {
+            Err(error(ErrorKind::MalformedResponse, Stage::Poll))
+        }
+        "SUCCEEDED" => Ok(true),
+        "READY" | "RUNNING" | "TIMING-OUT" | "ABORTING" => Ok(false),
+        "FAILED" | "TIMED-OUT" | "ABORTED" => Err(error(ErrorKind::RunFailed, Stage::Poll)),
+        _ => Err(error(ErrorKind::UnknownRunStatus, Stage::Poll)),
+    }
+}
+
+fn after_submission(mut error: Error, run_id: Option<&str>) -> Error {
+    error.run_id = run_id.map(str::to_owned);
+    error.submission_may_have_occurred = true;
+    error
+}
+
+struct BoundedWriter {
+    bytes: Vec<u8>,
+    limit: usize,
+}
+impl std::io::Write for BoundedWriter {
+    fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+        if bytes.len() > self.limit - self.bytes.len() {
+            return Err(std::io::Error::other("JSON size limit exceeded"));
+        }
+        self.bytes.extend_from_slice(bytes);
+        Ok(bytes.len())
+    }
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
 fn error(kind: ErrorKind, stage: Stage) -> Error {
     Error {
         kind,
@@ -477,24 +633,49 @@ fn digest(s: &str) -> bool {
             .all(|c| c.is_ascii_digit() || (b'a'..=b'f').contains(&c))
 }
 fn numeric_build(s: &str) -> bool {
+    if s.len() > 64 {
+        return false;
+    }
     let parts: Vec<_> = s.split('.').collect();
     parts.len() == 3
-        && s.len() <= 64
         && parts
             .iter()
             .all(|p| !p.is_empty() && p.bytes().all(|c| c.is_ascii_digit()))
 }
-fn bounded_tree(value: &Value) -> bool {
+fn bounded_tree(value: &Value, max_bytes: usize) -> bool {
     let mut pending = vec![(value, 0)];
     let mut count = 0;
+    let mut string_bytes = 0usize;
     while let Some((v, depth)) = pending.pop() {
         count += 1;
         if count > 10000 || depth > 32 {
             return false;
         }
         match v {
-            Value::Array(values) => pending.extend(values.iter().map(|v| (v, depth + 1))),
-            Value::Object(values) => pending.extend(values.values().map(|v| (v, depth + 1))),
+            Value::Array(values) => {
+                if values.len() > 10000 - count - pending.len() {
+                    return false;
+                }
+                pending.extend(values.iter().map(|v| (v, depth + 1)));
+            }
+            Value::Object(values) => {
+                if values.len() > 10000 - count - pending.len() {
+                    return false;
+                }
+                for key in values.keys() {
+                    if key.len() > max_bytes - string_bytes {
+                        return false;
+                    }
+                    string_bytes += key.len();
+                }
+                pending.extend(values.values().map(|v| (v, depth + 1)));
+            }
+            Value::String(s) => {
+                if s.len() > max_bytes - string_bytes {
+                    return false;
+                }
+                string_bytes += s.len();
+            }
             _ => {}
         }
     }
