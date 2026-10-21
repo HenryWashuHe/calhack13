@@ -14,7 +14,8 @@ The Rust capability implementation now creates source-bearing Actors, resumes pi
 4. [Research report](GENESIS-organization-evolution-research.md) — competitive research, sponsor division, risks, and demo design.
 5. [Capability forge integration](docs/FORGE_INTEGRATION.md) — runnable commands, source packaging, checkpoint recovery, and the kernel boundary.
 6. [Organization capability API](docs/CAPABILITY_EXECUTION.md) — trusted publication, independent adoption, persisted runs, and recovery.
-7. [Current implementation split](docs/NEXT_IMPLEMENTATION_SPLIT.md) — Codex capability work and Claude kernel/UI/Elastic assignments.
+7. [Persistent CREAO specialists](docs/CREAO_RUNTIME.md) — asynchronous creation/execution, shared account limits, recovery and the pending kernel hook.
+8. [Current implementation split](docs/NEXT_IMPLEMENTATION_SPLIT.md) — Codex capability work and Claude kernel/UI/Elastic assignments.
 
 ## Run the capability checks
 
@@ -44,6 +45,7 @@ Rust is the core implementation language. The Fetch sidecar keeps the official P
 - **Fetch.ai:** discover and recruit independently running specialists.
 - **Elastic Agent Builder on Serverless:** create internal specialists and skills; retrieve organization evidence and shared capabilities.
 - **Apify:** create, build, and execute missing web capabilities.
+- [Apify sponsor announcement notes](docs/APIFY_SPONSOR_NOTES.md): meaningful-use demo, announced credits, and the separate AI Chat category.
 - **CREAO:** create reusable agents for continuing operational responsibilities.
 - **GENESIS:** own roles, authority, budgets, assignments, lifecycle, verification gates, and adoption decisions.
 

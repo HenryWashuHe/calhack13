@@ -23,7 +23,9 @@ use std::sync::Arc;
 use std::time::Duration;
 
 pub mod apify;
+pub mod creao;
 pub use apify::ApifyCapabilityExecutor;
+pub use creao::{CreaoSpecialist, SpecialistProgress, SpecialistRuntime};
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error, Serialize, Deserialize)]
 #[serde(tag = "kind", content = "detail", rename_all = "snake_case")]
@@ -231,6 +233,7 @@ impl RoleProvisioner for FailingProvisioner {
 pub struct ProviderSet {
     provisioners: HashMap<Provider, Arc<dyn RoleProvisioner>>,
     executor: Option<Arc<dyn CapabilityExecutor>>,
+    specialists: HashMap<Provider, Arc<dyn SpecialistRuntime>>,
     dev_stub: Option<DevStub>,
 }
 
@@ -253,6 +256,31 @@ impl ProviderSet {
     pub fn with_executor(mut self, e: Arc<dyn CapabilityExecutor>) -> Self {
         self.executor = Some(e);
         self
+    }
+
+    /// Split asynchronous specialists are distinct from ready role provisioners.
+    /// There is deliberately no development fallback for this evidence path.
+    pub fn with_specialist(mut self, specialist: Arc<dyn SpecialistRuntime>) -> Self {
+        self.specialists.insert(specialist.provider(), specialist);
+        self
+    }
+
+    pub fn specialist(
+        &self,
+        provider: Provider,
+    ) -> Result<Arc<dyn SpecialistRuntime>, ProviderError> {
+        self.specialists
+            .get(&provider)
+            .cloned()
+            .ok_or(ProviderError::NotConfigured { provider })
+    }
+
+    /// Providers exposing durable asynchronous operations. These still require
+    /// kernel orchestration/readiness; they are not synchronous provisioners.
+    pub fn configured_specialists(&self) -> Vec<Provider> {
+        let mut providers: Vec<_> = self.specialists.keys().copied().collect();
+        providers.sort();
+        providers
     }
 
     pub fn dev_stub_enabled(&self) -> bool {
