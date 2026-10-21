@@ -31,6 +31,8 @@ pub fn router(state: AppState) -> Router {
         .route("/outbox", get(jobs::outbox))
         .route("/events", get(events::stream))
         .route("/events/log", get(events::log))
+        .route("/projection", get(search::status))
+        .route("/search/evidence", get(search::evidence))
         .route("/capabilities/search", post(capabilities::search))
         .route("/capabilities/publish", post(capabilities::publish))
         .route(
@@ -42,9 +44,7 @@ pub fn router(state: AppState) -> Router {
             "/capability-installations/{id}/acceptance",
             post(capabilities::acceptance),
         )
-        .route("/capability-runs", post(capabilities::run))
-        .route("/projection", get(search::status))
-        .route("/search/evidence", get(search::evidence));
+        .route("/capability-runs", post(capabilities::run));
 
     Router::new()
         .nest("/api/v1", api)
