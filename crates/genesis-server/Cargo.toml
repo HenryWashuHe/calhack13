@@ -6,6 +6,34 @@ version.workspace = true
 license.workspace = true
 publish.workspace = true
 
+[[bin]]
+name = "genesis"
+path = "src/main.rs"
+
+[lib]
+path = "src/lib.rs"
+
 [dependencies]
 genesis-core.workspace = true
 genesis-providers.workspace = true
+anyhow.workspace = true
+async-stream = "0.3"
+axum.workspace = true
+chrono.workspace = true
+clap = { version = "4", features = ["derive", "env"] }
+futures.workspace = true
+reqwest.workspace = true
+rusqlite.workspace = true
+schemars.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tokio-stream.workspace = true
+tower-http.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+uuid.workspace = true
+
+[dev-dependencies]
+tempfile = "3"
