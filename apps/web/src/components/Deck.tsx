@@ -49,7 +49,7 @@ function Changes({ changes, state }: { changes: OrgChangeRecord[]; state: OrgSta
           {Object.entries(c.provisioned ?? {}).length > 0 && (
             <div className="ops">
               {Object.entries(c.provisioned ?? {}).map(([key, b]) => (
-                <span key={key} style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
+                <span key={key} style={{ display: "inline-flex", gap: 6, alignItems: "center", flexWrap: "wrap", minWidth: 0 }}>
                   <span className="mono">{key}</span>
                   <ProviderBadge binding={b} />
                   <span className="mono muted">{b.provider_agent_id}</span>
