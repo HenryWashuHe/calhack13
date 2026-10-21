@@ -1,0 +1,150 @@
+{
+  "schema_version": 1,
+  "suite_id": "offline-venue-suite-v1",
+  "scope": "Offline synthetic venue extraction only: table and card formats, exact venue data, explicit unsupported missing price. No provider execution, live availability, safety, or booking claims.",
+  "cases": [
+    {
+      "case_id": "table-listings",
+      "format_id": "venue-table-v1",
+      "input": {
+        "source_url": "https://fixtures.genesis.example/venues/table.html",
+        "attendees": 120,
+        "requested_window": {
+          "start": "2026-11-14T18:00:00-08:00",
+          "end": "2026-11-14T22:00:00-08:00"
+        }
+      },
+      "source": {
+        "url": "https://fixtures.genesis.example/venues/table.html",
+        "sha256": "cfd1346d006d2c97a93c3ebf29b78d066ea26204552dfe9f9671d5509761ffe2"
+      },
+      "expected": {
+        "status": "supported",
+        "venues": [
+          {
+            "venue_id": "grand-hall",
+            "capacity": 180,
+            "price": {
+              "minor_units": 75000,
+              "currency": "USD"
+            },
+            "window": {
+              "start": "2026-11-14T18:00:00-08:00",
+              "end": "2026-11-14T22:00:00-08:00"
+            },
+            "availability": "available",
+            "step_free": true,
+            "evidence": {
+              "source_url": "https://fixtures.genesis.example/venues/table.html",
+              "snapshot_sha256": "cfd1346d006d2c97a93c3ebf29b78d066ea26204552dfe9f9671d5509761ffe2",
+              "locator": "#grand-hall"
+            }
+          },
+          {
+            "venue_id": "makers-loft",
+            "capacity": 90,
+            "price": {
+              "minor_units": 25000,
+              "currency": "USD"
+            },
+            "window": {
+              "start": "2026-11-14T18:00:00-08:00",
+              "end": "2026-11-14T22:00:00-08:00"
+            },
+            "availability": "unavailable",
+            "step_free": false,
+            "evidence": {
+              "source_url": "https://fixtures.genesis.example/venues/table.html",
+              "snapshot_sha256": "cfd1346d006d2c97a93c3ebf29b78d066ea26204552dfe9f9671d5509761ffe2",
+              "locator": "#makers-loft"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "card-listings",
+      "format_id": "venue-cards-v1",
+      "input": {
+        "source_url": "https://fixtures.genesis.example/venues/cards.html",
+        "attendees": 130,
+        "requested_window": {
+          "start": "2026-11-15T12:00:00-08:00",
+          "end": "2026-11-15T17:00:00-08:00"
+        }
+      },
+      "source": {
+        "url": "https://fixtures.genesis.example/venues/cards.html",
+        "sha256": "57d1277f490ab8b0989d48b558a6ea5e7fb410e8e073bd80da1fc7a00f210136"
+      },
+      "expected": {
+        "status": "supported",
+        "venues": [
+          {
+            "venue_id": "lakeside-room",
+            "capacity": 140,
+            "price": {
+              "minor_units": 64000,
+              "currency": "CAD"
+            },
+            "window": {
+              "start": "2026-11-15T12:00:00-08:00",
+              "end": "2026-11-15T17:00:00-08:00"
+            },
+            "availability": "available",
+            "step_free": true,
+            "evidence": {
+              "source_url": "https://fixtures.genesis.example/venues/cards.html",
+              "snapshot_sha256": "57d1277f490ab8b0989d48b558a6ea5e7fb410e8e073bd80da1fc7a00f210136",
+              "locator": "#lakeside-room"
+            }
+          },
+          {
+            "venue_id": "hill-auditorium",
+            "capacity": 220,
+            "price": {
+              "minor_units": 99000,
+              "currency": "CAD"
+            },
+            "window": {
+              "start": "2026-11-15T13:00:00-08:00",
+              "end": "2026-11-15T18:00:00-08:00"
+            },
+            "availability": "unavailable",
+            "step_free": false,
+            "evidence": {
+              "source_url": "https://fixtures.genesis.example/venues/cards.html",
+              "snapshot_sha256": "57d1277f490ab8b0989d48b558a6ea5e7fb410e8e073bd80da1fc7a00f210136",
+              "locator": "#hill-auditorium"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "missing-price",
+      "format_id": "venue-cards-missing-price-v1",
+      "input": {
+        "source_url": "https://fixtures.genesis.example/venues/missing-data.html",
+        "attendees": 150,
+        "requested_window": {
+          "start": "2026-11-16T18:00:00-08:00",
+          "end": "2026-11-16T22:00:00-08:00"
+        }
+      },
+      "source": {
+        "url": "https://fixtures.genesis.example/venues/missing-data.html",
+        "sha256": "ea0bc617af2c2c4d12408c61cbf0bb371e85fc047df3d92361fe5febaafd0022"
+      },
+      "expected": {
+        "status": "unsupported",
+        "reason": "missing_required_data",
+        "evidence": {
+          "source_url": "https://fixtures.genesis.example/venues/missing-data.html",
+          "snapshot_sha256": "ea0bc617af2c2c4d12408c61cbf0bb371e85fc047df3d92361fe5febaafd0022",
+          "locator": "#incomplete-gallery"
+        }
+      }
+    }
+  ]
+}

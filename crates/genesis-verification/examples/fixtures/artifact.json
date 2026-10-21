@@ -1,0 +1,8 @@
+{
+  "capability_id": "offline-venue-extractor",
+  "capability_version": "0.0.1",
+  "source_sha256": "181b6365b1e0d05746a09dd3c3e91485b4946099b918136bba6ee8b9f2cb16fd",
+  "actor_id": "synthetic-actor",
+  "build_id": "synthetic-build",
+  "build_number": "0.0.1"
+}
