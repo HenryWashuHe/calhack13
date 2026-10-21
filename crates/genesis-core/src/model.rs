@@ -299,8 +299,16 @@ impl OrgState {
             .filter(|r| !matches!(r.state, RoleState::Retired | RoleState::ProvisioningFailed))
     }
 
+    /// Total budget held by live roles, or `None` if the sum overflows.
+    pub fn checked_allocated_budget_cents(&self) -> Option<u64> {
+        self.live_roles()
+            .try_fold(0u64, |acc, r| acc.checked_add(r.authority.budget_cents))
+    }
+
+    /// Total budget held by live roles, saturating at `u64::MAX`. Validation
+    /// uses [`Self::checked_allocated_budget_cents`]; this is for display.
     pub fn allocated_budget_cents(&self) -> u64 {
-        self.live_roles().map(|r| r.authority.budget_cents).sum()
+        self.checked_allocated_budget_cents().unwrap_or(u64::MAX)
     }
 
     pub fn active_contracts(&self) -> usize {
