@@ -45,6 +45,7 @@ pub enum ClientErrorKind {
     IdentityMismatch,
     ReceiptMismatch,
     CredentialEcho,
+    NoLongerEligible,
 }
 
 /// Safe to log: no URL, token, input, provider body, or nested transport error.
@@ -331,7 +332,21 @@ impl BridgeClient {
 
     /// Exactly one POST. Caller persists intent first; an ambiguous outcome
     /// may only be retried with the same request (bridge deduplicates it).
+    /// Runtime integrations should use [`Self::send_guarded`] to recheck live
+    /// contract eligibility after the awaited identity preflight.
     pub async fn send(&self, request: &SendRequest) -> Result<SendReceipt, ClientError> {
+        self.send_guarded(request, || true).await
+    }
+
+    /// Recheck the trusted runtime's current eligibility after the identity
+    /// GET, immediately before starting the POST. A false guard sends nothing.
+    /// This does not cancel a request whose POST has already started; receivers
+    /// and the kernel must independently fence late results and expired work.
+    pub async fn send_guarded(
+        &self,
+        request: &SendRequest,
+        authorize: impl FnOnce() -> bool,
+    ) -> Result<SendReceipt, ClientError> {
         let deadline = Instant::now() + self.transport.limits.timeout;
         if request.schema_version != 1
             || !address(&request.recipient)
@@ -347,6 +362,12 @@ impl BridgeClient {
         timeout_at(deadline, self.identity())
             .await
             .map_err(|_| ClientError::new(ClientErrorKind::Timeout))??;
+        if !authorize() {
+            return Err(ClientError::new(ClientErrorKind::NoLongerEligible));
+        }
+        if Instant::now() >= deadline {
+            return Err(ClientError::new(ClientErrorKind::Timeout));
+        }
         let receipt: SendReceipt = timeout_at(
             deadline,
             self.transport
