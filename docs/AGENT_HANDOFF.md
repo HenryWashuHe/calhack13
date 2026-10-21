@@ -14,12 +14,22 @@ branch `codex/capability-kernel-integration`, initial server checkpoint `0cfae06
 It includes the real Apify provider, durable request/ticket recovery, backend forge
 proofs, immutable local installation pins, independent acceptance runs and API
 forgery/idempotency guards. See [CAPABILITY_EXECUTION.md](CAPABILITY_EXECUTION.md).
-The branches now include Claude's review-fix checkpoint `efa3b4f`: PR #5 merge
-`9d9e6f0` and PR #6 merge `c66cc0e`. The combined capability workspace passes with
-`serde_json/preserve_order`. Follow-up review reproduced a remaining A→B→A
-executor-reassignment fence gap, posted on PR #3. Claude retains that core fix,
-concurrent saga-drive guard, CREAO pending/readiness integration, Elastic, planner
-and UI. No whole-kernel takeover is active.
+The branches include Claude's review-fix checkpoint `efa3b4f` and two narrow Codex
+merge-readiness fixes, reserved in [issue #4](https://github.com/HenryWashuHe/genesis/issues/4#issuecomment-6326857019):
+
+- `7a00da4`: changing the delegated executor creates a fresh assignment and epoch,
+  preserving the accountable owner and lease. A→B→A cannot revive A's old grant;
+  old owner work is also fenced and must be redispatched. Repeating the same
+  executor keeps the current grant. Epoch exhaustion rejects before mutation.
+- `1460831`: shared process-local per-change gates serialize run, recovery and
+  retry drivers. Different changes can still provision concurrently. Cancellation
+  releases the gate and recovery reuses a saved native binding. This is not a
+  cross-process lock or a guarantee that an unknown native POST is safe to replay.
+
+Claude retains CREAO/Fetch asynchronous kernel integration, Elastic, planner and UI.
+Merge the updated main into active work; do not reimplement these two fixes.
+No whole-kernel takeover is active. Historical review/checkpoint notes below retain
+the limitations known when they were written; this section supersedes them.
 
 Codex's CREAO implementation is in PR #6; [CREAO_RUNTIME.md](CREAO_RUNTIME.md)
 records its durable provider boundary and pending readiness hook. Codex also owns
