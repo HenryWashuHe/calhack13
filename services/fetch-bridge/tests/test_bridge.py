@@ -431,6 +431,25 @@ class HttpTests(unittest.IsolatedAsyncioTestCase):
         value["message"]["body"]["requirement"] = "changed"
         self.assertEqual((await self.post("/v1/messages", value, True))[0], 409)
 
+    async def test_message_root_depth_boundary_ignores_private_wrapper(self):
+        task = WireTests().task()
+        nested = 0
+        # Message -> body -> task -> input starts at depth3. The leaf is depth64.
+        for _ in range(61):
+            nested = [nested]
+        task["body"]["task"]["input"] = nested
+        request = {
+            "schema_version": 1,
+            "recipient": IDENTITIES[0].address,
+            "message": task,
+        }
+        self.assertEqual((await self.post("/v1/messages", request, True))[0], 202)
+        self.assertEqual((await self.post("/submit", envelope(task)))[0], 200)
+        task["message_id"] = str(uuid4())
+        task["body"]["task"]["input"] = [nested]
+        self.assertEqual((await self.post("/v1/messages", request, True))[0], 400)
+        self.assertEqual((await self.post("/submit", envelope(task)))[0], 400)
+
     async def test_signed_receipt_tamper_and_sender_target_checks(self):
         value = message()
         signed = envelope(value)
