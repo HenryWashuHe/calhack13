@@ -1,7 +1,9 @@
 use chrono::{DateTime, Duration, Utc};
 use genesis_fetch::protocol::{Body, InboxItem, InboxPage, Message, SendReceipt, Task};
-use genesis_fetch::runtime::{ContractPhase, Disposition, RuntimeError, RuntimeStore, TaskPhase};
-use serde_json::json;
+use genesis_fetch::runtime::{
+    ContractPhase, Disposition, RuntimeError, RuntimeStore, TaskPhase, TaskRecord,
+};
+use serde_json::{json, Value};
 
 // Addresses derived with uagents 0.26.1 Identity.from_seed(seed, 0), not mock syntax.
 const ORG_A: &str = "agent1qgllj55vfr6ueyktacwgsv9fysg0qtexqrv4l738eq006km8e2hxu8pg5ev";
@@ -709,5 +711,308 @@ fn byte_capacity_rejects_unicode_backlog_and_rolls_back_new_intent() {
     assert_eq!(
         store.prepare(PEER, recruit(), now()).unwrap().phase,
         ContractPhase::Requested
+    );
+}
+
+#[test]
+fn growing_valid_contract_cannot_commit_a_record_the_strict_decoder_cannot_reload() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("runtime.sqlite");
+    let store = RuntimeStore::open(&path, "org-a", ORG_A).unwrap();
+    activate(&store);
+    let db = rusqlite::Connection::open(&path).unwrap();
+    let maximum_value = json!("x".repeat(32 * 1024 - 2));
+    // Seed a valid historical checkpoint near the bound, then exercise real
+    // transactions crossing it. Replaying 120 growing checkpoints here would
+    // add quadratic serialization cost without testing a different boundary.
+    let mut historical = store.get("contract-a").unwrap();
+    for index in 0..120u128 {
+        let mut request = task_request();
+        request.message_id = id(1000 + 2 * index);
+        if let Body::TaskRequest { task } = &mut request.body {
+            task.job_id = format!("job-{index}");
+            task.attempt_id = format!("attempt-{index}");
+            task.idempotency_key = format!("job-{index}:attempt-{index}");
+            task.input = maximum_value.clone();
+        }
+        let response = message(
+            1001 + 2 * index,
+            Body::TaskResult {
+                task_request_id: request.message_id.clone(),
+                job_id: format!("job-{index}"),
+                attempt_id: format!("attempt-{index}"),
+                epoch: 7,
+                output: maximum_value.clone(),
+            },
+        );
+        historical.tasks.insert(
+            request.message_id.clone(),
+            TaskRecord {
+                request,
+                phase: TaskPhase::Collected,
+                evidence: Some(response),
+            },
+        );
+        historical.revision += 2;
+    }
+    db.execute(
+        "UPDATE fetch_contracts SET data=?1 WHERE id='contract-a'",
+        [serde_json::to_string(&historical).unwrap()],
+    )
+    .unwrap();
+    assert_eq!(store.get("contract-a").unwrap().tasks.len(), 120);
+    drop(historical);
+    let mut rejected_result = None;
+    for index in 120..128u128 {
+        let mut request = task_request();
+        request.message_id = id(1000 + 2 * index);
+        if let Body::TaskRequest { task } = &mut request.body {
+            task.job_id = format!("job-{index}");
+            task.attempt_id = format!("attempt-{index}");
+            task.idempotency_key = format!("job-{index}:attempt-{index}");
+            task.input = maximum_value.clone();
+        }
+        let before_prepare = serde_json::to_value(store.get("contract-a").unwrap()).unwrap();
+        match store.prepare(PEER, request.clone(), now()) {
+            Ok(_) => (),
+            Err(RuntimeError::Capacity) => {
+                assert_eq!(
+                    serde_json::to_value(store.get("contract-a").unwrap()).unwrap(),
+                    before_prepare
+                );
+                let count: u64 = db
+                    .query_row(
+                        "SELECT COUNT(*) FROM fetch_outbox WHERE id=?1",
+                        [&request.message_id],
+                        |r| r.get(0),
+                    )
+                    .unwrap();
+                assert_eq!(count, 0);
+                // The remaining space still admits a small request, whose
+                // maximum-sized result must independently fail atomically.
+                if let Body::TaskRequest { task } = &mut request.body {
+                    task.input = Value::Null;
+                }
+                store.prepare(PEER, request.clone(), now()).unwrap();
+            }
+            Err(error) => panic!(
+                "valid growing contract became unreadable while preparing task {index}: {error}"
+            ),
+        }
+        let response = message(
+            1001 + 2 * index,
+            Body::TaskResult {
+                task_request_id: request.message_id.clone(),
+                job_id: format!("job-{index}"),
+                attempt_id: format!("attempt-{index}"),
+                epoch: 7,
+                output: maximum_value.clone(),
+            },
+        );
+        let cursor = store.cursor().unwrap();
+        let before = serde_json::to_value(store.get("contract-a").unwrap()).unwrap();
+        match store.ingest(
+            &page(ORG_A, vec![(cursor + 1, PEER, response.clone())], cursor),
+            now(),
+        ) {
+            Ok(outcomes) => assert_eq!(outcomes[0].disposition, Disposition::Applied),
+            Err(RuntimeError::Capacity) => {
+                assert_eq!(store.cursor().unwrap(), cursor);
+                assert_eq!(
+                    serde_json::to_value(store.get("contract-a").unwrap()).unwrap(),
+                    before
+                );
+                assert_eq!(
+                    store.get("contract-a").unwrap().tasks[&request.message_id].phase,
+                    TaskPhase::Sent
+                );
+                let count: u64 = db
+                    .query_row(
+                        "SELECT COUNT(*) FROM fetch_inbox WHERE id=?1",
+                        [&response.message_id],
+                        |r| r.get(0),
+                    )
+                    .unwrap();
+                assert_eq!(
+                    count, 0,
+                    "failed result must leave neither receipt nor cursor behind"
+                );
+                rejected_result = Some(index);
+                break;
+            }
+            Err(error) => {
+                panic!("valid growing contract became unreadable at task {index}: {error}")
+            }
+        }
+    }
+    assert!(
+        rejected_result.is_some(),
+        "128 maximum-sized request/result pairs exceed the strict decoder's 8 MiB ceiling"
+    );
+    let saved = serde_json::to_value(store.get("contract-a").unwrap()).unwrap();
+    let mut next = task_request();
+    next.message_id = id(9999);
+    if let Body::TaskRequest { task } = &mut next.body {
+        task.job_id = "job-extra".into();
+        task.attempt_id = "attempt-extra".into();
+        task.idempotency_key = "job-extra:attempt-extra".into();
+        task.input = maximum_value;
+    }
+    assert!(matches!(
+        store.prepare(PEER, next, now()),
+        Err(RuntimeError::Capacity)
+    ));
+    assert_eq!(
+        serde_json::to_value(store.get("contract-a").unwrap()).unwrap(),
+        saved
+    );
+    let count: u64 = db
+        .query_row(
+            "SELECT COUNT(*) FROM fetch_outbox WHERE id=?1",
+            [id(9999)],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(count, 0);
+    drop(store);
+    assert_eq!(
+        serde_json::to_value(
+            RuntimeStore::open(&path, "org-a", ORG_A)
+                .unwrap()
+                .get("contract-a")
+                .unwrap()
+        )
+        .unwrap(),
+        saved
+    );
+}
+
+#[test]
+fn conflicting_inbound_identity_preserves_both_original_and_rejected_observation() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("runtime.sqlite");
+    let store = RuntimeStore::open(&path, "org-a", ORG_A).unwrap();
+    activate(&store);
+    store.prepare(PEER, task_request(), now()).unwrap();
+    assert_eq!(receive(&store, result()), Disposition::Applied);
+    let cursor = store.cursor().unwrap();
+    let mut conflicted = result();
+    if let Body::TaskResult { output, .. } = &mut conflicted.body {
+        *output = json!({"replace_prior_result": true});
+    }
+    let outcomes = store
+        .ingest(
+            &page(
+                ORG_A,
+                vec![(cursor + 1, INTRUDER, conflicted.clone())],
+                cursor,
+            ),
+            now(),
+        )
+        .unwrap();
+    assert_rejected(&outcomes[0].disposition);
+    drop(store);
+    let db = rusqlite::Connection::open(&path).unwrap();
+    let original: String = db
+        .query_row("SELECT data FROM fetch_inbox WHERE id=?1", [id(8)], |r| {
+            r.get(0)
+        })
+        .unwrap();
+    let rejected: String = db
+        .query_row(
+            "SELECT data FROM fetch_rejected WHERE sequence=?1",
+            [cursor + 1],
+            |r| r.get(0),
+        )
+        .unwrap();
+    let original: InboxItem = serde_json::from_str(&original).unwrap();
+    let rejected: InboxItem = serde_json::from_str(&rejected).unwrap();
+    assert_eq!(original.sender, PEER);
+    assert_eq!(original.message, result());
+    assert_eq!(rejected.sender, INTRUDER);
+    assert_eq!(rejected.sequence, cursor + 1);
+    assert_eq!(rejected.message, conflicted);
+    let store = RuntimeStore::open(&path, "org-a", ORG_A).unwrap();
+    assert_eq!(store.cursor().unwrap(), cursor + 1);
+    assert_eq!(
+        store.get("contract-a").unwrap().tasks[&id(5)]
+            .evidence
+            .as_ref(),
+        Some(&result())
+    );
+}
+
+#[test]
+fn releasing_a_contract_uses_reserved_outbox_capacity_when_normal_work_is_full() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("runtime.sqlite");
+    let store = RuntimeStore::open(&path, "org-a", ORG_A).unwrap();
+    activate(&store);
+    store.prepare(PEER, task_request(), now()).unwrap();
+    let db = rusqlite::Connection::open(&path).unwrap();
+    db.execute("WITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x+1 FROM n WHERE x<9997) INSERT INTO fetch_outbox(id,contract_id,peer,data,digest,queued) SELECT 'old-'||x,'contract-a',?1,?2,'fixture',1 FROM n", rusqlite::params![PEER,serde_json::to_string(&recruit()).unwrap()]).unwrap();
+    let mut extra = task_request();
+    extra.message_id = id(9999);
+    if let Body::TaskRequest { task } = &mut extra.body {
+        task.job_id = "extra".into();
+        task.idempotency_key = "extra".into();
+    }
+    assert!(matches!(
+        store.prepare(PEER, extra, now()),
+        Err(RuntimeError::Capacity)
+    ));
+    assert_eq!(
+        store.prepare(PEER, release(), now()).unwrap().phase,
+        ContractPhase::Released
+    );
+    let pending = store.pending(now()).unwrap();
+    assert_eq!(pending.len(), 1);
+    assert_eq!(pending[0].message, release());
+    assert_rejected(&receive(&store, result()));
+    drop(store);
+    assert_eq!(
+        RuntimeStore::open(&path, "org-a", ORG_A)
+            .unwrap()
+            .get("contract-a")
+            .unwrap()
+            .phase,
+        ContractPhase::Released
+    );
+}
+
+#[test]
+fn releasing_a_contract_uses_reserved_bytes_when_normal_evidence_storage_is_full() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("runtime.sqlite");
+    let store = RuntimeStore::open(&path, "org-a", ORG_A).unwrap();
+    activate(&store);
+    store.prepare(PEER, task_request(), now()).unwrap();
+    let db = rusqlite::Connection::open(&path).unwrap();
+    db.execute_batch("INSERT INTO fetch_inbox(id,digest,disposition,data) VALUES ('backlog','digest','{}',replace(hex(zeroblob(12582912)),'0','€'));").unwrap();
+    let mut extra = task_request();
+    extra.message_id = id(9999);
+    if let Body::TaskRequest { task } = &mut extra.body {
+        task.job_id = "extra".into();
+        task.idempotency_key = "extra".into();
+    }
+    assert!(matches!(
+        store.prepare(PEER, extra, now()),
+        Err(RuntimeError::Capacity)
+    ));
+    assert_eq!(
+        store.prepare(PEER, release(), now()).unwrap().phase,
+        ContractPhase::Released
+    );
+    let pending = store.pending(now()).unwrap();
+    assert_eq!(pending.len(), 1);
+    assert_eq!(pending[0].message, release());
+    drop(store);
+    assert_eq!(
+        RuntimeStore::open(&path, "org-a", ORG_A)
+            .unwrap()
+            .get("contract-a")
+            .unwrap()
+            .phase,
+        ContractPhase::Released
     );
 }
