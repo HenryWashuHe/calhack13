@@ -1,0 +1,11 @@
+[package]
+name = "genesis-server"
+description = "GENESIS organization kernel: Axum API, SQLite persistence, outbox, SSE, capability registry"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+genesis-core.workspace = true
+genesis-providers.workspace = true
