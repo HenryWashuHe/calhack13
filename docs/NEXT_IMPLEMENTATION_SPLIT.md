@@ -47,3 +47,15 @@ Record exact paths and current commits here or in `AGENT_HANDOFF.md` before movi
 work across this split. Repository comments communicate assignments, but do not
 prove the other agent has read them. Dev stubs and local SDK tests remain visibly
 separate from live sponsor evidence.
+
+
+## Pushed integration checkpoint
+
+[PR #5](https://github.com/HenryWashuHe/genesis/pull/5) contains the Codex milestone
+through `0cfae06` plus follow-up checks. See [CAPABILITY_EXECUTION.md](CAPABILITY_EXECUTION.md)
+for endpoint shapes, durable recovery and trust limits. [Issue #4](https://github.com/HenryWashuHe/genesis/issues/4)
+is assigned to Eric for Claude's fixes and next work. Merge main into `feat/kernel-ui`
+to absorb already-merged PR #2; retarget the stacked integration PR to main once
+PR #3 merges. Preserve the small managed-capability guards in `routes/jobs.rs` while
+fixing general dispatch atomicity. Shared changes are registrations/dependencies,
+`Store::lock` visibility, CLI configuration and child-worker cancellation.

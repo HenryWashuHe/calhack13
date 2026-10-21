@@ -108,8 +108,9 @@ multi-process distributed lease implementation.
   A real executor refuses to install them. Production cannot adopt a legacy
   assertion-only installation without fresh backend acceptance.
 - Existing databases made before local manifest pinning retain their history, but
-  installations without a local pin must be reinstalled through this API. For a
-  disposable development stack, use a fresh data directory.
+  installations without a local pin cannot execute through the real path. There is
+  no in-place migration endpoint in this milestone: install a new published version
+  through this API, or use a fresh data directory for a disposable development stack.
 - Tests use the actual HTTP adapter against loopback Apify protocol fixtures and
   separate organization databases. They do not prove access to a live sponsor
   account. Elastic, Fetch.ai and CREAO live integration remains separate work.
