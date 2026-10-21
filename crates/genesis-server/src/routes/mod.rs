@@ -5,6 +5,7 @@ mod changes;
 mod events;
 mod jobs;
 mod org;
+mod search;
 
 use crate::app::AppState;
 use axum::routing::{get, post};
@@ -41,7 +42,9 @@ pub fn router(state: AppState) -> Router {
             "/capability-installations/{id}/acceptance",
             post(capabilities::acceptance),
         )
-        .route("/capability-runs", post(capabilities::run));
+        .route("/capability-runs", post(capabilities::run))
+        .route("/projection", get(search::status))
+        .route("/search/evidence", get(search::evidence));
 
     Router::new()
         .nest("/api/v1", api)

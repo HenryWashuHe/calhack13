@@ -15,6 +15,14 @@ serde_json.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
 
+axum = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true }
+
+[features]
+# In-process Elasticsearch fake for tests in this and dependent crates.
+fake = ["dep:axum", "dep:tokio"]
+
 [dev-dependencies]
 axum.workspace = true
 tokio.workspace = true
+genesis-elastic = { path = ".", features = ["fake"] }

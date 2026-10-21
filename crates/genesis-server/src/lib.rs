@@ -11,6 +11,7 @@ pub mod app;
 pub mod auth;
 pub mod error;
 pub mod outbox;
+pub mod projection;
 pub mod registry;
 pub mod routes;
 pub mod saga;
@@ -129,8 +130,22 @@ pub fn build_org(cfg: &OrgConfig, providers: Option<ProviderSet>) -> anyhow::Res
         events: tx,
         kernel: Arc::new(Mutex::new(())),
         registry,
+        projection: projection::Projection::disabled(),
         provision_timeout: cfg.provision_timeout,
     })
+}
+
+/// Enable Elastic projection when `ELASTICSEARCH_URL` and
+/// `ELASTIC_DATA_API_KEY` are set; otherwise return `app` unchanged.
+pub fn attach_elastic_from_env(app: AppState) -> anyhow::Result<AppState> {
+    match genesis_elastic::ElasticConfig::from_env() {
+        Some(cfg) => {
+            let client = genesis_elastic::ElasticClient::new(cfg)?;
+            tracing::info!(org = %app.org_id, index = %client.evidence_index(app.org_id.as_str()), "elastic projection enabled");
+            Ok(app.with_elastic(client))
+        }
+        None => Ok(app),
+    }
 }
 
 /// Serve an organization on `listener`, with its outbox worker and saga
@@ -141,8 +156,12 @@ pub async fn serve_org(app: AppState, listener: TcpListener) -> anyhow::Result<(
         tracing::info!(resumed, "resumed interrupted organization changes");
     }
     let worker = outbox::spawn(app.clone());
+    let projector = projection::spawn(app.clone());
     let router = app.router();
     let res = axum::serve(listener, router).await;
+    if let Some(p) = projector {
+        p.abort();
+    }
     worker.abort();
     res.map_err(Into::into)
 }

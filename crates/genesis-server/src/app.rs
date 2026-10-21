@@ -26,6 +26,8 @@ pub struct AppState {
     /// Serializes read-modify-write cycles on the organization state.
     pub kernel: Arc<Mutex<()>>,
     pub registry: Option<RegistryClient>,
+    /// Elastic projection and retrieval; disabled unless configured.
+    pub projection: crate::projection::Projection,
     pub provision_timeout: Duration,
 }
 
@@ -37,6 +39,12 @@ pub struct Mutation<T> {
 }
 
 impl AppState {
+    /// Enable Elastic projection and retrieval for this organization.
+    pub fn with_elastic(mut self, client: genesis_elastic::ElasticClient) -> Self {
+        self.projection = crate::projection::Projection::new(client);
+        self
+    }
+
     pub fn broadcast(&self, events: &[DomainEvent]) {
         for e in events {
             // No subscribers is fine.

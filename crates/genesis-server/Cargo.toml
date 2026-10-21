@@ -16,6 +16,7 @@ path = "src/lib.rs"
 [dependencies]
 genesis-core.workspace = true
 genesis-providers.workspace = true
+genesis-elastic.workspace = true
 anyhow.workspace = true
 async-stream = "0.3"
 axum.workspace = true
@@ -36,4 +37,5 @@ tracing-subscriber.workspace = true
 uuid.workspace = true
 
 [dev-dependencies]
+genesis-elastic = { workspace = true, features = ["fake"] }
 tempfile = "3"
