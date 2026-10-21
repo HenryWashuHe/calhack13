@@ -9,6 +9,9 @@
 
 pub mod app;
 pub mod auth;
+pub mod capability_evidence;
+pub mod capability_runtime;
+pub mod capability_store;
 pub mod error;
 pub mod outbox;
 pub mod registry;
@@ -43,6 +46,10 @@ pub struct OrgConfig {
     pub dev_stub: bool,
     pub stub_delay: Duration,
     pub provision_timeout: Duration,
+    /// Backend-owned oracle answers; never accepted from an HTTP client.
+    pub oracle_suites: Vec<genesis_verification::OracleSuite>,
+    /// Trusted local forge checkpoints, reverified on startup.
+    pub forge_checkpoints: Vec<genesis_forge::ForgeSession>,
 }
 
 impl OrgConfig {
@@ -62,6 +69,8 @@ impl OrgConfig {
             dev_stub: true,
             stub_delay: Duration::ZERO,
             provision_timeout: Duration::from_secs(60),
+            oracle_suites: Vec::new(),
+            forge_checkpoints: Vec::new(),
         }
     }
 }
@@ -120,6 +129,22 @@ pub fn build_org(cfg: &OrgConfig, providers: Option<ProviderSet>) -> anyhow::Res
         _ => None,
     };
     let (tx, _) = broadcast::channel(1024);
+    let kernel = Arc::new(Mutex::new(()));
+    store.init_capability_runs()?;
+    store.init_capability_pins()?;
+    let evidence_policy = Arc::new(capability_evidence::EvidencePolicy::new(
+        cfg.oracle_suites.clone(),
+        cfg.forge_checkpoints.clone(),
+    )?);
+    let capability_runtime = Arc::new(
+        capability_runtime::CapabilityRuntime::new(
+            store.clone(),
+            providers.clone(),
+            kernel.clone(),
+            Arc::new(Mutex::new(())),
+        )
+        .with_events(tx.clone()),
+    );
     Ok(AppState {
         org_id: cfg.org_id.clone(),
         name: cfg.name.clone(),
@@ -127,7 +152,9 @@ pub fn build_org(cfg: &OrgConfig, providers: Option<ProviderSet>) -> anyhow::Res
         providers,
         tokens: cfg.tokens.clone(),
         events: tx,
-        kernel: Arc::new(Mutex::new(())),
+        kernel,
+        evidence_policy,
+        capability_runtime,
         registry,
         provision_timeout: cfg.provision_timeout,
     })
@@ -140,10 +167,13 @@ pub async fn serve_org(app: AppState, listener: TcpListener) -> anyhow::Result<(
     if resumed > 0 {
         tracing::info!(resumed, "resumed interrupted organization changes");
     }
+    app.capability_runtime.recover_interrupted().await?;
+    let capability_worker = capability_worker(app.clone());
     let worker = outbox::spawn(app.clone());
     let router = app.router();
     let res = axum::serve(listener, router).await;
     worker.abort();
+    capability_worker.abort();
     res.map_err(Into::into)
 }
 
@@ -188,4 +218,35 @@ pub fn parse_publishers(spec: &str) -> HashMap<String, OrgId> {
             Some((token.trim().to_owned(), OrgId::new(org.trim())))
         })
         .collect()
+}
+
+/// One bounded provider operation at a time for this organization's demo process.
+/// Failed reads require explicit retry_read; ambiguous submissions never replay.
+fn capability_worker(app: AppState) -> tokio::task::JoinHandle<()> {
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(Duration::from_millis(250));
+        loop {
+            interval.tick().await;
+            let records = match app.store.recoverable_capability_runs() {
+                Ok(records) => records,
+                Err(error) => {
+                    tracing::error!(%error, "capability recovery scan failed");
+                    break;
+                }
+            };
+            for record in records {
+                if record.failure.is_none()
+                    && matches!(
+                        record.phase,
+                        capability_runtime::CapabilityRunPhase::Prepared
+                            | capability_runtime::CapabilityRunPhase::Running
+                    )
+                {
+                    if let Err(error) = app.capability_runtime.step(&record.job_id, false).await {
+                        tracing::warn!(job_id=%record.job_id, %error, "capability step requires attention");
+                    }
+                }
+            }
+        }
+    })
 }

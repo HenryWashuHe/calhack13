@@ -27,6 +27,8 @@ pub struct AppState {
     pub kernel: Arc<Mutex<()>>,
     pub registry: Option<RegistryClient>,
     pub provision_timeout: Duration,
+    pub evidence_policy: Arc<crate::capability_evidence::EvidencePolicy>,
+    pub capability_runtime: Arc<crate::capability_runtime::CapabilityRuntime>,
 }
 
 /// Result of a kernel mutation.

@@ -600,6 +600,7 @@ dependencies = [
  "futures",
  "genesis-apify",
  "genesis-core",
+ "genesis-forge",
  "genesis-providers",
  "genesis-verification",
  "reqwest",
