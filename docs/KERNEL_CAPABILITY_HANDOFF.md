@@ -26,6 +26,11 @@ the per-crate lockfiles currently support the standalone capability branch.
 The combined project needs Rust 1.94+ for the capability crates and Node.js 24+
 for the Actor runtime.
 
+Later observed checkpoint `21103d1` includes Claude's handoff and workspace change
+`4383315`, which already adds `genesis-apify` and `genesis-verification` after merging
+main. Only `genesis-forge` remains to be added when PR #2 is integrated. The kernel
+implementation itself is unchanged from the tested source checkpoint above.
+
 ## Wire the complete execution identity
 
 The current `CapabilityExecutor::submit(capability, actor_id, build_number,
