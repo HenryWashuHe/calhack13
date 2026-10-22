@@ -479,3 +479,39 @@ async fn the_server_poller_drives_pending_changes_to_commit() {
     assert_eq!(status, ChangeStatus::Committed);
     assert!(monitor_role(&app).is_some());
 }
+
+#[tokio::test]
+async fn operator_can_abandon_an_ambiguous_operation() {
+    let rt = Scripted::new(&[Step::Reconcile]);
+    let app = org(
+        rt.clone(),
+        Some(Verifier::new(vec![Readiness::Pending])),
+        None,
+    );
+    let id = submit(&app).await;
+    let r = drive(&app, &id).await;
+    assert_eq!(r.operations["monitor"].state, S::NeedsReconciliation);
+
+    let r = saga::abandon_operation(&app, &id, "monitor", "no native agent found\u{7}")
+        .await
+        .unwrap();
+    assert_eq!(r.status, ChangeStatus::Failed);
+    assert_eq!(r.operations["monitor"].state, S::Failed);
+    assert_eq!(r.operations["monitor"].operation_id, OP, "IDs retained");
+    assert!(r.operations["monitor"]
+        .attention
+        .as_deref()
+        .unwrap()
+        .ends_with("no native agent found"));
+    assert!(monitor_role(&app).is_none(), "organization unchanged");
+    assert_eq!(rt.advances.load(Ordering::SeqCst), 1, "nothing retried");
+
+    let again = saga::abandon_operation(&app, &id, "monitor", "again")
+        .await
+        .unwrap_err();
+    assert_eq!(again.status, axum::http::StatusCode::CONFLICT);
+    let missing = saga::abandon_operation(&app, &id, "nobody", "x")
+        .await
+        .unwrap_err();
+    assert_eq!(missing.status, axum::http::StatusCode::CONFLICT); // change already FAILED
+}
