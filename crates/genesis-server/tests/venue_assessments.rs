@@ -917,16 +917,21 @@ async fn operator_acl_idempotency_and_one_active_cycle_reject_before_extra_dispa
         StatusCode::CONFLICT
     );
     assert_eq!(f.providers.execution_posts().len(), 1);
-    let (status, _) = f
+    let job = f
+        .app
+        .store
+        .get_job(&JobId::new(record["job_id"].as_str().unwrap()))
+        .unwrap();
+    let (status, error) = f
         .post(
-            &format!("/jobs/{}/results", record["job_id"].as_str().unwrap()),
-            json!({"domain_verified":true,"output":{"verdict":"feasible"}}),
+            &format!("/jobs/{}/results", job.job_id),
+            json!({"attempt_id":job.attempt_id,"epoch":job.epoch,"outcome":"succeeded",
+                "provider_status":"completed","provider_refs":{},"operation_id":null,
+                "domain_verified":true,"output":{"verdict":"feasible"}}),
         )
         .await;
-    assert!(
-        !status.is_success(),
-        "generic results cannot supply an assessment proof"
-    );
+    assert_eq!(status, StatusCode::CONFLICT, "{error}");
+    assert_eq!(error["error"], "managed_specialist_result");
 }
 
 #[tokio::test]
@@ -1045,4 +1050,260 @@ async fn ambiguous_creao_submission_remains_unknown_after_restart_without_replay
         .await
         .0
         .is_success());
+}
+
+fn sqlite(f: &Fixture) -> rusqlite::Connection {
+    rusqlite::Connection::open(f.config.db.as_ref().unwrap()).unwrap()
+}
+
+fn durable_counts(db: &rusqlite::Connection) -> Vec<i64> {
+    [
+        "jobs",
+        "outbox",
+        "events",
+        "org_snapshots",
+        "venue_assessments",
+    ]
+    .iter()
+    .map(|table| {
+        db.query_row(&format!("SELECT COUNT(*) FROM {table}"), [], |row| {
+            row.get(0)
+        })
+        .unwrap()
+    })
+    .collect()
+}
+
+#[tokio::test]
+async fn creation_and_finalization_failures_roll_back_every_kernel_effect_then_reuse_one_run() {
+    let f = Fixture::start().await;
+    let source = f.source("rollback-source", 3).await;
+    let request = f.request_body("rollback-assessment", &source);
+    let db = sqlite(&f);
+    let initial_counts = durable_counts(&db);
+    let initial_state = serde_json::to_value(f.app.current_state().unwrap()).unwrap();
+    db.execute_batch("CREATE TRIGGER reject_assessment_creation BEFORE INSERT ON venue_assessments BEGIN SELECT RAISE(ABORT, 'synthetic create storage failure'); END;").unwrap();
+    let (status, _) = f.post("/venue-assessments", request.clone()).await;
+    assert_eq!(status, StatusCode::INTERNAL_SERVER_ERROR);
+    assert_eq!(
+        durable_counts(&db),
+        initial_counts,
+        "no job, outbox, event, snapshot or domain row may escape the failed create transaction"
+    );
+    assert_eq!(
+        serde_json::to_value(f.app.current_state().unwrap()).unwrap(),
+        initial_state
+    );
+    assert!(f.providers.execution_posts().is_empty());
+    db.execute_batch("DROP TRIGGER reject_assessment_creation;")
+        .unwrap();
+    let record = f.create(request).await;
+    f.collected(&record).await;
+    let job_id = JobId::new(record["job_id"].as_str().unwrap());
+    let job = f.app.store.get_job(&job_id).unwrap();
+    assert_eq!(job.status, JobStatus::Verifying);
+    let native = f.specialist.execution_receipt(&job, &binding()).unwrap();
+    let before_counts = durable_counts(&db);
+    let before_state = serde_json::to_value(f.app.current_state().unwrap()).unwrap();
+    let before_requests = f.providers.world.lock().unwrap().seen.len();
+    db.execute_batch("CREATE TRIGGER reject_assessment_proof BEFORE UPDATE OF proof_json ON venue_assessments WHEN NEW.proof_json IS NOT NULL BEGIN SELECT RAISE(ABORT, 'synthetic proof storage failure'); END;").unwrap();
+    let verify_path = format!(
+        "/venue-assessments/{}/verify",
+        record["assessment_id"].as_str().unwrap()
+    );
+    let (status, _) = f.post(&verify_path, json!({})).await;
+    assert_eq!(status, StatusCode::INTERNAL_SERVER_ERROR);
+    assert_eq!(durable_counts(&db), before_counts);
+    assert_eq!(
+        serde_json::to_value(f.app.current_state().unwrap()).unwrap(),
+        before_state
+    );
+    assert_eq!(f.app.store.get_job(&job_id).unwrap(), job);
+    let saved = f
+        .get(&format!(
+            "/venue-assessments/{}",
+            record["assessment_id"].as_str().unwrap()
+        ))
+        .await;
+    assert!(proof(&saved).is_null());
+    assert_eq!(saved["status"], "VERIFYING");
+    assert_eq!(
+        f.providers.world.lock().unwrap().seen.len(),
+        before_requests
+    );
+    db.execute_batch("DROP TRIGGER reject_assessment_proof;")
+        .unwrap();
+    let accepted = f.verify(&record).await;
+    assert_eq!(proof(&accepted)["decision"], "accepted");
+    assert_eq!(proof(&accepted)["output"]["verdict"], "reopen");
+    assert!(proof(&accepted)["observation_id"].is_string());
+    assert!(proof(&accepted)["requirement_id"].is_string());
+    assert_eq!(proof(&accepted)["run_id"], native.run_id);
+    let after_counts = durable_counts(&db);
+    let after_state = serde_json::to_value(f.app.current_state().unwrap()).unwrap();
+    assert_eq!(f.verify(&record).await, accepted);
+    assert_eq!(durable_counts(&db), after_counts);
+    assert_eq!(
+        serde_json::to_value(f.app.current_state().unwrap()).unwrap(),
+        after_state
+    );
+    assert_eq!(
+        f.providers.world.lock().unwrap().seen.len(),
+        before_requests,
+        "local verification and retries must never call the provider"
+    );
+    assert_eq!(f.providers.execution_posts().len(), 1);
+}
+
+#[tokio::test]
+async fn altered_index_columns_are_rejected_even_when_the_sealed_binding_is_untouched() {
+    let f = Fixture::start().await;
+    let source = f.source("index-source", 0).await;
+    let request = f.request_body("index-assessment", &source);
+    let record = f.create(request.clone()).await;
+    f.collected(&record).await;
+    let id = record["assessment_id"].as_str().unwrap();
+    let path = format!("/venue-assessments/{id}");
+    let db = sqlite(&f);
+    let binding_before: String = db
+        .query_row(
+            "SELECT binding_json FROM venue_assessments WHERE assessment_id=?1",
+            [id],
+            |row| row.get(0),
+        )
+        .unwrap();
+    let requests = f.providers.world.lock().unwrap().seen.len();
+    let counts = f.side_effect_counts();
+    for (column, original) in [
+        ("source_job_id", source.as_str()),
+        ("client_request_id", "index-assessment"),
+    ] {
+        db.execute(
+            &format!("UPDATE venue_assessments SET {column}=?2 WHERE assessment_id=?1"),
+            rusqlite::params![id, "unrelated-index-value"],
+        )
+        .unwrap();
+        let (status, _) = f.request(Method::GET, &path, "operator", None).await;
+        assert_eq!(
+            status,
+            StatusCode::CONFLICT,
+            "indexed {column} must be validated against the private record"
+        );
+        assert_eq!(
+            f.post(&format!("{path}/verify"), json!({})).await.0,
+            StatusCode::CONFLICT
+        );
+        assert_eq!(f.side_effect_counts(), counts);
+        assert_eq!(f.providers.world.lock().unwrap().seen.len(), requests);
+        let binding_after: String = db
+            .query_row(
+                "SELECT binding_json FROM venue_assessments WHERE assessment_id=?1",
+                [id],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(
+            binding_before, binding_after,
+            "this test changes an index only, not the envelope checksum"
+        );
+        db.execute(
+            &format!("UPDATE venue_assessments SET {column}=?2 WHERE assessment_id=?1"),
+            rusqlite::params![id, original],
+        )
+        .unwrap();
+    }
+    assert_eq!(
+        proof(&f.verify(&record).await)["decision"],
+        "accepted",
+        "restoring the indexes must reveal the original valid evidence"
+    );
+}
+
+#[tokio::test]
+async fn deleted_domain_binding_before_dispatch_fails_closed_without_native_preparation() {
+    let mut f = Fixture::start().await;
+    let source = f.source("missing-binding-source", 0).await;
+    // Leave the HTTP router active while stopping dispatch/polling deterministically.
+    for worker in f.server.workers.drain(..) {
+        worker.abort();
+        let _ = worker.await;
+    }
+    let record = f
+        .create(f.request_body("missing-binding-assessment", &source))
+        .await;
+    let job_id = JobId::new(record["job_id"].as_str().unwrap());
+    assert_eq!(
+        f.app.store.get_job(&job_id).unwrap().status,
+        JobStatus::Queued
+    );
+    assert!(f.journal.list().unwrap().is_empty());
+    let db = sqlite(&f);
+    assert_eq!(
+        db.execute(
+            "DELETE FROM venue_assessments WHERE assessment_id=?1",
+            [record["assessment_id"].as_str().unwrap()]
+        )
+        .unwrap(),
+        1
+    );
+    genesis_server::outbox::drain_once(&f.app).await.unwrap();
+    let refused = f.app.store.get_job(&job_id).unwrap();
+    assert_eq!(refused.status, JobStatus::Failed);
+    assert!(refused.rejection_reason.is_some());
+    assert!(
+        f.journal.list().unwrap().is_empty(),
+        "a missing domain authority record must not become a generic specialist job"
+    );
+    assert!(f.providers.execution_posts().is_empty());
+}
+
+#[tokio::test]
+async fn fabricated_generic_result_cannot_replace_the_durable_native_execution_receipt() {
+    let f = Fixture::start().await;
+    let source = f.source("result-tamper-source", 3).await;
+    f.providers.mode(ResponseMode::WrongCapacity);
+    let record = f
+        .create(f.request_body("result-tamper-assessment", &source))
+        .await;
+    f.collected(&record).await;
+    let job_id = JobId::new(record["job_id"].as_str().unwrap());
+    let mut job = f.app.store.get_job(&job_id).unwrap();
+    let native = f.specialist.execution_receipt(&job, &binding()).unwrap();
+    let forged_correct = structured_output(&job.input["context"], ResponseMode::Correct, &None);
+    assert_ne!(
+        native.output.as_ref().unwrap()["text"],
+        serde_json::to_string(&forged_correct).unwrap()
+    );
+    job.result = Some(
+        json!({"kind":"specialist_run_output","provider":"creao","run_id":native.run_id,
+        "agent_id":AGENT,"domain_verified":true,"output":{"text":serde_json::to_string(&forged_correct).unwrap()}}),
+    );
+    let db = sqlite(&f);
+    assert_eq!(
+        db.execute(
+            "UPDATE jobs SET job_json=?2 WHERE job_id=?1",
+            rusqlite::params![job_id.as_str(), serde_json::to_string(&job).unwrap()]
+        )
+        .unwrap(),
+        1
+    );
+    assert_eq!(
+        f.app.store.get_job(&job_id).unwrap().result,
+        job.result,
+        "the forged generic result must actually be installed"
+    );
+    let requests = f.providers.world.lock().unwrap().seen.len();
+    let counts = f.side_effect_counts();
+    let rejected = f.verify(&record).await;
+    assert_eq!(proof(&rejected)["decision"], "semantic_rejected");
+    assert_eq!(proof(&rejected)["run_id"], native.run_id);
+    assert_eq!(f.side_effect_counts(), counts);
+    assert_eq!(f.providers.world.lock().unwrap().seen.len(), requests);
+    assert_eq!(
+        f.specialist
+            .execution_receipt(&job, &binding())
+            .unwrap()
+            .output_sha256,
+        native.output_sha256
+    );
 }
