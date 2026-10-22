@@ -1,16 +1,18 @@
 # Next GENESIS implementation split
 
-Current Codex checkpoint: [PR #16](https://github.com/HenryWashuHe/genesis/pull/16),
-`codex/automatic-acquisition`, implementation `b71d7b9`, stacked on #15. All 531
-workspace tests, formatting and strict Clippy pass. The opt-in capability scheduler
-preserves durable quotas, current authority, unknown-POST and explicit-read-retry gates.
+Current Codex checkpoint: [PR #17](https://github.com/HenryWashuHe/genesis/pull/17),
+`codex/automatic-scenario`, implementation `f92ac15`, stacked on #16. All 542
+workspace tests, formatting and strict Clippy pass. Actual organization servers
+complete automatic acquisition, independent adoption, handoffs and restart use
+while guarded HTTP proxies forbid manual step/verify requests.
 
-Next Codex slice: connect the two-organization scenario to automatic acquisition and
-invocation finalization. Reserved paths: `capability_scenario.rs`, scenario tests/docs,
-narrow health configuration fields and CLI scenario help/tests if necessary. Preserve
-bounded observation and manual compatibility without adding planner or saga behavior.
-Claude retains planner, general lifecycle/saga/outbox, provider activation, Elastic
-and UI. No whole-kernel credit fallback is active.
+Next Codex slice: bounded acquisition discovery and durable redacted history for
+operator recovery and UI integration. Scope: new capability-only history module,
+narrow atomic acquisition store/scheduler hooks, read routes, startup registration,
+focused tests/docs. No execution authority or semantic proof comes from history.
+Record branch/path ownership in issue #4 before editing. Claude retains planner,
+general lifecycle/saga/outbox, provider activation, Elastic and UI. No whole-kernel
+credit fallback is active.
 
 Assigned by Codex on October 21, 2026 at the user's explicit request to review
 Claude's PR, redivide work, communicate the assignments and continue implementation.
