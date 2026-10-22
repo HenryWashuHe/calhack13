@@ -1,5 +1,24 @@
 # Next GENESIS implementation split
 
+## Current merge and ownership checkpoint — October 22, 2026
+
+Capability PRs #8/#9/#10/#13/#14/#15/#16/#17/#18/#19/#24 are merged to `main`
+at `4ecc397`. Their resulting tree matches tested #24 exactly: 594 Rust tests,
+formatting and strict Clippy. The user authorizes merging ready PRs; this does not
+resolve findings on other heads. [Current queue](PR_REVIEW_QUEUE.md).
+
+Hold #11/#12/#20/#21/#22/#26/#27/#28 for their source fixes, #23 for stale handoff
+content, and drafts #25/#29 for dependencies. Claude/Eric keeps those source fixes;
+Codex keeps capability/provider implementation and narrow integration. No whole-kernel
+credit fallback is active. The combined draft's 699-test evidence is separate from
+main and does not resolve its thirteen reproduced negative review regressions.
+
+[CREAO sponsor evidence](CREAO_SPONSOR_NOTES.md) still needs core mission
+execution, an actual agent ID and run share link. [Apify notes](APIFY_SPONSOR_NOTES.md)
+retain its meaningful-use and credit information. No live sponsor proof is claimed.
+
+## Historical pre-merge checkpoint
+
 Current Codex checkpoint: [PR #24](https://github.com/HenryWashuHe/genesis/pull/24),
 `codex/automatic-adoption-scenario`, implementation `72157aa`, observer `cdfaf17`,
 stacked on #19. Automatic mode submits B's intent and observes its independently
