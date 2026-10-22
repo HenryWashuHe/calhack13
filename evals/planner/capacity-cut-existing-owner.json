@@ -117,6 +117,7 @@
       "RecruitSpecialist",
       "RetireRole"
     ],
-    "max_new_roles": 0
+    "max_new_roles": 0,
+    "owner_role": "Venue operations"
   }
 }

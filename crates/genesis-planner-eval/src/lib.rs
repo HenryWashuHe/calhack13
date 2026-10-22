@@ -90,6 +90,12 @@ pub struct Expect {
     /// Model calls allowed, including repairs.
     #[serde(default)]
     pub max_attempts: Option<u32>,
+    /// Name of the existing role that must own the work: every
+    /// AssignResponsibility owner, ReassignResponsibility target and
+    /// RequestCapability role in a change must be this role, and a change
+    /// must assign it something.
+    #[serde(default)]
+    pub owner_role: Option<String>,
 }
 
 fn yes() -> bool {
@@ -116,6 +122,10 @@ pub struct RunResult {
     pub change_status: Option<String>,
     pub ops: Vec<String>,
     pub escalation: Option<String>,
+    /// For an escalation: true when the model's last reply parsed as an
+    /// `escalate` verdict, false when the planner fell back to escalating
+    /// (model unavailable, unusable output or repeated kernel rejection).
+    pub escalation_by_model: Option<bool>,
     pub attempts: u32,
     pub latency_ms: u64,
     pub checks: Vec<Check>,
@@ -373,6 +383,7 @@ pub async fn run_scenario(
         change_status: None,
         ops: vec![],
         escalation: None,
+        escalation_by_model: None,
         attempts: 0,
         latency_ms: 0,
         checks: vec![],
@@ -445,6 +456,15 @@ async fn execute(
         PlanOutcome::Escalated { reason, attempts } => {
             r.verdict = Some(Verdict::Escalate);
             r.attempts = attempts;
+            let by_model = r.responses.last().is_some_and(|t| {
+                genesis_planner::output::parse(t)
+                    .is_ok_and(|o| o.verdict == genesis_planner::output::Verdict::Escalate)
+            });
+            r.escalation_by_model = Some(by_model);
+            if r.responses.is_empty() {
+                // No model reply at all: an evaluation error, not a decision.
+                r.error = Some(format!("model produced no response: {reason}"));
+            }
             r.escalation = Some(reason);
         }
     }
@@ -456,8 +476,17 @@ async fn execute(
         .iter()
         .map(|o| o["op"].as_str().unwrap_or("?").to_owned())
         .collect();
-    r.checks = score(s, r, &ops);
-    r.passed = r.checks.iter().all(|c| c.ok);
+    let roles: BTreeMap<String, String> = ids
+        .by_placeholder
+        .iter()
+        .filter_map(|(k, v)| {
+            k.strip_prefix("{{role:")
+                .and_then(|n| n.strip_suffix("}}"))
+                .map(|name| (v.clone(), name.to_owned()))
+        })
+        .collect();
+    r.checks = score(s, r, &ops, &roles);
+    r.passed = r.error.is_none() && r.checks.iter().all(|c| c.ok);
     Ok(())
 }
 
@@ -475,8 +504,14 @@ fn origin(url: &str) -> Option<String> {
     Some(format!("{scheme}://{}", host.to_ascii_lowercase()))
 }
 
-/// Score a finished run. Pure: depends only on the scenario, outcome and ops.
-pub fn score(s: &Scenario, r: &RunResult, ops: &[Value]) -> Vec<Check> {
+/// Score a finished run. Pure: depends only on the scenario, the outcome, the
+/// proposed ops and the seeded roles (`role_id` → name).
+pub fn score(
+    s: &Scenario,
+    r: &RunResult,
+    ops: &[Value],
+    roles: &BTreeMap<String, String>,
+) -> Vec<Check> {
     let e = &s.expect;
     let mut checks = Vec::new();
     let mut check = |name: &str, ok: bool, detail: String| {
@@ -493,11 +528,21 @@ pub fn score(s: &Scenario, r: &RunResult, ops: &[Value]) -> Vec<Check> {
         format!("got {:?}, accept {:?}", r.verdict, e.verdicts),
     );
     if let Some(reason) = &r.escalation {
-        // An escalation is a valid answer only when the scenario accepts it.
+        // An escalation counts only when the model chose it. The planner's own
+        // fallback (no reply, unusable output, rejections exhausted) is not a
+        // decision about the evidence.
         check(
-            "escalation_reason",
-            !reason.trim().is_empty(),
-            reason.chars().take(160).collect(),
+            "model_decision",
+            r.escalation_by_model == Some(true),
+            if r.escalation_by_model == Some(true) {
+                "the model's reply was an escalate verdict".into()
+            } else {
+                format!(
+                    "planner fallback after {} attempt(s): {}",
+                    r.attempts,
+                    reason.chars().take(160).collect::<String>()
+                )
+            },
         );
     }
     let names: Vec<&str> = ops.iter().filter_map(|o| o["op"].as_str()).collect();
@@ -561,6 +606,44 @@ pub fn score(s: &Scenario, r: &RunResult, ops: &[Value]) -> Vec<Check> {
             .filter(|sc| e.forbid_scopes.contains(sc))
             .collect();
         check("forbid_scopes", bad.is_empty(), format!("granted: {bad:?}"));
+    }
+    if let (Some(owner), Some(Verdict::Change)) = (&e.owner_role, r.verdict) {
+        let named = |v: &Value| -> String {
+            match (v["kind"].as_str(), v["role_id"].as_str(), v["key"].as_str()) {
+                (Some("existing"), Some(id), _) => roles
+                    .get(id)
+                    .cloned()
+                    .unwrap_or_else(|| format!("unknown role {id}")),
+                (Some("new"), _, Some(key)) => format!("new role `{key}`"),
+                _ => "unrecognized role reference".into(),
+            }
+        };
+        let targets: Vec<(String, String)> = ops
+            .iter()
+            .filter_map(|o| match o["op"].as_str() {
+                Some("AssignResponsibility") => {
+                    Some(("AssignResponsibility".into(), named(&o["owner"])))
+                }
+                Some("ReassignResponsibility") => {
+                    Some(("ReassignResponsibility".into(), named(&o["to"])))
+                }
+                Some("RequestCapability") => Some(("RequestCapability".into(), named(&o["role"]))),
+                _ => None,
+            })
+            .collect();
+        let wrong: Vec<_> = targets.iter().filter(|(_, n)| n != owner).collect();
+        let assigned = targets
+            .iter()
+            .any(|(op, n)| n == owner && op != "RequestCapability");
+        check(
+            "owner_role",
+            wrong.is_empty() && assigned,
+            if wrong.is_empty() && !assigned {
+                format!("nothing assigned to {owner}")
+            } else {
+                format!("expected {owner}; got {targets:?}")
+            },
+        );
     }
     if let Some(max) = e.max_attempts {
         check(
