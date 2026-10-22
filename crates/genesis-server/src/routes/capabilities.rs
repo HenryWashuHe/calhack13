@@ -2,6 +2,7 @@
 
 use crate::app::AppState;
 use crate::auth::Principal;
+use crate::capability_authority::{authorize_current, authorize_job};
 use crate::capability_evidence::{EvidencePolicyError, VerifiedEvidence};
 use crate::capability_runtime::{
     self, CapabilityRunRecord, CapabilityRuntimeError, ExecutionPurpose,
@@ -135,8 +136,11 @@ fn authorize_permissions(
     responsibility: &ResponsibilityId,
     manifest: &CapabilityManifest,
 ) -> ApiResult<()> {
+    let now = Utc::now();
+    // Authority is required even when the manifest declares no extra scopes.
+    authorize_current(state, role, responsibility, None, now)?;
     for scope in &manifest.required_permissions {
-        engine::authorize_dispatch(state, role, responsibility, Some(scope))?;
+        authorize_current(state, role, responsibility, Some(scope), now)?;
     }
     Ok(())
 }
@@ -560,20 +564,17 @@ pub async fn acceptance(
         ));
     }
     installed(&state, &id, InstallationStatus::Checking)?;
-    // Recheck assignment authority at the point acceptance is committed. A result
-    // that arrived before a handoff cannot approve work after that handoff.
+    // Initial acceptance requires a live verifier grant. After commitment the
+    // semantic proof belongs to the organization and survives verifier handoff.
     if let Some(proof) = &proof {
         let manifest = app.store.capability_manifest(&id)?;
+        let now = Utc::now();
         for job_id in &proof.job_ids {
             let job = app.store.get_job(job_id)?;
-            let grant =
-                engine::authorize_dispatch(&state, &job.role_id, &job.responsibility_id, None)?;
-            if grant.assignment_id != job.assignment_id || grant.epoch != job.epoch {
-                return Err(ApiError::new(
-                    StatusCode::CONFLICT,
-                    "stale_epoch",
-                    "acceptance assignment changed",
-                ));
+            let record = app.store.get_capability_run(job_id)?;
+            authorize_job(&state, &job, record.required_scope.as_deref(), now)?;
+            for scope in &record.required_permissions {
+                authorize_job(&state, &job, Some(scope), now)?;
             }
             authorize_permissions(&state, &job.role_id, &job.responsibility_id, &manifest)?;
         }
@@ -662,6 +663,9 @@ pub async fn run(
             return Ok((StatusCode::OK, Json(existing)));
         }
         let receipt = app.providers.executor()?.submit(&request).await?;
+        // The development provider also waits asynchronously; a lease or
+        // mission deadline may expire while the kernel state stays unchanged.
+        authorize_job(&state, &job, body.required_scope.as_deref(), Utc::now())?;
         for to in [JobStatus::Submitting, JobStatus::Running] {
             let from = job
                 .set_status(to, Utc::now())

@@ -2,6 +2,7 @@
 //! transport evidence only: this module never grants semantic success or writes
 //! a commitment. One organization process owns each database in the demo.
 
+use crate::capability_authority::authorize_job;
 use crate::store::{put_job, EventMeta, Store, StoreError, StoreResult};
 use chrono::Utc;
 use genesis_apify::RunRequest;
@@ -750,23 +751,12 @@ impl CapabilityRuntime {
 }
 
 fn authorized(state: &OrgState, job: &Job, record: &CapabilityRunRecord) -> bool {
-    if job.org_id != state.org_id || job.deadline.is_some_and(|deadline| deadline <= Utc::now()) {
-        return false;
-    }
-    let Ok(grant) = engine::authorize_dispatch(
-        state,
-        &job.role_id,
-        &job.responsibility_id,
-        record.required_scope.as_deref(),
-    ) else {
-        return false;
-    };
-    if grant.assignment_id != job.assignment_id
-        || grant.epoch != job.epoch
-        || record.required_permissions.iter().any(|scope| {
-            engine::authorize_dispatch(state, &job.role_id, &job.responsibility_id, Some(scope))
-                .is_err()
-        })
+    let now = Utc::now();
+    if authorize_job(state, job, record.required_scope.as_deref(), now).is_err()
+        || record
+            .required_permissions
+            .iter()
+            .any(|scope| authorize_job(state, job, Some(scope), now).is_err())
     {
         return false;
     }

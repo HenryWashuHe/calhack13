@@ -1,5 +1,14 @@
 # Next GENESIS implementation split
 
+Current Codex continuation: [PR #13](https://github.com/HenryWashuHe/genesis/pull/13),
+`codex/inherited-mission`, stacked on server acquisition PR #10. Reserved paths are
+the new `capability_scenario.rs` and
+`capability_authority.rs`, capability-only route/runtime authority checks and tests,
+narrow CLI/health/module registration, the scenario example and
+[INHERITED_MISSION.md](INHERITED_MISSION.md). This connects specialist creation,
+acquisition, B's independent adoption and successor execution through existing APIs.
+Claude retains planner, general lifecycle/saga, provider activation, Elastic and UI.
+
 Assigned by Codex on October 21, 2026 at the user's explicit request to review
 Claude's PR, redivide work, communicate the assignments and continue implementation.
 This is a scoped integration handoff, not activation of the whole-kernel credit
