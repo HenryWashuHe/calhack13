@@ -14,6 +14,8 @@ pub mod capability_acquisition_driver;
 pub mod capability_acquisition_history;
 pub mod capability_acquisition_runtime;
 pub mod capability_acquisition_store;
+pub mod capability_adoption;
+pub mod capability_adoption_store;
 pub mod capability_authority;
 pub mod capability_evidence;
 pub mod capability_finalization;
@@ -183,6 +185,7 @@ pub fn build_org(cfg: &OrgConfig, providers: Option<ProviderSet>) -> anyhow::Res
     let kernel = Arc::new(Mutex::new(()));
     store.init_capability_runs()?;
     store.init_capability_pins()?;
+    store.init_capability_adoptions()?;
     store.init_capability_invocations()?;
     store.init_capability_finalization()?;
     if let Some(config) = &cfg.acquisition {
@@ -206,7 +209,8 @@ pub fn build_org(cfg: &OrgConfig, providers: Option<ProviderSet>) -> anyhow::Res
             kernel.clone(),
             Arc::new(Mutex::new(())),
         )
-        .with_events(tx.clone()),
+        .with_events(tx.clone())
+        .with_adoption_policy(evidence_policy.clone()),
     );
     let acquisition_runtime = Arc::new(capability_acquisition_runtime::AcquisitionRuntime::new(
         store.clone(),
@@ -230,6 +234,7 @@ pub fn build_org(cfg: &OrgConfig, providers: Option<ProviderSet>) -> anyhow::Res
         acquisition_policy: cfg.acquisition.as_ref().map(|c| Arc::new(c.policy.clone())),
         automatic_acquisition: cfg.acquisition.as_ref().is_some_and(|c| c.automatic),
         acquisition_runtime,
+        adoption_gate: Arc::new(Mutex::new(())),
         registry,
         provision_timeout: cfg.provision_timeout,
     })
@@ -249,6 +254,7 @@ pub async fn serve_org(app: AppState, listener: TcpListener) -> anyhow::Result<(
     }
     let _capability_worker = AbortWorker(capability_worker(app.clone()));
     let _finalization_worker = AbortWorker(capability_finalization::spawn(app.clone()));
+    let _adoption_worker = AbortWorker(capability_adoption::spawn(app.clone()));
     let _acquisition_worker = app
         .automatic_acquisition
         .then(|| AbortWorker(capability_acquisition_driver::spawn(app.clone())));
