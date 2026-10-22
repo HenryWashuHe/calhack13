@@ -205,12 +205,15 @@ fn sources_must_share_an_origin_with_the_requirement_evidence() {
         &StaticCatalog::default(),
     );
     assert_eq!(codes(r), vec![ValidationCode::UnknownEvidence]);
-    // Origins compare case-insensitively on scheme and host.
+    // Origins compare case-insensitively on scheme and host. Evidence may be
+    // written loosely; sources must be canonical (see
+    // sources_must_be_usable_by_the_forge).
+    let loose = demo(Some("HTTPS://Portal.Example/org-a/venues/index.html"));
     let ok = run(
-        &d,
+        &loose,
         vec![
-            assign(&d),
-            request(&d, &["HTTPS://Portal.Example/org-a/other.html"]),
+            assign(&loose),
+            request(&loose, &["https://portal.example/org-a/other.html"]),
         ],
         &StaticCatalog::default(),
     );
@@ -977,6 +980,65 @@ fn a_kernel_gap_observation_cannot_justify_another_request() {
     assert!(
         errs.iter()
             .any(|e| e.message.contains("origin") || e.message.contains("http")),
+        "{errs:?}"
+    );
+}
+
+#[test]
+fn sources_must_be_usable_by_the_forge() {
+    // Same rules as genesis_forge::SynthesisRequest::validate, so a committed
+    // gap is always one a trusted policy could materialize.
+    let rejected = [
+        "http://portal.example/org-a/venues/index.html",
+        "https://portal.example/org-a/venues/index.html#top",
+        "https://user@portal.example/org-a/venues/index.html",
+        "https://PORTAL.example/org-a/venues/index.html",
+        "https://portal.example:443/org-a/venues/index.html",
+        "https://portal.example/org-a/venues/../venues/index.html",
+        "https://portal.example",
+    ];
+    for bad in rejected {
+        let d = demo(Some(PORTAL));
+        let r = run(
+            &d,
+            vec![assign(&d), request(&d, &[bad])],
+            &StaticCatalog::default(),
+        );
+        let errs = r.expect_err(bad);
+        assert!(
+            errs.iter()
+                .any(|e| e.code == ValidationCode::InvalidInput
+                    && e.message.contains("canonical https")),
+            "{bad}: {errs:?}"
+        );
+    }
+    let d = demo(Some(PORTAL));
+    assert!(run(
+        &d,
+        vec![
+            assign(&d),
+            request(&d, &["https://portal.example/org-a/venues/b.html?x=1"])
+        ],
+        &StaticCatalog::default()
+    )
+    .is_ok());
+}
+
+#[test]
+fn http_evidence_cannot_back_an_https_request() {
+    // Evidence served over plain http (a local portal) has an http origin; an
+    // https source on the same host is a different origin. Serve the portal
+    // over https (the public tunnel) for the capability path.
+    let d = demo(Some("http://portal.example/org-a/venues/index.html"));
+    let errs = run(
+        &d,
+        vec![assign(&d), request(&d, &[PORTAL])],
+        &StaticCatalog::default(),
+    )
+    .expect_err("origin mismatch");
+    assert!(
+        errs.iter()
+            .any(|e| e.code == ValidationCode::UnknownEvidence),
         "{errs:?}"
     );
 }

@@ -58,9 +58,14 @@ The kernel commits it only if:
   owned by the same role, the link acquisition authority checks later;
 - `capability_id` is 3–64 characters of `a-z 0-9 - .`, starting alphanumeric;
   `purpose` is 1–400 characters;
-- `observed_sources` holds 1–8 http(s) URLs without credentials, each on the
-  **same origin** (scheme and host, case-insensitive) as an `evidence_ref` of
-  the requirement's triggering observations. The agent cannot invent targets;
+- `observed_sources` holds 1–8 URLs the forge can use: **canonical https**, a
+  host, no credentials, no fragment, at most 1024 bytes (the same rules as
+  `SynthesisRequest::validate`), each on the **same origin** (scheme and host,
+  case-insensitive) as an `evidence_ref` of the requirement's triggering
+  observations. The agent cannot invent targets, and a committed gap is always
+  one a trusted policy could materialize. So the capability path needs the
+  evidence itself served over https (the portal's public tunnel); a local
+  `http://` portal cannot back a request;
 - no installed, approved capability already has that ID (use
   `AttachCapability`);
 - no live gap exists for the same requirement and capability ID;
