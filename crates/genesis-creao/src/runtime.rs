@@ -44,6 +44,8 @@ pub enum RuntimeError {
     RetryRequired,
     #[error("CREAO operation has no read failure to retry")]
     UnexpectedRetry,
+    #[error("CREAO readiness challenge expired before submission")]
+    Expired,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -57,6 +59,13 @@ pub enum OperationPurpose {
         job_id: String,
         assignment_id: String,
         epoch: u64,
+    },
+    /// A gateway readiness challenge is neither provisioning nor mission work.
+    /// Expiration controls dispatch/receipt acceptance, not historical validity.
+    Readiness {
+        challenge_id: String,
+        config_digest: String,
+        expires_at: DateTime<Utc>,
     },
 }
 
@@ -100,6 +109,14 @@ impl OperationSpec {
                 },
                 OperationRequest::CreateRun(_),
             ) if identifier(job_id) && identifier(assignment_id) => Ok(()),
+            (
+                OperationPurpose::Readiness {
+                    challenge_id,
+                    config_digest,
+                    ..
+                },
+                OperationRequest::CreateRun(_),
+            ) if identifier(challenge_id) && digest(config_digest) => Ok(()),
             _ => Err(RuntimeError::Invalid),
         }
     }
@@ -532,6 +549,29 @@ impl Runtime {
         retry_read: bool,
     ) -> Result<OperationRecord, RuntimeError> {
         let _gate = self.store.gate.lock().await;
+        self.step_locked(operation_id, retry_read).await
+    }
+
+    /// Atomically submit only a still-prepared operation. Concurrent callers
+    /// return its saved state; they never poll or replay an existing submission.
+    /// This lets a readiness probe own dispatch without taking over collection.
+    pub async fn submit_prepared(
+        &self,
+        operation_id: &str,
+    ) -> Result<OperationRecord, RuntimeError> {
+        let _gate = self.store.gate.lock().await;
+        let record = self.get(operation_id)?;
+        if record.phase != OperationPhase::Prepared {
+            return Ok(record);
+        }
+        self.step_locked(operation_id, false).await
+    }
+
+    async fn step_locked(
+        &self,
+        operation_id: &str,
+        retry_read: bool,
+    ) -> Result<OperationRecord, RuntimeError> {
         let record = self.get(operation_id)?;
         match record.phase {
             OperationPhase::Submitting | OperationPhase::NeedsReconciliation => {
@@ -540,6 +580,11 @@ impl Runtime {
             OperationPhase::Polling => return Err(RuntimeError::ConcurrentChange),
             OperationPhase::NativeCompleted | OperationPhase::Failed => return Ok(record),
             _ => {}
+        }
+        if record.phase == OperationPhase::Prepared
+            && matches!(&record.spec.purpose, OperationPurpose::Readiness { expires_at, .. } if *expires_at <= Utc::now())
+        {
+            return Err(RuntimeError::Expired);
         }
         if record.retryable_read && !retry_read {
             return Err(RuntimeError::RetryRequired);
