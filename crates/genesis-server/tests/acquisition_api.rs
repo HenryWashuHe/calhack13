@@ -22,6 +22,7 @@ const EXAMPLE: &str = "ACQUISITION_PUBLIC_HTML_NOT_STATUS_9af0";
 const ORACLE: &str = "ACQUISITION_PRIVATE_ORACLE_0e8c";
 const SOURCE: &str = "ACQUISITION_GENERATED_SOURCE_NOT_STATUS_c41d";
 const REQUIREMENT: &str = "ACQUISITION_BACKEND_REQUIREMENT_2b7f";
+const OTHER_SUITE: &str = "another-trusted-acquisition-suite";
 
 struct Server {
     url: String,
@@ -74,7 +75,9 @@ impl Org {
             .constitution
             .scopes
             .insert("capability.acquire".into());
-        config.oracle_suites = vec![suite()];
+        let mut other_suite = suite();
+        other_suite.suite_id = OTHER_SUITE.into();
+        config.oracle_suites = vec![suite(), other_suite];
         config.acquisition = acquisition;
         // Publication refusal must occur before any registry request.
         config.registry_url = Some("http://127.0.0.1:1".into());
@@ -346,6 +349,7 @@ async fn idempotency_replays_exact_requests_and_rejects_changed_semantics() {
     assert_eq!(status, StatusCode::OK, "{repeated}");
     assert_eq!(repeated, created);
     for (pointer, value) in [
+        ("/suite_id", json!(OTHER_SUITE)),
         ("/candidate/capability_version", json!("2.0.0")),
         ("/candidate/actor_name", json!("genesis-http-another-actor")),
         (
