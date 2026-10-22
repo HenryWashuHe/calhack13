@@ -338,6 +338,27 @@ button { font: inherit; color: inherit; }
 .evo-foot .mono { overflow-wrap: anywhere; }
 .evo-foot .btn { margin-left: auto; }
 @media (max-width: 640px) { .evo-gen { grid-template-columns: minmax(0, 1fr); } }
+/* ---------- constitution audit ---------- */
+.audit { display: grid; gap: 8px; padding: 8px 10px; border: 1px solid var(--rule-strong); border-radius: var(--radius); font-size: 13px; }
+.audit.ok { border-color: color-mix(in srgb, var(--ok) 40%, var(--rule-strong)); }
+.audit.bad { border-color: var(--bad); background: var(--bad-soft); }
+.audit-head { display: flex; gap: 8px 12px; align-items: center; flex-wrap: wrap; }
+.audit-toggle { border: 0; background: none; padding: 0; cursor: pointer; font-weight: 500; display: inline-flex; gap: 6px; align-items: center; text-align: left; }
+.audit-mark { font-weight: 700; }
+.audit.ok .audit-head .audit-mark, .audit-list li.ok .audit-mark, .audit-ok { color: var(--ok); }
+.audit.bad .audit-head .audit-mark, .audit-list li.bad .audit-mark, .audit-bad { color: var(--bad); }
+.audit-head .btn { margin-left: auto; }
+.audit-cells { display: flex; flex-wrap: wrap; gap: 3px; }
+.audit-cell { min-width: 26px; height: 22px; padding: 0 4px; border-radius: 3px; border: 1px solid transparent; font: 11px var(--mono); cursor: pointer; }
+.audit-cell.ok { background: var(--ok-soft); color: var(--ok); }
+.audit-cell.bad { background: var(--bad); color: var(--panel); }
+.audit-cell.unknown { background: var(--rule); color: var(--ink-3); }
+.audit-cell.here { border-color: var(--ink); }
+.audit-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.audit-list li { display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: 6px; }
+.audit-title { font-weight: 500; }
+.audit-violation { color: var(--bad); overflow-wrap: anywhere; }
+.audit-list li.audit-note { display: block; font-size: 12px; }
 .duties { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
 .duties li { display: flex; gap: 8px; align-items: baseline; font-size: 13px; flex-wrap: wrap; }
 .duties .epoch { font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
