@@ -103,9 +103,15 @@ fn update(
         .operations
         .get_mut(role_key)
         .expect("operation recorded before update");
+    let snapshot = op.clone();
     let before = (op.state, op.run_id.clone(), op.attention.clone());
     f(op);
     let changed = before != (op.state, op.run_id.clone(), op.attention.clone());
+    let mut unchanged = op.clone();
+    unchanged.updated_at = snapshot.updated_at;
+    if unchanged == snapshot && extra.is_empty() {
+        return Ok(()); // nothing observed: avoid rewriting the record each poll
+    }
     op.updated_at = Utc::now();
     let mut effects = extra;
     if changed {
