@@ -136,7 +136,7 @@ impl OperationRequest {
 
 /// An account-bound receipt from trusted backend storage. Deserialization does
 /// not grant organization authority or prove a caller owns the remote run.
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Serialize, Deserialize, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct RunTicket {
     pub(crate) schema_version: u32,
@@ -147,6 +147,20 @@ pub struct RunTicket {
     pub(crate) conversation_id: Option<String>,
     pub(crate) workspace_id: Option<String>,
     pub(crate) model: Option<String>,
+}
+impl fmt::Debug for RunTicket {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("RunTicket")
+            .field("schema_version", &self.schema_version)
+            .field("account_namespace", &self.account_namespace)
+            .field("request_sha256", &self.request_sha256)
+            .field("run_id", &self.run_id)
+            .field("agent_id", &self.agent_id)
+            .field("conversation_id", &self.conversation_id)
+            .field("workspace_id", &self.workspace_id)
+            .field("model", &"[redacted]")
+            .finish()
+    }
 }
 impl RunTicket {
     pub fn run_id(&self) -> &str {

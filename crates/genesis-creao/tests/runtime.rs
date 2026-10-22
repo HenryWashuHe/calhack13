@@ -858,6 +858,48 @@ async fn readiness_submit_only_is_atomic_and_redacted_without_changing_persisted
 }
 
 #[tokio::test]
+async fn provider_model_echo_is_redacted_in_ticket_and_record_without_changing_receipts() {
+    let nonce = "0123456789abcdef".repeat(4);
+    let mut accepted = Reply::accepted(RUN_A, Some(AGENT));
+    accepted.body["model"] = json!(nonce);
+    let mut complete = Reply::observed(RUN_A, "completed", Some(AGENT));
+    complete.body["model"] = json!(nonce);
+    let mock = Mock::start(vec![accepted, complete]).await;
+    let runtime = mock.runtime(RuntimeStore::in_memory(ORG).unwrap());
+    let mut spec = readiness(
+        "ready-model-echo",
+        chrono::Utc::now() + chrono::Duration::minutes(1),
+    );
+    let OperationRequest::CreateRun(request) = &mut spec.request else {
+        unreachable!()
+    };
+    assert!(request.model.is_none());
+    request.input["nonce"] = json!(nonce);
+    runtime.prepare(spec).unwrap();
+    let submitted = runtime.submit_prepared("ready-model-echo").await.unwrap();
+    assert_eq!(submitted.phase, OperationPhase::Waiting);
+    due(&submitted).await;
+    let completed = runtime.step("ready-model-echo", false).await.unwrap();
+    assert_eq!(completed.phase, OperationPhase::NativeCompleted);
+    for record in [submitted, completed] {
+        record.validate().unwrap();
+        let ticket = record.ticket.as_ref().unwrap();
+        let ticket_wire = serde_json::to_vec(ticket).unwrap();
+        let record_wire = serde_json::to_vec(&record).unwrap();
+        assert_eq!(serde_json::to_value(ticket).unwrap()["model"], nonce);
+        assert!(!format!("{ticket:?}").contains(&nonce));
+        assert!(!format!("{record:?}").contains(&nonce));
+        assert_eq!(serde_json::to_vec(ticket).unwrap(), ticket_wire);
+        assert_eq!(serde_json::to_vec(&record).unwrap(), record_wire);
+        let restored: OperationRecord = serde_json::from_slice(&record_wire).unwrap();
+        restored.validate().unwrap();
+        assert_eq!(restored, record);
+        assert!(!format!("{restored:?}").contains(&nonce));
+    }
+    assert_eq!(mock.requests().len(), 2);
+}
+
+#[tokio::test]
 async fn cancelled_readiness_submission_is_recovered_without_replaying_or_polling() {
     let hold = Arc::new(Semaphore::new(0));
     let mock = Mock::start(vec![Reply::accepted(RUN_A, Some(AGENT)).held(&hold)]).await;
