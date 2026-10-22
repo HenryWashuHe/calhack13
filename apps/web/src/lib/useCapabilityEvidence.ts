@@ -1,11 +1,13 @@
 // Fetches the evidence behind installed capabilities: the canonical manifest
 // (pinned build, publisher verification) and each pinned run's backend record.
-// Runs are refetched when their job changes; stale responses are ignored.
+// Runs are refetched when their job changes (including updated_at), polled
+// while active or awaiting a read retry, and retried after transient fetch
+// errors; stale responses are ignored.
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ApiError, type Api } from "./api";
 import type { CapabilityManifest, Job, OrgState } from "./contracts";
-import { capabilityKey, CapabilityRunRecord, FINAL_PHASES } from "./capabilities";
+import { capabilityKey, CapabilityRunRecord } from "./capabilities";
 
 /** Error value for jobs without a backend capability run record. */
 export const NOT_MANAGED = "not_managed";
@@ -17,37 +19,81 @@ export interface CapabilityEvidence {
   runs: Record<string, Loaded<CapabilityRunRecord>>;
 }
 
-/** How often active run checkpoints and failed reads are re-read. */
-export const REFRESH_MS = 5000;
+/**
+ * Job fields that change whenever the backend saves the job, including a
+ * collection read failure that leaves status/raw_status/provider_refs alone
+ * but updates the run record's failure/retryable_read and `updated_at`.
+ */
+export const jobSignature = (j: Job) =>
+  `${j.status}|${j.raw_status ?? ""}|${JSON.stringify(j.provider_refs ?? {})}|${j.updated_at ?? ""}`;
+
+/** Run phases still moving on the backend. */
+export const ACTIVE_PHASES = new Set(["prepared", "submitting", "running", "collecting"]);
+
+/** What the hook knows about one job's run record. */
+export interface RunFetch {
+  sig: string;
+  /** When the last request for this signature finished (ms), if it has. */
+  at: number | null;
+  outcome: "pending" | "ok" | "error" | "not_managed";
+  phase?: string;
+  retryableRead?: boolean;
+}
+
+export const POLL_MS = 3000;
+export const RETRY_MS = 5000;
 
 /**
- * Key under which a job's run record was last requested; a new key means
- * fetch again. It changes with the job (including `updated_at`, which moves
- * on checkpoint changes the coarse status does not show) and, while the run
- * is still active or its last read failed, with every refresh tick, so a
- * retryable read failure or a new checkpoint is observed even when the job's
- * status stays the same. A final record or a non-managed job stops polling.
+ * Jobs whose run record should be (re)fetched now: never requested; job
+ * changed since the last request; still active or awaiting a read retry
+ * (polled even when the coarse job state is unchanged); or the last fetch
+ * failed transiently. A 404 (not a backend run) and settled phases are not
+ * refetched until the job changes.
  */
-export function fetchKey(job: Job, loaded: Loaded<CapabilityRunRecord> | undefined, tick: number): string {
-  const base = `${job.status}|${job.raw_status ?? ""}|${JSON.stringify(job.provider_refs ?? {})}|${job.updated_at}`;
-  const settled =
-    loaded !== undefined &&
-    ("value" in loaded ? FINAL_PHASES.has(loaded.value.phase) && !loaded.value.retryable_read : loaded.error === NOT_MANAGED);
-  return settled ? base : `${base}|t${tick}`;
+export function runsToFetch(jobs: Job[], known: Map<string, RunFetch>, now: number): string[] {
+  const out: string[] = [];
+  for (const j of jobs) {
+    if (!j.capability) continue;
+    const k = known.get(j.job_id);
+    const sig = jobSignature(j);
+    if (!k || k.sig !== sig) {
+      out.push(j.job_id);
+      continue;
+    }
+    if (k.outcome === "pending" || k.at === null) continue;
+    const age = now - k.at;
+    if (k.outcome === "error" && age >= RETRY_MS) out.push(j.job_id);
+    else if (k.outcome === "ok" && (ACTIVE_PHASES.has(k.phase ?? "") || k.retryableRead) && age >= POLL_MS) {
+      out.push(j.job_id);
+    }
+  }
+  return out;
+}
+
+/** Whether any known run still needs polling. */
+export function needsPolling(known: Map<string, RunFetch>): boolean {
+  for (const k of known.values()) {
+    if (k.outcome === "error" || (k.outcome === "ok" && (ACTIVE_PHASES.has(k.phase ?? "") || k.retryableRead))) return true;
+  }
+  return false;
 }
 
 export function useCapabilityEvidence(api: Api, state: OrgState | null, jobs: Job[]): CapabilityEvidence {
   const [manifests, setManifests] = useState<Record<string, Loaded<CapabilityManifest>>>({});
   const [runs, setRuns] = useState<Record<string, Loaded<CapabilityRunRecord>>>({});
-  const [tick, setTick] = useState(0);
-  useEffect(() => {
-    const id = window.setInterval(() => setTick((t) => t + 1), REFRESH_MS);
-    return () => window.clearInterval(id);
-  }, []);
-  const requested = useRef<{ manifests: Set<string>; runs: Map<string, string> }>({
+  const requested = useRef<{ manifests: Set<string>; runs: Map<string, RunFetch> }>({
     manifests: new Set(),
     runs: new Map(),
   });
+  // Advances while some run is active or failed, so those records are
+  // re-read even when no job event arrives.
+  const [tick, setTick] = useState(0);
+  const [polling, setPolling] = useState(false);
+  useEffect(() => {
+    if (!polling) return;
+    const t = setInterval(() => setTick((n) => n + 1), Math.min(POLL_MS, RETRY_MS));
+    return () => clearInterval(t);
+  }, [polling]);
 
   // The organization whose responses may be applied. Responses for another
   // organization (after a switch) or after unmount are dropped.
@@ -87,26 +133,42 @@ export function useCapabilityEvidence(api: Api, state: OrgState | null, jobs: Jo
 
   useEffect(() => {
     const live = () => current.current === api;
-    for (const j of jobs) {
-      if (!j.capability) continue;
-      const sig = fetchKey(j, runs[j.job_id], tick);
-      if (requested.current.runs.get(j.job_id) === sig) continue;
-      requested.current.runs.set(j.job_id, sig);
+    const known = requested.current.runs;
+    const byId = new Map(jobs.map((j) => [j.job_id, j]));
+    for (const id of runsToFetch(jobs, known, Date.now())) {
+      const sig = jobSignature(byId.get(id)!);
+      known.set(id, { ...(known.get(id) ?? {}), sig, at: null, outcome: "pending" });
+      const settle = (patch: Partial<RunFetch>) => {
+        // Apply only while this request's map is still the current one: an
+        // organization switch (or StrictMode's re-run of the reset effect)
+        // replaces requested.current.runs, and a disposed request must not
+        // write visible state or drive polling from the obsolete map.
+        if (!live() || requested.current.runs !== known) return false;
+        const k = known.get(id);
+        // Ignore a response for an older job state.
+        if (!k || k.sig !== sig) return false;
+        known.set(id, { ...k, ...patch, at: Date.now() });
+        setPolling(needsPolling(requested.current.runs));
+        return true;
+      };
       api
-        .get<CapabilityRunRecord>(`/capability-runs/${encodeURIComponent(j.job_id)}`)
+        .get<CapabilityRunRecord>(`/capability-runs/${encodeURIComponent(id)}`)
         .then((r) => {
-          // Ignore a response for an older job state.
-          if (live() && requested.current.runs.get(j.job_id) === sig) setRuns((p) => ({ ...p, [j.job_id]: { value: r } }));
+          if (settle({ outcome: "ok", phase: r.phase, retryableRead: Boolean(r.retryable_read) })) {
+            setRuns((p) => ({ ...p, [id]: { value: r } }));
+          }
         })
         .catch((e: unknown) => {
-          if (live() && requested.current.runs.get(j.job_id) === sig) {
-            // 404: not a backend-managed run (e.g. a development stub job).
-            const error = e instanceof ApiError && e.status === 404 ? NOT_MANAGED : e instanceof Error ? e.message : String(e);
-            setRuns((p) => ({ ...p, [j.job_id]: { error } }));
+          // 404: not a backend-managed run (e.g. a development stub job).
+          const notManaged = e instanceof ApiError && e.status === 404;
+          if (settle({ outcome: notManaged ? "not_managed" : "error" })) {
+            const error = notManaged ? NOT_MANAGED : e instanceof Error ? e.message : String(e);
+            // Keep showing the last good record during a transient failure.
+            setRuns((p) => (!notManaged && p[id] && "value" in p[id]! ? p : { ...p, [id]: { error } }));
           }
         });
     }
-  }, [api, jobs, runs, tick]);
+  }, [api, jobs, tick]);
 
   return { manifests, runs };
 }
