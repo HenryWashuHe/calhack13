@@ -1,6 +1,9 @@
 //! HTTP routes (TECH_SPEC §10). All routes live under `/api/v1`.
 
-mod capabilities;
+mod acquisition_history;
+mod acquisitions;
+mod adoptions;
+pub(crate) mod capabilities;
 mod changes;
 mod events;
 mod jobs;
@@ -25,6 +28,10 @@ pub fn router(state: AppState) -> Router {
         .route("/org-changes/{id}", get(changes::get_one))
         .route("/jobs", post(jobs::dispatch).get(jobs::list))
         .route("/jobs/{id}", get(jobs::get_one))
+        .route(
+            "/org-changes/{id}/operations/{role_key}/abandon",
+            post(changes::abandon_operation),
+        )
         .route("/jobs/{id}/results", post(jobs::submit_result))
         .route("/ledger", get(jobs::ledger))
         .route("/outbox", get(jobs::outbox))
@@ -38,6 +45,12 @@ pub fn router(state: AppState) -> Router {
         )
         .route("/capability-installations", post(capabilities::install))
         .route(
+            "/capability-adoptions",
+            post(adoptions::create).get(adoptions::list),
+        )
+        .route("/capability-adoptions/{id}", get(adoptions::status))
+        .route("/capability-adoptions/{id}/step", post(adoptions::step))
+        .route(
             "/capability-installations/{id}/acceptance",
             post(capabilities::acceptance),
         )
@@ -47,6 +60,35 @@ pub fn router(state: AppState) -> Router {
         )
         .route("/capability-runs/{id}", get(capabilities::get_run))
         .route("/capability-runs/{id}/step", post(capabilities::step_run))
+        .route(
+            "/capability-runs/{id}/verify",
+            post(capabilities::verify_run),
+        )
+        .route(
+            "/capability-runs/{id}/verification",
+            get(capabilities::run_verification),
+        )
+        .route(
+            "/capability-runs/{id}/finalization",
+            get(capabilities::run_finalization),
+        )
+        .route(
+            "/capability-acquisitions",
+            post(acquisitions::create).get(acquisition_history::list),
+        )
+        .route(
+            "/capability-acquisitions/{id}/history",
+            get(acquisition_history::history),
+        )
+        .route("/capability-acquisitions/{id}", get(acquisitions::status))
+        .route(
+            "/capability-acquisitions/{id}/automation",
+            get(acquisitions::automation),
+        )
+        .route(
+            "/capability-acquisitions/{id}/step",
+            post(acquisitions::step),
+        )
         .route("/capability-runs", post(capabilities::run));
 
     Router::new()

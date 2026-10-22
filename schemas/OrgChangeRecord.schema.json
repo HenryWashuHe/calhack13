@@ -42,6 +42,14 @@
       },
       "uniqueItems": true
     },
+    "operations": {
+      "description": "Asynchronous provider operations (e.g. CREAO agent creation), keyed by role key. Visible while pending; kept after completion as evidence.",
+      "default": {},
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/ProviderOperation"
+      }
+    },
     "errors": {
       "default": [],
       "type": "array",
@@ -757,6 +765,96 @@
           ]
         }
       }
+    },
+    "ProviderOperation": {
+      "description": "One asynchronous provider operation behind a role being created.",
+      "type": "object",
+      "required": [
+        "operation_id",
+        "provider",
+        "state",
+        "updated_at"
+      ],
+      "properties": {
+        "provider": {
+          "$ref": "#/definitions/Provider"
+        },
+        "operation_id": {
+          "type": "string"
+        },
+        "state": {
+          "$ref": "#/definitions/ProviderOperationState"
+        },
+        "run_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "native_status": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "attention": {
+          "description": "Sanitized reason the operation is not advancing, if any.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "readiness_evidence": {
+          "description": "Reference to the readiness evidence once `Ready`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "ProviderOperationState": {
+      "description": "Where an asynchronous provider operation for a role stands. Native completion (`Created`) is not readiness; only `Ready` lets the role activate.",
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "failed"
+          ]
+        },
+        {
+          "description": "Saved locally or running at the provider.",
+          "type": "string",
+          "enum": [
+            "pending"
+          ]
+        },
+        {
+          "description": "The provider reports the agent created; readiness not yet proven.",
+          "type": "string",
+          "enum": [
+            "awaiting_readiness"
+          ]
+        },
+        {
+          "description": "Readiness proven by a backend-observed check.",
+          "type": "string",
+          "enum": [
+            "ready"
+          ]
+        },
+        {
+          "description": "The provider outcome is unknown (e.g. a lost POST response). No automatic retry; an operator must reconcile.",
+          "type": "string",
+          "enum": [
+            "needs_reconciliation"
+          ]
+        }
+      ]
     },
     "ValidationError": {
       "type": "object",
