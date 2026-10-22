@@ -1,11 +1,11 @@
 import { useState } from "react";
+import type { Api } from "../lib/api";
+import { useCapabilityEvidence } from "../lib/useCapabilityEvidence";
+import { CapabilityEvidence } from "./CapabilityEvidence";
 import type { ChangeStatus, DomainEvent, Job, OrgChangeRecord, OrgState } from "../lib/contracts";
 import type { Commitment } from "../lib/useOrg";
 import { roleName, short } from "../lib/graph";
 import { ProviderBadge, StateChip } from "./Chips";
-import type { Api } from "../lib/api";
-import { useCapabilityEvidence } from "../lib/useCapabilityEvidence";
-import { CapabilityEvidence } from "./CapabilityEvidence";
 
 const STEPS: ChangeStatus[] = ["PROPOSED", "VALIDATED", "PROVISIONING", "READY", "COMMITTED"];
 
