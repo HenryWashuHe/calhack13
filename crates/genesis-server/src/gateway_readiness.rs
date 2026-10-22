@@ -56,6 +56,7 @@ CREATE TABLE IF NOT EXISTS readiness_challenges (
     config_digest      TEXT NOT NULL,
     status             TEXT NOT NULL,
     probe_ref          TEXT,
+    receipt_probe_ref  TEXT,
     detail             TEXT,
     issued_at          TEXT NOT NULL,
     expires_at         TEXT NOT NULL,
@@ -66,7 +67,16 @@ CREATE TABLE IF NOT EXISTS readiness_challenges (
 
 /// Create the challenge table if needed. Idempotent.
 pub fn ensure_schema(store: &Store) -> rusqlite::Result<()> {
-    store.lock().execute_batch(SCHEMA)
+    let conn = store.lock();
+    conn.execute_batch(SCHEMA)?;
+    // Tables created before `receipt_probe_ref` existed gain the column.
+    let has: bool = conn
+        .prepare("SELECT 1 FROM pragma_table_info('readiness_challenges') WHERE name = 'receipt_probe_ref'")?
+        .exists([])?;
+    if !has {
+        conn.execute_batch("ALTER TABLE readiness_challenges ADD COLUMN receipt_probe_ref TEXT")?;
+    }
+    Ok(())
 }
 
 /// Lifecycle of one challenge.
@@ -121,7 +131,10 @@ pub struct Challenge {
     pub provider_agent_id: String,
     pub config_digest: String,
     pub status: ChallengeStatus,
+    /// Provider run reported by the probe's dispatch (trusted).
     pub probe_ref: Option<String>,
+    /// Run named by the receipt, if any (untrusted until it matches).
+    pub receipt_probe_ref: Option<String>,
     pub detail: Option<String>,
     pub issued_at: DateTime<Utc>,
     pub expires_at: DateTime<Utc>,
@@ -284,7 +297,8 @@ fn digest_eq(a: &str, b: &str) -> bool {
 }
 
 const COLUMNS: &str = "challenge_id, attempt, provider, role_id, role_key, provider_agent_id, \
-    config_digest, status, probe_ref, detail, issued_at, expires_at, received_at, nonce_sha256";
+    config_digest, status, probe_ref, detail, issued_at, expires_at, received_at, nonce_sha256, \
+    receipt_probe_ref";
 
 fn row_to_challenge(row: &rusqlite::Row<'_>) -> rusqlite::Result<(Challenge, String)> {
     Ok((
@@ -298,6 +312,7 @@ fn row_to_challenge(row: &rusqlite::Row<'_>) -> rusqlite::Result<(Challenge, Str
             config_digest: row.get(6)?,
             status: ChallengeStatus::parse(&row.get::<_, String>(7)?),
             probe_ref: row.get(8)?,
+            receipt_probe_ref: row.get(14)?,
             detail: row.get(9)?,
             issued_at: parse_ts(&row.get::<_, String>(10)?),
             expires_at: parse_ts(&row.get::<_, String>(11)?),
@@ -399,6 +414,27 @@ fn ready(c: &Challenge) -> Readiness {
     }
 }
 
+/// A receipt counts only if the run it names (if any) is the run the probe's
+/// dispatch reported (if known). A receipt can arrive before the dispatch
+/// result, so this is checked again once the trusted reference exists.
+fn consistent(c: &Challenge) -> bool {
+    !matches!((&c.probe_ref, &c.receipt_probe_ref), (Some(t), Some(r)) if t != r)
+}
+
+/// Record the provider run reported by dispatch. Trusted data, written
+/// whatever the challenge's status.
+fn set_trusted_probe_ref(
+    store: &Store,
+    challenge_id: &str,
+    probe_ref: &str,
+) -> rusqlite::Result<()> {
+    store.lock().execute(
+        "UPDATE readiness_challenges SET probe_ref = ?2 WHERE challenge_id = ?1",
+        params![challenge_id, probe_ref],
+    )?;
+    Ok(())
+}
+
 impl GatewayReadiness {
     pub fn new(
         store: Store,
@@ -447,6 +483,29 @@ impl GatewayReadiness {
 
     fn reread(&self, challenge_id: &str) -> Result<Option<Challenge>, ProviderError> {
         get_challenge(&self.store, challenge_id).map_err(store_error)
+    }
+
+    /// Ready for a consistent receipt; otherwise void it (the challenge
+    /// expires and a new one will be issued) and keep waiting.
+    fn accept_or_void(&self, c: &Challenge) -> Result<Readiness, ProviderError> {
+        if consistent(c) {
+            return Ok(ready(c));
+        }
+        tracing::warn!(challenge = %c.challenge_id, "readiness receipt named a different provider run");
+        transition(
+            &self.store,
+            &c.challenge_id,
+            &[ChallengeStatus::Received],
+            ChallengeStatus::Expired,
+            None,
+            Some("receipt named a different provider run than the dispatch reported"),
+            None,
+        )
+        .map_err(store_error)?;
+        Ok(Readiness::Waiting(format!(
+            "the receipt for challenge {} named a different provider run; a new challenge will be issued",
+            c.challenge_id
+        )))
     }
 
     /// Save a new challenge, then dispatch its probe once.
@@ -507,13 +566,19 @@ impl GatewayReadiness {
         tracing::info!(challenge = %challenge_id, attempt, role = %role.key, "readiness challenge issued");
         let dispatched = self.probe.dispatch(&request).await;
         drop(request); // the nonce is not needed after dispatch
+        if let Ok(ProbeDispatch {
+            probe_ref: Some(run),
+        }) = &dispatched
+        {
+            set_trusted_probe_ref(&self.store, &challenge_id, run).map_err(store_error)?;
+        }
         let moved = match &dispatched {
-            Ok(d) => transition(
+            Ok(_) => transition(
                 &self.store,
                 &challenge_id,
                 &[ChallengeStatus::Dispatching],
                 ChallengeStatus::Dispatched,
-                d.probe_ref.as_deref(),
+                None,
                 None,
                 None,
             ),
@@ -549,8 +614,9 @@ impl GatewayReadiness {
             .reread(&challenge_id)?
             .ok_or_else(|| store_error("challenge vanished"))?;
         if !moved && current.status == ChallengeStatus::Received {
-            // The agent answered before dispatch returned.
-            return Ok(ready(&current));
+            // The agent answered before dispatch returned: it counts only if
+            // it names the run the dispatch reported.
+            return self.accept_or_void(&current);
         }
         Ok(Readiness::Waiting(note(&current)))
     }
@@ -573,7 +639,11 @@ impl ReadinessVerifier for GatewayReadiness {
         let now = Utc::now();
         if let Some(c) = history.last() {
             match c.status {
-                ChallengeStatus::Received => return Ok(ready(c)),
+                ChallengeStatus::Received if consistent(c) => return Ok(ready(c)),
+                ChallengeStatus::Received => {
+                    // Void an inconsistent receipt, then issue a new challenge.
+                    self.accept_or_void(c)?;
+                }
                 _ if c.status != ChallengeStatus::Expired && c.expires_at > now => {
                     return Ok(Readiness::Waiting(note(c)))
                 }
@@ -592,7 +662,7 @@ impl ReadinessVerifier for GatewayReadiness {
                     if !expired {
                         if let Some(r) = self.reread(&c.challenge_id)? {
                             if r.status == ChallengeStatus::Received {
-                                return Ok(ready(&r));
+                                return self.accept_or_void(&r);
                             }
                         }
                     }
@@ -708,7 +778,7 @@ pub fn accept_receipt(
     }
     let updated = conn.execute(
         "UPDATE readiness_challenges SET status = 'received', received_at = ?2, \
-         probe_ref = COALESCE(probe_ref, ?3) WHERE challenge_id = ?1 \
+         receipt_probe_ref = ?3 WHERE challenge_id = ?1 \
          AND status IN ('dispatching', 'dispatched')",
         params![c.challenge_id, ts(now), receipt.probe_ref],
     )?;
