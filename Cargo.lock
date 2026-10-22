@@ -610,6 +610,7 @@ version = "0.1.0"
 dependencies = [
  "genesis-apify",
  "genesis-verification",
+ "reqwest",
  "serde",
  "serde_json",
  "sha2",
@@ -660,12 +661,14 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-stream",
+ "async-trait",
  "axum",
  "chrono",
  "clap",
  "futures",
  "genesis-apify",
  "genesis-core",
+ "genesis-creao",
  "genesis-forge",
  "genesis-providers",
  "genesis-verification",

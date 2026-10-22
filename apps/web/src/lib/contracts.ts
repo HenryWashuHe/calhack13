@@ -242,6 +242,21 @@ export type DomainEvent = {
       };
     }
   | {
+      type: "provisioning_progress";
+      payload: {
+        change_id: string;
+        role_key: string;
+        provider: Provider;
+        operation_id: string;
+        state: ProviderOperationState;
+        run_id?: string | null;
+        /**
+         * Sanitized reason it is not advancing, if any.
+         */
+        attention?: string | null;
+      };
+    }
+  | {
       type: "provisioning_failed";
       payload: {
         change_id: string;
@@ -446,6 +461,11 @@ export type DomainEvent = {
 export type ChangeStatus = "PROPOSED" | "VALIDATED" | "PROVISIONING" | "READY" | "COMMITTED" | "REJECTED" | "FAILED";
 /**
  * Who implements a role or runs a job.
+ */
+
+export type ProviderOperationState = "failed" | "pending" | "awaiting_readiness" | "ready" | "needs_reconciliation";
+/**
+ * Who currently executes a responsibility. Delegation changes the executor, never the accountable owner.
  */
 
 export type Executor =
@@ -795,6 +815,12 @@ export interface OrgChangeRecord {
    * Role keys whose provider readiness check has passed. A provisioned binding without readiness is kept for reconciliation and cleanup.
    */
   ready?: string[];
+  /**
+   * Asynchronous provider operations (e.g. CREAO agent creation), keyed by role key. Visible while pending; kept after completion as evidence.
+   */
+  operations?: {
+    [k: string]: ProviderOperation;
+  };
   errors?: ValidationError[];
   committed_revision?: number | null;
   submitted_by: string;
@@ -831,6 +857,26 @@ export interface AgentBinding {
    */
   config_digest: string;
   conversation_ref?: string | null;
+}
+/**
+ * One asynchronous provider operation behind a role being created.
+ */
+
+export interface ProviderOperation {
+  provider: Provider;
+  operation_id: string;
+  state: ProviderOperationState;
+  run_id?: string | null;
+  native_status?: string | null;
+  /**
+   * Sanitized reason the operation is not advancing, if any.
+   */
+  attention?: string | null;
+  /**
+   * Reference to the readiness evidence once `Ready`.
+   */
+  readiness_evidence?: string | null;
+  updated_at: string;
 }
 
 export interface ValidationError {
