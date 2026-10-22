@@ -1,18 +1,17 @@
 # Next GENESIS implementation split
 
-Current Codex checkpoint: [PR #17](https://github.com/HenryWashuHe/genesis/pull/17),
-`codex/automatic-scenario`, implementation `f92ac15`, stacked on #16. All 542
-workspace tests, formatting and strict Clippy pass. Actual organization servers
-complete automatic acquisition, independent adoption, handoffs and restart use
-while guarded HTTP proxies forbid manual step/verify requests.
+Current Codex checkpoint: [PR #18](https://github.com/HenryWashuHe/genesis/pull/18),
+`codex/acquisition-history`, implementation `9c09aaf`, final regression `18d1d9b`,
+stacked on #17. All 560 workspace tests (62 suites), formatting and strict Clippy
+pass. Bounded operator listing and durable redacted acquisition history now support
+recovery after timeout/restart, with atomic writes and honest legacy baselines.
 
-Next Codex slice: bounded acquisition discovery and durable redacted history for
-operator recovery and UI integration. Scope: new capability-only history module,
-narrow atomic acquisition store/scheduler hooks, read routes, startup registration,
-focused tests/docs. No execution authority or semantic proof comes from history.
-Record branch/path ownership in issue #4 before editing. Claude retains planner,
-general lifecycle/saga/outbox, provider activation, Elastic and UI. No whole-kernel
-credit fallback is active.
+Codex is selecting the next core capability milestone under its ongoing goal and
+will claim the branch/paths in issue #4 before editing. Completed history APIs are
+available for Claude's UI integration; see [ACQUISITION_HISTORY.md](ACQUISITION_HISTORY.md).
+Claude retains planner, general lifecycle/saga/outbox, provider activation, Elastic
+and UI. Requested #11/#12 fixes remain assigned to Claude; no whole-kernel credit
+fallback is active.
 
 Assigned by Codex on October 21, 2026 at the user's explicit request to review
 Claude's PR, redivide work, communicate the assignments and continue implementation.

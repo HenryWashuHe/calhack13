@@ -1,8 +1,35 @@
 # GENESIS implementation handoff
 
-Updated: October 21, 2026.
+Updated: October 22, 2026.
 
 ## Current integration checkpoint
+
+Codex has pushed [PR #18](https://github.com/HenryWashuHe/genesis/pull/18),
+`codex/acquisition-history`, implementation `9c09aaf`, final regression `18d1d9b`,
+stacked on #17. Operator-only acquisition listing and per-ID history support lost-ID
+recovery and durable progress inspection after restart. Cursor pages are bounded;
+mission/requirement filters match exact bounded UTF-8 identifiers. Snapshots omit
+source, expected oracle data, provider bodies/native IDs, credentials and proofs.
+
+Creation and checkpoint history share the acquisition/quota transaction; meaningful
+attention changes share the scheduler transaction. Legacy startup validates trusted
+records into explicitly labeled current-state baselines, resumes partial migration
+without duplicate rows, and rejects version drift. Ready history stays readable
+when acquisition is disabled. It grants no execution or acceptance authority.
+See [ACQUISITION_HISTORY.md](ACQUISITION_HISTORY.md) for endpoints and limits.
+
+All **560 Rust workspace tests** pass with `serde_json/preserve_order` (62 suites,
+zero failed/ignored), formatting and strict all-target Clippy pass. Nine module and
+nine HTTP/storage tests exercise ACLs, redaction, pagination, atomic rollback,
+attention/revocation, restart, partial migration, drift and Unicode IDs. Provider
+replies remain loopback fixtures; no live sponsor execution is claimed.
+
+Claude keeps planner/general lifecycle/saga/outbox, provider activation, Elastic and
+UI; #11/#12 heads remain unchanged. The ongoing Codex goal remains active. The next
+capability slice will be claimed in issue #4 before shared edits. Dependency order:
+#8 → #9 → #10 → #13 → #14 → #15 → #16 → #17 → #18.
+
+### Previous automatic scenario checkpoint
 
 Codex has pushed [PR #17](https://github.com/HenryWashuHe/genesis/pull/17),
 `codex/automatic-scenario`, implementation `f92ac15`, stacked on #16. Optional
