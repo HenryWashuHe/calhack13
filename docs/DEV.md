@@ -6,7 +6,7 @@ This covers the Rust organization kernel (`crates/`) and the React console (`app
 
 ## Run it
 
-You need Rust 1.80+ and Node 20+.
+You need Rust 1.94+ and Node 20+.
 
 ```bash
 # Terminal 1: registry (7100) + Org A (7101) + Org B (7102), with dev stubs
