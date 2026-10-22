@@ -141,6 +141,24 @@ async function stepLoop({ ctx, bin, stepArgs, statusOf, terminal, pollMs, maxSte
   return { log, last, exit: 0, limit: true };
 }
 
+/** POSIX single-quote an argument unless it is plainly safe. */
+export function shellQuote(arg) {
+  const s = String(arg);
+  return /^[A-Za-z0-9_@%+=:,./-]+$/.test(s) ? s : `'${s.replace(/'/g, `'\\''`)}'`;
+}
+
+/**
+ * The exact next step for a stopped gate. `--retry-read` is included only
+ * when the CLI's own last record explicitly allows a read retry (the same
+ * predicate the step loop uses), so the command can advance the saved
+ * operation. `argv` is the structured form; `command` is shell-safe.
+ */
+export function resumeOf(bin, stepArgs, last, retryRead) {
+  const argv = [bin, ...stepArgs];
+  if (last && retryRead && retryRead(last)) argv.push("--retry-read");
+  return { argv, command: argv.map(shellQuote).join(" ") };
+}
+
 export async function apifyGate(ctx) {
   const bin = join(ctx.binDir, "genesis-forge");
   if (!existsSync(bin)) return { status: "not_tested", reason: `no ${bin}` };
@@ -162,16 +180,19 @@ export async function apifyGate(ctx) {
   const prep = runCli(bin, ["prepare", "--candidate", join(work, "candidate.json"), "--extractor", parser, "--suite", suite, "--checkpoint", checkpoint], ctx);
   if (prep.code !== 0) return { status: "failed", stage: "prepare", exit: prep.code, error: prep.stderr };
   const started = Date.now();
+  const stepArgs = ["step", "--suite", suite, "--checkpoint", checkpoint];
+  const retryRead = (j) => Boolean(j.failure?.retryable && !j.failure?.ambiguous);
   const res = await stepLoop({
     ctx,
     bin,
-    stepArgs: ["step", "--suite", suite, "--checkpoint", checkpoint],
+    stepArgs,
     statusOf: (j) => j,
     terminal: (s) => ["verified", "rejected", "failed", "needs_reconciliation"].includes(s?.phase),
     pollMs: (j) => (j.pending_action === "poll_build" || j.pending_action === "collect_case" ? 5000 : 500),
     maxSteps: ctx.maxSteps,
-    retryRead: (j) => Boolean(j.failure?.retryable && !j.failure?.ambiguous),
+    retryRead,
   });
+  const resume = resumeOf(bin, stepArgs, res.last, retryRead);
   const last = res.last ?? {};
   const phase = last.phase ?? null;
   // An explicit terminal outcome takes precedence over partial evidence: an
@@ -198,7 +219,8 @@ export async function apifyGate(ctx) {
       completed_cases: last.completed_cases ?? null,
       total_cases: last.total_cases ?? null,
       checkpoint: `apify/${ctx.stamp}/forge.json (private: contains source and outputs; do not share)`,
-      resume: `genesis-forge step --suite ${suite} --checkpoint ${checkpoint}`,
+      resume: resume.command,
+      resume_argv: resume.argv,
     },
     steps: res.log,
     note: reachable
@@ -214,6 +236,9 @@ export async function creaoGate(ctx) {
   if (!existsSync(bin)) return { status: "not_tested", reason: `no ${bin}` };
   const work = join(ctx.out, "creao", ctx.stamp);
   mkdirSync(work, { recursive: true });
+  // The operation database is per run; the quota database belongs to the
+  // provider account, so request/write debits and cooldowns carry across runs.
+  const quotaDb = join(ctx.out, "creao", "quota.sqlite");
   const spec = JSON.parse(readFileSync(join(ctx.repo, "crates/genesis-creao/examples/create-monitor.json"), "utf8"));
   spec.operation_id = `live-gate-${ctx.stamp}`;
   writeFileSync(join(work, "spec.json"), JSON.stringify(spec, null, 2));
@@ -222,10 +247,12 @@ export async function creaoGate(ctx) {
   const prep = runCli(bin, ["prepare", ...base, "--spec", join(work, "spec.json")], ctx);
   if (prep.code !== 0) return { status: "failed", stage: "prepare", exit: prep.code, error: prep.stderr };
   const started = Date.now();
+  const stepArgs = ["step", ...base, "--operation", spec.operation_id, "--account", spec.account_namespace, "--quota-db", quotaDb];
+  const retryRead = (j) => j.retryable_read === true;
   const res = await stepLoop({
     ctx,
     bin,
-    stepArgs: ["step", ...base, "--operation", spec.operation_id, "--account", spec.account_namespace, "--quota-db", join(work, "quota.sqlite")],
+    stepArgs,
     statusOf: (j) => j,
     terminal: (s) => ["native_completed", "failed", "needs_reconciliation"].includes(s?.phase),
     pollMs: (j) => {
@@ -233,8 +260,9 @@ export async function creaoGate(ctx) {
       return Math.min(Math.max(at, 500), 30000);
     },
     maxSteps: ctx.maxSteps,
-    retryRead: (j) => j.retryable_read === true,
+    retryRead,
   });
+  const resume = resumeOf(bin, stepArgs, res.last, retryRead);
   const last = res.last ?? {};
   const status =
     last.phase === "native_completed"
@@ -256,7 +284,8 @@ export async function creaoGate(ctx) {
       run_id: last.run_id ?? null,
       provider_agent_id: last.provider_agent_id ?? null,
       readiness_verified: false,
-      resume: `genesis-creao step --db ${db} --org ${spec.org_id} --operation ${spec.operation_id} --account ${spec.account_namespace} --quota-db ${join(work, "quota.sqlite")}`,
+      resume: resume.command,
+      resume_argv: resume.argv,
     },
     steps: res.log,
     note: "Creates one real, billable CREAO agent (no delete endpoint). Native completion is not readiness; the gateway skill/receipt gate is separate.",

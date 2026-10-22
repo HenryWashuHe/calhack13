@@ -152,3 +152,12 @@ console.log(JSON.stringify(n === 0 ? { phase: "actor_created" } : { phase: "test
   assert.match(r.results.apify.stopped, /step limit/);
   assert.match(r.results.apify.evidence.resume, /genesis-forge step --suite .* --checkpoint .*apify\/t1\/forge\.json/);
 });
+
+test("resume rendering survives spaces, quotes and shell metacharacters", async () => {
+  const { shellQuote } = await import("./run.mjs");
+  const { spawnSync } = await import("node:child_process");
+  for (const arg of ["plain/path.json", "with space", "it's here", "$(touch x); `y` | z & *", ""]) {
+    const r = spawnSync("/bin/sh", ["-c", `printf %s ${shellQuote(arg)}`], { encoding: "utf8" });
+    assert.equal(r.stdout, arg);
+  }
+});
