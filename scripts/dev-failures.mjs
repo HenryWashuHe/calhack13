@@ -2,10 +2,11 @@
 // DEV-ONLY failure drills for the GENESIS kernel.
 //
 // Sends requests that a safe kernel must refuse or hold back, against the
-// local dev stack, and checks each response. Every refusal it causes is a
-// real kernel decision recorded in the event log; the actors are simulated
-// with the dev tokens, and any provider binding involved is a DEV STUB.
-// The console's Attention panel lists the results.
+// local dev stack, and checks each response. Every refusal is a real kernel
+// decision; the actors are simulated with the dev tokens, and any provider
+// binding involved is a DEV STUB. Refused changes, results and acceptance are
+// recorded in the event log and listed in the console's Attention panel;
+// route-level refusals (403) are not recorded and show only here.
 //
 // Usage: start `cargo run -p genesis-server -- dev`, then
 //   node scripts/dev-failures.mjs [--org-a URL]

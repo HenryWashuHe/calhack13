@@ -1,6 +1,7 @@
 import { describe as suite, expect, it } from "vitest";
 import type { DomainEvent, Job, OrgChangeRecord } from "./contracts";
 import { attention, counts, isOpen, validAgentId } from "./attention";
+import { describe } from "./describe";
 
 function ev(seq: number, type: string, payload: Record<string, unknown>): DomainEvent {
   return {
@@ -71,6 +72,23 @@ suite("attention", () => {
     expect(items[0]!.kind).toBe("waiting");
     expect(items[0]!.detail).toContain("no readiness verifier");
     expect(items[0]!.reconcile).toBeUndefined();
+  });
+
+  it("never presents an operator-attached agent as a provider creation", () => {
+    const items = attention(
+      [change("chg_1", "PROVISIONING", { monitor: op("awaiting_readiness", { native_status: "operator_attached" }) })],
+      [],
+      [],
+      null,
+    );
+    expect(items[0]!.title).toContain("attached by an operator");
+    expect(items[0]!.title).not.toContain("Agent created");
+    const progress = ev(20, "provisioning_progress", {
+      change_id: "chg_1", role_key: "monitor", provider: "creao", operation_id: "op", state: "awaiting_readiness",
+      attention: "agent a-1 attached by operator (found); readiness must still be proven",
+    });
+    expect(describe(progress, null).title).toBe("Agent ID attached by operator, awaiting readiness");
+    expect(describe(progress, null).tone).toBe("warn");
   });
 
   it("separates unknown outcomes and unverified provider success from successes", () => {
