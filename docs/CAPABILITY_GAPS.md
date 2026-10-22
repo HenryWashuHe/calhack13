@@ -36,6 +36,9 @@ The kernel commits it only if:
   responsibility's mission;
 - the role resolves (existing ACTIVE, or created earlier in the change) and
   **owns** the responsibility when the operation applies (assign it first);
+- the responsibility was created **for this exact requirement**
+  (`responsibility.requirement_id == requirement_id`) and the requirement is
+  owned by the same role, the link acquisition authority checks later;
 - `capability_id` is 3–64 characters of `a-z 0-9 - .`, starting alphanumeric;
   `purpose` is 1–400 characters;
 - `observed_sources` holds 1–8 http(s) URLs without credentials, each on the
@@ -43,7 +46,11 @@ The kernel commits it only if:
   the requirement's triggering observations. The agent cannot invent targets;
 - no installed, approved capability already has that ID (use
   `AttachCapability`);
-- no live gap exists for the same requirement and capability ID.
+- no live gap exists for the same requirement and capability ID;
+- the organization holds fewer than 16 live (non-terminal) gaps, and the
+  requirement fewer than 3 (`MAX_LIVE_CAPABILITY_GAPS`,
+  `MAX_LIVE_GAPS_PER_REQUIREMENT`; `capability_gap_limit_exceeded`). Each gap
+  can become an acquisition, so an agent must not be able to flood the driver.
 
 Commit adds `OrgState.capability_gaps[gap_id]` and emits
 `capability_gap_opened`. The operation carries no suite, oracle, quota,
@@ -62,6 +69,7 @@ capability attachable; `AttachCapability` still checks the installation.
 | `open` | `acquiring` | `acquisition_id` (1–400) |
 | `open` | `refused` | `reason` (1–400), no acquisition |
 | `acquiring` | `acquired` | same `acquisition_id`; this gap's `capability_id` at an exact version (not `latest`); optional `publication_ref` |
+| `acquired` (no `publication_ref`) | `acquired` (with `publication_ref`) | publication is a separate effect: record its reference **once**, same acquisition and capability; never replace or remove it |
 | `acquiring` | `refused` | `reason`, same `acquisition_id` |
 | `acquired` | `installed` | same acquisition and capability; `installation_id` must exist here for that exact capability with status **Accepted** |
 | `acquired` | `refused` | `reason`, same `acquisition_id` |
@@ -110,6 +118,10 @@ capability only once it appears under installed capabilities, and does not
 request a capability that is already requested and not refused.
 
 ## Tests
+
+- `genesis-core/tests/engine_fuzz.rs`: 3,000 randomized proposals from a
+  fixed seed, chained through successful commits, with random gap
+  transitions. The engine never panics and the live-gap limit always holds.
 
 - `genesis-core/tests/capability_gap.rs`: happy path, origin binding (other
   origins, non-http, credentials, empty, non-URL evidence, case-insensitive

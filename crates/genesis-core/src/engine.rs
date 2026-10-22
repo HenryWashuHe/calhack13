@@ -48,7 +48,14 @@ pub enum ValidationCode {
     NotProvisioned,
     InvalidTransition,
     InvalidInput,
+    CapabilityGapLimitExceeded,
 }
+
+/// Live (non-terminal) capability gaps an organization may hold at once.
+/// Each can become an acquisition; the agent must not be able to flood it.
+pub const MAX_LIVE_CAPABILITY_GAPS: usize = 16;
+/// Live capability gaps one requirement may hold at once.
+pub const MAX_LIVE_GAPS_PER_REQUIREMENT: usize = 3;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, thiserror::Error)]
 #[error("{code:?}{}: {message}", op_index.map(|i| format!(" (operation {i})")).unwrap_or_default())]
@@ -981,10 +988,30 @@ impl<'a> Sim<'a> {
                 format!("requirement {requirement_id} is already satisfied"),
             );
         }
-        let (resp_mission, resp_owner) = {
+        let (resp_mission, resp_owner, resp_requirement) = {
             let r = &self.st.responsibilities[&responsibility_id];
-            (r.mission_id.clone(), r.owner.clone())
+            (
+                r.mission_id.clone(),
+                r.owner.clone(),
+                r.requirement_id.clone(),
+            )
         };
+        // The gap serves the responsibility created for this exact
+        // requirement; acquisition authority checks the same link.
+        if resp_requirement.as_ref() != Some(requirement_id) {
+            self.err(
+                ValidationCode::InvalidInput,
+                Some(i),
+                format!("responsibility {responsibility_id} was not created for requirement {requirement_id}"),
+            );
+        }
+        if requirement.owner != Owner::Role(role_id.clone()) {
+            self.err(
+                ValidationCode::AccountabilityConflict,
+                Some(i),
+                format!("requirement {requirement_id} is not owned by {role_id}"),
+            );
+        }
         if resp_mission != requirement.mission_id {
             self.err(
                 ValidationCode::InvalidInput,
@@ -1063,6 +1090,30 @@ impl<'a> Sim<'a> {
                 ValidationCode::DuplicateKey,
                 Some(i),
                 format!("{capability_id} is already requested for requirement {requirement_id}"),
+            );
+        }
+        let live: Vec<_> = self
+            .st
+            .capability_gaps
+            .values()
+            .filter(|g| !g.status.is_terminal())
+            .collect();
+        if live.len() >= MAX_LIVE_CAPABILITY_GAPS {
+            self.err(
+                ValidationCode::CapabilityGapLimitExceeded,
+                Some(i),
+                format!("the organization already has {MAX_LIVE_CAPABILITY_GAPS} live capability requests"),
+            );
+        } else if live
+            .iter()
+            .filter(|g| g.requirement_id == *requirement_id)
+            .count()
+            >= MAX_LIVE_GAPS_PER_REQUIREMENT
+        {
+            self.err(
+                ValidationCode::CapabilityGapLimitExceeded,
+                Some(i),
+                format!("requirement {requirement_id} already has {MAX_LIVE_GAPS_PER_REQUIREMENT} live capability requests"),
             );
         }
         if !self.errors.is_empty() {
@@ -2043,6 +2094,9 @@ pub fn update_capability_gap(
             | (S::Acquiring { .. }, S::Refused { .. })
             | (S::Acquired { .. }, S::Installed { .. })
             | (S::Acquired { .. }, S::Refused { .. })
+            // Publication is a separate effect: a verified gap may gain its
+            // confirmed reference once, without rebinding (checked below).
+            | (S::Acquired { publication_ref: None, .. }, S::Acquired { publication_ref: Some(_), .. })
     );
     if !allowed {
         return Err(ValidationError::new(
@@ -2072,6 +2126,17 @@ pub fn update_capability_gap(
             capability,
             publication_ref,
         } => {
+            if let S::Acquired {
+                capability: verified,
+                ..
+            } = &gap.status
+            {
+                if capability != verified {
+                    return Err(invalid(
+                        "recording publication cannot change the verified capability".into(),
+                    ));
+                }
+            }
             if !same_acquisition(acquisition_id) || !exact(capability) {
                 return Err(invalid(
                     "acquired needs the claimed acquisition and this gap's capability at an exact version".into(),
