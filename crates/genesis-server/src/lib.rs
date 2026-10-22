@@ -12,6 +12,7 @@ pub mod auth;
 pub mod capability_evidence;
 pub mod capability_runtime;
 pub mod capability_store;
+pub mod elastic_jobs;
 pub mod error;
 pub mod outbox;
 pub mod projection;
@@ -159,6 +160,7 @@ pub fn build_org(cfg: &OrgConfig, providers: Option<ProviderSet>) -> anyhow::Res
         capability_runtime,
         registry,
         projection: projection::Projection::disabled(),
+        elastic_agents: None,
         provision_timeout: cfg.provision_timeout,
     })
 }
@@ -173,10 +175,7 @@ pub fn attach_elastic_from_env(mut app: AppState) -> anyhow::Result<AppState> {
         let builder = genesis_elastic::AgentBuilder::new(cfg)
             .map_err(|e| anyhow::anyhow!("agent builder configuration: {e}"))?;
         tracing::info!(org = %app.org_id, "elastic agent builder provisioning enabled");
-        app.providers = app
-            .providers
-            .clone()
-            .with_provisioner(genesis_core::model::Provider::Elastic, Arc::new(builder));
+        app = app.with_elastic_agents(builder);
     }
     if let Some(cfg) = genesis_elastic::ElasticConfig::from_env() {
         let client = genesis_elastic::ElasticClient::new(cfg)?;

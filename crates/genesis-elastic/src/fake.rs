@@ -234,6 +234,9 @@ pub struct FakeKibanaState {
     pub conflict_after_create: bool,
     /// Answer converse with a pending human-in-the-loop prompt.
     pub awaiting_prompt: bool,
+    /// Delay before answering converse, to exercise authority changes
+    /// during a turn.
+    pub converse_delay_ms: u64,
 }
 
 pub type KibanaShared = Arc<Mutex<FakeKibanaState>>;
@@ -289,6 +292,10 @@ async fn kibana_post(
 ) -> (StatusCode, Json<Value>) {
     kibana_record(&s, "POST", uri.path(), &headers);
     let collection = params["collection"].clone();
+    let delay = s.lock().unwrap().converse_delay_ms;
+    if collection == "converse" && delay > 0 {
+        tokio::time::sleep(std::time::Duration::from_millis(delay)).await;
+    }
     let mut f = s.lock().unwrap();
     *f.posts.entry(collection.clone()).or_default() += 1;
     if collection == "converse" {
