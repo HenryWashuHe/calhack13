@@ -21,7 +21,7 @@ One `--out` holds any number of namespaces, all served together:
 
 | Output | Served? | Use |
 | --- | --- | --- |
-| `data/portal/public/<ns>/venues/*.html`, `<ns>/index.html`, `index.html` | yes | what the Actor and the judge read |
+| `data/portal/public/<ns>/venues/*.html`, `<ns>/examples/*.html` (with `--holdout`), `<ns>/index.html` (links every emitted page by its own path), `index.html` | yes | what the Actor and the judge read |
 | `data/portal/trusted/suites/<suite_id>.json` | **never** | pass to `genesis org --oracle-suite` |
 | `data/portal/trusted/manifests/<ns>.json` | **never** | spec, seed and digests for the record |
 | `data/portal/fragments/<ns>.json` | no (public-safe) | `allowed_source_urls`, `examples` (HTML only; held out with `--holdout`) and a suggested `invocation_input` |
