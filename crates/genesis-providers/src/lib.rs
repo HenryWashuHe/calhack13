@@ -25,7 +25,9 @@ use std::time::Duration;
 pub mod apify;
 pub mod creao;
 pub use apify::ApifyCapabilityExecutor;
-pub use creao::{CreaoSpecialist, SpecialistProgress, SpecialistRuntime};
+pub use creao::{
+    CreaoSpecialist, SpecialistExecutionReceipt, SpecialistProgress, SpecialistRuntime,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error, Serialize, Deserialize)]
 #[serde(tag = "kind", content = "detail", rename_all = "snake_case")]

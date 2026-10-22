@@ -8,7 +8,7 @@ use genesis_forge::{CandidateSpec, ForgeSession, SourcePackage};
 use genesis_providers::{ApifyCapabilityExecutor, DevStub, ProviderSet};
 use genesis_server::registry::{self, RegistryState};
 use genesis_server::{build_org, parse_publishers, serve_org, OrgConfig};
-use genesis_verification::{decode_json, ArtifactPin, ExecutionEvidence, OracleSuite};
+use genesis_verification::{decode_json, json_sha256, ArtifactPin, ExecutionEvidence, OracleSuite};
 use reqwest::StatusCode;
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
@@ -813,6 +813,11 @@ async fn automatic_worker_and_accepted_installation_survive_sqlite_restart() {
         let record = restarted.get(&format!("/capability-runs/{id}")).await;
         assert_eq!(record["phase"], "collected");
         assert_eq!(
+            restarted.get(&format!("/jobs/{id}")).await["status"],
+            "VERIFYING",
+            "automatic invocation verification must not finalize local acceptance jobs"
+        );
+        assert_eq!(
             record["request"]["artifact"],
             json!(checkpoint().artifact().unwrap())
         );
@@ -834,10 +839,59 @@ async fn automatic_worker_and_accepted_installation_survive_sqlite_restart() {
     restarted
         .wait_for_worker(std::slice::from_ref(&job_id))
         .await;
+    // Collection and semantic finalization are separate durable transitions.
+    // No /verify POST: the real worker must perform the latter automatically.
+    tokio::time::timeout(Duration::from_secs(8), async {
+        loop {
+            let job = restarted.get(&format!("/jobs/{job_id}")).await;
+            if job["status"] == "SUCCEEDED" {
+                break;
+            }
+            assert_eq!(
+                job["status"], "VERIFYING",
+                "unexpected automatic finalization: {job}"
+            );
+            tokio::time::sleep(Duration::from_millis(25)).await;
+        }
+    })
+    .await
+    .expect("automatic worker did not verify the fresh invocation within 8 seconds");
+    let proof_path = format!("/capability-runs/{job_id}/verification");
+    let proof = restarted.get(&proof_path).await;
+    let collected = restarted.get(&format!("/capability-runs/{job_id}")).await;
+    assert_eq!(proof["job_id"], job_id);
+    assert_eq!(proof["installation_id"], installed.id);
+    assert_eq!(proof["request_sha256"], collected["request_sha256"]);
+    assert_eq!(proof["acceptance_report_ref"], accepted_reference);
+    assert_eq!(proof["decision"], "verified");
+    assert!(proof["proof_ref"]
+        .as_str()
+        .unwrap()
+        .starts_with("invocation:"));
+    assert_eq!(proof["suite_id"], suite().suite_id);
     assert_eq!(
-        restarted.get(&format!("/jobs/{job_id}")).await["status"],
-        "VERIFYING"
+        proof["suite_sha256"],
+        json_sha256(&serde_json::to_value(suite()).unwrap())
     );
+    assert_eq!(proof["case_report"]["decision"], "accepted");
+    assert_eq!(proof["case_report"]["extraction"], "supported");
+    assert_eq!(
+        proof["case_report"]["artifact"],
+        collected["request"]["artifact"]
+    );
+    assert_eq!(
+        proof["case_report"]["input_sha256"],
+        json_sha256(&suite().cases[0].input)
+    );
+    assert_eq!(
+        proof["case_report"]["run_id"],
+        collected["evidence"]["run_id"]
+    );
+    assert_eq!(
+        proof["case_report"]["evidence_sha256"],
+        json_sha256(&collected["evidence"])
+    );
+    assert!(!proof.to_string().contains(ORACLE_CANARY));
     assert_eq!(mock.submissions(), 4);
     assert!(restarted
         .get("/ledger")
@@ -847,4 +901,16 @@ async fn automatic_worker_and_accepted_installation_survive_sqlite_restart() {
         .is_empty());
     mock.assert_no_oracle_or_synthesis_requests();
     restarted.server.stop().await;
+
+    // Finalization survives another process replacement without a new provider
+    // request, repeated acceptance, or a client-supplied verification action.
+    let restored = Org::start_with_worker(&config, &mock).await;
+    assert_eq!(restored.get(&proof_path).await, proof);
+    assert_eq!(
+        restored.get(&format!("/jobs/{job_id}")).await["status"],
+        "SUCCEEDED"
+    );
+    assert_eq!(mock.submissions(), 4);
+    assert!(restored.get("/ledger").await.as_array().unwrap().is_empty());
+    restored.server.stop().await;
 }

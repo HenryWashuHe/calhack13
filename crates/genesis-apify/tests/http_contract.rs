@@ -339,6 +339,103 @@ async fn limits_output_bytes_and_sanitizes_provider_errors() {
 }
 
 #[tokio::test]
+async fn bounds_normalized_evidence_when_small_exponent_json_expands() {
+    let marker = "PRIVATE_DATASET_KEY_MUST_NOT_APPEAR";
+    let wire = format!("[{{\"{marker}\":[{}]}}]", vec!["1e9"; 100].join(","));
+    assert!(wire.len() < 1024);
+    let decoded: Vec<Value> = decode_json(wire.as_bytes()).unwrap();
+    assert!(serde_json::to_vec(&decoded[0]).unwrap().len() > 1024);
+    for resume in [false, true] {
+        let mut replies = vec![Reply::json(build()), Reply::json(run("SUCCEEDED"))];
+        if resume {
+            replies.extend([Reply::json(build()), Reply::json(run("SUCCEEDED"))]);
+        }
+        replies.push(Reply {
+            status: 200,
+            body: wire.clone(),
+            headers: vec![],
+            delay: Duration::ZERO,
+        });
+        let mock = Mock::serve(replies).await;
+        let mut config = limits();
+        config.max_response_bytes = 1024;
+        let client = mock.client(config);
+        let error = if resume {
+            let ticket = client.submit(&request()).await.unwrap();
+            let restored: RunTicket =
+                serde_json::from_slice(&serde_json::to_vec(&ticket).unwrap()).unwrap();
+            client.resume(&request(), &restored).await.unwrap_err()
+        } else {
+            client.execute(&request()).await.unwrap_err()
+        };
+        assert_eq!(error.kind, ErrorKind::ResponseTooLarge);
+        assert_eq!(error.stage, Stage::Dataset);
+        assert_eq!(error.run_id.as_deref(), Some("run1"));
+        assert!(error.submission_may_have_occurred);
+        let diagnostic = format!("{client:?} {error:?} {error}");
+        assert!(!diagnostic.contains(TOKEN));
+        assert!(!diagnostic.contains(marker));
+        assert!(!diagnostic.contains(&wire));
+        let requests = mock.finish().await;
+        assert_eq!(requests.len(), if resume { 5 } else { 3 });
+        assert_eq!(
+            requests
+                .iter()
+                .filter(|request| request.starts_with("POST "))
+                .count(),
+            1
+        );
+        assert_eq!(
+            requests
+                .iter()
+                .filter(|request| request.starts_with("GET /v2/datasets/dataset1/items?"))
+                .count(),
+            1
+        );
+    }
+}
+
+#[tokio::test]
+async fn normalized_evidence_limit_includes_receipt_metadata_and_accepts_exact_boundary() {
+    let input = request();
+    let expected = ExecutionEvidence {
+        case_id: input.case_id.clone(),
+        artifact: input.artifact.clone(),
+        input_sha256: json_sha256(&input.input),
+        source: input.source.clone(),
+        run_id: "run1".into(),
+        dataset_id: "dataset1".into(),
+        status: RunStatus::Succeeded,
+        output: output(),
+    };
+    let evidence_bytes = serde_json::to_vec(&expected).unwrap().len();
+    assert!(serde_json::to_vec(&json!([output()])).unwrap().len() < evidence_bytes - 1);
+    for limit in [evidence_bytes, evidence_bytes - 1] {
+        let mock = Mock::serve(vec![
+            Reply::json(build()),
+            Reply::json(run("SUCCEEDED")),
+            Reply::json(json!([output()])),
+        ])
+        .await;
+        let mut config = limits();
+        config.max_response_bytes = limit;
+        let result = mock.client(config).execute(&input).await;
+        if limit == evidence_bytes {
+            assert_eq!(
+                serde_json::to_value(result.unwrap()).unwrap(),
+                serde_json::to_value(&expected).unwrap()
+            );
+        } else {
+            let error = result.unwrap_err();
+            assert_eq!(error.kind, ErrorKind::ResponseTooLarge);
+            assert_eq!(error.stage, Stage::Dataset);
+            assert_eq!(error.run_id.as_deref(), Some("run1"));
+        }
+        assert_eq!(mock.finish().await.len(), 3);
+    }
+}
+
+#[tokio::test]
 async fn submission_failure_is_ambiguous_and_is_never_retried() {
     let mut reply = Reply::json(json!({"error":TOKEN}));
     reply.status = 503;
