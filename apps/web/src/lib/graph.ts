@@ -6,6 +6,7 @@ import type {
   OrgChangeRecord,
   OrgState,
   Provider,
+  ProviderOperation,
   Responsibility,
   Role,
 } from "./contracts";
@@ -20,6 +21,8 @@ export interface PendingRole {
   change_id: string;
   change_status: ChangeStatus;
   binding: AgentBinding | null;
+  /** Asynchronous provider operation behind this role, if any. */
+  operation: ProviderOperation | null;
 }
 
 export type RoleNode =
@@ -48,6 +51,7 @@ export function pendingRoles(changes: OrgChangeRecord[], state: OrgState | null)
         change_id: c.change_id,
         change_status: c.status,
         binding: c.provisioned?.[op.key] ?? null,
+        operation: c.operations?.[op.key] ?? null,
       });
     }
   }
