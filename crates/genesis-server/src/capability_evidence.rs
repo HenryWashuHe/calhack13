@@ -216,6 +216,29 @@ impl EvidencePolicy {
             .map(|proof| proof.evidence.clone())
             .ok_or_else(|| EvidencePolicyError::UnknownForgeProof(proof_ref.to_owned()))
     }
+
+    /// Verify a checkpoint loaded from the organization's trusted acquisition
+    /// store. The caller must separately check its live mission/grant authority.
+    /// Never pass a checkpoint supplied through an HTTP request to this method.
+    pub fn verify_session(
+        &self,
+        suite_id: &str,
+        session: &ForgeSession,
+    ) -> Result<VerifiedEvidence, EvidencePolicyError> {
+        let suite = self
+            .suite(suite_id)
+            .ok_or_else(|| EvidencePolicyError::UnknownSuite(suite_id.to_owned()))?;
+        let reference = session.spec().operation_id.clone();
+        let candidate = session
+            .verified(suite)
+            .map_err(|_| EvidencePolicyError::UnverifiedForge(reference.clone()))?;
+        map_verified_report(
+            suite,
+            &candidate.artifact,
+            candidate.verification,
+            reference,
+        )
+    }
 }
 
 fn digest(value: &impl Serialize) -> Result<String, EvidencePolicyError> {

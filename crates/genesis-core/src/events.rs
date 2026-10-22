@@ -71,6 +71,17 @@ pub enum EventKind {
         /// True when a development stub stood in for the real provider.
         dev_stub: bool,
     },
+    /// An asynchronous provider operation for a role changed state.
+    ProvisioningProgress {
+        change_id: ChangeId,
+        role_key: String,
+        provider: Provider,
+        operation_id: String,
+        state: crate::change::ProviderOperationState,
+        run_id: Option<String>,
+        /// Sanitized reason it is not advancing, if any.
+        attention: Option<String>,
+    },
     ProvisioningFailed {
         change_id: ChangeId,
         role_key: String,

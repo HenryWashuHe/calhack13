@@ -4,6 +4,9 @@
 
 use crate::{ProviderError, ProvisionRequest};
 use async_trait::async_trait;
+use genesis_core::ids::{
+    AssignmentId, AttemptId, JobId, MissionId, OrgId, ResponsibilityId, RoleId,
+};
 use genesis_core::jobs::Job;
 use genesis_core::lifecycle::JobStatus;
 use genesis_core::model::{AgentBinding, Provider};
@@ -14,7 +17,73 @@ use genesis_creao::{
 use genesis_verification::json_sha256;
 use serde::Serialize;
 use serde_json::{json, Value};
+use std::fmt;
 use std::sync::Arc;
+
+/// Historical, backend-collected execution provenance, not domain verification
+/// or current authority. Obtain this only from a trusted runtime with the frozen
+/// job and execution binding; serialized receipts are not importable proofs.
+/// Callers must separately authorize any new action against current kernel state.
+///
+/// Execution binds the provider, agent ID and configuration digest. A binding's
+/// `conversation_ref` is provisioning metadata, not an execution input: every
+/// execution starts a fresh conversation. Mutable job status, result, provider
+/// references and timestamps likewise are not part of the submitted request.
+#[derive(Clone, PartialEq, Serialize)]
+pub struct SpecialistExecutionReceipt {
+    pub schema_version: u32,
+    pub provider: Provider,
+    pub org_id: OrgId,
+    pub mission_id: MissionId,
+    pub role_id: RoleId,
+    pub responsibility_id: ResponsibilityId,
+    pub job_id: JobId,
+    pub attempt_id: AttemptId,
+    pub assignment_id: AssignmentId,
+    pub attempt_no: u32,
+    pub epoch: u64,
+    pub operation_id: String,
+    pub account_namespace: String,
+    pub provider_agent_id: String,
+    pub binding_config_digest: String,
+    pub run_id: String,
+    pub conversation_id: Option<String>,
+    pub workspace_id: Option<String>,
+    /// Canonical hash of the submitted provider request, excluding operation
+    /// ownership metadata; distinct from the full operation fingerprint below.
+    pub request_sha256: String,
+    /// Fingerprint of the full immutable, organization/account-bound operation.
+    pub operation_fingerprint: String,
+    /// Domain-separated canonical hash of the complete validated checkpoint,
+    /// including its native observation and raw response. Not authentication.
+    pub checkpoint_sha256: String,
+    pub checkpoint_revision: u64,
+    /// Native completion may have no result. Missing or malformed semantic
+    /// output must be rejected by the domain consumer, not silently promoted to
+    /// task success. Output retains the runtime's validated response bounds.
+    pub output: Option<Value>,
+    /// Canonical hash of serialized `output`; absent output hashes JSON null.
+    /// The full checkpoint hash also binds the original response shape.
+    pub output_sha256: String,
+}
+
+impl fmt::Debug for SpecialistExecutionReceipt {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("SpecialistExecutionReceipt")
+            .field("provider", &self.provider)
+            .field("org_id", &self.org_id)
+            .field("job_id", &self.job_id)
+            .field("attempt_id", &self.attempt_id)
+            .field("operation_id", &self.operation_id)
+            .field("run_id", &self.run_id)
+            .field("operation_fingerprint", &self.operation_fingerprint)
+            .field("checkpoint_sha256", &self.checkpoint_sha256)
+            .field("checkpoint_revision", &self.checkpoint_revision)
+            .field("output", &"[redacted]")
+            .field("output_sha256", &self.output_sha256)
+            .finish_non_exhaustive()
+    }
+}
 
 /// Progress is provider evidence only. In particular, Created requires a separate
 /// readiness check before the kernel can activate a role.
@@ -76,6 +145,16 @@ pub trait SpecialistRuntime: Send + Sync {
         binding: &AgentBinding,
     ) -> Result<SpecialistProgress, ProviderError>;
     fn get(&self, operation_id: &str) -> Result<SpecialistProgress, ProviderError>;
+    /// Read a completed execution bound to the authoritative frozen job and
+    /// execution binding. Does not prepare, submit, poll, or infer fresh kernel
+    /// authority. Implementations without bound receipts reject by default.
+    fn execution_receipt(
+        &self,
+        _job: &Job,
+        _binding: &AgentBinding,
+    ) -> Result<SpecialistExecutionReceipt, ProviderError> {
+        Err(rejected("specialist execution receipts are not supported"))
+    }
     async fn advance(
         &self,
         operation_id: &str,
@@ -102,6 +181,52 @@ impl CreaoSpecialist {
             .await
             .map_err(runtime_error)
     }
+
+    /// Reconstruct exactly the existing submission contract. Dispatch eligibility
+    /// is checked separately so historical receipts survive terminal status and
+    /// expiry of the original (still immutable) deadline.
+    fn execution_spec(
+        &self,
+        job: &Job,
+        binding: &AgentBinding,
+    ) -> Result<OperationSpec, ProviderError> {
+        if job.org_id.as_str() != self.org_id()
+            || job.provider != Some(Provider::Creao)
+            || binding.provider != Provider::Creao
+        {
+            return Err(rejected(
+                "CREAO job or binding belongs to a different provider or organization",
+            ));
+        }
+        Ok(OperationSpec {
+            schema_version: 1,
+            operation_id: operation_id(
+                "job",
+                json!({"org_id":job.org_id,"job_id":job.job_id,"attempt_id":job.attempt_id}),
+            ),
+            org_id: job.org_id.to_string(),
+            role_id: job.role_id.to_string(),
+            account_namespace: self.runtime.account_namespace().to_owned(),
+            purpose: OperationPurpose::Execution {
+                job_id: job.job_id.to_string(),
+                assignment_id: job.assignment_id.to_string(),
+                epoch: job.epoch,
+            },
+            request: OperationRequest::CreateRun(RunRequest {
+                agent_id: binding.provider_agent_id.clone(),
+                input: json!({"schema_version":1,"task":job.task,"input":job.input,
+                    "context":{"org_id":job.org_id,"mission_id":job.mission_id,"role_id":job.role_id,
+                        "responsibility_id":job.responsibility_id,"assignment_id":job.assignment_id,"epoch":job.epoch,
+                        "job_id":job.job_id,"attempt_id":job.attempt_id,"attempt_no":job.attempt_no,
+                        "binding_config_digest":binding.config_digest,"correlation_id":job.correlation_id,
+                        "idempotency_key":job.idempotency_key,"capability":job.capability,"deadline":job.deadline}}),
+                model: None,
+                // Provisioning conversations are not execution conversations.
+                conversation_id: None,
+                workspace_id: None,
+            }),
+        })
+    }
 }
 
 fn rejected(message: &str) -> ProviderError {
@@ -110,7 +235,7 @@ fn rejected(message: &str) -> ProviderError {
 fn runtime_error(_error: impl std::fmt::Display) -> ProviderError {
     // The local operation record carries sanitized diagnostics. Do not leak
     // caller input or database details through the generic provider boundary.
-    rejected("CREAO durable operation could not advance; inspect its backend checkpoint")
+    rejected("CREAO durable operation unavailable; inspect its backend checkpoint")
 }
 fn operation_id(kind: &str, value: Value) -> String {
     format!("creao-{kind}-{}", json_sha256(&value))
@@ -152,14 +277,7 @@ impl SpecialistRuntime for CreaoSpecialist {
         job: &Job,
         binding: &AgentBinding,
     ) -> Result<SpecialistProgress, ProviderError> {
-        if job.org_id.as_str() != self.org_id()
-            || job.provider != Some(Provider::Creao)
-            || binding.provider != Provider::Creao
-        {
-            return Err(rejected(
-                "CREAO job or binding belongs to a different provider or organization",
-            ));
-        }
+        let spec = self.execution_spec(job, binding)?;
         if job.status != JobStatus::Queued
             || job
                 .deadline
@@ -169,40 +287,88 @@ impl SpecialistRuntime for CreaoSpecialist {
                 "CREAO dispatch requires a queued job before its deadline",
             ));
         }
-        let spec = OperationSpec {
-            schema_version: 1,
-            operation_id: operation_id(
-                "job",
-                json!({"org_id":job.org_id,"job_id":job.job_id,"attempt_id":job.attempt_id}),
-            ),
-            org_id: job.org_id.to_string(),
-            role_id: job.role_id.to_string(),
-            account_namespace: self.runtime.account_namespace().to_owned(),
-            purpose: OperationPurpose::Execution {
-                job_id: job.job_id.to_string(),
-                assignment_id: job.assignment_id.to_string(),
-                epoch: job.epoch,
-            },
-            request: OperationRequest::CreateRun(RunRequest {
-                agent_id: binding.provider_agent_id.clone(),
-                input: json!({"schema_version":1,"task":job.task,"input":job.input,
-                    "context":{"org_id":job.org_id,"mission_id":job.mission_id,"role_id":job.role_id,
-                        "responsibility_id":job.responsibility_id,"assignment_id":job.assignment_id,"epoch":job.epoch,
-                        "job_id":job.job_id,"attempt_id":job.attempt_id,"attempt_no":job.attempt_no,
-                        "binding_config_digest":binding.config_digest,"correlation_id":job.correlation_id,
-                        "idempotency_key":job.idempotency_key,"capability":job.capability,"deadline":job.deadline}}),
-                model: None,
-                // Each event gets a fresh execution conversation. A provider's
-                // creation conversation is not an execution conversation.
-                conversation_id: None,
-                workspace_id: None,
-            }),
-        };
         progress(self.runtime.prepare(spec).map_err(runtime_error)?)
     }
 
     fn get(&self, operation_id: &str) -> Result<SpecialistProgress, ProviderError> {
         progress(self.runtime.get(operation_id).map_err(runtime_error)?)
+    }
+
+    fn execution_receipt(
+        &self,
+        job: &Job,
+        binding: &AgentBinding,
+    ) -> Result<SpecialistExecutionReceipt, ProviderError> {
+        let expected = self.execution_spec(job, binding)?;
+        // get() validates the bounded persisted checkpoint, ticket, observation,
+        // raw response and runtime's organization/account context. It does not
+        // create a missing operation or contact the provider.
+        let record = self
+            .runtime
+            .get(&expected.operation_id)
+            .map_err(runtime_error)?;
+        if record.spec != expected
+            || record.fingerprint != expected.fingerprint().map_err(runtime_error)?
+        {
+            return Err(rejected(
+                "CREAO execution checkpoint does not match the frozen job and binding",
+            ));
+        }
+        if record.phase != Phase::NativeCompleted {
+            return Err(rejected("CREAO execution has not completed natively"));
+        }
+        let ticket = record
+            .ticket
+            .as_ref()
+            .ok_or_else(|| rejected("CREAO completed checkpoint lacks its ticket"))?;
+        let observation = record
+            .observation
+            .as_ref()
+            .ok_or_else(|| rejected("CREAO completed checkpoint lacks an observation"))?;
+        if ticket.run_id() != observation.run_id
+            || ticket.agent_id() != Some(binding.provider_agent_id.as_str())
+            || observation.agent_id.as_deref() != Some(binding.provider_agent_id.as_str())
+        {
+            return Err(rejected(
+                "CREAO completed checkpoint does not match the execution agent and run",
+            ));
+        }
+        let checkpoint_sha256 = json_sha256(&json!({
+            "domain": "genesis-specialist-execution-checkpoint-v1",
+            "record": serde_json::to_value(&record).map_err(runtime_error)?,
+        }));
+        let output_sha256 =
+            json_sha256(&serde_json::to_value(&observation.result).map_err(runtime_error)?);
+        Ok(SpecialistExecutionReceipt {
+            schema_version: 1,
+            provider: Provider::Creao,
+            org_id: job.org_id.clone(),
+            mission_id: job.mission_id.clone(),
+            role_id: job.role_id.clone(),
+            responsibility_id: job.responsibility_id.clone(),
+            job_id: job.job_id.clone(),
+            attempt_id: job.attempt_id.clone(),
+            assignment_id: job.assignment_id.clone(),
+            attempt_no: job.attempt_no,
+            epoch: job.epoch,
+            operation_id: record.spec.operation_id.clone(),
+            account_namespace: record.spec.account_namespace.clone(),
+            provider_agent_id: binding.provider_agent_id.clone(),
+            binding_config_digest: binding.config_digest.clone(),
+            run_id: ticket.run_id().to_owned(),
+            conversation_id: observation.conversation_id.clone(),
+            workspace_id: observation.workspace_id.clone(),
+            request_sha256: record
+                .spec
+                .request
+                .request_sha256()
+                .map_err(runtime_error)?,
+            operation_fingerprint: record.fingerprint.clone(),
+            checkpoint_sha256,
+            checkpoint_revision: record.revision,
+            output: observation.result.clone(),
+            output_sha256,
+        })
     }
     async fn advance(
         &self,

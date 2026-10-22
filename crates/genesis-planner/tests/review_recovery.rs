@@ -103,12 +103,14 @@ enum Fault {
     ChangeResponse,
     DecisionRequest,
     DecisionResponse,
+    RejectedChangeResponse,
+    RequirementDelayed,
 }
 impl Fault {
     fn matches(self, path: &str) -> bool {
         match self {
-            Self::RequirementResponse => path.ends_with("/requirements"),
-            Self::ChangeResponse => path == "/api/v1/org-changes",
+            Self::RequirementResponse | Self::RequirementDelayed => path.ends_with("/requirements"),
+            Self::ChangeResponse | Self::RejectedChangeResponse => path == "/api/v1/org-changes",
             Self::DecisionRequest | Self::DecisionResponse => path == "/api/v1/planner/decisions",
         }
     }
@@ -117,6 +119,7 @@ struct Proxy {
     url: String,
     fired: Arc<AtomicBool>,
     change_keys: Arc<Mutex<Vec<String>>>,
+    release: Arc<tokio::sync::Notify>,
     task: tokio::task::JoinHandle<()>,
 }
 impl Drop for Proxy {
@@ -132,14 +135,17 @@ async fn proxy(org: &Org, fault: Fault) -> Proxy {
     let change_keys = Arc::new(Mutex::new(Vec::new()));
     let f = fired.clone();
     let k = change_keys.clone();
+    let release = Arc::new(tokio::sync::Notify::new());
+    let gate = release.clone();
     let task = tokio::spawn(async move {
         loop {
             let (stream, _) = listener.accept().await.unwrap();
             let backend = backend.clone();
             let f = f.clone();
             let k = k.clone();
+            let gate = gate.clone();
             tokio::spawn(async move {
-                forward(stream, &backend, fault, f, k).await;
+                forward(stream, &backend, fault, f, k, gate).await;
             });
         }
     });
@@ -147,6 +153,7 @@ async fn proxy(org: &Org, fault: Fault) -> Proxy {
         url,
         fired,
         change_keys,
+        release,
         task,
     }
 }
@@ -156,6 +163,7 @@ async fn forward(
     fault: Fault,
     fired: Arc<AtomicBool>,
     keys: Arc<Mutex<Vec<String>>>,
+    release: Arc<tokio::sync::Notify>,
 ) {
     let mut data = Vec::new();
     let mut buf = [0u8; 4096];
@@ -196,6 +204,10 @@ async fn forward(
         stream.shutdown().await.unwrap();
         return;
     }
+    if fail && matches!(fault, Fault::RequirementDelayed) {
+        stream.shutdown().await.unwrap();
+        release.notified().await;
+    }
     let client = reqwest::Client::new();
     let mut req = client.request(
         reqwest::Method::from_bytes(method.as_bytes()).unwrap(),
@@ -214,10 +226,13 @@ async fn forward(
     let bytes = response.bytes().await.unwrap();
     if fail {
         assert!(
-            status.is_success(),
+            status.is_success()
+                || (matches!(fault, Fault::RejectedChangeResponse) && status.as_u16() == 422),
             "intercepted action must have committed: {status}"
         );
-        stream.shutdown().await.unwrap();
+        if !matches!(fault, Fault::RequirementDelayed) {
+            stream.shutdown().await.unwrap();
+        }
         return;
     }
     let response_header=format!("HTTP/1.1 {} {}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",status.as_u16(),status.canonical_reason().unwrap_or("Unknown"),bytes.len());
@@ -279,4 +294,189 @@ async fn missing_decision_after_accepted_change_must_not_duplicate_roles() {
 #[tokio::test]
 async fn lost_response_after_decision_is_persisted_is_recovered_without_duplicate() {
     run_fault(Fault::DecisionResponse, 1, 2, 1, 1).await;
+}
+
+fn invalid_reply(lead: &str) -> String {
+    let mut bad: Value = serde_json::from_str(&reply(lead)).unwrap();
+    bad["operations"][0]["authority"]["scopes"] = json!(["scope.not.in.constitution"]);
+    bad.to_string()
+}
+
+#[tokio::test]
+async fn review_reconciled_rejected_change_must_enter_repair_not_terminal_success() {
+    let org = Org::start().await;
+    let lead = org.seed().await;
+    let proxy = proxy(&org, Fault::RejectedChangeResponse).await;
+    let model = Arc::new(ReplayClient::new([invalid_reply(&lead), reply(&lead)]));
+    let mut runner = Runner::new(
+        Planner::new(KernelClient::new(&proxy.url, &org.agent), model.clone()),
+        Duration::from_millis(1),
+    );
+    let outcomes = runner.tick().await.unwrap();
+    assert!(proxy.fired.load(Ordering::SeqCst));
+    assert_eq!(
+        model.requests().len(),
+        2,
+        "reconciled rejection must be repaired; outcomes={outcomes:?}"
+    );
+    org.wait_quiet().await;
+    assert_eq!(
+        org.get("/organization").await["roles"]
+            .as_object()
+            .unwrap()
+            .len(),
+        2
+    );
+}
+
+#[tokio::test]
+async fn review_restart_after_rejection_must_not_treat_cached_rejection_as_success() {
+    let org = Org::start().await;
+    let lead = org.seed().await;
+    let kernel = KernelClient::new(&org.url, &org.agent);
+    let state = kernel.state().await.unwrap();
+    let observation = state.observations.values().next().unwrap();
+    let bad = genesis_planner::output::parse(&invalid_reply(&lead)).unwrap();
+    let draft = bad.requirement.as_ref().unwrap();
+    let requirement = kernel
+        .record_requirement(
+            &observation.mission_id,
+            &draft.summary,
+            std::slice::from_ref(&observation.observation_id),
+            &draft.acceptance,
+        )
+        .await
+        .unwrap();
+    let revision = kernel.state().await.unwrap().revision;
+    let proposal = genesis_planner::output::proposal(
+        &bad,
+        Some(&requirement),
+        &observation.observation_id,
+        revision,
+    )
+    .unwrap();
+    assert!(kernel
+        .submit_change(
+            &format!("planner:{}:a1:s0", observation.observation_id),
+            &proposal
+        )
+        .await
+        .unwrap_err()
+        .is_rejection());
+    // The process stopped before recording its rejection or requesting repair.
+    let model = Arc::new(ReplayClient::new([reply(&lead)]));
+    let planner = Planner::new(kernel, model.clone());
+    let outcome = planner.plan(&observation.observation_id).await.unwrap();
+    assert!(
+        !matches!(&outcome, genesis_planner::agent::PlanOutcome::Proposed { change, .. }
+        if change.status == genesis_core::lifecycle::ChangeStatus::Rejected),
+        "cached rejection was reported as terminal success: {outcome:?}"
+    );
+    org.wait_quiet().await;
+    assert_eq!(
+        org.get("/organization").await["roles"]
+            .as_object()
+            .unwrap()
+            .len(),
+        2
+    );
+}
+
+#[tokio::test]
+async fn review_unresolved_requirement_post_must_not_replay_after_restart() {
+    let org = Org::start().await;
+    let lead = org.seed().await;
+    let proxy = proxy(&org, Fault::RequirementDelayed).await;
+    let model = Arc::new(ReplayClient::new([reply(&lead), reply(&lead)]));
+    let mut runner = Runner::new(
+        Planner::new(KernelClient::new(&proxy.url, &org.agent), model.clone()),
+        Duration::from_millis(1),
+    );
+    // The first POST has an unknown outcome and is still in flight upstream.
+    assert!(runner.tick().await.unwrap().is_empty());
+    assert!(proxy.fired.load(Ordering::SeqCst));
+    assert!(org.get("/organization").await["requirements"]
+        .as_object()
+        .unwrap()
+        .is_empty());
+    // Read-after-error found nothing, but this is not evidence of nonexecution.
+    let mut restarted = Runner::new(
+        Planner::new(KernelClient::new(&proxy.url, &org.agent), model.clone()),
+        Duration::from_millis(1),
+    );
+    restarted.tick().await.unwrap();
+    org.wait_quiet().await;
+    proxy.release.notify_one();
+    let mut count = 0;
+    for _ in 0..100 {
+        count = org.get("/organization").await["requirements"]
+            .as_object()
+            .unwrap()
+            .len();
+        if count > 1 {
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(10)).await;
+    }
+    assert_eq!(
+        count, 1,
+        "ambiguous requirement replay created an orphan after the original request committed"
+    );
+}
+
+#[tokio::test]
+async fn review_restart_recovers_accepted_change_after_an_unsubmitted_attempt() {
+    let org = Org::start().await;
+    let lead = org.seed().await;
+    let kernel = KernelClient::new(&org.url, &org.agent);
+    let state = kernel.state().await.unwrap();
+    let observation = state.observations.values().next().unwrap();
+    let parsed = genesis_planner::output::parse(&reply(&lead)).unwrap();
+    let draft = parsed.requirement.as_ref().unwrap();
+    let requirement = kernel
+        .record_requirement_once(
+            &format!("planner:{}:requirement", observation.observation_id),
+            &observation.mission_id,
+            &draft.summary,
+            std::slice::from_ref(&observation.observation_id),
+            &draft.acceptance,
+        )
+        .await
+        .unwrap();
+    let revision = kernel.state().await.unwrap().revision;
+    let proposal = genesis_planner::output::proposal(
+        &parsed,
+        Some(&requirement),
+        &observation.observation_id,
+        revision,
+    )
+    .unwrap();
+    // Attempt 1 failed to parse/build a proposal, so it left no change row.
+    // Attempt 2 committed, then the process stopped before its decision write.
+    let original = kernel
+        .submit_change(
+            &format!("planner:{}:a2:s0", observation.observation_id),
+            &proposal,
+        )
+        .await
+        .unwrap();
+    org.wait_quiet().await;
+    let model = Arc::new(ReplayClient::new([json!({
+        "assessment": "The current organization already has a recovery owner",
+        "verdict": "no_change",
+        "rationale": "No additional role is needed"
+    })
+    .to_string()]));
+    let planner = Planner::new(kernel, model.clone());
+    let outcome = planner.plan(&observation.observation_id).await.unwrap();
+    assert_eq!(
+        model.requests().len(),
+        0,
+        "a gap in earlier attempt keys must not hide committed change {}; outcome={outcome:?}",
+        original.change_id
+    );
+    assert!(
+        matches!(outcome, genesis_planner::agent::PlanOutcome::Proposed { change, attempts: 0 }
+        if change.change_id == original.change_id)
+    );
 }
