@@ -42,7 +42,8 @@ Codex reserves `crates/genesis-fetch`, `services/fetch-bridge`, their tests, the
 Fetch proof script and docs. The planner branch is Claude-owned; no planner edits
 are included in this workstream.
 
-Current Codex milestone: `codex/capability-acquisition`, stacked on synthesis
+Current Codex milestone: [PR #9](https://github.com/HenryWashuHe/genesis/pull/9),
+`codex/capability-acquisition`, stacked on synthesis
 [PR #8](https://github.com/HenryWashuHe/genesis/pull/8). Reserved paths are forge
 acquisition/synthesis modules, CLI/tests/examples and focused docs. The durable
 coordinator joins generation, build and independent verification with one semantic

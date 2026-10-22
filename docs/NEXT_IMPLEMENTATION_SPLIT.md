@@ -6,7 +6,8 @@ This is a scoped integration handoff, not activation of the whole-kernel credit
 fallback. The original PR #3 review targeted `21103d1`; the current resolution
 checkpoint is recorded in [AGENT_HANDOFF.md](AGENT_HANDOFF.md).
 
-Current Codex addition: durable capability acquisition on `codex/capability-acquisition`,
+Current Codex addition: durable capability acquisition in [PR #9](https://github.com/HenryWashuHe/genesis/pull/9),
+`codex/capability-acquisition`,
 stacked on source synthesis [PR #8](https://github.com/HenryWashuHe/genesis/pull/8).
 Reserved paths remain forge modules/CLI/tests/examples and focused docs. The
 coordinator joins generation, build and independent verification with one planned
