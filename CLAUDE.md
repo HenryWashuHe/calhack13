@@ -1,5 +1,14 @@
 # GENESIS agent coordination
 
+**CREAO provider readiness checkpoint (2026-10-22):**
+`codex/creao-readiness-probe`, based on gateway PR #26 at `3dc95d6`, now implements
+the durable provider run and explicit `GENESIS_PUBLIC_URL` registration. See
+[CREAO_READINESS.md](docs/CREAO_READINESS.md) for configuration, recovery and
+evidence limits. The provider slice does not fix the outstanding gateway, attach,
+managed-job authority or console review findings; those source fixes remain with
+Claude/Eric. The latest cross-stack review queue lives on draft #25 and issue #4,
+not this branch's older base documents. No whole-kernel takeover is active.
+
 **Current next-work split:** see [NEXT_IMPLEMENTATION_SPLIT.md](docs/NEXT_IMPLEMENTATION_SPLIT.md).
 At the user's request, Codex is taking capability execution/evidence integration
 inside the kernel boundary. Claude keeps lifecycle/recovery, Elastic and UI work;

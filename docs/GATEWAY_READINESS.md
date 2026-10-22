@@ -104,15 +104,15 @@ redacted), `receipt_url`, `provider_agent_id`, `config_digest`, role IDs and
 `expires_at`. `request.expected_receipt()` is the exact JSON the skill must
 post. The implemented CREAO probe:
 
-1. Prepare a durable run on the created agent (`request.provider_agent_id`).
-   Uses the distinct `Readiness` purpose in the CREAO runtime, with an operation ID derived from the
-   organization and `challenge_id`.
-2. Put the receipt URL and `expected_receipt()` in the run input and instruct
+1. Prepares a durable run on the created agent (`request.provider_agent_id`),
+   using the distinct `Readiness` purpose in the CREAO runtime and an operation
+   ID derived from the organization and `challenge_id`.
+2. Puts the receipt URL and `expected_receipt()` in the run input and instructs
    the agent's generic gateway skill to POST it and report the HTTP status.
 3. Submits only a still-prepared, unexpired operation and returns `ProbeDispatch { probe_ref:
-   Some(run_id) }`. Map a POST that may have run to `ProviderError::Unknown`.
-4. Not decide readiness from the run's completion or text. The kernel decides
-   from the receipt alone.
+   Some(run_id) }`. A POST that may have run maps to `ProviderError::Unknown`.
+4. Leaves the readiness decision to the kernel's receipt check. Run completion
+   or text cannot establish readiness.
 
 Registration in `creao_config` uses the complete runtime settings and an explicit
 `GENESIS_PUBLIC_URL`; the underlying hook is:
