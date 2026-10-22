@@ -124,7 +124,9 @@ the lock, then resume normally. Do not edit pending operations to force a retry.
 
 The full compact checkpoint is capped at 8 MiB. Before an effect, both library
 and CLI enforce a 6 MiB ceiling, reserving space for the default clients' bounded
-responses. A library caller changing provider response limits must supply an
+responses. The Apify limit covers both wire responses and the normalized complete
+execution evidence; numeric expansion during JSON serialization cannot bypass it.
+A library caller changing provider response limits must supply an
 equivalent storage/headroom policy. Use the **same forge binary and embedded
 Actor scaffold until acquisition finishes**: validation rederives the expected
 package, and a scaffold upgrade fails closed rather than migrating a pending

@@ -18,6 +18,7 @@ The Rust capability implementation now creates source-bearing Actors, resumes pi
 8. [Independent Fetch specialists](docs/FETCH_RUNTIME.md) — discovery, signed transport, durable recruitment, restart and release isolation.
 9. [Current implementation split](docs/NEXT_IMPLEMENTATION_SPLIT.md) — Codex capability work and Claude kernel/UI/Elastic assignments.
 10. [Capability source synthesis](docs/CAPABILITY_SYNTHESIS.md) — public requirement/examples to a durable generated parser and immutable forge candidate.
+11. [Durable capability acquisition](docs/CAPABILITY_ACQUISITION.md) — one checkpoint from generation through build and verification, with one bounded semantic repair.
 
 ## Run the capability checks
 
