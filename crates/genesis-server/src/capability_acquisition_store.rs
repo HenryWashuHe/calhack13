@@ -1,6 +1,7 @@
 //! Trusted organization-owned acquisition records and persistent count quotas.
 //! These are effect-count limits, not dollar billing guarantees. Provider
 //! outcomes never refund consumed counts, including interrupted/unknown POSTs.
+use crate::capability_acquisition_history::{self as history, CheckpointKind, HistoryError};
 use crate::store::Store;
 use chrono::{DateTime, Duration, Utc};
 use genesis_core::engine::{authorize_dispatch, DispatchGrant};
@@ -119,7 +120,8 @@ pub enum AcquisitionFence {
     DeadlineExpired,
     LeaseExpired,
 }
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum AcquisitionDebit {
     ModelCall,
     ActorCreate,
@@ -176,6 +178,16 @@ pub enum AcquisitionStoreError {
     Encoding,
 }
 pub type Result<T> = std::result::Result<T, AcquisitionStoreError>;
+
+impl From<HistoryError> for AcquisitionStoreError {
+    fn from(error: HistoryError) -> Self {
+        match error {
+            HistoryError::Db(error) => Self::Db(error),
+            HistoryError::Encoding => Self::Encoding,
+            _ => Self::InvalidRecord,
+        }
+    }
+}
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -312,7 +324,7 @@ impl AcquisitionRecord {
         }
         Ok(())
     }
-    fn active(&self, suite: &OracleSuite) -> Result<bool> {
+    pub(crate) fn active(&self, suite: &OracleSuite) -> Result<bool> {
         if self.is_fenced() {
             return Ok(false);
         }
@@ -388,6 +400,11 @@ impl Store {
             tx.execute("INSERT INTO acquisition_counters(singleton,total_intents,model_calls,actor_creates,builds,test_submits,read_actions) VALUES(1,0,0,0,0,0,0)",[])?;
         }
         tx.commit()?;
+        drop(conn);
+        // The journal must exist before any provider intent can be created.
+        // Existing unjournaled records remain unavailable until trusted startup
+        // validates and baselines them; quota configuration is not a migration.
+        self.init_acquisition_history()?;
         Ok(())
     }
     pub fn create_acquisition(
@@ -522,6 +539,15 @@ impl Store {
         counts.total_intents += 1;
         persist_counters(&tx, &counts)?;
         tx.execute("INSERT INTO capability_acquisitions(id,client_request_id,requirement_id,assignment_id,epoch,suite_id,version,active,record_json) VALUES(?1,?2,?3,?4,?5,?6,1,1,?7)",params![record.id,record.client_request_id,b.requirement_id.as_str(),b.grant.assignment_id.as_str(),b.grant.epoch as i64,record.suite_id,text(&record)?])?;
+        history::append_checkpoint(
+            &tx,
+            &record,
+            state.revision,
+            CheckpointKind::Created,
+            None,
+            true,
+            now,
+        )?;
         tx.commit()?;
         Ok((record, true))
     }
@@ -633,6 +659,15 @@ impl Store {
         if updated != 1 {
             return Err(AcquisitionStoreError::Conflict);
         }
+        history::append_checkpoint(
+            &tx,
+            &next,
+            state.revision,
+            CheckpointKind::Transition,
+            debit,
+            active,
+            now,
+        )?;
         tx.commit()?;
         Ok(next)
     }
@@ -807,7 +842,11 @@ fn persist_counters(tx: &Transaction<'_>, c: &AcquisitionCounters) -> Result<()>
     tx.execute("UPDATE acquisition_counters SET total_intents=?1,model_calls=?2,actor_creates=?3,builds=?4,test_submits=?5,read_actions=?6 WHERE singleton=1",params![c.total_intents,c.model_calls,c.actor_creates,c.builds,c.test_submits,c.read_actions])?;
     Ok(())
 }
-fn load_record(conn: &Connection, id: &str, suite: &OracleSuite) -> Result<AcquisitionRecord> {
+pub(crate) fn load_record(
+    conn: &Connection,
+    id: &str,
+    suite: &OracleSuite,
+) -> Result<AcquisitionRecord> {
     let row: Option<(String, u64, bool, String)> = conn
         .query_row(
             "SELECT record_json,version,active,suite_id FROM capability_acquisitions WHERE id=?1",

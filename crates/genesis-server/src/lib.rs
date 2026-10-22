@@ -9,7 +9,9 @@
 
 pub mod app;
 pub mod auth;
+pub mod capability_acquisition_bootstrap;
 pub mod capability_acquisition_driver;
+pub mod capability_acquisition_history;
 pub mod capability_acquisition_runtime;
 pub mod capability_acquisition_store;
 pub mod capability_authority;
@@ -191,6 +193,12 @@ pub fn build_org(cfg: &OrgConfig, providers: Option<ProviderSet>) -> anyhow::Res
         cfg.oracle_suites.clone(),
         cfg.forge_checkpoints.clone(),
     )?);
+    // Read-only acquisition discovery survives disabled provider clients. Legacy
+    // records require trusted suite validation before a baseline can be published.
+    store.init_acquisition_history()?;
+    if cfg.acquisition.is_some() {
+        capability_acquisition_bootstrap::bootstrap(&store, &evidence_policy)?;
+    }
     let capability_runtime = Arc::new(
         capability_runtime::CapabilityRuntime::new(
             store.clone(),

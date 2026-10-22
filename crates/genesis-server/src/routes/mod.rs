@@ -1,5 +1,6 @@
 //! HTTP routes (TECH_SPEC §10). All routes live under `/api/v1`.
 
+mod acquisition_history;
 mod acquisitions;
 pub(crate) mod capabilities;
 mod changes;
@@ -60,7 +61,14 @@ pub fn router(state: AppState) -> Router {
             "/capability-runs/{id}/finalization",
             get(capabilities::run_finalization),
         )
-        .route("/capability-acquisitions", post(acquisitions::create))
+        .route(
+            "/capability-acquisitions",
+            post(acquisitions::create).get(acquisition_history::list),
+        )
+        .route(
+            "/capability-acquisitions/{id}/history",
+            get(acquisition_history::history),
+        )
         .route("/capability-acquisitions/{id}", get(acquisitions::status))
         .route(
             "/capability-acquisitions/{id}/automation",
