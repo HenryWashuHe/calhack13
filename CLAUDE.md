@@ -1,6 +1,38 @@
 # GENESIS agent coordination
 
-## Current merge and ownership checkpoint — October 22, 2026
+## Current implementation and ownership — October 22, 2026
+
+Persistent CREAO mission assessment is implemented in [PR #72](https://github.com/HenryWashuHe/genesis/pull/72),
+runtime source `0dc0986be0248d1f7b5a96ded7a1c5cbe1795089`, based on main `72e9ef1`.
+A continuing specialist receives frozen, backend-verified venue facts and event
+constraints. Its native receipt and five domain checks gate an atomic observation
+and, when needed, one actionable replacement requirement. The same agent handles
+later updates across restart; its responsibility remains open. See
+[the assessment API and evidence limits](docs/VENUE_ASSESSMENTS.md).
+
+Source `1a340a9` passed **858 Rust tests in 90 nonempty suites** (109 targets
+including empty suites), zero failed/ignored. The final missing-runtime recovery
+fix then passed **50 default-feature tests in six affected suites**, including all
+13 assessment integration tests, plus strict default workspace Clippy and fmt.
+It preserves queued dispatch when a restart lacks CREAO instead of allowing a
+stub acknowledgement to strand the job. These are loopback/provider-fixture
+checks; native sponsor execution and genuine Share-link evidence remain open.
+
+New reviews are held: **#70** at `c1162d1` needs complete frozen gap/pin checks,
+a consistent history read transaction, and its Clippy fix; unchanged test-only
+regressions are on `codex/review-kernel-audit70-refusal` at `c92f9d5`.
+**#71** at `ba4e00ac` needs stale poll suppression and accurate disabled-intake
+wording; preserve `37dae9f` on `codex/review-gap-intake71`. Exact findings and
+source ownership remain in [the queue](docs/PR_REVIEW_QUEUE.md) and
+[issue #4](https://github.com/HenryWashuHe/genesis/issues/4).
+
+Claude/Eric keep kernel/planner/readiness/UI and those source fixes. Codex next
+connects verified CREAO assessments to the two-organization scenario and its
+report, without duplicating planner or UI work. The ongoing mission goal remains
+active. Use current GitHub heads before integrating; the checkpoints below are
+historical and do not supersede these ownership notes.
+
+## Previous merge and ownership checkpoint — October 22, 2026
 
 Reviewed main checkpoint: `b2aebcd173972755297d68a1e161e2113cea5181`.
 The capability stack, specialist execution, planner and Elastic integrations,
