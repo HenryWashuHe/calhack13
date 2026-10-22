@@ -17,9 +17,9 @@
 //!   submission outcome moves the job to `UNKNOWN` for reconciliation.
 
 use crate::app::AppState;
+use crate::capability_authority::authorize_job;
 use crate::store::{put_job, EventMeta, OutboxItem};
 use chrono::Utc;
-use genesis_core::engine;
 use genesis_core::events::EventKind;
 use genesis_core::ids::JobId;
 use genesis_core::jobs::Job;
@@ -79,11 +79,11 @@ fn refuse(app: &AppState, job: &mut Job, reason: String, rejected: bool) -> Resu
 /// Live authority for a job; returns the role's binding.
 fn authorize(app: &AppState, job: &Job) -> Result<AgentBinding, String> {
     let state = app.current_state().map_err(|e| e.message)?;
-    engine::check_job_result(&state, &job.role_id, &job.responsibility_id, job.epoch)
-        .map_err(|e| e.to_string())?;
-    if job.deadline.is_some_and(|d| d <= Utc::now()) {
-        return Err("job deadline has passed".into());
-    }
+    // The same live grant used for executable capabilities also bounds
+    // specialist work: mission status/deadline, assignment lease/identity,
+    // role ownership, responsibility epoch and the job's own deadline.
+    // Job does not persist a required scope, so this does not claim to check it.
+    authorize_job(&state, job, None, Utc::now()).map_err(|e| e.to_string())?;
     let binding = state
         .roles
         .get(&job.role_id)
