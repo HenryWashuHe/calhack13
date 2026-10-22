@@ -418,11 +418,11 @@ impl World {
                 .unwrap()
                 .contains("Persistent venue monitor"));
             self.creao_agents.insert(agent.clone());
-            self.creao_runs.insert(run.clone(), json!({"run_id":run,"status":"completed",
+            self.creao_runs.insert(run.clone(), json!({"run_id":run,"status":"completed","agent_id":null,"model":null,
                 "conversation_id":conversation,"result":{"agent_id":agent,"agent_name":"Loopback monitor","text":"Created"}}));
             return (
                 StatusCode::ACCEPTED,
-                json!({"run_id":run,"status":"pending","conversation_id":conversation}),
+                json!({"run_id":run,"status":"pending","agent_id":null,"model":null,"conversation_id":conversation}),
             );
         }
         if method == "POST" && path == "/v1/runs" {
@@ -449,12 +449,12 @@ impl World {
             let conversation = uuid::Uuid::new_v4().to_string();
             self.creao_runs.insert(
                 run.clone(),
-                json!({"run_id":run,"status":"completed","agent_id":agent,
+                json!({"run_id":run,"status":"completed","agent_id":agent,"model":null,
                 "conversation_id":conversation,"result":{"text":output.to_string()}}),
             );
             return (
                 StatusCode::ACCEPTED,
-                json!({"run_id":run,"status":"pending","agent_id":agent,"conversation_id":conversation}),
+                json!({"run_id":run,"status":"pending","agent_id":agent,"model":null,"conversation_id":conversation}),
             );
         }
         if let ("GET", Some(run)) = (method, path.strip_prefix("/v1/runs/")) {
