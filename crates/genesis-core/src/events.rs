@@ -3,7 +3,7 @@
 
 use crate::ids::*;
 use crate::lifecycle::{ChangeStatus, ContractState, JobStatus};
-use crate::model::{CapabilityRef, Executor, Provider};
+use crate::model::{CapabilityGapStatus, CapabilityRef, Executor, Provider};
 use chrono::{DateTime, Utc};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -134,6 +134,18 @@ pub enum EventKind {
     CapabilityAttached {
         role_id: RoleId,
         capability: CapabilityRef,
+    },
+    CapabilityGapOpened {
+        gap_id: CapabilityGapId,
+        requirement_id: RequirementId,
+        role_id: RoleId,
+        responsibility_id: ResponsibilityId,
+        capability_id: CapabilityId,
+    },
+    CapabilityGapStatusChanged {
+        gap_id: CapabilityGapId,
+        from: CapabilityGapStatus,
+        to: CapabilityGapStatus,
     },
     ReportingEdgeChanged {
         role_id: RoleId,

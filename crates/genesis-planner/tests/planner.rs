@@ -358,3 +358,71 @@ async fn unknown_request_id_is_not_found() {
         .unwrap()
         .is_none());
 }
+
+/// A planner-identified capability gap commits through the real kernel as an
+/// open, evidence-bound gap; nothing about its acquisition is in the proposal.
+#[tokio::test]
+async fn planner_requests_a_missing_capability_and_the_kernel_records_the_gap() {
+    let org = Org::start().await;
+    let m = org
+        .post(
+            "/missions",
+            json!({"goal": "Deliver the program", "roles": [{"key": "lead", "name": "Lead", "charter": "Owns the plan",
+                   "authority": {"scopes": ["mission.coordinate"], "budget_cents": 10000}}],
+                   "responsibilities": [{"purpose": "Coordinate the plan", "owner": "lead"}]}),
+        )
+        .await;
+    let mission = m["mission_id"].as_str().unwrap().to_owned();
+    let obs = org
+        .post(
+            &format!("/missions/{mission}/observations"),
+            json!({"source": "portal", "summary": "The listing site changed to a layout nothing here can read",
+                   "evidence_ref": "https://portal.example/listings/index.html"}),
+        )
+        .await;
+    let observation = ObservationId::new(obs["observation_id"].as_str().unwrap());
+    let state = org.get("/organization").await;
+    let lead = state["roles"]
+        .as_object()
+        .unwrap()
+        .values()
+        .find(|r| r["name"] == "Lead")
+        .unwrap()["role_id"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let reply = json!({
+        "assessment": "The plan depends on data from a source no installed capability reads.",
+        "verdict": "change",
+        "requirement": {"summary": "Read current options from the listing site", "acceptance": "options are extracted with evidence"},
+        "rationale": "The lead already owns planning; it lacks an executable reader for this source.",
+        "budget_limit_cents": 0,
+        "operations": [
+            {"op": "AssignResponsibility", "target": {"kind": "from_requirement", "key": "read", "requirement_id": "$REQUIREMENT",
+              "purpose": "Keep listing options current", "trigger": "listing changes", "termination": "plan fixed"},
+             "owner": {"kind": "existing", "role_id": lead}},
+            {"op": "RequestCapability", "key": "reader", "requirement_id": "$REQUIREMENT",
+             "role": {"kind": "existing", "role_id": lead}, "responsibility": {"kind": "new", "key": "read"},
+             "capability_id": "listing-reader", "purpose": "Extract options from the listing site",
+             "observed_sources": ["https://portal.example/listings/table.html"]}
+        ]
+    })
+    .to_string();
+    let model = Arc::new(ReplayClient::new([reply]));
+    let planner = Planner::new(org.kernel(), model.clone());
+    let outcome = planner.plan(&observation).await.unwrap();
+    let PlanOutcome::Proposed { change, .. } = outcome else {
+        panic!("{outcome:?}")
+    };
+    let done = org.wait_committed(change.change_id.as_str()).await;
+    assert_eq!(done["status"], "COMMITTED", "{done}");
+    let state = org.get("/organization").await;
+    let gaps = state["capability_gaps"].as_object().unwrap();
+    assert_eq!(gaps.len(), 1);
+    let gap = gaps.values().next().unwrap();
+    assert_eq!(gap["capability_id"], "listing-reader");
+    assert_eq!(gap["role_id"], lead);
+    assert_eq!(gap["status"]["state"], "open");
+    assert_eq!(org.events_of("capability_gap_opened").await.len(), 1);
+    assert_eq!(model.requests().len(), 1);
+}
