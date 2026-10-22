@@ -129,6 +129,18 @@ pub enum OrgOp {
         #[serde(default)]
         handoffs: Vec<Handoff>,
     },
+    /// The organization needs an executable capability it does not have.
+    /// Commits a capability gap bound to the requirement, role and
+    /// responsibility. How it is acquired and verified is operator policy.
+    RequestCapability {
+        key: String,
+        requirement_id: RequirementId,
+        role: RoleRef,
+        responsibility: ResponsibilityRef,
+        capability_id: CapabilityId,
+        purpose: String,
+        observed_sources: Vec<String>,
+    },
 }
 
 impl OrgOp {
@@ -142,6 +154,7 @@ impl OrgOp {
             OrgOp::AttachCapability { .. } => "AttachCapability",
             OrgOp::ChangeReportingEdge { .. } => "ChangeReportingEdge",
             OrgOp::RetireRole { .. } => "RetireRole",
+            OrgOp::RequestCapability { .. } => "RequestCapability",
         }
     }
 }
@@ -169,6 +182,8 @@ pub struct KeyAllocation {
     pub responsibilities: std::collections::BTreeMap<String, ResponsibilityId>,
     #[serde(default)]
     pub contracts: std::collections::BTreeMap<String, ContractId>,
+    #[serde(default)]
+    pub gaps: std::collections::BTreeMap<String, CapabilityGapId>,
 }
 
 impl KeyAllocation {
@@ -198,6 +213,12 @@ impl KeyAllocation {
                         .responsibilities
                         .entry(key.clone())
                         .or_insert_with(ResponsibilityId::generate);
+                }
+                OrgOp::RequestCapability { key, .. } => {
+                    alloc
+                        .gaps
+                        .entry(key.clone())
+                        .or_insert_with(CapabilityGapId::generate);
                 }
                 _ => {}
             }

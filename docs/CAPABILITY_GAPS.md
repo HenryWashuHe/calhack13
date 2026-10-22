@@ -1,0 +1,123 @@
+# Capability gaps
+
+A capability gap is the organization's committed, evidence-bound statement
+that a role needs an executable capability it does not have. It closes the
+loop between the planner and capability acquisition without giving the
+proposing agent any say over how a capability is built, tested or approved.
+
+```
+observation (evidence_ref) ─► requirement ─► planner proposal
+   AssignResponsibility(owner = role) + RequestCapability(role, responsibility)
+                                   │  kernel validates and commits
+                                   ▼
+                     CapabilityGap { status: open }
+                                   │  acquisition driver (operator policy)
+                                   ▼
+          acquiring ─► acquired { capability@version } │ refused { reason }
+                                   │  planner's next pass
+                                   ▼
+                  AttachCapability(role, capability@version)
+```
+
+## The operation
+
+```json
+{"op": "RequestCapability", "key": "reader", "requirement_id": "$REQUIREMENT",
+ "role": {"kind": "existing", "role_id": "role_…"},
+ "responsibility": {"kind": "new", "key": "read"},
+ "capability_id": "listing-reader",
+ "purpose": "Extract options from the listing site",
+ "observed_sources": ["https://portal.example/listings/table.html"]}
+```
+
+The kernel commits it only if:
+
+- the requirement exists, is not satisfied, and belongs to the
+  responsibility's mission;
+- the role resolves (existing ACTIVE, or created earlier in the change) and
+  **owns** the responsibility when the operation applies (assign it first);
+- `capability_id` is 3–64 characters of `a-z 0-9 - .`, starting alphanumeric;
+  `purpose` is 1–400 characters;
+- `observed_sources` holds 1–8 http(s) URLs without credentials, each on the
+  **same origin** (scheme and host, case-insensitive) as an `evidence_ref` of
+  the requirement's triggering observations. The agent cannot invent targets;
+- no installed, approved capability already has that ID (use
+  `AttachCapability`);
+- no live gap exists for the same requirement and capability ID.
+
+Commit adds `OrgState.capability_gaps[gap_id]` and emits
+`capability_gap_opened`. The operation carries no suite, oracle, quota,
+provider or candidate naming.
+
+## Transitions
+
+Verified acquisition, registry publication and local installation are
+distinct facts. Only `installed` (an accepted local installation) makes the
+capability attachable; `AttachCapability` still checks the installation.
+
+`engine::update_capability_gap` allows only:
+
+| From | To | Payload / checks |
+| --- | --- | --- |
+| `open` | `acquiring` | `acquisition_id` (1–400) |
+| `open` | `refused` | `reason` (1–400), no acquisition |
+| `acquiring` | `acquired` | same `acquisition_id`; this gap's `capability_id` at an exact version (not `latest`); optional `publication_ref` |
+| `acquiring` | `refused` | `reason`, same `acquisition_id` |
+| `acquired` | `installed` | same acquisition and capability; `installation_id` must exist here for that exact capability with status **Accepted** |
+| `acquired` | `refused` | `reason`, same `acquisition_id` |
+
+`installed` and `refused` are final. A refusal keeps the bound
+`acquisition_id`, so the failed attempt stays on record; genuinely new work
+needs a new gap. Each transition increments the revision and emits
+`capability_gap_status_changed {from, to}`. Transitions are backend-only:
+there is no org-change operation or HTTP route that writes them.
+
+The gap also freezes, at commit, the requirement's triggering observation IDs
+and `requirement_digest` (canonical SHA-256 of requirement ID, mission,
+summary, acceptance and evidence), so a driver can confirm it acts on the
+same need.
+
+## Driver boundary (genesis-server)
+
+`genesis_server::capability_gaps`:
+
+- `open_gaps(&app)` lists unclaimed gaps, oldest revision first.
+- `transition(&app, &gap_id, status)` applies one transition atomically with
+  its event. Repeating an already-applied transition returns the gap with no
+  second event, so a driver can retry after a lost response.
+
+An acquisition driver is expected to: take an open gap, look up **trusted
+operator policy** for its `capability_id` (suite ID, quotas, candidate/repair
+naming, allowed source URLs), intersect `observed_sources` with the policy
+allowlist, create exactly one acquisition intent with the gap ID as its
+idempotency key, then move the gap to `acquiring`. On a published,
+independently verified result it moves the gap to `acquired` (with a
+publication reference if published); once an accepted local installation
+exists, to `installed`; on refusal,
+quota exhaustion or rejection it moves to `refused` with a reason. Live
+authority (mission, assignment lease, role state) is checked by the
+acquisition runtime as it is today.
+
+The driver itself is not part of this change.
+
+## Planner
+
+The planner's system prompt lists `RequestCapability` as option (c), after
+assigning existing roles and attaching installed capabilities, and states
+that it never chooses how a capability is built or tested. Its state message
+lists requested capabilities with their status. It attaches a requested
+capability only once it appears under installed capabilities, and does not
+request a capability that is already requested and not refused.
+
+## Tests
+
+- `genesis-core/tests/capability_gap.rs`: happy path, origin binding (other
+  origins, non-http, credentials, empty, non-URL evidence, case-insensitive
+  match), ownership, name/purpose rules, already-installed capability,
+  duplicate live gap, forward-only transitions, and deserializing older
+  records without the new fields.
+- `genesis-server/tests/capability_gaps.rs`: a gap committed through
+  `POST /org-changes` is listed, transitions are idempotent, invalid moves are
+  refused, and the event log has exactly one event per real transition.
+- `genesis-planner/tests/planner.rs`: a scripted model's `RequestCapability`
+  commits through the real kernel as an open gap.
