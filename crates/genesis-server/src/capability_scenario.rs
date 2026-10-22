@@ -8,7 +8,9 @@ use crate::capability_acquisition_store::AcquisitionCounters;
 use genesis_core::lifecycle::{InstallationStatus, RoleState};
 use genesis_core::model::{OrgState, Owner, Provider};
 use genesis_forge::{CandidateIdentity, PublicExample, SynthesisRequest};
-use genesis_verification::{validate_artifact, ArtifactPin};
+use genesis_verification::{
+    json_sha256, validate_artifact, ArtifactPin, ExecutionEvidence, SourceSnapshot,
+};
 use reqwest::{Client, Method, Url};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -144,6 +146,8 @@ pub struct ScenarioReport {
     pub acceptance_b_jobs: Vec<String>,
     pub initial_run_b_id: String,
     pub continuation_run_b_id: String,
+    pub initial_invocation_proof_ref: String,
+    pub continuation_invocation_proof_ref: String,
     pub producer_role_id: String,
     pub producer_successor_id: String,
     pub verifier_role_id: String,
@@ -171,6 +175,88 @@ struct Work {
     requirement: String,
     role: String,
     responsibility: String,
+}
+
+struct InvocationContext<'a> {
+    spec: &'a ScenarioSpec,
+    work: &'a Work,
+    installation: &'a str,
+    artifact: &'a ArtifactPin,
+    acceptance_ref: &'a str,
+}
+
+// These response DTOs are deliberately separate from backend proof types. They
+// can inspect an HTTP claim but cannot construct a backend verification token.
+// Neither the DTOs nor collected source/receipt metadata enter ScenarioReport.
+#[derive(Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+struct InvocationProofResponse {
+    schema_version: u32,
+    job_id: String,
+    installation_id: String,
+    request_sha256: String,
+    suite_id: String,
+    suite_sha256: String,
+    acceptance_report_ref: String,
+    org_revision: u64,
+    verified_at: chrono::DateTime<chrono::Utc>,
+    decision: InvocationDecision,
+    case_report: Option<CaseProofResponse>,
+    proof_ref: String,
+}
+
+#[derive(Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum InvocationDecision {
+    Verified,
+    SemanticRejected,
+    AuthorityRejected,
+}
+
+#[derive(Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+struct CaseProofResponse {
+    schema_version: u32,
+    evaluator_version: String,
+    purpose: CasePurpose,
+    decision: CaseDecision,
+    suite_id: String,
+    suite_sha256: String,
+    case_id: String,
+    input_sha256: String,
+    source: SourceSnapshot,
+    artifact: ArtifactPin,
+    run_id: Option<String>,
+    dataset_id: Option<String>,
+    evidence_sha256: Option<String>,
+    extraction: Option<ExtractionKind>,
+    issues: Vec<String>,
+}
+
+#[derive(Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum CasePurpose {
+    InvocationCase,
+}
+
+#[derive(Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum CaseDecision {
+    Accepted,
+    Rejected,
+}
+
+#[derive(Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum ExtractionKind {
+    Supported,
+    Unsupported,
+}
+
+struct CollectedBinding {
+    request_sha256: String,
+    evidence_sha256: String,
+    evidence: ExecutionEvidence,
 }
 
 impl ScenarioDriver {
@@ -523,7 +609,7 @@ impl ScenarioDriver {
         id: &str,
         artifact: &ArtifactPin,
         acceptance: Option<(&str, &str)>,
-    ) -> Result<()> {
+    ) -> Result<CollectedBinding> {
         for _ in 0..self.limits.max_polls {
             let status = self
                 .get(
@@ -549,12 +635,21 @@ impl ScenarioDriver {
             }
             match status["phase"].as_str() {
                 Some("collected") => {
-                    let evidence: ArtifactPin =
-                        decode(status["evidence"]["artifact"].clone(), "collected artifact")?;
-                    if evidence != *artifact {
+                    let evidence: ExecutionEvidence =
+                        decode(status["evidence"].clone(), "collected evidence")?;
+                    if evidence.artifact != *artifact {
                         return Err(ScenarioError::Response("collected artifact mismatch"));
                     }
-                    return Ok(());
+                    let request_sha256 = status["request_sha256"]
+                        .as_str()
+                        .filter(|hash| valid_hash(hash))
+                        .ok_or(ScenarioError::Response("collected request digest"))?
+                        .to_owned();
+                    return Ok(CollectedBinding {
+                        request_sha256,
+                        evidence_sha256: json_sha256(&status["evidence"]),
+                        evidence,
+                    });
                 }
                 Some("prepared" | "running") => {
                     self.post(
@@ -577,26 +672,50 @@ impl ScenarioDriver {
 
     async fn invoke(
         &self,
-        spec: &ScenarioSpec,
-        work: &Work,
+        context: &InvocationContext<'_>,
         role: &str,
-        installation: &str,
-        artifact: &ArtifactPin,
         key: &str,
-    ) -> Result<String> {
+        suite_sha256: Option<&str>,
+    ) -> Result<InvocationProofResponse> {
+        let spec = context.spec;
         let job = self
             .post(
                 &self.b,
                 "/capability-runs",
                 json!({"client_request_id":format!("{}-{key}",spec.run_id),
-            "installation_id":installation,"role_id":role,"responsibility_id":work.responsibility,
+            "installation_id":context.installation,"role_id":role,"responsibility_id":context.work.responsibility,
             "suite_id":spec.suite_b_id,"input":spec.invocation_input}),
                 "invoke inherited capability",
             )
             .await?;
         let id = field_id(&job, "job_id", "invocation identity")?;
-        self.collect(&id, artifact, None).await?;
-        Ok(id)
+        let collected = self.collect(&id, context.artifact, None).await?;
+        let proof: InvocationProofResponse = decode(
+            self.post(
+                &self.b,
+                &format!("/capability-runs/{id}/verify"),
+                json!({}),
+                "verify fresh invocation",
+            )
+            .await?,
+            "invocation proof",
+        )?;
+        let persisted: InvocationProofResponse = decode(
+            self.get(
+                &self.b,
+                &format!("/capability-runs/{id}/verification"),
+                "read persisted invocation proof",
+            )
+            .await?,
+            "persisted invocation proof",
+        )?;
+        if proof != persisted {
+            return Err(ScenarioError::Response(
+                "persisted invocation proof changed",
+            ));
+        }
+        validate_invocation_proof(&proof, &id, context, &collected, suite_sha256)?;
+        Ok(proof)
     }
 
     async fn retire(
@@ -768,13 +887,25 @@ impl ScenarioDriver {
             return Err(ScenarioError::Response("local acceptance mismatch"));
         }
         self.propose(&self.b,format!("{}-attach",spec.run_id),&b.observation,json!([{"op":"AttachCapability","role":{"kind":"existing","role_id":b.role},"capability":{"capability_id":artifact.capability_id,"version":artifact.capability_version}}]),"attach locally accepted capability").await?;
+        let invocation = InvocationContext {
+            spec,
+            work: &b,
+            installation: &installation,
+            artifact: &artifact,
+            acceptance_ref: &reference,
+        };
         let initial_run = self
-            .invoke(spec, &b, &b.role, &installation, &artifact, "initial-run")
+            .invoke(&invocation, &b.role, "initial-run", None)
             .await?;
         let producer_successor = self.retire(&self.a, spec, &a, None).await?;
         let monitor = self.retire(&self.b, spec, &b, Some(&artifact)).await?;
         let continuation = self
-            .invoke(spec, &b, &monitor, &installation, &artifact, "continuation")
+            .invoke(
+                &invocation,
+                &monitor,
+                "continuation",
+                Some(&initial_run.suite_sha256),
+            )
             .await?;
         let final_a = self.state(&self.a).await?;
         let final_b = self.state(&self.b).await?;
@@ -842,8 +973,10 @@ impl ScenarioDriver {
             installation_b_id: installation,
             acceptance_b_ref: reference,
             acceptance_b_jobs: jobs,
-            initial_run_b_id: initial_run,
-            continuation_run_b_id: continuation,
+            initial_run_b_id: initial_run.job_id,
+            continuation_run_b_id: continuation.job_id,
+            initial_invocation_proof_ref: initial_run.proof_ref,
+            continuation_invocation_proof_ref: continuation.proof_ref,
             producer_role_id: a.role,
             producer_successor_id: producer_successor,
             verifier_role_id: b.role,
@@ -855,6 +988,67 @@ impl ScenarioDriver {
             bindings,
         })
     }
+}
+
+fn validate_invocation_proof(
+    proof: &InvocationProofResponse,
+    job_id: &str,
+    context: &InvocationContext<'_>,
+    collected: &CollectedBinding,
+    suite_sha256: Option<&str>,
+) -> Result<()> {
+    if proof.decision != InvocationDecision::Verified {
+        return Err(ScenarioError::Stopped("fresh invocation did not verify"));
+    }
+    let case = proof
+        .case_report
+        .as_ref()
+        .ok_or(ScenarioError::Response("missing invocation case proof"))?;
+    if proof.schema_version != 1
+        || proof.job_id != job_id
+        || proof.installation_id != context.installation
+        || proof.request_sha256 != collected.request_sha256
+        || proof.suite_id != context.spec.suite_b_id
+        || !valid_hash(&proof.suite_sha256)
+        || suite_sha256.is_some_and(|hash| proof.suite_sha256 != hash)
+        || proof.acceptance_report_ref != context.acceptance_ref
+        || !proof
+            .proof_ref
+            .strip_prefix("invocation:")
+            .is_some_and(valid_hash)
+        || case.schema_version != 1
+        || case.evaluator_version.is_empty()
+        || case.purpose != CasePurpose::InvocationCase
+        || case.decision != CaseDecision::Accepted
+        || case.suite_id != proof.suite_id
+        || case.suite_sha256 != proof.suite_sha256
+        || case.artifact != *context.artifact
+        || case.case_id != collected.evidence.case_id
+        || case.input_sha256 != json_sha256(&context.spec.invocation_input)
+        || case.input_sha256 != collected.evidence.input_sha256
+        || case.source != collected.evidence.source
+        || case.run_id.as_ref() != Some(&collected.evidence.run_id)
+        || case.dataset_id.as_ref() != Some(&collected.evidence.dataset_id)
+        || case.evidence_sha256.as_ref() != Some(&collected.evidence_sha256)
+        || !case.issues.is_empty()
+    {
+        return Err(ScenarioError::Response("invocation proof binding mismatch"));
+    }
+    // A correctly recognized unsupported page is a valid extraction result,
+    // but it does not satisfy this scenario's promised venue lookup.
+    if case.extraction != Some(ExtractionKind::Supported) {
+        return Err(ScenarioError::Stopped(
+            "fresh invocation returned unsupported",
+        ));
+    }
+    Ok(())
+}
+
+fn valid_hash(value: &str) -> bool {
+    value.len() == 64
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
 }
 
 fn safe_id(id: &str) -> bool {
@@ -1000,5 +1194,110 @@ mod tests {
         )
         .is_err());
         assert_eq!(ScenarioError::Http {step:"publish acquired capability",status:503}.to_string(),"scenario HTTP request failed at publish acquired capability with status 503; inspect server state before continuing");
+    }
+
+    #[test]
+    fn invocation_proof_must_bind_the_collected_run_and_supported_input() {
+        let suite: genesis_verification::OracleSuite = genesis_verification::decode_json(
+            include_bytes!("../../genesis-verification/examples/fixtures/trusted/suite.json"),
+        )
+        .unwrap();
+        let runs: Vec<ExecutionEvidence> = genesis_verification::decode_json(include_bytes!(
+            "../../genesis-verification/examples/fixtures/runs.json"
+        ))
+        .unwrap();
+        let evidence = runs[0].clone();
+        let case = genesis_verification::verify_case(
+            &suite,
+            &evidence.artifact,
+            &evidence.case_id,
+            &evidence,
+        )
+        .unwrap();
+        assert!(case.is_accepted());
+        let spec = ScenarioSpec {
+            run_id: "run".into(),
+            suite_a_id: "a".into(),
+            suite_b_id: suite.suite_id.clone(),
+            candidate: CandidateIdentity {
+                capability_id: "venue".into(),
+                capability_version: "1".into(),
+                actor_name: "venue".into(),
+                source_version: "0.1".into(),
+            },
+            repair: None,
+            allowed_source_urls: vec![],
+            examples: vec![],
+            invocation_input: suite.cases[0].input.clone(),
+            allow_development_roles: false,
+            provider_access_acknowledged: true,
+        };
+        let work = Work {
+            mission: "mission".into(),
+            observation: "observation".into(),
+            requirement: "requirement".into(),
+            role: "role".into(),
+            responsibility: "responsibility".into(),
+        };
+        let context = InvocationContext {
+            spec: &spec,
+            work: &work,
+            installation: "installation",
+            artifact: &evidence.artifact,
+            acceptance_ref: "accepted-local-proof",
+        };
+        let collected = CollectedBinding {
+            request_sha256: "a".repeat(64),
+            evidence_sha256: json_sha256(&serde_json::to_value(&evidence).unwrap()),
+            evidence: evidence.clone(),
+        };
+        let value = json!({
+            "schema_version":1,"job_id":"job","installation_id":"installation",
+            "request_sha256":collected.request_sha256,"suite_id":suite.suite_id,
+            "suite_sha256":case.report().suite_sha256,"acceptance_report_ref":"accepted-local-proof",
+            "org_revision":5,"verified_at":"2026-10-21T12:00:00Z","decision":"verified",
+            "case_report":case.report(),"proof_ref":format!("invocation:{}", "b".repeat(64))
+        });
+        let validate = |value: Value| {
+            let proof: InvocationProofResponse = decode(value, "proof")?;
+            validate_invocation_proof(
+                &proof,
+                "job",
+                &context,
+                &collected,
+                Some(&case.report().suite_sha256),
+            )
+        };
+        assert!(validate(value.clone()).is_ok());
+        for (path, replacement) in [
+            ("/job_id", json!("other-job")),
+            ("/installation_id", json!("other-installation")),
+            ("/request_sha256", json!("c".repeat(64))),
+            ("/suite_id", json!("other-suite")),
+            ("/suite_sha256", json!("d".repeat(64))),
+            ("/acceptance_report_ref", json!("other-acceptance")),
+            ("/proof_ref", json!("unbound-claim")),
+            ("/decision", json!("semantic_rejected")),
+            ("/case_report/artifact/build_id", json!("other-build")),
+            ("/case_report/case_id", json!("other-case")),
+            ("/case_report/input_sha256", json!("e".repeat(64))),
+            ("/case_report/source/sha256", json!("f".repeat(64))),
+            ("/case_report/run_id", json!("other-run")),
+            ("/case_report/dataset_id", json!("other-dataset")),
+            ("/case_report/evidence_sha256", json!("0".repeat(64))),
+            ("/case_report/decision", json!("rejected")),
+            ("/case_report/extraction", json!("unsupported")),
+            ("/case_report/issues", json!(["value_mismatch"])),
+        ] {
+            let mut changed = value.clone();
+            *changed.pointer_mut(path).unwrap() = replacement;
+            assert!(
+                validate(changed).is_err(),
+                "accepted changed proof field {path}"
+            );
+        }
+        let mut unexpected = value;
+        unexpected["raw_output"] = json!({"private":"must not be accepted"});
+        assert!(validate(unexpected).is_err());
     }
 }
