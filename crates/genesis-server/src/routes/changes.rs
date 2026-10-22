@@ -28,23 +28,6 @@ pub async fn submit(
     Ok((status, Json(record)))
 }
 
-pub async fn list(
-    State(app): State<AppState>,
-    p: Principal,
-) -> ApiResult<Json<Vec<OrgChangeRecord>>> {
-    p.require(&[Principal::Operator, Principal::Agent])?;
-    Ok(Json(app.store.list_changes()?))
-}
-
-pub async fn get_one(
-    State(app): State<AppState>,
-    p: Principal,
-    Path(id): Path<String>,
-) -> ApiResult<Json<OrgChangeRecord>> {
-    p.require(&[Principal::Operator, Principal::Agent])?;
-    Ok(Json(app.store.get_change(&ChangeId::new(id))?))
-}
-
 #[derive(Deserialize)]
 pub struct AbandonBody {
     pub reason: String,
@@ -65,4 +48,21 @@ pub async fn abandon_operation(
     Ok(Json(
         saga::abandon_operation(&app, &ChangeId::new(id), &role_key, &body.reason).await?,
     ))
+}
+
+pub async fn list(
+    State(app): State<AppState>,
+    p: Principal,
+) -> ApiResult<Json<Vec<OrgChangeRecord>>> {
+    p.require(&[Principal::Operator, Principal::Agent])?;
+    Ok(Json(app.store.list_changes()?))
+}
+
+pub async fn get_one(
+    State(app): State<AppState>,
+    p: Principal,
+    Path(id): Path<String>,
+) -> ApiResult<Json<OrgChangeRecord>> {
+    p.require(&[Principal::Operator, Principal::Agent])?;
+    Ok(Json(app.store.get_change(&ChangeId::new(id))?))
 }
