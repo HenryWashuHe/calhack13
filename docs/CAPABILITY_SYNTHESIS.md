@@ -1,5 +1,9 @@
 # Capability source synthesis
 
+For the combined generation/build/verification workflow with one bounded semantic
+repair, use [CAPABILITY_ACQUISITION.md](CAPABILITY_ACQUISITION.md). The standalone
+commands below remain available for explicit generation and forge handoffs.
+
 GENESIS can turn a missing venue-extraction requirement and public HTML examples
 into a parser candidate. The forge records a generation intent, calls the
 Anthropic Messages API once, saves the exact parser and response metadata, and
