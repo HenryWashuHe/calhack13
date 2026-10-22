@@ -43,9 +43,9 @@ suite("capability gap events", () => {
     expect(refused.tone).toBe("bad");
   });
 
-  it("labels the kernel note that wakes the planner, and only that one", () => {
+  it("labels the gap update without claiming the planner consumed it", () => {
     const note = describe(ev({ type: "observation_recorded", payload: { observation_id: "obs", source: "kernel.capability_gap", summary: "Requested capability venue-portal-reader@1 is installed" } }), state);
-    expect(note.title).toBe("Planner woken: requested capability is final");
+    expect(note.title).toBe("Capability gap update recorded");
     expect(note.detail).toContain("venue-portal-reader@1 is installed");
     const portal = describe(ev({ type: "observation_recorded", payload: { observation_id: "o2", source: "portal", summary: "closed" } }), state);
     expect(portal.title).toBe("Observation");
