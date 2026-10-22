@@ -13,7 +13,7 @@ The Rust capability implementation now creates source-bearing Actors, resumes pi
 3. [Provider contracts](docs/PROVIDER_CONTRACTS.md) — documented APIs and the smoke tests that must pass first.
 4. [Research report](GENESIS-organization-evolution-research.md) — competitive research, sponsor division, risks, and demo design.
 5. [Capability forge integration](docs/FORGE_INTEGRATION.md) — runnable commands, source packaging, checkpoint recovery, and the kernel boundary.
-6. [Organization capability API](docs/CAPABILITY_EXECUTION.md) — trusted publication, independent adoption, persisted runs, and recovery.
+6. [Organization capability API](docs/CAPABILITY_EXECUTION.md) — trusted publication, independent adoption, durable runs, fresh invocation proofs, and recovery.
 7. [Persistent CREAO specialists](docs/CREAO_RUNTIME.md) — asynchronous creation/execution, shared account limits, recovery and the pending kernel hook.
 8. [Independent Fetch specialists](docs/FETCH_RUNTIME.md) — discovery, signed transport, durable recruitment, restart and release isolation.
 9. [Current implementation split](docs/NEXT_IMPLEMENTATION_SPLIT.md) — Codex capability work and Claude kernel/UI/Elastic assignments.
