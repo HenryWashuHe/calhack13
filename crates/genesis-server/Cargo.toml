@@ -16,6 +16,7 @@ path = "src/lib.rs"
 [dependencies]
 genesis-core.workspace = true
 genesis-providers.workspace = true
+genesis-creao = { path = "../genesis-creao" }
 async-trait.workspace = true
 genesis-apify = { path = "../genesis-apify" }
 genesis-forge = { path = "../genesis-forge" }

@@ -64,9 +64,14 @@ Tests: `crates/genesis-server/tests/specialist_jobs.rs`.
 
 ## Still needed before a live CREAO role
 
-- **Registration** (provider side): construct `CreaoSpecialist` from the CREAO
-  runtime configuration and call `ProviderSet::with_specialist` in `main.rs`.
-  The server does not do this yet.
+- **Registration is done** (`creao_config::attach_creao_from_env`, called at the
+  start of `serve_org`). Set all four of `GENESIS_CREAO_DB`,
+  `GENESIS_CREAO_ACCOUNT`, `GENESIS_CREAO_QUOTA_DB` and `CREAO_ACCOUNT_API_KEY`
+  in the git-ignored `.env`; none set means CREAO stays unconfigured, a partial
+  set refuses to start and names the missing variables (never the key).
+  Startup runs `recover_interrupted()` before serving. `/health` lists
+  `configured_specialists`. Being registered is not being ready: without the
+  verifier below a CREAO role stays PROVISIONING after collection.
 - **A readiness verifier** for CREAO: a saved bridge-readiness run whose
   gateway receipt the backend observes, registered with
   `AppState::with_readiness_verifier(Provider::Creao, …)`.

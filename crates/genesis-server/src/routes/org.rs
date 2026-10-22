@@ -21,6 +21,7 @@ pub async fn health(State(app): State<AppState>) -> ApiResult<Json<Value>> {
         "revision": state.revision,
         "dev_stub_enabled": app.providers.dev_stub_enabled(),
         "configured_providers": app.providers.configured(),
+        "configured_specialists": app.providers.configured_specialists(),
         "registry_configured": app.registry.is_some(),
     })))
 }
