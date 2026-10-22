@@ -17,7 +17,7 @@ prebuilt artifact must never be presented as freshly generated.
 | --- | --- | --- | --- |
 | Kernel: changes, saga, fencing, retirement | real | always | event log, revisions, stale-epoch rejection |
 | Planner proposes changes | real code; model needs `GENESIS_LLM_*` or `GENESIS_LLM_PROVIDER=elastic` | model key set | decision events, kernel rejections fed back |
-| Capability need → acquisition | `RequestCapability` in #49, driver pending (Codex) | #49 + driver merged | `capability_gap_opened` → `…status_changed` |
+| Capability need → acquisition | `RequestCapability` merged (#49); installed → planner wake-up and https source rule in #57; policy materializer #56; driver worker pending (Codex) | #57 + driver merged, **https portal evidence** | `capability_gap_opened` → `…status_changed` → `observation_recorded` (`kernel.capability_gap`) → `AttachCapability` |
 | Source generation, Actor build, verification | real code; needs `ANTHROPIC_API_KEY` + `APIFY_TOKEN` | keys + reachable portal | actor/build/run IDs, oracle verdict |
 | Venue portal (judge varies it) | real, merged | tunnel up | lab variant, page hashes |
 | Org B independent adoption | real code (loopback-proven) | both orgs + registry | B's own acceptance runs, 0 synthesis calls |
@@ -51,6 +51,12 @@ node scripts/venue-portal/generate.mjs --preset baseline --seed a1 --namespace o
 node scripts/venue-portal/generate.mjs --preset baseline --seed b1 --namespace org-b \
   --suite-id portal-b-v1 --attendees 150 --base-url $U --out data/portal
 node scripts/venue-portal/serve.mjs --out data/portal --base-url $U       # :7200, lab :7201
+
+# Capability path: observations must cite the https tunnel URL, not
+# http://127.0.0.1:7200. Sources must be canonical https (#57) and the gap
+# policy allowlist (#56) matches exact strings, so list the exact pages, e.g.
+#   https://<random>.trycloudflare.com/layout-drift/venues/main-hall.html
+# A new tunnel URL means regenerating pages, suites and that allowlist.
 
 # 2. Registry and two fresh organizations (separate databases and tokens)
 genesis registry --publishers org_a:$REG_A,org_b:$REG_B
