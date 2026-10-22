@@ -88,7 +88,18 @@ async fn main() -> anyhow::Result<()> {
         .init();
     let cli = Cli::parse();
     let kernel = KernelClient::new(&cli.org_url, &cli.token);
-    let model: Option<Arc<dyn llm::LlmClient>> = llm::from_env()?.map(Arc::from);
+    let elastic = std::env::var("GENESIS_LLM_PROVIDER")
+        .map(|p| p.trim().eq_ignore_ascii_case("elastic"))
+        .unwrap_or(false);
+    let model: Option<Arc<dyn llm::LlmClient>> = if elastic {
+        // The organization's own mission-planner agent on Elastic Agent Builder.
+        let org_id = kernel.state().await?.org_id.to_string();
+        Some(Arc::new(
+            genesis_planner::elastic::ElasticAgentLlm::from_env(org_id)?,
+        ))
+    } else {
+        llm::from_env()?.map(Arc::from)
+    };
 
     match cli.command {
         Command::Prompt { observation } => {
