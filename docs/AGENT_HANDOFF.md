@@ -4,6 +4,39 @@ Updated: October 21, 2026.
 
 ## Current integration checkpoint
 
+Codex has pushed [PR #13](https://github.com/HenryWashuHe/genesis/pull/13),
+`codex/inherited-mission`, code/tests `6ba8712`, setup documentation `0c339b2`,
+stacked on #10. The Rust `genesis scenario` driver uses public HTTP APIs for a
+requirement-backed specialist, acquisition with optional repair, exact publication,
+B's independent discovery/acceptance, both responsibility handoffs and successor
+execution. Capability-owned authority checks now enforce leases and mission
+state/deadlines while preserving already committed acceptance after verifier
+retirement. See [INHERITED_MISSION.md](INHERITED_MISSION.md).
+
+All **471 Rust workspace tests** pass with `serde_json/preserve_order`, zero
+failed/ignored; formatting and strict all-target Clippy pass. The new full-chain
+fixture makes two model calls/Actors/builds for one semantic repair, six A
+verification runs and six B runs including successor execution after reopening
+B's SQLite DB. B has no acquisition/model client. Native provider responses are
+canned loopback fixtures; created roles are labeled development stubs. Neither
+ledger is changed, and collected invocations remain `VERIFYING`.
+
+The overarching goal remains active. Next Codex core work is scoped semantic
+finalization of fresh invocation outputs: a single-case verifier distinct from
+full-suite acceptance, a backend-frozen installation/suite/acceptance binding and
+an immutable local result proof. This must not reauthorize the retired verifier or
+manufacture a booking. New exact path claims belong in issue #4 before edits.
+
+Claude has now opened [PR #11](https://github.com/HenryWashuHe/genesis/pull/11)
+(`feat/elastic`, `4d4949c`) and
+[PR #12](https://github.com/HenryWashuHe/genesis/pull/12)
+(`feat/planner`, `5f03bb5`), both based on main `5c4dd1a`. Codex is reviewing them
+without taking over their implementation paths. The capability dependency stack
+is #8 → #9 → #10 → #13. Planner/lifecycle/saga, provider activation, Elastic and UI
+remain Claude-owned; the whole-kernel credit fallback remains inactive.
+
+## Prior integration checkpoints
+
 Codex has pushed [PR #10](https://github.com/HenryWashuHe/genesis/pull/10),
 `codex/server-acquisition`, code checkpoint `aaefa12`, stacked on #9. New server
 endpoints create/step/report a SQLite acquisition bound to a committed requirement,
@@ -29,8 +62,6 @@ Check current remote branches and issue #4 before claiming the next slice. Main
 remains `5c4dd1a`; the current open dependency stack is #8 → #9 → #10. Claude's
 `feat/planner` remains `caac0dc` at this checkpoint; that does not establish credit
 exhaustion or authorize a whole-kernel takeover.
-
-## Prior integration checkpoints
 
 Codex has pushed [PR #9](https://github.com/HenryWashuHe/genesis/pull/9),
 `codex/capability-acquisition`, code checkpoint `6853f16`, stacked on PR #8. One
