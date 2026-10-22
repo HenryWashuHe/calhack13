@@ -14,7 +14,7 @@ nothing to show.
 | --- | --- | --- |
 | NEEDS YOU | A provider creation outcome is unknown (`needs_reconciliation`). The item has an inline form: **Attach agent** (the agent ID found in the provider account, plus a recorded reason) or **Abandon…** (asks for confirmation; fails the change and keeps provider IDs). | `OrgChangeRecord.operations` of PROVISIONING changes |
 | UNKNOWN | A job's outcome is unknown; reconcile with the provider before retrying. | jobs in `UNKNOWN` |
-| UNPROVEN | Progressing but not proven: a created (or operator-attached) agent waiting for readiness evidence, a provider operation retrying, or provider success awaiting domain verification. | operations, jobs in `VERIFYING` |
+| UNPROVEN | Progressing but not proven: a created (or operator-attached) agent waiting for readiness evidence, a provider operation retrying, or provider success awaiting domain verification. An agent waiting for readiness keeps an **Abandon…**-only form (no Attach), so a wrong attached agent or a missing readiness verifier never strands the change in PROVISIONING. | operations, jobs in `VERIFYING` |
 | BLOCKED | The kernel refused a request: rejected change, rejected (stale or fenced) result, failed local acceptance. | events |
 | FAILED | A change or job ended FAILED; provider agent IDs kept for cleanup are listed. | events |
 
