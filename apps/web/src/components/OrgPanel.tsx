@@ -55,6 +55,15 @@ function Node({ node, state, freshRevision }: { node: RoleNode; state: OrgState;
             <ProviderBadge provider={p.provider} binding={p.binding} />
           </div>
           <div className="role-charter">{p.charter}</div>
+          {p.operation && (
+            <div className="role-meta">
+              <span className="chip neutral" title={`Provider operation ${p.operation.operation_id}`}>
+                {p.operation.state.replace(/_/g, " ")}
+              </span>
+              {p.operation.run_id && <span className="mono">run {p.operation.run_id}</span>}
+              {p.operation.attention && <span className="muted">{p.operation.attention}</span>}
+            </div>
+          )}
           <div className="role-meta">
             <span>Not executable until the change commits</span>
             <span className="mono">{short(p.change_id)}</span>

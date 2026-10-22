@@ -28,6 +28,28 @@ pub async fn submit(
     Ok((status, Json(record)))
 }
 
+#[derive(Deserialize)]
+pub struct AbandonBody {
+    pub reason: String,
+}
+
+/// Operator: stop waiting on a role's asynchronous provider operation; the
+/// change ends FAILED with all provider IDs retained.
+pub async fn abandon_operation(
+    State(app): State<AppState>,
+    p: Principal,
+    Path((id, role_key)): Path<(String, String)>,
+    Json(body): Json<AbandonBody>,
+) -> ApiResult<Json<OrgChangeRecord>> {
+    p.require(&[Principal::Operator])?;
+    if body.reason.trim().is_empty() {
+        return Err(crate::error::ApiError::bad_request("reason is required"));
+    }
+    Ok(Json(
+        saga::abandon_operation(&app, &ChangeId::new(id), &role_key, &body.reason).await?,
+    ))
+}
+
 pub async fn list(
     State(app): State<AppState>,
     p: Principal,

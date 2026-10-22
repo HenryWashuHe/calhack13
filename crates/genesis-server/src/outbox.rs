@@ -50,6 +50,9 @@ pub async fn drain_once(app: &AppState) -> anyhow::Result<usize> {
 
 async fn deliver(app: &AppState, item: &OutboxItem) -> Result<(), String> {
     match (item.destination.as_str(), item.kind.as_str()) {
+        (_, "job_dispatch") if crate::specialist_jobs::handles(app, item) => {
+            crate::specialist_jobs::deliver(app, item).await
+        }
         ("internal", _) => Ok(()),
         (_, "assignment_activated")
             if app.providers.dev_stub_enabled() || item.destination == "dev_stub" =>
