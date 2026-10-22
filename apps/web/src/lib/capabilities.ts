@@ -15,7 +15,10 @@ export const DEV_ASSERTION = "genesis:development-assertion";
 export interface CapabilityRunRecord {
   job_id: string;
   phase: string;
-  purpose?: { kind: "invocation" } | { kind: "local_acceptance"; installation_id: string; suite_id: string };
+  purpose?:
+    | { kind: "invocation" }
+    | { kind: "local_acceptance"; installation_id: string; suite_id: string }
+    | { kind: "adoption_acceptance"; adoption_id: string; installation_id: string; suite_id: string };
   request?: {
     case_id?: string;
     artifact?: { actor_id?: string; build_id?: string; build_number?: string; capability_id?: string; capability_version?: string };
@@ -90,9 +93,11 @@ export function summarizeRun(r: CapabilityRunRecord): RunSummary {
   const purpose =
     r.purpose?.kind === "local_acceptance"
       ? `local acceptance · ${r.purpose.suite_id}`
-      : r.purpose?.kind === "invocation"
-        ? "invocation"
-        : "run";
+      : r.purpose?.kind === "adoption_acceptance"
+        ? `adoption acceptance · ${r.purpose.suite_id}`
+        : r.purpose?.kind === "invocation"
+          ? "invocation"
+          : "run";
   let attention: string | null = null;
   if (r.phase === "needs_reconciliation") {
     attention = "Submission outcome unknown; reconcile with the provider before any new attempt.";
@@ -146,6 +151,43 @@ export function jobsForInstallation(jobs: Job[], inst: Installation): Job[] {
   return jobs
     .filter((j) => j.capability && capabilityKey(j.capability) === key)
     .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+}
+
+/** The installation a run record is bound to, if its purpose names one. */
+export function runInstallation(r: CapabilityRunRecord | undefined): string | null {
+  const p = r?.purpose;
+  return p && (p.kind === "local_acceptance" || p.kind === "adoption_acceptance") ? p.installation_id : null;
+}
+
+export interface InstallationJobs {
+  /** Acceptance runs whose backend purpose names this installation. */
+  bound: Job[];
+  /**
+   * Jobs for the same capability version not bound to an installation
+   * (invocations, records still loading or unavailable). Shown separately:
+   * they are not this installation's acceptance evidence.
+   */
+  unbound: Job[];
+}
+
+/**
+ * Split a capability version's jobs for one installation. Several
+ * installations of one exact version can exist (a stopped adoption intent and
+ * a fresh one); acceptance runs bound to another installation are excluded.
+ */
+export function partitionJobs(
+  jobs: Job[],
+  inst: Installation,
+  records: Record<string, CapabilityRunRecord | undefined>,
+): InstallationJobs {
+  const bound: Job[] = [];
+  const unbound: Job[] = [];
+  for (const j of jobsForInstallation(jobs, inst)) {
+    const owner = runInstallation(records[j.job_id]);
+    if (owner === null) unbound.push(j);
+    else if (owner === inst.installation_id) bound.push(j);
+  }
+  return { bound, unbound };
 }
 
 /** Roles that currently hold this exact capability version. */
