@@ -25,6 +25,20 @@ pub enum KernelError {
 }
 
 impl KernelError {
+    /// The request may or may not have taken effect (transport failure or a
+    /// server error). Reconcile by reading before any new mutation.
+    pub fn is_ambiguous(&self) -> bool {
+        match self {
+            KernelError::Transport(_) | KernelError::Decode(_) => true,
+            KernelError::Api { status, .. } => *status >= 500,
+        }
+    }
+
+    /// A definite rejection of the request's content (4xx with a code).
+    pub fn is_rejection(&self) -> bool {
+        matches!(self, KernelError::Api { status, .. } if (400..500).contains(status))
+    }
+
     pub fn code(&self) -> Option<&str> {
         match self {
             KernelError::Api { code, .. } => Some(code),
@@ -182,6 +196,33 @@ impl KernelClient {
                 .json(&json!({"client_request_id": client_request_id, "proposal": proposal})),
         )
         .await
+    }
+
+    /// The change submitted with `client_request_id`, if any.
+    pub async fn change_by_request(
+        &self,
+        client_request_id: &str,
+    ) -> Result<Option<OrgChangeRecord>, KernelError> {
+        let encoded: String = client_request_id
+            .bytes()
+            .map(|b| match b {
+                b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
+                    (b as char).to_string()
+                }
+                _ => format!("%{b:02X}"),
+            })
+            .collect();
+        match self
+            .send(
+                self.http
+                    .get(self.url(&format!("/org-changes/requests/{encoded}"))),
+            )
+            .await
+        {
+            Ok(r) => Ok(Some(r)),
+            Err(KernelError::Api { status: 404, .. }) => Ok(None),
+            Err(e) => Err(e),
+        }
     }
 
     pub async fn change(&self, id: &ChangeId) -> Result<OrgChangeRecord, KernelError> {

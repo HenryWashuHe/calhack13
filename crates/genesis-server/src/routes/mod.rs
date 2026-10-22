@@ -24,6 +24,10 @@ pub fn router(state: AppState) -> Router {
         .route("/planner/decisions", post(org::planner_decision))
         .route("/org-changes", post(changes::submit).get(changes::list))
         .route("/org-changes/{id}", get(changes::get_one))
+        .route(
+            "/org-changes/requests/{request_id}",
+            get(changes::by_request),
+        )
         .route("/jobs", post(jobs::dispatch).get(jobs::list))
         .route("/jobs/{id}", get(jobs::get_one))
         .route("/jobs/{id}/results", post(jobs::submit_result))

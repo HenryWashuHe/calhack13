@@ -172,6 +172,35 @@ pub struct PlannerDecisionBody {
 
 /// Record a planning agent's decision in the event log. This changes no
 /// organizational state; it makes the agent's reasoning auditable.
+/// Sequence number of an existing terminal planner decision for `obs`.
+fn terminal_decision(
+    app: &AppState,
+    obs: &genesis_core::ids::ObservationId,
+) -> ApiResult<Option<u64>> {
+    let mut after = 0;
+    loop {
+        let batch = app.store.events_after(after, 1000)?;
+        let Some(last) = batch.last() else {
+            return Ok(None);
+        };
+        after = last.seq;
+        for e in &batch {
+            if let genesis_core::events::EventKind::PlannerDecision {
+                observation_id,
+                verdict,
+                ..
+            } = &e.kind
+            {
+                if observation_id == obs
+                    && *verdict != genesis_core::events::PlannerVerdict::Rejected
+                {
+                    return Ok(Some(e.seq));
+                }
+            }
+        }
+    }
+}
+
 pub async fn planner_decision(
     State(app): State<AppState>,
     p: Principal,
@@ -183,6 +212,17 @@ pub async fn planner_decision(
         crate::error::ApiError::not_found(format!("observation {}", b.observation_id))
     })?;
     let meta = EventMeta::mission(obs.mission_id.clone()).caused_by(b.observation_id.to_string());
+    // A terminal decision is recorded at most once per observation, so a
+    // planner retrying after a lost response does not duplicate it.
+    let _guard = app.kernel.lock().await;
+    if b.verdict != genesis_core::events::PlannerVerdict::Rejected {
+        if let Some(seq) = terminal_decision(&app, &b.observation_id)? {
+            return Ok((
+                StatusCode::OK,
+                Json(json!({ "seq": seq, "duplicate": true })),
+            ));
+        }
+    }
     let events = app.store.append_events(
         vec![genesis_core::events::EventKind::PlannerDecision {
             planner: b.planner,
