@@ -13,19 +13,28 @@ code GENESIS should create.
 ## What it produces
 
 ```sh
-node scripts/venue-portal/generate.mjs --preset baseline --seed demo \
+node scripts/venue-portal/generate.mjs --preset baseline --seed demo --namespace org-a \
   --base-url https://<your-tunnel>.trycloudflare.com --out data/portal
 ```
 
+One `--out` holds any number of namespaces, all served together:
+
 | Output | Served? | Use |
 | --- | --- | --- |
-| `data/portal/public/venues/*.html`, `index.html` | yes | what the Actor and the judge read |
+| `data/portal/public/<ns>/venues/*.html`, `<ns>/index.html`, `index.html` | yes | what the Actor and the judge read |
 | `data/portal/trusted/<suite_id>.json` | **never** | pass to `genesis org --oracle-suite` |
-| `data/portal/trusted/manifest.json` | **never** | spec, seed and digests for the record |
-| `data/portal/mission-fragment.json` | no (public-safe) | `allowed_source_urls`, `examples` (HTML only) and a suggested `invocation_input` for a scenario spec |
+| `data/portal/trusted/<ns>.manifest.json` | **never** | spec, seed and digests for the record |
+| `data/portal/fragments/<ns>.json` | no (public-safe) | `allowed_source_urls`, `examples` (HTML only) and a suggested `invocation_input` |
 
-Page bytes never contain their own URL, so regenerating with a new
-`--base-url` changes the suite's URLs but not any `sha256`.
+Page URLs are `<base>/<ns>/venues/<slug>.html`; the namespace defaults to the
+suite ID. Page bytes never contain their own URL, so a new `--base-url` changes
+URLs in the suite but not any `sha256`.
+
+**An existing namespace is never overwritten** (the generator and the lab
+refuse). Organizations bind the exact page bytes and the full suite digest of a
+run; acquisition and invocation recovery reject a missing or changed suite. A
+new variant therefore gets a new namespace and suite ID, and earlier suite files
+stay on disk. `--replace` exists only for a fresh organization database.
 
 ## Presets
 
@@ -48,30 +57,49 @@ and one missing-price page; the generator refuses specs that don't meet that.
 ## Serve it publicly (no account)
 
 ```sh
-node scripts/venue-portal/serve.mjs --out data/portal           # portal :7200, lab :7201
-cloudflared tunnel --url http://127.0.0.1:7200                   # prints https://<random>.trycloudflare.com
-node scripts/venue-portal/generate.mjs --preset baseline --seed demo \
-  --base-url https://<random>.trycloudflare.com --out data/portal   # re-point the suite
+cloudflared tunnel --url http://127.0.0.1:7200      # 1. prints https://<random>.trycloudflare.com
+B=https://<random>.trycloudflare.com
+node scripts/venue-portal/generate.mjs --preset baseline --seed demo --namespace org-a \
+  --base-url $B --out data/portal                   # 2. pages + suite for that URL
+node scripts/venue-portal/serve.mjs --out data/portal --base-url $B   # 3. portal :7200, lab :7201
 ```
 
-Quick tunnels need no Cloudflare login. The URL changes every time the tunnel
+Get the tunnel URL before generating: suites embed it. Quick tunnels need no
+Cloudflare login. The URL changes every time the tunnel
 restarts, and quick tunnels are for testing, with no uptime guarantee. Any
 static host works the same way: upload `public/` only.
 
 Point the tunnel at **7200 only**. The lab on 7201 binds `127.0.0.1` and lets
-whoever is at the demo machine pick a preset, seed, base URL or custom JSON spec
-and regenerate in place. It never reads or serves `trusted/`.
+whoever is at the demo machine pick a preset, seed, base URL, namespace or
+custom JSON spec. Each variant goes to a new namespace; the lab refuses to
+overwrite one. Neither server reads `trusted/`.
 
 ## Wire it into a live scenario
 
-1. Generate A's variant and B's variant with different seeds, suite IDs and
-   (for B) its own `--attendees`, both with the tunnel's base URL.
-2. Start A with `--oracle-suite data/portal-a/trusted/<a>.json`, B with
-   `--oracle-suite data/portal-b/trusted/<b>.json`.
-3. Copy `allowed_source_urls`, `examples` and `invocation_input` from each
-   `mission-fragment.json` into the scenario spec, and set `suite_a_id`/`suite_b_id`.
-4. Organization servers load suites at startup: after regenerating in the lab,
-   restart them with the new suite path.
+```sh
+B=https://<random>.trycloudflare.com
+node scripts/venue-portal/generate.mjs --preset baseline --seed a1 --namespace org-a \
+  --suite-id portal-a-v1 --base-url $B --out data/portal
+node scripts/venue-portal/generate.mjs --preset baseline --seed b1 --namespace org-b \
+  --suite-id portal-b-v1 --attendees 150 --base-url $B --out data/portal
+node scripts/venue-portal/combine-fragments.mjs \
+  --a data/portal/fragments/org-a.json --b data/portal/fragments/org-b.json > data/portal/mission-fragment.json
+```
+
+1. Both namespaces are served at once by one `serve.mjs` and one tunnel, at
+   distinct URLs with their own bytes.
+2. Start A with `--oracle-suite data/portal/trusted/portal-a-v1.json`, B with
+   `--oracle-suite data/portal/trusted/portal-b-v1.json`.
+3. The scenario spec has one allowlist, one examples list and one invocation
+   input. `combine-fragments.mjs` gives `allowed_source_urls` = A ∪ B,
+   A's `examples` (generation input) and B's `invocation_input` (B's suite
+   contains exactly that input), plus `suite_a_id`/`suite_b_id`. It refuses
+   fragments that share URLs.
+4. For a second disruption during a demo, generate it into a **new** namespace
+   (for example `--preset capacity-cut --namespace org-a-cut`) and start a new
+   organization run with that suite, keeping the earlier suites loaded for
+   organizations whose history references them. Do not replace a namespace an
+   existing run used.
 
 Keep `examples` and suite cases apart for a held-out check: give the generator
 one seed's pages as examples and evaluate on another seed's pages with the same
@@ -85,8 +113,10 @@ node --test scripts/venue-portal/portal.test.mjs
 ```
 
 The tests cover determinism, exact digests, base-URL independence, preset
-coverage, spec validation, the public/trusted split, and path traversal against
-the server. An independent reference extractor reads only the rendered HTML and
+coverage, spec and calendar-date validation (leap-year controls), the
+public/trusted split, path traversal, A and B served simultaneously by one
+server with their own bytes, fragment combination, and the no-overwrite rule
+for the generator and the lab. An independent reference extractor reads only the rendered HTML and
 must agree with the oracle for 15 variants, so a rendering bug fails a test
 instead of producing a wrong oracle. Each preset's suite goes through the real
 `genesis-verify`: a correct candidate (reordered, UTC times) is accepted, and a

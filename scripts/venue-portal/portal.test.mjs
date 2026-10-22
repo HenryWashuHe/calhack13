@@ -9,7 +9,9 @@ import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { build, jsonSha256, presetSpec, sha256 } from "./lib.mjs";
 import { writeVariant } from "./generate.mjs";
-import { publicHandler } from "./serve.mjs";
+import { labHandler, publicHandler } from "./serve.mjs";
+import { combine } from "./combine-fragments.mjs";
+import { isCalendarDate } from "./lib.mjs";
 import { referenceExtract } from "./reference-extract.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -39,7 +41,7 @@ test("digests cover exact page bytes and do not depend on the public base URL", 
     assert.equal(page.sha256, sha256(Buffer.from(page.html, "utf8")));
     assert.equal(page.sha256, b.pages[i].sha256, "re-pointing the base URL must not change snapshots");
     assert.equal(a.suite.cases[i].source.sha256, page.sha256);
-    assert.equal(b.suite.cases[i].source.url, `http://127.0.0.1:7200/venues/${page.slug}.html`);
+    assert.equal(b.suite.cases[i].source.url, `http://127.0.0.1:7200/${a.suite.suite_id}/venues/${page.slug}.html`);
   }
 });
 
@@ -96,14 +98,14 @@ test("written output keeps truth out of public/", () => {
   const out = mkdtempSync(join(tmpdir(), "portal-"));
   const r = writeVariant({ spec: presetSpec("layout-drift", "w"), baseUrl: BASE, out });
   const files = walk(join(out, "public"));
-  assert.equal(files.length, r.pages.length + 1);
+  assert.equal(files.length, r.pages.length + 2, "pages + namespace index + root index");
   for (const f of files) {
     const text = readFileSync(f, "utf8");
-    for (const leak of ["minor_units", "snapshot_sha256", "\"expected\"", r.suite.suite_id]) {
+    for (const leak of ["minor_units", "snapshot_sha256", "\"expected\"", "\"venues\":"]) {
       assert.ok(!text.includes(leak), `${f} leaks ${leak}`);
     }
   }
-  const fragment = readFileSync(join(out, "mission-fragment.json"), "utf8");
+  const fragment = readFileSync(r.fragmentPath, "utf8");
   assert.deepEqual(JSON.parse(fragment).invocation_input, r.suite.cases[0].input);
   assert.ok(!fragment.includes("minor_units") && !fragment.includes("\"expected\""));
   assert.ok(existsSync(r.suitePath));
@@ -185,4 +187,92 @@ test("generated suites are accepted and enforced by genesis-verify", { skip: !ex
     drifted[0].source = { ...drifted[0].source, sha256: sha256(Buffer.from("edited page")) };
     assert.equal(run("drifted", drifted).status, 1, `${p}: changed snapshot accepted`);
   }
+});
+
+// ---- PR #35 review regressions ----
+
+test("A and B are served at the same time at distinct URLs with their own bytes", async () => {
+  const out = mkdtempSync(join(tmpdir(), "portal-ab-"));
+  const a = writeVariant({ spec: presetSpec("baseline", "org-a"), baseUrl: "http://placeholder", out, namespace: "org-a" });
+  const bSpec = presetSpec("baseline", "org-b");
+  bSpec.attendees = 150;
+  const b = writeVariant({ spec: bSpec, baseUrl: "http://placeholder", out, namespace: "org-b" });
+  const server = createServer(publicHandler(join(out, "public")));
+  await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  try {
+    for (const org of [a, b]) {
+      for (const [i, p] of org.pages.entries()) {
+        const res = await fetch(`${base}/${p.path}`);
+        assert.equal(res.status, 200, p.path);
+        const html = Buffer.from(await res.arrayBuffer()).toString("utf8");
+        const c = org.suite.cases[i];
+        assert.equal(sha256(Buffer.from(html, "utf8")), c.source.sha256, `${p.path} served the other org's bytes`);
+        assert.deepEqual(referenceExtract(html, c.source.url, c.source.sha256), c.expected, p.path);
+      }
+    }
+    const aUrls = new Set(a.suite.cases.map((c) => c.source.url));
+    assert.ok(b.suite.cases.every((c) => !aUrls.has(c.source.url)));
+  } finally {
+    server.close();
+  }
+  const merged = combine(JSON.parse(readFileSync(a.fragmentPath, "utf8")), JSON.parse(readFileSync(b.fragmentPath, "utf8")));
+  assert.deepEqual(merged.allowed_source_urls, [...a.fragment.allowed_source_urls, ...b.fragment.allowed_source_urls]);
+  assert.deepEqual(merged.examples, a.fragment.examples);
+  assert.deepEqual(merged.invocation_input, b.fragment.invocation_input);
+  assert.equal(merged.invocation_input.attendees, 150);
+  assert.ok(b.suite.cases.some((c) => JSON.stringify(c.input) === JSON.stringify(merged.invocation_input)), "B's suite holds B's invocation input");
+  assert.throws(() => combine(a.fragment, a.fragment), /share page URLs/);
+});
+
+test("an existing namespace is never overwritten without replace", () => {
+  const out = mkdtempSync(join(tmpdir(), "portal-ns-"));
+  const first = writeVariant({ spec: presetSpec("baseline", "n"), baseUrl: BASE, out, namespace: "run-1" });
+  const before = readFileSync(join(out, "public", first.pages[0].path));
+  assert.throws(() => writeVariant({ spec: presetSpec("capacity-cut", "n"), baseUrl: BASE, out, namespace: "run-1" }), /already exists/);
+  assert.deepEqual(readFileSync(join(out, "public", first.pages[0].path)), before, "bound page bytes unchanged");
+  writeVariant({ spec: presetSpec("capacity-cut", "n"), baseUrl: BASE, out, namespace: "run-2" });
+  assert.deepEqual(readFileSync(join(out, "public", first.pages[0].path)), before);
+  assert.ok(existsSync(first.suitePath), "earlier suite file is kept");
+  const replaced = writeVariant({ spec: presetSpec("capacity-cut", "n"), baseUrl: BASE, out, namespace: "run-1", replace: true });
+  assert.equal(replaced.namespace, "run-1");
+  assert.throws(() => build(presetSpec("baseline", "n"), BASE, "../x"), /namespace/);
+});
+
+test("the lab writes each variant to a new namespace", async () => {
+  const out = mkdtempSync(join(tmpdir(), "portal-lab-"));
+  const lab = createServer(labHandler({ out, baseUrl: BASE }));
+  await new Promise((ok) => lab.listen(0, "127.0.0.1", ok));
+  const url = `http://127.0.0.1:${lab.address().port}`;
+  const post = (form) => fetch(`${url}/generate`, { method: "POST", body: new URLSearchParams(form), redirect: "manual" });
+  try {
+    assert.equal((await post({ preset: "baseline", seed: "s" })).status, 303);
+    const page = join(out, "public", "portal-baseline-s-v1", "venues", "campus-rooms.html");
+    const before = readFileSync(page);
+    assert.equal((await post({ preset: "capacity-cut", seed: "s" })).status, 303);
+    assert.deepEqual(readFileSync(page), before, "baseline pages unchanged after a capacity cut");
+    assert.ok(existsSync(join(out, "public", "portal-capacity-cut-s-v1", "venues", "campus-rooms.html")));
+    assert.equal((await post({ preset: "baseline", seed: "s" })).status, 400, "repeat refuses to overwrite");
+  } finally {
+    lab.close();
+  }
+});
+
+test("impossible calendar dates are refused; leap days are not", () => {
+  for (const bad of ["2026-02-31", "2026-02-29", "2026-13-01", "2026-00-10", "2026-04-31"]) {
+    assert.ok(!isCalendarDate(bad), bad);
+    const spec = presetSpec("baseline", "cal");
+    spec.date = bad;
+    assert.throws(() => build(spec, BASE), /calendar date/, bad);
+    const pageSpec = presetSpec("baseline", "cal");
+    pageSpec.pages[1].date = bad;
+    assert.throws(() => build(pageSpec, BASE), /pages\[1\]\.date/, bad);
+  }
+  for (const good of ["2028-02-29", "2000-02-29", "2026-12-31"]) {
+    assert.ok(isCalendarDate(good), good);
+    const spec = presetSpec("baseline", "cal");
+    spec.date = good;
+    assert.ok(build(spec, BASE).suite.cases[0].input.requested_window.start.startsWith(good));
+  }
+  assert.ok(!isCalendarDate("1900-02-29"));
 });
