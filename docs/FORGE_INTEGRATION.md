@@ -19,11 +19,12 @@ tested workspace merge and exact interface changes needed on `feat/kernel-ui`.
 | `genesis-forge` CLI | Persist local private checkpoints before effects; provide prepare, step, status and export commands |
 | Organization kernel | Durable database/outbox, leases, budgets, authenticated requests, role creation/activation, publication, adoption and invocation grants |
 
-Candidate source is supplied by an upstream author or generator. This component
-does not yet call an LLM to synthesize that source. The repository's baseline
-parser is hand-authored and labeled as such. Source creation and cloud build
-APIs are implemented and tested with simulated HTTP responses; live cloud gates
-remain pending.
+Candidate source can be supplied by an upstream author or generated through the
+new [capability synthesis path](CAPABILITY_SYNTHESIS.md). Its bounded public request,
+durable model call and `prepare-generated` handoff preserve exact source and model
+provenance without exposing the independent oracle. The older baseline demo
+remains hand-authored and labeled as such. Model generation and cloud build
+adapters are tested against simulated HTTP responses; live account gates remain pending.
 
 ## Run locally
 

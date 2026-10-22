@@ -25,14 +25,16 @@ State lives in `data/dev/*.db` (git-ignored). Delete that folder for a clean run
 
 | Integration | Guide | Status |
 | --- | --- | --- |
-| Elastic: evidence projection/search, capability search, Agent Builder specialists and jobs | [ELASTIC.md](ELASTIC.md), keys: [ELASTIC_SETUP.md](ELASTIC_SETUP.md) | Fake-tested; run `genesis-elastic-smoke` against a real project |
-| Mission planner (any LLM, or an Elastic Agent Builder agent) | [PLANNER.md](PLANNER.md) | Replay-tested; model not chosen |
-| CREAO asynchronous roles and jobs | [CREAO_RUNTIME.md](CREAO_RUNTIME.md), [ASYNC_PROVISIONING.md](ASYNC_PROVISIONING.md) | Kernel hook fake-tested; server registration and readiness verifier pending |
-| Apify capability execution and acceptance | [CAPABILITY_EXECUTION.md](CAPABILITY_EXECUTION.md) | Loopback-fixture tested |
+| Elastic: evidence projection/search, capability search, Agent Builder specialists and jobs | [ELASTIC.md](ELASTIC.md), keys: [ELASTIC_SETUP.md](ELASTIC_SETUP.md) | Fake-tested (#11); run `genesis-elastic-smoke` against a real project |
+| Mission planner (any LLM, or an Elastic Agent Builder agent) | [PLANNER.md](PLANNER.md) | Replay- and fake-tested (#12, #22); model not chosen |
+| CREAO asynchronous roles and jobs | [CREAO_RUNTIME.md](CREAO_RUNTIME.md), [ASYNC_PROVISIONING.md](ASYNC_PROVISIONING.md), [GATEWAY_READINESS.md](GATEWAY_READINESS.md) | Kernel hook and env registration (#20), gateway readiness kernel side (#26), operator attach (#27): scripted-provider tests. CREAO readiness probe: Codex draft #29. No live run |
+| Apify capability acquisition, execution, acceptance and adoption | [CAPABILITY_EXECUTION.md](CAPABILITY_EXECUTION.md) | Merged; loopback-fixture tested |
 | Fetch recruitment | [FETCH_RUNTIME.md](FETCH_RUNTIME.md) | Local multi-process proof |
+| Console: capability evidence, Attention panel, failure drills | [FAILURE_DRILLS.md](FAILURE_DRILLS.md) | #21, #28; dev stack |
 
 None of these have been run against live sponsor accounts yet. `genesis dev`
-uses labeled development stubs for every provider.
+uses labeled development stubs for every provider. Open Claude PRs and their
+review status: [CLAUDE_STATUS.md](CLAUDE_STATUS.md).
 
 **Dev stubs are not integrations.** With stubs on, any role whose provider has no adapter gets a binding with `provider: "dev_stub"` and an ID like `devstub-elastic-…`. The console labels these `DEV STUB · for elastic`, and the `role_provisioned` event carries `dev_stub: true`. Run an organization without `--dev-stub` and unconfigured providers fail provisioning instead.
 

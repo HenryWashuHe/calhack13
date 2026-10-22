@@ -1,12 +1,18 @@
 use anyhow::Context;
-use clap::{Parser, Subcommand};
+use clap::{Args, Parser, Subcommand};
 use genesis_apify::{ApifyClient, RunLimits};
 use genesis_core::ids::OrgId;
 use genesis_core::model::Constitution;
 use genesis_providers::{ApifyCapabilityExecutor, DevStub, ProviderSet};
 use genesis_server::auth::Tokens;
+use genesis_server::capability_acquisition_store::AcquisitionPolicy;
+use genesis_server::capability_scenario::{
+    ScenarioDriver, ScenarioEndpoint, ScenarioLimits, ScenarioSpec,
+};
 use genesis_server::registry::RegistryState;
-use genesis_server::{build_org, parse_publishers, spawn_org, spawn_registry, OrgConfig};
+use genesis_server::{
+    build_org, parse_publishers, spawn_org, spawn_registry, AcquisitionConfig, OrgConfig,
+};
 use serde::de::DeserializeOwned;
 use std::fs::File;
 use std::io::Read;
@@ -24,37 +30,17 @@ struct Cli {
 #[derive(Subcommand)]
 enum Command {
     /// Serve one organization instance. Set APIFY_TOKEN to enable real Apify execution.
-    Org {
-        #[arg(long, env = "GENESIS_ORG_ID")]
-        org_id: String,
-        #[arg(long, env = "GENESIS_ORG_NAME")]
-        name: String,
-        #[arg(long, env = "GENESIS_DB", default_value = "data/org.db")]
-        db: PathBuf,
-        #[arg(long, env = "GENESIS_BIND", default_value = "127.0.0.1:7101")]
-        bind: String,
-        /// JSON file with the organization constitution. Defaults to the demo constitution.
-        #[arg(long, env = "GENESIS_CONSTITUTION")]
-        constitution: Option<PathBuf>,
-        /// Trusted local oracle suite JSON. Repeat for multiple suites; never fetched over HTTP.
+    Org(Box<OrgArgs>),
+    /// Demonstrate acquisition and independent inheritance across two fresh organizations.
+    /// Operator credentials are read only from GENESIS_ORG_A_OPERATOR_TOKEN and
+    /// GENESIS_ORG_B_OPERATOR_TOKEN; provider credentials remain on each server.
+    Scenario {
         #[arg(long, value_name = "PATH")]
-        oracle_suite: Vec<PathBuf>,
-        /// Trusted local forge checkpoint JSON. Repeat for multiple verified capabilities.
-        #[arg(long, value_name = "PATH")]
-        forge_checkpoint: Vec<PathBuf>,
-        #[arg(long, env = "GENESIS_REGISTRY_URL")]
-        registry_url: Option<String>,
-        #[arg(long, env = "GENESIS_REGISTRY_TOKEN")]
-        registry_token: Option<String>,
-        #[arg(long, env = "GENESIS_OPERATOR_TOKEN")]
-        operator_token: Option<String>,
-        #[arg(long, env = "GENESIS_AGENT_TOKEN")]
-        agent_token: Option<String>,
-        #[arg(long, env = "GENESIS_ADAPTER_TOKEN")]
-        adapter_token: Option<String>,
-        /// Use the labeled development stub for providers without an adapter.
-        #[arg(long, env = "GENESIS_DEV_STUB", default_value_t = false)]
-        dev_stub: bool,
+        spec: PathBuf,
+        #[arg(long, value_name = "URL")]
+        org_a: String,
+        #[arg(long, value_name = "URL")]
+        org_b: String,
     },
     /// Serve the shared capability registry.
     Registry {
@@ -84,6 +70,48 @@ enum Command {
         #[arg(long, default_value = "schemas")]
         out: PathBuf,
     },
+}
+
+#[derive(Args)]
+struct OrgArgs {
+    #[arg(long, env = "GENESIS_ORG_ID")]
+    org_id: String,
+    #[arg(long, env = "GENESIS_ORG_NAME")]
+    name: String,
+    #[arg(long, env = "GENESIS_DB", default_value = "data/org.db")]
+    db: PathBuf,
+    #[arg(long, env = "GENESIS_BIND", default_value = "127.0.0.1:7101")]
+    bind: String,
+    /// JSON file with the organization constitution. Defaults to the demo constitution.
+    #[arg(long, env = "GENESIS_CONSTITUTION")]
+    constitution: Option<PathBuf>,
+    /// Trusted local oracle suite JSON. Repeat for multiple suites; never fetched over HTTP.
+    #[arg(long, value_name = "PATH")]
+    oracle_suite: Vec<PathBuf>,
+    /// Trusted local forge checkpoint JSON. Repeat for multiple verified capabilities.
+    #[arg(long, value_name = "PATH")]
+    forge_checkpoint: Vec<PathBuf>,
+    /// Trusted JSON model/count-quota policy enabling capability acquisition.
+    /// Provider keys come only from ANTHROPIC_API_KEY and APIFY_TOKEN.
+    #[arg(long, value_name = "PATH")]
+    acquisition_policy: Option<PathBuf>,
+    /// Automatically advance existing and new explicitly approved acquisition intents.
+    /// This does not create acquisition intents from requirements.
+    #[arg(long, requires = "acquisition_policy")]
+    auto_acquire: bool,
+    #[arg(long, env = "GENESIS_REGISTRY_URL")]
+    registry_url: Option<String>,
+    #[arg(long, env = "GENESIS_REGISTRY_TOKEN")]
+    registry_token: Option<String>,
+    #[arg(long, env = "GENESIS_OPERATOR_TOKEN")]
+    operator_token: Option<String>,
+    #[arg(long, env = "GENESIS_AGENT_TOKEN")]
+    agent_token: Option<String>,
+    #[arg(long, env = "GENESIS_ADAPTER_TOKEN")]
+    adapter_token: Option<String>,
+    /// Use the labeled development stub for providers without an adapter.
+    #[arg(long, env = "GENESIS_DEV_STUB", default_value_t = false)]
+    dev_stub: bool,
 }
 
 fn init_tracing() {
@@ -143,12 +171,16 @@ fn load_trusted_json<T: DeserializeOwned>(path: &Path) -> anyhow::Result<T> {
 }
 
 fn apify_token_from_env() -> anyhow::Result<Option<String>> {
-    match std::env::var("APIFY_TOKEN") {
+    secret_from_env("APIFY_TOKEN")
+}
+
+fn secret_from_env(name: &str) -> anyhow::Result<Option<String>> {
+    match std::env::var(name) {
         Ok(token) => Ok(Some(token)),
         Err(std::env::VarError::NotPresent) => Ok(None),
         // VarError may retain the value; never include it in an error chain.
         Err(std::env::VarError::NotUnicode(_)) => {
-            anyhow::bail!("APIFY_TOKEN must be valid Unicode")
+            anyhow::bail!("{name} must be valid Unicode")
         }
     }
 }
@@ -176,21 +208,39 @@ fn org_providers(
 async fn main() -> anyhow::Result<()> {
     init_tracing();
     match Cli::parse().command {
-        Command::Org {
-            org_id,
-            name,
-            db,
-            bind,
-            constitution,
-            oracle_suite,
-            forge_checkpoint,
-            registry_url,
-            registry_token,
-            operator_token,
-            agent_token,
-            adapter_token,
-            dev_stub,
-        } => {
+        Command::Scenario { spec, org_a, org_b } => {
+            let spec: ScenarioSpec = load_trusted_json(&spec)?;
+            let token_a = secret_from_env("GENESIS_ORG_A_OPERATOR_TOKEN")?
+                .context("GENESIS_ORG_A_OPERATOR_TOKEN is required")?;
+            let token_b = secret_from_env("GENESIS_ORG_B_OPERATOR_TOKEN")?
+                .context("GENESIS_ORG_B_OPERATOR_TOKEN is required")?;
+            let driver = ScenarioDriver::new(
+                ScenarioEndpoint::new(&org_a, &token_a)?,
+                ScenarioEndpoint::new(&org_b, &token_b)?,
+                ScenarioLimits::default(),
+            )?;
+            let report = driver.run(&spec).await?;
+            println!("{}", serde_json::to_string_pretty(&report)?);
+            Ok(())
+        }
+        Command::Org(args) => {
+            let OrgArgs {
+                org_id,
+                name,
+                db,
+                bind,
+                constitution,
+                oracle_suite,
+                forge_checkpoint,
+                acquisition_policy,
+                auto_acquire,
+                registry_url,
+                registry_token,
+                operator_token,
+                agent_token,
+                adapter_token,
+                dev_stub,
+            } = *args;
             let constitution = match constitution {
                 Some(path) => load_trusted_json::<Constitution>(&path)?,
                 None => genesis_server::demo_constitution(),
@@ -203,6 +253,11 @@ async fn main() -> anyhow::Result<()> {
                 .iter()
                 .map(|path| load_trusted_json(path))
                 .collect::<anyhow::Result<Vec<_>>>()?;
+            let acquisition = acquisition_policy
+                .as_ref()
+                .map(|path| load_trusted_json::<AcquisitionPolicy>(path))
+                .transpose()?
+                .map(AcquisitionConfig::offline);
             let tokens = Tokens {
                 operator: token_or_dev(operator_token, &org_id, "operator", dev_stub)?,
                 agent: token_or_dev(agent_token, &org_id, "agent", dev_stub)?,
@@ -221,14 +276,28 @@ async fn main() -> anyhow::Result<()> {
                 provision_timeout: Duration::from_secs(120),
                 oracle_suites,
                 forge_checkpoints,
+                acquisition,
             };
             if dev_stub {
                 tracing::warn!(
                     "development stub enabled: provider bindings will be labeled devstub-*"
                 );
             }
+            let mut cfg = cfg;
             let token = apify_token_from_env()?;
             let providers = org_providers(dev_stub, cfg.stub_delay, token.as_deref())?;
+            if let Some(config) = &mut cfg.acquisition {
+                config.model = secret_from_env("ANTHROPIC_API_KEY")?
+                    .map(|key| genesis_forge::AnthropicGenerator::new(&key).map(Arc::new))
+                    .transpose()
+                    .context("configuring the acquisition model client")?;
+                config.apify = token
+                    .as_deref()
+                    .map(|key| ApifyClient::new(key, RunLimits::default()).map(Arc::new))
+                    .transpose()
+                    .context("configuring the acquisition Apify client")?;
+                config.automatic = auto_acquire;
+            }
             let app = build_org(&cfg, Some(providers))?;
             let listener = tokio::net::TcpListener::bind(&bind).await?;
             tracing::info!(org = %cfg.org_id, %bind, "organization listening");
@@ -317,6 +386,52 @@ mod cli_tests {
     use std::io::Write;
 
     #[test]
+    fn scenario_cli_requires_explicit_endpoints_and_keeps_credentials_out_of_arguments() {
+        let args = [
+            "genesis",
+            "scenario",
+            "--spec",
+            "scenario.json",
+            "--org-a",
+            "http://127.0.0.1:7101",
+            "--org-b",
+            "http://127.0.0.1:7102",
+        ];
+        assert!(matches!(Cli::try_parse_from(args).unwrap().command,
+            Command::Scenario { spec, org_a, org_b }
+                if spec == Path::new("scenario.json")
+                    && org_a == "http://127.0.0.1:7101"
+                    && org_b == "http://127.0.0.1:7102"));
+        assert!(Cli::try_parse_from(&args[..6]).is_err());
+        for forbidden in [
+            "--operator-token",
+            "--org-a-operator-token",
+            "--apify-token",
+            "--anthropic-api-key",
+        ] {
+            let mut with_secret = args.to_vec();
+            with_secret.extend([forbidden, "synthetic-cli-secret"]);
+            assert!(Cli::try_parse_from(with_secret).is_err());
+        }
+    }
+
+    #[test]
+    fn example_scenario_is_strict_and_requires_explicit_provider_access_configuration() {
+        let mut file = tempfile::NamedTempFile::new().unwrap();
+        file.write_all(include_bytes!("../examples/scenario/mission.json"))
+            .unwrap();
+        let spec: ScenarioSpec = load_trusted_json(file.path()).unwrap();
+        assert_ne!(spec.suite_a_id, spec.suite_b_id);
+        assert!(spec.allow_development_roles);
+        assert!(!spec.provider_access_acknowledged);
+        assert_eq!(spec.invocation_input["attendees"], 150);
+
+        let mut with_oracle = serde_json::to_value(spec).unwrap();
+        with_oracle["expected"] = serde_json::json!({"forbidden":"oracle"});
+        assert!(serde_json::from_value::<ScenarioSpec>(with_oracle).is_err());
+    }
+
+    #[test]
     fn trusted_input_flags_are_repeatable_and_org_only() {
         let cli = Cli::try_parse_from([
             "genesis",
@@ -335,14 +450,14 @@ mod cli_tests {
             "forge-b.json",
         ])
         .unwrap();
-        let Command::Org {
+        let Command::Org(args) = cli.command else {
+            panic!("expected org command")
+        };
+        let OrgArgs {
             oracle_suite,
             forge_checkpoint,
             ..
-        } = cli.command
-        else {
-            panic!("expected org command")
-        };
+        } = *args;
         assert_eq!(
             oracle_suite,
             vec![PathBuf::from("suite-a.json"), PathBuf::from("suite-b.json")]
@@ -429,5 +544,82 @@ mod cli_tests {
             .err()
             .expect("invalid token must fail");
         assert!(!format!("{error:#}").contains("private-cli-token"));
+    }
+
+    #[test]
+    fn acquisition_cli_accepts_only_a_policy_path_not_provider_credentials() {
+        let args = [
+            "genesis",
+            "org",
+            "--org-id",
+            "test-org",
+            "--name",
+            "Test",
+            "--acquisition-policy",
+            "policy.json",
+        ];
+        let cli = Cli::try_parse_from(args).unwrap();
+        assert!(matches!(cli.command, Command::Org(args)
+            if args.acquisition_policy.as_deref() == Some(Path::new("policy.json")) && !args.auto_acquire));
+        for automatic in [false, true] {
+            for forbidden in ["--anthropic-api-key", "--model-endpoint", "--apify-token"] {
+                let mut args = args.to_vec();
+                if automatic {
+                    args.push("--auto-acquire");
+                }
+                args.extend([forbidden, "synthetic-never-live"]);
+                assert!(Cli::try_parse_from(args).is_err());
+            }
+        }
+    }
+
+    #[test]
+    fn automatic_acquisition_is_explicit_and_requires_a_policy() {
+        let base = ["genesis", "org", "--org-id", "test-org", "--name", "Test"];
+        assert!(
+            matches!(Cli::try_parse_from(base).unwrap().command, Command::Org(args)
+            if !args.auto_acquire && args.acquisition_policy.is_none())
+        );
+        let mut missing_policy = base.to_vec();
+        missing_policy.push("--auto-acquire");
+        assert!(Cli::try_parse_from(missing_policy.clone()).is_err());
+        missing_policy.extend(["--acquisition-policy", "policy.json"]);
+        assert!(
+            matches!(Cli::try_parse_from(missing_policy).unwrap().command, Command::Org(args)
+            if args.auto_acquire && args.acquisition_policy.as_deref() == Some(Path::new("policy.json")))
+        );
+        assert!(Cli::try_parse_from(["genesis", "dev", "--auto-acquire"]).is_err());
+    }
+
+    #[test]
+    fn acquisition_config_debug_never_exposes_model_credentials() {
+        use genesis_forge::{AnthropicGenerator, ModelConfig};
+        use genesis_server::capability_acquisition_store::AcquisitionQuotas;
+        let config = AcquisitionConfig {
+            automatic: true,
+            policy: AcquisitionPolicy {
+                model: ModelConfig {
+                    model: "concrete-test-model".into(),
+                    max_tokens: 1024,
+                },
+                quotas: AcquisitionQuotas::default(),
+                max_duration_seconds: 3600,
+            },
+            model: Some(Arc::new(
+                AnthropicGenerator::new("synthetic-model-secret").unwrap(),
+            )),
+            apify: Some(Arc::new(
+                ApifyClient::new("synthetic-apify-secret", RunLimits::default()).unwrap(),
+            )),
+        };
+        let debug = format!("{config:?}");
+        assert!(debug.contains("automatic: true"));
+        assert!(debug.contains("model_configured: true"));
+        assert!(debug.contains("apify_configured: true"));
+        assert!(!debug.contains("synthetic-model-secret"));
+        assert!(!debug.contains("synthetic-apify-secret"));
+        let offline = AcquisitionConfig::offline(config.policy.clone());
+        assert!(!offline.automatic);
+        assert!(format!("{offline:?}").contains("automatic: false"));
     }
 }

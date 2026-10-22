@@ -1,0 +1,7 @@
+{
+  "operation_id": "venue-generated-001",
+  "capability_id": "venue-extraction",
+  "capability_version": "1",
+  "actor_name": "genesis-venue-generated-001",
+  "source_version": "0.1"
+}
