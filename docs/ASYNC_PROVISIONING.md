@@ -93,14 +93,32 @@ Tests: `crates/genesis-server/tests/specialist_jobs.rs`,
   `ReadinessProbe` that runs the created agent's gateway skill with the
   challenge (a readiness run purpose in the CREAO runtime), its registration
   with `GENESIS_PUBLIC_URL`, and a live skill install.
-- **Attaching a found native agent** to a `needs_reconciliation` operation.
-  Today an operator can only abandon it:
-  `POST /api/v1/org-changes/{id}/operations/{role_key}/abandon` with
-  `{"reason": "..."}` (operator token) marks the operation failed and ends the
-  change FAILED, keeping every provider ID; nothing is retried.
+- **Reconciling a lost creation is done.** For a `needs_reconciliation`
+  operation an operator (operator token) can either:
+  - **attach** the native agent found in the provider account:
+    `POST /api/v1/org-changes/{id}/operations/{role_key}/attach` with
+    `{"provider_agent_id": "...", "reason": "..."}`. The binding uses the
+    configuration digest of the role's original creation request, the
+    operation moves to `awaiting_readiness` with
+    `native_status: "operator_attached"` (no `role_provisioned` event: the
+    provider never reported this agent), and the role activates only after
+    the readiness verifier passes for that agent ID (for CREAO, a gateway
+    receipt naming it). No provider request is made and nothing is
+    re-created. Refused with `409 operation_not_reconcilable` unless the
+    outcome is unknown and no agent is bound yet, and with
+    `409 agent_already_bound` if the ID is bound to any role or to another
+    change. Readiness shows that the agent can run its gateway skill and reach
+    GENESIS; the kernel does not check that the agent's configuration matches
+    the role. That stays the operator's assertion, recorded with the reason.
+  - **abandon** it:
+    `POST /api/v1/org-changes/{id}/operations/{role_key}/abandon` with
+    `{"reason": "..."}` marks the operation failed and ends the change FAILED,
+    keeping every provider ID; nothing is retried.
 - A **domain verifier** that can move a `VERIFYING` job to `SUCCEEDED`, and
   draining/retirement handling of jobs still running when a role retires
   (today they are fenced on the next advance).
+
+Attach tests: `crates/genesis-server/tests/operation_attach.rs`.
 
 Tests: `crates/genesis-server/tests/specialist_readiness.rs` (scripted runtime
 and verifier: pending → created → ready, no verifier, ambiguous creation,

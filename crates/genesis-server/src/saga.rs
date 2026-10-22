@@ -365,6 +365,142 @@ pub async fn abandon_operation(
     )
 }
 
+/// `ProviderOperation::native_status` of an operation whose agent ID an
+/// operator attached (not reported by the provider).
+pub const OPERATOR_ATTACHED: &str = "operator_attached";
+
+/// Operator: attach a native agent found during reconciliation to a role
+/// operation whose creation outcome is unknown (`needs_reconciliation`).
+///
+/// The binding uses the configuration digest of the role's original creation
+/// request, and the operation moves to `awaiting_readiness` with
+/// `native_status = "operator_attached"`. The attached ID is an operator
+/// assertion: the role still activates only after the provider's readiness
+/// verifier passes for it (for CREAO, a gateway receipt naming that agent ID,
+/// which shows the agent can run its gateway skill). The kernel does not check
+/// that the agent's configuration matches the role. An ID already bound to any
+/// role, to another change, or to a sibling role in this change is refused. No provider request is made here
+/// and the runtime's own record is left untouched.
+pub async fn attach_operation(
+    app: &AppState,
+    change_id: &ChangeId,
+    role_key: &str,
+    provider_agent_id: &str,
+    reason: &str,
+) -> ApiResult<OrgChangeRecord> {
+    use genesis_core::change::ProviderOperationState as S;
+    let agent_ok = !provider_agent_id.is_empty()
+        && provider_agent_id.len() <= 128
+        && provider_agent_id
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'-' | b'_' | b'.' | b':'));
+    if !agent_ok {
+        return Err(ApiError::bad_request(
+            "provider_agent_id must be 1-128 characters of letters, digits, '-', '_', '.' or ':'",
+        ));
+    }
+    let _drive = app.saga_gates.acquire(change_id).await?;
+    let mut record = app.store.get_change(change_id)?;
+    if record.status != ChangeStatus::Provisioning {
+        return Err(ApiError::new(
+            StatusCode::CONFLICT,
+            "not_provisioning",
+            format!("change is {:?}, not PROVISIONING", record.status),
+        ));
+    }
+    let reason: String = reason
+        .chars()
+        .filter(|c| !c.is_control())
+        .take(200)
+        .collect();
+    let Some(role) = engine::roles_to_provision(&record.proposal, &record.allocation)
+        .into_iter()
+        .find(|r| r.key == role_key)
+    else {
+        return Err(ApiError::not_found(format!(
+            "role `{role_key}` in this change"
+        )));
+    };
+    let Some(op) = record.operations.get(role_key) else {
+        return Err(ApiError::not_found(format!(
+            "operation for role `{role_key}`"
+        )));
+    };
+    if op.state != S::NeedsReconciliation || record.provisioned.contains_key(role_key) {
+        return Err(ApiError::new(
+            StatusCode::CONFLICT,
+            "operation_not_reconcilable",
+            "only an operation whose creation outcome is unknown can be attached",
+        ));
+    }
+    // One provider agent serves at most one role binding. Checked and saved
+    // under the kernel lock (after this change's gate, as `run` does).
+    let _kernel = app.kernel.lock().await;
+    let state = app.current_state()?;
+    let bound_role = state.roles.values().find(|r| {
+        r.binding
+            .as_ref()
+            .is_some_and(|b| b.provider_agent_id == provider_agent_id)
+    });
+    let bound_change = app.store.list_changes()?.into_iter().find(|c| {
+        c.change_id != record.change_id
+            && c.provisioned
+                .values()
+                .any(|b| b.provider_agent_id == provider_agent_id)
+    });
+    // Sibling roles of this change are not in OrgState until commit, so their
+    // bindings must be checked on the record itself. The change gate held
+    // above keeps `record` current for this check.
+    let bound_sibling = record
+        .provisioned
+        .values()
+        .any(|b| b.provider_agent_id == provider_agent_id);
+    if bound_role.is_some() || bound_change.is_some() || bound_sibling {
+        return Err(ApiError::new(
+            StatusCode::CONFLICT,
+            "agent_already_bound",
+            "this provider agent is already bound to a role, another change or a sibling role in this change",
+        ));
+    }
+    let binding = genesis_core::model::AgentBinding {
+        provider: role.provider,
+        provider_agent_id: provider_agent_id.to_owned(),
+        config_digest: ProvisionRequest {
+            org_id: app.org_id.clone(),
+            change_id: record.change_id.clone(),
+            role: role.clone(),
+        }
+        .config_digest(),
+        conversation_ref: None,
+    };
+    record.provisioned.insert(role_key.to_owned(), binding);
+    let op = record
+        .operations
+        .get_mut(role_key)
+        .expect("operation checked above");
+    op.state = S::AwaitingReadiness;
+    // Persistent marker: the provider never reported this agent.
+    op.native_status = Some(OPERATOR_ATTACHED.into());
+    op.attention = Some(format!(
+        "agent {provider_agent_id} attached by operator ({reason}); readiness must still be proven"
+    ));
+    op.updated_at = Utc::now();
+    // No `role_provisioned` event: the provider did not report this agent.
+    let events = vec![EventKind::ProvisioningProgress {
+        change_id: record.change_id.clone(),
+        role_key: role_key.to_owned(),
+        provider: op.provider,
+        operation_id: op.operation_id.clone(),
+        state: op.state,
+        run_id: op.run_id.clone(),
+        attention: op.attention.clone(),
+    }];
+    record.updated_at = Utc::now();
+    save(app, &record, events)?;
+    tracing::info!(change = %record.change_id, role = role_key, "operator attached a reconciled agent");
+    Ok(record)
+}
+
 /// End provisioning as FAILED. Any provider binding already created stays on
 /// the record and in the failure event for reconciliation and cleanup.
 fn fail(
