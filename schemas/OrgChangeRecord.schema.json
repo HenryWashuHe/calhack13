@@ -380,6 +380,52 @@
               }
             }
           }
+        },
+        {
+          "description": "The organization needs an executable capability it does not have. Commits a capability gap bound to the requirement, role and responsibility. How it is acquired and verified is operator policy.",
+          "type": "object",
+          "required": [
+            "capability_id",
+            "key",
+            "observed_sources",
+            "op",
+            "purpose",
+            "requirement_id",
+            "responsibility",
+            "role"
+          ],
+          "properties": {
+            "op": {
+              "type": "string",
+              "enum": [
+                "RequestCapability"
+              ]
+            },
+            "key": {
+              "type": "string"
+            },
+            "requirement_id": {
+              "type": "string"
+            },
+            "role": {
+              "$ref": "#/definitions/RoleRef"
+            },
+            "responsibility": {
+              "$ref": "#/definitions/ResponsibilityRef"
+            },
+            "capability_id": {
+              "type": "string"
+            },
+            "purpose": {
+              "type": "string"
+            },
+            "observed_sources": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
         }
       ]
     },
@@ -735,6 +781,13 @@
           "additionalProperties": {
             "type": "string"
           }
+        },
+        "gaps": {
+          "default": {},
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
         }
       }
     },
@@ -910,7 +963,8 @@
         "new_role_without_responsibility",
         "not_provisioned",
         "invalid_transition",
-        "invalid_input"
+        "invalid_input",
+        "capability_gap_limit_exceeded"
       ]
     }
   }

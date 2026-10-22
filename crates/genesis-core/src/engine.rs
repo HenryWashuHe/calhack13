@@ -48,7 +48,14 @@ pub enum ValidationCode {
     NotProvisioned,
     InvalidTransition,
     InvalidInput,
+    CapabilityGapLimitExceeded,
 }
+
+/// Live (non-terminal) capability gaps an organization may hold at once.
+/// Each can become an acquisition; the agent must not be able to flood it.
+pub const MAX_LIVE_CAPABILITY_GAPS: usize = 16;
+/// Live capability gaps one requirement may hold at once.
+pub const MAX_LIVE_GAPS_PER_REQUIREMENT: usize = 3;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, thiserror::Error)]
 #[error("{code:?}{}: {message}", op_index.map(|i| format!(" (operation {i})")).unwrap_or_default())]
@@ -257,6 +264,7 @@ impl<'a> Sim<'a> {
                     target: ResponsibilityTarget::FromRequirement { key, .. },
                     ..
                 } => Some(("responsibility", key.clone())),
+                OrgOp::RequestCapability { key, .. } => Some(("gap", key.clone())),
                 _ => None,
             };
             if let Some(k) = key {
@@ -439,6 +447,24 @@ impl<'a> Sim<'a> {
                 self.reporting_edge(i, role, reports_to.as_ref())
             }
             OrgOp::RetireRole { role_id, handoffs } => self.retire(i, role_id, handoffs),
+            OrgOp::RequestCapability {
+                key,
+                requirement_id,
+                role,
+                responsibility,
+                capability_id,
+                purpose,
+                observed_sources,
+            } => self.request_capability(
+                i,
+                key,
+                requirement_id,
+                role,
+                responsibility,
+                capability_id,
+                purpose,
+                observed_sources,
+            ),
         }
     }
 
@@ -919,6 +945,221 @@ impl<'a> Sim<'a> {
                 });
             }
         }
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn request_capability(
+        &mut self,
+        i: usize,
+        key: &str,
+        requirement_id: &RequirementId,
+        role: &RoleRef,
+        responsibility: &ResponsibilityRef,
+        capability_id: &CapabilityId,
+        purpose: &str,
+        observed_sources: &[String],
+    ) {
+        let Some(gap_id) = self.alloc.gaps.get(key).cloned() else {
+            self.err(
+                ValidationCode::UnknownKey,
+                Some(i),
+                format!("no allocated id for capability gap key `{key}`"),
+            );
+            return;
+        };
+        let Some(role_id) = self.working_role(i, role) else {
+            return;
+        };
+        let Some(responsibility_id) = self.responsibility(i, responsibility) else {
+            return;
+        };
+        let Some(requirement) = self.st.requirements.get(requirement_id).cloned() else {
+            self.err(
+                ValidationCode::UnknownRequirement,
+                Some(i),
+                format!("unknown requirement {requirement_id}"),
+            );
+            return;
+        };
+        if requirement.status == RequirementStatus::Satisfied {
+            self.err(
+                ValidationCode::RequirementNotUnmet,
+                Some(i),
+                format!("requirement {requirement_id} is already satisfied"),
+            );
+        }
+        let (resp_mission, resp_owner, resp_requirement) = {
+            let r = &self.st.responsibilities[&responsibility_id];
+            (
+                r.mission_id.clone(),
+                r.owner.clone(),
+                r.requirement_id.clone(),
+            )
+        };
+        // The gap serves the responsibility created for this exact
+        // requirement; acquisition authority checks the same link.
+        if resp_requirement.as_ref() != Some(requirement_id) {
+            self.err(
+                ValidationCode::InvalidInput,
+                Some(i),
+                format!("responsibility {responsibility_id} was not created for requirement {requirement_id}"),
+            );
+        }
+        if requirement.owner != Owner::Role(role_id.clone()) {
+            self.err(
+                ValidationCode::AccountabilityConflict,
+                Some(i),
+                format!("requirement {requirement_id} is not owned by {role_id}"),
+            );
+        }
+        if resp_mission != requirement.mission_id {
+            self.err(
+                ValidationCode::InvalidInput,
+                Some(i),
+                "the responsibility and the requirement belong to different missions",
+            );
+        }
+        // The capability serves the role's own accountable work: assign the
+        // responsibility to the role (earlier in this change) first.
+        if resp_owner != Owner::Role(role_id.clone()) {
+            self.err(
+                ValidationCode::AccountabilityConflict,
+                Some(i),
+                format!("{role_id} does not own responsibility {responsibility_id}; assign it before requesting a capability for it"),
+            );
+        }
+        if !valid_capability_name(capability_id.as_str()) {
+            self.err(
+                ValidationCode::InvalidInput,
+                Some(i),
+                "capability_id must be 3-64 characters of a-z, 0-9, '-' or '.'",
+            );
+        }
+        if purpose.trim().is_empty() || purpose.chars().count() > 400 {
+            self.err(
+                ValidationCode::InvalidInput,
+                Some(i),
+                "purpose must be 1-400 characters",
+            );
+        }
+        // Sources must be public pages on the same origin as the evidence that
+        // caused the requirement; the proposing agent cannot invent targets.
+        let evidence_origins: BTreeSet<String> = requirement
+            .triggering_evidence
+            .iter()
+            .filter_map(|o| self.st.observations.get(o))
+            .filter_map(|o| o.evidence_ref.as_deref().and_then(http_origin))
+            .collect();
+        if observed_sources.is_empty() || observed_sources.len() > 8 {
+            self.err(
+                ValidationCode::InvalidInput,
+                Some(i),
+                "observed_sources must list 1-8 public URLs",
+            );
+        }
+        for url in observed_sources {
+            match http_origin(url) {
+                None => self.err(
+                    ValidationCode::InvalidInput,
+                    Some(i),
+                    format!("observed source {url:?} is not an http(s) URL"),
+                ),
+                Some(origin) if !evidence_origins.contains(&origin) => self.err(
+                    ValidationCode::UnknownEvidence,
+                    Some(i),
+                    format!(
+                        "observed source {url} is not on the origin of the requirement's evidence"
+                    ),
+                ),
+                Some(_) => {}
+            }
+        }
+        if self.catalog_has_usable(capability_id) {
+            self.err(
+                ValidationCode::InvalidInput,
+                Some(i),
+                format!("{capability_id} is already installed and approved; use AttachCapability"),
+            );
+        }
+        if self.st.capability_gaps.values().any(|g| {
+            g.requirement_id == *requirement_id
+                && g.capability_id == *capability_id
+                && !g.status.is_terminal()
+        }) {
+            self.err(
+                ValidationCode::DuplicateKey,
+                Some(i),
+                format!("{capability_id} is already requested for requirement {requirement_id}"),
+            );
+        }
+        let live: Vec<_> = self
+            .st
+            .capability_gaps
+            .values()
+            .filter(|g| !g.status.is_terminal())
+            .collect();
+        if live.len() >= MAX_LIVE_CAPABILITY_GAPS {
+            self.err(
+                ValidationCode::CapabilityGapLimitExceeded,
+                Some(i),
+                format!("the organization already has {MAX_LIVE_CAPABILITY_GAPS} live capability requests"),
+            );
+        } else if live
+            .iter()
+            .filter(|g| g.requirement_id == *requirement_id)
+            .count()
+            >= MAX_LIVE_GAPS_PER_REQUIREMENT
+        {
+            self.err(
+                ValidationCode::CapabilityGapLimitExceeded,
+                Some(i),
+                format!("requirement {requirement_id} already has {MAX_LIVE_GAPS_PER_REQUIREMENT} live capability requests"),
+            );
+        }
+        if !self.errors.is_empty() {
+            return;
+        }
+        let requirement_digest = crate::digest::canonical_sha256(&serde_json::json!({
+            "requirement_id": requirement.requirement_id,
+            "mission_id": requirement.mission_id,
+            "summary": requirement.summary,
+            "acceptance": requirement.acceptance,
+            "triggering_evidence": requirement.triggering_evidence,
+        }));
+        self.st.capability_gaps.insert(
+            gap_id.clone(),
+            CapabilityGap {
+                gap_id: gap_id.clone(),
+                mission_id: requirement.mission_id.clone(),
+                requirement_id: requirement_id.clone(),
+                requirement_digest,
+                triggering_evidence: requirement.triggering_evidence.clone(),
+                role_id: role_id.clone(),
+                responsibility_id: responsibility_id.clone(),
+                capability_id: capability_id.clone(),
+                purpose: purpose.trim().to_owned(),
+                observed_sources: observed_sources.to_vec(),
+                status: CapabilityGapStatus::Open,
+                opened_in_revision: self.next_revision,
+            },
+        );
+        self.effects.push(EventKind::CapabilityGapOpened {
+            gap_id,
+            requirement_id: requirement_id.clone(),
+            role_id,
+            responsibility_id,
+            capability_id: capability_id.clone(),
+        });
+    }
+
+    fn catalog_has_usable(&self, capability_id: &CapabilityId) -> bool {
+        self.st.installations.values().any(|inst| {
+            inst.capability.capability_id == *capability_id
+                && self
+                    .catalog
+                    .state_of(&inst.capability)
+                    .is_some_and(|s| s.is_usable())
+        })
     }
 
     fn reporting_edge(&mut self, i: usize, role: &RoleRef, reports_to: Option<&RoleRef>) {
@@ -1790,6 +2031,172 @@ pub fn update_contract(
         state: st,
         effects: vec![EventKind::ContractStateChanged {
             contract_id: id.clone(),
+            from,
+            to,
+        }],
+    })
+}
+
+// ---------------------------------------------------------------------------
+// Capability gaps
+// ---------------------------------------------------------------------------
+
+/// `scheme://host[:port]` of an http(s) URL, lowercased; `None` otherwise.
+fn http_origin(url: &str) -> Option<String> {
+    if url.len() > 512 || url.chars().any(|c| c.is_whitespace() || c.is_control()) {
+        return None;
+    }
+    let (scheme, rest) = url.split_once("://")?;
+    let scheme = scheme.to_ascii_lowercase();
+    if scheme != "http" && scheme != "https" {
+        return None;
+    }
+    let authority = rest.split(['/', '?', '#']).next()?;
+    if authority.is_empty() || authority.contains('@') {
+        return None;
+    }
+    Some(format!("{scheme}://{}", authority.to_ascii_lowercase()))
+}
+
+fn valid_capability_name(name: &str) -> bool {
+    (3..=64).contains(&name.len())
+        && name
+            .bytes()
+            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-' || b == b'.')
+        && name.as_bytes()[0].is_ascii_alphanumeric()
+}
+
+/// Move a capability gap forward. Allowed (backend drivers only):
+///
+/// - `Open -> Acquiring | Refused`
+/// - `Acquiring -> Acquired | Refused` (same acquisition)
+/// - `Acquired -> Installed | Refused` (same acquisition and capability;
+///   the installation must exist here, for that capability, and be Accepted)
+///
+/// `Installed` and `Refused` are final.
+pub fn update_capability_gap(
+    state: &OrgState,
+    gap_id: &CapabilityGapId,
+    to: CapabilityGapStatus,
+) -> Result<Outcome, ValidationError> {
+    use CapabilityGapStatus as S;
+    let invalid = |msg: String| ValidationError::new(ValidationCode::InvalidInput, None, msg);
+    let mut st = state.clone();
+    let gap = st
+        .capability_gaps
+        .get(gap_id)
+        .ok_or_else(|| invalid(format!("unknown capability gap {gap_id}")))?;
+    let allowed = matches!(
+        (&gap.status, &to),
+        (S::Open, S::Acquiring { .. })
+            | (S::Open, S::Refused { .. })
+            | (S::Acquiring { .. }, S::Acquired { .. })
+            | (S::Acquiring { .. }, S::Refused { .. })
+            | (S::Acquired { .. }, S::Installed { .. })
+            | (S::Acquired { .. }, S::Refused { .. })
+            // Publication is a separate effect: a verified gap may gain its
+            // confirmed reference once, without rebinding (checked below).
+            | (S::Acquired { publication_ref: None, .. }, S::Acquired { publication_ref: Some(_), .. })
+    );
+    if !allowed {
+        return Err(ValidationError::new(
+            ValidationCode::InvalidTransition,
+            None,
+            format!(
+                "capability gap {gap_id} cannot move from {:?} to {to:?}",
+                gap.status
+            ),
+        ));
+    }
+    let bounded = |s: &str| !s.trim().is_empty() && s.chars().count() <= 400;
+    let exact = |c: &CapabilityRef| {
+        c.capability_id == gap.capability_id
+            && !c.version.trim().is_empty()
+            && !c.version.eq_ignore_ascii_case("latest")
+    };
+    // Every later state stays bound to the acquisition that was claimed.
+    let same_acquisition = |id: &str| gap.status.acquisition_id().is_none_or(|bound| bound == id);
+    match &to {
+        S::Open => return Err(invalid("a gap cannot reopen".into())),
+        S::Acquiring { acquisition_id } if !bounded(acquisition_id) => {
+            return Err(invalid("acquisition_id must be 1-400 characters".into()))
+        }
+        S::Acquired {
+            acquisition_id,
+            capability,
+            publication_ref,
+        } => {
+            if let S::Acquired {
+                capability: verified,
+                ..
+            } = &gap.status
+            {
+                if capability != verified {
+                    return Err(invalid(
+                        "recording publication cannot change the verified capability".into(),
+                    ));
+                }
+            }
+            if !same_acquisition(acquisition_id) || !exact(capability) {
+                return Err(invalid(
+                    "acquired needs the claimed acquisition and this gap's capability at an exact version".into(),
+                ));
+            }
+            if publication_ref.as_deref().is_some_and(|p| !bounded(p)) {
+                return Err(invalid("publication_ref must be 1-400 characters".into()));
+            }
+        }
+        S::Installed {
+            acquisition_id,
+            capability,
+            installation_id,
+        } => {
+            let S::Acquired {
+                capability: verified,
+                ..
+            } = &gap.status
+            else {
+                unreachable!("transition table");
+            };
+            if !same_acquisition(acquisition_id) || capability != verified {
+                return Err(invalid(
+                    "installed must name the acquired capability version and acquisition".into(),
+                ));
+            }
+            let accepted = st.installations.get(installation_id).is_some_and(|i| {
+                i.capability == *capability && i.status == InstallationStatus::Accepted
+            });
+            if !accepted {
+                return Err(invalid(format!(
+                    "installation {installation_id} is not an accepted local installation of {}@{}",
+                    capability.capability_id, capability.version
+                )));
+            }
+        }
+        S::Refused {
+            reason,
+            acquisition_id,
+        } => {
+            if !bounded(reason) {
+                return Err(invalid("refusal needs a 1-400 character reason".into()));
+            }
+            if let Some(id) = acquisition_id {
+                if !same_acquisition(id) {
+                    return Err(invalid("refusal names a different acquisition".into()));
+                }
+            } else if gap.status.acquisition_id().is_some() {
+                return Err(invalid("refusal must keep the bound acquisition_id".into()));
+            }
+        }
+        S::Acquiring { .. } => {}
+    }
+    let gap = st.capability_gaps.get_mut(gap_id).expect("checked");
+    let from = std::mem::replace(&mut gap.status, to.clone());
+    st.revision += 1;
+    Ok(Outcome {
+        state: st,
+        effects: vec![EventKind::CapabilityGapStatusChanged {
+            gap_id: gap_id.clone(),
             from,
             to,
         }],

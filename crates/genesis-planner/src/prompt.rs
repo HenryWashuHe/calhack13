@@ -7,7 +7,7 @@
 //! leaking into the static prompt.
 
 use genesis_core::lifecycle::{ContractState, InstallationStatus, ResponsibilityStatus, RoleState};
-use genesis_core::model::{Executor, Observation, OrgState, Owner};
+use genesis_core::model::{CapabilityGapStatus, Executor, Observation, OrgState, Owner};
 use std::fmt::Write;
 
 /// An externally discovered specialist the planner may recruit. Supplied by
@@ -29,13 +29,15 @@ Decision procedure
 3. Choose the least disruptive change that gives that requirement exactly one accountable owner. Prefer, in this order:
    a. assign the requirement to an existing ACTIVE role whose charter already covers it;
    b. attach an installed, approved capability to an existing role;
-   c. recruit a known external specialist for bounded work, supervised by an accountable role;
-   d. create a new role.
+   c. if the work needs an executable capability that is not installed and not already requested (for example reading an unfamiliar public data source), request it with RequestCapability for the accountable role, after assigning that role the responsibility in the same change;
+   d. recruit a known external specialist for bounded work, supervised by an accountable role;
+   e. create a new role.
    Create a new role only for a distinct continuing responsibility with a reason for separate execution: concurrency, authority, independent_ownership, expertise or lifecycle. Put that reason in "justification".
 4. Every role you create must own or execute at least one responsibility in the same change.
 5. Grant only scopes listed in the constitution, and only the scopes the work needs. Keep total budget within what remains.
 6. Use only IDs that appear in the state below. Refer to things you create in this change by their "key". Recruit only specialists from the known-specialists list, using their exact address.
-7. If you cannot produce a valid proposal, the verdict is "escalate" and the rationale says what a human must decide.
+7. RequestCapability only states the need. You never choose how it is built, tested or approved; the kernel and an operator policy decide. Its observed_sources must be public URLs on the same site as the evidence_ref of the observation behind the requirement. Attach a requested capability only once it appears under "Installed capabilities"; acquired or published is not installed. Never request a capability that is already requested and not refused.
+8. If you cannot produce a valid proposal, the verdict is "escalate" and the rationale says what a human must decide.
 
 Output exactly one JSON object and nothing else:
 {
@@ -60,6 +62,8 @@ Operation vocabulary (field "op" selects the operation)
 - ReassignResponsibility: {"op":"ReassignResponsibility","responsibility_id":str,"from":role_id,"to":RoleRef}
 - AttachCapability: {"op":"AttachCapability","role":RoleRef,"capability":{"capability_id":str,"version":str}}
 - ChangeReportingEdge: {"op":"ChangeReportingEdge","role":RoleRef,"reports_to":RoleRef|null}
+- RequestCapability: {"op":"RequestCapability","key":str,"requirement_id":"$REQUIREMENT","role":RoleRef,"responsibility":{"kind":"new","key":str}|{"kind":"existing","responsibility_id":str},"capability_id":str,"purpose":str,"observed_sources":[str]}
+  capability_id is a short lowercase name (a-z, 0-9, "-", "."). The role must own the responsibility when this operation applies.
 - RetireRole: {"op":"RetireRole","role_id":str,"handoffs":[{"responsibility_id":str,"to":RoleRef}]}
   A role can retire only after every open responsibility it owns is handed off.
 RoleRef is {"kind":"existing","role_id":str} or {"kind":"new","key":str}. Operations apply in order; a "new" key must be created by an earlier operation in the same list.
@@ -232,6 +236,31 @@ pub fn user_message(
             "- {}@{} (approved)",
             i.capability.capability_id, i.capability.version
         );
+    }
+
+    let gaps: Vec<_> = state.capability_gaps.values().collect();
+    if !gaps.is_empty() {
+        let _ = writeln!(s, "\n## Requested capabilities");
+        for g in gaps {
+            let status = match &g.status {
+                CapabilityGapStatus::Open => "requested, not yet acquiring".to_owned(),
+                CapabilityGapStatus::Acquiring { .. } => "acquiring".to_owned(),
+                CapabilityGapStatus::Acquired { capability, .. } => format!(
+                    "verified as {}@{}, not installed yet",
+                    capability.capability_id, capability.version
+                ),
+                CapabilityGapStatus::Installed { capability, .. } => format!(
+                    "installed as {}@{}; attach it",
+                    capability.capability_id, capability.version
+                ),
+                CapabilityGapStatus::Refused { reason, .. } => format!("refused: {reason}"),
+            };
+            let _ = writeln!(
+                s,
+                "- {} for role {} / responsibility {} (requirement {}): {status}",
+                g.capability_id, g.role_id, g.responsibility_id, g.requirement_id
+            );
+        }
     }
 
     let _ = writeln!(s, "\n## Known external specialists");
