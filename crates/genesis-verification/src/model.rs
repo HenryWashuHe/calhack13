@@ -132,7 +132,7 @@ pub enum Decision {
     Rejected,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum IssueCode {
     MissingCase,
@@ -207,6 +207,93 @@ pub enum VerificationOutcome {
 
 impl VerificationOutcome {
     pub fn report(&self) -> &VerificationReport {
+        match self {
+            Self::Accepted(accepted) => accepted.report(),
+            Self::Rejected(report) => report,
+        }
+    }
+    pub fn is_accepted(&self) -> bool {
+        matches!(self, Self::Accepted(_))
+    }
+}
+
+/// The scope of a single invocation result, never full-suite acceptance.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CaseVerificationPurpose {
+    InvocationCase,
+}
+
+/// A matched unsupported response is correct extraction behavior, not evidence
+/// that the requested business task or mission succeeded.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ExtractionKind {
+    Supported,
+    Unsupported,
+}
+
+/// A redacted, single-case semantic report. It contains neither oracle answers
+/// nor raw provider output, input, scope text, issue paths, or issue counts.
+/// Receipt metadata remains a trusted adapter input; hashing does not authenticate it.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct SingleCaseReport {
+    pub schema_version: u32,
+    pub evaluator_version: String,
+    pub purpose: CaseVerificationPurpose,
+    pub decision: Decision,
+    pub suite_id: String,
+    pub suite_sha256: String,
+    pub case_id: String,
+    pub input_sha256: String,
+    pub source: SourceSnapshot,
+    pub artifact: ArtifactPin,
+    pub run_id: Option<String>,
+    pub dataset_id: Option<String>,
+    /// Absent when evidence metadata or output exceeds the accepted bounds.
+    /// Always present on a successful case verification.
+    pub evidence_sha256: Option<String>,
+    /// Present only for structurally valid extraction output. A rejected report
+    /// can still name its output kind; consult `decision` for semantic acceptance.
+    pub extraction: Option<ExtractionKind>,
+    /// Unique issue categories in declaration order; no per-field feedback.
+    pub issues: Vec<IssueCode>,
+}
+
+/// Constructible only through successful single-case verification. There is no
+/// deserialization or conversion to a full-suite acceptance credential.
+///
+/// ```compile_fail
+/// use genesis_verification::{AcceptedCaseVerification, AcceptedVerification};
+/// fn accept_full_suite(_: AcceptedVerification) {}
+/// fn cannot_publish_single_case(case: AcceptedCaseVerification) {
+///     accept_full_suite(case);
+/// }
+/// ```
+#[derive(Clone, Debug)]
+pub struct AcceptedCaseVerification {
+    pub(crate) report: SingleCaseReport,
+}
+
+impl AcceptedCaseVerification {
+    pub fn report(&self) -> &SingleCaseReport {
+        &self.report
+    }
+    pub fn artifact(&self) -> &ArtifactPin {
+        &self.report.artifact
+    }
+}
+
+/// Deliberately distinct from `VerificationOutcome`: one invocation can neither
+/// establish format coverage nor publish or install a capability.
+#[derive(Clone, Debug)]
+pub enum CaseVerificationOutcome {
+    Accepted(AcceptedCaseVerification),
+    Rejected(SingleCaseReport),
+}
+
+impl CaseVerificationOutcome {
+    pub fn report(&self) -> &SingleCaseReport {
         match self {
             Self::Accepted(accepted) => accepted.report(),
             Self::Rejected(report) => report,
