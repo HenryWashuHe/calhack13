@@ -22,7 +22,7 @@ use genesis_server::capability_scenario::{
 };
 use genesis_server::registry::{self, RegistryState};
 use genesis_server::{build_org, parse_publishers, AcquisitionConfig, OrgConfig};
-use genesis_verification::{decode_json, ExecutionEvidence, OracleSuite};
+use genesis_verification::{decode_json, json_sha256, ExecutionEvidence, OracleSuite, RunStatus};
 use reqwest::StatusCode;
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
@@ -89,6 +89,7 @@ enum Side {
 enum Behavior {
     RepairOnce,
     AmbiguousActor,
+    WrongInvocation,
 }
 #[derive(Clone)]
 struct Seen {
@@ -194,7 +195,17 @@ impl World {
                 let mut output = self.outputs[case].clone();
                 // One semantic error in the first candidate triggers the actual
                 // verifier and bounded repair, not a forged failed phase.
-                if actor.attempt == 0 && case == 0 {
+                if matches!(self.behavior, Behavior::RepairOnce) && actor.attempt == 0 && case == 0
+                {
+                    output["venues"][0]["capacity"] = json!(9999);
+                }
+                // B first accepts every oracle case correctly, then receives
+                // a wrong fresh answer in an otherwise exact successful run.
+                if matches!(self.behavior, Behavior::WrongInvocation)
+                    && seen.side == Side::B
+                    && self.runs.values().filter(|run| run.side == Side::B).count()
+                        >= self.inputs_b.len()
+                {
                     output["venues"][0]["capacity"] = json!(9999);
                 }
                 let run_id = format!("run-scenario-{}", self.runs.len());
@@ -468,6 +479,20 @@ async fn post(org: &Org, path: &str, body: Value) -> (StatusCode, Value) {
     (status, response.json().await.unwrap())
 }
 
+async fn get(org: &Org, path: &str) -> (StatusCode, Value) {
+    let response = reqwest::Client::builder()
+        .timeout(Duration::from_secs(30))
+        .no_proxy()
+        .build()
+        .unwrap()
+        .get(format!("{}/api/v1{path}", org.server.url))
+        .bearer_auth(&org.config.tokens.operator)
+        .send()
+        .await
+        .unwrap();
+    (response.status(), response.json().await.unwrap())
+}
+
 #[tokio::test]
 async fn repaired_acquisition_survives_independent_adoption_and_both_role_handoffs() {
     let mut fixture = Fixture::start(Behavior::RepairOnce).await;
@@ -594,8 +619,12 @@ async fn repaired_acquisition_survives_independent_adoption_and_both_role_handof
         let job = fixture.b.app.store.get_job(&JobId::new(id)).unwrap();
         assert_eq!(
             job.status,
-            JobStatus::Verifying,
-            "lookup is not a booking commitment"
+            if report.acceptance_b_jobs.contains(id) {
+                JobStatus::Verifying
+            } else {
+                JobStatus::Succeeded
+            },
+            "only fresh invocation proof finalizes an individual lookup"
         );
         assert!(fixture.a.app.store.get_job(&JobId::new(id)).is_err());
     }
@@ -616,6 +645,49 @@ async fn repaired_acquisition_survives_independent_adoption_and_both_role_handof
     assert_eq!(after.role_id.as_str(), report.monitor_role_id);
     assert_eq!(before.input, suite("b").cases[0].input);
     assert_ne!(before.input, suite("a").cases[0].input);
+    for (id, reference) in [
+        (
+            &report.initial_run_b_id,
+            &report.initial_invocation_proof_ref,
+        ),
+        (
+            &report.continuation_run_b_id,
+            &report.continuation_invocation_proof_ref,
+        ),
+    ] {
+        let (status, proof) = get(&fixture.b, &format!("/capability-runs/{id}/verification")).await;
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(proof["job_id"], *id);
+        assert_eq!(proof["proof_ref"], *reference);
+        assert_eq!(proof["decision"], "verified");
+        assert_eq!(proof["acceptance_report_ref"], report.acceptance_b_ref);
+        assert_eq!(proof["suite_id"], suite("b").suite_id);
+        assert_eq!(
+            proof["suite_sha256"],
+            json_sha256(&serde_json::to_value(suite("b")).unwrap())
+        );
+        assert_eq!(proof["case_report"]["decision"], "accepted");
+        assert_eq!(proof["case_report"]["extraction"], "supported");
+        assert_eq!(
+            proof["case_report"]["artifact"],
+            serde_json::to_value(&report.artifact).unwrap()
+        );
+        let (status, replayed) = post(
+            &fixture.b,
+            &format!("/capability-runs/{id}/verify"),
+            json!({}),
+        )
+        .await;
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(
+            replayed, proof,
+            "completed proofs survive verifier retirement"
+        );
+    }
+    assert_ne!(
+        report.initial_invocation_proof_ref,
+        report.continuation_invocation_proof_ref
+    );
 
     let saved = fixture
         .a
@@ -730,6 +802,19 @@ async fn repaired_acquisition_survives_independent_adoption_and_both_role_handof
     assert_eq!(accepted.suite_id, local.suite_id);
     assert_eq!(accepted.report_ref, local.report_ref);
     assert_eq!(accepted.job_ids, local.job_ids);
+    let (status, restored_proof) = get(
+        &restarted,
+        &format!(
+            "/capability-runs/{}/verification",
+            report.continuation_run_b_id
+        ),
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(
+        restored_proof["proof_ref"],
+        report.continuation_invocation_proof_ref
+    );
     let (status, job) = post(&restarted, "/capability-runs", json!({
         "client_request_id":"successor-after-restart","installation_id":report.installation_b_id,
         "role_id":report.monitor_role_id,"responsibility_id":report.responsibility_b_id,
@@ -757,6 +842,23 @@ async fn repaired_acquisition_survives_independent_adoption_and_both_role_handof
     let evidence = collected.evidence.unwrap();
     assert_eq!(evidence.artifact, report.artifact);
     assert!(native_ids.insert(evidence.run_id));
+    let (status, proof) = post(
+        &restarted,
+        &format!("/capability-runs/{id}/verify"),
+        json!({}),
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK, "{proof}");
+    assert_eq!(proof["decision"], "verified");
+    assert_eq!(proof["case_report"]["extraction"], "supported");
+    assert_ne!(proof["proof_ref"], report.continuation_invocation_proof_ref);
+    let (status, persisted) = get(&restarted, &format!("/capability-runs/{id}/verification")).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(persisted, proof);
+    assert_eq!(
+        restarted.app.store.get_job(&JobId::new(id)).unwrap().status,
+        JobStatus::Succeeded
+    );
     assert!(restarted.app.store.commitments().unwrap().is_empty());
     let world = fixture.providers.world.lock().unwrap();
     assert_eq!(world.model_requests.len(), 2);
@@ -768,6 +870,86 @@ async fn repaired_acquisition_survives_independent_adoption_and_both_role_handof
             .filter(|run| run.side == Side::B)
             .count(),
         6
+    );
+}
+
+#[tokio::test]
+async fn wrong_fresh_output_stops_after_transport_success_without_role_handoffs() {
+    let fixture = Fixture::start(Behavior::WrongInvocation).await;
+    let error = fixture.driver().run(&fixture.spec()).await.unwrap_err();
+    assert!(
+        matches!(
+            error,
+            ScenarioError::Stopped("fresh invocation did not verify")
+        ),
+        "{error}"
+    );
+    let job = fixture
+        .b
+        .app
+        .store
+        .find_capability_job("inherited-mission-fixture-initial-run")
+        .unwrap()
+        .unwrap();
+    assert_eq!(job.status, JobStatus::ResultRejected);
+    let record = fixture.b.app.store.get_capability_run(&job.job_id).unwrap();
+    assert_eq!(record.phase, CapabilityRunPhase::Collected);
+    let evidence = record.evidence.unwrap();
+    assert_eq!(evidence.status, RunStatus::Succeeded);
+    assert_eq!(evidence.artifact, record.request.artifact);
+    assert_eq!(evidence.output["venues"][0]["capacity"], 9999);
+    let (status, proof) = get(
+        &fixture.b,
+        &format!("/capability-runs/{}/verification", job.job_id),
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(proof["decision"], "semantic_rejected");
+    assert_eq!(proof["case_report"]["decision"], "rejected");
+    assert_eq!(proof["case_report"]["issues"], json!(["value_mismatch"]));
+    assert!(fixture
+        .b
+        .app
+        .store
+        .find_capability_job("inherited-mission-fixture-continuation")
+        .unwrap()
+        .is_none());
+    for org in [&fixture.a, &fixture.b] {
+        assert!(org.app.store.commitments().unwrap().is_empty());
+        assert!(org
+            .app
+            .current_state()
+            .unwrap()
+            .roles
+            .values()
+            .all(|role| role.state == RoleState::Active));
+    }
+    assert!(fixture
+        .b
+        .app
+        .current_state()
+        .unwrap()
+        .installations
+        .values()
+        .all(|installation| installation.status == InstallationStatus::Accepted));
+    let jobs = fixture.b.app.store.list_jobs().unwrap();
+    assert_eq!(jobs.len(), 4);
+    assert_eq!(
+        jobs.iter()
+            .filter(|job| job.status == JobStatus::Verifying)
+            .count(),
+        3
+    );
+    let world = fixture.providers.world.lock().unwrap();
+    assert_eq!(world.model_requests.len(), 1);
+    assert_eq!(world.actors.len(), 1);
+    assert_eq!(
+        world
+            .runs
+            .values()
+            .filter(|run| run.side == Side::B)
+            .count(),
+        4
     );
 }
 
