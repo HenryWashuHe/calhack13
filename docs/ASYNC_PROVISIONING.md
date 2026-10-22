@@ -50,8 +50,10 @@ steps 5–6 on the kernel side:
   deterministic per job attempt). Redelivery is a no-op: it never causes a
   second POST.
 - The specialist poller advances each running job at most once per pass.
-  Live authority (active role, open responsibility, current epoch, deadline,
-  matching binding) is checked **before each provider call**, including the
+  The full current grant (active role, open responsibility, the exact
+  assignment and epoch, active mission before its deadline, unexpired
+  assignment lease and job deadline, the same agent binding) is checked
+  **before each provider call**, including the
   single automatic read retry, and again **before a collected result is
   applied**. Losing authority stops advancing
   (`RESULT_REJECTED`, "authority lost before advance"); a result collected
