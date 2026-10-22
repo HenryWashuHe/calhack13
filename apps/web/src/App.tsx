@@ -6,6 +6,7 @@ import { OrgPanel } from "./components/OrgPanel";
 import { EvidencePanel } from "./components/EvidencePanel";
 import { Deck } from "./components/Deck";
 import { AttentionPanel } from "./components/AttentionPanel";
+import { GapIntakeContext, useGapIntake } from "./lib/gapIntake";
 
 function OrgTab({ ep, selected, onSelect }: { ep: OrgEndpoint; selected: boolean; onSelect: () => void }) {
   // Lightweight health poll for the tab badge; the selected org has its own live stream.
@@ -42,6 +43,7 @@ function OrgTab({ ep, selected, onSelect }: { ep: OrgEndpoint; selected: boolean
 
 function Console({ ep }: { ep: OrgEndpoint }) {
   const view = useOrg(ep);
+  const intake = useGapIntake(view.api, view.state);
   const stubbed = useMemo(
     () => Object.values(view.state?.roles ?? {}).some((r) => r.binding?.provider === "dev_stub"),
     [view.state],
@@ -64,13 +66,15 @@ function Console({ ep }: { ep: OrgEndpoint }) {
           </div>
         </div>
       )}
-      <main className="layout">
-        <MissionPanel state={view.state} api={view.api} />
-        <OrgPanel api={view.api} state={view.state} changes={view.changes} />
-        <AttentionPanel api={view.api} changes={view.changes} jobs={view.jobs} events={view.events} state={view.state} />
-        <EvidencePanel events={view.events} state={view.state} />
-        <Deck api={view.api} changes={view.changes} jobs={view.jobs} state={view.state} events={view.events} ledger={view.ledger} />
-      </main>
+      <GapIntakeContext.Provider value={intake}>
+        <main className="layout">
+          <MissionPanel state={view.state} api={view.api} />
+          <OrgPanel api={view.api} state={view.state} changes={view.changes} />
+          <AttentionPanel api={view.api} changes={view.changes} jobs={view.jobs} events={view.events} state={view.state} />
+          <EvidencePanel events={view.events} state={view.state} />
+          <Deck api={view.api} changes={view.changes} jobs={view.jobs} state={view.state} events={view.events} ledger={view.ledger} />
+        </main>
+      </GapIntakeContext.Provider>
     </>
   );
 }
