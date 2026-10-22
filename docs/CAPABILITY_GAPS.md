@@ -74,7 +74,7 @@ The kernel commits it only if:
 - no installed, approved capability already has that ID (use
   `AttachCapability`);
 - no live gap exists for the same requirement and capability ID, and that
-  pair has been refused fewer than 2 times
+  requirement has had fewer than 3 requests refused, under any capability name
   (`MAX_REFUSED_REQUESTS_PER_REQUIREMENT`; `capability_gap_limit_exceeded`).
   A refusal wakes the planner, and the requirement's own evidence still
   satisfies the origin check, so without this a planner that keeps asking
