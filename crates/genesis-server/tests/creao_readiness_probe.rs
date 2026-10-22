@@ -379,6 +379,16 @@ async fn expired_and_foreign_challenges_never_prepare_or_submit() {
     let dir = tempfile::tempdir().unwrap();
     let (runtime, store) = provider.runtime(&dir.path().join("creao.db"));
     let original = request(&format!("http://127.0.0.1:19001{RECEIPT_PATH}"));
+    for url in [
+        "http://example.com/api/v1/gateway/readiness-receipts",
+        "https://user:password@example.com/api/v1/gateway/readiness-receipts",
+        "https://example.com/api/v1/gateway/readiness-receipts?token=secret",
+        "https://example.com/api/v1/gateway/readiness-receipts#fragment",
+        "https://example.com/another-route",
+        "/api/v1/gateway/readiness-receipts",
+    ] {
+        assert!(CreaoReadinessProbe::new(runtime.clone(), url.into()).is_err());
+    }
     let probe = CreaoReadinessProbe::new(runtime, original.receipt_url.clone()).unwrap();
     for field in ["expired", "foreign_org", "foreign_url"] {
         let mut changed = original.clone();
@@ -421,6 +431,61 @@ async fn ambiguous_post_stays_unknown_after_replay_and_restart() {
     let probe = CreaoReadinessProbe::new(runtime, request.receipt_url.clone()).unwrap();
     assert_unknown(probe.dispatch(&request).await.unwrap_err());
     assert_eq!(provider.seen().len(), 1);
+}
+
+#[tokio::test]
+async fn successful_post_with_failed_receipt_commit_stays_unknown_without_replay() {
+    let provider = ProviderFixture::new(vec![Reply::run(202, "pending")]).await;
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("creao.db");
+    let (runtime, store) = provider.runtime(&path);
+    let database = rusqlite::Connection::open(&path).unwrap();
+    database
+        .execute_batch(
+            "CREATE TRIGGER reject_readiness_receipt BEFORE UPDATE OF phase ON creao_operations
+             WHEN OLD.phase='submitting' AND NEW.phase='waiting'
+             BEGIN SELECT RAISE(ABORT,'PRIVATE_SQLITE_RECEIPT_CANARY'); END;",
+        )
+        .unwrap();
+    let request = request(&format!("http://127.0.0.1:19001{RECEIPT_PATH}"));
+    let probe = CreaoReadinessProbe::new(runtime, request.receipt_url.clone()).unwrap();
+    let error = probe.dispatch(&request).await.unwrap_err();
+    assert!(!error.to_string().contains("PRIVATE_SQLITE_RECEIPT_CANARY"));
+    assert_unknown(error);
+    let records = store.list().unwrap();
+    assert_eq!(records.len(), 1);
+    let saved = &records[0];
+    assert_eq!(saved.phase, OperationPhase::Submitting);
+    assert!(saved.ticket.is_none());
+    assert_eq!(saved.revision, 1, "only the pre-POST intent committed");
+    assert_unknown(probe.dispatch(&request).await.unwrap_err());
+    let replayed = store.list().unwrap().remove(0);
+    assert_eq!(replayed.phase, OperationPhase::Submitting);
+    assert_eq!(replayed.revision, saved.revision);
+    assert_eq!(replayed.fingerprint, saved.fingerprint);
+    let seen = provider.seen();
+    assert_eq!(seen.len(), 1);
+    assert_eq!(seen[0].method, "POST");
+    assert_eq!(seen[0].path, "/v1/runs");
+    database
+        .execute_batch("DROP TRIGGER reject_readiness_receipt")
+        .unwrap();
+    drop(database);
+    drop(records);
+    drop(store);
+    drop(probe);
+    let (runtime, restored_store) = provider.runtime(&path);
+    assert_eq!(runtime.recover_interrupted().await.unwrap(), 1);
+    let recovered = restored_store.list().unwrap().remove(0);
+    assert_eq!(recovered.phase, OperationPhase::NeedsReconciliation);
+    assert!(recovered.ticket.is_none());
+    let probe = CreaoReadinessProbe::new(runtime, request.receipt_url.clone()).unwrap();
+    assert_unknown(probe.dispatch(&request).await.unwrap_err());
+    assert_eq!(
+        provider.seen().len(),
+        1,
+        "unknown remote success is never retried or polled"
+    );
 }
 
 #[tokio::test]
