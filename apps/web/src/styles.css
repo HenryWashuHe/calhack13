@@ -312,6 +312,7 @@ button { font: inherit; color: inherit; }
 .ev-grid > div { display: grid; gap: 4px; align-content: start; min-width: 0; overflow-wrap: anywhere; }
 .ev-grid h4 { margin: 0; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
 .ev-limits { margin: 0; padding-left: 18px; color: var(--ink-3); font-size: 12px; }
+.ev-sub { margin: 4px 0 0; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
 .ev-runs td.mono:first-child { white-space: nowrap; }
 
 .filters { display: flex; gap: 4px; flex-wrap: wrap; }
