@@ -1,5 +1,6 @@
 {
   "run_id": "inherited-venue-001",
+  "progression": "automatic",
   "suite_a_id": "offline-venue-suite-v1",
   "suite_b_id": "inherited-venue-suite-b-v1",
   "candidate": {
