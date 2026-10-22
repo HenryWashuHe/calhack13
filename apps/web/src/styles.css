@@ -290,6 +290,20 @@ button { font: inherit; color: inherit; }
 .role-name { font-weight: 600; font-size: 14px; }
 .role-charter { color: var(--ink-2); font-size: 13px; }
 .role-meta { display: flex; gap: 6px 10px; flex-wrap: wrap; align-items: center; font-size: 12px; color: var(--ink-3); }
+/* ---------- provenance: "Why does this role exist?" ---------- */
+.role-head .why-btn { margin-left: auto; }
+.why { display: grid; gap: 6px; padding: 8px 10px; border-left: 2px solid var(--accent); background: var(--accent-soft); border-radius: 0 var(--radius) var(--radius) 0; }
+.why-chain { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.why-step { display: grid; grid-template-columns: 78px minmax(0, 1fr); gap: 8px; font-size: 13px; }
+.why-kind { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-3); padding-top: 2px; }
+.why-step.ok .why-kind { color: var(--ok); }
+.why-step.warn .why-kind { color: var(--warn); }
+.why-step.bad .why-kind { color: var(--bad); }
+.why-title { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; font-weight: 500; }
+.why-detail { color: var(--ink-2); overflow-wrap: anywhere; }
+.why-refs { display: flex; gap: 4px 10px; flex-wrap: wrap; font-size: 11px; color: var(--ink-3); }
+.why-refs .mono { overflow-wrap: anywhere; }
+.why-sep { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-3); border-top: 1px solid var(--rule-strong); padding-top: 6px; }
 .duties { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
 .duties li { display: flex; gap: 8px; align-items: baseline; font-size: 13px; flex-wrap: wrap; }
 .duties .epoch { font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
@@ -394,18 +408,3 @@ td .sub { display: block; color: var(--ink-3); font-size: 12px; }
 .search-row input { flex: 1; min-width: 0; font: inherit; padding: 6px 8px; border: 1px solid var(--rule-strong); border-radius: 6px; background: var(--panel); color: inherit; }
 .bad-text { color: var(--bad); }
 .answer { display: block; margin-top: 4px; font-size: 12px; color: var(--ink-2); white-space: pre-wrap; max-height: 8em; overflow: auto; }
-
-/* ---------- provenance: "Why does this role exist?" ---------- */
-.role-head .why-btn { margin-left: auto; }
-.why { display: grid; gap: 6px; padding: 8px 10px; border-left: 2px solid var(--accent); background: var(--accent-soft); border-radius: 0 var(--radius) var(--radius) 0; }
-.why-chain { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
-.why-step { display: grid; grid-template-columns: 78px minmax(0, 1fr); gap: 8px; font-size: 13px; }
-.why-kind { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-3); padding-top: 2px; }
-.why-step.ok .why-kind { color: var(--ok); }
-.why-step.warn .why-kind { color: var(--warn); }
-.why-step.bad .why-kind { color: var(--bad); }
-.why-title { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; font-weight: 500; }
-.why-detail { color: var(--ink-2); overflow-wrap: anywhere; }
-.why-refs { display: flex; gap: 4px 10px; flex-wrap: wrap; font-size: 11px; color: var(--ink-3); }
-.why-refs .mono { overflow-wrap: anywhere; }
-.why-sep { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-3); border-top: 1px solid var(--rule-strong); padding-top: 6px; }
