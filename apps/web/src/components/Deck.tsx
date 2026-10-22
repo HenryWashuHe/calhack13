@@ -1,4 +1,7 @@
 import { useState } from "react";
+import type { Api } from "../lib/api";
+import { useCapabilityEvidence } from "../lib/useCapabilityEvidence";
+import { CapabilityEvidence } from "./CapabilityEvidence";
 import type { ChangeStatus, DomainEvent, Job, OrgChangeRecord, OrgState } from "../lib/contracts";
 import type { Commitment } from "../lib/useOrg";
 import { roleName, short } from "../lib/graph";
@@ -132,14 +135,19 @@ function Jobs({ jobs, state }: { jobs: Job[]; state: OrgState | null }) {
 }
 
 function Capabilities({
+  api,
   state,
+  jobs,
   events,
   ledger,
 }: {
+  api: Api;
   state: OrgState | null;
+  jobs: Job[];
   events: DomainEvent[];
   ledger: Commitment[];
 }) {
+  const evidence = useCapabilityEvidence(api, state, jobs);
   const installs = Object.values(state?.installations ?? {});
   const synthesis = new Map<string, number>();
   for (const e of events) {
@@ -188,6 +196,7 @@ function Capabilities({
           </table>
         </div>
       )}
+      <CapabilityEvidence state={state} jobs={jobs} evidence={evidence} />
       <div>
         <h3 className="muted" style={{ fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", margin: "0 0 6px" }}>
           Simulated commitment ledger
@@ -224,6 +233,7 @@ function Capabilities({
 type Tab = "changes" | "jobs" | "capabilities";
 
 export function Deck(props: {
+  api: Api;
   changes: OrgChangeRecord[];
   jobs: Job[];
   state: OrgState | null;
@@ -250,7 +260,13 @@ export function Deck(props: {
       <div className="panel-body">
         {tab === "changes" && <Changes changes={props.changes} state={props.state} />}
         {tab === "jobs" && <Jobs jobs={props.jobs} state={props.state} />}
-        {tab === "capabilities" && <Capabilities state={props.state} events={props.events} ledger={props.ledger} />}
+        {tab === "capabilities" && <Capabilities
+            api={props.api}
+            state={props.state}
+            jobs={props.jobs}
+            events={props.events}
+            ledger={props.ledger}
+          />}
       </div>
     </section>
   );
