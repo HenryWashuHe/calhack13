@@ -4,6 +4,41 @@ Updated: October 22, 2026.
 
 ## Current integration checkpoint
 
+Codex has pushed [PR #19](https://github.com/HenryWashuHe/genesis/pull/19),
+`codex/durable-adoption`, core `a640b36`, terminal recovery `f346d6a`, stacked on #18.
+B can create an adoption intent from its own requirement and trusted suite, discover
+one compatible foreign capability through its configured registry, and commit its
+own fresh local acceptance across restart. No A artifact ID is supplied, and B
+needs no model client or acquisition configuration. Explicit role creation and
+attachment remain organization-change operations.
+
+The selected installation, complete check batch and final local acceptance each
+commit atomically with the adoption stage. Child requests freeze adoption identity
+and recheck current requirement, suite, assignment/epoch, constitution scopes and
+deadline before/after provider work. Legacy endpoints cannot bypass adoption-owned
+installations. Terminal attention/fencing closes an unaccepted installation using
+an operational-stop reference, not a semantic verdict; child tickets and unknown
+effects remain. A later explicit new intent is separate work, never automatic replay.
+Registry transport is bounded, strict, redirect/retry-free and error-redacted.
+
+All **584 workspace tests** pass with `serde_json/preserve_order` (64 suites, zero
+failed/ignored), formatting and strict default-feature all-target Clippy pass.
+Focused evidence includes ten store tests, eight actual-server adoption tests and
+six registry-client tests. Integration proves independent B
+inputs/suite, lost-reply replay, atomic rollback at four boundaries, unknown POST
+preservation, authority/policy changes, verifier retirement, restart and successor
+invocation. Provider replies remain canned loopback fixtures, not live sponsor
+or cross-account access evidence. See [CAPABILITY_ADOPTION.md](CAPABILITY_ADOPTION.md).
+
+Next Codex slice connects automatic scenario mode to B's adoption worker. Manual
+mode remains compatible; automatic mode will observe the server decision rather
+than send an A artifact ID or manage legacy acceptance steps. Claim paths in issue
+#4 first. Claude retains planner/general lifecycle/saga/outbox, role activation,
+Elastic and UI; #11/#12 heads remain unchanged. The overarching goal remains active.
+Dependency order: #8 → #9 → #10 → #13 → #14 → #15 → #16 → #17 → #18 → #19.
+
+### Previous acquisition history checkpoint
+
 Codex has pushed [PR #18](https://github.com/HenryWashuHe/genesis/pull/18),
 `codex/acquisition-history`, implementation `9c09aaf`, final regression `18d1d9b`,
 stacked on #17. Operator-only acquisition listing and per-ID history support lost-ID

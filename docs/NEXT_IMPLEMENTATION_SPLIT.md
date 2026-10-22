@@ -1,17 +1,18 @@
 # Next GENESIS implementation split
 
-Current Codex checkpoint: [PR #18](https://github.com/HenryWashuHe/genesis/pull/18),
-`codex/acquisition-history`, implementation `9c09aaf`, final regression `18d1d9b`,
-stacked on #17. All 560 workspace tests (62 suites), formatting and strict Clippy
-pass. Bounded operator listing and durable redacted acquisition history now support
-recovery after timeout/restart, with atomic writes and honest legacy baselines.
+Current Codex checkpoint: [PR #19](https://github.com/HenryWashuHe/genesis/pull/19),
+`codex/durable-adoption`, core `a640b36`, terminal recovery `f346d6a`, stacked on #18.
+B's requirement-bound adoption now discovers a foreign capability and commits its
+own acceptance across restart without a model client. Atomic selection/jobs/proof
+and terminal closure preserve evidence and prevent legacy endpoint bypasses.
+See [CAPABILITY_ADOPTION.md](CAPABILITY_ADOPTION.md). All 584 workspace tests
+(64 suites), formatting and strict default-feature all-target Clippy pass.
 
-Codex is selecting the next core capability milestone under its ongoing goal and
-will claim the branch/paths in issue #4 before editing. Completed history APIs are
-available for Claude's UI integration; see [ACQUISITION_HISTORY.md](ACQUISITION_HISTORY.md).
-Claude retains planner, general lifecycle/saga/outbox, provider activation, Elastic
-and UI. Requested #11/#12 fixes remain assigned to Claude; no whole-kernel credit
-fallback is active.
+Next Codex milestone: automatic scenario integration with the adoption API, limited
+to scenario/observation helpers, tests and focused docs. Manual mode stays available.
+Claim branch/paths in issue #4 before edits. Claude retains planner, general
+lifecycle/saga/outbox, role activation, Elastic and UI; requested #11/#12 fixes
+remain assigned to Claude. No whole-kernel credit fallback is active.
 
 Assigned by Codex on October 21, 2026 at the user's explicit request to review
 Claude's PR, redivide work, communicate the assignments and continue implementation.

@@ -80,7 +80,7 @@ pub(crate) fn artifact(manifest: &CapabilityManifest) -> ArtifactPin {
     }
 }
 
-fn check_manifest(app: &AppState, manifest: &CapabilityManifest) -> ApiResult<()> {
+pub(crate) fn check_manifest(app: &AppState, manifest: &CapabilityManifest) -> ApiResult<()> {
     if !development(app) {
         if manifest.provenance.iter().any(|item| item == DEV_ASSERTION) {
             return Err(ApiError::new(
@@ -130,7 +130,7 @@ fn installed<'a>(
     Ok(installation)
 }
 
-fn authorize_permissions(
+pub(crate) fn authorize_permissions(
     state: &OrgState,
     role: &RoleId,
     responsibility: &ResponsibilityId,
@@ -297,36 +297,72 @@ pub struct ChecksBody {
     pub suite_id: String,
 }
 
-/// Evaluation is a separate, operator-authorized purpose. It requires an active
-/// assignment and every declared permission, but cannot grant general use yet.
-pub async fn checks(
-    State(app): State<AppState>,
-    p: Principal,
-    Path(id): Path<String>,
-    Json(body): Json<ChecksBody>,
-) -> ApiResult<(StatusCode, Json<Value>)> {
-    p.require(&[Principal::Operator])?;
+/// Shared transaction plan: preparation does no provider I/O. Call under the
+/// kernel lock and persist the jobs/batch with any enclosing intent checkpoint.
+pub(crate) struct ChecksPlan {
+    client_request_id: String,
+    batch_digest: String,
+    pub job_ids: Vec<JobId>,
+    prepared: Vec<(String, Job, CapabilityRunRecord)>,
+    pub effects: Vec<EventKind>,
+    existing: bool,
+}
+
+pub(crate) fn plan_checks(
+    app: &AppState,
+    state: &OrgState,
+    id: &InstallationId,
+    body: &ChecksBody,
+    adoption: Option<(&str, chrono::DateTime<Utc>)>,
+) -> ApiResult<ChecksPlan> {
     key(&body.client_request_id)?;
+    if adoption.is_none()
+        && app
+            .store
+            .adoption_owns_installation(id)
+            .map_err(|_| ApiError::internal("adoption ownership is unavailable"))?
+    {
+        return Err(ApiError::new(
+            StatusCode::CONFLICT,
+            "adoption_owned",
+            "advance the adoption intent to prepare its checks",
+        ));
+    }
     if app.providers.executor()?.provider() != Provider::Apify {
         return Err(ApiError::bad_request(
             "acceptance checks require a real Apify executor",
         ));
     }
-    let id = InstallationId::new(id);
     let suite = app
         .evidence_policy
         .suite(&body.suite_id)
         .ok_or_else(|| ApiError::bad_request("unknown backend oracle suite"))?;
-    let _guard = app.kernel.lock().await;
-    let state = app.current_state()?;
-    let installation = installed(&state, &id, InstallationStatus::Checking)?;
-    let manifest = app.store.capability_manifest(&id)?;
-    check_manifest(&app, &manifest)?;
-    authorize_permissions(&state, &body.role_id, &body.responsibility_id, &manifest)?;
+    let installation = installed(state, id, InstallationStatus::Checking)?;
+    let manifest = app.store.capability_manifest(id)?;
+    check_manifest(app, &manifest)?;
+    authorize_permissions(state, &body.role_id, &body.responsibility_id, &manifest)?;
     let batch_digest = genesis_verification::json_sha256(&json!({
         "installation_id":id,"role_id":body.role_id,"responsibility_id":body.responsibility_id,
         "suite":suite,"artifact":artifact(&manifest),"required_permissions":manifest.required_permissions,
     }));
+    let batch_digest = if let Some((adoption_id, deadline)) = adoption {
+        genesis_verification::json_sha256(
+            &json!({"batch":batch_digest,"adoption_id":adoption_id,"deadline":deadline}),
+        )
+    } else {
+        batch_digest
+    };
+    let purpose = match adoption {
+        Some((adoption_id, _)) => ExecutionPurpose::AdoptionAcceptance {
+            adoption_id: adoption_id.to_owned(),
+            installation_id: id.clone(),
+            suite_id: body.suite_id.clone(),
+        },
+        None => ExecutionPurpose::LocalAcceptance {
+            installation_id: id.clone(),
+            suite_id: body.suite_id.clone(),
+        },
+    };
     if let Some(existing) = app.store.capability_check_batch(&body.client_request_id)? {
         if existing.request_sha256 != batch_digest {
             return Err(ApiError::new(
@@ -335,12 +371,14 @@ pub async fn checks(
                 "check request key is bound to a different batch",
             ));
         }
-        return Ok((
-            StatusCode::OK,
-            Json(
-                json!({"installation_id":id,"suite_id":body.suite_id,"job_ids":existing.job_ids,"synthesis_calls":0}),
-            ),
-        ));
+        return Ok(ChecksPlan {
+            client_request_id: body.client_request_id.clone(),
+            batch_digest,
+            job_ids: existing.job_ids,
+            prepared: vec![],
+            effects: vec![],
+            existing: true,
+        });
     }
     let mut prepared = Vec::new();
     let mut effects = Vec::new();
@@ -366,17 +404,13 @@ pub async fn checks(
             required_scope: None,
             capability: None,
             provider: Some(Provider::Apify),
-            deadline: None,
+            deadline: adoption.map(|(_, deadline)| deadline),
         };
-        let (mut job, mut job_effects, _) = super::jobs::new_job(&app, &state, &dispatch)?;
+        let (mut job, mut job_effects, _) = super::jobs::new_job(app, state, &dispatch)?;
         job.capability = Some(installation.capability.clone());
         if let Some(existing) = app.store.find_capability_run(&client_key)? {
             let stored = app.store.get_job(&existing.job_id)?;
-            if existing.purpose
-                != (ExecutionPurpose::LocalAcceptance {
-                    installation_id: id.clone(),
-                    suite_id: body.suite_id.clone(),
-                })
+            if existing.purpose != purpose
                 || existing.required_permissions != manifest.required_permissions
                 || stored.role_id != job.role_id
                 || stored.responsibility_id != job.responsibility_id
@@ -400,14 +434,8 @@ pub async fn checks(
                 "check job key is already in use",
             ));
         }
-        let record = CapabilityRunRecord::new_for_acceptance(
-            &job,
-            request,
-            None,
-            id.clone(),
-            body.suite_id.clone(),
-        )?
-        .with_required_permissions(&job, manifest.required_permissions.clone())?;
+        let record = CapabilityRunRecord::new_with_purpose(&job, request, None, purpose.clone())?
+            .with_required_permissions(&job, manifest.required_permissions.clone())?;
         effects.append(&mut job_effects);
         effects.push(EventKind::CapabilityRunRequested {
             installation_id: id.clone(),
@@ -418,34 +446,65 @@ pub async fn checks(
         job_ids.push(job.job_id.clone());
         prepared.push((client_key, job, record));
     }
+    Ok(ChecksPlan {
+        client_request_id: body.client_request_id.clone(),
+        batch_digest,
+        job_ids,
+        prepared,
+        effects,
+        existing: false,
+    })
+}
+
+pub(crate) fn persist_checks(
+    tx: &rusqlite::Transaction<'_>,
+    plan: &ChecksPlan,
+) -> crate::store::StoreResult<()> {
+    if !plan.existing {
+        for (client_key, job, record) in &plan.prepared {
+            capability_runtime::insert_in_tx(tx, client_key, job, record)?;
+        }
+        capability_store::insert_check_batch(
+            tx,
+            &plan.client_request_id,
+            &plan.batch_digest,
+            &plan.job_ids,
+        )?;
+    }
+    Ok(())
+}
+
+/// Evaluation is a separate, operator-authorized purpose. It requires an active
+/// assignment and every declared permission, but cannot grant general use yet.
+pub async fn checks(
+    State(app): State<AppState>,
+    p: Principal,
+    Path(id): Path<String>,
+    Json(body): Json<ChecksBody>,
+) -> ApiResult<(StatusCode, Json<Value>)> {
+    p.require(&[Principal::Operator])?;
+    let id = InstallationId::new(id);
+    let _guard = app.kernel.lock().await;
+    let state = app.current_state()?;
+    let plan = plan_checks(&app, &state, &id, &body, None)?;
+    let status = if plan.prepared.is_empty() {
+        StatusCode::OK
+    } else {
+        StatusCode::ACCEPTED
+    };
     let events = app.store.commit_state(
         state.revision,
         &state,
-        effects,
-        &EventMeta::default().caused_by(body.client_request_id.clone()),
+        plan.effects.clone(),
+        &EventMeta::default().caused_by(body.client_request_id),
         vec![],
-        |tx| {
-            for (client_key, job, record) in &prepared {
-                capability_runtime::insert_in_tx(tx, client_key, job, record)?;
-            }
-            capability_store::insert_check_batch(
-                tx,
-                &body.client_request_id,
-                &batch_digest,
-                &job_ids,
-            )?;
-            Ok(())
-        },
+        |tx| persist_checks(tx, &plan),
     )?;
     app.broadcast(&events);
     Ok((
-        if prepared.is_empty() {
-            StatusCode::OK
-        } else {
-            StatusCode::ACCEPTED
-        },
+        status,
         Json(
-            json!({"installation_id":id,"suite_id":body.suite_id,"job_ids":job_ids,"synthesis_calls":0}),
+            json!({"installation_id":id,"suite_id":body.suite_id,"job_ids":plan.job_ids,"synthesis_calls":0}),
         ),
     ))
 }
@@ -471,12 +530,12 @@ pub enum AcceptanceBody {
     Development(DevelopmentAcceptance),
 }
 
-pub(crate) fn local_evidence(
+pub(crate) fn local_runs(
     app: &AppState,
     installation_id: &InstallationId,
     suite_id: &str,
     job_ids: &[JobId],
-) -> ApiResult<VerifiedEvidence> {
+) -> ApiResult<Vec<genesis_verification::ExecutionEvidence>> {
     let suite = app
         .evidence_policy
         .suite(suite_id)
@@ -488,16 +547,10 @@ pub(crate) fn local_evidence(
             "supply exactly one distinct locally collected job for each oracle case",
         ));
     }
-    let pin = artifact(&app.store.capability_manifest(installation_id)?);
     let mut evidence = Vec::new();
     for job_id in job_ids {
         let record = app.store.get_capability_run(job_id)?;
-        if record.purpose
-            != (ExecutionPurpose::LocalAcceptance {
-                installation_id: installation_id.clone(),
-                suite_id: suite_id.to_owned(),
-            })
-        {
+        if !record.purpose.is_acceptance_for(installation_id, suite_id) {
             return Err(ApiError::new(
                 StatusCode::CONFLICT,
                 "evidence_binding",
@@ -512,8 +565,19 @@ pub(crate) fn local_evidence(
             )
         })?);
     }
+    Ok(evidence)
+}
+
+pub(crate) fn local_evidence(
+    app: &AppState,
+    installation_id: &InstallationId,
+    suite_id: &str,
+    job_ids: &[JobId],
+) -> ApiResult<VerifiedEvidence> {
+    let pin = artifact(&app.store.capability_manifest(installation_id)?);
+    let runs = local_runs(app, installation_id, suite_id, job_ids)?;
     app.evidence_policy
-        .accept_suite(suite_id, &pin, &evidence)
+        .accept_suite(suite_id, &pin, &runs)
         .map_err(evidence_error)
 }
 
@@ -526,11 +590,37 @@ pub async fn acceptance(
     p.require(&[Principal::Operator, Principal::Adapter])?;
     let id = InstallationId::new(id);
     let _guard = app.kernel.lock().await;
+    if app
+        .store
+        .adoption_owns_installation(&id)
+        .map_err(|_| ApiError::internal("adoption ownership is unavailable"))?
+    {
+        return Err(ApiError::new(
+            StatusCode::CONFLICT,
+            "adoption_owned",
+            "advance the adoption intent to commit its acceptance",
+        ));
+    }
     let state = app.current_state()?;
     // Replays of completed acceptance are read-only only when the same proof is supplied.
     let mut proof = None;
     let (passed, reference, reasons) = match body {
         AcceptanceBody::Verified(body) => {
+            // Adoption acceptance and its intent checkpoint must commit together.
+            // Its coordinator owns this transition; the ordinary endpoint cannot
+            // leave an accepted installation behind a still-checking intent.
+            for job_id in &body.job_ids {
+                if matches!(
+                    app.store.get_capability_run(job_id)?.purpose,
+                    ExecutionPurpose::AdoptionAcceptance { .. }
+                ) {
+                    return Err(ApiError::new(
+                        StatusCode::CONFLICT,
+                        "adoption_owned",
+                        "advance the adoption intent to commit its acceptance",
+                    ));
+                }
+            }
             let evidence = local_evidence(&app, &id, &body.suite_id, &body.job_ids)?;
             proof = Some(LocalAcceptance {
                 suite_id: body.suite_id,
