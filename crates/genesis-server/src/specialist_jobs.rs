@@ -6,25 +6,25 @@
 //!   per job attempt) after checking live authority. Outbox redelivery finds
 //!   the same operation; it never causes a second POST.
 //! - The specialist poller advances each running job at most once per pass.
-//!   The full current grant (exact assignment and epoch, active mission before
-//!   its deadline, unexpired lease and job deadline, the same binding) is
-//!   checked before **each** provider call, including the read retry, and
-//!   again before a collected result is applied; a late result is archived as
-//!   `RESULT_REJECTED`.
-//! - The generic results route refuses these jobs: their results come only
-//!   from the runtime and stay unverified.
+//!   Live authority (active role, open responsibility, current epoch,
+//!   deadline, matching binding) is checked before **each** provider call,
+//!   including the single read retry, and again before a collected result is
+//!   applied; a late result is archived as `RESULT_REJECTED`.
+//! - Results are backend-managed: the generic `/jobs/{id}/results` API refuses
+//!   any job for which [`backend_managed`] holds, from creation onward.
 //! - Native completion is not task success: collected output is stored with
 //!   `domain_verified: false` and the job moves to `VERIFYING`. An unknown
 //!   submission outcome moves the job to `UNKNOWN` for reconciliation.
 
 use crate::app::AppState;
+use crate::capability_authority::authorize_job;
 use crate::store::{put_job, EventMeta, OutboxItem};
 use chrono::Utc;
 use genesis_core::events::EventKind;
 use genesis_core::ids::JobId;
 use genesis_core::jobs::Job;
 use genesis_core::lifecycle::{JobStatus, StateMachine};
-use genesis_core::model::AgentBinding;
+use genesis_core::model::{AgentBinding, Provider};
 use genesis_providers::{SpecialistProgress, SpecialistRuntime};
 use serde_json::json;
 use std::sync::Arc;
@@ -76,14 +76,14 @@ fn refuse(app: &AppState, job: &mut Job, reason: String, rejected: bool) -> Resu
     save(app, job, effects)
 }
 
-/// The job's full current grant (active role and open responsibility, the
-/// exact assignment and epoch, an active mission before its deadline, an
-/// unexpired assignment lease and job deadline) and the role's binding, which
-/// must be the agent the job was prepared for. Returns the binding.
+/// Live authority for a job; returns the role's binding.
 fn authorize(app: &AppState, job: &Job) -> Result<AgentBinding, String> {
     let state = app.current_state().map_err(|e| e.message)?;
-    crate::capability_authority::authorize_job(&state, job, None, Utc::now())
-        .map_err(|e| e.to_string())?;
+    // The same live grant used for executable capabilities also bounds
+    // specialist work: mission status/deadline, assignment lease/identity,
+    // role ownership, responsibility epoch and the job's own deadline.
+    // Job does not persist a required scope, so this does not claim to check it.
+    authorize_job(&state, job, None, Utc::now()).map_err(|e| e.to_string())?;
     let binding = state
         .roles
         .get(&job.role_id)
@@ -92,14 +92,19 @@ fn authorize(app: &AppState, job: &Job) -> Result<AgentBinding, String> {
     if Some(binding.provider) != job.provider {
         return Err("role binding does not match the job's provider".into());
     }
-    if job
-        .provider_refs
-        .get("agent_id")
-        .is_some_and(|prepared| prepared != &binding.provider_agent_id)
-    {
-        return Err("the role's agent changed after the job was prepared".into());
-    }
     Ok(binding)
+}
+
+/// Providers whose job results are collected by the backend specialist
+/// runtime, never reported through the generic results API.
+pub(crate) const BACKEND_MANAGED: &[Provider] = &[Provider::Creao];
+
+/// Whether a job's result belongs to the specialist runtime. Uses only fields
+/// persisted on the job from creation, so the answer does not change across a
+/// restart or when the provider is no longer configured.
+pub(crate) fn backend_managed(job: &Job) -> bool {
+    job.provider.is_some_and(|p| BACKEND_MANAGED.contains(&p))
+        || job.provider_refs.contains_key(OPERATION)
 }
 
 fn runtime_for(app: &AppState, job: &Job) -> Option<Arc<dyn SpecialistRuntime>> {
@@ -177,10 +182,10 @@ pub(crate) async fn advance_jobs(app: &AppState) {
     }
 }
 
-/// Check live authority before a provider call. Returns `false` (after
-/// archiving the job as rejected if authority was lost) when the job must not
-/// advance. The kernel lock is never held across provider I/O.
-async fn authorized_for_advance(app: &AppState, job_id: &JobId) -> Result<bool, String> {
+/// Check live authority under the kernel lock and release it before returning.
+/// `Ok(false)` means the job must not proceed (already terminal, or refused
+/// here as `RESULT_REJECTED`).
+async fn still_authorized(app: &AppState, job_id: &JobId, when: &str) -> Result<bool, String> {
     let _guard = app.kernel.lock().await;
     let mut job = app.store.get_job(job_id).map_err(|e| e.to_string())?;
     if !matches!(job.status, JobStatus::Submitting | JobStatus::Running) {
@@ -190,30 +195,12 @@ async fn authorized_for_advance(app: &AppState, job_id: &JobId) -> Result<bool, 
         refuse(
             app,
             &mut job,
-            format!("authority lost before advance: {reason}"),
+            format!("authority lost {when}: {reason}"),
             true,
         )?;
         return Ok(false);
     }
     Ok(true)
-}
-
-/// Results of jobs run through an asynchronous specialist runtime are
-/// collected by the backend and stay unverified until a domain verifier
-/// decides. The generic results route may not report or verify them. Keyed
-/// on the job's durable provider, so it holds across restarts and while the
-/// runtime is not configured.
-pub(crate) fn reject_generic_result(job: &Job) -> Result<(), crate::error::ApiError> {
-    let managed = matches!(job.provider, Some(genesis_core::model::Provider::Creao))
-        || job.provider_refs.contains_key(OPERATION);
-    if managed {
-        return Err(crate::error::ApiError::new(
-            axum::http::StatusCode::CONFLICT,
-            "managed_specialist_result",
-            "this job's result is collected by the backend specialist runtime; callers cannot report or verify it",
-        ));
-    }
-    Ok(())
 }
 
 async fn advance_job(
@@ -222,30 +209,30 @@ async fn advance_job(
     op: &str,
     runtime: Arc<dyn SpecialistRuntime>,
 ) -> Result<(), String> {
-    let timeout = app.provision_timeout;
-    let mut progress = None;
-    // At most two provider calls: a failed read may be retried once (a POST
-    // never is by the runtime). Live authority is checked before **each**
-    // call, so a handoff during the first call stops the retry.
-    for retry in [false, true] {
-        if !authorized_for_advance(app, job_id).await? {
-            return Ok(());
-        }
-        let attempt = tokio::time::timeout(timeout, runtime.advance(op, retry))
-            .await
-            .map_err(|_| "provider call timed out".to_owned())
-            .and_then(|r| r.map_err(|e| e.to_string()));
-        match attempt {
-            Ok(p) => {
-                progress = Some(p);
-                break;
-            }
-            Err(error) if retry => return Err(error),
-            Err(_) => {}
-        }
-    }
-    let Some(progress) = progress else {
+    if !still_authorized(app, job_id, "before advance").await? {
         return Ok(());
+    }
+    let timeout = app.provision_timeout;
+    let once = |retry| {
+        let runtime = runtime.clone();
+        async move {
+            tokio::time::timeout(timeout, runtime.advance(op, retry))
+                .await
+                .map_err(|_| "provider call timed out".to_owned())?
+                .map_err(|e| e.to_string())
+        }
+    };
+    let progress = match once(false).await {
+        Ok(p) => p,
+        // A failed read may be retried; a POST never is. Ownership can change
+        // while the first call is in flight, so authority is checked again
+        // before the retry (the kernel lock is not held across provider I/O).
+        Err(_) => {
+            if !still_authorized(app, job_id, "before retry").await? {
+                return Ok(());
+            }
+            once(true).await?
+        }
     };
 
     let _guard = app.kernel.lock().await;

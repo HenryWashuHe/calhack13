@@ -1,0 +1,31 @@
+[package]
+name = "genesis-elastic"
+description = "Elastic projections and retrieval for GENESIS: organization evidence and shared capability manifests"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+genesis-core.workspace = true
+genesis-providers.workspace = true
+async-trait.workspace = true
+chrono.workspace = true
+reqwest.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+dotenvy = "0.15"
+tracing.workspace = true
+
+axum = { workspace = true, optional = true }
+tokio.workspace = true
+
+[features]
+# In-process Elasticsearch fake for tests in this and dependent crates.
+fake = ["dep:axum"]
+
+[dev-dependencies]
+axum.workspace = true
+tokio.workspace = true
+genesis-elastic = { path = ".", features = ["fake"] }
