@@ -1,11 +1,13 @@
 //! Delivery of jobs to Elastic Agent Builder specialists.
 //!
 //! An outbox `job_dispatch` item for provider `elastic` becomes one
-//! synchronous converse turn with the role's agent. Authority is checked
-//! against the live organization immediately before the call and again before
-//! the answer is applied: the role must still be active, the responsibility
-//! open, and the job's epoch current. A late answer is archived as
-//! `RESULT_REJECTED`.
+//! synchronous converse turn with the role's agent. The job's full dispatch
+//! grant is checked against the live organization immediately before the call
+//! and again before the answer is applied: active role and open
+//! responsibility, active mission within its deadline, active assignment
+//! within its lease, unchanged assignment and epoch, and the same Elastic
+//! agent. A late answer is archived as `RESULT_REJECTED`. The generic
+//! `/jobs/{id}/results` API refuses Elastic jobs ([`backend_managed`]).
 //!
 //! The agent's answer is untrusted analysis. It is stored on the job with
 //! `domain_verified: false` and the job moves to `VERIFYING`, never
@@ -17,7 +19,6 @@
 use crate::app::AppState;
 use crate::store::{put_job, EventMeta, OutboxItem};
 use chrono::Utc;
-use genesis_core::engine;
 use genesis_core::events::EventKind;
 use genesis_core::ids::JobId;
 use genesis_core::jobs::Job;
@@ -76,13 +77,24 @@ fn job_input(job: &Job, purpose: &str) -> String {
     )
 }
 
-/// Check live authority for `job`. Returns the agent ID on success.
+/// Whether a job's result belongs to this backend path. Uses only fields
+/// persisted on the job, so the answer survives a restart and does not depend
+/// on Elastic being configured.
+pub(crate) fn backend_managed(job: &Job) -> bool {
+    job.provider == Some(Provider::Elastic) || job.provider_refs.contains_key("conversation_id")
+}
+
+/// Check the job's full current dispatch grant: job deadline, role and
+/// responsibility, active mission and its deadline, active assignment and its
+/// lease, unchanged assignment identity and epoch (the same rules capability
+/// work uses). The role must still be bound to the Elastic agent the job was
+/// dispatched to. Returns the agent ID and responsibility purpose.
 fn authorize(app: &AppState, job: &Job) -> Result<(String, String), String> {
     let state = app.current_state().map_err(|e| e.message)?;
-    engine::check_job_result(&state, &job.role_id, &job.responsibility_id, job.epoch)
+    crate::capability_authority::authorize_job(&state, job, None, Utc::now())
         .map_err(|e| e.to_string())?;
-    if job.deadline.is_some_and(|d| d <= Utc::now()) {
-        return Err("job deadline has passed".into());
+    if job.provider != Some(Provider::Elastic) {
+        return Err("job is not an Elastic job".into());
     }
     let role = state
         .roles
@@ -93,6 +105,13 @@ fn authorize(app: &AppState, job: &Job) -> Result<(String, String), String> {
         .as_ref()
         .filter(|b| b.provider == Provider::Elastic)
         .ok_or_else(|| "role has no Elastic agent binding".to_owned())?;
+    if job
+        .provider_refs
+        .get("agent_id")
+        .is_some_and(|saved| *saved != binding.provider_agent_id)
+    {
+        return Err("role's Elastic agent changed since dispatch".into());
+    }
     let purpose = state
         .responsibilities
         .get(&job.responsibility_id)

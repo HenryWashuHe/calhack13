@@ -9,6 +9,7 @@
 
 pub mod app;
 pub mod auth;
+pub mod capability_authority;
 pub mod capability_evidence;
 pub mod capability_runtime;
 pub mod capability_store;
