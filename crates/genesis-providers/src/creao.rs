@@ -2,7 +2,7 @@
 //! authorize dispatch and independently prove readiness/domain results. Native
 //! creation deliberately does not implement the synchronous RoleProvisioner trait.
 
-use crate::{ProviderError, ProvisionRequest};
+use crate::{PreEffectGuard, ProviderError, ProvisionRequest};
 use async_trait::async_trait;
 use genesis_core::ids::{
     AssignmentId, AttemptId, JobId, MissionId, OrgId, ResponsibilityId, RoleId,
@@ -160,6 +160,17 @@ pub trait SpecialistRuntime: Send + Sync {
         operation_id: &str,
         retry_read: bool,
     ) -> Result<SpecialistProgress, ProviderError>;
+    /// Check backend authority after provider queue/quota admission and before
+    /// each network effect. Implementations without this guarantee reject;
+    /// silently delegating to unguarded advance would drop the authority fence.
+    async fn advance_guarded(
+        &self,
+        _operation_id: &str,
+        _retry_read: bool,
+        _guard: PreEffectGuard,
+    ) -> Result<SpecialistProgress, ProviderError> {
+        Err(rejected("guarded specialist advancement is not supported"))
+    }
 }
 
 #[derive(Clone)]
@@ -381,6 +392,21 @@ impl SpecialistRuntime for CreaoSpecialist {
         progress(
             self.runtime
                 .step(operation_id, retry_read)
+                .await
+                .map_err(runtime_error)?,
+        )
+    }
+
+    async fn advance_guarded(
+        &self,
+        operation_id: &str,
+        retry_read: bool,
+        guard: PreEffectGuard,
+    ) -> Result<SpecialistProgress, ProviderError> {
+        specialist_purpose(&self.runtime.get(operation_id).map_err(runtime_error)?)?;
+        progress(
+            self.runtime
+                .step_guarded(operation_id, retry_read, guard)
                 .await
                 .map_err(runtime_error)?,
         )

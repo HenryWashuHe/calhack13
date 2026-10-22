@@ -623,3 +623,106 @@ async fn readiness_records_are_never_exposed_or_driven_as_role_or_job_progress()
         assert!(requests[1].starts_with(&format!("GET /v1/runs/{RUN_A} ")));
     }
 }
+
+#[tokio::test]
+async fn guarded_specialist_advance_forwards_authority_and_preserves_execution_receipts() {
+    let mock = Mock::serve(vec![
+        Reply {
+            status: 202,
+            body: response(RUN_A, Some(AGENT), "pending", None),
+        },
+        Reply {
+            status: 200,
+            body: response(
+                RUN_A,
+                Some(AGENT),
+                "completed",
+                Some(json!({"assessment":"fixture only"})),
+            ),
+        },
+    ])
+    .await;
+    let (adapter, store) = specialist(&mock.base);
+    let denied = adapter.prepare_job(&job(), &binding()).unwrap();
+    let denied = adapter
+        .advance_guarded(
+            denied.operation_id(),
+            false,
+            Arc::new(|| Box::pin(async { false })),
+        )
+        .await
+        .unwrap();
+    assert!(matches!(
+        denied,
+        SpecialistProgress::Failed { run_id: None, .. }
+    ));
+    assert!(mock.requests.lock().unwrap().is_empty());
+
+    let mut allowed_job = job();
+    allowed_job.job_id = JobId::new("guarded-allowed-job");
+    allowed_job.attempt_id = AttemptId::new("guarded-allowed-attempt");
+    let prepared = adapter.prepare_job(&allowed_job, &binding()).unwrap();
+    let op = prepared.operation_id();
+    let guard: genesis_providers::PreEffectGuard = Arc::new(|| Box::pin(async { true }));
+    assert!(matches!(
+        adapter
+            .advance_guarded(op, false, guard.clone())
+            .await
+            .unwrap(),
+        SpecialistProgress::Pending {
+            run_id: Some(_),
+            ..
+        }
+    ));
+    due(&store, op).await;
+    assert!(matches!(
+        adapter.advance_guarded(op, false, guard).await.unwrap(),
+        SpecialistProgress::Collected {
+            domain_verified: false,
+            ..
+        }
+    ));
+    let receipt = adapter.execution_receipt(&allowed_job, &binding()).unwrap();
+    assert_eq!(receipt.job_id, allowed_job.job_id);
+    assert_eq!(receipt.run_id, RUN_A);
+    assert_eq!(receipt.output, Some(json!({"assessment":"fixture only"})));
+    let requests = mock.finish().await;
+    assert_eq!(requests.len(), 2);
+    assert!(requests[0].starts_with("POST /v1/runs "));
+    assert!(requests[1].starts_with(&format!("GET /v1/runs/{RUN_A} ")));
+}
+
+struct UnguardedOnly;
+#[async_trait::async_trait]
+impl SpecialistRuntime for UnguardedOnly {
+    fn provider(&self) -> Provider {
+        Provider::Creao
+    }
+    fn org_id(&self) -> &str {
+        "org-a"
+    }
+    fn prepare_role(&self, _: &ProvisionRequest) -> Result<SpecialistProgress, ProviderError> {
+        unreachable!()
+    }
+    fn prepare_job(&self, _: &Job, _: &AgentBinding) -> Result<SpecialistProgress, ProviderError> {
+        unreachable!()
+    }
+    fn get(&self, _: &str) -> Result<SpecialistProgress, ProviderError> {
+        unreachable!()
+    }
+    async fn advance(&self, _: &str, _: bool) -> Result<SpecialistProgress, ProviderError> {
+        panic!("a guarded call must never silently invoke the unguarded adapter")
+    }
+}
+
+#[tokio::test]
+async fn unsupported_guarded_adapter_rejects_without_using_unguarded_advance() {
+    let result = UnguardedOnly
+        .advance_guarded(
+            "opaque-operation",
+            false,
+            Arc::new(|| Box::pin(async { true })),
+        )
+        .await;
+    assert!(matches!(result, Err(ProviderError::Rejected(_))));
+}

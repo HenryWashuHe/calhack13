@@ -29,8 +29,9 @@ hands off its work. Give the same agent two distinct later venue updates. It
 uses the approved capability's observations and mission constraints to assess
 whether the event remains feasible or relocation must reopen, with cited facts
 and a structured reason. Show its assessment affecting the mission only after
-domain verification. This is proposed completion of the existing monitor role,
-not a new planner or a replacement for dynamic role creation.
+domain verification. The [persistent assessment API](VENUE_ASSESSMENTS.md) implements
+this work using the existing specialist runtime. It complements the planner and
+dynamic role creation; it does not replace either.
 
 Responsibilities remain separate:
 
@@ -44,15 +45,18 @@ Responsibilities remain separate:
 
 ## What is still missing
 
-Main contains capability work through #24. The specialist/readiness code described
-below is on held source PRs #20/#26/#29 and assembled in draft #25, not on main.
+The specialist, gateway readiness and probe stack (#20/#26/#29) is merged.
+Obsolete combined draft #25 was closed after its unique scenario regression was
+preserved in #68. See the current [review queue](PR_REVIEW_QUEUE.md).
 
 - The current scenario's inherited "monitor" execution calls `/capability-runs`;
   that route selects Apify. It does not demonstrate CREAO mission execution.
   See `capability_scenario.rs::invoke` and `routes/capabilities.rs`.
-- CREAO creation and the gateway probe in draft #29 establish neither core work
-  nor a verified mission result. Collected specialist output remains subject to
-  domain verification in draft #25's `specialist_jobs.rs`; preserve that boundary.
+- CREAO creation and the gateway probe establish neither core work nor a
+  verified mission result. The assessment path now separately verifies native
+  result text against frozen venue facts and applies accepted mission effects.
+  Its automated tests use loopback providers and synthetic initial setup. The
+  two-organization scenario still needs to invoke this path with actual providers.
 - Capture the qualifying agent's build/save provenance on `agent.creao.ai`.
   If relying solely on API-created agents for eligibility, confirm that reading
   of the sponsor's wording at the booth instead of assuming it.
@@ -62,10 +66,10 @@ below is on held source PRs #20/#26/#29 and assembled in draft #25, not on main.
 - Add the real agent ID and selected share link to the Devpost README and confirm
   the track selection during submission. Both evidence values are still pending.
 
-The source-review blockers in [PR_REVIEW_QUEUE.md](PR_REVIEW_QUEUE.md) remain the
-immediate priority. Claude/Eric retains kernel activation, specialist result
-guards and UI; Codex retains provider/capability work and narrow integration.
-This note does not transfer ownership or declare the full mission complete.
+Claude/Eric retains kernel/planner/readiness/UI ownership; Codex retains
+provider/capability work and narrow assessment integration. Current claims and
+handoffs are coordinated in [issue #4](https://github.com/HenryWashuHe/genesis/issues/4).
+This note does not declare the full mission or native sponsor evidence complete.
 
 ## Avoid mixing the two CREAO API contracts
 

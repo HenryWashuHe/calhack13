@@ -343,6 +343,11 @@ fn restore_proof(
 
 pub async fn read(app: &AppState, id: &JobId) -> ApiResult<InvocationProof> {
     let _guard = app.kernel.lock().await;
+    read_locked(app, id)
+}
+
+/// Caller holds the kernel lock, including while freezing downstream work.
+pub(crate) fn read_locked(app: &AppState, id: &JobId) -> ApiResult<InvocationProof> {
     let stored = app
         .store
         .invocation_proof(id)?
