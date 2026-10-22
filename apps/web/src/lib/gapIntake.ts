@@ -88,6 +88,9 @@ export function intakeDetail(gap: CapabilityGap, s: GapIntakeStatus | undefined)
   }
   if (gap.status.state === "acquiring") {
     const where = `acquisition ${gap.status.acquisition_id}`;
+    // The flag says only that gap intake is off on this server now (e.g. after
+    // a restart without the policy); it does not say the acquisition stopped.
+    if (!s.enabled) return `${where} · automatic gap intake is disabled on this server; the acquisition record is kept`;
     if (s.state === "attention" && s.code) return `${where} · ${CODE[s.code].text}`;
     return `${where} · generating, building and independently verifying`;
   }
@@ -126,8 +129,13 @@ export function useGapIntake(api: Api, state: OrgState | null): Record<string, G
   const ids = useMemo(() => liveGaps(state).map((g) => g.gap_id), [state]);
   const key = ids.join(",");
   const generation = useRef(0);
+  // Per gap: the sequence number of the newest request sent and of the newest
+  // response applied. A slow older poll can never overwrite a newer answer.
+  const sequence = useRef(0);
+  const applied = useRef(new Map<string, number>());
   useEffect(() => {
     generation.current += 1;
+    applied.current = new Map();
     setStatuses({});
   }, [api]);
   useEffect(() => {
@@ -136,12 +144,14 @@ export function useGapIntake(api: Api, state: OrgState | null): Record<string, G
     let stopped = false;
     const poll = () => {
       for (const id of ids) {
+        const seq = ++sequence.current;
         api
           .get<GapIntakeStatus>(`/capability-gaps/${encodeURIComponent(id)}/acquisition`)
           .then((s) => {
-            if (!stopped && generation.current === mine && s.gap_id === id) {
-              setStatuses((p) => ({ ...p, [id]: s }));
-            }
+            if (stopped || generation.current !== mine || s.gap_id !== id) return;
+            if ((applied.current.get(id) ?? 0) > seq) return;
+            applied.current.set(id, seq);
+            setStatuses((p) => ({ ...p, [id]: s }));
           })
           .catch(() => undefined);
       }
