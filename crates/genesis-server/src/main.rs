@@ -6,6 +6,9 @@ use genesis_core::model::Constitution;
 use genesis_providers::{ApifyCapabilityExecutor, DevStub, ProviderSet};
 use genesis_server::auth::Tokens;
 use genesis_server::capability_acquisition_store::AcquisitionPolicy;
+use genesis_server::capability_scenario::{
+    ScenarioDriver, ScenarioEndpoint, ScenarioLimits, ScenarioSpec,
+};
 use genesis_server::registry::RegistryState;
 use genesis_server::{
     build_org, parse_publishers, spawn_org, spawn_registry, AcquisitionConfig, OrgConfig,
@@ -28,6 +31,17 @@ struct Cli {
 enum Command {
     /// Serve one organization instance. Set APIFY_TOKEN to enable real Apify execution.
     Org(Box<OrgArgs>),
+    /// Demonstrate acquisition and independent inheritance across two fresh organizations.
+    /// Operator credentials are read only from GENESIS_ORG_A_OPERATOR_TOKEN and
+    /// GENESIS_ORG_B_OPERATOR_TOKEN; provider credentials remain on each server.
+    Scenario {
+        #[arg(long, value_name = "PATH")]
+        spec: PathBuf,
+        #[arg(long, value_name = "URL")]
+        org_a: String,
+        #[arg(long, value_name = "URL")]
+        org_b: String,
+    },
     /// Serve the shared capability registry.
     Registry {
         #[arg(long, env = "GENESIS_REGISTRY_DB", default_value = "data/registry.db")]
@@ -190,6 +204,21 @@ fn org_providers(
 async fn main() -> anyhow::Result<()> {
     init_tracing();
     match Cli::parse().command {
+        Command::Scenario { spec, org_a, org_b } => {
+            let spec: ScenarioSpec = load_trusted_json(&spec)?;
+            let token_a = secret_from_env("GENESIS_ORG_A_OPERATOR_TOKEN")?
+                .context("GENESIS_ORG_A_OPERATOR_TOKEN is required")?;
+            let token_b = secret_from_env("GENESIS_ORG_B_OPERATOR_TOKEN")?
+                .context("GENESIS_ORG_B_OPERATOR_TOKEN is required")?;
+            let driver = ScenarioDriver::new(
+                ScenarioEndpoint::new(&org_a, &token_a)?,
+                ScenarioEndpoint::new(&org_b, &token_b)?,
+                ScenarioLimits::default(),
+            )?;
+            let report = driver.run(&spec).await?;
+            println!("{}", serde_json::to_string_pretty(&report)?);
+            Ok(())
+        }
         Command::Org(args) => {
             let OrgArgs {
                 org_id,
@@ -349,6 +378,52 @@ mod cli_tests {
     use genesis_verification::OracleSuite;
     use serde_json::Value;
     use std::io::Write;
+
+    #[test]
+    fn scenario_cli_requires_explicit_endpoints_and_keeps_credentials_out_of_arguments() {
+        let args = [
+            "genesis",
+            "scenario",
+            "--spec",
+            "scenario.json",
+            "--org-a",
+            "http://127.0.0.1:7101",
+            "--org-b",
+            "http://127.0.0.1:7102",
+        ];
+        assert!(matches!(Cli::try_parse_from(args).unwrap().command,
+            Command::Scenario { spec, org_a, org_b }
+                if spec == Path::new("scenario.json")
+                    && org_a == "http://127.0.0.1:7101"
+                    && org_b == "http://127.0.0.1:7102"));
+        assert!(Cli::try_parse_from(&args[..6]).is_err());
+        for forbidden in [
+            "--operator-token",
+            "--org-a-operator-token",
+            "--apify-token",
+            "--anthropic-api-key",
+        ] {
+            let mut with_secret = args.to_vec();
+            with_secret.extend([forbidden, "synthetic-cli-secret"]);
+            assert!(Cli::try_parse_from(with_secret).is_err());
+        }
+    }
+
+    #[test]
+    fn example_scenario_is_strict_and_requires_explicit_provider_access_configuration() {
+        let mut file = tempfile::NamedTempFile::new().unwrap();
+        file.write_all(include_bytes!("../examples/scenario/mission.json"))
+            .unwrap();
+        let spec: ScenarioSpec = load_trusted_json(file.path()).unwrap();
+        assert_ne!(spec.suite_a_id, spec.suite_b_id);
+        assert!(spec.allow_development_roles);
+        assert!(!spec.provider_access_acknowledged);
+        assert_eq!(spec.invocation_input["attendees"], 150);
+
+        let mut with_oracle = serde_json::to_value(spec).unwrap();
+        with_oracle["expected"] = serde_json::json!({"forbidden":"oracle"});
+        assert!(serde_json::from_value::<ScenarioSpec>(with_oracle).is_err());
+    }
 
     #[test]
     fn trusted_input_flags_are_repeatable_and_org_only() {
