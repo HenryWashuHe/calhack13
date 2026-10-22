@@ -17,6 +17,8 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tokio::sync::Notify;
 
+// Reconcile/Failed are scripted outcomes kept for future probes.
+#[allow(dead_code)]
 #[derive(Clone, Copy)]
 enum Step {
     Pending,
@@ -235,7 +237,12 @@ impl Org {
 }
 
 async fn start(fake: Arc<Fake>) -> Org {
-    let cfg = OrgConfig::dev("org_a", "Org A");
+    start_in(fake, None).await
+}
+
+async fn start_in(fake: Arc<Fake>, db: Option<std::path::PathBuf>) -> Org {
+    let mut cfg = OrgConfig::dev("org_a", "Org A");
+    cfg.db = db;
     let providers = ProviderSet::new()
         .with_dev_stub(DevStub::default())
         .with_specialist(fake);
@@ -401,4 +408,71 @@ async fn honest_native_collection_remains_unverified_control() {
         .await;
     assert_eq!(job["result"]["domain_verified"], false);
     assert!(org.get("/ledger").await.as_array().unwrap().is_empty());
+}
+
+// Henry's Claude follow-ups to the #20 review: the guard must rest on fields
+// persisted with the job, and a caller-chosen provider must not route a CREAO
+// role's job around the specialist runtime.
+
+async fn forged(base: &str, job: &Value, op: &str) -> (reqwest::StatusCode, Value) {
+    let r = reqwest::Client::new()
+        .post(format!(
+            "{base}/api/v1/jobs/{}/results",
+            job["job_id"].as_str().unwrap()
+        ))
+        .bearer_auth("org_a-adapter")
+        .json(&json!({"attempt_id":job["attempt_id"],"epoch":job["epoch"],
+            "outcome":"succeeded","provider_status":"caller says done","provider_refs":{},
+            "output":{"unverified":"CALLER_CANARY"},"operation_id":op,
+            "domain_verified":true,"completes_responsibility":true}))
+        .send()
+        .await
+        .unwrap();
+    let s = r.status();
+    (s, r.json().await.unwrap_or(Value::Null))
+}
+
+#[tokio::test]
+async fn managed_result_guard_survives_restart_without_creao_configured() {
+    let dir = tempfile::tempdir().unwrap();
+    let db = dir.path().join("org.db");
+    let org = start_in(Fake::new(&[Step::Pending]), Some(db.clone())).await;
+    let job_id = org.dispatch("restart-managed-result").await;
+    let job = org
+        .wait(&format!("/jobs/{job_id}"), |j| j["status"] == "RUNNING")
+        .await;
+
+    // Same database, CREAO no longer configured and no development stub.
+    let mut cfg = OrgConfig::dev("org_a", "Org A");
+    cfg.db = Some(db);
+    cfg.dev_stub = false;
+    let reopened = build_org(&cfg, Some(ProviderSet::new())).unwrap();
+    let addr = spawn_org(reopened, "127.0.0.1:0").await.unwrap();
+    let (status, body) = forged(&format!("http://{addr}"), &job, "forged-after-restart").await;
+    assert_eq!(status, reqwest::StatusCode::CONFLICT, "{body}");
+    assert_eq!(body["error"], "managed_specialist_result", "{body}");
+    assert!(org.get("/ledger").await.as_array().unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn dispatch_cannot_route_a_creao_role_around_its_specialist() {
+    let org = start(Fake::new(&[Step::Pending])).await;
+    for provider in ["internal", "dev_stub", "elastic"] {
+        let (s, body) = org
+            .post(
+                "/jobs",
+                json!({"client_request_id": format!("override-{provider}"), "role_id": org.monitor,
+                       "responsibility_id": org.responsibility, "task": "Handle venue updates",
+                       "input": {"update": 1}, "required_scope": null, "capability": null,
+                       "provider": provider, "deadline": null}),
+            )
+            .await;
+        assert_eq!(s, reqwest::StatusCode::CONFLICT, "{provider}: {body}");
+        assert_eq!(body["error"], "provider_mismatch", "{provider}: {body}");
+    }
+    assert!(org.get("/jobs").await.as_array().unwrap().is_empty());
+    // Omitting the provider still dispatches to the bound specialist.
+    let job_id = org.dispatch("bound-provider").await;
+    let job = org.get(&format!("/jobs/{job_id}")).await;
+    assert_eq!(job["provider"], "creao");
 }
