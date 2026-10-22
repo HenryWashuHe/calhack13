@@ -5,7 +5,13 @@
 mod scaffold;
 mod session;
 mod source;
+pub mod synthesis;
+pub mod synthesis_http;
+mod synthesis_source;
 
 pub use scaffold::venue_source;
 pub use session::*;
 pub use source::*;
+pub use synthesis::*;
+pub use synthesis_http::AnthropicGenerator;
+pub use synthesis_source::generated_candidate;

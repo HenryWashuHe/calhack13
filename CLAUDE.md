@@ -41,3 +41,9 @@ branch, and avoid duplicating those fixes. This does not activate the kernel fal
 Codex reserves `crates/genesis-fetch`, `services/fetch-bridge`, their tests, the
 Fetch proof script and docs. The planner branch is Claude-owned; no planner edits
 are included in this workstream.
+
+Current Codex goal: `codex/capability-synthesis`, based on merged main `5c4dd1a`.
+Reserved paths are the new forge synthesis modules, CLI/tests/examples and focused
+docs. See [CAPABILITY_SYNTHESIS.md](docs/CAPABILITY_SYNTHESIS.md). Claude keeps
+planner/kernel activation, Elastic and UI. Generation is candidate source, not
+verification or installation authority; integrate it through the existing forge.
