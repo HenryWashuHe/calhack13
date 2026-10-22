@@ -30,6 +30,8 @@ remains `5c4dd1a`; the current open dependency stack is #8 → #9 → #10. Claud
 `feat/planner` remains `caac0dc` at this checkpoint; that does not establish credit
 exhaustion or authorize a whole-kernel takeover.
 
+## Prior integration checkpoints
+
 Codex has pushed [PR #9](https://github.com/HenryWashuHe/genesis/pull/9),
 `codex/capability-acquisition`, code checkpoint `6853f16`, stacked on PR #8. One
 `AcquisitionSession` now carries generation, Actor packaging/build and independent
@@ -42,7 +44,8 @@ workspace formatting and strict all-target Clippy pass. No live provider calls
 were made. Use the same embedded scaffold/binary through each acquisition.
 
 The user has requested ongoing autonomous implementation across milestones.
-Codex's next scoped slice is mission-bound server acquisition: durable SQLite
+The next slice announced at that checkpoint was mission-bound server acquisition,
+now implemented in PR #10 above: durable SQLite
 intent/step/status, current assignment/lease/deadline checks, persistent count
 quotas and trusted publication-proof lookup. New capability modules/routes and
 narrow app registrations/evidence lookup are Codex-owned; Claude keeps planner,
