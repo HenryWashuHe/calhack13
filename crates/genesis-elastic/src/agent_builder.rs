@@ -191,6 +191,26 @@ impl AgentBuilder {
         }
     }
 
+    /// Delete an agent or tool (`collection` is `agents` or `tools`). A
+    /// missing resource counts as deleted. Used for explicit cleanup only.
+    pub async fn delete(&self, collection: &str, id: &str) -> Result<(), ProviderError> {
+        if collection != "agents" && collection != "tools" {
+            return Err(ProviderError::Rejected(
+                "can only delete agents or tools".into(),
+            ));
+        }
+        let (status, body) = self
+            .send(
+                self.http.delete(self.url(&format!("{collection}/{id}"))),
+                true,
+            )
+            .await?;
+        match status {
+            200..=299 | 404 => Ok(()),
+            _ => Err(http_err(status, &body)),
+        }
+    }
+
     /// Create `body` at `collection`, or confirm an identical existing one.
     /// `same` decides whether an existing resource matches what we sent.
     async fn ensure(

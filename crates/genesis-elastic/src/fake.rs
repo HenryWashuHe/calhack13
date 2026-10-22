@@ -366,6 +366,27 @@ async fn kibana_post(
     (StatusCode::OK, Json(stored))
 }
 
+async fn kibana_delete(
+    State(s): State<KibanaShared>,
+    Path(params): Path<std::collections::HashMap<String, String>>,
+    axum::extract::OriginalUri(uri): axum::extract::OriginalUri,
+    headers: HeaderMap,
+) -> (StatusCode, Json<Value>) {
+    kibana_record(&s, "DELETE", uri.path(), &headers);
+    let mut f = s.lock().unwrap();
+    let id = &params["id"];
+    let removed = match params["collection"].as_str() {
+        "agents" => f.agents.remove(id).is_some(),
+        "tools" => f.tools.remove(id).is_some(),
+        _ => false,
+    };
+    if removed {
+        (StatusCode::OK, Json(json!({"success": true})))
+    } else {
+        not_found()
+    }
+}
+
 /// Start a fake Kibana Agent Builder API; returns its base URL.
 pub async fn start_kibana() -> (String, KibanaShared) {
     let shared: KibanaShared = Arc::default();
@@ -373,7 +394,7 @@ pub async fn start_kibana() -> (String, KibanaShared) {
         .route("/api/agent_builder/{collection}", post(kibana_post))
         .route(
             "/api/agent_builder/{collection}/{id}",
-            axum::routing::get(kibana_get),
+            axum::routing::get(kibana_get).delete(kibana_delete),
         );
     let app = Router::new()
         .merge(api.clone())
