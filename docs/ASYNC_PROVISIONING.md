@@ -79,14 +79,27 @@ Tests: `crates/genesis-server/tests/specialist_jobs.rs`.
   `ReadinessProbe` that runs the created agent's gateway skill with the
   challenge (a readiness run purpose in the CREAO runtime), its registration
   with `GENESIS_PUBLIC_URL`, and a live skill install.
-- **Attaching a found native agent** to a `needs_reconciliation` operation.
-  Today an operator can only abandon it:
-  `POST /api/v1/org-changes/{id}/operations/{role_key}/abandon` with
-  `{"reason": "..."}` (operator token) marks the operation failed and ends the
-  change FAILED, keeping every provider ID; nothing is retried.
+- **Reconciling a lost creation is done.** For a `needs_reconciliation`
+  operation an operator (operator token) can either:
+  - **attach** the native agent found in the provider account:
+    `POST /api/v1/org-changes/{id}/operations/{role_key}/attach` with
+    `{"provider_agent_id": "...", "reason": "..."}`. The binding uses the
+    configuration digest of the role's original creation request, the
+    operation moves to `awaiting_readiness`, and the role activates only after
+    the readiness verifier proves that agent (for CREAO, a gateway receipt that
+    names it). No provider request is made and nothing is re-created. Refused
+    (`409 operation_not_reconcilable`) unless the outcome is unknown and no
+    agent is bound yet. The kernel does not inspect the agent's configuration
+    itself; that remains an operator assertion checked only by readiness.
+  - **abandon** it:
+    `POST /api/v1/org-changes/{id}/operations/{role_key}/abandon` with
+    `{"reason": "..."}` marks the operation failed and ends the change FAILED,
+    keeping every provider ID; nothing is retried.
 - A **domain verifier** that can move a `VERIFYING` job to `SUCCEEDED`, and
   draining/retirement handling of jobs still running when a role retires
   (today they are fenced on the next advance).
+
+Attach tests: `crates/genesis-server/tests/operation_attach.rs`.
 
 Tests: `crates/genesis-server/tests/specialist_readiness.rs` (scripted runtime
 and verifier: pending → created → ready, no verifier, ambiguous creation,
