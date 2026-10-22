@@ -328,11 +328,12 @@ button { font: inherit; color: inherit; }
 .evo-cause { font-size: 14px; font-weight: 500; }
 .evo-why { font-size: 13px; color: var(--ink-2); }
 .evo-deltas { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
-.evo-delta { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; font-size: 13px; overflow-wrap: anywhere; }
+.evo-delta { display: grid; grid-template-columns: 1.2em minmax(0, 1fr); gap: 8px; align-items: baseline; font-size: 13px; overflow-wrap: anywhere; }
+.evo-text { display: flex; gap: 4px 8px; align-items: baseline; flex-wrap: wrap; min-width: 0; }
 .evo-mark { font-family: var(--mono); width: 1.2em; text-align: center; color: var(--ink-3); }
 .evo-delta.evo-role_added .evo-mark { color: var(--ok); }
 .evo-delta.evo-role_retired .evo-mark { color: var(--bad); }
-.evo-delta.evo-role_retired > span:nth-child(2) { text-decoration: line-through; text-decoration-thickness: 1px; }
+.evo-delta.evo-role_retired .evo-text > span:first-child { text-decoration: line-through; text-decoration-thickness: 1px; }
 .evo-delta.evo-duty_moved .evo-mark, .evo-delta.evo-capability .evo-mark { color: var(--accent); }
 .evo-foot { display: flex; gap: 6px 12px; flex-wrap: wrap; align-items: center; font-size: 12px; color: var(--ink-3); }
 .evo-foot .mono { overflow-wrap: anywhere; }
