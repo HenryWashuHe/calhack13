@@ -136,7 +136,7 @@ process.exit(s.phase === "needs_reconciliation" ? 1 : 0);`,
   assert.match(r.results.apify.note, /unreachable/);
 });
 
-test("apify pass needs a verified phase; build-only is partial", async () => {
+test("apify without a terminal phase is partial; a rejection is failed", async () => {
   const bin = mkdtempSync(join(tmpdir(), "bin-"));
   stub(
     bin,
@@ -144,11 +144,11 @@ test("apify pass needs a verified phase; build-only is partial", async () => {
     `if (args[0] === "prepare") process.exit(0);
 fs.writeFileSync(stateFile, String(n + 1));
 const art = { actor_id: "act-2", build_id: "b-2", build_number: "0.0.1" };
-const seq = [{ phase: "actor_created" }, { phase: "testing", artifact: art, completed_cases: 1, total_cases: 3 },
-  { phase: "rejected", artifact: art, completed_cases: 3, total_cases: 3 }];
-const s = seq[Math.min(n, seq.length - 1)]; console.log(JSON.stringify(s)); process.exit(s.phase === "rejected" ? 1 : 0);`,
+console.log(JSON.stringify(n === 0 ? { phase: "actor_created" } : { phase: "testing", artifact: art, completed_cases: 1, total_cases: 3, pending_action: "collect_case" }));`,
   );
-  const r = await run(bin, mkdtempSync(join(tmpdir(), "out-")), { gates: ["apify"] });
+  const r = await run(bin, mkdtempSync(join(tmpdir(), "out-")), { gates: ["apify"], maxSteps: 3 });
   assert.equal(r.results.apify.status, "partial");
   assert.equal(r.results.apify.evidence.build_id, "b-2");
+  assert.match(r.results.apify.stopped, /step limit/);
+  assert.match(r.results.apify.evidence.resume, /genesis-forge step --suite .* --checkpoint .*apify\/t1\/forge\.json/);
 });
