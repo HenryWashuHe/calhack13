@@ -311,6 +311,65 @@ impl LlmClient for ReplayClient {
     }
 }
 
+/// Whether a model error is worth one more identical try: the request never
+/// reached the model (`connect`), or the provider said it is busy (429, 5xx,
+/// Anthropic's 529 "overloaded"). A timeout, a malformed reply or any other
+/// 4xx is not retried here; the planner's own repair loop or escalation
+/// handles those.
+pub fn transient(e: &LlmError) -> bool {
+    match e {
+        LlmError::Transport(kind) => kind == "connect",
+        LlmError::Http { status, .. } => matches!(status, 429 | 500 | 502 | 503 | 504 | 529),
+        _ => false,
+    }
+}
+
+/// Retries transient model errors with fixed backoff before giving up.
+///
+/// Without it, one 429 or overloaded response escalates the observation for
+/// good: the planner records `escalated` ("model unavailable") and never
+/// considers that evidence again. A model call has no side effects in the
+/// organization, so repeating an identical request is safe; it can at most
+/// cost tokens for a response the provider produced but failed to deliver.
+pub struct Retrying {
+    inner: std::sync::Arc<dyn LlmClient>,
+    delays: Vec<Duration>,
+}
+
+impl Retrying {
+    /// Default backoff: two retries, after 2 s and 8 s.
+    pub fn new(inner: std::sync::Arc<dyn LlmClient>) -> Self {
+        Self::with_delays(inner, vec![Duration::from_secs(2), Duration::from_secs(8)])
+    }
+
+    pub fn with_delays(inner: std::sync::Arc<dyn LlmClient>, delays: Vec<Duration>) -> Self {
+        Self { inner, delays }
+    }
+}
+
+#[async_trait]
+impl LlmClient for Retrying {
+    fn model(&self) -> String {
+        self.inner.model()
+    }
+
+    async fn complete(&self, req: &LlmRequest) -> Result<String, LlmError> {
+        let mut delays = self.delays.iter();
+        loop {
+            match self.inner.complete(req).await {
+                Err(e) if transient(&e) => match delays.next() {
+                    Some(delay) => {
+                        tracing::warn!(error = %e, retry_in_ms = delay.as_millis() as u64, "transient model error; retrying");
+                        tokio::time::sleep(*delay).await;
+                    }
+                    None => return Err(e),
+                },
+                other => return other,
+            }
+        }
+    }
+}
+
 /// Build a client from environment variables. Returns `Ok(None)` when no
 /// provider is configured yet ("pending"), so callers can still preview
 /// prompts.
