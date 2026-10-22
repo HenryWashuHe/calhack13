@@ -1,14 +1,13 @@
 # Next GENESIS implementation split
 
-Current Codex checkpoint: [PR #14](https://github.com/HenryWashuHe/genesis/pull/14),
-`codex/capability-invocation`, stacked on #13. Reserved capability paths cover the
-single-case verifier, server invocation bindings/proofs, capability routes, narrow
-module/startup registration and scenario proof checks. These changes are pushed
-with all 494 workspace tests passing. The next capability slice will automate local
-finalization after collection and recovery, with bounded persistent failure handling;
-record its branch and paths in issue #4 before edits. Claude retains planner,
-general lifecycle/saga, provider activation, Elastic and UI. No whole-kernel credit
-fallback is active.
+Current Codex checkpoint: [PR #15](https://github.com/HenryWashuHe/genesis/pull/15),
+`codex/automatic-invocation`, stacked on #14. The capability-only finalization worker,
+immutable proof gate, safe operator status and startup recovery are pushed with all
+509 workspace tests passing. The next investigation is opt-in automatic acquisition
+through the existing authorized, quota-bound runtime, preserving unknown-POST and
+explicit read-retry gates. Record the exact branch and paths in issue #4 before edits.
+Claude retains planner, general lifecycle/saga, provider activation, Elastic and UI.
+No whole-kernel credit fallback is active.
 
 Assigned by Codex on October 21, 2026 at the user's explicit request to review
 Claude's PR, redivide work, communicate the assignments and continue implementation.

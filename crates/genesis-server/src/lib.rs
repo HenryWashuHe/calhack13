@@ -13,6 +13,7 @@ pub mod capability_acquisition_runtime;
 pub mod capability_acquisition_store;
 pub mod capability_authority;
 pub mod capability_evidence;
+pub mod capability_finalization;
 pub mod capability_invocation;
 pub mod capability_runtime;
 pub mod capability_scenario;
@@ -171,6 +172,7 @@ pub fn build_org(cfg: &OrgConfig, providers: Option<ProviderSet>) -> anyhow::Res
     store.init_capability_runs()?;
     store.init_capability_pins()?;
     store.init_capability_invocations()?;
+    store.init_capability_finalization()?;
     if let Some(config) = &cfg.acquisition {
         store.init_acquisitions(&config.policy)?;
     }
@@ -221,10 +223,12 @@ pub async fn serve_org(app: AppState, listener: TcpListener) -> anyhow::Result<(
         tracing::info!(resumed, "resumed interrupted organization changes");
     }
     app.capability_runtime.recover_interrupted().await?;
+    capability_finalization::recover(&app).await?;
     if app.acquisition_policy.is_some() {
         app.acquisition_runtime.recover_interrupted().await?;
     }
     let _capability_worker = AbortWorker(capability_worker(app.clone()));
+    let _finalization_worker = AbortWorker(capability_finalization::spawn(app.clone()));
     let _outbox_worker = AbortWorker(outbox::spawn(app.clone()));
     let router = app.router();
     let res = axum::serve(listener, router).await;
