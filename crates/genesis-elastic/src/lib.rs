@@ -223,8 +223,11 @@ impl ElasticClient {
         if index_part(&cfg.index_prefix).is_empty() {
             return Err(ElasticError::Config("index prefix is empty".into()));
         }
+        // No redirects: a 307/308 would resend indexed evidence or a search
+        // body to the Location's origin.
         let http = reqwest::Client::builder()
             .timeout(cfg.timeout)
+            .redirect(reqwest::redirect::Policy::none())
             .build()
             .map_err(|_| ElasticError::Config("cannot build HTTP client".into()))?;
         Ok(Self { cfg, http })

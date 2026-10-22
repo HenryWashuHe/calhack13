@@ -340,3 +340,63 @@ async fn generic_adapter_result_must_not_accept_a_managed_elastic_answer() {
     assert_eq!(saved.status, JobStatus::Verifying);
     assert!(ledger.as_array().unwrap().is_empty());
 }
+
+// Henry's Claude follow-ups: a caller cannot route an Elastic role's job
+// around the backend path, and an answer is bound to the dispatched agent.
+
+#[tokio::test]
+async fn dispatch_cannot_route_an_elastic_role_around_its_agent() {
+    let fixture = Fixture::new().await;
+    for provider in ["internal", "dev_stub", "creao"] {
+        let response = fixture
+            .http
+            .post(format!("{}/jobs", fixture.base))
+            .bearer_auth(&fixture.cfg.tokens.operator)
+            .json(
+                &json!({"client_request_id":format!("override-{provider}"),"role_id":fixture.role,
+                "responsibility_id":fixture.responsibility,"task":"Analyze venues","input":{},
+                "required_scope":null,"capability":null,"provider":provider,"deadline":null}),
+            )
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::CONFLICT, "{provider}");
+        let body: Value = response.json().await.unwrap();
+        assert_eq!(body["error"], "provider_mismatch", "{provider}: {body}");
+    }
+}
+
+#[tokio::test]
+async fn answer_is_fenced_when_the_role_is_rebound_during_converse() {
+    let fixture = Fixture::new().await;
+    fixture.remote.hold.store(true, Ordering::SeqCst);
+    let job = fixture.dispatch().await;
+    let app = fixture.app.clone();
+    let drain = tokio::spawn(async move { outbox::drain_once(&app).await.unwrap() });
+    tokio::time::timeout(Duration::from_secs(5), fixture.remote.entered.notified())
+        .await
+        .unwrap();
+    let role = fixture.role.clone();
+    fixture
+        .mutate(|state| {
+            state
+                .roles
+                .get_mut(&role)
+                .unwrap()
+                .binding
+                .as_mut()
+                .unwrap()
+                .provider_agent_id = "a-different-agent".into();
+        })
+        .await;
+    fixture.remote.release.add_permits(1);
+    drain.await.unwrap();
+    let saved = fixture.job(&job.job_id);
+    assert_eq!(
+        saved.status,
+        JobStatus::ResultRejected,
+        "{:?}",
+        saved.result
+    );
+    assert!(saved.result.is_none());
+}
