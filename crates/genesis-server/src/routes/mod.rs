@@ -8,6 +8,7 @@ mod changes;
 mod events;
 mod jobs;
 mod org;
+mod search;
 
 use crate::app::AppState;
 use axum::routing::{get, post};
@@ -42,6 +43,8 @@ pub fn router(state: AppState) -> Router {
         .route("/outbox", get(jobs::outbox))
         .route("/events", get(events::stream))
         .route("/events/log", get(events::log))
+        .route("/projection", get(search::status))
+        .route("/search/evidence", get(search::evidence))
         .route("/capabilities/search", post(capabilities::search))
         .route("/capabilities/publish", post(capabilities::publish))
         .route(
