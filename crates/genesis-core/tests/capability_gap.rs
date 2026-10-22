@@ -5,6 +5,7 @@ use chrono::Utc;
 use genesis_core::capability::StaticCatalog;
 use genesis_core::change::*;
 use genesis_core::engine::*;
+use genesis_core::engine::{MAX_LIVE_CAPABILITY_GAPS, MAX_LIVE_GAPS_PER_REQUIREMENT};
 use genesis_core::events::EventKind;
 use genesis_core::ids::*;
 use genesis_core::lifecycle::CapabilityState;
@@ -552,4 +553,114 @@ fn proposals_without_the_new_field_still_deserialize() {
     v.as_object_mut().unwrap().remove("capability_gaps");
     let back: OrgState = serde_json::from_value(v).unwrap();
     assert!(back.capability_gaps.is_empty());
+}
+
+#[test]
+fn live_gaps_are_bounded_per_requirement_and_per_organization() {
+    let mut d = demo(Some(PORTAL));
+    // One responsibility, then requests under distinct names for the same requirement.
+    let out = run(&d, vec![assign(&d)], &StaticCatalog::default()).unwrap();
+    let rsp = out
+        .state
+        .responsibilities
+        .values()
+        .find(|r| r.purpose == "Relocate the event")
+        .unwrap()
+        .responsibility_id
+        .clone();
+    d.state = out.state;
+    let ask = |d: &Demo, name: &str, requirement: &RequirementId| OrgOp::RequestCapability {
+        key: format!("k-{name}"),
+        requirement_id: requirement.clone(),
+        role: RoleRef::existing(d.lead.clone()),
+        responsibility: ResponsibilityRef::Existing {
+            responsibility_id: rsp.clone(),
+        },
+        capability_id: CapabilityId::new(name),
+        purpose: "p".into(),
+        observed_sources: vec![PORTAL.into()],
+    };
+    for n in 0..MAX_LIVE_GAPS_PER_REQUIREMENT {
+        let req = d.requirement.clone();
+        d.state = run(
+            &d,
+            vec![ask(&d, &format!("cap-{n}"), &req)],
+            &StaticCatalog::default(),
+        )
+        .unwrap()
+        .state;
+    }
+    let req = d.requirement.clone();
+    assert_eq!(
+        codes(run(
+            &d,
+            vec![ask(&d, "cap-extra", &req)],
+            &StaticCatalog::default()
+        )),
+        vec![ValidationCode::CapabilityGapLimitExceeded]
+    );
+    // A refused gap no longer counts.
+    let first = d.state.capability_gaps.keys().next().unwrap().clone();
+    d.state = update_capability_gap(
+        &d.state,
+        &first,
+        CapabilityGapStatus::Refused {
+            reason: "no policy".into(),
+            acquisition_id: None,
+        },
+    )
+    .unwrap()
+    .state;
+    d.state = run(
+        &d,
+        vec![ask(&d, "cap-extra", &req)],
+        &StaticCatalog::default(),
+    )
+    .unwrap()
+    .state;
+
+    // Organization-wide limit across many requirements.
+    let mission = d.state.missions.keys().next().unwrap().clone();
+    let mut created = d
+        .state
+        .capability_gaps
+        .values()
+        .filter(|g| !g.status.is_terminal())
+        .count();
+    while created < MAX_LIVE_CAPABILITY_GAPS {
+        let (o, r) = record_requirement(
+            &d.state,
+            &mission,
+            &format!("need {created}"),
+            std::slice::from_ref(&d.observation),
+            "ok",
+        )
+        .unwrap();
+        d.state = o.state;
+        d.state = run(
+            &d,
+            vec![ask(&d, &format!("org-cap-{created}"), &r)],
+            &StaticCatalog::default(),
+        )
+        .unwrap()
+        .state;
+        created += 1;
+    }
+    let (o, r) = record_requirement(
+        &d.state,
+        &mission,
+        "one more",
+        std::slice::from_ref(&d.observation),
+        "ok",
+    )
+    .unwrap();
+    d.state = o.state;
+    assert_eq!(
+        codes(run(
+            &d,
+            vec![ask(&d, "org-cap-over", &r)],
+            &StaticCatalog::default()
+        )),
+        vec![ValidationCode::CapabilityGapLimitExceeded]
+    );
 }
