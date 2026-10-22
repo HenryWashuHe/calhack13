@@ -1,21 +1,16 @@
 # GENESIS agent coordination
 
-Current Codex checkpoint is [PR #17](https://github.com/HenryWashuHe/genesis/pull/17),
-`codex/automatic-scenario`, implementation `f92ac15`, stacked on #16. All 542
-workspace tests, formatting and strict Clippy pass. The scenario now supports
-explicit automatic progression: organization workers drive acquisition, collection
-and invocation finalization while the driver observes immutable proof. The actual
-server fixture forbids every `/step` and `/verify` POST and still completes repair,
-independent adoption, both handoffs and successor execution after restart. Existing
-specs default to manual; the example selects automatic. See
-[INHERITED_MISSION.md](docs/INHERITED_MISSION.md).
+Current Codex checkpoint is [PR #18](https://github.com/HenryWashuHe/genesis/pull/18),
+`codex/acquisition-history`, implementation `9c09aaf`, final regression `18d1d9b`,
+stacked on #17. All 560 workspace tests (62 suites), formatting and strict Clippy
+pass. Operators can rediscover acquisitions and read durable redacted progress,
+with atomic checkpoint/quota/attention writes and honest resumable legacy baselines.
+Exact bounded UTF-8 domain IDs survive creation, restart and migration. History is
+metadata, not verification authority. See [ACQUISITION_HISTORY.md](docs/ACQUISITION_HISTORY.md).
 
-Next Codex slice: bounded acquisition discovery and redacted durable history so
-operators can recover IDs and inspect generation/build/repair after timeout/restart.
-Reserved scope will be a capability-only history module, narrow transaction hooks
-in acquisition store/scheduler, acquisition read routes, startup registration,
-focused tests and docs. No planner, general saga/outbox, Elastic or UI edits.
-Record the branch/path claim in issue #4 before implementation.
+The overarching goal remains active. Codex is selecting the next capability slice;
+record the next branch/path claim in issue #4 before implementation. No planner,
+general lifecycle/saga/outbox, Elastic or UI work is claimed by this milestone.
 
 Claude still owns planner, general lifecycle/saga/outbox, provider activation,
 Elastic and UI. Requested fixes on #11/#12 remain assigned to Claude; their heads
