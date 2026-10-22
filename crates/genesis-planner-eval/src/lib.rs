@@ -47,7 +47,18 @@ pub struct Scenario {
     pub observation: ObservationSpec,
     #[serde(default)]
     pub specialists: Vec<KnownSpecialist>,
+    /// Capabilities already installed and approved here (seeded as accepted
+    /// local installations; acceptance itself is tested elsewhere).
+    #[serde(default)]
+    pub installed: Vec<InstalledSpec>,
     pub expect: Expect,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct InstalledSpec {
+    pub capability_id: String,
+    pub version: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -279,6 +290,7 @@ impl Default for EvalOptions {
 }
 
 struct Org {
+    app: genesis_server::app::AppState,
     url: String,
     operator: String,
     agent: String,
@@ -289,8 +301,9 @@ impl Org {
     async fn start() -> anyhow::Result<Org> {
         let cfg = OrgConfig::dev(EVAL_ORG_ID, "Evaluation org");
         let app = build_org(&cfg, None)?;
-        let addr = spawn_org(app, "127.0.0.1:0").await?;
+        let addr = spawn_org(app.clone(), "127.0.0.1:0").await?;
         Ok(Org {
+            app,
             url: format!("http://{addr}"),
             operator: cfg.tokens.operator.clone(),
             agent: cfg.tokens.agent.clone(),
@@ -341,6 +354,43 @@ impl Org {
 /// Seed the scenario into `org`. Returns the new observation and the IDs.
 async fn seed(org: &Org, s: &Scenario) -> anyhow::Result<(ObservationId, Ids)> {
     let m = org.post("/missions", &s.mission).await?;
+    if !s.installed.is_empty() {
+        use genesis_core::ids::{CapabilityId, InstallationId};
+        use genesis_core::model::{CapabilityRef, Installation};
+        let installed = s.installed.clone();
+        org.app
+            .mutate(genesis_server::store::EventMeta::default(), move |st| {
+                let mut st = st.clone();
+                for (i, c) in installed.into_iter().enumerate() {
+                    let id = InstallationId::new(format!("inst_eval_{i}"));
+                    st.installations.insert(
+                        id.clone(),
+                        Installation {
+                            installation_id: id,
+                            capability: CapabilityRef {
+                                capability_id: CapabilityId::new(c.capability_id),
+                                version: c.version,
+                            },
+                            status: genesis_core::lifecycle::InstallationStatus::Accepted,
+                            configuration: Value::Null,
+                            acceptance_report_ref: None,
+                            source_digest: "sha256:eval-seed".into(),
+                            installed_at: chrono::Utc::now(),
+                        },
+                    );
+                }
+                st.revision += 1;
+                Ok((
+                    genesis_core::engine::Outcome {
+                        state: st,
+                        effects: vec![],
+                    },
+                    (),
+                ))
+            })
+            .await
+            .map_err(|e| anyhow::anyhow!("seeding installations: {e:?}"))?;
+    }
     let mission = m["mission_id"]
         .as_str()
         .ok_or_else(|| anyhow::anyhow!("no mission_id in {m}"))?
@@ -631,6 +681,7 @@ pub fn score(
                     Some(("ReassignResponsibility".into(), named(&o["to"])))
                 }
                 Some("RequestCapability") => Some(("RequestCapability".into(), named(&o["role"]))),
+                Some("AttachCapability") => Some(("AttachCapability".into(), named(&o["role"]))),
                 _ => None,
             })
             .collect();
