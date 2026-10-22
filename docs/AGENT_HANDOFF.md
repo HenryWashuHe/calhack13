@@ -2,55 +2,57 @@
 
 ## Current merge and ownership checkpoint — October 22, 2026
 
-Reviewed main checkpoint: `f0d295ac71f6140f0554a66cf930f7bb5fe98cbb`.
-The capability stack, specialist execution #20, portal #35, planner #12,
-Elastic provider #11, Elastic planner #22, capability gaps #49, evidence UI #21,
-gap UI #54, offline gap policy #56, live-gate runner #47, demo runbook #51,
-gap event log #61, planner evaluation #52, closed-mission guard #63 and gap
-wakeup #57 have landed. See
-[the review queue](PR_REVIEW_QUEUE.md) for exact sources, checks and holds.
+Reviewed main checkpoint: `b2aebcd173972755297d68a1e161e2113cea5181`.
+The capability stack, specialist execution, planner and Elastic integrations,
+evidence and gap UI, portal holdout generation, gateway readiness verification,
+operator attach, Attention UI, the durable gap driver and CREAO readiness probe
+have landed. The reviewed queue is closed out. See
+[the review queue](PR_REVIEW_QUEUE.md) for exact sources and checks.
 
-Recent integration evidence: #61 passed 45 web tests, typecheck/build and a
-component render/filter check; #52 passed all 12 eval tests and strict default
-workspace Clippy on its combined tree, with nine recorded replay scenarios
-passing separately. #49's corrected source passed 83 core/planner/server checks;
-its Elastic-planner integration passed 58 focused checks and strict Clippy.
-These are source-scoped results, not a new full-workspace total or live evidence.
+Readiness #62 now fixes both fresh-schema recovery and legacy database migration;
+it merged into #26 at `9935bd8`. Main's #26 integration passed 304 server tests.
+The #27 composition passed 69 focused tests with `serde_json/preserve_order`
+and strict default-feature Clippy. Main's #28 tree equals `0862df8`: clean
+install, 56 web tests, typecheck and build pass, preserving the evidence-refresh
+and gap-event tests. These are source-scoped checks, not a new full-workspace
+total, native provider run or browser walkthrough.
 
-Readiness #26 remains held after its child #37 merged: failed durable writes can
-promote a mismatched receipt on retry/reopen. Repair #62 fixes fresh-schema
-recovery but still promotes a legacy wrong-run receipt during migration
-(reproduction `ada0aad`). Current #27/#28 changes pass scoped checks; readiness
-ancestry and final integration still block #27/#28/#29. Portal holdout #60 needs
-its example-index links corrected. Current GitHub heads and reviews supersede
-this snapshot.
+The original #60 example-index mismatch is fixed and merged at `ec5ec22`.
+`--holdout` supplies separate synthesis-example and verification pages; ordinary
+portal generation still supports explicitly labeled reproducibility checks.
+CREAO readiness probe #29 is merged at `ba4c920`, with 40 final default-feature
+checks and strict workspace Clippy/fmt; its earlier scoped run passed 122 checks
+with `serde_json/preserve_order`. The probe sends a durable challenge run, but
+only a valid callback establishes readiness. Neither readiness nor operator
+attachment establishes core mission work or a live sponsor demonstration.
 
-The #63/#57 composition now passes both transition-time and queued-observation
-lifecycle probes: 74 focused tests, formatting and strict workspace Clippy.
-Main's tree equals exact candidate `7731aa3`; the tested `bffd82c` differs only
-by an additional queued-wakeup regression file. This verifies planning at entry
-and replay; it does not cancel a model request already in flight.
+Merged #66 implements the durable gap-to-acquisition driver. Initial source
+`a66a298` passed 310 server tests across 30 suites, including 16 driver tests with
+loopback provider responses and a real server-startup path. Final integration
+`2561be` passed 152 default-feature tests across nine targets, strict workspace
+Clippy and formatting; the later source delta was documentation only.
+It freezes the request, model policy, suite and assignment, recovers one intent
+across restart, and retains unknown-outcome and explicit read-retry protections.
+`Acquired` records independent verification; publication, installation and
+attachment remain separate. The next Codex core implementation is persistent
+CREAO mission assessment backed by verified capability output and native execution
+receipts. Readiness alone does not satisfy that work.
 
-Combined draft #25 is pushed at `2829025`, integrating main through #22. It passed
-132 affected Rust tests and strict default workspace Clippy. It lacks the later
-main milestones and retains held readiness code. Its 699-test total is historical.
-
-Codex owns the next server-side gap-to-acquisition driver. Merged #56
-(`02cfc90`, runtime identical to tested `cf591a3`) supplies fixed public examples,
-exact allowed sources, stable organization/gap-specific candidate identities and
-committed IDs. Ten policy tests and strict server Clippy pass. It has no worker or
-CLI flag yet. Next: freeze the request/policy before creating exactly one intent,
-recover that intent after lost replies, and retain current authority and unknown
-outcome protections. Publication, installation and acceptance remain separate.
-The core now emits final gap observations; the driver must not duplicate them.
-Persistent CREAO mission assessment follows this missing autonomy link.
+Combined draft #25 was closed without merging after all 17 unique commits were
+audited. No pending runtime was unique to it. Its Elastic recording-proxy scenario
+test was preserved in merged #68 (`2adaff4`): the targeted repaired A→B scenario
+passed with real Rust Elastic retrieval/projection against loopback fixtures.
+The old branch remains available; its 699-test total is historical. Merged #67
+adds invariant tests: 63 core checks pass, including seeded sequences and six
+sampled negative controls, with strict core Clippy/fmt. This is not an exhaustive
+proof of every invariant.
 
 Claude/Eric and Henry's Claude keep their scoped kernel/planner/readiness/UI work.
-Codex handles review, provider/capability implementation and narrow integration;
+Codex handles capability/provider implementation, review and narrow integration;
 no whole-kernel takeover is active. Coordinate in
 [issue #4](https://github.com/HenryWashuHe/genesis/issues/4), push tested increments,
-and leave parent/main merges to the active reviewer during this pass to avoid
-concurrent merge races. Preserve source branches and exact-head evidence.
+and leave parent/main merges to the active reviewer to avoid concurrent merge
+races. Preserve source branches and exact-head evidence.
 
 [CREAO sponsor evidence](CREAO_SPONSOR_NOTES.md) still needs core mission work,
 an actual agent ID and a genuine run share link. The
@@ -59,6 +61,9 @@ No live sponsor execution, public portal tunnel or independent-account Actor
 access is established by these local tests. The ongoing mission goal remains active.
 
 ## Historical pre-merge checkpoint
+
+The remaining sections preserve earlier checkpoints. References to “current”
+below describe those earlier states, not the reviewed main checkpoint above.
 
 Updated: October 22, 2026.
 
