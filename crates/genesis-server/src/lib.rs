@@ -18,6 +18,7 @@ pub mod registry;
 pub mod routes;
 pub mod saga;
 pub mod specialist;
+pub mod specialist_jobs;
 pub mod store;
 
 use app::AppState;

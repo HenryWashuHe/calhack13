@@ -40,6 +40,28 @@ serializes drivers.
 The console shows the operation state, run ID and attention on hatched pending
 roles, and describes `provisioning_progress` events in the evidence log.
 
+## Jobs for asynchronous specialists
+
+`crates/genesis-server/src/specialist_jobs.rs` implements CREAO_RUNTIME.md
+steps 5–6 on the kernel side:
+
+- An outbox `job_dispatch` for a role served by a specialist runtime checks
+  live authority and prepares one durable job operation (`prepare_job`,
+  deterministic per job attempt). Redelivery is a no-op: it never causes a
+  second POST.
+- The specialist poller advances each running job at most once per pass.
+  Live authority (active role, open responsibility, current epoch, deadline,
+  matching binding) is checked **before each advance** and again **before a
+  collected result is applied**. Losing authority stops advancing
+  (`RESULT_REJECTED`, "authority lost before advance"); a result collected
+  after a handoff is archived (`RESULT_REJECTED`, "late result fenced").
+- Collected output is stored with `domain_verified: false` and the job moves
+  to `VERIFYING`, never `SUCCEEDED`; no commitment is recorded. An unknown
+  submission outcome moves the job to `UNKNOWN`; a failed operation to
+  `FAILED`, keeping the run ID.
+
+Tests: `crates/genesis-server/tests/specialist_jobs.rs`.
+
 ## Still needed before a live CREAO role
 
 - **Registration** (provider side): construct `CreaoSpecialist` from the CREAO
@@ -49,8 +71,9 @@ roles, and describes `provisioning_progress` events in the evidence log.
   gateway receipt the backend observes, registered with
   `AppState::with_readiness_verifier(Provider::Creao, …)`.
 - **Operator reconciliation** for `needs_reconciliation` operations (no API yet).
-- **Job execution** through `prepare_job`/`advance` with live authority checks
-  before each advance and before applying results (CREAO_RUNTIME.md steps 5–6).
+- A **domain verifier** that can move a `VERIFYING` job to `SUCCEEDED`, and
+  draining/retirement handling of jobs still running when a role retires
+  (today they are fenced on the next advance).
 
 Tests: `crates/genesis-server/tests/specialist_readiness.rs` (scripted runtime
 and verifier: pending → created → ready, no verifier, ambiguous creation,
