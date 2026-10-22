@@ -9,6 +9,8 @@
 
 pub mod app;
 pub mod auth;
+pub mod capability_acquisition_runtime;
+pub mod capability_acquisition_store;
 pub mod capability_evidence;
 pub mod capability_runtime;
 pub mod capability_store;
@@ -32,6 +34,35 @@ use store::Store;
 use tokio::net::TcpListener;
 use tokio::sync::{broadcast, Mutex};
 
+/// Trusted backend acquisition configuration. Clients cannot be supplied by an
+/// HTTP caller, and Debug never traverses credentials held by a provider client.
+#[derive(Clone)]
+pub struct AcquisitionConfig {
+    pub policy: capability_acquisition_store::AcquisitionPolicy,
+    pub model: Option<Arc<genesis_forge::AnthropicGenerator>>,
+    pub apify: Option<Arc<genesis_apify::ApifyClient>>,
+}
+
+impl AcquisitionConfig {
+    pub fn offline(policy: capability_acquisition_store::AcquisitionPolicy) -> Self {
+        Self {
+            policy,
+            model: None,
+            apify: None,
+        }
+    }
+}
+
+impl std::fmt::Debug for AcquisitionConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("AcquisitionConfig")
+            .field("policy", &self.policy)
+            .field("model_configured", &self.model.is_some())
+            .field("apify_configured", &self.apify.is_some())
+            .finish()
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct OrgConfig {
     pub org_id: OrgId,
@@ -50,6 +81,8 @@ pub struct OrgConfig {
     pub oracle_suites: Vec<genesis_verification::OracleSuite>,
     /// Trusted local forge checkpoints, reverified on startup.
     pub forge_checkpoints: Vec<genesis_forge::ForgeSession>,
+    /// Opt-in server-managed acquisition; provider credentials stay in clients.
+    pub acquisition: Option<AcquisitionConfig>,
 }
 
 impl OrgConfig {
@@ -71,6 +104,7 @@ impl OrgConfig {
             provision_timeout: Duration::from_secs(60),
             oracle_suites: Vec::new(),
             forge_checkpoints: Vec::new(),
+            acquisition: None,
         }
     }
 }
@@ -86,6 +120,7 @@ pub fn demo_constitution() -> Constitution {
             "ledger.reserve_venue",
             "contract.logistics",
             "capability.venue_lookup",
+            "capability.acquire",
             "monitor.venue",
         ]
         .into_iter()
@@ -132,6 +167,9 @@ pub fn build_org(cfg: &OrgConfig, providers: Option<ProviderSet>) -> anyhow::Res
     let kernel = Arc::new(Mutex::new(()));
     store.init_capability_runs()?;
     store.init_capability_pins()?;
+    if let Some(config) = &cfg.acquisition {
+        store.init_acquisitions(&config.policy)?;
+    }
     let evidence_policy = Arc::new(capability_evidence::EvidencePolicy::new(
         cfg.oracle_suites.clone(),
         cfg.forge_checkpoints.clone(),
@@ -145,6 +183,14 @@ pub fn build_org(cfg: &OrgConfig, providers: Option<ProviderSet>) -> anyhow::Res
         )
         .with_events(tx.clone()),
     );
+    let acquisition_runtime = Arc::new(capability_acquisition_runtime::AcquisitionRuntime::new(
+        store.clone(),
+        evidence_policy.clone(),
+        kernel.clone(),
+        Arc::new(Mutex::new(())),
+        cfg.acquisition.as_ref().and_then(|c| c.model.clone()),
+        cfg.acquisition.as_ref().and_then(|c| c.apify.clone()),
+    ));
     Ok(AppState {
         saga_gates: Default::default(),
         org_id: cfg.org_id.clone(),
@@ -156,6 +202,8 @@ pub fn build_org(cfg: &OrgConfig, providers: Option<ProviderSet>) -> anyhow::Res
         kernel,
         evidence_policy,
         capability_runtime,
+        acquisition_policy: cfg.acquisition.as_ref().map(|c| Arc::new(c.policy.clone())),
+        acquisition_runtime,
         registry,
         provision_timeout: cfg.provision_timeout,
     })
@@ -169,6 +217,9 @@ pub async fn serve_org(app: AppState, listener: TcpListener) -> anyhow::Result<(
         tracing::info!(resumed, "resumed interrupted organization changes");
     }
     app.capability_runtime.recover_interrupted().await?;
+    if app.acquisition_policy.is_some() {
+        app.acquisition_runtime.recover_interrupted().await?;
+    }
     let _capability_worker = AbortWorker(capability_worker(app.clone()));
     let _outbox_worker = AbortWorker(outbox::spawn(app.clone()));
     let router = app.router();

@@ -1,5 +1,9 @@
 # Durable capability acquisition
 
+For organization-owned SQLite persistence, live grant checks and HTTP endpoints,
+see [SERVER_ACQUISITION.md](SERVER_ACQUISITION.md). The standalone CLI below remains
+available for explicit operator-managed checkpoints.
+
 `AcquisitionSession` joins public-requirement synthesis, exact Actor packaging,
 Apify builds and independent verification in one durable workflow. A preplanned
 repair can replace a semantically rejected parser once. The original generation,

@@ -50,3 +50,11 @@ coordinator joins generation, build and independent verification with one semant
 repair; see [CAPABILITY_ACQUISITION.md](docs/CAPABILITY_ACQUISITION.md). Claude keeps
 planner/kernel activation, Elastic and UI. The ongoing Codex goal continues across
 milestones; each next path claim is recorded in issue #4 before shared edits.
+
+Server integration is pushed in [PR #10](https://github.com/HenryWashuHe/genesis/pull/10),
+`codex/server-acquisition`, code `aaefa12`, stacked on #9: new
+capability acquisition store/runtime/routes/tests, narrow registrations and the
+trusted publication-proof lookup. See [SERVER_ACQUISITION.md](docs/SERVER_ACQUISITION.md).
+It binds acquisition to a committed requirement/assignment with durable count
+quotas. Claude should call it only after the organization change commits. Planner,
+core lifecycle/saga, provider-role activation, Elastic and UI remain Claude-owned.

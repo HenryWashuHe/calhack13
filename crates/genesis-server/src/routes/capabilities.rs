@@ -184,10 +184,24 @@ pub async fn publish(
     p.require(&[Principal::Operator])?;
     let mut manifest = match body {
         PublishBody::Verified(body) => {
-            let verified = app
-                .evidence_policy
-                .verified_forge(&body.verification_ref)
-                .map_err(evidence_error)?;
+            let verified = if let Some(id) = body.verification_ref.strip_prefix("acquisition:") {
+                super::acquisitions::configured(&app)?;
+                let record = app
+                    .acquisition_runtime
+                    .verified_record(id)
+                    .await
+                    .map_err(super::acquisitions::runtime_error)?;
+                let forge = record.session().forge().ok_or_else(|| {
+                    ApiError::internal("verified acquisition has no forge checkpoint")
+                })?;
+                app.evidence_policy
+                    .verify_session(record.suite_id(), forge)
+                    .map_err(evidence_error)?
+            } else {
+                app.evidence_policy
+                    .verified_forge(&body.verification_ref)
+                    .map_err(evidence_error)?
+            };
             if artifact(&body.manifest) != verified.artifact {
                 return Err(ApiError::new(
                     StatusCode::CONFLICT,
