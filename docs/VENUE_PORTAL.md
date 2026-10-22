@@ -22,8 +22,8 @@ One `--out` holds any number of namespaces, all served together:
 | Output | Served? | Use |
 | --- | --- | --- |
 | `data/portal/public/<ns>/venues/*.html`, `<ns>/index.html`, `index.html` | yes | what the Actor and the judge read |
-| `data/portal/trusted/<suite_id>.json` | **never** | pass to `genesis org --oracle-suite` |
-| `data/portal/trusted/<ns>.manifest.json` | **never** | spec, seed and digests for the record |
+| `data/portal/trusted/suites/<suite_id>.json` | **never** | pass to `genesis org --oracle-suite` |
+| `data/portal/trusted/manifests/<ns>.json` | **never** | spec, seed and digests for the record |
 | `data/portal/fragments/<ns>.json` | no (public-safe) | `allowed_source_urls`, `examples` (HTML only) and a suggested `invocation_input` |
 
 Page URLs are `<base>/<ns>/venues/<slug>.html`; the namespace defaults to the
@@ -88,8 +88,8 @@ node scripts/venue-portal/combine-fragments.mjs \
 
 1. Both namespaces are served at once by one `serve.mjs` and one tunnel, at
    distinct URLs with their own bytes.
-2. Start A with `--oracle-suite data/portal/trusted/portal-a-v1.json`, B with
-   `--oracle-suite data/portal/trusted/portal-b-v1.json`.
+2. Start A with `--oracle-suite data/portal/trusted/suites/portal-a-v1.json`, B with
+   `--oracle-suite data/portal/trusted/suites/portal-b-v1.json`.
 3. The scenario spec has one allowlist, one examples list and one invocation
    input. `combine-fragments.mjs` gives `allowed_source_urls` = A ∪ B,
    A's `examples` (generation input) and B's `invocation_input` (B's suite
