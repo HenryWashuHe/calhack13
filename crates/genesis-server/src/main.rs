@@ -229,7 +229,7 @@ async fn main() -> anyhow::Result<()> {
             }
             let token = apify_token_from_env()?;
             let providers = org_providers(dev_stub, cfg.stub_delay, token.as_deref())?;
-            let app = build_org(&cfg, Some(providers))?;
+            let app = genesis_server::attach_elastic_from_env(build_org(&cfg, Some(providers))?)?;
             let listener = tokio::net::TcpListener::bind(&bind).await?;
             tracing::info!(org = %cfg.org_id, %bind, "organization listening");
             genesis_server::serve_org(app, listener).await
@@ -251,7 +251,7 @@ async fn main() -> anyhow::Result<()> {
                 .filter(|s| !s.is_empty())
                 .map(String::from)
                 .collect();
-            let state = RegistryState::open(db, publishers, readers)?;
+            let state = RegistryState::open(db, publishers, readers)?.with_elastic_from_env()?;
             let addr = spawn_registry(state, &bind).await?;
             tracing::info!(%addr, "registry listening");
             tokio::signal::ctrl_c().await?;
@@ -265,7 +265,8 @@ async fn main() -> anyhow::Result<()> {
             std::fs::create_dir_all(&data_dir)?;
             let reg_addr = format!("127.0.0.1:{base_port}");
             let publishers = parse_publishers("org_a:org_a-registry,org_b:org_b-registry");
-            let reg = RegistryState::open(data_dir.join("registry.db"), publishers, vec![])?;
+            let reg = RegistryState::open(data_dir.join("registry.db"), publishers, vec![])?
+                .with_elastic_from_env()?;
             spawn_registry(reg, &reg_addr).await?;
             let mut lines = vec![format!("registry  http://{reg_addr}")];
             for (i, (id, name)) in [
@@ -281,7 +282,7 @@ async fn main() -> anyhow::Result<()> {
                 cfg.registry_token = Some(format!("{id}-registry"));
                 cfg.stub_delay = Duration::from_millis(stub_delay_ms);
                 let addr = format!("127.0.0.1:{}", base_port + 1 + i as u16);
-                let app = build_org(&cfg, None)?;
+                let app = genesis_server::attach_elastic_from_env(build_org(&cfg, None)?)?;
                 spawn_org(app, &addr).await?;
                 lines.push(format!(
                     "{id}     http://{addr}   operator token: {}",
