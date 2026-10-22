@@ -24,6 +24,9 @@ pub mod store;
 /// Optional CREAO specialist registration from the backend environment.
 pub mod creao_config;
 
+/// Readiness proven by backend-observed gateway receipts.
+pub mod gateway_readiness;
+
 use app::AppState;
 use auth::Tokens;
 use genesis_core::ids::OrgId;
