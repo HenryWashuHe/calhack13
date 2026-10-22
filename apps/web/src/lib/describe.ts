@@ -25,9 +25,8 @@ export function describe(ev: DomainEvent, state: OrgState | null): Described {
       return { title: "Mission created", detail: ev.payload.goal, category: "evidence", refs: [ev.payload.mission_id] };
     case "observation_recorded":
       return {
-        // The kernel's own note after a capability gap became final: it is
-        // what wakes the planner to attach (or work without) the capability.
-        title: ev.payload.source === "kernel.capability_gap" ? "Planner woken: requested capability is final" : "Observation",
+        // This source identifies a gap update, not proof the planner consumed it.
+        title: ev.payload.source === "kernel.capability_gap" ? "Capability gap update recorded" : "Observation",
         detail: `${ev.payload.source}: ${ev.payload.summary}`,
         category: "evidence",
         refs: [ev.payload.observation_id],
