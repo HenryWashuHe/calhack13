@@ -25,7 +25,7 @@ use genesis_core::ids::JobId;
 use genesis_core::jobs::Job;
 use genesis_core::lifecycle::{JobStatus, StateMachine};
 use genesis_core::model::{AgentBinding, Provider};
-use genesis_providers::{SpecialistProgress, SpecialistRuntime};
+use genesis_providers::{PreEffectGuard, SpecialistProgress, SpecialistRuntime};
 use serde_json::json;
 use std::sync::Arc;
 
@@ -82,8 +82,11 @@ fn authorize(app: &AppState, job: &Job) -> Result<AgentBinding, String> {
     // The same live grant used for executable capabilities also bounds
     // specialist work: mission status/deadline, assignment lease/identity,
     // role ownership, responsibility epoch and the job's own deadline.
-    // Job does not persist a required scope, so this does not claim to check it.
+    // Domain-owned assessment bindings retain their required scope separately.
+    // Generic jobs still do not persist a required scope.
     authorize_job(&state, job, None, Utc::now()).map_err(|e| e.to_string())?;
+    crate::venue_assessments::authorize_bound_job(app, &state, job, Utc::now())
+        .map_err(|error| error.message)?;
     let binding = state
         .roles
         .get(&job.role_id)
@@ -213,13 +216,41 @@ async fn advance_job(
         return Ok(());
     }
     let timeout = app.provision_timeout;
+    let guarded = {
+        let _guard = app.kernel.lock().await;
+        let job = app.store.get_job(job_id).map_err(|e| e.to_string())?;
+        crate::venue_assessments::managed(&job)
+    };
+    let effect_guard: PreEffectGuard = {
+        let app = app.clone();
+        let job_id = job_id.clone();
+        Arc::new(move || {
+            let app = app.clone();
+            let job_id = job_id.clone();
+            Box::pin(async move {
+                let _guard = app.kernel.lock().await;
+                let Ok(job) = app.store.get_job(&job_id) else {
+                    return false;
+                };
+                matches!(job.status, JobStatus::Submitting | JobStatus::Running)
+                    && authorize(&app, &job).is_ok()
+            })
+        })
+    };
     let once = |retry| {
         let runtime = runtime.clone();
+        let effect_guard = effect_guard.clone();
         async move {
-            tokio::time::timeout(timeout, runtime.advance(op, retry))
-                .await
-                .map_err(|_| "provider call timed out".to_owned())?
-                .map_err(|e| e.to_string())
+            tokio::time::timeout(timeout, async {
+                if guarded {
+                    runtime.advance_guarded(op, retry, effect_guard).await
+                } else {
+                    runtime.advance(op, retry).await
+                }
+            })
+            .await
+            .map_err(|_| "provider call timed out".to_owned())?
+            .map_err(|e| e.to_string())
         }
     };
     let progress = match once(false).await {
@@ -239,6 +270,16 @@ async fn advance_job(
     let mut job = app.store.get_job(job_id).map_err(|e| e.to_string())?;
     if !matches!(job.status, JobStatus::Submitting | JobStatus::Running) {
         return Ok(());
+    }
+    if guarded {
+        if let Err(reason) = authorize(app, &job) {
+            return refuse(
+                app,
+                &mut job,
+                format!("authority lost before applying progress: {reason}"),
+                true,
+            );
+        }
     }
     let mut effects = Vec::new();
     match progress {
