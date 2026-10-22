@@ -21,10 +21,10 @@ One `--out` holds any number of namespaces, all served together:
 
 | Output | Served? | Use |
 | --- | --- | --- |
-| `data/portal/public/<ns>/venues/*.html`, `<ns>/index.html`, `index.html` | yes | what the Actor and the judge read |
+| `data/portal/public/<ns>/venues/*.html`, `<ns>/examples/*.html` (with `--holdout`), `<ns>/index.html` (links every emitted page by its own path), `index.html` | yes | what the Actor and the judge read |
 | `data/portal/trusted/suites/<suite_id>.json` | **never** | pass to `genesis org --oracle-suite` |
 | `data/portal/trusted/manifests/<ns>.json` | **never** | spec, seed and digests for the record |
-| `data/portal/fragments/<ns>.json` | no (public-safe) | `allowed_source_urls`, `examples` (HTML only) and a suggested `invocation_input` |
+| `data/portal/fragments/<ns>.json` | no (public-safe) | `allowed_source_urls`, `examples` (HTML only; held out with `--holdout`) and a suggested `invocation_input` |
 
 Page URLs are `<base>/<ns>/venues/<slug>.html`; the namespace defaults to the
 suite ID. Page bytes never contain their own URL, so a new `--base-url` changes
@@ -101,9 +101,25 @@ node scripts/venue-portal/combine-fragments.mjs \
    organizations whose history references them. Do not replace a namespace an
    existing run used.
 
-Keep `examples` and suite cases apart for a held-out check: give the generator
-one seed's pages as examples and evaluate on another seed's pages with the same
-layouts. A shared seed is a reproducibility check, not held-out evaluation.
+### Held-out examples (`--holdout`)
+
+By default the fragment's `examples` are the suite's own pages, which makes the
+oracle run a reproducibility check, not held-out evaluation. Pass `--holdout`
+to keep them apart:
+
+```sh
+node scripts/venue-portal/generate.mjs --preset baseline --seed a1 --namespace org-a \
+  --suite-id portal-a-v1 --base-url $U --out data/portal --holdout
+```
+
+For every supported page this also serves `<ns>/examples/<slug>.html`: same
+layout, title and date, freshly drawn venues (no venue name or ID shared with
+the suite). The fragment's `examples` are only those pages, and
+`allowed_source_urls` lists cases and examples. **The suite is byte-identical
+to the run without `--holdout`**, so verification is unchanged; the generator
+just never sees a page it is graded on. The manifest records
+`held_out_examples: true`. Same formats, new data: this tests generalization
+across data, not to a new layout (the `layout-drift` preset is for that).
 
 ## Checks
 
@@ -116,7 +132,9 @@ The tests cover determinism, exact digests, base-URL independence, preset
 coverage, spec and calendar-date validation (leap-year controls), the
 public/trusted split, path traversal, A and B served simultaneously by one
 server with their own bytes, fragment combination, and the no-overwrite rule
-for the generator and the lab. An independent reference extractor reads only the rendered HTML and
+for the generator and the lab, and held-out examples (disjoint from the suite
+by URL and venue, readable by the reference extractor, within the forge's
+synthesis limits, suite unchanged). An independent reference extractor reads only the rendered HTML and
 must agree with the oracle for 15 variants, so a rendering bug fails a test
 instead of producing a wrong oracle. Each preset's suite goes through the real
 `genesis-verify`: a correct candidate (reordered, UTC times) is accepted, and a

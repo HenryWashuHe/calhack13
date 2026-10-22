@@ -50,6 +50,37 @@ pub async fn abandon_operation(
     ))
 }
 
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AttachBody {
+    pub provider_agent_id: String,
+    pub reason: String,
+}
+
+/// Operator: attach the native agent found while reconciling a role operation
+/// whose creation outcome is unknown. Readiness must still be proven.
+pub async fn attach_operation(
+    State(app): State<AppState>,
+    p: Principal,
+    Path((id, role_key)): Path<(String, String)>,
+    Json(body): Json<AttachBody>,
+) -> ApiResult<Json<OrgChangeRecord>> {
+    p.require(&[Principal::Operator])?;
+    if body.reason.trim().is_empty() {
+        return Err(crate::error::ApiError::bad_request("reason is required"));
+    }
+    Ok(Json(
+        saga::attach_operation(
+            &app,
+            &ChangeId::new(id),
+            &role_key,
+            body.provider_agent_id.trim(),
+            &body.reason,
+        )
+        .await?,
+    ))
+}
+
 pub async fn list(
     State(app): State<AppState>,
     p: Principal,
