@@ -17,6 +17,7 @@ pub mod outbox;
 pub mod registry;
 pub mod routes;
 pub mod saga;
+pub mod specialist;
 pub mod store;
 
 use app::AppState;
@@ -158,6 +159,7 @@ pub fn build_org(cfg: &OrgConfig, providers: Option<ProviderSet>) -> anyhow::Res
         capability_runtime,
         registry,
         provision_timeout: cfg.provision_timeout,
+        readiness: specialist::ReadinessRegistry::default(),
     })
 }
 
@@ -170,6 +172,8 @@ pub async fn serve_org(app: AppState, listener: TcpListener) -> anyhow::Result<(
     }
     app.capability_runtime.recover_interrupted().await?;
     let _capability_worker = AbortWorker(capability_worker(app.clone()));
+    let _specialist_worker =
+        specialist::spawn(app.clone(), Duration::from_millis(500)).map(AbortWorker);
     let _outbox_worker = AbortWorker(outbox::spawn(app.clone()));
     let router = app.router();
     let res = axum::serve(listener, router).await;

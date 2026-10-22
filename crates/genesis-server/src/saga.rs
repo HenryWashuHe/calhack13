@@ -57,6 +57,7 @@ pub async fn submit(
         allocation: alloc,
         provisioned: Default::default(),
         ready: Default::default(),
+        operations: Default::default(),
         errors: vec![],
         committed_revision: None,
         submitted_by: submitted_by.to_owned(),
@@ -188,6 +189,15 @@ fn save(app: &AppState, record: &OrgChangeRecord, effects: Vec<EventKind>) -> Ap
     Ok(())
 }
 
+/// Persist a change record with its events (used by the specialist hook).
+pub(crate) fn save_record(
+    app: &AppState,
+    record: &OrgChangeRecord,
+    effects: Vec<EventKind>,
+) -> ApiResult<()> {
+    save(app, record, effects)
+}
+
 /// Drive a validated change to a terminal state. Concurrent calls on AppState
 /// clones serialize before loading the record; known completed steps are skipped
 /// after restart. This gate does not make an unknown native POST safe to repeat.
@@ -204,9 +214,24 @@ pub async fn run(app: &AppState, change_id: &ChangeId) -> ApiResult<OrgChangeRec
 
     if record.status == ChangeStatus::Provisioning {
         let roles = engine::roles_to_provision(&record.proposal, &record.allocation);
+        let mut waiting = false;
         for role in roles {
             if record.ready.contains(&role.key) {
                 continue; // provisioned and ready before a restart
+            }
+            // Asynchronous providers (durable operations) take the
+            // pending/readiness path; the change waits in PROVISIONING.
+            if let Ok(runtime) = app.providers.specialist(role.provider) {
+                match crate::specialist::drive_role(app, &mut record, &role, runtime).await? {
+                    crate::specialist::Drive::Ready => continue,
+                    crate::specialist::Drive::Waiting => {
+                        waiting = true;
+                        continue;
+                    }
+                    crate::specialist::Drive::Failed(reason) => {
+                        return fail(app, record, &role.key, reason)
+                    }
+                }
             }
             // One deadline covers creation and readiness for this role.
             let deadline = tokio::time::Instant::now() + app.provision_timeout;
@@ -264,6 +289,9 @@ pub async fn run(app: &AppState, change_id: &ChangeId) -> ApiResult<OrgChangeRec
                 }
                 Err(err) => return fail(app, record, &role.key, format!("readiness: {err}")),
             }
+        }
+        if waiting {
+            return Ok(record); // resumed by the specialist poller
         }
         let e = transition(&mut record, ChangeStatus::Ready, vec![])?;
         save(app, &record, vec![e])?;
