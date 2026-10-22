@@ -60,11 +60,19 @@ pub struct AppState {
     pub kernel: Arc<Mutex<()>>,
     pub(crate) saga_gates: SagaGates,
     pub registry: Option<RegistryClient>,
+    /// Elastic projection and retrieval; disabled unless configured.
+    pub projection: crate::projection::Projection,
+    /// Agent Builder client used to deliver jobs to Elastic specialists.
+    pub elastic_agents: Option<Arc<genesis_elastic::AgentBuilder>>,
     pub provision_timeout: Duration,
     /// Readiness verifiers for asynchronously created agents, by provider.
     pub readiness: crate::specialist::ReadinessRegistry,
     pub evidence_policy: Arc<crate::capability_evidence::EvidencePolicy>,
     pub capability_runtime: Arc<crate::capability_runtime::CapabilityRuntime>,
+    pub acquisition_policy: Option<Arc<crate::capability_acquisition_store::AcquisitionPolicy>>,
+    pub automatic_acquisition: bool,
+    pub acquisition_runtime: Arc<crate::capability_acquisition_runtime::AcquisitionRuntime>,
+    pub(crate) adoption_gate: Arc<Mutex<()>>,
 }
 
 /// Result of a kernel mutation.
@@ -75,6 +83,24 @@ pub struct Mutation<T> {
 }
 
 impl AppState {
+    /// Provision Elastic roles as Agent Builder specialists and deliver their
+    /// jobs as converse turns.
+    pub fn with_elastic_agents(mut self, agents: genesis_elastic::AgentBuilder) -> Self {
+        let agents = Arc::new(agents);
+        self.providers = self
+            .providers
+            .clone()
+            .with_provisioner(genesis_core::model::Provider::Elastic, agents.clone());
+        self.elastic_agents = Some(agents);
+        self
+    }
+
+    /// Enable Elastic projection and retrieval for this organization.
+    pub fn with_elastic(mut self, client: genesis_elastic::ElasticClient) -> Self {
+        self.projection = crate::projection::Projection::new(client);
+        self
+    }
+
     pub fn broadcast(&self, events: &[DomainEvent]) {
         for e in events {
             // No subscribers is fine.

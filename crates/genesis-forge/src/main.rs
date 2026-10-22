@@ -1,4 +1,6 @@
+mod acquisition_commands;
 mod storage;
+mod synthesis_commands;
 
 use genesis_apify::{ApifyClient, RunLimits};
 use genesis_forge::{venue_source, CandidateSpec, ForgeSession, Phase};
@@ -14,6 +16,16 @@ use storage::{CheckpointLock, MAX_EXTRACTOR_BYTES};
 
 const HELP: &str = "Usage:
   genesis-forge prepare --candidate metadata.json --extractor parser.ts --suite suite.json --checkpoint session.json
+  genesis-forge generate-prepare --request public-request.json --model-config model.json --checkpoint generation.json
+  genesis-forge generate-step --checkpoint generation.json
+  genesis-forge generate-status --checkpoint generation.json
+  genesis-forge prepare-generated --candidate metadata.json --generation generation.json --suite suite.json --checkpoint session.json
+  genesis-forge acquire-prepare --plan plan.json --suite suite.json --checkpoint acquisition.json
+  genesis-forge acquire-step --suite suite.json --checkpoint acquisition.json [--retry-read]
+  genesis-forge acquire-run --suite suite.json --checkpoint acquisition.json --max-steps N [--retry-read]
+  genesis-forge acquire-status --suite suite.json --checkpoint acquisition.json
+  genesis-forge acquire-export --suite suite.json --checkpoint acquisition.json
+  genesis-forge acquire-export-forge --suite suite.json --checkpoint acquisition.json --output forge.json
   genesis-forge step --suite suite.json --checkpoint session.json [--retry-read]
   genesis-forge status --suite suite.json --checkpoint session.json
   genesis-forge export --suite suite.json --checkpoint session.json
@@ -23,9 +35,17 @@ checkpointed action against https://api.apify.com using APIFY_TOKEN from the
 environment. The token is never accepted as an argument or stored in a checkpoint.
 Each step saves pending intent before any provider request. Pending POSTs after a
 restart require reconciliation; this CLI never replays them. Retryable read failures
-require an explicit --retry-read. No action loop or automatic retry is provided.
+require an explicit --retry-read. step does not loop or automatically retry.
 export emits a reverified manifest draft; it grants no publication or installation
 authority. Checkpoints contain private source and outputs; do not give them to Actors.
+generate-prepare is offline. generate-step makes at most one Messages API call using
+ANTHROPIC_API_KEY, with the explicit model stored in generation.json. Pending calls
+after interruption require reconciliation and are never automatically replayed.
+Generation receives public examples only, never a verification suite. Generated
+source is untrusted; prepare-generated packages it without executing it locally.
+acquire-run advances one durable workflow for at most N steps (1..64), stopping
+on failures. It can perform one preplanned semantic repair, never an automatic
+retry of failed provider submissions. Its status output is newline-delimited JSON.
 Exit codes: 0 success/progress, 1 rejected/failed/reconciliation required, 2 invalid input or local error.
 ";
 
@@ -43,6 +63,7 @@ struct Arguments {
     command: String,
     paths: BTreeMap<String, PathBuf>,
     retry_read: bool,
+    max_steps: Option<u32>,
 }
 
 impl Arguments {
@@ -60,14 +81,37 @@ impl Arguments {
             .to_string();
         let allowed: &[&str] = match command.as_str() {
             "prepare" => &["--candidate", "--extractor", "--suite", "--checkpoint"],
+            "prepare-generated" => &["--candidate", "--generation", "--suite", "--checkpoint"],
+            "generate-prepare" => &["--request", "--model-config", "--checkpoint"],
+            "generate-step" | "generate-status" => &["--checkpoint"],
+            "acquire-prepare" => &["--plan", "--suite", "--checkpoint"],
+            "acquire-step" | "acquire-run" | "acquire-status" | "acquire-export" => {
+                &["--suite", "--checkpoint"]
+            }
+            "acquire-export-forge" => &["--suite", "--checkpoint", "--output"],
             "step" | "status" | "export" => &["--suite", "--checkpoint"],
             _ => return Err(format!("unknown command\n{HELP}")),
         };
         let mut paths = BTreeMap::new();
         let mut retry_read = false;
+        let mut max_steps = None;
         while let Some(raw) = args.next() {
             let flag = raw.to_str().ok_or_else(|| "invalid argument".to_string())?;
-            if flag == "--retry-read" && command == "step" {
+            if flag == "--max-steps" && command == "acquire-run" {
+                if max_steps.is_some() {
+                    return Err("duplicate --max-steps".into());
+                }
+                let count = args
+                    .next()
+                    .and_then(|v| v.to_str().and_then(|s| s.parse::<u32>().ok()))
+                    .filter(|n| (1..=64).contains(n))
+                    .ok_or("--max-steps must be an integer between 1 and 64")?;
+                max_steps = Some(count);
+                continue;
+            }
+            if flag == "--retry-read"
+                && matches!(command.as_str(), "step" | "acquire-step" | "acquire-run")
+            {
                 if retry_read {
                     return Err("duplicate --retry-read".into());
                 }
@@ -95,10 +139,14 @@ impl Arguments {
                 return Err(format!("missing {flag}"));
             }
         }
+        if command == "acquire-run" && max_steps.is_none() {
+            return Err("acquire-run requires --max-steps".into());
+        }
         Ok(Some(Self {
             command,
             paths,
             retry_read,
+            max_steps,
         }))
     }
 
@@ -126,21 +174,31 @@ async fn run() -> Result<u8, String> {
         print!("{HELP}");
         return Ok(0);
     };
+    if args.command.starts_with("generate-") {
+        return synthesis_commands::run(&args).await;
+    }
+    if args.command.starts_with("acquire-") {
+        return acquisition_commands::run(&args).await;
+    }
     let suite: OracleSuite = storage::read_json(args.path("--suite")?)?;
     let lock = CheckpointLock::acquire(args.path("--checkpoint")?)?;
-    if args.command == "prepare" {
+    if args.command == "prepare" || args.command == "prepare-generated" {
         let metadata: CandidateMetadata = storage::read_json(args.path("--candidate")?)?;
-        let parser = String::from_utf8(storage::read_bytes(
-            args.path("--extractor")?,
-            MAX_EXTRACTOR_BYTES,
-        )?)
-        .map_err(|_| "extractor must be UTF-8 TypeScript".to_string())?;
-        let urls = suite
-            .cases
-            .iter()
-            .map(|case| case.source.url.clone())
-            .collect::<Vec<_>>();
-        let source = venue_source(&parser, &urls).map_err(|error| error.to_string())?;
+        let source = if args.command == "prepare-generated" {
+            synthesis_commands::generated_source(&args, &metadata, &suite)?
+        } else {
+            let parser = String::from_utf8(storage::read_bytes(
+                args.path("--extractor")?,
+                MAX_EXTRACTOR_BYTES,
+            )?)
+            .map_err(|_| "extractor must be UTF-8 TypeScript".to_string())?;
+            let urls = suite
+                .cases
+                .iter()
+                .map(|case| case.source.url.clone())
+                .collect::<Vec<_>>();
+            venue_source(&parser, &urls).map_err(|error| error.to_string())?
+        };
         let spec = CandidateSpec {
             operation_id: metadata.operation_id,
             capability_id: metadata.capability_id,
