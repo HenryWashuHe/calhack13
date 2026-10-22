@@ -1,16 +1,36 @@
 # PR review queue — October 22, 2026
 
 The user authorized merging ready PRs on October 22, 2026. All eleven capability
-PRs below are now merged to `main`; eleven PRs remain open. Fresh read-only audits
-confirmed the recorded heads, no new actionable comments, intact dependencies
-and exclusion of held source changes. Every merge used the reviewed head, a merge
-commit and a tree-equality check; branches were retained and children retargeted
-to `main` sequentially. No administrator bypass or squash/rebase was used.
+PRs below are now merged to `main`. Receipt PR #32 has also landed; UI fix #31
+landed in parent #28. Other source findings and dependency holds remain. Each capability-stack merge used the reviewed head, a merge commit and a
+tree-equality check; branches were retained and children retargeted to `main`
+sequentially. No administrator bypass or squash/rebase was used.
 
 Main's capability checkpoint is `4ecc3970634a04b54e7e7dbbe952fbc4e4f980cb`.
 Its tree is exactly the reviewed/tested #24 head `9e7939a` (594 Rust tests,
 formatting and strict Clippy). The unchanged suite was not repeated for the
 history-only merges. Documentation updates do not introduce sponsor source code.
+
+## Latest reviewed additions
+
+- [#32](https://github.com/HenryWashuHe/genesis/pull/32), source `050b099`,
+  merged to main at `f03ce9bb24bc31cb1a3ab31a09729352efe918f2`: read-only CREAO
+  execution receipts bound to the frozen job/attempt/assignment/agent and backend
+  journal. The merge tree equals the tested source tree. Full workspace validation:
+  **598 Rust tests across 65 suites**, formatting and strict all-target Clippy.
+  These are local/loopback tests; the venue-continuity workflow and live core-agent
+  execution remain separate work.
+- [#31](https://github.com/HenryWashuHe/genesis/pull/31), source `a83357a`,
+  merged into #28 at `17b6b0274eed9138737395867fd056f1c5e36f3c`: awaiting readiness
+  keeps Abandon and hides Attach. The merge tree equals the reviewed source tree.
+  Independent validation: **28 web tests**, typecheck and build. Actual component
+  rendering is covered; interactive browser actions and live writes are not.
+  #28 remains held by #27/#26/#20, not by its now-resolved UI finding.
+
+Henry's Claude [claimed #27/#28](https://github.com/HenryWashuHe/genesis/issues/4#issuecomment-6345636513)
+without taking the other source fixes; #31 is that agent's completed #28 fix.
+Codex owns the provider receipt addition and review/integration. Source branches
+remain available; no whole-kernel takeover is active.
 
 ## Capability stack: merged to main
 
@@ -59,7 +79,7 @@ consume them without duplicating implementation in the integration branch.
 | [#22](https://github.com/HenryWashuHe/genesis/pull/22) / `8a23273ccbf97b611ed73ddfc43646b31dffbcca` | Revalidate effective remote planner configuration; disable redirects in the shared Agent Builder client | [Source review](https://github.com/HenryWashuHe/genesis/pull/22#pullrequestreview-5615620695); no new drift/redirect reproduction |
 | [#26](https://github.com/HenryWashuHe/genesis/pull/26) / `3dc95d6bd9863c09e5775957d5346edbc3d35d2e` | Reconcile a provisional receipt run ID against the trusted dispatch result before treating correlation as verified | [Review](https://github.com/HenryWashuHe/genesis/pull/26#pullrequestreview-5616058167); test-only `8d82c32`, one reproduced failure and a passing late-receipt control |
 | [#27](https://github.com/HenryWashuHe/genesis/pull/27) / `95a33a0edd1b574eef59cbe6a11b0a09915978aa` | Include sibling bindings in the current change when checking whether an attached native agent is already in use | [Review](https://github.com/HenryWashuHe/genesis/pull/27#pullrequestreview-5616058543); test-only `e161aad` reproduces two committed roles sharing the same native agent |
-| [#28](https://github.com/HenryWashuHe/genesis/pull/28) / `de0f5bc03c5728286bfd921b73f892d06eb88b7f` | Keep an Abandon-only action after attachment while readiness is pending | [Review](https://github.com/HenryWashuHe/genesis/pull/28#pullrequestreview-5616058888); actual component rendering loses both actions on transition to awaiting readiness, not an interactive browser test |
+| [#28](https://github.com/HenryWashuHe/genesis/pull/28) / `17b6b0274eed9138737395867fd056f1c5e36f3c` | UI finding resolved by #31; hold for #27/#26/#20 dependencies | [Fix review](https://github.com/HenryWashuHe/genesis/pull/31#issuecomment-6345825851); 28 web tests, typecheck and build pass; no interactive browser test |
 
 Prioritize the shared backend-managed result guard across #11/#20 first, then
 time-sensitive authority/retry checks and planner restart behavior. Put the shared
@@ -67,9 +87,9 @@ Agent Builder transport correction in #11 and absorb it into #22. Finish #21's
 installation/adoption evidence bindings against the current capability contracts.
 The new recovery stack is #20 → #26 → #27 → #28. Fix #27's sibling identity
 collision before relying on operator attachment; fix #26's run correlation without
-losing valid early receipts. #28 should preserve abandonment without exposing
-Attach for an already-bound operation. These findings are additions to the
-earlier source review, not evidence that the earlier blockers were fixed.
+losing valid early receipts. #28 now preserves abandonment without exposing Attach for an already-bound
+operation. The remaining findings are additions to the earlier source review;
+the UI correction does not resolve its backend dependencies.
 
 ## Provider readiness bridge: draft and dependent on kernel fixes
 
@@ -108,8 +128,8 @@ head and rerun the affected regressions. Reconcile source branches and draft #25
 against current `main`, preserving ancestry; do not merge the combined draft while
 its source findings remain. Passing fixture tests do not close live-provider gates.
 
-Codex owns capability code/review and narrow integration. Claude/Eric retains
-planner, general kernel/lifecycle/saga/outbox, asynchronous role activation, Elastic
-and UI. Codex completed the previously claimed provider readiness gap in #29;
+Codex owns capability/provider code, review and narrow integration. Claude/Eric
+retains planner, general kernel/lifecycle/saga/outbox, asynchronous role activation
+and Elastic; Henry's Claude is handling the scoped #27/#28 source fixes. Codex completed the previously claimed provider readiness gap in #29;
 the immediate priority remains verifying source fixes and draining this queue.
 No whole-kernel ownership transfer is active.
