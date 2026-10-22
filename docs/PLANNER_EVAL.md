@@ -51,7 +51,7 @@ stage) and p95 latency. The demo-tagged cases (`venue-closure`,
 | `interpreter-specialist` | bounded one-off work goes to the discovered specialist, not a new role |
 | `deposit-over-budget` | the only option breaks the $5,000 constraint, so escalate |
 | `duplicate-closure` | repeated evidence that is already owned: no churn |
-| `portal-layout-drift` | `RequestCapability` for the existing owner, sources on the evidence's origin; skipped until the prompt offers the op (#49) |
+| `portal-layout-drift` | `RequestCapability` for the existing owner, canonical https sources on the evidence's origin (skipped automatically on a planner prompt without the op) |
 
 Checks per run: `verdict`, `committed`, `require_any_op`, `forbid_ops`,
 `max_new_roles`, `max_new_budget_cents`, `forbid_scopes`, `max_attempts`,
@@ -70,5 +70,8 @@ checks, so the scorer is tested too.
   Elastic, CREAO or Fetch accepted the role.
 - Scores are rules, not judgment. A creative but valid answer can fail a
   rule; read the failed-check column before blaming the model.
+- Scenario evidence uses `https://portal.example`. The capability path needs
+  https evidence (forge source rules, enforced by the kernel since #57), so a
+  live demo must serve the portal through its https tunnel.
 - The Elastic planner (`GENESIS_LLM_PROVIDER=elastic`) is not wired here yet;
   it needs a per-organization agent.

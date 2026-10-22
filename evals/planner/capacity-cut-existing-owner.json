@@ -99,13 +99,13 @@
     {
       "source": "portal",
       "summary": "Main hall closed for maintenance on Nov 14",
-      "evidence_ref": "http://127.0.0.1:8088/baseline/venues/main-hall.html"
+      "evidence_ref": "https://portal.example/baseline/venues/main-hall.html"
     }
   ],
   "observation": {
     "source": "portal",
     "summary": "Replacement venue capacity reduced to 100 for Nov 14",
-    "evidence_ref": "http://127.0.0.1:8088/capacity-cut/venues/main-hall.html"
+    "evidence_ref": "https://portal.example/capacity-cut/venues/main-hall.html"
   },
   "expect": {
     "verdicts": [

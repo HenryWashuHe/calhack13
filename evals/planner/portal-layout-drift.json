@@ -101,7 +101,7 @@
   "observation": {
     "source": "portal",
     "summary": "Venue portal pages changed layout; the availability reader returns no data for main-hall",
-    "evidence_ref": "http://127.0.0.1:8088/layout-drift/venues/main-hall.html"
+    "evidence_ref": "https://portal.example/layout-drift/venues/main-hall.html"
   },
   "expect": {
     "verdicts": [

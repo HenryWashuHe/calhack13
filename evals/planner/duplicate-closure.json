@@ -98,13 +98,13 @@
     {
       "source": "portal",
       "summary": "Main hall closed for maintenance on Nov 14",
-      "evidence_ref": "http://127.0.0.1:8088/baseline/venues/main-hall.html"
+      "evidence_ref": "https://portal.example/baseline/venues/main-hall.html"
     }
   ],
   "observation": {
     "source": "portal",
     "summary": "Reminder: main hall remains closed for maintenance on Nov 14",
-    "evidence_ref": "http://127.0.0.1:8088/baseline/venues/main-hall.html"
+    "evidence_ref": "https://portal.example/baseline/venues/main-hall.html"
   },
   "expect": {
     "verdicts": [
