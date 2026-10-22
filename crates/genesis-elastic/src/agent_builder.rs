@@ -210,9 +210,32 @@ impl AgentBuilder {
                 )))
             };
         }
-        let (status, resp) = self
+        let (status, resp) = match self
             .send(self.http.post(self.url(collection)).json(body), true)
-            .await?;
+            .await
+        {
+            Ok(r) => r,
+            Err(ProviderError::Unknown(reason)) => {
+                // The write may have happened. Reconcile by deterministic ID
+                // with bounded reads; never send a second creation POST.
+                for attempt in 1..=3u64 {
+                    tokio::time::sleep(Duration::from_millis(150 * attempt)).await;
+                    match self.get(&path).await {
+                        Ok(Some(existing)) if same(&existing) => return Ok(()),
+                        Ok(Some(_)) => {
+                            return Err(ProviderError::Rejected(format!(
+                                "{collection} `{id}` exists with a different configuration"
+                            )))
+                        }
+                        Ok(None) | Err(_) => continue,
+                    }
+                }
+                return Err(ProviderError::Unknown(format!(
+                    "{reason}; {collection} `{id}` not found after reconciliation"
+                )));
+            }
+            Err(e) => return Err(e),
+        };
         if (200..300).contains(&status) {
             return Ok(());
         }
@@ -229,7 +252,7 @@ impl AgentBuilder {
 
     /// ID of the organization's evidence search tool.
     pub fn evidence_tool_id(&self, org_id: &str) -> String {
-        format!("genesis-{}-evidence-search", slug(org_id, 40))
+        format!("genesis-{}-evidence-search", crate::org_namespace(org_id))
     }
 
     /// Deterministic agent ID for a role created by a change.
@@ -241,16 +264,12 @@ impl AgentBuilder {
             "genesis-{}-{}-{}",
             slug(req.org_id.as_str(), 20),
             slug(&req.role.key, 24),
-            &digest[..12]
+            &digest[..16]
         )
     }
 
     fn evidence_index(&self, org_id: &str) -> String {
-        format!(
-            "{}-evidence-{}",
-            slug(&self.cfg.index_prefix, 40),
-            slug(org_id, 80)
-        )
+        crate::evidence_index_name(&self.cfg.index_prefix, org_id)
     }
 
     /// Ensure the organization's `index_search` tool over its own evidence.
@@ -319,21 +338,22 @@ impl AgentBuilder {
         let tool_id = self.ensure_evidence_tool(req.org_id.as_str()).await?;
         let body = self.agent_body(req, &tool_id);
         let id = body["id"].as_str().unwrap_or_default().to_owned();
-        let instructions = body["configuration"]["instructions"].clone();
-        self.ensure("agents", &id, &body, |a| {
-            a["configuration"]["instructions"] == instructions
-                && tool_ids(a).iter().any(|t| t == &tool_id)
-        })
-        .await?;
+        let expected = effective_config(&body);
+        // Adopt an existing agent only if its effective configuration is
+        // exactly what we would create (no extra tools, same instructions).
+        self.ensure("agents", &id, &body, |a| effective_config(a) == expected)
+            .await?;
         Ok(AgentBinding {
             provider: Provider::Elastic,
             provider_agent_id: id,
-            config_digest: canonical_sha256(&body),
+            config_digest: canonical_sha256(&expected),
             conversation_ref: None,
         })
     }
 
-    /// Ready when the agent exists and still carries the evidence tool.
+    /// Ready when the agent's effective configuration still matches the
+    /// binding's digest exactly and its only tool is this organization's
+    /// evidence tool, scoped to this organization's index.
     pub async fn is_ready(&self, binding: &AgentBinding) -> Result<bool, ProviderError> {
         let Some(agent) = self
             .get(&format!("agents/{}", binding.provider_agent_id))
@@ -341,9 +361,32 @@ impl AgentBuilder {
         else {
             return Ok(false);
         };
-        let tools = tool_ids(&agent);
-        Ok(agent["id"] == binding.provider_agent_id
-            && tools.iter().any(|t| t.ends_with("-evidence-search")))
+        let effective = effective_config(&agent);
+        if agent["id"] != binding.provider_agent_id
+            || canonical_sha256(&effective) != binding.config_digest
+        {
+            return Ok(false);
+        }
+        // The digest covers the labels, so the organization label is trusted.
+        let Some(org) = effective["labels"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(Value::as_str)
+            .find_map(|l| l.strip_prefix("org:"))
+            .map(str::to_owned)
+        else {
+            return Ok(false);
+        };
+        let expected_tool = self.evidence_tool_id(&org);
+        if effective["tool_ids"] != json!([expected_tool]) {
+            return Ok(false);
+        }
+        let Some(tool) = self.get(&format!("tools/{expected_tool}")).await? else {
+            return Ok(false);
+        };
+        Ok(tool["type"] == "index_search"
+            && tool["configuration"]["pattern"] == self.evidence_index(&org))
     }
 
     /// One synchronous turn with an agent. A round waiting for a
@@ -397,6 +440,29 @@ impl AgentBuilder {
             tool_calls,
         })
     }
+}
+
+/// The parts of an agent definition that determine its behavior and scope,
+/// normalized (sorted labels and tool IDs) so the provider's ordering or extra
+/// response fields do not matter. Its digest is the binding's `config_digest`.
+fn effective_config(agent: &Value) -> Value {
+    let mut labels: Vec<String> = agent["labels"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|l| l.as_str().map(str::to_owned))
+        .collect();
+    labels.sort();
+    let mut tools = tool_ids(agent);
+    tools.sort();
+    json!({
+        "id": agent["id"],
+        "name": agent["name"],
+        "description": agent["description"],
+        "labels": labels,
+        "instructions": agent["configuration"]["instructions"],
+        "tool_ids": tools,
+    })
 }
 
 fn tool_ids(agent: &Value) -> Vec<String> {

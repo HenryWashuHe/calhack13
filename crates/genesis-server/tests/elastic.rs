@@ -138,7 +138,7 @@ async fn commits_are_projected_and_searchable() {
         .lock()
         .unwrap()
         .docs
-        .contains_key("genesis-evidence-org_a"));
+        .contains_key(&genesis_elastic::evidence_index_name("genesis", "org_a")));
 }
 
 #[tokio::test]

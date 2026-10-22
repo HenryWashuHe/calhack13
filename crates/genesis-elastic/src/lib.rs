@@ -191,6 +191,26 @@ fn index_part(raw: &str) -> String {
     s.trim_start_matches(['-', '_']).to_owned()
 }
 
+/// Collision-resistant, index-safe namespace for one organization: a readable
+/// lowercase prefix plus a digest of the *exact* organization ID, so `Org_A`
+/// and `org_a` (or two long IDs sharing a prefix) never share an index or a
+/// tool. Projection and Agent Builder both use this one mapping.
+pub fn org_namespace(org_id: &str) -> String {
+    let readable: String = index_part(org_id).chars().take(40).collect();
+    let readable = readable.trim_end_matches(['-', '_']);
+    let digest = genesis_core::digest::canonical_sha256(&Value::String(org_id.to_owned()));
+    if readable.is_empty() {
+        format!("org-{}", &digest[..16])
+    } else {
+        format!("{readable}-{}", &digest[..16])
+    }
+}
+
+/// Index name for an organization's evidence under `prefix`.
+pub fn evidence_index_name(prefix: &str, org_id: &str) -> String {
+    format!("{}-evidence-{}", index_part(prefix), org_namespace(org_id))
+}
+
 impl ElasticClient {
     pub fn new(cfg: ElasticConfig) -> ElasticResult<Self> {
         if !(cfg.elasticsearch_url.starts_with("https://")
@@ -212,11 +232,7 @@ impl ElasticClient {
 
     /// Index holding one organization's evidence.
     pub fn evidence_index(&self, org_id: &str) -> String {
-        format!(
-            "{}-evidence-{}",
-            index_part(&self.cfg.index_prefix),
-            index_part(org_id)
-        )
+        evidence_index_name(&self.cfg.index_prefix, org_id)
     }
 
     /// Shared index of approved capability manifests.
@@ -533,7 +549,14 @@ mod tests {
     #[test]
     fn index_names_are_lowercase_and_org_scoped() {
         let c = ElasticClient::new(cfg()).unwrap();
-        assert_eq!(c.evidence_index("Org_A.1"), "genesis-evidence-org_a-1");
+        let a = c.evidence_index("Org_A.1");
+        assert!(a.starts_with("genesis-evidence-org_a-1-"), "{a}");
+        assert_eq!(a, a.to_lowercase());
+        assert_ne!(c.evidence_index("Org_A"), c.evidence_index("org_a"));
+        assert_ne!(
+            c.evidence_index(&"a".repeat(81)),
+            c.evidence_index(&"a".repeat(80))
+        );
         assert_eq!(c.capability_index(), "genesis-capabilities");
     }
 

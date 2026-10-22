@@ -53,7 +53,7 @@ async fn projects_and_searches_an_organizations_evidence() {
     // Re-projection overwrites by deterministic ID.
     client.index_evidence("org_a", &docs).await.unwrap();
     assert_eq!(
-        fake.lock().unwrap().docs["genesis-evidence-org_a"].len(),
+        fake.lock().unwrap().docs[&client.evidence_index("org_a")].len(),
         docs.len()
     );
 
