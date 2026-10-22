@@ -21,8 +21,9 @@ fix #31. Their individual findings were resolved, but the readiness dependency
 still blocks this assembled branch.
 
 Main subsequently gained capability gaps #49 and corrected evidence UI #21 at
-`f8856f1`, then gap lifecycle UI #54 at `50db34b`. Those changes are not yet
-in `2829025`. Reconcile them into the draft before relying on its console or gap
+`f8856f1`, then gap lifecycle UI #54 at `50db34b` and the offline gap-policy
+materializer #56 at `00ad205`, gap event log #61, evaluation #52 and planner
+lifecycle/gap wakeup #63/#57. Those changes are not yet in `2829025`. Reconcile them into the draft before relying on its console or gap
 contracts. The newer #26 source/fix heads also need review before import; do not copy an unreviewed parent solely because
 its PR has a new head.
 
@@ -41,9 +42,10 @@ The historical full run at `1004934` passed 699 tests. Earlier web evidence at
 
 ## Remaining gate
 
-The current [review queue](PR_REVIEW_QUEUE.md) holds readiness #26/#37 because a
-mismatched early receipt can become Ready after a failed reconciliation write,
-including after reopening the database. Fix it on the owned source branch,
+The current [review queue](PR_REVIEW_QUEUE.md) holds readiness #26 after child
+#37 merged: a mismatched early receipt can become Ready after a failed durable
+write or database reopen. Repair #62 fixes fresh-schema recovery but its legacy
+migration still promotes a wrong-run receipt. Fix it on the owned source branch,
 rerun the unchanged negative probes, and then reconcile #26/#27/#28/#29. Passing
 ordinary readiness tests does not resolve that demonstrated recovery path.
 
