@@ -1,6 +1,6 @@
 # Developing the kernel and console
 
-This covers the Rust organization kernel (`crates/`) and the React console (`apps/web/`). Provider adapters for Elastic, Fetch, CREAO and Apify are not implemented here; they plug into the traits in `crates/genesis-providers`.
+This covers the Rust organization kernel (`crates/`) and the React console (`apps/web/`). Provider integrations have their own guides; the table below says which are tested only against fakes.
 
 ![Console showing Org A after relocation and handoff](img/console-org-a.png)
 
@@ -21,12 +21,25 @@ node scripts/dev-scenario.mjs --delay 1200
 
 State lives in `data/dev/*.db` (git-ignored). Delete that folder for a clean run.
 
+## Integration status
+
+| Integration | Guide | Status |
+| --- | --- | --- |
+| Elastic: evidence projection/search, capability search, Agent Builder specialists and jobs | [ELASTIC.md](ELASTIC.md), keys: [ELASTIC_SETUP.md](ELASTIC_SETUP.md) | Fake-tested; run `genesis-elastic-smoke` against a real project |
+| Mission planner (any LLM, or an Elastic Agent Builder agent) | [PLANNER.md](PLANNER.md) | Replay-tested; model not chosen |
+| CREAO asynchronous roles and jobs | [CREAO_RUNTIME.md](CREAO_RUNTIME.md), [ASYNC_PROVISIONING.md](ASYNC_PROVISIONING.md) | Kernel hook fake-tested; server registration and readiness verifier pending |
+| Apify capability execution and acceptance | [CAPABILITY_EXECUTION.md](CAPABILITY_EXECUTION.md) | Loopback-fixture tested |
+| Fetch recruitment | [FETCH_RUNTIME.md](FETCH_RUNTIME.md) | Local multi-process proof |
+
+None of these have been run against live sponsor accounts yet. `genesis dev`
+uses labeled development stubs for every provider.
+
 **Dev stubs are not integrations.** With stubs on, any role whose provider has no adapter gets a binding with `provider: "dev_stub"` and an ID like `devstub-elastic-…`. The console labels these `DEV STUB · for elastic`, and the `role_provisioned` event carries `dev_stub: true`. Run an organization without `--dev-stub` and unconfigured providers fail provisioning instead.
 
 ## Tests
 
 ```bash
-cargo test --workspace          # 49 tests: engine invariants, store, HTTP end-to-end
+cargo test --workspace          # engine invariants, store, HTTP end-to-end, provider fakes
 cargo clippy --workspace --all-targets
 cd apps/web && npm test && npm run build
 ```
