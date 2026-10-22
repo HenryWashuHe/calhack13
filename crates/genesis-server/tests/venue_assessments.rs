@@ -1258,6 +1258,128 @@ async fn deleted_domain_binding_before_dispatch_fails_closed_without_native_prep
 }
 
 #[tokio::test]
+async fn queued_assessment_survives_dev_stub_only_restart_and_resumes_the_same_native_job() {
+    let mut f = Fixture::start().await;
+    let source = f.source("missing-runtime-source", 0).await;
+    // Stop dispatch before creating the assessment, keeping only its HTTP router.
+    for worker in f.server.workers.drain(..) {
+        worker.abort();
+        let _ = worker.await;
+    }
+    let request = f.request_body("missing-runtime-assessment", &source);
+    let record = f.create(request.clone()).await;
+    let job_id = JobId::new(record["job_id"].as_str().unwrap());
+    let queued = f.app.store.get_job(&job_id).unwrap();
+    assert_eq!(queued.status, JobStatus::Queued);
+    assert!(!queued.provider_refs.contains_key("operation_id"));
+    let dispatch = f
+        .app
+        .store
+        .list_outbox(100)
+        .unwrap()
+        .into_iter()
+        .find(|item| item.kind == "job_dispatch" && item.payload["job_id"] == job_id.as_str())
+        .unwrap();
+    assert_eq!(dispatch.status, "pending");
+    assert_eq!(dispatch.attempts, 0);
+    assert!(f.journal.list().unwrap().is_empty());
+    let before_effects = f.side_effect_counts();
+    let before_requests = f.providers.world.lock().unwrap().seen.len();
+
+    f.server.stop().await;
+    f.config.forge_checkpoints.clear();
+    f.config.dev_stub = true;
+    f.app = build_org(
+        &f.config,
+        Some(ProviderSet::new().with_dev_stub(DevStub::default())),
+    )
+    .unwrap();
+    f.server = Server::router(f.app.clone().router()).await;
+    assert!(
+        genesis_server::outbox::drain_once(&f.app).await.unwrap() >= 1,
+        "the queued assessment dispatch must actually reach the missing-adapter path"
+    );
+    assert_eq!(
+        f.app.store.get_job(&job_id).unwrap(),
+        queued,
+        "a dev stub must not acknowledge a domain-managed CREAO job as Running"
+    );
+    let pending = f
+        .app
+        .store
+        .list_outbox(100)
+        .unwrap()
+        .into_iter()
+        .find(|item| item.id == dispatch.id)
+        .unwrap();
+    assert_eq!(pending.status, "pending");
+    assert_eq!(pending.attempts, 1);
+    assert!(pending.last_error.is_some());
+    assert!(f.journal.list().unwrap().is_empty());
+    assert_eq!(f.side_effect_counts(), before_effects);
+    assert_eq!(
+        f.providers.world.lock().unwrap().seen.len(),
+        before_requests
+    );
+    assert!(f.providers.execution_posts().is_empty());
+
+    // Real startup restores the provider and delivers the persisted dispatch;
+    // neither a new assessment nor a replacement job is submitted.
+    f.restart(true).await;
+    let accepted = f
+        .wait(
+            &format!(
+                "/venue-assessments/{}",
+                record["assessment_id"].as_str().unwrap()
+            ),
+            |record| !proof(record).is_null(),
+        )
+        .await;
+    assert_eq!(accepted["assessment_id"], record["assessment_id"]);
+    assert_eq!(accepted["job_id"], record["job_id"]);
+    assert_eq!(accepted["status"], "SUCCEEDED");
+    assert_eq!(proof(&accepted)["decision"], "accepted");
+    assert_eq!(proof(&accepted)["output"]["verdict"], "feasible");
+    let completed = f.app.store.get_job(&job_id).unwrap();
+    assert_eq!(completed.attempt_id, queued.attempt_id);
+    assert!(completed.provider_refs.contains_key("operation_id"));
+    let receipt = f
+        .specialist
+        .execution_receipt(&completed, &binding())
+        .unwrap();
+    assert_eq!(proof(&accepted)["run_id"], receipt.run_id);
+    assert_eq!(f.journal.list().unwrap().len(), 1);
+    assert_eq!(f.providers.execution_posts().len(), 1);
+    assert_eq!(
+        f.side_effect_counts(),
+        (before_effects.0 + 1, before_effects.1)
+    );
+    let delivered = f
+        .app
+        .store
+        .list_outbox(100)
+        .unwrap()
+        .into_iter()
+        .find(|item| item.id == dispatch.id)
+        .unwrap();
+    assert_eq!(delivered.status, "delivered");
+    assert_eq!(delivered.attempts, 2);
+    let (status, replay) = f.post("/venue-assessments", request).await;
+    assert_eq!(status, StatusCode::OK, "{replay}");
+    assert_eq!(replay, accepted);
+    assert_eq!(f.verify(&record).await, accepted);
+    assert_eq!(f.providers.execution_posts().len(), 1);
+    assert_eq!(
+        sqlite(&f)
+            .query_row("SELECT COUNT(*) FROM venue_assessments", [], |row| {
+                row.get::<_, i64>(0)
+            })
+            .unwrap(),
+        1
+    );
+}
+
+#[tokio::test]
 async fn fabricated_generic_result_cannot_replace_the_durable_native_execution_receipt() {
     let f = Fixture::start().await;
     let source = f.source("result-tamper-source", 3).await;
