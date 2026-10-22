@@ -19,7 +19,10 @@
 //! A challenge is dispatched at most once. If the dispatch outcome is unknown
 //! the challenge stays valid until it expires, so a late receipt still counts;
 //! then a new challenge is issued, up to `max_attempts`, after which the role
-//! fails readiness. Created provider IDs are kept either way.
+//! fails readiness. Definite dispatch failures back off and are limited
+//! separately. Status changes after a dispatch apply only to a challenge that
+//! is still `dispatching`, so a receipt accepted meanwhile is never lost.
+//! Created provider IDs are kept either way.
 
 use crate::specialist::{Readiness, ReadinessVerifier};
 use crate::store::Store;
@@ -183,9 +186,24 @@ pub struct GatewayConfig {
     pub receipt_url: String,
     /// How long a dispatched challenge waits for its receipt.
     pub ttl: Duration,
-    /// Wait after a definite dispatch failure before the next attempt.
-    pub retry_after: Duration,
+    /// Challenges that may reach the agent (dispatched or with an unknown
+    /// dispatch outcome) before readiness fails for lack of a receipt.
     pub max_attempts: u32,
+    /// First wait after a definite dispatch failure; doubles per failure,
+    /// capped at ten minutes.
+    pub retry_after: Duration,
+    /// Definite dispatch failures before readiness fails. They do not count
+    /// toward `max_attempts`: their nonce never left the backend.
+    pub max_dispatch_failures: u32,
+}
+
+impl GatewayConfig {
+    fn backoff(&self, failures: u32) -> Duration {
+        let factor = 2u32.saturating_pow(failures.saturating_sub(1).min(16));
+        self.retry_after
+            .saturating_mul(factor)
+            .min(Duration::from_secs(600))
+    }
 }
 
 impl GatewayConfig {
@@ -211,8 +229,9 @@ impl GatewayConfig {
         Ok(Self {
             receipt_url: format!("{base}{RECEIPT_PATH}"),
             ttl: Duration::from_secs(300),
-            retry_after: Duration::from_secs(15),
             max_attempts: 3,
+            retry_after: Duration::from_secs(15),
+            max_dispatch_failures: 5,
         })
     }
 }
@@ -302,27 +321,82 @@ pub fn get_challenge(store: &Store, challenge_id: &str) -> rusqlite::Result<Opti
         .map(|o| o.map(|(c, _)| c))
 }
 
-fn set_status(
+/// Move a challenge to `to` only while it is still in one of `from`. Returns
+/// whether it moved. A receipt accepted meanwhile is never overwritten.
+fn transition(
     store: &Store,
     challenge_id: &str,
-    status: ChallengeStatus,
+    from: &[ChallengeStatus],
+    to: ChallengeStatus,
     probe_ref: Option<&str>,
     detail: Option<&str>,
     expires_at: Option<DateTime<Utc>>,
-) -> rusqlite::Result<()> {
-    store.lock().execute(
-        "UPDATE readiness_challenges SET status = ?2, probe_ref = COALESCE(?3, probe_ref), \
-         detail = COALESCE(?4, detail), expires_at = COALESCE(?5, expires_at) \
-         WHERE challenge_id = ?1",
+) -> rusqlite::Result<bool> {
+    // Status names are fixed identifiers, never caller input.
+    let allowed = from
+        .iter()
+        .map(|s| format!("'{}'", s.as_str()))
+        .collect::<Vec<_>>()
+        .join(", ");
+    let moved = store.lock().execute(
+        &format!(
+            "UPDATE readiness_challenges SET status = ?2, probe_ref = COALESCE(?3, probe_ref), \
+             detail = COALESCE(?4, detail), expires_at = COALESCE(?5, expires_at) \
+             WHERE challenge_id = ?1 AND status IN ({allowed})"
+        ),
         params![
             challenge_id,
-            status.as_str(),
+            to.as_str(),
             probe_ref,
             detail,
             expires_at.map(ts)
         ],
     )?;
-    Ok(())
+    Ok(moved == 1)
+}
+
+/// What an operator may see about a probe error: its kind and HTTP status,
+/// never the provider's message or body (which could echo the run input).
+fn probe_error_kind(e: &ProviderError) -> String {
+    match e {
+        ProviderError::NotConfigured { .. } => "provider not configured".into(),
+        ProviderError::Http { status, .. } => format!("provider returned HTTP {status}"),
+        ProviderError::Timeout => "timed out".into(),
+        ProviderError::Rejected(_) => "rejected by the provider".into(),
+        ProviderError::Unknown(_) => "outcome unknown".into(),
+    }
+}
+
+fn hhmmss(t: DateTime<Utc>) -> String {
+    t.format("%H:%M:%S UTC").to_string()
+}
+
+/// Stable operator note for a live challenge (no countdowns: a changed note
+/// is a new progress event).
+fn note(c: &Challenge) -> String {
+    match c.status {
+        ChallengeStatus::Dispatched => format!(
+            "waiting for the agent's gateway receipt (challenge {}, expires {})",
+            c.challenge_id,
+            hhmmss(c.expires_at)
+        ),
+        ChallengeStatus::DispatchFailed => format!(
+            "readiness probe failed ({}); next challenge after {}",
+            c.detail.as_deref().unwrap_or("dispatch failed"),
+            hhmmss(c.expires_at)
+        ),
+        _ => format!(
+            "readiness probe outcome unknown (challenge {}); its receipt is accepted until {}",
+            c.challenge_id,
+            hhmmss(c.expires_at)
+        ),
+    }
+}
+
+fn ready(c: &Challenge) -> Readiness {
+    Readiness::Ready {
+        evidence_ref: format!("gateway-receipt:{}", c.challenge_id),
+    }
 }
 
 impl GatewayReadiness {
@@ -354,20 +428,25 @@ impl GatewayReadiness {
         }))
     }
 
-    fn latest(&self, subject: &str) -> Result<Option<Challenge>, ProviderError> {
-        self.store
-            .lock()
-            .query_row(
-                &format!(
-                    "SELECT {COLUMNS} FROM readiness_challenges WHERE subject = ?1 \
-                     ORDER BY attempt DESC LIMIT 1"
-                ),
-                params![subject],
-                row_to_challenge,
-            )
-            .optional()
-            .map(|o| o.map(|(c, _)| c))
-            .map_err(store_error)
+    /// Every challenge for this agent, oldest first.
+    fn history(&self, subject: &str) -> Result<Vec<Challenge>, ProviderError> {
+        let conn = self.store.lock();
+        let mut stmt = conn
+            .prepare(&format!(
+                "SELECT {COLUMNS} FROM readiness_challenges WHERE subject = ?1 ORDER BY attempt"
+            ))
+            .map_err(store_error)?;
+        let rows = stmt
+            .query_map(params![subject], row_to_challenge)
+            .map_err(store_error)?
+            .map(|r| r.map(|(c, _)| c))
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(store_error);
+        rows
+    }
+
+    fn reread(&self, challenge_id: &str) -> Result<Option<Challenge>, ProviderError> {
+        get_challenge(&self.store, challenge_id).map_err(store_error)
     }
 
     /// Save a new challenge, then dispatch its probe once.
@@ -375,10 +454,12 @@ impl GatewayReadiness {
         &self,
         subject: &str,
         attempt: u32,
+        failures: u32,
         role: &RoleToProvision,
         binding: &AgentBinding,
     ) -> Result<Readiness, ProviderError> {
         let challenge_id = format!("rc-{}", uuid::Uuid::new_v4().simple());
+        // Two random UUIDv4s: 244 random bits.
         let nonce = format!(
             "{}{}",
             uuid::Uuid::new_v4().simple(),
@@ -424,45 +505,54 @@ impl GatewayReadiness {
             expires_at,
         };
         tracing::info!(challenge = %challenge_id, attempt, role = %role.key, "readiness challenge issued");
-        match self.probe.dispatch(&request).await {
-            Ok(d) => {
-                set_status(
-                    &self.store,
-                    &challenge_id,
-                    ChallengeStatus::Dispatched,
-                    d.probe_ref.as_deref(),
-                    None,
-                    None,
-                )
-                .map_err(store_error)?;
-                Ok(Readiness::Pending)
-            }
-            // May have reached the provider: keep the challenge live until expiry.
+        let dispatched = self.probe.dispatch(&request).await;
+        drop(request); // the nonce is not needed after dispatch
+        let moved = match &dispatched {
+            Ok(d) => transition(
+                &self.store,
+                &challenge_id,
+                &[ChallengeStatus::Dispatching],
+                ChallengeStatus::Dispatched,
+                d.probe_ref.as_deref(),
+                None,
+                None,
+            ),
+            // May have reached the provider: the challenge stays live until expiry.
             Err(e @ (ProviderError::Unknown(_) | ProviderError::Timeout)) => {
-                set_status(
+                tracing::warn!(challenge = %challenge_id, error = %probe_error_kind(e), "readiness probe outcome unknown");
+                transition(
                     &self.store,
                     &challenge_id,
+                    &[ChallengeStatus::Dispatching],
                     ChallengeStatus::Dispatching,
                     None,
-                    Some("probe outcome unknown; a receipt is accepted until expiry"),
+                    Some("probe outcome unknown"),
                     None,
                 )
-                .map_err(store_error)?;
-                Err(e)
             }
             Err(e) => {
-                set_status(
+                let kind = probe_error_kind(e);
+                tracing::warn!(challenge = %challenge_id, error = %kind, "readiness probe dispatch failed");
+                transition(
                     &self.store,
                     &challenge_id,
+                    &[ChallengeStatus::Dispatching],
                     ChallengeStatus::DispatchFailed,
                     None,
-                    Some("probe dispatch failed"),
-                    Some(Utc::now() + chrono(self.cfg.retry_after)),
+                    Some(&kind),
+                    Some(Utc::now() + chrono(self.cfg.backoff(failures + 1))),
                 )
-                .map_err(store_error)?;
-                Err(e)
             }
         }
+        .map_err(store_error)?;
+        let current = self
+            .reread(&challenge_id)?
+            .ok_or_else(|| store_error("challenge vanished"))?;
+        if !moved && current.status == ChallengeStatus::Received {
+            // The agent answered before dispatch returned.
+            return Ok(ready(&current));
+        }
+        Ok(Readiness::Waiting(note(&current)))
     }
 }
 
@@ -479,40 +569,54 @@ impl ReadinessVerifier for GatewayReadiness {
             ));
         }
         let subject = self.subject(role, binding);
+        let history = self.history(&subject)?;
         let now = Utc::now();
-        let attempt = match self.latest(&subject)? {
-            None => 1,
-            Some(c) if c.status == ChallengeStatus::Received => {
-                return Ok(Readiness::Ready {
-                    evidence_ref: format!("gateway-receipt:{}", c.challenge_id),
-                })
-            }
-            Some(c) if c.status != ChallengeStatus::Expired && c.expires_at > now => {
-                return Ok(Readiness::Pending)
-            }
-            Some(c) => {
-                // A failed dispatch keeps its status; only a live challenge expires.
-                if c.status.accepts_receipt() {
-                    set_status(
+        if let Some(c) = history.last() {
+            match c.status {
+                ChallengeStatus::Received => return Ok(ready(c)),
+                _ if c.status != ChallengeStatus::Expired && c.expires_at > now => {
+                    return Ok(Readiness::Waiting(note(c)))
+                }
+                ChallengeStatus::Dispatching | ChallengeStatus::Dispatched => {
+                    // Expire it, unless a receipt was accepted meanwhile.
+                    let expired = transition(
                         &self.store,
                         &c.challenge_id,
+                        &[ChallengeStatus::Dispatching, ChallengeStatus::Dispatched],
                         ChallengeStatus::Expired,
                         None,
                         None,
                         None,
                     )
                     .map_err(store_error)?;
+                    if !expired {
+                        if let Some(r) = self.reread(&c.challenge_id)? {
+                            if r.status == ChallengeStatus::Received {
+                                return Ok(ready(&r));
+                            }
+                        }
+                    }
                 }
-                if c.attempt >= self.cfg.max_attempts {
-                    return Ok(Readiness::NotReady(format!(
-                        "no gateway readiness receipt after {} attempt(s)",
-                        c.attempt
-                    )));
-                }
-                c.attempt + 1
+                _ => {} // a failed dispatch past its backoff, or already expired
             }
-        };
-        self.issue(&subject, attempt, role, binding).await
+        }
+        let reached = history
+            .iter()
+            .filter(|c| c.status != ChallengeStatus::DispatchFailed)
+            .count() as u32;
+        let failures = history.len() as u32 - reached;
+        if reached >= self.cfg.max_attempts {
+            return Ok(Readiness::NotReady(format!(
+                "no gateway readiness receipt after {reached} challenge(s)"
+            )));
+        }
+        if failures >= self.cfg.max_dispatch_failures {
+            return Ok(Readiness::NotReady(format!(
+                "readiness probe could not be dispatched after {failures} attempt(s)"
+            )));
+        }
+        let attempt = history.last().map(|c| c.attempt + 1).unwrap_or(1);
+        self.issue(&subject, attempt, failures, role, binding).await
     }
 }
 
@@ -608,10 +712,13 @@ pub fn accept_receipt(
          AND status IN ('dispatching', 'dispatched')",
         params![c.challenge_id, ts(now), receipt.probe_ref],
     )?;
+    if updated == 0 {
+        return Ok(Err(ReceiptRejection::Expired));
+    }
     tracing::info!(challenge = %c.challenge_id, role = %c.role_key, "readiness receipt accepted");
     Ok(Ok(ReceiptAccepted {
         challenge_id: c.challenge_id,
-        duplicate: updated == 0,
+        duplicate: false,
     }))
 }
 

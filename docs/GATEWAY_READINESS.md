@@ -29,7 +29,7 @@ next saga pass
 
 1. **Challenge.** For the exact created agent (organization, role, provider
    agent ID, configuration digest) the kernel saves a challenge with a random
-   256-bit nonce. Only the nonce's SHA-256 is stored.
+   nonce (two UUIDv4s, 244 random bits). Only the nonce's SHA-256 is stored.
 2. **Probe.** A provider-specific `ReadinessProbe` asks that agent to run its
    gateway skill with the challenge. It is called **at most once per
    challenge**.
@@ -44,11 +44,20 @@ next saga pass
 | Situation | Result |
 | --- | --- |
 | Probe accepted | Challenge `dispatched`; waits up to `ttl` (default 5 min) for the receipt. |
-| Probe outcome unknown (`ProviderError::Unknown` / `Timeout`) | Challenge stays `dispatching` and **still accepts a receipt until it expires**; no second dispatch. The operation shows the attention message. |
-| Probe definitely failed (any other error) | Challenge `dispatch_failed` (its nonce never left the backend, so its receipt is refused); a new challenge after `retry_after` (default 15 s). |
+| Probe outcome unknown (`ProviderError::Unknown` / `Timeout`) | Challenge stays `dispatching` and **still accepts a receipt until it expires**; no second dispatch. |
+| Probe definitely failed (any other error) | Challenge `dispatch_failed` (its nonce never left the backend, so its receipt is refused); the next challenge waits `retry_after` (default 15 s), doubling per failure up to 10 min. These do **not** count toward `max_attempts`. |
+| Receipt arrives while the probe call is still in flight | Accepted; whatever the probe then reports, the challenge stays `received` (status changes after dispatch only apply to a challenge still `dispatching`). |
 | No receipt before expiry | Challenge `expired`; a late receipt gets `410`; a new challenge is issued. |
-| `max_attempts` (default 3) challenges expired | Readiness fails: the change fails with "no gateway readiness receipt after N attempt(s)". Created provider IDs are kept. |
+| `max_attempts` (default 3) challenges that may have reached the agent got no receipt | Readiness fails: "no gateway readiness receipt after N challenge(s)". Created provider IDs are kept. |
+| `max_dispatch_failures` (default 5) definite dispatch failures | Readiness fails: "readiness probe could not be dispatched after N attempt(s)". |
 | Process restart | Challenges and receipts are in the organization's SQLite store; a stored receipt still proves readiness and no new challenge is issued. |
+
+While it waits, the operation's attention line names the live challenge and
+its expiry (for example "waiting for the agent's gateway receipt (challenge
+rc-…, expires 18:42:10 UTC)"), so operators can inspect it with the route
+below. Probe errors are reduced to their kind and HTTP status; a provider's
+message or response body is never stored, logged or shown, since it could echo
+the run input that carries the nonce.
 
 ## HTTP contract for the gateway skill
 
@@ -67,7 +76,8 @@ limited to 4 KiB.
 | --- | --- |
 | `200 {"challenge_id": "rc-…", "duplicate": false}` | Accepted. A repeat of the same receipt returns `duplicate: true` and changes nothing. |
 | `403 {"error": "invalid_receipt", …}` | Unknown challenge, wrong nonce, wrong agent or wrong run. These cases are indistinguishable. |
-| `410 {"error": "challenge_expired", …}` | Valid receipt for an expired challenge. The kernel will issue a new one. |
+| `410 {"error": "challenge_expired", …}` | Valid receipt for an expired challenge. The kernel issues a new one while attempts remain. |
+| `413`, `415` or `422` (plain text) | Oversized, non-JSON or malformed body, rejected before any lookup. |
 
 The route takes **no bearer token**: provider skills run in account-wide
 sandboxes that must not hold organization tokens. The one-time nonce is the
@@ -142,6 +152,11 @@ listener and a scripted probe:
 - an unknown dispatch outcome keeps the challenge live without re-dispatching,
   and a late receipt still counts;
 - a definite dispatch failure backs off, then retries with a new challenge;
+  failures do not use up receipt attempts, and persistent failures fail
+  readiness with their (sanitized) cause;
+- a receipt accepted while the probe call is still in flight survives any
+  probe answer (accepted, unknown or failed);
+- a stable waiting note emits no repeated progress events;
 - a stored receipt survives a restart.
 
 No live provider was contacted; the probe in the tests is scripted.
