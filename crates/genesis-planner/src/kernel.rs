@@ -172,11 +172,42 @@ impl KernelClient {
         evidence: &[ObservationId],
         acceptance: &str,
     ) -> Result<RequirementId, KernelError> {
+        self.post_requirement(
+            mission,
+            json!({"summary": summary, "evidence": evidence, "acceptance": acceptance}),
+        )
+        .await
+    }
+
+    /// Record a requirement under an idempotency identity. Resending the same
+    /// `client_request_id` and body returns the requirement it created, so an
+    /// ambiguous outcome can be retried without creating a duplicate.
+    pub async fn record_requirement_once(
+        &self,
+        client_request_id: &str,
+        mission: &MissionId,
+        summary: &str,
+        evidence: &[ObservationId],
+        acceptance: &str,
+    ) -> Result<RequirementId, KernelError> {
+        self.post_requirement(
+            mission,
+            json!({"summary": summary, "evidence": evidence, "acceptance": acceptance,
+                   "client_request_id": client_request_id}),
+        )
+        .await
+    }
+
+    async fn post_requirement(
+        &self,
+        mission: &MissionId,
+        body: Value,
+    ) -> Result<RequirementId, KernelError> {
         let v: Value = self
             .send(
                 self.http
                     .post(self.url(&format!("/missions/{mission}/requirements")))
-                    .json(&json!({"summary": summary, "evidence": evidence, "acceptance": acceptance})),
+                    .json(&body),
             )
             .await?;
         v["requirement_id"]
