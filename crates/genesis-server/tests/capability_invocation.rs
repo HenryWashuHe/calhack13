@@ -1266,3 +1266,88 @@ async fn failed_binding_insert_rolls_back_invocation_intent_before_provider_work
     assert_eq!(status, StatusCode::ACCEPTED, "{response}");
     assert_eq!(f.mock.state.captured.lock().unwrap().len(), requests);
 }
+
+#[tokio::test]
+async fn authority_rejected_proof_still_pins_the_collected_evidence() {
+    let mut f = Fixture::start().await;
+    let id = f.collected("authority-rejected-evidence", 0).await;
+    f.retire_verifier().await;
+    let proof = f.verify(&id).await;
+    assert_proof(&proof, &id, "authority_rejected", None);
+    let events = f.events().await;
+    let requests = f.mock.state.captured.lock().unwrap().len();
+    let mut connection = rusqlite::Connection::open(f.config.db.as_ref().unwrap()).unwrap();
+    let record_json: String = connection
+        .query_row(
+            "SELECT record_json FROM capability_runs WHERE job_id=?1",
+            [&id],
+            |row| row.get(0),
+        )
+        .unwrap();
+    let job_json: String = connection
+        .query_row("SELECT job_json FROM jobs WHERE job_id=?1", [&id], |row| {
+            row.get(0)
+        })
+        .unwrap();
+    let mut record: genesis_server::capability_runtime::CapabilityRunRecord =
+        serde_json::from_str(&record_json).unwrap();
+    let mut job: genesis_core::jobs::Job = serde_json::from_str(&job_json).unwrap();
+    let evidence = record.evidence.as_mut().unwrap();
+    evidence.output["venues"][0]["capacity"] = json!(8888);
+    job.result = Some(evidence.output.clone());
+    // Consistent transport envelopes must not bypass the immutable proof's
+    // evidence binding merely because authority rejection skipped semantics.
+    record.validate(&job).unwrap();
+    let tx = connection.transaction().unwrap();
+    tx.execute(
+        "UPDATE capability_runs SET record_json=?2 WHERE job_id=?1",
+        rusqlite::params![id, serde_json::to_string(&record).unwrap()],
+    )
+    .unwrap();
+    tx.execute(
+        "UPDATE jobs SET job_json=?2 WHERE job_id=?1",
+        rusqlite::params![id, serde_json::to_string(&job).unwrap()],
+    )
+    .unwrap();
+    tx.commit().unwrap();
+    let (get_status, get_body) = f
+        .org
+        .request(
+            reqwest::Method::GET,
+            &format!("/capability-runs/{id}/verification"),
+            "operator",
+            None,
+        )
+        .await;
+    let (post_status, post_body) = f
+        .org
+        .post(&format!("/capability-runs/{id}/verify"), json!({}))
+        .await;
+    assert!(
+        get_status.is_client_error(),
+        "GET returned a proof for changed evidence: {get_status} {get_body}"
+    );
+    assert!(
+        post_status.is_client_error(),
+        "POST returned a proof for changed evidence: {post_status} {post_body}"
+    );
+    assert_eq!(f.events().await, events);
+    assert_eq!(f.mock.state.captured.lock().unwrap().len(), requests);
+    assert_eq!(
+        f.org.get(&format!("/jobs/{id}")).await["status"],
+        "RESULT_REJECTED"
+    );
+    let tx = connection.transaction().unwrap();
+    tx.execute(
+        "UPDATE capability_runs SET record_json=?2 WHERE job_id=?1",
+        rusqlite::params![id, record_json],
+    )
+    .unwrap();
+    tx.execute(
+        "UPDATE jobs SET job_json=?2 WHERE job_id=?1",
+        rusqlite::params![id, job_json],
+    )
+    .unwrap();
+    tx.commit().unwrap();
+    assert_eq!(f.verify(&id).await, proof);
+}
