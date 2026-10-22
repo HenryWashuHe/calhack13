@@ -111,6 +111,10 @@ local authority check, before sending HTTP. Cancellation while waiting leaves a
 safe prepared/waiting operation. Cancellation after the claim or an ambiguous
 POST remains an unknown outcome and is never automatically replayed. The existing
 runtime owns retries; the assessment finalizer performs only local reads/writes.
+If a queued assessment restarts without CREAO configured, its outbox delivery
+remains pending with an adapter error; the development stub cannot acknowledge
+it. Restoring configuration lets that same dispatch resume under its original
+deadline and the existing bounded outbox retry policy.
 
 Local finalization is limited to 16 records per pass and three automatic attempts.
 A storage or evidence error retains attention and the same collected run for
