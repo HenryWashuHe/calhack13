@@ -109,12 +109,12 @@ ELASTIC_MANAGEMENT_API_KEY=<org agent builder key>
 ```
 
 ```sh
-cargo run -p genesis-elastic --bin genesis-elastic-smoke -- --org org_a --converse --cleanup --report smoke-org-a.json
+cargo run -p genesis-elastic --bin genesis-elastic-smoke -- --org org_a --skip-capabilities --converse --cleanup --report smoke-org-a.json
 ```
 
-The smoke test also writes a capability document, which an org data key may
-not write; that step failing with a 403 is expected with the restricted org
-key above (the registry key covers it). Then confirm isolation: with Org B's
+`--skip-capabilities` skips writing a capability document, which the
+restricted org data key cannot do; run the smoke test once without it using
+the registry data key to cover the shared index. Then confirm isolation: with Org B's
 Agent Builder key, a converse turn asking for Org A's smoke token must not
 return it.
 
