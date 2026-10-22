@@ -3,7 +3,7 @@
 use axum::{extract::State, routing::post, Json, Router};
 use chrono::Utc;
 use genesis_core::engine::{bootstrap_mission, MissionBootstrap};
-use genesis_core::ids::{ObservationId, RequirementId};
+use genesis_core::ids::{ObservationId, OrgId, RequirementId};
 use genesis_core::lifecycle::{RequirementStatus, RoleState};
 use genesis_core::model::{Observation, Owner, Requirement};
 use genesis_forge::{AnthropicGenerator, ModelConfig};
@@ -103,6 +103,9 @@ impl Fixture {
         Self::with_policy(enabled, policy()).await
     }
     async fn with_policy(enabled: bool, policy: AcquisitionPolicy) -> Self {
+        Self::with_org_id(enabled, policy, "history-org").await
+    }
+    async fn with_org_id(enabled: bool, policy: AcquisitionPolicy, org_id: &str) -> Self {
         let directory = tempfile::tempdir().unwrap();
         let calls = Arc::new(AtomicUsize::new(0));
         let model = Server::start(
@@ -112,6 +115,8 @@ impl Fixture {
         )
         .await;
         let mut config = OrgConfig::dev("history-org", "History fixture");
+        // Operator credentials are independent of the organization's display ID.
+        config.org_id = OrgId::new(org_id);
         config.db = Some(directory.path().join("org.sqlite"));
         config.oracle_suites = vec![suite()];
         if enabled {
@@ -416,8 +421,6 @@ async fn history_http_requires_operator_and_rejects_ambiguous_or_unbounded_queri
         "requirement_id=",
         "mission_id=a&mission_id=b",
         "requirement_id=a&requirement_id=b",
-        "mission_id=%20bad",
-        "requirement_id=bad%0Avalue",
     ] {
         let (status, body) = fixture
             .request(
@@ -428,6 +431,12 @@ async fn history_http_requires_operator_and_rejects_ambiguous_or_unbounded_queri
             )
             .await;
         assert_eq!(status, StatusCode::BAD_REQUEST, "{query}: {body}");
+    }
+    // Existing domain IDs are opaque UTF-8 values, not ASCII slugs. Their
+    // exact bounded filter values are valid even when no row matches them.
+    for query in ["mission_id=%20bad", "requirement_id=bad%0Avalue"] {
+        let page = fixture.get(&format!("{BASE}?{query}")).await;
+        assert!(items(&page).is_empty());
     }
     for query in ["mission_id=one", "requirement_id=one"] {
         let (status, _) = fixture
@@ -607,6 +616,42 @@ async fn initialized_history_survives_removing_acquisition_clients_and_oracles()
         .await;
     assert_eq!(status, StatusCode::NOT_FOUND, "{body}");
     assert_eq!(other.calls.load(Ordering::SeqCst), 0);
+}
+
+#[tokio::test]
+async fn organization_ids_with_spaces_and_unicode_survive_journaling_restart_and_bootstrap() {
+    const ORG: &str = "Org A 東京";
+    let mut fixture = Fixture::with_org_id(true, policy(), ORG).await;
+    let intent = seed(&fixture.app, "unicode-org").await;
+    let record = fixture.create(&intent).await;
+    let catalog = fixture.get(BASE).await;
+    let history = fixture.history(record.id()).await;
+    assert_eq!(items(&catalog)[0]["snapshot"]["org_id"], ORG);
+    assert_eq!(items(&history)[0]["snapshot"]["org_id"], ORG);
+    assert_eq!(events(&history), vec!["created"]);
+    fixture.reopen(fixture.config.clone()).await;
+    assert_eq!(fixture.get(BASE).await, catalog);
+    assert_eq!(fixture.history(record.id()).await, history);
+    let quota = fixture.app.store.acquisition_counters().unwrap();
+    fixture
+        .sql()
+        .execute_batch(
+            "DROP TABLE acquisition_history;
+        DROP TABLE acquisition_catalog; DROP TABLE acquisition_history_meta;",
+        )
+        .unwrap();
+    fixture.reopen(fixture.config.clone()).await;
+    let migrated = fixture.history(record.id()).await;
+    assert_eq!(events(&migrated), vec!["baseline_observed"]);
+    assert_eq!(items(&migrated)[0]["snapshot"]["org_id"], ORG);
+    assert_eq!(
+        items(&fixture.get(BASE).await)[0]["snapshot"]["org_id"],
+        ORG
+    );
+    fixture.reopen(fixture.config.clone()).await;
+    assert_eq!(fixture.history(record.id()).await, migrated);
+    assert_eq!(fixture.app.store.acquisition_counters().unwrap(), quota);
+    assert_eq!(fixture.calls.load(Ordering::SeqCst), 0);
 }
 
 #[tokio::test]
