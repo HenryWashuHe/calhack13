@@ -393,6 +393,8 @@ fn note(c: &Challenge) -> String {
     }
 }
 
+const EARLY_RUN_MISMATCH: &str = "gateway receipt named a different run than the dispatched probe";
+
 fn ready(c: &Challenge) -> Readiness {
     Readiness::Ready {
         evidence_ref: format!("gateway-receipt:{}", c.challenge_id),
@@ -549,10 +551,64 @@ impl GatewayReadiness {
             .reread(&challenge_id)?
             .ok_or_else(|| store_error("challenge vanished"))?;
         if !moved && current.status == ChallengeStatus::Received {
-            // The agent answered before dispatch returned.
-            return Ok(ready(&current));
+            // The agent answered before dispatch returned. Its receipt's run
+            // reference was provisional; reconcile it with the trusted one.
+            let trusted = dispatched
+                .as_ref()
+                .ok()
+                .and_then(|d| d.probe_ref.as_deref());
+            return self.reconcile_early_receipt(&current, trusted);
         }
         Ok(Readiness::Waiting(note(&current)))
+    }
+
+    /// An early receipt stands when it named no run or the run dispatch
+    /// reported; the trusted reference is then recorded. A receipt naming a
+    /// different run retires this challenge (a later pass issues a new one).
+    /// Without a trusted reference (dispatch outcome unknown) the receipt,
+    /// proven by the nonce, stands as before.
+    fn reconcile_early_receipt(
+        &self,
+        current: &Challenge,
+        trusted: Option<&str>,
+    ) -> Result<Readiness, ProviderError> {
+        let Some(trusted) = trusted else {
+            return Ok(ready(current));
+        };
+        let received = [ChallengeStatus::Received];
+        match current.probe_ref.as_deref() {
+            Some(provisional) if provisional != trusted => {
+                tracing::warn!(challenge = %current.challenge_id, "early readiness receipt named a different run than the dispatched probe");
+                transition(
+                    &self.store,
+                    &current.challenge_id,
+                    &received,
+                    ChallengeStatus::Expired,
+                    Some(trusted),
+                    Some(EARLY_RUN_MISMATCH),
+                    None,
+                )
+                .map_err(store_error)?;
+                Ok(Readiness::Waiting(format!(
+                    "{EARLY_RUN_MISMATCH} (challenge {}); a new challenge follows",
+                    current.challenge_id
+                )))
+            }
+            Some(_) => Ok(ready(current)),
+            None => {
+                transition(
+                    &self.store,
+                    &current.challenge_id,
+                    &received,
+                    ChallengeStatus::Received,
+                    Some(trusted),
+                    None,
+                    None,
+                )
+                .map_err(store_error)?;
+                Ok(ready(current))
+            }
+        }
     }
 }
 
