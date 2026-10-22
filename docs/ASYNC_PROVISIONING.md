@@ -50,8 +50,10 @@ steps 5–6 on the kernel side:
   deterministic per job attempt). Redelivery is a no-op: it never causes a
   second POST.
 - The specialist poller advances each running job at most once per pass.
-  Live authority (active role, open responsibility, current epoch, deadline,
-  matching binding) is checked **before each advance** and again **before a
+  Live authority (active mission and role, open responsibility, exact current
+  assignment and epoch, mission/job deadlines, assignment lease, matching
+  provider binding) is checked **before preparation, each advance and any read
+  retry**, and again **before a
   collected result is applied**. Losing authority stops advancing
   (`RESULT_REJECTED`, "authority lost before advance"); a result collected
   after a handoff is archived (`RESULT_REJECTED`, "late result fenced").
@@ -59,8 +61,20 @@ steps 5–6 on the kernel side:
   to `VERIFYING`, never `SUCCEEDED`; no commitment is recorded. An unknown
   submission outcome moves the job to `UNKNOWN`; a failed operation to
   `FAILED`, keeping the run ID.
+- The generic `/jobs/{id}/results` endpoint refuses CREAO jobs from creation,
+  including after a restart without CREAO configured. Generic `/jobs` dispatch
+  cannot override a CREAO role's provider to bypass that guard. Backend
+  capability routes can still prepare Apify acceptance and invocation jobs for
+  that role after validating its installed Actor and authority.
 
-Tests: `crates/genesis-server/tests/specialist_jobs.rs`.
+The shared authority check does not revalidate an original required scope:
+generic jobs do not persist that field. Native completion is still not domain
+success, and the provider binding check here compares the provider, not a frozen
+agent/configuration receipt. Domain finalizers must use the bound execution
+receipt described in [CREAO_RUNTIME.md](CREAO_RUNTIME.md).
+
+Tests: `crates/genesis-server/tests/specialist_jobs.rs`,
+`review_specialist_authority.rs` and `capability_invocation.rs`.
 
 ## Still needed before a live CREAO role
 
