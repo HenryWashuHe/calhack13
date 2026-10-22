@@ -21,6 +21,8 @@ authorization boundary: the kernel is.
 
 ## Configuration
 
+Project setup and least-privilege API keys: [ELASTIC_SETUP.md](ELASTIC_SETUP.md).
+
 Put these in `.env` (git-ignored), never in code or chat:
 
 ```
