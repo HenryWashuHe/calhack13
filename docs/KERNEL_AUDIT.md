@@ -8,7 +8,8 @@ enforce them, and `genesis audit` applies them to a stored organization.
 genesis audit --db data/dev/org_a.db --org-id org_a   # JSON report, exit 1 on any violation
 ```
 
-The database is opened read-only; a running server can stay up.
+The database is opened read-only and read in one transaction, so a running
+server can stay up and the report still describes one consistent history.
 
 ## What is checked
 
@@ -31,6 +32,7 @@ The database is opened read-only; a running server can stay up.
 | `installed_gap_has_installation` | an `installed` gap names an accepted installation of exactly that capability version |
 | `live_gap_limit` | live gaps ≤ 16 |
 | `requirement_evidence` | requirements cite recorded observations |
+| `map_key_identity` | every entity is stored under its own ID |
 
 **Every later state** (`audit_transition`, also across several commits):
 
@@ -39,9 +41,9 @@ The database is opened read-only; a running server can stay up.
 | `revision_advances` | the revision strictly increases |
 | `history_is_append_only` | no mission, role, assignment, responsibility, requirement, contract, installation, observation or gap disappears |
 | `observations_immutable` | an observation never changes |
-| `lifecycle_reachable` | every lifecycle moves only along its transition table; a gap never moves back and its final outcome never changes |
+| `lifecycle_reachable` | every lifecycle moves only along its transition table; a gap never moves back, keeps its verified capability version through installation, sets a publication reference at most once, and never changes its final outcome |
 | `epoch_monotonic` | responsibility epochs never decrease; an assignment is never rebound |
-| `gap_binding_stable` | a gap keeps its requirement, digest, capability, role and claimed acquisition |
+| `gap_binding_stable` | a gap keeps its whole frozen binding: ID, mission, requirement and digest, triggering evidence, role, responsibility, capability, purpose, sources, opening revision and claimed acquisition |
 
 **Storage** (`genesis audit` only): each snapshot row holds its own revision
 and organization, revisions are contiguous, and every event names this

@@ -133,7 +133,7 @@ fn gap_history(store: &Store) -> (OrgState, CapabilityGapId) {
 #[test]
 fn immutable_gap_source_and_evidence_rewrites_are_refused() {
     let dir = tempfile::tempdir().unwrap();
-    let store = Store::open(&dir.path().join("gaps.db"), OrgId::new("org_a"))
+    let store = Store::open(dir.path().join("gaps.db"), OrgId::new("org_a"))
         .unwrap()
         .with_commit_audit(true);
     let (state, id) = gap_history(&store);
@@ -194,7 +194,7 @@ fn immutable_gap_source_and_evidence_rewrites_are_refused() {
 #[test]
 fn acquired_capability_and_publication_cannot_be_rewritten() {
     let dir = tempfile::tempdir().unwrap();
-    let store = Store::open(&dir.path().join("gaps.db"), OrgId::new("org_a"))
+    let store = Store::open(dir.path().join("gaps.db"), OrgId::new("org_a"))
         .unwrap()
         .with_commit_audit(true);
     let (state, id) = gap_history(&store);

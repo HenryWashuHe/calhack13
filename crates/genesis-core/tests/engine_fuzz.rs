@@ -626,6 +626,13 @@ fn the_audit_names_each_tampered_invariant() {
             "requirement_evidence",
             Box::new(|s: &mut OrgState| s.observations.clear()),
         ),
+        (
+            "map_key_identity",
+            Box::new(|s: &mut OrgState| {
+                let role = s.roles.values_mut().next().unwrap();
+                role.role_id = RoleId::new("role_elsewhere");
+            }),
+        ),
     ];
     for (expected, f) in tamper {
         assert!(INVARIANTS.contains(&expected));
