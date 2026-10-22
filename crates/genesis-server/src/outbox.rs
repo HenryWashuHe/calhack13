@@ -54,6 +54,9 @@ async fn deliver(app: &AppState, item: &OutboxItem) -> Result<(), String> {
             crate::specialist_jobs::deliver(app, item).await
         }
         ("internal", _) => Ok(()),
+        ("elastic", "job_dispatch") if app.elastic_agents.is_some() => {
+            crate::elastic_jobs::deliver(app, item).await
+        }
         (_, "assignment_activated")
             if app.providers.dev_stub_enabled() || item.destination == "dev_stub" =>
         {
