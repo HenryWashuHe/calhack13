@@ -6,6 +6,7 @@ import type { ChangeStatus, DomainEvent, Job, OrgChangeRecord, OrgState } from "
 import type { Commitment } from "../lib/useOrg";
 import { roleName, short } from "../lib/graph";
 import { ProviderBadge, StateChip } from "./Chips";
+import { elasticAnswer } from "../lib/evidenceSearch";
 
 const STEPS: ChangeStatus[] = ["PROPOSED", "VALIDATED", "PROVISIONING", "READY", "COMMITTED"];
 
@@ -101,6 +102,14 @@ function Jobs({ jobs, state }: { jobs: Job[]; state: OrgState | null }) {
                 {j.capability && (
                   <span className="sub mono">
                     {j.capability.capability_id}@{j.capability.version}
+                  </span>
+                )}
+                {elasticAnswer(j.result) && (
+                  <span className="answer">
+                    <span className="chip warn" title="Specialist output; not verified and not executed">
+                      UNVERIFIED ANSWER
+                    </span>{" "}
+                    {elasticAnswer(j.result)!.message}
                   </span>
                 )}
               </td>
