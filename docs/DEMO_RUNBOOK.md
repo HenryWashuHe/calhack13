@@ -29,7 +29,12 @@ prebuilt artifact must never be presented as freshly generated.
 ## T−24 h: live gates first
 
 ```sh
-cargo build -p genesis-forge -p genesis-creao -p genesis-fetch
+# Every binary the runbook calls: genesis (server, registry, scenario),
+# genesis-planner, genesis-forge, genesis-creao, genesis-fetch and
+# genesis-elastic-smoke. Then put them on PATH for this shell.
+cargo build --bins -p genesis-server -p genesis-planner -p genesis-forge \
+  -p genesis-creao -p genesis-fetch -p genesis-elastic
+export PATH="$PWD/target/debug:$PATH"
 set -a; source .env; set +a
 node scripts/live-gates/run.mjs                       # Elastic, Fetch (free)
 node scripts/live-gates/run.mjs --allow-billable \
@@ -41,6 +46,9 @@ issue #4. Record cold Actor build time: it decides whether the 3-minute demo
 runs cold or uses a labeled recording.
 
 ## Start the stack
+
+Each terminal needs the binaries on PATH: `export PATH="$PWD/target/debug:$PATH"`
+from the repository root, after the build above.
 
 ```sh
 # 1. Public portal (no account): get the URL first, then generate, then serve
@@ -88,8 +96,8 @@ Targets from the research report §10, with what each beat actually shows today.
 | --- | --- | --- | --- |
 | 0:00–0:20 | Mission, starting org, budget | console org tree | ready |
 | 0:20–0:40 | Judge closes the venue / changes the portal in the lab | lab → new namespace; observation with `evidence_ref` = portal URL | ready |
-| 0:40–1:15 | Planner: new requirement → CreateRole / AssignResponsibility / **RequestCapability**; Elastic specialist; Fetch offer | decision event, gap chip REQUESTED (#50) | planner ready; gap #49/#50; driver pending |
-| 1:15–1:45 | Acquisition: generated parser, pinned build, held-out checks pass | gap ACQUIRING → VERIFIED → INSTALLED; actor/build/run IDs | needs keys + driver; else `genesis scenario` labeled path |
+| 0:40–1:15 | Planner: new requirement → CreateRole / AssignResponsibility / **RequestCapability**; Elastic specialist; Fetch offer | decision event, gap chip REQUESTED (#54) | planner ready; gap + chip merged (#49, #54); wake-up #57; driver pending |
+| 1:15–1:45 | Acquisition: generated parser, pinned build, oracle checks pass (reproducibility: A's synthesis examples are also cases in A's suite, so don't call this held-out unless you generate separate example and verification seeds) | gap ACQUIRING → VERIFIED → INSTALLED; actor/build/run IDs | needs keys + driver; else `genesis scenario` labeled path |
 | 1:45–2:10 | Second disruption (capacity cut) handled by the existing owner, **no new role** | lab `capacity-cut` namespace; planner `no_change` or reassignment | ready (planner); CREAO second run pending |
 | 2:10–2:40 | Org B: own requirement, discovers A's capability, own acceptance, different input | B adoption intent, B's acceptance runs, 0 synthesis calls | ready (loopback-proven) |
 | 2:40–3:00 | Temporary role retires after handoff; capability remains | retirement event, stale epoch fenced | ready |
@@ -110,9 +118,29 @@ GENESIS_ORG_A_OPERATOR_TOKEN=… GENESIS_ORG_B_OPERATOR_TOKEN=… \
 genesis scenario --spec runtime/mission.json --org-a http://127.0.0.1:7101 --org-b http://127.0.0.1:7102
 ```
 
-Build `runtime/mission.json` from `crates/genesis-server/examples/scenario/mission.json`
-plus `node scripts/venue-portal/combine-fragments.mjs --a data/portal/fragments/org-a.json --b data/portal/fragments/org-b.json`
+Build `runtime/mission.json` from the checked-in sample plus both portal
+fragments. The scenario input is strict, so drop the fragment's
+informational `note`:
+
+```sh
+node scripts/venue-portal/combine-fragments.mjs \
+  --a data/portal/fragments/org-a.json --b data/portal/fragments/org-b.json > runtime/fragment.json
+node -e 'const fs=require("fs");const [m,f,o]=process.argv.slice(1);
+  const {note,...frag}=JSON.parse(fs.readFileSync(f,"utf8"));
+  fs.writeFileSync(o,JSON.stringify({...JSON.parse(fs.readFileSync(m,"utf8")),...frag},null,2)+"\n")' \
+  crates/genesis-server/examples/scenario/mission.json runtime/fragment.json runtime/mission.json
+```
+
+`provider_access_acknowledged` stays `false`, and the CLI refuses to start
+("permitted shared Actor access must be acknowledged"), until B's own,
+separately managed Apify credentials are actually authorized to run A's
+Actor. Arrange that first, then set it to `true` in `runtime/mission.json`.
+Registry publication grants no provider access
 ([INHERITED_MISSION.md](INHERITED_MISSION.md), [VENUE_PORTAL.md](VENUE_PORTAL.md)).
+
+Checked: with generated fragments, this merge and `true` pass the CLI's spec
+validation (it stops only at the unreachable org URLs). Keeping `note` fails
+decoding; `false` gives the acknowledgment error above.
 
 ## If something fails on stage
 
