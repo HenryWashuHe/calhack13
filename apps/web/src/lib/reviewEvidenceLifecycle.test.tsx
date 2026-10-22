@@ -1,19 +1,15 @@
-// PR45 dbbc775 review reproduction; no project dependency changes are required.
-// From the repository root, install the isolated DOM dependency and run:
-//   npm install --prefix /tmp/genesis-pr45-dom-review --no-package-lock --no-audit --no-fund jsdom@25.0.1
-//   cd apps/web
-//   npm test -- --run src/lib/reviewEvidenceLifecycle.test.tsx
-// At dbbc775, the pre-fix negative control passes and the PR45 hook fails:
-// expected "collected", received "running". This uses actual React DOM effects
-// in jsdom, not browser interaction or a live provider.
+// PR #45 regression (Codex review reproduction b61e21c on
+// codex/review-evidence-fix45): under StrictMode, a request issued by a
+// disposed effect must not overwrite a newer checkpoint. Real React DOM
+// effects in jsdom; not a browser interaction or a live provider. The
+// pre-fix negative control stays on that branch.
 import { afterEach, expect, it, vi } from "vitest";
-import { act, StrictMode, useEffect, useMemo, useRef, useState } from "react";
+import { act, StrictMode } from "react";
 import { createRoot, type Root } from "react-dom/client";
-// @ts-expect-error Temporary review-only DOM dependency, no project package changes.
-import { JSDOM } from "/tmp/genesis-pr45-dom-review/node_modules/jsdom/lib/api.js";
-import { ApiError, type Api } from "./api";
-import type { Job, CapabilityManifest, OrgState } from "./contracts";
-import { capabilityKey, type CapabilityRunRecord } from "./capabilities";
+import { JSDOM } from "jsdom";
+import type { Api } from "./api";
+import type { Job } from "./contracts";
+import type { CapabilityRunRecord } from "./capabilities";
 import { useCapabilityEvidence } from "./useCapabilityEvidence";
 
 let root: Root | undefined;
@@ -26,7 +22,8 @@ afterEach(async () => {
   vi.unstubAllGlobals();
 });
 
-it.each([["pre-fix hook", useBaselineEvidence], ["PR45 hook", useCapabilityEvidence]] as const)("%s drops the disposed effect response after a newer checkpoint", async (_name, useEvidence) => {
+it("drops the disposed effect response after a newer checkpoint", async () => {
+  const useEvidence = useCapabilityEvidence;
   dom = new JSDOM("<div id='root'></div>");
   vi.stubGlobal("window", dom.window);
   vi.stubGlobal("document", dom.window.document);
@@ -59,92 +56,3 @@ it.each([["pre-fix hook", useBaselineEvidence], ["PR45 hook", useCapabilityEvide
   // The first effect setup was disposed before either the newer job or response.
   expect(JSON.parse(container.textContent!).j1.value.phase).toBe("collected");
 });
-
-// Pre-fix hook from ae35622:apps/web/src/lib/useCapabilityEvidence.ts.
-// Its behavior is unchanged; imports are shared above, exports removed, and
-// the function renamed to useBaselineEvidence for this negative control.
-// Fetches the evidence behind installed capabilities: the canonical manifest
-// (pinned build, publisher verification) and each pinned run's backend record.
-// Runs are refetched when their job changes; stale responses are ignored.
-
-/** Error value for jobs without a backend capability run record. */
-const NOT_MANAGED = "not_managed";
-
-type Loaded<T> = { value: T } | { error: string };
-
-interface CapabilityEvidence {
-  manifests: Record<string, Loaded<CapabilityManifest>>;
-  runs: Record<string, Loaded<CapabilityRunRecord>>;
-}
-
-const jobSignature = (j: Job) => `${j.status}|${j.raw_status ?? ""}|${JSON.stringify(j.provider_refs ?? {})}`;
-
-function useBaselineEvidence(api: Api, state: OrgState | null, jobs: Job[]): CapabilityEvidence {
-  const [manifests, setManifests] = useState<Record<string, Loaded<CapabilityManifest>>>({});
-  const [runs, setRuns] = useState<Record<string, Loaded<CapabilityRunRecord>>>({});
-  const requested = useRef<{ manifests: Set<string>; runs: Map<string, string> }>({
-    manifests: new Set(),
-    runs: new Map(),
-  });
-
-  // The organization whose responses may be applied. Responses for another
-  // organization (after a switch) or after unmount are dropped.
-  const current = useRef<Api | null>(api);
-  useEffect(() => {
-    current.current = api;
-    requested.current = { manifests: new Set(), runs: new Map() };
-    setManifests({});
-    setRuns({});
-    return () => {
-      current.current = null;
-    };
-  }, [api]);
-
-  const installed = useMemo(
-    () => Object.values(state?.installations ?? {}).map((i) => i.capability),
-    [state],
-  );
-  useEffect(() => {
-    const live = () => current.current === api;
-    for (const cap of installed) {
-      const key = capabilityKey(cap);
-      if (requested.current.manifests.has(key)) continue;
-      requested.current.manifests.add(key);
-      api
-        .get<CapabilityManifest>(
-          `/capabilities/${encodeURIComponent(cap.capability_id)}/versions/${encodeURIComponent(cap.version)}`,
-        )
-        .then((m) => live() && setManifests((p) => ({ ...p, [key]: { value: m } })))
-        .catch((e: unknown) => {
-          if (!live()) return;
-          requested.current.manifests.delete(key); // retried on a later state change
-          setManifests((p) => ({ ...p, [key]: { error: e instanceof Error ? e.message : String(e) } }));
-        });
-    }
-  }, [api, installed]);
-
-  useEffect(() => {
-    const live = () => current.current === api;
-    for (const j of jobs) {
-      if (!j.capability) continue;
-      const sig = jobSignature(j);
-      if (requested.current.runs.get(j.job_id) === sig) continue;
-      requested.current.runs.set(j.job_id, sig);
-      api
-        .get<CapabilityRunRecord>(`/capability-runs/${encodeURIComponent(j.job_id)}`)
-        .then((r) => {
-          // Ignore a response for an older job state.
-          if (live() && requested.current.runs.get(j.job_id) === sig) setRuns((p) => ({ ...p, [j.job_id]: { value: r } }));
-        })
-        .catch((e: unknown) => {
-          if (live() && requested.current.runs.get(j.job_id) === sig) {
-            // 404: not a backend-managed run (e.g. a development stub job).
-            const error = e instanceof ApiError && e.status === 404 ? NOT_MANAGED : e instanceof Error ? e.message : String(e);
-            setRuns((p) => ({ ...p, [j.job_id]: { error } }));
-          }
-        });
-    }
-  }, [api, jobs]);
-
-  return { manifests, runs };
-}
