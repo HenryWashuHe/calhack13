@@ -63,11 +63,21 @@ async fn main() -> anyhow::Result<()> {
     let factory: Factory = match &cli.replay {
         Some(dir) => Box::new(replay_factory(dir.clone())),
         None => {
-            let client: Arc<dyn LlmClient> = llm::from_env()?
-                .map(Arc::from)
-                .ok_or_else(|| anyhow::anyhow!(
-                    "no model configured: set GENESIS_LLM_PROVIDER, GENESIS_LLM_MODEL and GENESIS_LLM_API_KEY, or use --replay"
-                ))?;
+            let elastic = std::env::var("GENESIS_LLM_PROVIDER")
+                .is_ok_and(|p| p.trim().eq_ignore_ascii_case("elastic"));
+            let client: Arc<dyn LlmClient> = if elastic {
+                // The same Agent Builder planner the server uses, for the
+                // evaluation organization's own agent.
+                Arc::new(genesis_planner::elastic::ElasticAgentLlm::from_env(
+                    genesis_planner_eval::EVAL_ORG_ID,
+                )?)
+            } else {
+                llm::from_env()?.map(Arc::from).ok_or_else(|| {
+                    anyhow::anyhow!(
+                        "no model configured: set GENESIS_LLM_PROVIDER, GENESIS_LLM_MODEL and GENESIS_LLM_API_KEY (or GENESIS_LLM_PROVIDER=elastic with the Elastic Agent Builder env), or use --replay"
+                    )
+                })?
+            };
             let max_calls = scenarios.len() as u32 * cli.repeat * cli.max_attempts;
             eprintln!(
                 "live model {}: {} scenarios x {} runs, at most {max_calls} model calls",
