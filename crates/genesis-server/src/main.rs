@@ -65,6 +65,16 @@ enum Command {
         #[arg(long, default_value_t = 1500)]
         stub_delay_ms: u64,
     },
+    /// Check a stored organization history against the kernel invariants:
+    /// every snapshot, every consecutive pair and every event. Read-only.
+    /// Prints a JSON report; exits non-zero if any invariant is broken.
+    Audit {
+        /// Organization SQLite database (for `genesis dev`: data/dev/org_a.db).
+        #[arg(long, value_name = "PATH")]
+        db: PathBuf,
+        #[arg(long, value_name = "ORG_ID")]
+        org_id: String,
+    },
     /// Write JSON Schemas for the shared contracts.
     ExportSchemas {
         #[arg(long, default_value = "schemas")]
@@ -302,6 +312,18 @@ async fn main() -> anyhow::Result<()> {
             let listener = tokio::net::TcpListener::bind(&bind).await?;
             tracing::info!(org = %cfg.org_id, %bind, "organization listening");
             genesis_server::serve_org(app, listener).await
+        }
+        Command::Audit { db, org_id } => {
+            anyhow::ensure!(db.is_file(), "no database at {}", db.display());
+            let report = genesis_server::audit::audit_database(&db, &OrgId::new(org_id))?;
+            println!("{}", serde_json::to_string_pretty(&report)?);
+            anyhow::ensure!(
+                report.ok(),
+                "{} invariant violation(s) in {}",
+                report.violation_count,
+                db.display()
+            );
+            Ok(())
         }
         Command::Registry {
             db,

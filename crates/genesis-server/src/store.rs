@@ -179,6 +179,11 @@ impl Store {
         })
     }
 
+    /// The organization this store belongs to.
+    pub fn org_id(&self) -> &OrgId {
+        &self.org_id
+    }
+
     pub(crate) fn lock(&self) -> std::sync::MutexGuard<'_, Connection> {
         self.conn.lock().unwrap_or_else(|p| p.into_inner())
     }

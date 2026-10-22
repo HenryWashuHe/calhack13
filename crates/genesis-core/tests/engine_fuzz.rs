@@ -4,6 +4,7 @@
 //! reachable state must satisfy the organization invariants in [`check`].
 //! Deterministic seeds; no extra dependencies.
 use chrono::Utc;
+use genesis_core::audit::{audit, audit_transition, INVARIANTS, TRANSITION_INVARIANTS};
 use genesis_core::capability::StaticCatalog;
 use genesis_core::change::*;
 use genesis_core::engine::*;
@@ -102,9 +103,9 @@ fn base() -> (OrgState, Vec<String>, Vec<String>, Vec<String>, Vec<String>) {
     )
 }
 
-/// Structural invariants every committed organization state must satisfy,
-/// checked independently of the validator that is supposed to enforce them.
-fn check(st: &OrgState, prev_revision: u64, step: &'static str) {
+/// Every committed state must pass the independent invariant audit, and be a
+/// legal successor of the state before it.
+fn check(st: &OrgState, prev: &OrgState, step: &'static str) {
     *COVERAGE.lock().unwrap().entry(step).or_default() += 1;
     for (kind, present) in [
         (
@@ -124,224 +125,13 @@ fn check(st: &OrgState, prev_revision: u64, step: &'static str) {
             *COVERAGE.lock().unwrap().entry(kind).or_default() += 1;
         }
     }
-    let ctx = |what: String| format!("after {step} at r{}: {what}", st.revision);
+    let mut violations = audit(st);
+    violations.extend(audit_transition(prev, st));
     assert!(
-        st.revision > prev_revision,
-        "{}",
-        ctx("revision did not advance".into())
+        violations.is_empty(),
+        "after {step} at r{}: {violations:#?}",
+        st.revision
     );
-    let c = &st.constitution;
-    let live: Vec<&Role> = st.live_roles().collect();
-    assert!(
-        live.len() as u32 <= c.max_active_roles,
-        "{}",
-        ctx(format!(
-            "{} live roles > {}",
-            live.len(),
-            c.max_active_roles
-        ))
-    );
-    let budget: u64 = live.iter().map(|r| r.authority.budget_cents).sum();
-    assert!(
-        budget <= c.budget_cents,
-        "{}",
-        ctx(format!("budget {budget} > {}", c.budget_cents))
-    );
-    for r in st.roles.values() {
-        assert!(
-            r.authority.scopes.is_subset(&c.scopes),
-            "{}",
-            ctx(format!(
-                "{} holds scopes outside the constitution",
-                r.role_id
-            ))
-        );
-        assert!(
-            r.created_in_revision <= st.revision,
-            "{}",
-            ctx(format!("{} from the future", r.role_id))
-        );
-        if r.state == RoleState::Retired {
-            assert!(
-                r.retired_in_revision
-                    .is_some_and(|x| x >= r.created_in_revision),
-                "{}",
-                ctx(format!("{} retired without a valid revision", r.role_id))
-            );
-        }
-        if let Some(p) = &r.reports_to {
-            assert!(
-                p != &r.role_id,
-                "{}",
-                ctx(format!("{} reports to itself", r.role_id))
-            );
-            assert!(
-                st.roles.contains_key(p),
-                "{}",
-                ctx(format!("{} reports to unknown {p}", r.role_id))
-            );
-        }
-        // Acyclic: walking up never takes more steps than there are roles.
-        let mut cur = r.reports_to.clone();
-        let mut hops = 0;
-        while let Some(p) = cur {
-            hops += 1;
-            assert!(
-                hops <= st.roles.len(),
-                "{}",
-                ctx(format!("reporting cycle through {}", r.role_id))
-            );
-            cur = st.roles.get(&p).and_then(|x| x.reports_to.clone());
-        }
-    }
-    let mut active_per_resp: BTreeMap<&ResponsibilityId, usize> = BTreeMap::new();
-    for a in st.assignments.values() {
-        let resp = st.responsibilities.get(&a.responsibility_id);
-        assert!(
-            resp.is_some(),
-            "{}",
-            ctx(format!("{} for unknown responsibility", a.assignment_id))
-        );
-        assert!(
-            st.roles.contains_key(&a.role_id),
-            "{}",
-            ctx(format!("{} for unknown role", a.assignment_id))
-        );
-        if a.state == AssignmentState::Active {
-            *active_per_resp.entry(&a.responsibility_id).or_default() += 1;
-            let resp = resp.unwrap();
-            assert_eq!(
-                resp.status,
-                ResponsibilityStatus::Open,
-                "{}",
-                ctx(format!(
-                    "{} active on a closed responsibility",
-                    a.assignment_id
-                ))
-            );
-            assert_eq!(
-                a.epoch,
-                resp.epoch,
-                "{}",
-                ctx(format!("{} epoch is not current", a.assignment_id))
-            );
-            assert!(
-                !matches!(
-                    st.roles[&a.role_id].state,
-                    RoleState::Retired | RoleState::ProvisioningFailed
-                ),
-                "{}",
-                ctx(format!("{} active for a dead role", a.assignment_id))
-            );
-        }
-    }
-    for (rid, n) in active_per_resp {
-        assert!(
-            n <= 1,
-            "{}",
-            ctx(format!("{rid} has {n} active assignments"))
-        );
-    }
-    for r in st.responsibilities.values() {
-        if r.status != ResponsibilityStatus::Open {
-            continue;
-        }
-        if let Owner::Role(o) = &r.owner {
-            let role = st.roles.get(o);
-            assert!(
-                role.is_some_and(|x| !matches!(
-                    x.state,
-                    RoleState::Retired | RoleState::ProvisioningFailed
-                )),
-                "{}",
-                ctx(format!(
-                    "open {} owned by dead or unknown {o}",
-                    r.responsibility_id
-                ))
-            );
-        }
-        if let Some(Executor::Role(e)) = &r.executor {
-            assert!(
-                st.roles.contains_key(e),
-                "{}",
-                ctx(format!("{} executed by unknown {e}", r.responsibility_id))
-            );
-        }
-        if let Some(Executor::Contractor(k)) = &r.executor {
-            assert!(
-                st.contracts.contains_key(k),
-                "{}",
-                ctx(format!("{} executed by unknown {k}", r.responsibility_id))
-            );
-        }
-    }
-    assert!(
-        st.active_contracts() as u32 <= c.max_active_contracts,
-        "{}",
-        ctx(format!(
-            "{} open contracts > {}",
-            st.active_contracts(),
-            c.max_active_contracts
-        ))
-    );
-    let mut live_gaps = 0;
-    for g in st.capability_gaps.values() {
-        assert!(
-            st.requirements.contains_key(&g.requirement_id),
-            "{}",
-            ctx(format!("{} unknown requirement", g.gap_id))
-        );
-        assert!(
-            st.roles.contains_key(&g.role_id),
-            "{}",
-            ctx(format!("{} unknown role", g.gap_id))
-        );
-        assert!(
-            st.responsibilities.contains_key(&g.responsibility_id),
-            "{}",
-            ctx(format!("{} unknown responsibility", g.gap_id))
-        );
-        assert!(
-            g.opened_in_revision <= st.revision,
-            "{}",
-            ctx(format!("{} from the future", g.gap_id))
-        );
-        if let CapabilityGapStatus::Installed {
-            capability,
-            installation_id,
-            ..
-        } = &g.status
-        {
-            let inst = st.installations.get(installation_id);
-            assert!(
-                inst.is_some_and(
-                    |i| i.status == InstallationStatus::Accepted && &i.capability == capability
-                ),
-                "{}",
-                ctx(format!(
-                    "{} installed without an accepted matching installation",
-                    g.gap_id
-                ))
-            );
-        }
-        if !g.status.is_terminal() {
-            live_gaps += 1;
-        }
-    }
-    assert!(
-        live_gaps <= MAX_LIVE_CAPABILITY_GAPS,
-        "{}",
-        ctx(format!("{live_gaps} live gaps"))
-    );
-    for rq in st.requirements.values() {
-        for o in &rq.triggering_evidence {
-            assert!(
-                st.observations.contains_key(o),
-                "{}",
-                ctx(format!("{} cites unknown {o}", rq.requirement_id))
-            );
-        }
-    }
 }
 
 static COVERAGE: std::sync::Mutex<BTreeMap<&'static str, usize>> =
@@ -598,7 +388,7 @@ fn run(seed: u64) -> usize {
             &StaticCatalog::default(),
             Utc::now(),
         ) {
-            check(&out.state, st.revision, "commit");
+            check(&out.state, &st, "commit");
             st = out.state;
             commits += 1;
             roles = st
@@ -686,7 +476,7 @@ fn run(seed: u64) -> usize {
                 },
             };
             if let Ok(out) = update_capability_gap(&st, &g, to) {
-                check(&out.state, st.revision, "gap transition");
+                check(&out.state, &st, "gap transition");
                 st = out.state;
             }
         }
@@ -701,14 +491,14 @@ fn run(seed: u64) -> usize {
                 ContractState::Declined,
             ]);
             if let Ok(out) = update_contract(&st, &k, to) {
-                check(&out.state, st.revision, "contract transition");
+                check(&out.state, &st, "contract transition");
                 st = out.state;
             }
         }
         if rng.next().is_multiple_of(7) {
             let r = ResponsibilityId::new(rng.pick(&resps).clone());
             if let Ok(out) = complete_responsibility(&st, &r) {
-                check(&out.state, st.revision, "completion");
+                check(&out.state, &st, "completion");
                 st = out.state;
             }
         }
@@ -753,7 +543,7 @@ fn run(seed: u64) -> usize {
             if let Ok(out) =
                 finish_installation(&st, &id, !rng.next().is_multiple_of(4), "r", vec![])
             {
-                check(&out.state, st.revision, "installation result");
+                check(&out.state, &st, "installation result");
                 st = out.state;
             }
         }
@@ -777,12 +567,12 @@ fn run(seed: u64) -> usize {
     commits
 }
 
-/// The checker itself must reject broken states, or a green fuzz run proves nothing.
+/// The audit itself must reject broken states, naming the right invariant,
+/// or a green fuzz run proves nothing.
 #[test]
-fn the_invariant_checker_rejects_tampered_states() {
+fn the_audit_names_each_tampered_invariant() {
     let (st, ..) = base();
-    let prev = st.revision - 1;
-    check(&st, prev, "baseline");
+    assert_eq!(audit(&st), vec![]);
     let lead = st
         .roles
         .values()
@@ -793,27 +583,27 @@ fn the_invariant_checker_rejects_tampered_states() {
     type Tamper = Box<dyn Fn(&mut OrgState)>;
     let tamper: Vec<(&str, Tamper)> = vec![
         (
-            "self report",
+            "reporting_tree",
             Box::new(|s: &mut OrgState| {
                 let id = s.roles.keys().next().unwrap().clone();
                 s.roles.get_mut(&id).unwrap().reports_to = Some(id.clone());
             }),
         ),
         (
-            "over budget",
+            "budget_limit",
             Box::new(|s: &mut OrgState| {
                 s.roles.values_mut().next().unwrap().authority.budget_cents = 1_000_000;
             }),
         ),
         (
-            "foreign scope",
+            "constitution_scopes",
             Box::new(|s: &mut OrgState| {
                 let r = s.roles.values_mut().next().unwrap();
                 r.authority.scopes.insert("root".into());
             }),
         ),
         (
-            "two active assignments",
+            "single_active_assignment",
             Box::new(|s: &mut OrgState| {
                 let mut a = s.assignments.values().next().unwrap().clone();
                 a.assignment_id = AssignmentId::new("asg_dup");
@@ -821,7 +611,7 @@ fn the_invariant_checker_rejects_tampered_states() {
             }),
         ),
         (
-            "orphaned responsibility",
+            "live_owner",
             Box::new(move |s: &mut OrgState| {
                 let r = s.roles.get_mut(&lead).unwrap();
                 r.state = RoleState::Retired;
@@ -829,16 +619,73 @@ fn the_invariant_checker_rejects_tampered_states() {
             }),
         ),
         (
-            "stale revision",
-            Box::new(|s: &mut OrgState| s.revision -= 1),
+            "role_limit",
+            Box::new(|s: &mut OrgState| s.constitution.max_active_roles = 0),
+        ),
+        (
+            "requirement_evidence",
+            Box::new(|s: &mut OrgState| s.observations.clear()),
         ),
     ];
-    for (name, f) in tamper {
+    for (expected, f) in tamper {
+        assert!(INVARIANTS.contains(&expected));
         let mut bad = st.clone();
         f(&mut bad);
-        let caught =
-            std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| check(&bad, prev, name)))
-                .is_err();
-        assert!(caught, "the checker accepted a state with: {name}");
+        let found: Vec<_> = audit(&bad).into_iter().map(|v| v.invariant).collect();
+        assert!(
+            found.contains(&expected),
+            "tampering {expected} was reported as {found:?}"
+        );
+    }
+}
+
+/// Same for the transition audit: rewinding history is caught by name.
+#[test]
+fn the_transition_audit_names_each_rewind() {
+    let (st, ..) = base();
+    let mut later = st.clone();
+    later.revision += 1;
+    assert_eq!(audit_transition(&st, &later), vec![]);
+    type Tamper = Box<dyn Fn(&mut OrgState)>;
+    let tamper: Vec<(&str, Tamper)> = vec![
+        (
+            "revision_advances",
+            Box::new(|s: &mut OrgState| s.revision -= 1),
+        ),
+        (
+            "history_is_append_only",
+            Box::new(|s: &mut OrgState| s.requirements.clear()),
+        ),
+        (
+            "observations_immutable",
+            Box::new(|s: &mut OrgState| {
+                s.observations.values_mut().next().unwrap().summary = "edited".into();
+            }),
+        ),
+        (
+            "lifecycle_reachable",
+            Box::new(|s: &mut OrgState| {
+                s.roles.values_mut().next().unwrap().state = RoleState::Proposed;
+            }),
+        ),
+        (
+            "epoch_monotonic",
+            Box::new(|s: &mut OrgState| {
+                s.assignments.values_mut().next().unwrap().epoch += 1;
+            }),
+        ),
+    ];
+    for (expected, f) in tamper {
+        assert!(TRANSITION_INVARIANTS.contains(&expected));
+        let mut bad = later.clone();
+        f(&mut bad);
+        let found: Vec<_> = audit_transition(&st, &bad)
+            .into_iter()
+            .map(|v| v.invariant)
+            .collect();
+        assert!(
+            found.contains(&expected),
+            "rewinding {expected} was reported as {found:?}"
+        );
     }
 }
