@@ -48,6 +48,7 @@ suite("attention", () => {
       provider: "creao",
       operation_id: "creao-role-1",
       run_id: "run-9",
+      attach: true,
     });
     expect(items[0]!.detail).toContain("run run-9");
   });
@@ -71,7 +72,19 @@ suite("attention", () => {
     );
     expect(items[0]!.kind).toBe("waiting");
     expect(items[0]!.detail).toContain("no readiness verifier");
-    expect(items[0]!.reconcile).toBeUndefined();
+    // Abandon stays reachable while readiness is pending; Attach does not.
+    expect(items[0]!.reconcile?.attach).toBe(false);
+  });
+
+  it("keeps Attach for unknown creation outcomes only", () => {
+    const items = attention(
+      [change("chg_1", "PROVISIONING", { monitor: op("needs_reconciliation") })],
+      [],
+      [],
+      null,
+    );
+    expect(items[0]!.kind).toBe("action");
+    expect(items[0]!.reconcile?.attach).toBe(true);
   });
 
   it("never presents an operator-attached agent as a provider creation", () => {
