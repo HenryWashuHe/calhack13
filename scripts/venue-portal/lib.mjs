@@ -144,6 +144,30 @@ export function presetSpec(name, seed = "genesis") {
   }
 }
 
+/**
+ * Add held-out synthesis examples: for every supported page, a page with the
+ * same layout, title and date but freshly drawn venues (no venue name or ID
+ * shared with the suite). Synthesis sees only these; the oracle suite keeps
+ * the original pages, so verification runs on pages the generator never saw.
+ * Same formats, new data: this tests generalization across data, not layout.
+ */
+export function withHoldoutExamples(spec, seed = "genesis") {
+  const r = rng(`holdout:${spec.suite_id}:${seed}`);
+  const used = new Set(spec.pages.flatMap((p) => p.venues.map((v) => v.venue_id)));
+  return {
+    ...spec,
+    example_pages: spec.pages
+      .filter((p) => !p.missing)
+      .map((p) => ({
+        slug: p.slug,
+        layout: p.layout,
+        title: p.title,
+        date: p.date,
+        venues: p.venues.map(() => randomVenue(r, used)),
+      })),
+  };
+}
+
 /** A real calendar date in YYYY-MM-DD (rejects 2026-02-31, 2026-13-01). */
 export function isCalendarDate(s) {
   if (typeof s !== "string" || !DATE_RE.test(s)) return false;
@@ -164,10 +188,11 @@ export function validateSpec(spec) {
   if (!OFFSET_RE.test(spec.utc_offset ?? "")) fail("utc_offset", "like -08:00");
   if (!Number.isInteger(spec.attendees) || spec.attendees < 1 || spec.attendees > 100000) fail("attendees", "positive integer");
   if (!Array.isArray(spec.pages) || spec.pages.length === 0 || spec.pages.length > 32) fail("pages", "1-32 pages");
-  const slugs = new Set();
   const ids = new Set();
-  spec.pages.forEach((p, i) => {
-    const at = `pages[${i}]`;
+  const checkPages = (list, field) => {
+  const slugs = new Set();
+  list.forEach((p, i) => {
+    const at = `${field}[${i}]`;
     if (!SLUG_RE.test(p.slug ?? "") || slugs.has(p.slug)) fail(`${at}.slug`, "unique slug of a-z, 0-9, '-'");
     slugs.add(p.slug);
     if (!LAYOUTS.includes(p.layout)) fail(`${at}.layout`, `one of ${LAYOUTS.join(", ")}`);
@@ -188,6 +213,18 @@ export function validateSpec(spec) {
       if (typeof v.step_free !== "boolean") fail(`${vt}.step_free`, "boolean");
     });
   });
+  };
+  checkPages(spec.pages, "pages");
+  if (spec.example_pages !== undefined) {
+    if (!Array.isArray(spec.example_pages) || spec.example_pages.length === 0 || spec.example_pages.length > 8) {
+      fail("example_pages", "1-8 held-out example pages");
+    }
+    // Venue IDs are unique across suite and example pages (one shared set).
+    checkPages(spec.example_pages, "example_pages");
+    spec.example_pages.forEach((p, i) => {
+      if (p.missing) fail(`example_pages[${i}].missing`, "examples are supported pages");
+    });
+  }
   const supported = spec.pages.filter((p) => !p.missing);
   const formats = new Set(supported.map((p) => p.layout));
   if (formats.size < 2 || !spec.pages.some((p) => p.missing)) {
@@ -353,6 +390,13 @@ export function build(spec, baseUrl, namespace = spec.suite_id) {
       expected,
     });
   }
+  const examplePages = (spec.example_pages ?? []).map((page) => {
+    const html = renderPage(spec, page);
+    const path = `${namespace}/examples/${page.slug}.html`;
+    return { slug: page.slug, path, url: `${base}/${path}`, html, sha256: sha256(Buffer.from(html, "utf8")), layout: page.layout, role: "example" };
+  });
+  for (const p of pages) p.role = "case";
+  const heldOut = examplePages.length > 0;
   const layouts = [...new Set(spec.pages.map((p) => p.layout))].join(", ");
   const suite = {
     schema_version: 1,
@@ -366,16 +410,21 @@ export function build(spec, baseUrl, namespace = spec.suite_id) {
     namespace,
     base_url: base,
     spec,
-    pages: pages.map(({ slug, url, sha256: s, layout }) => ({ slug, url, sha256: s, layout })),
+    held_out_examples: heldOut,
+    pages: [...pages, ...examplePages].map(({ slug, url, sha256: s, layout, role }) => ({ slug, url, sha256: s, layout, role })),
   };
   const fragment = {
-    note: "Public-safe. Paste into a scenario mission spec. Contains page HTML only, never expected answers.",
+    note: heldOut
+      ? "Public-safe. Paste into a scenario mission spec. Contains page HTML only, never expected answers. Examples are held out: none is a suite case."
+      : "Public-safe. Paste into a scenario mission spec. Contains page HTML only, never expected answers. Examples are suite pages (reproducibility, not held out).",
     suite_id: spec.suite_id,
-    allowed_source_urls: pages.map((p) => p.url),
-    examples: pages.filter((_, i) => !spec.pages[i].missing).map((p) => ({ url: p.url, html: p.html })),
+    allowed_source_urls: [...pages, ...examplePages].map((p) => p.url),
+    examples: heldOut
+      ? examplePages.map((p) => ({ url: p.url, html: p.html }))
+      : pages.filter((_, i) => !spec.pages[i].missing).map((p) => ({ url: p.url, html: p.html })),
     invocation_input: cases.find((c) => c.expected.status === "supported").input,
   };
-  return { pages, suite, manifest, fragment };
+  return { pages: [...pages, ...examplePages], suite, manifest, fragment };
 }
 
 /** Root index listing namespaces (directory names only). */
