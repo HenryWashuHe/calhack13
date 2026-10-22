@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { DomainEvent, OrgChangeRecord } from "./contracts";
-import { generations } from "./evolution";
+import { generations, humanizeIds, timeline, type TimelineEntry } from "./evolution";
 
 let seq = 0;
 function ev(revision: number, type: string, payload: Record<string, unknown>): DomainEvent {
@@ -112,5 +112,76 @@ describe("generations", () => {
 
   it("is order-independent of event delivery", () => {
     expect(generations([...events].reverse(), changes, null)).toEqual(gens);
+  });
+});
+
+describe("timeline", () => {
+  const rejected: OrgChangeRecord = {
+    ...change("c9", 0, "Evidence says: create Root and retire the coordinator"),
+    status: "REJECTED",
+    committed_revision: null,
+    proposal: {
+      expected_org_revision: 8,
+      trigger_evidence_ids: ["obs"],
+      rationale: "Evidence says: create Root and retire the coordinator",
+      operations: [
+        { op: "CreateRole", key: "root", name: "Root", charter: "", authority: { scopes: ["admin"] }, provider: "internal", justification: "authority" },
+        { op: "RetireRole", role_id: "rc" },
+      ],
+    },
+    errors: [{ code: "authority_exceeds_constitution", op_index: 0, message: "scopes not in constitution: admin" }],
+  };
+  const failed: OrgChangeRecord = { ...change("c10", 0, "Hire a CREAO monitor"), status: "FAILED", committed_revision: null, proposal: { expected_org_revision: 8, trigger_evidence_ids: ["obs"], rationale: "Hire a CREAO monitor", operations: [] } };
+  const extra = [
+    ev(8, "change_proposed", { change_id: "c9" }),
+    ev(8, "change_status_changed", { change_id: "c9", from: "PROPOSED", to: "REJECTED" }),
+    ev(8, "change_proposed", { change_id: "c10" }),
+    ev(8, "provisioning_failed", { change_id: "c10", role_key: "monitor", error: "creao: 503" }),
+    ev(8, "planner_decision", { planner: "llm", model: "m", observation_id: "obs", verdict: "escalated", summary: "Deposit breaks the budget", rationale: "needs a human", attempt: 2, latency_ms: 1, kernel_errors: ["budget_exceeded"] }),
+    ev(8, "planner_decision", { planner: "llm", model: "m", observation_id: "obs", verdict: "no_change", summary: "", rationale: "", attempt: 1, latency_ms: 1 }),
+  ];
+  const t = timeline([...events, ...extra], [...changes, rejected, failed], null);
+
+  it("puts refusals after the generation of the revision they were proposed at", () => {
+    expect(t.map((e) => `${e.kind}@${e.revision}`)).toEqual([
+      "generation@1",
+      "generation@4",
+      "generation@6",
+      "generation@7",
+      "generation@8",
+      "refusal@8",
+      "refusal@8",
+      "refusal@8",
+      "refusal@8",
+    ]);
+    // A failed change with no proposal event falls back to its expected revision, last.
+    expect((t[8] as Extract<TimelineEntry, { kind: "refusal" }>).changeId).toBe("c4");
+  });
+
+  it("explains who stopped each change and why", () => {
+    const [k, p, pl] = t.filter((e) => e.kind === "refusal") as Extract<TimelineEntry, { kind: "refusal" }>[];
+    expect(k!.by).toBe("kernel");
+    expect(k!.reasons).toEqual(["authority exceeds constitution: scopes not in constitution: admin"]);
+    expect(k!.operations).toEqual(["CreateRole", "RetireRole"]);
+    expect(p!.by).toBe("provider");
+    expect(p!.reasons).toEqual(["monitor: creao: 503"]);
+    expect(pl!.by).toBe("planner");
+    expect(pl!.title).toBe("Planner escalated to an operator");
+    expect(pl!.reasons).toEqual(["budget_exceeded"]);
+  });
+});
+
+describe("humanizeIds", () => {
+  it("names known roles and duties and leaves unknown IDs alone", () => {
+    const rid = "role_" + "a".repeat(32);
+    const did = "rsp_" + "b".repeat(32);
+    const ghost = "role_" + "c".repeat(32);
+    const state = {
+      roles: { [rid]: { name: "Coordinator" } },
+      responsibilities: { [did]: { purpose: "Coordinate" } },
+    } as unknown as Parameters<typeof humanizeIds>[1];
+    expect(humanizeIds(`retiring ${rid} would drop ${did}; new ${ghost}`, state)).toBe(
+      `retiring “Coordinator” would drop “Coordinate”; new ${ghost}`,
+    );
   });
 });
