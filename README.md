@@ -20,6 +20,7 @@ The Rust capability implementation now creates source-bearing Actors, resumes pi
 10. [Capability source synthesis](docs/CAPABILITY_SYNTHESIS.md) — public requirement/examples to a durable generated parser and immutable forge candidate.
 11. [Durable capability acquisition](docs/CAPABILITY_ACQUISITION.md) — one checkpoint from generation through build and verification, with one bounded semantic repair.
 12. [Server-managed acquisition](docs/SERVER_ACQUISITION.md) — mission/assignment binding, persistent count quotas, resumable HTTP steps and trusted publication proofs.
+13. [Two-organization inherited mission](docs/INHERITED_MISSION.md) — Rust scenario driver connecting specialist creation, acquisition, independent adoption and responsibility handoff.
 
 ## Run the capability checks
 
