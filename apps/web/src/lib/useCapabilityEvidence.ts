@@ -5,7 +5,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ApiError, type Api } from "./api";
 import type { CapabilityManifest, Job, OrgState } from "./contracts";
-import { capabilityKey, CapabilityRunRecord, FINAL_PHASES } from "./capabilities";
+import { capabilityKey, CapabilityRunRecord } from "./capabilities";
 
 /** Error value for jobs without a backend capability run record. */
 export const NOT_MANAGED = "not_managed";
@@ -17,33 +17,11 @@ export interface CapabilityEvidence {
   runs: Record<string, Loaded<CapabilityRunRecord>>;
 }
 
-/** How often active run checkpoints and failed reads are re-read. */
-export const REFRESH_MS = 5000;
-
-/**
- * Key under which a job's run record was last requested; a new key means
- * fetch again. It changes with the job (including `updated_at`, which moves
- * on checkpoint changes the coarse status does not show) and, while the run
- * is still active or its last read failed, with every refresh tick, so a
- * retryable read failure or a new checkpoint is observed even when the job's
- * status stays the same. A final record or a non-managed job stops polling.
- */
-export function fetchKey(job: Job, loaded: Loaded<CapabilityRunRecord> | undefined, tick: number): string {
-  const base = `${job.status}|${job.raw_status ?? ""}|${JSON.stringify(job.provider_refs ?? {})}|${job.updated_at}`;
-  const settled =
-    loaded !== undefined &&
-    ("value" in loaded ? FINAL_PHASES.has(loaded.value.phase) && !loaded.value.retryable_read : loaded.error === NOT_MANAGED);
-  return settled ? base : `${base}|t${tick}`;
-}
+const jobSignature = (j: Job) => `${j.status}|${j.raw_status ?? ""}|${JSON.stringify(j.provider_refs ?? {})}`;
 
 export function useCapabilityEvidence(api: Api, state: OrgState | null, jobs: Job[]): CapabilityEvidence {
   const [manifests, setManifests] = useState<Record<string, Loaded<CapabilityManifest>>>({});
   const [runs, setRuns] = useState<Record<string, Loaded<CapabilityRunRecord>>>({});
-  const [tick, setTick] = useState(0);
-  useEffect(() => {
-    const id = window.setInterval(() => setTick((t) => t + 1), REFRESH_MS);
-    return () => window.clearInterval(id);
-  }, []);
   const requested = useRef<{ manifests: Set<string>; runs: Map<string, string> }>({
     manifests: new Set(),
     runs: new Map(),
@@ -89,7 +67,7 @@ export function useCapabilityEvidence(api: Api, state: OrgState | null, jobs: Jo
     const live = () => current.current === api;
     for (const j of jobs) {
       if (!j.capability) continue;
-      const sig = fetchKey(j, runs[j.job_id], tick);
+      const sig = jobSignature(j);
       if (requested.current.runs.get(j.job_id) === sig) continue;
       requested.current.runs.set(j.job_id, sig);
       api
@@ -106,7 +84,7 @@ export function useCapabilityEvidence(api: Api, state: OrgState | null, jobs: Jo
           }
         });
     }
-  }, [api, jobs, runs, tick]);
+  }, [api, jobs]);
 
   return { manifests, runs };
 }
