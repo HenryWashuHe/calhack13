@@ -34,7 +34,11 @@ installed, the exact version and installation. The planner then attaches it,
 or decides what to do without it after a refusal. The note has no public
 URL, so it can't justify another `RequestCapability` (the origin check
 rejects it), and the kernel can't drive a re-request loop with its own notes.
-`Acquiring` and `Acquired` record nothing: acquired is not installed.
+`Acquiring` and `Acquired` record nothing: acquired is not installed. The
+note is recorded only while the gap's mission is `Active` and before its
+deadline. A gap of a finished, failed or expired mission still records its
+final status (the `capability_gap_status_changed` event is the audit) but
+gives the planner no new input, so a late refusal can't revive closed work.
 
 ## The operation
 
