@@ -11,9 +11,11 @@ does not create an acquisition, authorize work or contact a provider.
 Each rule selects a capability ID, configured suite ID, Actor name prefix,
 exact source allowlist, fixed public HTML examples and whether one repair is
 allowed. Unknown JSON fields, duplicate capability rules, invalid synthesis
-inputs and oversized policies are rejected. Policies contain no oracle answers,
-credentials, provider URLs or model settings; the existing independent oracle
-and acquisition policy retain those responsibilities.
+inputs and oversized policies are rejected. The policy schema has no oracle,
+credential, provider-endpoint or model-configuration fields; the existing
+independent oracle and acquisition policy retain those responsibilities. Operators
+must supply public HTML examples without credentials or private oracle answers.
+Validation bounds that HTML but cannot establish its provenance.
 
 `materialize(&org_id, &gap)` requires every requested source to appear in the
 matching rule. It narrows both URLs and examples to that requested set, requires
