@@ -541,6 +541,8 @@ async fn reassignment_does_not_rebind_or_replace_an_existing_acquisition() {
 #[derive(Default)]
 struct World {
     unknown_actor: bool,
+    fail_build_read: bool,
+    read_failed: bool,
     requests: Vec<(String, String)>,
     actors: BTreeMap<String, Value>,
     runs: BTreeMap<String, (String, Value)>,
@@ -578,6 +580,13 @@ impl World {
                 (StatusCode::OK, json!({"data":source}))
             }
             ("POST", ["v2", "actors", actor, "builds"]) => (StatusCode::CREATED, self.build(actor)),
+            ("GET", ["v2", "actor-builds", _]) if self.fail_build_read && !self.read_failed => {
+                self.read_failed = true;
+                (
+                    StatusCode::SERVICE_UNAVAILABLE,
+                    json!({"error":"PRIVATE_FAILED_READ"}),
+                )
+            }
             ("GET", ["v2", "actor-builds", build]) => (
                 StatusCode::OK,
                 self.build(build.strip_prefix("build-").unwrap()),
@@ -748,4 +757,118 @@ async fn unknown_actor_outcome_survives_restart_without_a_replacement_intent() {
     assert_eq!(counts.actor_creates, 1);
     assert_eq!(providers.count("POST", "/actors"), 1);
     assert_eq!(providers.state.lock().unwrap().requests.len(), calls);
+}
+
+#[tokio::test]
+async fn failed_provider_read_is_gap_attention_without_implicit_retry_after_restart() {
+    let providers = Providers::start(false).await;
+    providers.state.lock().unwrap().fail_build_read = true;
+    let mut f = Fixture::new("gap-read-attention", Some(&providers)).await;
+    drain_once(&f.app).await.unwrap();
+    for _ in 0..12 {
+        let record = f.record();
+        f.app
+            .acquisition_runtime
+            .step(record.id(), false)
+            .await
+            .unwrap();
+        if providers.state.lock().unwrap().read_failed {
+            break;
+        }
+    }
+    assert!(providers.state.lock().unwrap().read_failed);
+    let original = f.record();
+    assert!(matches!(
+        f.app.acquisition_runtime.step(original.id(), false).await,
+        Err(genesis_server::capability_acquisition_runtime::AcquisitionRuntimeError::RetryRequired)
+    ));
+    let calls = providers.state.lock().unwrap().requests.clone();
+    let counts = f.app.store.acquisition_counters().unwrap();
+    for _ in 0..3 {
+        drain_once(&f.app).await.unwrap();
+    }
+    let status = genesis_server::capability_gap_driver::status(&f.app, &f.gap_id).unwrap();
+    assert_eq!(serde_json::to_value(&status).unwrap()["state"], "attention");
+    assert_eq!(serde_json::to_value(&status).unwrap()["code"], "retry_read");
+    assert_eq!(status.acquisition_id.as_deref(), Some(original.id()));
+    f.reopen(policy());
+    drain_once(&f.app).await.unwrap();
+    let restored = genesis_server::capability_gap_driver::status(&f.app, &f.gap_id).unwrap();
+    assert_eq!(
+        serde_json::to_value(restored).unwrap()["code"],
+        "retry_read"
+    );
+    assert_eq!(f.record().id(), original.id());
+    assert_eq!(f.record().version(), original.version());
+    assert_eq!(f.app.store.acquisition_counters().unwrap(), counts);
+    assert_eq!(providers.state.lock().unwrap().requests, calls);
+    assert_eq!(
+        f.gap().status,
+        CapabilityGapStatus::Acquiring {
+            acquisition_id: original.id().into()
+        }
+    );
+}
+
+#[tokio::test]
+async fn paused_quota_and_configuration_schedules_are_visible_without_new_effects() {
+    for quota in [false, true] {
+        let providers = Providers::start(false).await;
+        let mut f = Fixture::new(
+            if quota {
+                "gap-quota"
+            } else {
+                "gap-unconfigured"
+            },
+            quota.then_some(&providers),
+        )
+        .await;
+        drain_once(&f.app).await.unwrap();
+        let original = f.record();
+        if quota {
+            let limit = f
+                .config
+                .acquisition
+                .as_ref()
+                .unwrap()
+                .policy
+                .quotas
+                .model_calls;
+            f.sql()
+                .execute(
+                    "UPDATE acquisition_counters SET model_calls=?1 WHERE singleton=1",
+                    [limit],
+                )
+                .unwrap();
+        }
+        // Exercise the actual scheduler's persistent failure classification.
+        // No serve_org worker is spawned, so this is one deterministic pass.
+        f.app.automatic_acquisition = true;
+        genesis_server::capability_acquisition_driver::drain_once(&f.app)
+            .await
+            .unwrap();
+        let scheduler =
+            genesis_server::capability_acquisition_driver::status(&f.app, original.id()).unwrap();
+        let expected = if quota { "quota" } else { "configuration" };
+        assert_eq!(
+            serde_json::to_value(scheduler).unwrap()["error_code"],
+            expected
+        );
+        let counts = f.app.store.acquisition_counters().unwrap();
+        drain_once(&f.app).await.unwrap();
+        let status = genesis_server::capability_gap_driver::status(&f.app, &f.gap_id).unwrap();
+        assert_eq!(serde_json::to_value(&status).unwrap()["state"], "attention");
+        assert_eq!(serde_json::to_value(status).unwrap()["code"], expected);
+        f.reopen(policy());
+        f.app.automatic_acquisition = true;
+        for _ in 0..3 {
+            drain_once(&f.app).await.unwrap();
+        }
+        let restored = genesis_server::capability_gap_driver::status(&f.app, &f.gap_id).unwrap();
+        assert_eq!(serde_json::to_value(restored).unwrap()["code"], expected);
+        assert_eq!(f.record().id(), original.id());
+        assert_eq!(f.record().version(), original.version());
+        assert_eq!(f.app.store.acquisition_counters().unwrap(), counts);
+        assert!(providers.state.lock().unwrap().requests.is_empty());
+    }
 }
