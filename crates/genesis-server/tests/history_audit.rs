@@ -140,3 +140,49 @@ fn a_gap_in_snapshot_history_is_named() {
     assert!(found.contains(&"snapshot_history_contiguous"), "{found:?}");
     assert!(found.contains(&"event_revision_known"), "{found:?}");
 }
+
+#[test]
+fn commit_audit_refuses_an_ill_formed_commit_and_keeps_the_store_unchanged() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("org_a.db");
+    let store = Store::open(&path, OrgId::new("org_a"))
+        .unwrap()
+        .with_commit_audit(true);
+    // Legal history commits normally with auditing on.
+    let states = history(&store);
+    let last = states.last().unwrap();
+
+    // A commit that drops the recorded requirement is refused.
+    let mut bad = last.clone();
+    bad.revision += 1;
+    bad.requirements.clear();
+    let err = store
+        .commit_state(
+            last.revision,
+            &bad,
+            vec![],
+            &EventMeta::default(),
+            vec![],
+            |_| Ok(()),
+        )
+        .unwrap_err();
+    assert!(err.to_string().contains("history_is_append_only"), "{err}");
+    assert_eq!(store.current_state().unwrap().revision, last.revision);
+    assert!(audit_history(&store).unwrap().ok());
+
+    // Off (the default), the same commit is stored and the audit reports it.
+    let plain = Store::open(&path, OrgId::new("org_a"))
+        .unwrap()
+        .with_commit_audit(false);
+    plain
+        .commit_state(
+            last.revision,
+            &bad,
+            vec![],
+            &EventMeta::default(),
+            vec![],
+            |_| Ok(()),
+        )
+        .unwrap();
+    assert!(!audit_history(&plain).unwrap().ok());
+}
