@@ -457,7 +457,7 @@ async fn managed_result_guard_survives_restart_without_creao_configured() {
 #[tokio::test]
 async fn dispatch_cannot_route_a_creao_role_around_its_specialist() {
     let org = start(Fake::new(&[Step::Pending])).await;
-    for provider in ["internal", "dev_stub", "elastic"] {
+    for provider in ["internal", "dev_stub", "elastic", "apify"] {
         let (s, body) = org
             .post(
                 "/jobs",
