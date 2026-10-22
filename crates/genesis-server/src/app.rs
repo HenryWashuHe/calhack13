@@ -63,6 +63,8 @@ pub struct AppState {
     pub provision_timeout: Duration,
     pub evidence_policy: Arc<crate::capability_evidence::EvidencePolicy>,
     pub capability_runtime: Arc<crate::capability_runtime::CapabilityRuntime>,
+    pub acquisition_policy: Option<Arc<crate::capability_acquisition_store::AcquisitionPolicy>>,
+    pub acquisition_runtime: Arc<crate::capability_acquisition_runtime::AcquisitionRuntime>,
 }
 
 /// Result of a kernel mutation.

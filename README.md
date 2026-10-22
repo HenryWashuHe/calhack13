@@ -19,6 +19,7 @@ The Rust capability implementation now creates source-bearing Actors, resumes pi
 9. [Current implementation split](docs/NEXT_IMPLEMENTATION_SPLIT.md) — Codex capability work and Claude kernel/UI/Elastic assignments.
 10. [Capability source synthesis](docs/CAPABILITY_SYNTHESIS.md) — public requirement/examples to a durable generated parser and immutable forge candidate.
 11. [Durable capability acquisition](docs/CAPABILITY_ACQUISITION.md) — one checkpoint from generation through build and verification, with one bounded semantic repair.
+12. [Server-managed acquisition](docs/SERVER_ACQUISITION.md) — mission/assignment binding, persistent count quotas, resumable HTTP steps and trusted publication proofs.
 
 ## Run the capability checks
 
