@@ -1,10 +1,10 @@
 //! # genesis-providers
 //!
-//! Provider adapter **interfaces** used by the kernel, plus a development stub.
+//! Provider adapter interfaces, a pinned Apify executor, and a development stub.
 //!
-//! The real adapters (Elastic Agent Builder, Fetch bridge, CREAO, Apify) are
-//! owned by other workstreams and plug in by implementing these traits. The
-//! kernel never writes ownership from an adapter: adapters return bindings and
+//! Other adapters (Elastic Agent Builder, Fetch bridge, CREAO) plug in by
+//! implementing these traits. The kernel never writes ownership from an
+//! adapter: adapters return bindings and
 //! receipts; the kernel decides.
 //!
 //! [`DevStub`] stands in for a missing provider during development. Every
@@ -12,17 +12,23 @@
 //! the UI can label it. It must never be presented as a live integration.
 
 use async_trait::async_trait;
-use genesis_core::capability::sha256_hex;
+use genesis_apify::{RunRequest, RunTicket};
 use genesis_core::engine::RoleToProvision;
 use genesis_core::ids::{ChangeId, OrgId};
-use genesis_core::model::{AgentBinding, CapabilityRef, Provider};
+use genesis_core::model::{AgentBinding, Provider};
+use genesis_verification::{json_sha256, ExecutionEvidence};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap};
 use std::sync::Arc;
 use std::time::Duration;
 
+pub mod apify;
+pub mod creao;
+pub use apify::ApifyCapabilityExecutor;
+pub use creao::{CreaoSpecialist, SpecialistProgress, SpecialistRuntime};
+
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error, Serialize, Deserialize)]
-#[serde(tag = "kind", rename_all = "snake_case")]
+#[serde(tag = "kind", content = "detail", rename_all = "snake_case")]
 pub enum ProviderError {
     #[error("provider {provider:?} is not configured")]
     NotConfigured { provider: Provider },
@@ -55,7 +61,7 @@ impl ProvisionRequest {
             "authority": self.role.authority,
             "provider": self.role.provider,
         });
-        sha256_hex(cfg.to_string().as_bytes())
+        json_sha256(&cfg)
     }
 }
 
@@ -72,24 +78,59 @@ pub trait RoleProvisioner: Send + Sync {
     async fn check_ready(&self, binding: &AgentBinding) -> Result<bool, ProviderError>;
 }
 
-/// Receipt returned when a capability run is submitted.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+/// Persist this submission receipt before polling. It does not verify output.
+/// Deserialization is for trusted kernel storage, never a public proof of a run.
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CapabilityRunReceipt {
     pub provider: Provider,
     pub provider_refs: BTreeMap<String, String>,
     pub raw_status: String,
+    #[serde(default)]
+    pub ticket: Option<RunTicket>,
+}
+
+impl CapabilityRunReceipt {
+    /// Check saved receipt consistency without making a provider request.
+    /// This does not authenticate a receipt supplied by an untrusted caller.
+    pub fn validate_for(&self, request: &RunRequest) -> Result<(), ProviderError> {
+        let mismatch = || ProviderError::Rejected("capability run receipt mismatch".into());
+        match self.provider {
+            Provider::Apify => {
+                let ticket = self.ticket.as_ref().ok_or_else(mismatch)?;
+                ticket.validate_for(request).map_err(apify::map_error)?;
+                for (key, expected) in [
+                    ("actor_id", request.artifact.actor_id.as_str()),
+                    ("build_id", request.artifact.build_id.as_str()),
+                    ("build_number", request.artifact.build_number.as_str()),
+                    ("run_id", ticket.run_id()),
+                ] {
+                    if self.provider_refs.get(key).map(String::as_str) != Some(expected) {
+                        return Err(mismatch());
+                    }
+                }
+                Ok(())
+            }
+            Provider::DevStub if self.ticket.is_none() => Ok(()),
+            _ => Err(mismatch()),
+        }
+    }
 }
 
 /// Executes a pinned capability artifact (Apify Actor build).
 #[async_trait]
 pub trait CapabilityExecutor: Send + Sync {
-    async fn submit(
+    fn provider(&self) -> Provider;
+
+    async fn submit(&self, request: &RunRequest) -> Result<CapabilityRunReceipt, ProviderError>;
+
+    /// Resume a previously persisted run using only GET requests. The immutable
+    /// backend request and ticket must refer to the same artifact and input.
+    /// Evidence still requires independent domain verification.
+    async fn resume(
         &self,
-        capability: &CapabilityRef,
-        actor_id: &str,
-        build_number: &str,
-        input: &serde_json::Value,
-    ) -> Result<CapabilityRunReceipt, ProviderError>;
+        request: &RunRequest,
+        ticket: &RunTicket,
+    ) -> Result<ExecutionEvidence, ProviderError>;
 }
 
 /// Development stand-in for any provider.
@@ -134,16 +175,15 @@ impl RoleProvisioner for DevStub {
 
 #[async_trait]
 impl CapabilityExecutor for DevStub {
-    async fn submit(
-        &self,
-        _capability: &CapabilityRef,
-        actor_id: &str,
-        build_number: &str,
-        _input: &serde_json::Value,
-    ) -> Result<CapabilityRunReceipt, ProviderError> {
+    fn provider(&self) -> Provider {
+        Provider::DevStub
+    }
+
+    async fn submit(&self, request: &RunRequest) -> Result<CapabilityRunReceipt, ProviderError> {
         let mut refs = BTreeMap::new();
-        refs.insert("actor_id".into(), actor_id.to_owned());
-        refs.insert("build_number".into(), build_number.to_owned());
+        refs.insert("actor_id".into(), request.artifact.actor_id.clone());
+        refs.insert("build_id".into(), request.artifact.build_id.clone());
+        refs.insert("build_number".into(), request.artifact.build_number.clone());
         refs.insert(
             "run_id".into(),
             format!("devstub-run-{}", uuid::Uuid::new_v4().simple()),
@@ -152,6 +192,17 @@ impl CapabilityExecutor for DevStub {
             provider: Provider::DevStub,
             provider_refs: refs,
             raw_status: "DEVSTUB_SUBMITTED".into(),
+            ticket: None,
+        })
+    }
+
+    async fn resume(
+        &self,
+        _request: &RunRequest,
+        _ticket: &RunTicket,
+    ) -> Result<ExecutionEvidence, ProviderError> {
+        Err(ProviderError::NotConfigured {
+            provider: Provider::DevStub,
         })
     }
 }
@@ -182,6 +233,7 @@ impl RoleProvisioner for FailingProvisioner {
 pub struct ProviderSet {
     provisioners: HashMap<Provider, Arc<dyn RoleProvisioner>>,
     executor: Option<Arc<dyn CapabilityExecutor>>,
+    specialists: HashMap<Provider, Arc<dyn SpecialistRuntime>>,
     dev_stub: Option<DevStub>,
 }
 
@@ -204,6 +256,31 @@ impl ProviderSet {
     pub fn with_executor(mut self, e: Arc<dyn CapabilityExecutor>) -> Self {
         self.executor = Some(e);
         self
+    }
+
+    /// Split asynchronous specialists are distinct from ready role provisioners.
+    /// There is deliberately no development fallback for this evidence path.
+    pub fn with_specialist(mut self, specialist: Arc<dyn SpecialistRuntime>) -> Self {
+        self.specialists.insert(specialist.provider(), specialist);
+        self
+    }
+
+    pub fn specialist(
+        &self,
+        provider: Provider,
+    ) -> Result<Arc<dyn SpecialistRuntime>, ProviderError> {
+        self.specialists
+            .get(&provider)
+            .cloned()
+            .ok_or(ProviderError::NotConfigured { provider })
+    }
+
+    /// Providers exposing durable asynchronous operations. These still require
+    /// kernel orchestration/readiness; they are not synchronous provisioners.
+    pub fn configured_specialists(&self) -> Vec<Provider> {
+        let mut providers: Vec<_> = self.specialists.keys().copied().collect();
+        providers.sort();
+        providers
     }
 
     pub fn dev_stub_enabled(&self) -> bool {
@@ -235,10 +312,14 @@ impl ProviderSet {
         }
     }
 
-    /// Which providers have a real adapter registered.
+    /// Registered provider identities, with development stubs explicitly labeled.
     pub fn configured(&self) -> Vec<Provider> {
         let mut v: Vec<_> = self.provisioners.keys().copied().collect();
+        if let Some(executor) = &self.executor {
+            v.push(executor.provider());
+        }
         v.sort();
+        v.dedup();
         v
     }
 }

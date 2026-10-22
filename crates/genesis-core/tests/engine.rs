@@ -260,8 +260,8 @@ fn meaningful_new_ownership_after_commit() {
 
     let rsp = &st.responsibilities[&alloc.responsibilities["relocate"]];
     assert_eq!(rsp.owner, Owner::Role(role_id.clone()));
-    assert_eq!(rsp.epoch, 1);
-    // Delegation changed the executor, not the accountable owner.
+    assert_eq!(rsp.epoch, 2); // Initial assignment, then delegated execution.
+                              // Delegation changed the executor, not the accountable owner.
     assert_eq!(
         rsp.executor,
         Some(Executor::Contractor(alloc.contracts["logistics"].clone()))
@@ -279,7 +279,7 @@ fn meaningful_new_ownership_after_commit() {
         Some("ledger.reserve_venue"),
     )
     .unwrap();
-    assert_eq!(grant.epoch, 1);
+    assert_eq!(grant.epoch, rsp.epoch);
     assert!(authorize_dispatch(st, &d.program, &rsp.responsibility_id, None).is_err());
     // Existing program work continues.
     let program_rsp = st
@@ -571,7 +571,7 @@ fn handoff_fences_stale_epoch_and_retires_role() {
     assert_eq!(st.roles[&old_role].state, RoleState::Retired);
     assert_eq!(st.roles[&old_role].retired_in_revision, Some(st.revision));
     let r = &st.responsibilities[&rsp];
-    assert_eq!(r.epoch, 2);
+    assert_eq!(r.epoch, old_grant.epoch + 1);
     let monitor = st
         .roles
         .values()
@@ -584,9 +584,12 @@ fn handoff_fences_stale_epoch_and_retires_role() {
     // Late result from the old epoch is fenced.
     assert_eq!(
         check_result_epoch(st, &rsp, old_grant.epoch),
-        Err(DispatchError::StaleEpoch { current: 2, got: 1 })
+        Err(DispatchError::StaleEpoch {
+            current: r.epoch,
+            got: old_grant.epoch
+        })
     );
-    assert!(check_result_epoch(st, &rsp, 2).is_ok());
+    assert!(check_result_epoch(st, &rsp, r.epoch).is_ok());
     // The retired role can no longer dispatch.
     assert!(matches!(
         authorize_dispatch(st, &old_role, &rsp, None),
@@ -599,7 +602,7 @@ fn handoff_fences_stale_epoch_and_retires_role() {
         .filter(|x| x.responsibility_id == rsp && x.state == AssignmentState::Active)
         .collect();
     assert_eq!(active.len(), 1);
-    assert_eq!(active[0].epoch, 2);
+    assert_eq!(active[0].epoch, r.epoch);
     // Budget is released by retirement.
     assert!(st.allocated_budget_cents() < after.state.allocated_budget_cents());
 }

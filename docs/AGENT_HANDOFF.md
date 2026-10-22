@@ -2,7 +2,45 @@
 
 Updated: October 21, 2026.
 
-## Current ownership
+## Current integration checkpoint
+
+Codex reviewed PR #3 at `21103d1`, requested changes with reproduced findings in
+[the review](reviews/PR-3.md), and assigned [issue #4](https://github.com/HenryWashuHe/genesis/issues/4)
+to Eric/Claude. The [current split](NEXT_IMPLEMENTATION_SPLIT.md) supersedes the
+historical broad API ownership and next steps below.
+
+Codex has pushed core capability integration in [PR #5](https://github.com/HenryWashuHe/genesis/pull/5),
+branch `codex/capability-kernel-integration`, initial server checkpoint `0cfae06`.
+It includes the real Apify provider, durable request/ticket recovery, backend forge
+proofs, immutable local installation pins, independent acceptance runs and API
+forgery/idempotency guards. See [CAPABILITY_EXECUTION.md](CAPABILITY_EXECUTION.md).
+The branches include Claude's review-fix checkpoint `efa3b4f` and two narrow Codex
+merge-readiness fixes, reserved in [issue #4](https://github.com/HenryWashuHe/genesis/issues/4#issuecomment-6326857019):
+
+- `7a00da4`: changing the delegated executor creates a fresh assignment and epoch,
+  preserving the accountable owner and lease. A→B→A cannot revive A's old grant;
+  old owner work is also fenced and must be redispatched. Repeating the same
+  executor keeps the current grant. Epoch exhaustion rejects before mutation.
+- `1460831`: shared process-local per-change gates serialize run, recovery and
+  retry drivers. Different changes can still provision concurrently. Cancellation
+  releases the gate and recovery reuses a saved native binding. This is not a
+  cross-process lock or a guarantee that an unknown native POST is safe to replay.
+
+Claude retains CREAO/Fetch asynchronous kernel integration, Elastic, planner and UI.
+Merge the updated main into active work; do not reimplement these two fixes.
+No whole-kernel takeover is active. Historical review/checkpoint notes below retain
+the limitations known when they were written; this section supersedes them.
+
+Codex's CREAO implementation is in PR #6; [CREAO_RUNTIME.md](CREAO_RUNTIME.md)
+records its durable provider boundary and pending readiness hook. Codex also owns
+Fetch in [PR #7](https://github.com/HenryWashuHe/genesis/pull/7),
+branch `codex/fetch-recruitment`: `genesis-fetch`, `services/fetch-bridge` and the
+signed three-process/two-organization proof. [FETCH_RUNTIME.md](FETCH_RUNTIME.md)
+documents exact commands, recovery, release isolation and the next kernel hook.
+All live-account smoke gates remain open. Repository assignments communicate the
+split but do not prove the other machine has read them.
+
+## Ownership before the scoped integration handoff
 
 | Area | Current owner | Status |
 | --- | --- | --- |
@@ -31,7 +69,7 @@ change before editing kernel files. Claude should consult that record before
 resuming kernel work. This keeps the two machines from implementing the same
 component concurrently; it does not add an approval step.
 
-## Kernel handoff record
+## Historical kernel checkpoint (superseded by the current split)
 
 - **State:** Claude owns kernel and UI; fallback authorized, not activated. Recorded October 21, 2026.
 - **Kernel branch / latest commit:** `feat/kernel-ui`, code checkpoint `72cb13e` (main and PR #2 merged in; this record is the commit after it). Open as [PR #3](https://github.com/HenryWashuHe/genesis/pull/3).

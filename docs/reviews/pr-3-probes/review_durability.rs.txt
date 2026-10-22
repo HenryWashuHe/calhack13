@@ -1,0 +1,363 @@
+//! Temporary review probes: assertions document reproduced defects, not desired behavior.
+use axum::http::StatusCode;
+use chrono::Utc;
+use genesis_core::change::{KeyAllocation, OrgChangeProposal, OrgChangeRecord};
+use genesis_core::engine::MissionBootstrap;
+use genesis_core::ids::*;
+use genesis_core::jobs::{DispatchRequest, Job};
+use genesis_core::lifecycle::{ChangeStatus, JobStatus};
+use genesis_core::model::{AgentBinding, Provider};
+use genesis_providers::{ProviderError, ProviderSet, ProvisionRequest, RoleProvisioner};
+use genesis_server::app::AppState;
+use genesis_server::store::EventMeta;
+use genesis_server::{build_org, saga, OrgConfig};
+use serde_json::json;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
+use std::time::Duration;
+use tokio::sync::Notify;
+
+async fn seed(app: &AppState) -> MissionId {
+    let spec: MissionBootstrap = serde_json::from_value(json!({
+        "goal":"Review durability", "roles":[{"key":"lead","name":"Lead","charter":"Own work",
+        "authority":{"scopes":["mission.coordinate"],"budget_cents":0}}],
+        "responsibilities":[{"purpose":"Coordinate work","owner":"lead"}]
+    }))
+    .unwrap();
+    app.mutate(EventMeta::default(), |state| {
+        genesis_core::engine::bootstrap_mission(state, &spec, Utc::now())
+            .map_err(genesis_server::error::validation_error)
+    })
+    .await
+    .unwrap()
+    .value
+}
+
+fn dispatch_request(app: &AppState) -> DispatchRequest {
+    let state = app.current_state().unwrap();
+    DispatchRequest {
+        client_request_id: "durable-job-request".into(),
+        role_id: state.roles.keys().next().unwrap().clone(),
+        responsibility_id: state.responsibilities.keys().next().unwrap().clone(),
+        task: "Perform work exactly once".into(),
+        input: json!({}),
+        required_scope: Some("mission.coordinate".into()),
+        capability: None,
+        provider: Some(Provider::Elastic),
+        deadline: None,
+    }
+}
+
+#[tokio::test]
+async fn review_failed_dispatch_transaction_strands_a_job_and_idempotent_retry_never_enqueues_it() {
+    let directory = tempfile::tempdir().unwrap();
+    let mut cfg = OrgConfig::dev("review", "Review");
+    let path = directory.path().join("org.db");
+    cfg.db = Some(path.clone());
+    let app = build_org(&cfg, None).unwrap();
+    seed(&app).await;
+    let request = dispatch_request(&app);
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let endpoint = format!("http://{}/api/v1/jobs", listener.local_addr().unwrap());
+    let router = app.clone().router();
+    let server = tokio::spawn(async move {
+        axum::serve(listener, router).await.unwrap();
+    });
+    let http = reqwest::Client::new();
+    let fault = rusqlite::Connection::open(path).unwrap();
+    fault.execute_batch("CREATE TRIGGER review_fail_outbox BEFORE INSERT ON outbox BEGIN SELECT RAISE(ABORT, 'simulated commit failure'); END;").unwrap();
+    let response = http
+        .post(&endpoint)
+        .bearer_auth(&cfg.tokens.operator)
+        .json(&request)
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    assert_eq!(app.store.list_jobs().unwrap().len(), 1);
+    assert!(app.store.list_outbox(100).unwrap().is_empty());
+    fault
+        .execute_batch("DROP TRIGGER review_fail_outbox;")
+        .unwrap();
+    let response = http
+        .post(&endpoint)
+        .bearer_auth(&cfg.tokens.operator)
+        .json(&request)
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let job: Job = response.json().await.unwrap();
+    assert_eq!(job.status, JobStatus::Queued);
+    assert!(
+        app.store.list_outbox(100).unwrap().is_empty(),
+        "repro: retry acknowledges a job that will never be delivered"
+    );
+    assert!(!app
+        .store
+        .events_after(0, 100)
+        .unwrap()
+        .iter()
+        .any(|event| event.kind.type_name() == "JobDispatched"));
+    server.abort();
+}
+
+#[tokio::test]
+async fn review_failed_change_transaction_leaves_proposed_record_that_restart_and_retry_ignore() {
+    let directory = tempfile::tempdir().unwrap();
+    let mut cfg = OrgConfig::dev("review", "Review");
+    let path = directory.path().join("org.db");
+    cfg.db = Some(path.clone());
+    let app = build_org(&cfg, None).unwrap();
+    let mission = seed(&app).await;
+    let observation = app
+        .mutate(EventMeta::default(), |state| {
+            genesis_core::engine::record_observation(
+                state,
+                &mission,
+                "public-fixture",
+                "Lead should remain at root",
+                None,
+                Utc::now(),
+            )
+            .map_err(Into::into)
+        })
+        .await
+        .unwrap()
+        .value;
+    let state = app.current_state().unwrap();
+    let proposal: OrgChangeProposal = serde_json::from_value(json!({
+        "expected_org_revision":state.revision, "trigger_evidence_ids":[observation], "rationale":"Keep lead at root",
+        "budget_limit_cents":0, "operations":[{"op":"ChangeReportingEdge",
+            "role":{"kind":"existing","role_id":state.roles.keys().next().unwrap()},"reports_to":null}]
+    })).unwrap();
+    let alloc = KeyAllocation::allocate(&proposal);
+    genesis_core::engine::validate(
+        &state,
+        &proposal,
+        &alloc,
+        &genesis_core::engine::local_catalog(&state),
+        Utc::now(),
+    )
+    .unwrap();
+    let fault = rusqlite::Connection::open(path).unwrap();
+    fault.execute_batch("CREATE TRIGGER review_fail_events BEFORE INSERT ON events BEGIN SELECT RAISE(ABORT, 'simulated commit failure'); END;").unwrap();
+    let error = saga::submit(&app, "operator", "durable-change-request", proposal.clone())
+        .await
+        .unwrap_err();
+    assert_eq!(error.status, StatusCode::INTERNAL_SERVER_ERROR);
+    let records = app.store.list_changes().unwrap();
+    assert_eq!(records.len(), 1);
+    assert_eq!(records[0].status, ChangeStatus::Proposed);
+    fault
+        .execute_batch("DROP TRIGGER review_fail_events;")
+        .unwrap();
+    let restarted = build_org(&cfg, None).unwrap();
+    assert_eq!(saga::resume_pending(&restarted).await.unwrap(), 0);
+    let (status, record) = saga::submit(&restarted, "operator", "durable-change-request", proposal)
+        .await
+        .unwrap();
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(
+        record.status,
+        ChangeStatus::Proposed,
+        "repro: neither restart nor retry progresses the stored proposal"
+    );
+}
+
+struct ReadinessPause {
+    calls: AtomicUsize,
+    entered: Notify,
+    fail_readiness: bool,
+}
+
+impl RoleProvisioner for ReadinessPause {
+    fn provider(&self) -> Provider {
+        Provider::Elastic
+    }
+    fn provision<'a, 'b, 'future>(
+        &'a self,
+        req: &'b ProvisionRequest,
+    ) -> std::pin::Pin<
+        Box<dyn std::future::Future<Output = Result<AgentBinding, ProviderError>> + Send + 'future>,
+    >
+    where
+        'a: 'future,
+        'b: 'future,
+        Self: 'future,
+    {
+        Box::pin(async move {
+            let number = self.calls.fetch_add(1, Ordering::SeqCst) + 1;
+            Ok(AgentBinding {
+                provider: Provider::Elastic,
+                provider_agent_id: format!("provider-agent-{number}"),
+                config_digest: req.config_digest(),
+                conversation_ref: None,
+            })
+        })
+    }
+    fn check_ready<'a, 'b, 'future>(
+        &'a self,
+        binding: &'b AgentBinding,
+    ) -> std::pin::Pin<
+        Box<dyn std::future::Future<Output = Result<bool, ProviderError>> + Send + 'future>,
+    >
+    where
+        'a: 'future,
+        'b: 'future,
+        Self: 'future,
+    {
+        Box::pin(async move {
+            if self.fail_readiness {
+                return Err(ProviderError::Rejected("readiness check failed".into()));
+            }
+            if binding.provider_agent_id == "provider-agent-1" {
+                self.entered.notify_one();
+                std::future::pending::<()>().await;
+            }
+            Ok(true)
+        })
+    }
+}
+
+async fn ready_change(app: &AppState) -> OrgChangeRecord {
+    let mission = seed(app).await;
+    let observation = app
+        .mutate(EventMeta::default(), |state| {
+            genesis_core::engine::record_observation(
+                state,
+                &mission,
+                "public-fixture",
+                "New continuing work",
+                None,
+                Utc::now(),
+            )
+            .map_err(Into::into)
+        })
+        .await
+        .unwrap()
+        .value;
+    let requirement = app
+        .mutate(EventMeta::default(), |state| {
+            genesis_core::engine::record_requirement(
+                state,
+                &mission,
+                "New owner required",
+                std::slice::from_ref(&observation),
+                "Work owned",
+            )
+            .map_err(Into::into)
+        })
+        .await
+        .unwrap()
+        .value;
+    let state = app.current_state().unwrap();
+    let proposal: OrgChangeProposal = serde_json::from_value(json!({
+        "expected_org_revision":state.revision, "trigger_evidence_ids":[observation],
+        "rationale":"A specialist owns continuing work", "budget_limit_cents":0,
+        "operations":[{"op":"CreateRole","key":"specialist","name":"Specialist","charter":"Own continuing work",
+          "authority":{"scopes":["mission.coordinate"],"budget_cents":0},"reports_to":null,
+          "provider":"elastic","justification":"independent_ownership"},
+          {"op":"AssignResponsibility","target":{"kind":"from_requirement","key":"new-work",
+           "requirement_id":requirement,"purpose":"Own continuing work","trigger":"Changes","termination":"Mission ends"},
+           "owner":{"kind":"new","key":"specialist"}}]
+    })).unwrap();
+    let allocation = KeyAllocation::allocate(&proposal);
+    genesis_core::engine::validate(
+        &state,
+        &proposal,
+        &allocation,
+        &genesis_core::engine::local_catalog(&state),
+        Utc::now(),
+    )
+    .unwrap();
+    let now = Utc::now();
+    let record = OrgChangeRecord {
+        change_id: ChangeId::generate(),
+        status: ChangeStatus::Validated,
+        proposal,
+        allocation,
+        provisioned: Default::default(),
+        errors: vec![],
+        committed_revision: None,
+        submitted_by: "operator".into(),
+        created_at: now,
+        updated_at: now,
+    };
+    app.store
+        .insert_change("readiness-change", &record)
+        .unwrap();
+    record
+}
+
+#[tokio::test]
+async fn review_readiness_is_unbounded_and_a_restart_loses_the_known_binding() {
+    let provider = Arc::new(ReadinessPause {
+        calls: AtomicUsize::new(0),
+        entered: Notify::new(),
+        fail_readiness: false,
+    });
+    let providers = ProviderSet::new().with_provisioner(Provider::Elastic, provider.clone());
+    let mut cfg = OrgConfig::dev("review", "Review");
+    cfg.provision_timeout = Duration::from_millis(10);
+    let app = build_org(&cfg, Some(providers)).unwrap();
+    let record = ready_change(&app).await;
+    let worker_app = app.clone();
+    let change_id = record.change_id.clone();
+    let worker = tokio::spawn(async move { saga::run(&worker_app, &change_id).await });
+    tokio::time::timeout(Duration::from_secs(1), provider.entered.notified())
+        .await
+        .unwrap();
+    tokio::time::sleep(Duration::from_millis(50)).await;
+    assert!(
+        !worker.is_finished(),
+        "repro: readiness exceeds the configured provisioning timeout"
+    );
+    assert!(
+        app.store
+            .get_change(&record.change_id)
+            .unwrap()
+            .provisioned
+            .is_empty(),
+        "repro: returned provider binding has not been persisted"
+    );
+    worker.abort();
+    assert!(worker.await.unwrap_err().is_cancelled());
+    let resumed = saga::run(&app, &record.change_id).await.unwrap();
+    assert_eq!(resumed.status, ChangeStatus::Committed);
+    assert_eq!(
+        provider.calls.load(Ordering::SeqCst),
+        2,
+        "repro: known resource is reprovisioned after interruption"
+    );
+    assert_eq!(
+        resumed.provisioned["specialist"].provider_agent_id,
+        "provider-agent-2"
+    );
+}
+
+#[tokio::test]
+async fn review_readiness_failure_discards_the_created_provider_identity_from_terminal_record() {
+    let provider = Arc::new(ReadinessPause {
+        calls: AtomicUsize::new(0),
+        entered: Notify::new(),
+        fail_readiness: true,
+    });
+    let providers = ProviderSet::new().with_provisioner(Provider::Elastic, provider.clone());
+    let cfg = OrgConfig::dev("review", "Review");
+    let app = build_org(&cfg, Some(providers)).unwrap();
+    let record = ready_change(&app).await;
+    let failed = saga::run(&app, &record.change_id).await.unwrap();
+    assert_eq!(failed.status, ChangeStatus::Failed);
+    assert_eq!(provider.calls.load(Ordering::SeqCst), 1);
+    assert!(failed.provisioned.is_empty());
+    assert!(!serde_json::to_string(&failed)
+        .unwrap()
+        .contains("provider-agent-1"));
+    assert!(
+        !serde_json::to_string(&app.store.events_after(0, 100).unwrap())
+            .unwrap()
+            .contains("provider-agent-1")
+    );
+    assert_eq!(saga::resume_pending(&app).await.unwrap(), 0);
+}
