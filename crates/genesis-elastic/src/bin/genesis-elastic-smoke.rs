@@ -47,6 +47,24 @@ fn flag(name: &str) -> bool {
 async fn main() {
     let _ = dotenvy::dotenv(); // keys may live in a git-ignored .env
     let org = arg("--org").unwrap_or_else(|| "genesis-smoke".into());
+    if flag("--names") {
+        // Offline: the resource names to put in API key role descriptors.
+        let prefix = std::env::var("GENESIS_ELASTIC_INDEX_PREFIX")
+            .ok()
+            .filter(|p| !p.trim().is_empty())
+            .unwrap_or_else(|| "genesis".into());
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&json!({
+                "org": org,
+                "evidence_index": evidence_index_name(&prefix, &org),
+                "capability_index": format!("{prefix}-capabilities"),
+                "evidence_tool": format!("genesis-{}-evidence-search", org_namespace(&org)),
+            }))
+            .unwrap_or_default()
+        );
+        return;
+    }
     let run = format!("{}", chrono::Utc::now().timestamp());
     let token = format!("smoketoken{run}");
     let mut r = Report {
