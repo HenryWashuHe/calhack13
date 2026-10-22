@@ -81,7 +81,17 @@ function Node({ node, state, freshRevision }: { node: RoleNode; state: OrgState;
                 {p.operation.state.replace(/_/g, " ")}
               </span>
               {p.operation.run_id && <span className="mono">run {p.operation.run_id}</span>}
+              {p.operation.native_status === "operator_attached" && (
+                <span className="chip warn" title="Agent ID supplied by an operator; the provider never reported it">
+                  attached by operator
+                </span>
+              )}
               {p.operation.attention && <span className="muted">{p.operation.attention}</span>}
+              {p.operation.readiness_evidence && (
+                <span className="chip ok" title="Backend-observed readiness evidence">
+                  readiness {p.operation.readiness_evidence}
+                </span>
+              )}
             </div>
           )}
           <div className="role-meta">

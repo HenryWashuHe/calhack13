@@ -20,7 +20,9 @@ pub mod capability_adoption_store;
 pub mod capability_authority;
 pub mod capability_evidence;
 pub mod capability_finalization;
+pub mod capability_gap_driver;
 pub mod capability_gap_policy;
+pub mod capability_gap_store;
 pub mod capability_gaps;
 pub mod capability_invocation;
 pub mod capability_runtime;
@@ -39,6 +41,12 @@ pub mod store;
 
 /// Optional CREAO specialist registration from the backend environment.
 pub mod creao_config;
+
+/// Durable CREAO dispatch for gateway readiness challenges.
+pub mod creao_readiness;
+
+/// Readiness proven by backend-observed gateway receipts.
+pub mod gateway_readiness;
 
 use app::AppState;
 use auth::Tokens;
@@ -86,7 +94,7 @@ impl std::fmt::Debug for AcquisitionConfig {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct OrgConfig {
     pub org_id: OrgId,
     pub name: String,
@@ -106,6 +114,27 @@ pub struct OrgConfig {
     pub forge_checkpoints: Vec<genesis_forge::ForgeSession>,
     /// Opt-in server-managed acquisition; provider credentials stay in clients.
     pub acquisition: Option<AcquisitionConfig>,
+    /// Explicit trusted opt-in to creating acquisition intents for committed gaps.
+    /// Includes public synthesis examples; never print its contents in Debug.
+    pub gap_acquisition_policy: Option<capability_gap_policy::GapAcquisitionPolicy>,
+}
+
+impl std::fmt::Debug for OrgConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("OrgConfig")
+            .field("org_id", &self.org_id)
+            .field("name", &self.name)
+            .field("db", &self.db)
+            .field("dev_stub", &self.dev_stub)
+            .field("oracle_suite_count", &self.oracle_suites.len())
+            .field("forge_checkpoint_count", &self.forge_checkpoints.len())
+            .field("acquisition", &self.acquisition)
+            .field(
+                "gap_acquisition_configured",
+                &self.gap_acquisition_policy.is_some(),
+            )
+            .finish_non_exhaustive()
+    }
 }
 
 impl OrgConfig {
@@ -128,6 +157,7 @@ impl OrgConfig {
             oracle_suites: Vec::new(),
             forge_checkpoints: Vec::new(),
             acquisition: None,
+            gap_acquisition_policy: None,
         }
     }
 }
@@ -157,6 +187,15 @@ pub fn demo_constitution() -> Constitution {
 
 /// Open the store, initialize revision 0 if needed, and build the app state.
 pub fn build_org(cfg: &OrgConfig, providers: Option<ProviderSet>) -> anyhow::Result<AppState> {
+    if let Some(policy) = &cfg.gap_acquisition_policy {
+        policy.validate()?;
+        anyhow::ensure!(
+            cfg.acquisition
+                .as_ref()
+                .is_some_and(|config| config.automatic),
+            "gap acquisition requires automatic acquisition and a trusted acquisition policy"
+        );
+    }
     if cfg.acquisition.as_ref().is_some_and(|config| {
         config.automatic && (config.model.is_none() || config.apify.is_none())
     }) {
@@ -198,6 +237,8 @@ pub fn build_org(cfg: &OrgConfig, providers: Option<ProviderSet>) -> anyhow::Res
     store.init_capability_adoptions()?;
     store.init_capability_invocations()?;
     store.init_capability_finalization()?;
+    store.init_gap_acquisitions()?;
+    store.init_gap_driver()?;
     if let Some(config) = &cfg.acquisition {
         store.init_acquisitions(&config.policy)?;
         store.init_acquisition_driver()?;
@@ -243,6 +284,7 @@ pub fn build_org(cfg: &OrgConfig, providers: Option<ProviderSet>) -> anyhow::Res
         capability_runtime,
         acquisition_policy: cfg.acquisition.as_ref().map(|c| Arc::new(c.policy.clone())),
         automatic_acquisition: cfg.acquisition.as_ref().is_some_and(|c| c.automatic),
+        gap_acquisition_policy: cfg.gap_acquisition_policy.clone().map(Arc::new),
         acquisition_runtime,
         adoption_gate: Arc::new(Mutex::new(())),
         registry,
@@ -293,6 +335,10 @@ pub async fn serve_org(app: AppState, listener: TcpListener) -> anyhow::Result<(
     let _acquisition_worker = app
         .automatic_acquisition
         .then(|| AbortWorker(capability_acquisition_driver::spawn(app.clone())));
+    let _gap_worker = app
+        .gap_acquisition_policy
+        .is_some()
+        .then(|| AbortWorker(capability_gap_driver::spawn(app.clone())));
     let _specialist_worker =
         specialist::spawn(app.clone(), Duration::from_millis(500)).map(AbortWorker);
     let _outbox_worker = AbortWorker(outbox::spawn(app.clone()));
