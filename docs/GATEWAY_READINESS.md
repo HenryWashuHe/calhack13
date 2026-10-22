@@ -72,6 +72,21 @@ Content-Type: application/json
 match the run the probe reported. No other fields are allowed and the body is
 limited to 4 KiB.
 
+A receipt can arrive before the probe's dispatch returns. The kernel stores
+the run a receipt names (`receipt_probe_ref`) apart from the trusted run the
+dispatch reports (`probe_ref`), and records when the dispatch outcome was
+written (`dispatch_resolved_at`, in the same statement as the trusted run). A
+received challenge counts as ready only when that outcome is recorded and the
+two runs agree, and this is re-checked on every pass, so a failed write or a
+restart can never promote a provisional receipt:
+
+- outcome recorded, runs agree (or the receipt names none): ready;
+- outcome recorded, runs differ: the challenge is retired and a new one issued;
+- outcome recorded as unknown (timeout or ambiguous dispatch): the nonce alone
+  proves receipt, as before, and that resolution is itself recorded;
+- outcome never recorded (crash or failed write between dispatch and the
+  write): wait; once the challenge expires it is retired and a new one issued.
+
 | Response | Meaning |
 | --- | --- |
 | `200 {"challenge_id": "rc-…", "duplicate": false}` | Accepted. A repeat of the same receipt returns `duplicate: true` and changes nothing. |
