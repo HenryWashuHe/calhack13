@@ -8,6 +8,7 @@ members = [
     "crates/genesis-forge",
     "crates/genesis-fetch",
     "crates/genesis-planner",
+    "crates/genesis-planner-eval",
     "crates/genesis-providers",
     "crates/genesis-server",
     "crates/genesis-verification",
