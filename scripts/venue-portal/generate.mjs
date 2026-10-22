@@ -6,8 +6,8 @@
 //
 // Writes (one shared --out can hold many namespaces, served together):
 //   <out>/public/<ns>/venues/*.html      served to Actors and judges (HTML only)
-//   <out>/trusted/<suite>.json           oracle suite for --oracle-suite (never served)
-//   <out>/trusted/<ns>.manifest.json     spec, seed and digests (never served)
+//   <out>/trusted/suites/<suite>.json    oracle suite for --oracle-suite (never served)
+//   <out>/trusted/manifests/<ns>.json    spec, seed and digests (never served)
 //   <out>/fragments/<ns>.json            public-safe allowed URLs + example HTML
 //
 // A namespace that already exists is never overwritten unless `replace` is
@@ -21,10 +21,11 @@ import { build, indexPage, namespaceIndex, presetSpec } from "./lib.mjs";
 export function writeVariant({ spec, baseUrl, out, namespace = spec?.suite_id, replace = false }) {
   const root = resolve(out);
   const pub = join(root, "public");
-  const trusted = join(root, "trusted");
+  const suites = join(root, "trusted", "suites");
+  const manifests = join(root, "trusted", "manifests");
   const result = build(spec, baseUrl, namespace);
   const nsDir = join(pub, namespace);
-  const suitePath = join(trusted, `${result.suite.suite_id}.json`);
+  const suitePath = join(suites, `${result.suite.suite_id}.json`);
   if (!replace && (existsSync(nsDir) || existsSync(suitePath))) {
     throw new Error(
       `namespace ${namespace} or suite ${result.suite.suite_id} already exists; pick a new seed/suite/namespace, or pass --replace only for a fresh organization database`,
@@ -32,14 +33,15 @@ export function writeVariant({ spec, baseUrl, out, namespace = spec?.suite_id, r
   }
   rmSync(nsDir, { recursive: true, force: true });
   mkdirSync(join(nsDir, "venues"), { recursive: true });
-  mkdirSync(trusted, { recursive: true });
+  mkdirSync(suites, { recursive: true });
+  mkdirSync(manifests, { recursive: true });
   mkdirSync(join(root, "fragments"), { recursive: true });
   for (const p of result.pages) writeFileSync(join(pub, p.path), p.html);
   writeFileSync(join(nsDir, "index.html"), namespaceIndex(result.pages));
   const namespaces = readdirSync(pub, { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name).sort();
   writeFileSync(join(pub, "index.html"), indexPage(namespaces));
   writeFileSync(suitePath, `${JSON.stringify(result.suite, null, 2)}\n`);
-  writeFileSync(join(trusted, `${namespace}.manifest.json`), `${JSON.stringify(result.manifest, null, 2)}\n`);
+  writeFileSync(join(manifests, `${namespace}.json`), `${JSON.stringify(result.manifest, null, 2)}\n`);
   const fragmentPath = join(root, "fragments", `${namespace}.json`);
   writeFileSync(fragmentPath, `${JSON.stringify(result.fragment, null, 2)}\n`);
   return { ...result, suitePath, fragmentPath, publicDir: pub, namespace };
