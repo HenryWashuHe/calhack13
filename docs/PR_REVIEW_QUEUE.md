@@ -46,8 +46,9 @@ are on main. Historical detailed evidence remains in
 ## Queue closeout and remaining product work
 
 The reviewed queue is handled at this checkpoint. [#25](https://github.com/HenryWashuHe/genesis/pull/25)
-was closed without merging or deleting its branch after auditing all 17 unique
-commits. No unique pending runtime remained; its useful recording-proxy scenario
+was closed without merging or deleting its branch after all 17 combined-only merge
+commits and remaining unique content were audited. No unique pending runtime
+remained; its useful recording-proxy scenario
 was preserved in #68. Its `2829025`/132-test and `1004934`/699-test results remain
 historical. See [the combined checkpoint](COMBINED_INTEGRATION.md).
 
