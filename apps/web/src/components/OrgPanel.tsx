@@ -1,9 +1,33 @@
-import { useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import type { Api } from "../lib/api";
-import type { OrgChangeRecord, OrgState } from "../lib/contracts";
+import type { DomainEvent, OrgChangeRecord, OrgState } from "../lib/contracts";
 import { buildTree, executedBy, ownedBy, pendingRoles, RoleNode, short } from "../lib/graph";
 import { HistoryEntry, historyView } from "../lib/snapshot";
 import { ProviderBadge, StateChip } from "./Chips";
+import { WhyDrawer } from "./WhyDrawer";
+
+/** Records the "Why?" drawer explains a role from. Absent → no drawer. */
+const Provenance = createContext<{ changes: OrgChangeRecord[]; events: DomainEvent[] } | null>(null);
+
+function WhyButton({ open, onToggle }: { open: boolean; onToggle: () => void }) {
+  if (!useContext(Provenance)) return null;
+  return (
+    <button
+      className="btn why-btn"
+      aria-expanded={open}
+      aria-label={open ? "Hide why this role exists" : "Why does this role exist?"}
+      onClick={onToggle}
+    >
+      {open ? "Hide why" : "Why?"}
+    </button>
+  );
+}
+
+function Why({ open, roleId, state }: { open: boolean; roleId: string; state: OrgState }) {
+  const records = useContext(Provenance);
+  if (!open || !records) return null;
+  return <WhyDrawer roleId={roleId} state={state} changes={records.changes} events={records.events} />;
+}
 
 function Duties({ state, roleId }: { state: OrgState; roleId: string }) {
   const owned = ownedBy(state, roleId);
@@ -84,6 +108,7 @@ function Node({ node, state, freshRevision }: { node: RoleNode; state: OrgState;
   const retired = r.state === "RETIRED";
   const fresh = !retired && r.created_in_revision === freshRevision && freshRevision > 1;
   const scopes = r.authority.scopes ?? [];
+  const [why, setWhy] = useState(false);
   return (
     <li>
       <div className={`role${retired ? " retired" : ""}${fresh ? " fresh" : ""}`}>
@@ -92,9 +117,11 @@ function Node({ node, state, freshRevision }: { node: RoleNode; state: OrgState;
           <StateChip state={r.state} />
           <ProviderBadge binding={r.binding} />
           {fresh && <span className="chip accent">NEW IN r{r.created_in_revision}</span>}
+          <WhyButton open={why} onToggle={() => setWhy((w) => !w)} />
         </div>
         <div className="role-charter">{r.charter}</div>
         <Duties state={state} roleId={r.role_id} />
+        <Why open={why} roleId={r.role_id} state={state} />
         {(r.capabilities ?? []).length > 0 && (
           <div className="role-meta">
             {(r.capabilities ?? []).map((c) => (
@@ -131,10 +158,13 @@ export function OrgPanel({
   api,
   state,
   changes,
+  events,
 }: {
   api: Api;
   state: OrgState | null;
   changes: OrgChangeRecord[];
+  /** Full event history; enables the per-role "Why?" explanation. */
+  events?: DomainEvent[];
 }) {
   const [showRetired, setShowRetired] = useState(true);
   const [viewRevision, setViewRevision] = useState<number | null>(null);
@@ -220,11 +250,13 @@ export function OrgPanel({
         )}
         {shown && tree.length === 0 && <p className="empty">No roles yet.</p>}
         {shown && (
-          <ul className="tree">
-            {tree.map((n) => (
-              <Node key={n.id} node={n} state={shown} freshRevision={current} />
-            ))}
-          </ul>
+          <Provenance.Provider value={live && events ? { changes, events } : null}>
+            <ul className="tree">
+              {tree.map((n) => (
+                <Node key={n.id} node={n} state={shown} freshRevision={current} />
+              ))}
+            </ul>
+          </Provenance.Provider>
         )}
       </div>
     </section>
