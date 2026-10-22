@@ -106,15 +106,9 @@ impl ReadinessProbe for Probe {
     async fn dispatch(&self, req: &ProbeRequest) -> Result<ProbeDispatch, ProviderError> {
         self.seen.lock().unwrap().push(req.clone());
         if self.echo {
-            // When the probe will report its run, the early receipt names
-            // that same run (it must still count); otherwise it names none.
-            let mut receipt = req.expected_receipt();
-            if matches!(self.answers.lock().unwrap().front(), Some(Answer::Accept)) {
-                receipt["probe_ref"] = json!(format!("probe-run-{}", self.count()));
-            }
             let status = reqwest::Client::new()
                 .post(&req.receipt_url)
-                .json(&receipt)
+                .json(&req.expected_receipt())
                 .send()
                 .await
                 .unwrap()
