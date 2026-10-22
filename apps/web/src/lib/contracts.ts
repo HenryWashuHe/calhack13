@@ -437,6 +437,22 @@ export type DomainEvent = {
         job_id: string;
       };
     }
+  | {
+      type: "planner_decision";
+      payload: {
+        planner: string;
+        model: string;
+        observation_id: string;
+        verdict: PlannerVerdict;
+        summary: string;
+        rationale: string;
+        attempt: number;
+        latency_ms: number;
+        requirement_id?: string | null;
+        change_id?: string | null;
+        kernel_errors?: string[];
+      };
+    }
 );
 /**
  * Organization-change lifecycle (TECH_SPEC §5).
@@ -472,6 +488,11 @@ export type ContractState = "REQUESTED" | "OFFERED" | "ACCEPTED" | "RELEASED" | 
 
 export type JobStatus =
   ("QUEUED" | "SUBMITTING" | "RUNNING" | "VERIFYING" | "SUCCEEDED" | "FAILED" | "RESULT_REJECTED") | "UNKNOWN";
+/**
+ * Outcome of one planning pass over an observation.
+ */
+
+export type PlannerVerdict = "change_proposed" | "no_change" | "rejected" | "escalated";
 
 /**
  * Exact reference to an approved capability version. There is no `latest`.
