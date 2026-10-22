@@ -8,7 +8,7 @@ use genesis_core::jobs::Job;
 use genesis_core::lifecycle::{
     AssignmentState, JobStatus, MissionStatus, RequirementStatus, ResponsibilityStatus,
 };
-use genesis_core::model::{AgentBinding, Executor};
+use genesis_core::model::AgentBinding;
 
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -141,7 +141,6 @@ fn monitor(state: &OrgState, work: &Work, role_id: &str, now: DateTime<Utc>) -> 
             .contains("capability.venue_lookup")
         || responsibility.mission_id.as_str() != work.mission
         || responsibility.owner != Owner::Role(role_id.into())
-        || responsibility.executor != Some(Executor::Role(role_id.into()))
         || responsibility.status != ResponsibilityStatus::Open
         || mission.status != MissionStatus::Active
         || mission.deadline.is_some_and(|deadline| deadline <= now)
@@ -613,7 +612,7 @@ pub(super) async fn run(
 mod tests {
     use super::*;
     use genesis_core::model::{
-        Assignment, AuthorityGrant, Constitution, Mission, Observation, Requirement,
+        Assignment, AuthorityGrant, Constitution, Executor, Mission, Observation, Requirement,
         Responsibility, Role,
     };
 
@@ -871,6 +870,92 @@ mod tests {
             record.status = status;
             assert!(observe(&record, &expected).is_err());
         }
+    }
+
+    #[test]
+    fn retired_role_handoff_authorizes_the_new_owner_without_an_executor() {
+        use genesis_core::capability::StaticCatalog;
+        use genesis_core::change::{
+            Handoff, KeyAllocation, OrgChangeProposal, OrgOp, RoleJustification, RoleRef,
+        };
+        use genesis_core::engine::{authorize_dispatch, check_job_result, commit};
+
+        let f = Fixture::new(AssessmentVerdict::Feasible);
+        let now = f.now + chrono::Duration::seconds(2);
+        let proposal = OrgChangeProposal {
+            expected_org_revision: f.state.revision,
+            trigger_evidence_ids: vec!["observed".into()],
+            rationale: "Retire the temporary role and hand monitoring to a persistent role".into(),
+            budget_limit_cents: Some(0),
+            operations: vec![
+                OrgOp::CreateRole {
+                    key: "successor".into(),
+                    name: "Persistent venue monitor".into(),
+                    charter: "Monitor the inherited venue responsibility".into(),
+                    authority: AuthorityGrant::new(["monitor.venue", "capability.venue_lookup"], 0),
+                    reports_to: None,
+                    provider: Provider::Creao,
+                    justification: RoleJustification::Lifecycle,
+                },
+                OrgOp::RetireRole {
+                    role_id: "monitor".into(),
+                    handoffs: vec![Handoff {
+                        responsibility_id: "responsibility".into(),
+                        to: RoleRef::new_key("successor"),
+                    }],
+                },
+            ],
+        };
+        let allocation = KeyAllocation::allocate(&proposal);
+        let bindings = std::collections::BTreeMap::from([(
+            "successor".into(),
+            AgentBinding {
+                provider: Provider::Creao,
+                provider_agent_id: "native-successor".into(),
+                config_digest: "successor-config".into(),
+                conversation_ref: None,
+            },
+        )]);
+        let state = commit(
+            &f.state,
+            &proposal,
+            &allocation,
+            &bindings,
+            &StaticCatalog::default(),
+            now,
+        )
+        .unwrap()
+        .state;
+        let successor = &allocation.roles["successor"];
+        let responsibility_id = "responsibility".into();
+        let responsibility = &state.responsibilities[&responsibility_id];
+        assert_eq!(state.roles[&"monitor".into()].state, RoleState::Retired);
+        assert_eq!(responsibility.owner, Owner::Role(successor.clone()));
+        assert_eq!(responsibility.executor, None);
+        assert_eq!(responsibility.epoch, 3);
+        let grant =
+            authorize_dispatch(&state, successor, &responsibility_id, Some("monitor.venue"))
+                .unwrap();
+        check_job_result(&state, successor, &responsibility_id, grant.epoch).unwrap();
+        let frozen = monitor(&state, &f.work, successor.as_str(), now).unwrap();
+        assert_eq!(frozen.assignment_id, grant.assignment_id.to_string());
+        frozen.unchanged(&state, &f.work, now).unwrap();
+        assert!(monitor(&state, &f.work, "monitor", now).is_err());
+
+        let mut wrong_owner = state.clone();
+        wrong_owner
+            .responsibilities
+            .get_mut(&responsibility_id)
+            .unwrap()
+            .owner = Owner::MissionController;
+        assert!(monitor(&wrong_owner, &f.work, successor.as_str(), now).is_err());
+        let mut stale_assignment = state;
+        stale_assignment
+            .assignments
+            .get_mut(&grant.assignment_id)
+            .unwrap()
+            .epoch -= 1;
+        assert!(monitor(&stale_assignment, &f.work, successor.as_str(), now).is_err());
     }
 
     #[test]
