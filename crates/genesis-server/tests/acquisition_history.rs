@@ -823,6 +823,198 @@ async fn legacy_records_require_trusted_bootstrap_and_get_one_honest_current_bas
 }
 
 #[tokio::test]
+async fn bootstrap_resumes_after_later_invalid_record_without_duplicating_committed_baselines() {
+    let mut fixture = Fixture::new(true).await;
+    let first_intent = seed(&fixture.app, "partial-first").await;
+    let first = fixture.create(&first_intent).await;
+    let second_intent = seed(&fixture.app, "partial-second").await;
+    let second = fixture.create(&second_intent).await;
+    let mut ids = [first.id(), second.id()];
+    ids.sort();
+    let quota = fixture.app.store.acquisition_counters().unwrap();
+    let sql = fixture.sql();
+    let original: String = sql
+        .query_row(
+            "SELECT record_json FROM capability_acquisitions WHERE id=?1",
+            [ids[1]],
+            |row| row.get(0),
+        )
+        .unwrap();
+    sql.execute_batch(
+        "DROP TABLE acquisition_history;
+        DROP TABLE acquisition_catalog; DROP TABLE acquisition_history_meta;",
+    )
+    .unwrap();
+    // Bootstrap explicitly scans lexically: the first valid record commits a
+    // baseline, then the later invalid checkpoint prevents global readiness.
+    sql.execute(
+        "UPDATE capability_acquisitions SET record_json='{}' WHERE id=?1",
+        [ids[1]],
+    )
+    .unwrap();
+    assert!(build_org(&fixture.config, None).is_err());
+    assert_eq!(
+        sql.query_row(
+            "SELECT ready FROM acquisition_history_meta WHERE singleton=1",
+            [],
+            |row| row.get::<_, i64>(0)
+        )
+        .unwrap(),
+        0
+    );
+    assert_eq!(
+        sql.query_row("SELECT COUNT(*) FROM acquisition_catalog", [], |row| row
+            .get::<_, i64>(0))
+            .unwrap(),
+        1
+    );
+    assert_eq!(
+        sql.query_row("SELECT COUNT(*) FROM acquisition_history", [], |row| row
+            .get::<_, i64>(0))
+            .unwrap(),
+        1
+    );
+    let committed: String = sql
+        .query_row(
+            "SELECT payload_json FROM acquisition_history WHERE acquisition_id=?1",
+            [ids[0]],
+            |row| row.get(0),
+        )
+        .unwrap();
+    let committed: Value = serde_json::from_str(&committed).unwrap();
+    assert_eq!(committed["kind"], "baseline_observed");
+    assert_eq!(committed["snapshot"]["id"], ids[0]);
+    assert_eq!(committed["snapshot"]["version"], 1);
+    for path in [BASE.to_owned(), format!("{BASE}/{}/history", ids[0])] {
+        let (status, body) = fixture
+            .request(Method::GET, &path, Some("operator"), None)
+            .await;
+        assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE, "{body}");
+        assert_eq!(body["error"], "acquisition_history_unavailable");
+    }
+    assert_eq!(fixture.app.store.acquisition_counters().unwrap(), quota);
+    sql.execute(
+        "UPDATE capability_acquisitions SET record_json=?1 WHERE id=?2",
+        rusqlite::params![original, ids[1]],
+    )
+    .unwrap();
+    fixture.reopen(fixture.config.clone()).await;
+    assert_eq!(
+        sql.query_row(
+            "SELECT ready FROM acquisition_history_meta WHERE singleton=1",
+            [],
+            |row| row.get::<_, i64>(0)
+        )
+        .unwrap(),
+        1
+    );
+    let catalog = fixture.get(BASE).await;
+    assert_eq!(items(&catalog).len(), 2);
+    assert_eq!(items(&catalog)[0]["snapshot"]["id"], ids[0]);
+    assert_eq!(items(&catalog)[1]["snapshot"]["id"], ids[1]);
+    for id in ids {
+        let page = fixture.history(id).await;
+        assert_eq!(events(&page), vec!["baseline_observed"]);
+        if id == committed["snapshot"]["id"] {
+            assert_eq!(
+                items(&page)[0],
+                committed,
+                "already committed baseline is immutable"
+            );
+        }
+    }
+    fixture.reopen(fixture.config.clone()).await;
+    assert_eq!(
+        sql.query_row("SELECT COUNT(*) FROM acquisition_history", [], |row| row
+            .get::<_, i64>(0))
+            .unwrap(),
+        2
+    );
+    assert_eq!(fixture.app.store.acquisition_counters().unwrap(), quota);
+    assert_eq!(fixture.calls.load(Ordering::SeqCst), 0);
+}
+
+#[tokio::test]
+async fn existing_catalog_version_drift_is_not_repaired_as_a_missing_baseline() {
+    let mut fixture = Fixture::new(true).await;
+    let intent = seed(&fixture.app, "drift").await;
+    let record = fixture.create(&intent).await;
+    let history = fixture.history(record.id()).await;
+    let quota = fixture.app.store.acquisition_counters().unwrap();
+    let sql = fixture.sql();
+    let checkpoint: String = sql
+        .query_row(
+            "SELECT record_json FROM capability_acquisitions WHERE id=?1",
+            [record.id()],
+            |row| row.get(0),
+        )
+        .unwrap();
+    // Damage only the persisted checkpoint index. A migration must neither
+    // fabricate the missing transition nor rewrite a previously observed row.
+    sql.execute(
+        "UPDATE capability_acquisitions SET version=version+1 WHERE id=?1",
+        [record.id()],
+    )
+    .unwrap();
+    assert!(build_org(&fixture.config, None).is_err());
+    assert_eq!(
+        sql.query_row(
+            "SELECT ready FROM acquisition_history_meta WHERE singleton=1",
+            [],
+            |row| row.get::<_, i64>(0)
+        )
+        .unwrap(),
+        0
+    );
+    assert_eq!(
+        sql.query_row("SELECT COUNT(*) FROM acquisition_history", [], |row| row
+            .get::<_, i64>(0))
+            .unwrap(),
+        1
+    );
+    assert_eq!(
+        sql.query_row("SELECT event_kind FROM acquisition_history", [], |row| {
+            row.get::<_, String>(0)
+        })
+        .unwrap(),
+        "created"
+    );
+    assert_eq!(
+        sql.query_row(
+            "SELECT version FROM acquisition_catalog WHERE id=?1",
+            [record.id()],
+            |row| row.get::<_, i64>(0)
+        )
+        .unwrap(),
+        1
+    );
+    assert_eq!(
+        sql.query_row(
+            "SELECT record_json FROM capability_acquisitions WHERE id=?1",
+            [record.id()],
+            |row| row.get::<_, String>(0)
+        )
+        .unwrap(),
+        checkpoint
+    );
+    for path in [BASE.to_owned(), format!("{BASE}/{}/history", record.id())] {
+        let (status, body) = fixture
+            .request(Method::GET, &path, Some("operator"), None)
+            .await;
+        assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE, "{body}");
+    }
+    assert_eq!(fixture.app.store.acquisition_counters().unwrap(), quota);
+    sql.execute(
+        "UPDATE capability_acquisitions SET version=?1 WHERE id=?2",
+        rusqlite::params![record.version(), record.id()],
+    )
+    .unwrap();
+    fixture.reopen(fixture.config.clone()).await;
+    assert_eq!(fixture.history(record.id()).await, history);
+    assert_eq!(fixture.calls.load(Ordering::SeqCst), 0);
+}
+
+#[tokio::test]
 async fn scheduler_attention_is_journaled_once_and_local_fencing_clears_it_without_effects() {
     let mut policy = policy();
     policy.quotas.model_calls = 1;
