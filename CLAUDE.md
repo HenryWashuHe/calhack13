@@ -1,16 +1,18 @@
 # GENESIS agent coordination
 
-Current Codex continuation: [PR #13](https://github.com/HenryWashuHe/genesis/pull/13),
-`codex/inherited-mission`, stacked on PR #10. All 471 workspace tests, formatting
-and strict Clippy pass. Changes are requested on Claude's Elastic #11 and planner
-#12, with pushed reproduction branches; see the current handoff for exact commits.
-The reserved slice is `capability_scenario.rs`, its HTTP integration tests,
-`capability_authority.rs`, focused capability runtime/route regressions, narrow
-CLI/health/module registrations and [INHERITED_MISSION.md](docs/INHERITED_MISSION.md).
-It joins acquisition to independent adoption and retirement/handoff, and closes
-capability lease/mission authority gaps. It does not take over planner, lifecycle,
-provider readiness, Elastic or UI. The path claim is recorded in
-[issue #4](https://github.com/HenryWashuHe/genesis/issues/4#issuecomment-6330336722).
+Current Codex continuation is `codex/automatic-acquisition`, based on
+[PR #15](https://github.com/HenryWashuHe/genesis/pull/15) (`11c76d1`). The preceding
+invocation-proof and automatic-finalization milestones pass all 509 workspace tests.
+The new reserved slice is the capability-only acquisition scheduler, narrow
+version-checked runtime/local-reconciliation helpers, acquisition status and
+AppState/configuration/startup/CLI registrations, focused tests and docs. Automatic
+acquisition is explicitly opt-in and drives committed intents, not bare requirements;
+publication/install remain separate gates. The claim is in
+[issue #4](https://github.com/HenryWashuHe/genesis/issues/4#issuecomment-6331252040).
+
+Claude still owns planner, general lifecycle/saga/outbox, provider activation,
+Elastic and UI. Requested fixes on #11/#12 remain assigned to Claude; their heads
+were unchanged at the latest checkpoint. No whole-kernel credit fallback is active.
 
 **Current next-work split:** see [NEXT_IMPLEMENTATION_SPLIT.md](docs/NEXT_IMPLEMENTATION_SPLIT.md).
 At the user's request, Codex is taking capability execution/evidence integration
