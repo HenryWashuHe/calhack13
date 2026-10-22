@@ -111,11 +111,12 @@ fn replaced_executor_result_is_rejected() {
     assert!(authorize_dispatch(&st, &old, &rid, None).is_err());
     assert!(matches!(
         check_job_result(&st, &old, &rid, grant.epoch),
-        Err(DispatchError::NotAssigned { .. })
+        Err(DispatchError::StaleEpoch { .. })
     ));
-    // The new executor and the owner are still accepted.
-    assert!(check_job_result(&st, &new, &rid, grant.epoch).is_ok());
-    assert!(check_job_result(&st, &id(&st, "owner"), &rid, grant.epoch).is_ok());
+    // Newly dispatched work uses the current epoch; old owner work is fenced too.
+    let current = authorize_dispatch(&st, &new, &rid, None).unwrap();
+    assert!(check_job_result(&st, &new, &rid, current.epoch).is_ok());
+    assert!(check_job_result(&st, &id(&st, "owner"), &rid, current.epoch).is_ok());
 }
 
 /// Finding 1: a retired executor's in-flight result is fenced.
@@ -309,4 +310,78 @@ fn bootstrap_digest_is_canonical() {
         "name": "owner", "charter": "owns work", "authority": AuthorityGrant::default()
     }));
     assert_eq!(role.binding.as_ref().unwrap().config_digest, expected);
+}
+
+#[test]
+fn reappointing_executor_never_revives_pre_revocation_grant() {
+    let (st, obs) = seed();
+    let a = id(&st, "old_executor");
+    let b = id(&st, "new_executor");
+    let owner = id(&st, "owner");
+    let mut st = delegate(&st, &obs, &a);
+    let rid = st.responsibilities.keys().next().unwrap().clone();
+    let old = authorize_dispatch(&st, &a, &rid, None).unwrap();
+    let lease = Utc::now() + chrono::Duration::minutes(10);
+    st.assignments
+        .get_mut(&old.assignment_id)
+        .unwrap()
+        .lease_expires_at = Some(lease);
+    let st = delegate(&delegate(&st, &obs, &b), &obs, &a);
+    let fresh = authorize_dispatch(&st, &a, &rid, None).unwrap();
+    assert!(fresh.epoch > old.epoch);
+    assert_ne!(fresh.assignment_id, old.assignment_id);
+    assert_eq!(
+        st.assignments[&old.assignment_id].state,
+        AssignmentState::Fenced
+    );
+    assert_eq!(
+        st.active_assignment(&rid).unwrap().lease_expires_at,
+        Some(lease)
+    );
+    assert_eq!(st.responsibilities[&rid].owner, Owner::Role(owner.clone()));
+    assert!(check_job_result(&st, &a, &rid, old.epoch).is_err());
+    assert!(check_job_result(&st, &owner, &rid, old.epoch).is_err());
+    assert!(check_job_result(&st, &a, &rid, fresh.epoch).is_ok());
+    assert!(check_job_result(&st, &owner, &rid, fresh.epoch).is_ok());
+    // Repeating an unchanged delegation does not revoke its current grant.
+    let same = delegate(&st, &obs, &a);
+    assert_eq!(authorize_dispatch(&same, &a, &rid, None).unwrap(), fresh);
+}
+
+#[test]
+fn exhausted_epoch_rejects_delegation_without_wrapping_or_panicking() {
+    let (mut st, obs) = seed();
+    let a = id(&st, "old_executor");
+    let rid = st.responsibilities.keys().next().unwrap().clone();
+    st.responsibilities.get_mut(&rid).unwrap().epoch = u64::MAX;
+    let aid = st.active_assignment(&rid).unwrap().assignment_id.clone();
+    st.assignments.get_mut(&aid).unwrap().epoch = u64::MAX;
+    let p = OrgChangeProposal {
+        expected_org_revision: st.revision,
+        trigger_evidence_ids: vec![obs],
+        rationale: "Rotate executor".into(),
+        operations: vec![OrgOp::DelegateTask {
+            responsibility: ResponsibilityRef::Existing {
+                responsibility_id: rid.clone(),
+            },
+            executor: ExecutorRef::Role {
+                role: RoleRef::existing(a),
+            },
+            task: "Work".into(),
+        }],
+        budget_limit_cents: None,
+    };
+    let errors = validate(
+        &st,
+        &p,
+        &KeyAllocation::allocate(&p),
+        &StaticCatalog::default(),
+        Utc::now(),
+    )
+    .unwrap_err();
+    assert!(errors
+        .iter()
+        .any(|e| e.code == ValidationCode::InvalidInput));
+    assert_eq!(st.responsibilities[&rid].epoch, u64::MAX);
+    assert_eq!(st.assignments[&aid].state, AssignmentState::Active);
 }

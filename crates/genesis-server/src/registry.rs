@@ -187,32 +187,27 @@ async fn publish(
     let conn = reg.lock();
     let existing: Option<String> = conn
         .query_row(
-            "SELECT source_digest FROM capability_versions WHERE capability_id = ?1 AND version = ?2",
+            "SELECT manifest_json FROM capability_versions WHERE capability_id = ?1 AND version = ?2",
             params![manifest.capability_id.as_str(), manifest.version],
             |r| r.get(0),
         )
         .optional()
         .map_err(|e| ApiError::internal(e.to_string()))?;
-    if let Some(digest) = existing {
-        if digest == manifest.source_digest {
-            let json: String = conn
-                .query_row(
-                    "SELECT manifest_json FROM capability_versions WHERE capability_id = ?1 AND version = ?2",
-                    params![manifest.capability_id.as_str(), manifest.version],
-                    |r| r.get(0),
-                )
-                .map_err(|e| ApiError::internal(e.to_string()))?;
-            let stored =
-                serde_json::from_str(&json).map_err(|e| ApiError::internal(e.to_string()))?;
+    if let Some(encoded) = existing {
+        let stored: CapabilityManifest =
+            serde_json::from_str(&encoded).map_err(|e| ApiError::internal(e.to_string()))?;
+        // Retries may have fresh timestamps, but an immutable version must keep
+        // its entire artifact, publisher, oracle and permission contract.
+        let mut comparable = manifest.clone();
+        comparable.published_at = stored.published_at;
+        comparable.verification.verified_at = stored.verification.verified_at;
+        if comparable == stored {
             return Ok((StatusCode::OK, Json(stored)));
         }
         return Err(ApiError::new(
             StatusCode::CONFLICT,
             "immutable_version",
-            format!(
-                "{}@{} is already published with a different source digest; publish a new version",
-                manifest.capability_id, manifest.version
-            ),
+            "capability version already has a different manifest; publish a new version",
         ));
     }
     conn.execute(

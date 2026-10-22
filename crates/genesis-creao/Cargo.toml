@@ -1,0 +1,25 @@
+[package]
+name = "genesis-creao"
+description = "Typed CREAO Account API operations, durable specialist recovery and shared account limits"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+clap = { version = "4", features = ["derive"] }
+genesis-verification = { path = "../genesis-verification" }
+chrono.workspace = true
+reqwest.workspace = true
+rusqlite.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+uuid.workspace = true
+
+[dev-dependencies]
+axum.workspace = true
+tempfile = "3"
+tokio = { workspace = true, features = ["io-util", "test-util"] }

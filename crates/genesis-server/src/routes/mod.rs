@@ -42,6 +42,12 @@ pub fn router(state: AppState) -> Router {
             "/capability-installations/{id}/acceptance",
             post(capabilities::acceptance),
         )
+        .route(
+            "/capability-installations/{id}/checks",
+            post(capabilities::checks),
+        )
+        .route("/capability-runs/{id}", get(capabilities::get_run))
+        .route("/capability-runs/{id}/step", post(capabilities::step_run))
         .route("/capability-runs", post(capabilities::run));
 
     Router::new()
