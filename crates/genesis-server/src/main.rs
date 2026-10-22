@@ -95,6 +95,10 @@ struct OrgArgs {
     /// Provider keys come only from ANTHROPIC_API_KEY and APIFY_TOKEN.
     #[arg(long, value_name = "PATH")]
     acquisition_policy: Option<PathBuf>,
+    /// Automatically advance existing and new explicitly approved acquisition intents.
+    /// This does not create acquisition intents from requirements.
+    #[arg(long, requires = "acquisition_policy")]
+    auto_acquire: bool,
     #[arg(long, env = "GENESIS_REGISTRY_URL")]
     registry_url: Option<String>,
     #[arg(long, env = "GENESIS_REGISTRY_TOKEN")]
@@ -229,6 +233,7 @@ async fn main() -> anyhow::Result<()> {
                 oracle_suite,
                 forge_checkpoint,
                 acquisition_policy,
+                auto_acquire,
                 registry_url,
                 registry_token,
                 operator_token,
@@ -291,6 +296,7 @@ async fn main() -> anyhow::Result<()> {
                     .map(|key| ApifyClient::new(key, RunLimits::default()).map(Arc::new))
                     .transpose()
                     .context("configuring the acquisition Apify client")?;
+                config.automatic = auto_acquire;
             }
             let app = build_org(&cfg, Some(providers))?;
             let listener = tokio::net::TcpListener::bind(&bind).await?;
@@ -554,12 +560,35 @@ mod cli_tests {
         ];
         let cli = Cli::try_parse_from(args).unwrap();
         assert!(matches!(cli.command, Command::Org(args)
-            if args.acquisition_policy.as_deref() == Some(Path::new("policy.json"))));
-        for forbidden in ["--anthropic-api-key", "--model-endpoint", "--apify-token"] {
-            let mut args = args.to_vec();
-            args.extend([forbidden, "synthetic-never-live"]);
-            assert!(Cli::try_parse_from(args).is_err());
+            if args.acquisition_policy.as_deref() == Some(Path::new("policy.json")) && !args.auto_acquire));
+        for automatic in [false, true] {
+            for forbidden in ["--anthropic-api-key", "--model-endpoint", "--apify-token"] {
+                let mut args = args.to_vec();
+                if automatic {
+                    args.push("--auto-acquire");
+                }
+                args.extend([forbidden, "synthetic-never-live"]);
+                assert!(Cli::try_parse_from(args).is_err());
+            }
         }
+    }
+
+    #[test]
+    fn automatic_acquisition_is_explicit_and_requires_a_policy() {
+        let base = ["genesis", "org", "--org-id", "test-org", "--name", "Test"];
+        assert!(
+            matches!(Cli::try_parse_from(base).unwrap().command, Command::Org(args)
+            if !args.auto_acquire && args.acquisition_policy.is_none())
+        );
+        let mut missing_policy = base.to_vec();
+        missing_policy.push("--auto-acquire");
+        assert!(Cli::try_parse_from(missing_policy.clone()).is_err());
+        missing_policy.extend(["--acquisition-policy", "policy.json"]);
+        assert!(
+            matches!(Cli::try_parse_from(missing_policy).unwrap().command, Command::Org(args)
+            if args.auto_acquire && args.acquisition_policy.as_deref() == Some(Path::new("policy.json")))
+        );
+        assert!(Cli::try_parse_from(["genesis", "dev", "--auto-acquire"]).is_err());
     }
 
     #[test]
@@ -567,6 +596,7 @@ mod cli_tests {
         use genesis_forge::{AnthropicGenerator, ModelConfig};
         use genesis_server::capability_acquisition_store::AcquisitionQuotas;
         let config = AcquisitionConfig {
+            automatic: true,
             policy: AcquisitionPolicy {
                 model: ModelConfig {
                     model: "concrete-test-model".into(),
@@ -583,9 +613,13 @@ mod cli_tests {
             )),
         };
         let debug = format!("{config:?}");
+        assert!(debug.contains("automatic: true"));
         assert!(debug.contains("model_configured: true"));
         assert!(debug.contains("apify_configured: true"));
         assert!(!debug.contains("synthetic-model-secret"));
         assert!(!debug.contains("synthetic-apify-secret"));
+        let offline = AcquisitionConfig::offline(config.policy.clone());
+        assert!(!offline.automatic);
+        assert!(format!("{offline:?}").contains("automatic: false"));
     }
 }

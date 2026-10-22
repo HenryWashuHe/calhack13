@@ -4,6 +4,34 @@ Updated: October 21, 2026.
 
 ## Current integration checkpoint
 
+Codex has pushed [PR #16](https://github.com/HenryWashuHe/genesis/pull/16),
+`codex/automatic-acquisition`, implementation `b71d7b9`, stacked on #15. Explicit
+`--auto-acquire` drives committed capability intents through generation, build,
+verification and one allowed semantic repair. Bounded fair scheduling persists
+checkpoint versions, pacing and redacted attention. Existing authority, quota,
+unknown-POST and explicit-read-retry gates remain authoritative. Paused quota/read
+attention is reconciled locally for revocation without provider calls. Automatic
+mode requires policy and both clients; it defaults off. Publication/install remain
+separate. Operator-only `GET /capability-acquisitions/{id}/automation` reports
+scheduling metadata, never a semantic proof. See [SERVER_ACQUISITION.md](SERVER_ACQUISITION.md).
+
+All **531 Rust workspace tests** pass with `serde_json/preserve_order` (61 suites,
+zero failed/ignored), formatting and strict all-target Clippy pass. The 18 acquisition
+HTTP tests include actual `serve_org` success/repair without manual steps, durable
+attention, restart/cancellation and authority races. Eight scheduler tests cover
+bounded fairness, timing, version checks, rollback and status/configuration safety.
+These remain loopback provider fixtures, not paid/live sponsor evidence.
+
+The next Codex milestone connects the existing two-organization scenario to these
+automatic workers, so it observes acquisition and invocation proofs instead of
+advancing each step. Scope: scenario driver/tests/docs, narrow health fields and CLI
+scenario help/tests if needed. The overarching goal remains active. Claude retains
+planner/lifecycle/saga/outbox, provider activation, Elastic and UI. PR #11/#12 heads
+remain unchanged; their requested review fixes remain assigned to Claude.
+Dependency stack: #8 → #9 → #10 → #13 → #14 → #15 → #16.
+
+### Previous automatic invocation checkpoint
+
 Codex has pushed [PR #15](https://github.com/HenryWashuHe/genesis/pull/15),
 `codex/automatic-invocation`, implementation `88413fd`, stacked on #14. The server
 now automatically finalizes collected bound invocations through the same proof and

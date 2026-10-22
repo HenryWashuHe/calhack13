@@ -104,6 +104,18 @@ pub async fn status(
     Ok(Json(public_status(&app, &record)?))
 }
 
+pub async fn automation(
+    State(app): State<AppState>,
+    p: Principal,
+    Path(id): Path<String>,
+) -> ApiResult<Json<crate::capability_acquisition_driver::AutomationStatus>> {
+    p.require(&[Principal::Operator])?;
+    configured(&app)?;
+    Ok(Json(crate::capability_acquisition_driver::status(
+        &app, &id,
+    )?))
+}
+
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct StepRequest {
