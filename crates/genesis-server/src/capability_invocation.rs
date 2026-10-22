@@ -355,6 +355,12 @@ pub async fn read(app: &AppState, id: &JobId) -> ApiResult<InvocationProof> {
 
 pub async fn finalize(app: &AppState, id: &JobId) -> ApiResult<InvocationProof> {
     let _guard = app.kernel.lock().await;
+    finalize_locked(app, id)
+}
+
+/// The caller must hold this organization's kernel lock. Shared by the explicit
+/// operator endpoint and the bounded local finalization worker.
+pub(crate) fn finalize_locked(app: &AppState, id: &JobId) -> ApiResult<InvocationProof> {
     let job = app.store.get_job(id)?;
     let record = app.store.get_capability_run(id)?;
     let binding = app.store.invocation_binding(id)?;
@@ -417,7 +423,8 @@ pub async fn finalize(app: &AppState, id: &JobId) -> ApiResult<InvocationProof> 
             return Err(StoreError::NotFound("unchanged invocation job".into()));
         }
         tx.execute("INSERT INTO capability_invocation_verifications (job_id,proof_json) VALUES (?1,?2)", params![id.as_str(), text])?;
-        put_job(tx, &terminal)
+        put_job(tx, &terminal)?;
+        crate::capability_finalization::mark_completed(tx, id, now)
     })?;
     app.broadcast(&events);
     Ok(proof)

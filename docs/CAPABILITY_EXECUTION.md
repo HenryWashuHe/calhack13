@@ -96,10 +96,13 @@ multi-process distributed lease implementation.
 
 ## Fresh invocation verification
 
-After collection, an operator sends `POST /capability-runs/<job_id>/verify` with
-exactly `{}`. `GET /capability-runs/<job_id>/verification` returns the same proof.
-Both endpoints are operator-only. Finalization makes no network calls and accepts
-no caller-supplied evidence, passed flag, oracle, or proof.
+After collection, the organization server automatically finalizes bound invocations
+using the same backend verifier. An operator can also send
+`POST /capability-runs/<job_id>/verify` with exactly `{}` to finalize immediately or
+recover a job that needs attention. `GET /capability-runs/<job_id>/verification`
+returns the persisted proof. Both HTTP endpoints are operator-only. Finalization
+makes no network calls and accepts no caller-supplied evidence, passed flag, oracle,
+or proof.
 
 Preparing a new real invocation atomically freezes its installation, complete
 oracle-suite digest, accepted report reference and immutable request fingerprint.
@@ -136,6 +139,37 @@ submission cannot retrofit a binding; create a new invocation with a new request
 key. Acceptance-purpose jobs cannot use this endpoint. Configuration/pin/binding
 drift returns an error without changing status; lost authority on the first valid
 finalization produces the immutable `authority_rejected` result instead.
+
+## Automatic finalization and operator recovery
+
+`serve_org` starts a separate local finalization worker, so slow provider requests
+do not hold up already collected results. Each pass selects at most 16 collected,
+bound invocations whose job remains `VERIFYING`. It excludes local acceptance jobs
+and legacy runs without a frozen invocation binding. It never calls a provider.
+The kernel lock serializes each claim, current-authority evaluation and disposition
+with explicit verification and organization changes.
+
+An attempt is recorded before evaluation. Interrupted local claims and revision
+conflicts may retry with a persisted delay, up to three total automatic attempts.
+All semantic and authority verdicts are terminal. Policy, binding, record and other
+verification errors enter durable `attention` immediately rather than retrying on
+every timer tick. A malformed job does not prevent another eligible job completing.
+If the worker cannot persist its disposition, it stops and logs the storage fault.
+Workers are cancelled when their organization server is dropped.
+
+Operator-only `GET /capability-runs/<job_id>/finalization` reports `job_id`, `state`
+(`pending`, `running`, `attention` or `completed`), `attempts`, `next_attempt_at`,
+`error_code` and `updated_at`. Error codes are closed categories, never raw database,
+oracle or provider text. A bound run without an automatic attempt reports zero
+attempts; this operational status does not replace the independently reconstructed
+verification proof. Unknown or legacy unbound runs return not found.
+
+After inspecting an attention state, restore the matching trusted configuration or
+repair the underlying storage issue, then explicitly call the existing empty-body
+verification endpoint. A successful proof atomically completes any automatic attempt
+row as well as the job and events. It does not reset the automatic attempt budget.
+Restart recovers only local claims; it never resubmits an Actor run. Finalized proofs
+remain read-only and keep their historical authority semantics.
 
 ## Trust and evidence limits
 

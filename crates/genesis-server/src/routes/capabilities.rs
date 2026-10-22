@@ -823,6 +823,17 @@ pub async fn run_verification(
     ))
 }
 
+pub async fn run_finalization(
+    State(app): State<AppState>,
+    p: Principal,
+    Path(id): Path<String>,
+) -> ApiResult<Json<crate::capability_finalization::FinalizationStatus>> {
+    p.require(&[Principal::Operator])?;
+    Ok(Json(
+        app.store.capability_finalization_status(&JobId::new(id))?,
+    ))
+}
+
 #[derive(Default, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct StepBody {
