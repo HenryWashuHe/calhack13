@@ -95,6 +95,11 @@ pub struct RequirementBody {
     pub summary: String,
     pub evidence: Vec<ObservationId>,
     pub acceptance: String,
+    /// Optional idempotency identity. Repeating it with the same body returns
+    /// the requirement it created (HTTP 200) instead of creating another, so a
+    /// caller that lost a response can resend safely.
+    #[serde(default)]
+    pub client_request_id: Option<String>,
 }
 
 pub async fn add_requirement(
@@ -105,15 +110,72 @@ pub async fn add_requirement(
 ) -> ApiResult<(StatusCode, Json<Value>)> {
     p.require(&[Principal::Operator, Principal::Agent])?;
     let mission = MissionId::new(id);
-    let m = app
-        .mutate(EventMeta::mission(mission.clone()), |s| {
-            engine::record_requirement(s, &mission, &body.summary, &body.evidence, &body.acceptance)
+    let Some(key) = body.client_request_id.as_deref() else {
+        let m = app
+            .mutate(EventMeta::mission(mission.clone()), |s| {
+                engine::record_requirement(
+                    s,
+                    &mission,
+                    &body.summary,
+                    &body.evidence,
+                    &body.acceptance,
+                )
                 .map_err(Into::into)
-        })
-        .await?;
+            })
+            .await?;
+        return Ok((
+            StatusCode::CREATED,
+            Json(json!({ "requirement_id": m.value, "revision": m.state.revision })),
+        ));
+    };
+    if key.trim().is_empty() || key.len() > 200 {
+        return Err(crate::error::ApiError::bad_request(
+            "client_request_id must be 1-200 characters",
+        ));
+    }
+    let digest = genesis_core::digest::canonical_sha256(&json!({
+        "mission_id": mission,
+        "summary": body.summary,
+        "evidence": body.evidence,
+        "acceptance": body.acceptance,
+    }));
+    // Checked and bound under the kernel lock, in the commit transaction.
+    let _guard = app.kernel.lock().await;
+    let state = app.current_state()?;
+    if let Some((existing, stored)) = app.store.find_requirement_by_request(key)? {
+        if stored != digest {
+            return Err(crate::error::ApiError::new(
+                StatusCode::CONFLICT,
+                "idempotency_conflict",
+                "client_request_id was already used for a different requirement",
+            ));
+        }
+        return Ok((
+            StatusCode::OK,
+            Json(
+                json!({ "requirement_id": existing, "revision": state.revision, "duplicate": true }),
+            ),
+        ));
+    }
+    let (outcome, requirement_id) = engine::record_requirement(
+        &state,
+        &mission,
+        &body.summary,
+        &body.evidence,
+        &body.acceptance,
+    )?;
+    let events = app.store.commit_state(
+        state.revision,
+        &outcome.state,
+        outcome.effects,
+        &EventMeta::mission(mission.clone()).caused_by(key.to_owned()),
+        Vec::new(),
+        |tx| crate::store::insert_requirement_request_tx(tx, key, requirement_id.as_str(), &digest),
+    )?;
+    app.broadcast(&events);
     Ok((
         StatusCode::CREATED,
-        Json(json!({ "requirement_id": m.value, "revision": m.state.revision })),
+        Json(json!({ "requirement_id": requirement_id, "revision": outcome.state.revision })),
     ))
 }
 
