@@ -4,40 +4,47 @@ Updated: October 21, 2026.
 
 ## Current integration checkpoint
 
-Codex has pushed [PR #14](https://github.com/HenryWashuHe/genesis/pull/14),
-`codex/capability-invocation`, implementation `0d7eff2`, stacked on #13. Fresh
-runs now have frozen installation/request/full-suite/acceptance bindings, a distinct
-single-case verifier, and immutable semantic or authority decisions. Operator-only
-`POST /capability-runs/{id}/verify` accepts exactly `{}`; the corresponding
-`GET .../verification` reads the same proof. Finalization is local and atomic with
-job status/events. Proofs preserve historical authority through retirement/restart;
-new successor work still requires a current grant. No booking or ledger entry is
-created. The scenario requires a fresh supported proof before each continuation.
-See [CAPABILITY_EXECUTION.md](CAPABILITY_EXECUTION.md) and
-[INHERITED_MISSION.md](INHERITED_MISSION.md).
+Codex has pushed [PR #15](https://github.com/HenryWashuHe/genesis/pull/15),
+`codex/automatic-invocation`, implementation `88413fd`, stacked on #14. The server
+now automatically finalizes collected bound invocations through the same proof and
+authority gate. A separate local worker processes at most 16 eligible jobs per pass,
+persists claims and retry timing, and limits interrupted/revision-conflict recovery
+to three attempts. Deterministic failures enter durable attention without starving
+healthy jobs. No provider calls, external-effect retries or ledger writes occur in
+this worker. Operator-only `GET /capability-runs/{id}/finalization` reports safe
+scheduling metadata; the existing proof endpoint remains the semantic authority.
+Explicit verification can recover an attention job after its underlying issue is
+fixed, atomically completing its attempt row with proof/status/events. Server drop
+cancels the worker. See [CAPABILITY_EXECUTION.md](CAPABILITY_EXECUTION.md).
 
-All **494 Rust workspace tests** pass with `serde_json/preserve_order` (61 suites,
-zero failed/ignored); formatting and strict all-target Clippy pass. The 12 invocation
-HTTP tests cover semantic rejection despite successful transport, truthful unsupported
-results, authority loss, strict caller-claim rejection, historical replay/restart,
-legacy unbound runs, drift and transactional rollback. A review regression showed
-that authority-rejected proofs could miss consistently edited receipt/output data;
-the new private complete-record digest closes it and the regression now passes.
-Single-case proofs cannot become full-suite acceptance. Catalog changes require
-matching versioned configuration; this milestone does not migrate old oracle policy.
+All **509 Rust workspace tests** pass with `serde_json/preserve_order` (61 suites,
+zero failed/ignored); formatting and strict all-target Clippy pass. This includes
+8 queue/recovery unit tests and 19 invocation HTTP tests. Real-server fixtures prove
+automatic supported/unsupported/mismatch verification, collection before restart,
+manual/worker convergence, malformed-record isolation, durable attention, bounded
+retries/batching, transactional rollback and cancellation. Independent review found
+no additional material issues under the documented single-process database model.
 
-The complete repaired scenario still uses two model calls/Actors/builds, six A
-verification runs and six B runs including verified successor execution after SQLite
-restart. B has no acquisition/model client. Native provider replies are canned
-loopback fixtures; created roles are labeled development stubs. Both ledgers remain
-empty. Acceptance jobs remain `VERIFYING`; verified fresh invocations now become
-`SUCCEEDED`. No live sponsor or paid model calls were made.
+The preceding [PR #14](https://github.com/HenryWashuHe/genesis/pull/14),
+`codex/capability-invocation`, freezes installation/request/full-suite/acceptance
+bindings and introduces a distinct single-case verifier. Historical proofs preserve
+the saved authority revision/time after retirement and restart; fresh successor
+work still needs current authority. Complete-record digests cover receipts even
+when authority rejection produces no semantic report. Matching trusted catalog
+configuration remains required. Legacy runs are not retroactively bound.
 
-The overarching goal remains active. Next Codex scope is automatic local semantic
-finalization of collected bound invocations, including restart recovery and durable
-attention on verification configuration errors. It will reuse the same proof gate,
-never repeat external submissions, and leave planner/general lifecycle untouched.
-Claim the concrete branch/files in issue #4 before editing.
+The full two-organization scenario requires supported fresh proofs, including after
+handoff and SQLite restart. Acceptance jobs remain `VERIFYING`; verified invocations
+become `SUCCEEDED`. Provider/model responses are loopback protocol fixtures and
+created roles are labeled DevStub; no live sponsor or paid model calls were made.
+Both ledgers remain empty. Truthful unsupported extraction is not an available venue.
+
+The overarching goal remains active. Next Codex investigation is opt-in automatic
+capability acquisition: progress an already authorized requirement through the
+existing durable generation/build/verification/repair runtime without manual step
+polling, preserving count quotas, fresh authority and unknown-POST/read-retry gates.
+Inspect remote changes and claim exact paths in issue #4 before implementation.
+Planner/general saga remains outside this scope.
 
 Claude has now opened [PR #11](https://github.com/HenryWashuHe/genesis/pull/11)
 (`feat/elastic`, `4d4949c`) and
@@ -54,7 +61,7 @@ production fixes or additional merge-ready PRs. Reviews:
 [Elastic](https://github.com/HenryWashuHe/genesis/pull/11#pullrequestreview-5608329909),
 [planner](https://github.com/HenryWashuHe/genesis/pull/12#pullrequestreview-5608329992).
 Claude retains those fixes. The capability dependency stack
-is #8 → #9 → #10 → #13 → #14. Planner/lifecycle/saga, provider activation, Elastic and UI
+is #8 → #9 → #10 → #13 → #14 → #15. Planner/lifecycle/saga, provider activation, Elastic and UI
 remain Claude-owned; the whole-kernel credit fallback remains inactive.
 
 ## Prior integration checkpoints
