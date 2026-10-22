@@ -1,5 +1,5 @@
 use anyhow::Context;
-use clap::{Parser, Subcommand};
+use clap::{Args, Parser, Subcommand};
 use genesis_apify::{ApifyClient, RunLimits};
 use genesis_core::ids::OrgId;
 use genesis_core::model::Constitution;
@@ -27,42 +27,7 @@ struct Cli {
 #[derive(Subcommand)]
 enum Command {
     /// Serve one organization instance. Set APIFY_TOKEN to enable real Apify execution.
-    Org {
-        #[arg(long, env = "GENESIS_ORG_ID")]
-        org_id: String,
-        #[arg(long, env = "GENESIS_ORG_NAME")]
-        name: String,
-        #[arg(long, env = "GENESIS_DB", default_value = "data/org.db")]
-        db: PathBuf,
-        #[arg(long, env = "GENESIS_BIND", default_value = "127.0.0.1:7101")]
-        bind: String,
-        /// JSON file with the organization constitution. Defaults to the demo constitution.
-        #[arg(long, env = "GENESIS_CONSTITUTION")]
-        constitution: Option<PathBuf>,
-        /// Trusted local oracle suite JSON. Repeat for multiple suites; never fetched over HTTP.
-        #[arg(long, value_name = "PATH")]
-        oracle_suite: Vec<PathBuf>,
-        /// Trusted local forge checkpoint JSON. Repeat for multiple verified capabilities.
-        #[arg(long, value_name = "PATH")]
-        forge_checkpoint: Vec<PathBuf>,
-        /// Trusted JSON model/count-quota policy enabling capability acquisition.
-        /// Provider keys come only from ANTHROPIC_API_KEY and APIFY_TOKEN.
-        #[arg(long, value_name = "PATH")]
-        acquisition_policy: Option<PathBuf>,
-        #[arg(long, env = "GENESIS_REGISTRY_URL")]
-        registry_url: Option<String>,
-        #[arg(long, env = "GENESIS_REGISTRY_TOKEN")]
-        registry_token: Option<String>,
-        #[arg(long, env = "GENESIS_OPERATOR_TOKEN")]
-        operator_token: Option<String>,
-        #[arg(long, env = "GENESIS_AGENT_TOKEN")]
-        agent_token: Option<String>,
-        #[arg(long, env = "GENESIS_ADAPTER_TOKEN")]
-        adapter_token: Option<String>,
-        /// Use the labeled development stub for providers without an adapter.
-        #[arg(long, env = "GENESIS_DEV_STUB", default_value_t = false)]
-        dev_stub: bool,
-    },
+    Org(Box<OrgArgs>),
     /// Serve the shared capability registry.
     Registry {
         #[arg(long, env = "GENESIS_REGISTRY_DB", default_value = "data/registry.db")]
@@ -91,6 +56,44 @@ enum Command {
         #[arg(long, default_value = "schemas")]
         out: PathBuf,
     },
+}
+
+#[derive(Args)]
+struct OrgArgs {
+    #[arg(long, env = "GENESIS_ORG_ID")]
+    org_id: String,
+    #[arg(long, env = "GENESIS_ORG_NAME")]
+    name: String,
+    #[arg(long, env = "GENESIS_DB", default_value = "data/org.db")]
+    db: PathBuf,
+    #[arg(long, env = "GENESIS_BIND", default_value = "127.0.0.1:7101")]
+    bind: String,
+    /// JSON file with the organization constitution. Defaults to the demo constitution.
+    #[arg(long, env = "GENESIS_CONSTITUTION")]
+    constitution: Option<PathBuf>,
+    /// Trusted local oracle suite JSON. Repeat for multiple suites; never fetched over HTTP.
+    #[arg(long, value_name = "PATH")]
+    oracle_suite: Vec<PathBuf>,
+    /// Trusted local forge checkpoint JSON. Repeat for multiple verified capabilities.
+    #[arg(long, value_name = "PATH")]
+    forge_checkpoint: Vec<PathBuf>,
+    /// Trusted JSON model/count-quota policy enabling capability acquisition.
+    /// Provider keys come only from ANTHROPIC_API_KEY and APIFY_TOKEN.
+    #[arg(long, value_name = "PATH")]
+    acquisition_policy: Option<PathBuf>,
+    #[arg(long, env = "GENESIS_REGISTRY_URL")]
+    registry_url: Option<String>,
+    #[arg(long, env = "GENESIS_REGISTRY_TOKEN")]
+    registry_token: Option<String>,
+    #[arg(long, env = "GENESIS_OPERATOR_TOKEN")]
+    operator_token: Option<String>,
+    #[arg(long, env = "GENESIS_AGENT_TOKEN")]
+    agent_token: Option<String>,
+    #[arg(long, env = "GENESIS_ADAPTER_TOKEN")]
+    adapter_token: Option<String>,
+    /// Use the labeled development stub for providers without an adapter.
+    #[arg(long, env = "GENESIS_DEV_STUB", default_value_t = false)]
+    dev_stub: bool,
 }
 
 fn init_tracing() {
@@ -187,22 +190,23 @@ fn org_providers(
 async fn main() -> anyhow::Result<()> {
     init_tracing();
     match Cli::parse().command {
-        Command::Org {
-            org_id,
-            name,
-            db,
-            bind,
-            constitution,
-            oracle_suite,
-            forge_checkpoint,
-            acquisition_policy,
-            registry_url,
-            registry_token,
-            operator_token,
-            agent_token,
-            adapter_token,
-            dev_stub,
-        } => {
+        Command::Org(args) => {
+            let OrgArgs {
+                org_id,
+                name,
+                db,
+                bind,
+                constitution,
+                oracle_suite,
+                forge_checkpoint,
+                acquisition_policy,
+                registry_url,
+                registry_token,
+                operator_token,
+                agent_token,
+                adapter_token,
+                dev_stub,
+            } = *args;
             let constitution = match constitution {
                 Some(path) => load_trusted_json::<Constitution>(&path)?,
                 None => genesis_server::demo_constitution(),
@@ -365,14 +369,14 @@ mod cli_tests {
             "forge-b.json",
         ])
         .unwrap();
-        let Command::Org {
+        let Command::Org(args) = cli.command else {
+            panic!("expected org command")
+        };
+        let OrgArgs {
             oracle_suite,
             forge_checkpoint,
             ..
-        } = cli.command
-        else {
-            panic!("expected org command")
-        };
+        } = *args;
         assert_eq!(
             oracle_suite,
             vec![PathBuf::from("suite-a.json"), PathBuf::from("suite-b.json")]
@@ -474,9 +478,8 @@ mod cli_tests {
             "policy.json",
         ];
         let cli = Cli::try_parse_from(args).unwrap();
-        assert!(matches!(cli.command, Command::Org {
-            acquisition_policy: Some(path), ..
-        } if path == PathBuf::from("policy.json")));
+        assert!(matches!(cli.command, Command::Org(args)
+            if args.acquisition_policy.as_deref() == Some(Path::new("policy.json"))));
         for forbidden in ["--anthropic-api-key", "--model-endpoint", "--apify-token"] {
             let mut args = args.to_vec();
             args.extend([forbidden, "synthetic-never-live"]);
