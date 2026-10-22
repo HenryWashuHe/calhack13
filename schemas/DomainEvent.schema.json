@@ -694,6 +694,82 @@
         "type": {
           "type": "string",
           "enum": [
+            "capability_gap_opened"
+          ]
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "capability_id",
+            "gap_id",
+            "requirement_id",
+            "responsibility_id",
+            "role_id"
+          ],
+          "properties": {
+            "gap_id": {
+              "type": "string"
+            },
+            "requirement_id": {
+              "type": "string"
+            },
+            "role_id": {
+              "type": "string"
+            },
+            "responsibility_id": {
+              "type": "string"
+            },
+            "capability_id": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "payload",
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "capability_gap_status_changed"
+          ]
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "from",
+            "gap_id",
+            "to"
+          ],
+          "properties": {
+            "gap_id": {
+              "type": "string"
+            },
+            "from": {
+              "$ref": "#/definitions/CapabilityGapStatus"
+            },
+            "to": {
+              "$ref": "#/definitions/CapabilityGapStatus"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "payload",
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
             "reporting_edge_changed"
           ]
         },
@@ -1386,6 +1462,128 @@
           "type": "string"
         }
       }
+    },
+    "CapabilityGapStatus": {
+      "description": "Where a capability gap stands. Only the kernel's transition function moves it (backend drivers, never the planner); suite, oracle, quota and provider choices stay with operator policy. Verified acquisition, registry publication and local installation are distinct facts: only `Installed` (an accepted local installation) makes the capability attachable.",
+      "oneOf": [
+        {
+          "description": "Committed; no acquisition yet.",
+          "type": "object",
+          "required": [
+            "state"
+          ],
+          "properties": {
+            "state": {
+              "type": "string",
+              "enum": [
+                "open"
+              ]
+            }
+          }
+        },
+        {
+          "description": "One acquisition intent was created for this gap.",
+          "type": "object",
+          "required": [
+            "acquisition_id",
+            "state"
+          ],
+          "properties": {
+            "state": {
+              "type": "string",
+              "enum": [
+                "acquiring"
+              ]
+            },
+            "acquisition_id": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "description": "That acquisition produced an independently verified exact version. `publication_ref` is set when it was also published to the registry.",
+          "type": "object",
+          "required": [
+            "acquisition_id",
+            "capability",
+            "state"
+          ],
+          "properties": {
+            "state": {
+              "type": "string",
+              "enum": [
+                "acquired"
+              ]
+            },
+            "acquisition_id": {
+              "type": "string"
+            },
+            "capability": {
+              "$ref": "#/definitions/CapabilityRef"
+            },
+            "publication_ref": {
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        {
+          "description": "The verified version is installed and accepted in this organization.",
+          "type": "object",
+          "required": [
+            "acquisition_id",
+            "capability",
+            "installation_id",
+            "state"
+          ],
+          "properties": {
+            "state": {
+              "type": "string",
+              "enum": [
+                "installed"
+              ]
+            },
+            "acquisition_id": {
+              "type": "string"
+            },
+            "capability": {
+              "$ref": "#/definitions/CapabilityRef"
+            },
+            "installation_id": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "description": "Policy refused, or the attempt ended without a capability. The attempt stays recorded; genuinely new work needs a new gap.",
+          "type": "object",
+          "required": [
+            "reason",
+            "state"
+          ],
+          "properties": {
+            "state": {
+              "type": "string",
+              "enum": [
+                "refused"
+              ]
+            },
+            "reason": {
+              "type": "string"
+            },
+            "acquisition_id": {
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        }
+      ]
     },
     "JobStatus": {
       "description": "Normalized job status (TECH_SPEC §6). Provider-native statuses are kept separately on the job record.",
