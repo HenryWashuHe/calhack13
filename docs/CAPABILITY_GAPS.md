@@ -32,8 +32,9 @@ change, so the note can't be lost or duplicated. A repeated transition is a
 no-op and adds nothing. The note names the role, requirement and, when
 installed, the exact version and installation. The planner then attaches it,
 or decides what to do without it after a refusal. The note has no public
-URL, so it can't justify another `RequestCapability` (the origin check
-rejects it), and the kernel can't drive a re-request loop with its own notes.
+URL, so it can't justify another `RequestCapability` on its own (the origin
+check rejects it). The requirement's evidence still could, so repeated
+refusals of the same request are bounded below.
 `Acquiring` and `Acquired` record nothing: acquired is not installed. The
 note is recorded only while the gap's mission is `Active` and before its
 deadline. A gap of a finished, failed or expired mission still records its
@@ -72,7 +73,13 @@ The kernel commits it only if:
   `http://` portal cannot back a request;
 - no installed, approved capability already has that ID (use
   `AttachCapability`);
-- no live gap exists for the same requirement and capability ID;
+- no live gap exists for the same requirement and capability ID, and that
+  pair has been refused fewer than 2 times
+  (`MAX_REFUSED_REQUESTS_PER_REQUIREMENT`; `capability_gap_limit_exceeded`).
+  A refusal wakes the planner, and the requirement's own evidence still
+  satisfies the origin check, so without this a planner that keeps asking
+  would loop forever at one model call and two commits per cycle. Changed
+  circumstances come in as new evidence, so a new requirement starts fresh;
 - the organization holds fewer than 16 live (non-terminal) gaps, and the
   requirement fewer than 3 (`MAX_LIVE_CAPABILITY_GAPS`,
   `MAX_LIVE_GAPS_PER_REQUIREMENT`; `capability_gap_limit_exceeded`). Each gap

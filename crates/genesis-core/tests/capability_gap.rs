@@ -1086,3 +1086,143 @@ fn a_closed_or_expired_mission_gets_the_audit_but_no_wakeup() {
         assert_eq!(done.state.observations.len(), before, "{close}: no wake-up");
     }
 }
+
+/// Henry's Claude: a refusal wakes the planner, so a planner that keeps
+/// re-requesting the same capability for the same requirement would loop
+/// forever (one model call and two commits per cycle). After
+/// MAX_REFUSED_REQUESTS_PER_REQUIREMENT refusals the kernel says no; new
+/// evidence, as a new requirement, starts fresh.
+#[test]
+fn repeated_refusals_stop_the_same_request_but_new_evidence_starts_fresh() {
+    use genesis_core::engine::MAX_REFUSED_REQUESTS_PER_REQUIREMENT;
+    let d = demo(Some(PORTAL));
+    let mut state = run(
+        &d,
+        vec![assign(&d), request(&d, &[PORTAL])],
+        &StaticCatalog::default(),
+    )
+    .unwrap()
+    .state;
+    let rsp = state
+        .capability_gaps
+        .values()
+        .next()
+        .unwrap()
+        .responsibility_id
+        .clone();
+    let again = |key: &str, requirement: &RequirementId| OrgOp::RequestCapability {
+        key: key.into(),
+        requirement_id: requirement.clone(),
+        role: RoleRef::existing(d.lead.clone()),
+        responsibility: ResponsibilityRef::Existing {
+            responsibility_id: rsp.clone(),
+        },
+        capability_id: CapabilityId::new("venue-availability"),
+        purpose: "Read the portal".into(),
+        observed_sources: vec![PORTAL.into()],
+    };
+    let refuse_live = |state: &OrgState| -> OrgState {
+        let live = state
+            .capability_gaps
+            .values()
+            .find(|g| !g.status.is_terminal())
+            .unwrap()
+            .gap_id
+            .clone();
+        update_capability_gap(
+            state,
+            &live,
+            CapabilityGapStatus::Refused {
+                reason: "outside the configured acquisition policy".into(),
+                acquisition_id: None,
+            },
+        )
+        .unwrap()
+        .state
+    };
+    let at = |state: &OrgState| Demo {
+        state: state.clone(),
+        lead: d.lead.clone(),
+        observation: d.observation.clone(),
+        requirement: d.requirement.clone(),
+    };
+    for attempt in 1..MAX_REFUSED_REQUESTS_PER_REQUIREMENT {
+        state = refuse_live(&state);
+        state = run(
+            &at(&state),
+            vec![again(&format!("again-{attempt}"), &d.requirement)],
+            &StaticCatalog::default(),
+        )
+        .unwrap_or_else(|e| panic!("attempt {attempt} should still be allowed: {e:?}"))
+        .state;
+    }
+    state = refuse_live(&state);
+    let refused = run(
+        &at(&state),
+        vec![again("one-too-many", &d.requirement)],
+        &StaticCatalog::default(),
+    )
+    .expect_err("the same request after repeated refusals is rejected");
+    assert_eq!(
+        refused.iter().map(|e| e.code).collect::<Vec<_>>(),
+        vec![ValidationCode::CapabilityGapLimitExceeded]
+    );
+    assert!(
+        refused[0].message.contains("refused"),
+        "{}",
+        refused[0].message
+    );
+
+    // New evidence and a new requirement may ask again.
+    let mission = state.missions.keys().next().unwrap().clone();
+    let (out, obs) = record_observation(
+        &state,
+        &mission,
+        "venue-portal",
+        "The portal published a new layout",
+        Some(PORTAL.into()),
+        Utc::now(),
+    )
+    .unwrap();
+    let (out, fresh) = record_requirement(
+        &out.state,
+        &mission,
+        "Read the new portal layout",
+        std::slice::from_ref(&obs),
+        "a venue for 120 is identified from portal data",
+    )
+    .unwrap();
+    let d3 = Demo {
+        state: out.state,
+        lead: d.lead.clone(),
+        observation: obs,
+        requirement: fresh.clone(),
+    };
+    let assign_fresh = OrgOp::AssignResponsibility {
+        target: ResponsibilityTarget::FromRequirement {
+            key: "fresh".into(),
+            requirement_id: fresh.clone(),
+            purpose: "Read the new layout".into(),
+            trigger: "layout changes".into(),
+            termination: "reader installed".into(),
+        },
+        owner: RoleRef::existing(d.lead.clone()),
+    };
+    let request_fresh = OrgOp::RequestCapability {
+        key: "fresh-reader".into(),
+        requirement_id: fresh,
+        role: RoleRef::existing(d.lead.clone()),
+        responsibility: ResponsibilityRef::New {
+            key: "fresh".into(),
+        },
+        capability_id: CapabilityId::new("venue-availability"),
+        purpose: "Read the new layout".into(),
+        observed_sources: vec![PORTAL.into()],
+    };
+    run(
+        &d3,
+        vec![assign_fresh, request_fresh],
+        &StaticCatalog::default(),
+    )
+    .expect("a new requirement starts fresh");
+}
