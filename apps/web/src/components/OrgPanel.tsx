@@ -124,7 +124,6 @@ function Node({ node, state, freshRevision }: { node: RoleNode; state: OrgState;
         </div>
         <div className="role-charter">{r.charter}</div>
         <Duties state={state} roleId={r.role_id} />
-        <Why open={why} roleId={r.role_id} state={state} />
         {(r.capabilities ?? []).length > 0 && (
           <div className="role-meta">
             {(r.capabilities ?? []).map((c) => (
@@ -145,6 +144,7 @@ function Node({ node, state, freshRevision }: { node: RoleNode; state: OrgState;
             {r.retired_in_revision ? ` → retired r${r.retired_in_revision}` : ""}
           </span>
         </div>
+        <Why open={why} roleId={r.role_id} state={state} />
       </div>
       {node.children.length > 0 && (
         <ul>
