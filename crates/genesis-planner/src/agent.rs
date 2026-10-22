@@ -187,6 +187,25 @@ impl Planner {
                 attempts: 0,
             });
         }
+        // Evidence for a mission that can no longer act (finished, failed or
+        // past its deadline) gets a recorded no-change decision and no model
+        // call, so a late observation, including the kernel's own note after
+        // a capability gap closes, never revives closed work.
+        if let Some(why) = mission_closed(&state, &obs) {
+            self.decide(
+                observation,
+                PlannerVerdict::NoChange,
+                "Mission is not active",
+                &why,
+                0,
+                0,
+                requirement.as_ref(),
+                None,
+                vec![],
+            )
+            .await?;
+            return Ok(PlanOutcome::NoChange { attempts: 0 });
+        }
         let mut messages = vec![Message::user(prompt::user_message(
             &state,
             &obs,
@@ -504,5 +523,28 @@ fn truncate(s: &str, n: usize) -> String {
     } else {
         let t: String = s.chars().take(n).collect();
         format!("{t}…")
+    }
+}
+
+/// Why `obs`'s mission can no longer act on new evidence, if it can't.
+fn mission_closed(
+    state: &genesis_core::model::OrgState,
+    obs: &genesis_core::model::Observation,
+) -> Option<String> {
+    let Some(m) = state.missions.get(&obs.mission_id) else {
+        return Some(format!("Mission {} is unknown.", obs.mission_id));
+    };
+    if m.status != genesis_core::lifecycle::MissionStatus::Active {
+        return Some(format!(
+            "Mission {} is {:?}; evidence for a closed mission is recorded but not planned.",
+            m.mission_id, m.status
+        ));
+    }
+    match m.deadline {
+        Some(d) if d <= chrono::Utc::now() => Some(format!(
+            "Mission {} passed its deadline ({d}); evidence after the deadline is recorded but not planned.",
+            m.mission_id
+        )),
+        _ => None,
     }
 }

@@ -75,6 +75,16 @@ decisions. Test: `tests/elastic_planner.rs` (fake Kibana, real kernel).
 Regression tests: `tests/review_recovery.rs`, `tests/review_http.rs` (from the
 Codex review of PR #12) and the restart test in `tests/planner.rs`.
 
+## Closed missions
+
+Evidence for a mission that is no longer `Active` (succeeded or failed) or is
+past its deadline is recorded, but not planned: the planner records a
+`no_change` decision with the reason and makes no model call, so the runner
+treats it as decided. A change already accepted by an interrupted run is still
+recovered first. This covers late portal or operator evidence and the
+kernel's own note after a capability gap closes (#57 also stops recording that
+note for closed missions).
+
 ## Files
 
 | Path | Purpose |
