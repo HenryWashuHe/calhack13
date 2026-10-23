@@ -40,3 +40,6 @@ __pycache__/
 .DS_Store
 .idea/
 .vscode/
+
+# TypeScript build info
+*.tsbuildinfo
