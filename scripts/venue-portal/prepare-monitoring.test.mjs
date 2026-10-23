@@ -3,7 +3,7 @@
 // GENESIS_VERIFY_BIN=/path/genesis-verify GENESIS_SCENARIO_BIN=/path/genesis node --test scripts/venue-portal/prepare-monitoring.test.mjs
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
@@ -233,6 +233,25 @@ test("sources and identities obey the executable pipeline's stricter limits", (t
   assert.throws(() => prepareMonitoring({ ...f.options, suiteId: "../invalid" }), /new suite ID/);
 });
 
+test("generator-coercible identities cannot escape into strict Rust JSON", (t) => {
+  for (const suiteId of [123, ["numeric-like-suite"]]) {
+    const f = fixture(t);
+    const spec = presetSpec("baseline", "coercible-suite");
+    spec.suite_id = suiteId;
+    writeVariant({ spec, baseUrl: BASE, out: f.options.portal, namespace: "org-a", replace: true });
+    assert.throws(f.prepare, /manifest identity mismatch/);
+    assert.equal(existsSync(f.options.out), false);
+  }
+  const badCase = fixture(t);
+  badCase.bSpec.pages[0].slug = 123;
+  badCase.replaceB();
+  assert.throws(badCase.prepare, /identities must be strings/);
+  const badVenue = fixture(t);
+  badVenue.bSpec.pages[0].venues[1].venue_id = ["coercible-venue"];
+  badVenue.replaceB();
+  assert.throws(badVenue.prepare, /identities must be strings/);
+});
+
 test("fresh output and physical separation prevent overwrite or public oracle publication", (t) => {
   const f = fixture(t), before = snapshot(f.options.portal);
   f.prepare();
@@ -248,6 +267,32 @@ test("fresh output and physical separation prevent overwrite or public oracle pu
   assert.throws(() => prepareMonitoring({ ...f.options, out: dangling }), /already exists/);
   assert.deepEqual(snapshot(f.options.portal), before);
   assert.deepEqual(readdirSync(f.dir).filter((name) => name.includes(".prepare-monitoring")), []);
+});
+
+test("public symlink aliases cannot publish a supposedly external trusted setup", async (t) => {
+  for (const kind of ["public root", "public child"]) {
+    const f = fixture(t);
+    const publicRoot = join(f.options.portal, "public");
+    const served = join(f.dir, "externally-served");
+    if (kind === "public root") {
+      renameSync(publicRoot, served);
+      symlinkSync(served, publicRoot, "dir");
+    } else {
+      mkdirSync(served);
+      symlinkSync(served, join(publicRoot, "export"), "dir");
+    }
+    const out = join(served, "setup");
+    assert.throws(() => prepareMonitoring({ ...f.options, out }), /no symlinks/, kind);
+    assert.equal(existsSync(out), false);
+    const server = createServer(publicHandler(publicRoot));
+    await new Promise((ok) => server.listen(0, "127.0.0.1", ok));
+    try {
+      const origin = `http://127.0.0.1:${server.address().port}`;
+      assert.equal((await fetch(`${origin}/${f.av.pages[0].path}`)).status, 200, "the public tree actually remains served");
+      const prefix = kind === "public child" ? "/export" : "";
+      assert.equal((await fetch(`${origin}${prefix}/setup/trusted/suite-b.json`)).status, 404, "no oracle was emitted through a served alias");
+    } finally { server.closeAllConnections(); await new Promise((ok) => server.close(ok)); }
+  }
 });
 
 test("the strict CLI rejects duplicates and concurrent writers leave one complete output", async (t) => {

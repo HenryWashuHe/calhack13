@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Offline setup for frozen, configured snapshot coverage. No provider calls,
 // public source edits, expected answers in the scenario, or access grants.
-import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, mkdtempSync, opendirSync, readFileSync, realpathSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
@@ -110,8 +110,11 @@ function validateTemplate(template) {
 function loadVariant(portal, namespace) {
   requireThat(typeof namespace === "string" && NAMESPACE_RE.test(namespace), "invalid portal namespace");
   const manifest = readJson(join(portal, "trusted", "manifests", `${namespace}.json`), "portal manifest");
-  requireThat(manifest.namespace === namespace && SUITE_ID.test(manifest.suite_id), "manifest identity mismatch");
+  requireThat(manifest.namespace === namespace && typeof manifest.suite_id === "string" && SUITE_ID.test(manifest.suite_id), "manifest identity mismatch");
   const regenerated = build(manifest.spec, manifest.base_url, namespace);
+  // The existing generator accepts a few regex-coercible custom-spec values;
+  // those must not become non-string identities in strict Rust oracle JSON.
+  requireThat(regenerated.suite.cases.every((c) => typeof c.case_id === "string" && (c.expected.status !== "supported" || c.expected.venues.every((v) => typeof v.venue_id === "string"))), "generated case and venue identities must be strings");
   requireThat(same(manifest, regenerated.manifest), "manifest differs from generator output");
   const suitePath = join(portal, "trusted", "suites", `${manifest.suite_id}.json`);
   requireThat(same(readJson(suitePath, "portal suite"), regenerated.suite), "suite differs from generator output");
@@ -153,6 +156,27 @@ function within(path, parent) {
   const rel = relative(parent, path);
   return rel === "" || (!rel.startsWith(`..${process.platform === "win32" ? "\\" : "/"}`) && rel !== ".." && !isAbsolute(rel));
 }
+function validatePublicTree(root) {
+  // publicHandler follows filesystem paths. A symlink anywhere in this tree
+  // could alias an otherwise separate output directory and serve its oracle.
+  // Fail closed on aliases/special files, with bounded traversal of local setup.
+  const pending = [root];
+  let remaining = 4096;
+  while (pending.length) {
+    const path = pending.pop();
+    const stat = lstatSync(path);
+    requireThat(stat.isDirectory() && !stat.isSymbolicLink(), "public tree must contain no symlinks or special files");
+    const directory = opendirSync(path);
+    try {
+      let entry;
+      while ((entry = directory.readSync()) !== null) {
+        requireThat(--remaining >= 0, "public tree exceeds the 4096-entry setup limit");
+        requireThat(!entry.isSymbolicLink() && (entry.isDirectory() || entry.isFile()), "public tree must contain no symlinks or special files");
+        if (entry.isDirectory()) pending.push(join(path, entry.name));
+      }
+    } finally { directory.closeSync(); }
+  }
+}
 function physicalDestination(path) {
   let ancestor = path;
   while (!existsSync(ancestor)) ancestor = dirname(ancestor);
@@ -169,6 +193,7 @@ export function prepareMonitoring({ portal, a, b, update, policy: policyPath, su
   requireThat(new Set([a, b, update]).size === 3, "A, B and update must use distinct namespaces");
   const root = realpathSync(resolve(portal));
   const destination = resolve(out);
+  validatePublicTree(join(root, "public"));
   requireThat(!within(physicalDestination(destination), root), "output must be outside the portal directory (never publicly served)");
   requireThat(!present(destination), "output directory already exists; choose a fresh path");
   const policy = readJson(policyPath, "policy");
