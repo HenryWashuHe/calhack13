@@ -1,0 +1,12 @@
+{
+  "title": "Scoped venue extraction input",
+  "type": "object",
+  "schemaVersion": 1,
+  "additionalProperties": false,
+  "properties": {
+    "source_url": { "title": "Source URL", "type": "string", "editor": "textfield", "description": "An exact HTTPS URL allowed by the built capability." },
+    "attendees": { "title": "Attendees", "type": "integer", "minimum": 1, "maximum": 4294967295, "description": "Mission context; extraction preserves all listed venues." },
+    "requested_window": { "title": "Requested window", "type": "object", "editor": "json", "description": "Object with start and end RFC3339 timestamps including explicit UTC offsets." }
+  },
+  "required": ["source_url", "attendees", "requested_window"]
+}
