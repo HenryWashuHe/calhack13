@@ -66,7 +66,9 @@ const CODE: Record<FinalizerCode, { kind: AttentionKind; text: string }> = {
 /** One line for an acquired gap's row, or null to keep the default. */
 export function finalizationDetail(gap: CapabilityGap, s: GapFinalizationStatus | undefined): string | null {
   if (!s || gap.status.state !== "acquired" || !s.enabled) return null;
-  if (s.state === null) return "verified; queued for publication and local installation";
+  // No record: the server has no rule for this capability (or hasn't frozen
+  // one yet). Enablement alone says nothing about this gap, so claim nothing.
+  if (s.state === null) return null;
   if (s.state === "attention") return s.code ? `verified · ${CODE[s.code].text}` : null;
   if (s.state !== "active") return null;
   if (!s.publication_ref) return "verified; publishing this exact version";
