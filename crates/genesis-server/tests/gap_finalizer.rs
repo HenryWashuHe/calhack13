@@ -916,3 +916,168 @@ async fn serve_org_takes_a_committed_gap_all_the_way_to_installed() {
     assert_eq!(f.providers.count("POST", "/actors"), 1);
     assert_eq!(f.providers.count("POST", "/runs"), 3 + suite().cases.len());
 }
+
+// Read-only PR review regressions. Requirement edits below deliberately use
+// the existing kernel/store seam: there is currently no HTTP requirement-edit
+// or satisfy endpoint. They model a committed requirement revision, not a
+// caller-supplied proof or an invented public route.
+async fn review_commit_requirement(
+    f: &Fixture,
+    change: impl FnOnce(&mut genesis_core::model::Requirement),
+) {
+    let _guard = f.app.kernel.lock().await;
+    let before = f.app.current_state().unwrap();
+    let gap = before.capability_gaps[&f.gap_id].clone();
+    let mut after = before.clone();
+    change(after.requirements.get_mut(&gap.requirement_id).unwrap());
+    after.revision += 1;
+    f.app
+        .store
+        .commit_state(
+            before.revision,
+            &after,
+            vec![],
+            &EventMeta::mission(gap.mission_id),
+            vec![],
+            |_| Ok(()),
+        )
+        .unwrap();
+}
+
+#[tokio::test]
+async fn review_changed_requirement_must_stop_before_local_installation() {
+    let f = Fixture::new(&["capability.acquire", PERMISSION]).await;
+    f.acquire().await;
+    assert_eq!(f.finalize_step().await, Step::Frozen);
+    assert_eq!(f.finalize_step().await, Step::Published);
+    let frozen = f.app.store.gap_finalization(&f.gap_id).unwrap().unwrap();
+    review_commit_requirement(&f, |requirement| {
+        requirement.acceptance =
+            "The old venue extraction task is superseded by a different acceptance contract".into();
+    })
+    .await;
+    assert_eq!(f.gap().requirement_digest, frozen.requirement_digest);
+    let effects_before = f.providers.count("POST", "/runs");
+    let outcome = capability_gap_finalizer::step(&f.app, &f.gap_id).await;
+    assert!(
+        f.app.current_state().unwrap().installations.is_empty(),
+        "a stale gap digest must not authorize installation after its live requirement changed: {outcome:?}"
+    );
+    assert_eq!(f.providers.count("POST", "/runs"), effects_before);
+}
+
+#[tokio::test]
+async fn review_satisfied_requirement_must_fence_prepared_native_checks() {
+    let f = Fixture::new(&["capability.acquire", PERMISSION]).await;
+    f.acquire().await;
+    for expected in [
+        Step::Frozen,
+        Step::Published,
+        Step::Installing,
+        Step::Checking,
+    ] {
+        assert_eq!(f.finalize_step().await, expected);
+    }
+    let record = f.app.store.gap_finalization(&f.gap_id).unwrap().unwrap();
+    review_commit_requirement(&f, |requirement| {
+        requirement.status = genesis_core::lifecycle::RequirementStatus::Satisfied;
+    })
+    .await;
+    // The separate capability worker can run before the finalizer's next tick.
+    // Its native dispatch must still honor the finalizer's frozen work identity.
+    let posts_before = f.providers.count("POST", "/runs");
+    let result = f
+        .app
+        .capability_runtime
+        .step(&record.job_ids[0], false)
+        .await;
+    assert_eq!(
+        f.providers.count("POST", "/runs"),
+        posts_before,
+        "a prepared finalizer check dispatched after its requirement was satisfied: {result:?}"
+    );
+    assert!(!matches!(
+        f.gap().status,
+        CapabilityGapStatus::Installed { .. }
+    ));
+}
+
+#[tokio::test]
+async fn review_public_acceptance_then_delegation_must_not_finalize_a_revoked_grant() {
+    let f = Fixture::new(&["capability.acquire", PERMISSION]).await;
+    f.acquire().await;
+    for expected in [
+        Step::Frozen,
+        Step::Published,
+        Step::Installing,
+        Step::Checking,
+    ] {
+        assert_eq!(f.finalize_step().await, expected);
+    }
+    f.run_checks().await;
+    let frozen = f.app.store.gap_finalization(&f.gap_id).unwrap().unwrap();
+    let installation = frozen.installation_id.as_ref().unwrap();
+    let url = serve_url(&f).await;
+    let http = reqwest::Client::new();
+    // This is the existing public acceptance endpoint, with genuine collected
+    // evidence. It is currently not fenced as finalizer-owned installation.
+    let accepted = http
+        .post(format!(
+            "{url}/api/v1/capability-installations/{installation}/acceptance"
+        ))
+        .bearer_auth(format!("{ORG}-operator"))
+        .json(&json!({"suite_id":frozen.suite_id,"job_ids":frozen.job_ids}))
+        .send()
+        .await
+        .unwrap();
+    let accepted_status = accepted.status();
+    let accepted_body = accepted.text().await.unwrap();
+    // An ownership guard is also a safe fix: acceptance then must remain the
+    // finalizer's atomic decision, not this ordinary endpoint's decision.
+    if accepted_status == StatusCode::CONFLICT {
+        assert_eq!(
+            f.app.current_state().unwrap().installations[installation].status,
+            InstallationStatus::Checking
+        );
+        return;
+    }
+    assert_eq!(accepted_status, StatusCode::OK, "{accepted_body}");
+    assert_eq!(
+        f.app.current_state().unwrap().installations[installation].status,
+        InstallationStatus::Accepted
+    );
+    // Explicit delegation to the same role is a genuine public kernel change:
+    // None -> Role advances the epoch and fences the old owner's assignment.
+    let state = f.app.current_state().unwrap();
+    let response = http
+        .post(format!("{url}/api/v1/org-changes"))
+        .bearer_auth(format!("{ORG}-operator"))
+        .json(&json!({
+            "client_request_id":"review-finalizer-public-delegation",
+            "proposal":{
+                "expected_org_revision":state.revision,
+                "trigger_evidence_ids":f.gap().triggering_evidence,
+                "rationale":"Make the accountable role the explicit executor under a fresh grant",
+                "budget_limit_cents":0,
+                "operations":[{"op":"DelegateTask",
+                    "responsibility":{"kind":"existing","responsibility_id":frozen.responsibility_id},
+                    "executor":{"kind":"role","role":{"kind":"existing","role_id":frozen.role_id}},
+                    "task":"Continue work under the new explicit executor grant"}]
+            }
+        }))
+        .send().await.unwrap();
+    let status = response.status();
+    let body: Value = response.json().await.unwrap();
+    assert!(status.is_success(), "{status}: {body}");
+    let current = f.app.current_state().unwrap();
+    let grant = current
+        .active_assignment(&frozen.responsibility_id)
+        .unwrap();
+    assert_ne!(grant.assignment_id, frozen.assignment_id, "{body}");
+    assert!(grant.epoch > frozen.epoch);
+    let outcome = capability_gap_finalizer::step(&f.app, &f.gap_id).await;
+    assert!(
+        !matches!(f.gap().status, CapabilityGapStatus::Installed { .. }),
+        "the Accepted shortcut finalized an old grant after real public delegation: {outcome:?}"
+    );
+}
