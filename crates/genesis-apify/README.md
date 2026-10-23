@@ -127,6 +127,14 @@ successful submissions; lost POST responses require reconciliation before any
 retry. Every explicit `create_actor` or `start_build` call is a new side effect;
 the kernel must prevent duplicate dispatch. No POST is retried automatically.
 
+Checkpoint readers can call `ActorTicket::validate_for(&definition)`,
+`BuildTicket::validate_for(&definition, &actor_ticket)`, and
+`RunTicket::validate_for(&run_request)` without network access. These methods
+recheck schema versions, provider ID structure, complete request fingerprints,
+and source-version/build-number relationships. They do not authenticate records
+from untrusted storage. The HTTP client applies the same checks plus its configured
+byte caps and credential-echo protections before using a ticket.
+
 ## Local validation
 
 ```sh

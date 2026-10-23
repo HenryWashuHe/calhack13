@@ -70,6 +70,21 @@ pub struct RunTicket {
 }
 
 impl RunTicket {
+    /// Revalidate a restored trusted-storage ticket without network access.
+    /// The complete request is structurally bounded before canonical hashing.
+    pub fn validate_for(&self, request: &RunRequest) -> Result<(), Error> {
+        validated_run_input(request, 8 * 1024 * 1024)?;
+        if self.schema_version != 1
+            || !valid_id(&self.run_id)
+            || !digest(&self.request_sha256)
+            || self.dataset_id.as_ref().is_some_and(|id| !valid_id(id))
+            || self.request_sha256 != request_fingerprint(request)
+        {
+            return Err(error(ErrorKind::TicketMismatch, Stage::Configuration));
+        }
+        Ok(())
+    }
+
     pub fn run_id(&self) -> &str {
         &self.run_id
     }
@@ -257,15 +272,12 @@ impl ApifyClient {
         ticket: &RunTicket,
     ) -> Result<ExecutionEvidence, Error> {
         self.validate_request(request)?;
-        if ticket.schema_version != 1
-            || !valid_id(&ticket.run_id)
-            || self.contains_credential(&ticket.run_id)
-            || !digest(&ticket.request_sha256)
+        ticket.validate_for(request)?;
+        if self.contains_credential(&ticket.run_id)
             || ticket
                 .dataset_id
                 .as_ref()
-                .is_some_and(|id| !valid_id(id) || self.contains_credential(id))
-            || ticket.request_sha256 != request_fingerprint(request)
+                .is_some_and(|id| self.contains_credential(id))
         {
             return Err(error(ErrorKind::TicketMismatch, Stage::Configuration));
         }
@@ -423,37 +435,7 @@ impl ApifyClient {
     }
 
     fn validate_request(&self, request: &RunRequest) -> Result<Vec<u8>, Error> {
-        let invalid = || error(ErrorKind::InvalidRequest, Stage::Configuration);
-        let pin = &request.artifact;
-        if !valid_label(&request.case_id)
-            || !valid_label(&pin.capability_id)
-            || !valid_label(&pin.capability_version)
-            || !valid_id(&pin.actor_id)
-            || !valid_id(&pin.build_id)
-            || !digest(&pin.source_sha256)
-            || !digest(&request.source.sha256)
-            || !request.input.is_object()
-            || !bounded_tree(&request.input, self.limits.max_input_bytes)
-            || !numeric_build(&pin.build_number)
-            || !valid_label(&request.source.url)
-        {
-            return Err(invalid());
-        }
-        let source = Url::parse(&request.source.url).map_err(|_| invalid())?;
-        if !matches!(source.scheme(), "http" | "https")
-            || source.host_str().is_none()
-            || !source.username().is_empty()
-            || source.password().is_some()
-            || source.fragment().is_some()
-        {
-            return Err(invalid());
-        }
-        let mut writer = BoundedWriter {
-            bytes: Vec::new(),
-            limit: self.limits.max_input_bytes,
-        };
-        serde_json::to_writer(&mut writer, &request.input).map_err(|_| invalid())?;
-        Ok(writer.bytes)
+        validated_run_input(request, self.limits.max_input_bytes)
     }
 
     fn contains_credential(&self, value: &str) -> bool {
@@ -549,6 +531,40 @@ impl ApifyClient {
             .await
             .map_err(|_| error(ErrorKind::DeadlineExceeded, stage))?
     }
+}
+
+fn validated_run_input(request: &RunRequest, max_bytes: usize) -> Result<Vec<u8>, Error> {
+    let invalid = || error(ErrorKind::InvalidRequest, Stage::Configuration);
+    let pin = &request.artifact;
+    if !valid_label(&request.case_id)
+        || !valid_label(&pin.capability_id)
+        || !valid_label(&pin.capability_version)
+        || !valid_id(&pin.actor_id)
+        || !valid_id(&pin.build_id)
+        || !digest(&pin.source_sha256)
+        || !digest(&request.source.sha256)
+        || !request.input.is_object()
+        || !bounded_tree(&request.input, max_bytes)
+        || !numeric_build(&pin.build_number)
+        || !valid_label(&request.source.url)
+    {
+        return Err(invalid());
+    }
+    let source = Url::parse(&request.source.url).map_err(|_| invalid())?;
+    if !matches!(source.scheme(), "http" | "https")
+        || source.host_str().is_none()
+        || !source.username().is_empty()
+        || source.password().is_some()
+        || source.fragment().is_some()
+    {
+        return Err(invalid());
+    }
+    let mut writer = BoundedWriter {
+        bytes: Vec::new(),
+        limit: max_bytes,
+    };
+    serde_json::to_writer(&mut writer, &request.input).map_err(|_| invalid())?;
+    Ok(writer.bytes)
 }
 
 fn decode<T: DeserializeOwned>(bytes: &[u8], stage: Stage) -> Result<T, Error> {

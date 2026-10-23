@@ -50,6 +50,23 @@ pub struct ActorTicket {
     definition_sha256: String,
 }
 impl ActorTicket {
+    /// Revalidate a restored trusted-storage ticket without network access.
+    /// This checks structure/request binding, not provider authenticity.
+    pub fn validate_for(&self, definition: &ActorDefinition) -> Result<(), ForgeError> {
+        let fingerprint = definition.definition_sha256()?;
+        if self.schema_version != 1
+            || !valid_id(&self.actor_id)
+            || self.version_number != definition.version_number
+            || self.definition_sha256 != fingerprint
+        {
+            return Err(failure(
+                ForgeErrorKind::TicketMismatch,
+                ForgeStage::Configuration,
+            ));
+        }
+        Ok(())
+    }
+
     pub fn actor_id(&self) -> &str {
         &self.actor_id
     }
@@ -73,6 +90,29 @@ pub struct BuildTicket {
     definition_sha256: String,
 }
 impl BuildTicket {
+    /// Includes Actor-ticket validation and the source-version/build-number
+    /// relationship, so a corrupt checkpoint cannot relabel a different build.
+    pub fn validate_for(
+        &self,
+        definition: &ActorDefinition,
+        actor: &ActorTicket,
+    ) -> Result<(), ForgeError> {
+        actor.validate_for(definition)?;
+        if self.schema_version != 1
+            || self.actor_id != actor.actor_id
+            || self.definition_sha256 != actor.definition_sha256
+            || self.version_number != actor.version_number
+            || !valid_id(&self.build_id)
+            || !build_number(&self.build_number, &actor.version_number)
+        {
+            return Err(failure(
+                ForgeErrorKind::TicketMismatch,
+                ForgeStage::Configuration,
+            ));
+        }
+        Ok(())
+    }
+
     pub fn actor_id(&self) -> &str {
         &self.actor_id
     }
@@ -315,13 +355,8 @@ impl ApifyClient {
         ticket: &BuildTicket,
     ) -> Result<BuiltActor, ForgeError> {
         self.validate_actor_ticket(definition, actor)?;
-        if ticket.schema_version != 1
-            || ticket.actor_id != actor.actor_id
-            || ticket.definition_sha256 != actor.definition_sha256
-            || ticket.version_number != actor.version_number
-            || self.safe_forge_id(&ticket.build_id).is_none()
-            || !build_number(&ticket.build_number, &actor.version_number)
-        {
+        ticket.validate_for(definition, actor)?;
+        if self.contains_credential(&ticket.build_id) {
             return Err(failure(
                 ForgeErrorKind::TicketMismatch,
                 ForgeStage::Configuration,
@@ -382,12 +417,9 @@ impl ApifyClient {
         definition: &ActorDefinition,
         actor: &ActorTicket,
     ) -> Result<(), ForgeError> {
-        let (_, fingerprint) = self.forge_payload(definition)?;
-        if actor.schema_version != 1
-            || self.safe_forge_id(&actor.actor_id).is_none()
-            || actor.version_number != definition.version_number
-            || actor.definition_sha256 != fingerprint
-        {
+        self.forge_payload(definition)?;
+        actor.validate_for(definition)?;
+        if self.contains_credential(&actor.actor_id) {
             return Err(failure(
                 ForgeErrorKind::TicketMismatch,
                 ForgeStage::Configuration,
