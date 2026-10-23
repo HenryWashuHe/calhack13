@@ -2,6 +2,12 @@
 //! metadata. Dataset contents remain untrusted. This is not organization authority.
 #![doc = include_str!("../README.md")]
 
+mod forge;
+pub use forge::{
+    ActorDefinition, ActorTicket, BuildTicket, BuiltActor, ForgeError, ForgeErrorKind, ForgeStage,
+    SourceFile,
+};
+
 use genesis_verification::{
     decode_json, json_sha256, ArtifactPin, ExecutionEvidence, RunStatus, SourceSnapshot,
 };
