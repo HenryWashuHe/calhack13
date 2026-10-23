@@ -79,6 +79,18 @@ pub fn user_message(
     observation: &Observation,
     specialists: &[KnownSpecialist],
 ) -> String {
+    user_message_with(state, observation, specialists, &[])
+}
+
+/// As [`user_message`], plus the capability names the server's trusted gap
+/// policy can act on. A request under any other name is refused by policy, so
+/// when names are known the model is told to use one of them.
+pub fn user_message_with(
+    state: &OrgState,
+    observation: &Observation,
+    specialists: &[KnownSpecialist],
+    requestable: &[String],
+) -> String {
     let mut s = String::new();
     let mission = state.missions.get(&observation.mission_id);
     let _ = writeln!(s, "## Mission");
@@ -261,6 +273,15 @@ pub fn user_message(
                 g.capability_id, g.role_id, g.responsibility_id, g.requirement_id
             );
         }
+    }
+
+    if !requestable.is_empty() {
+        let _ = writeln!(s, "\n## Requestable capability names (operator policy)");
+        let _ = writeln!(
+            s,
+            "Only these capability_id values can be acquired or adopted here: {}. If you use RequestCapability, use one of them; if none fits the need, do not request a capability.",
+            requestable.join(", ")
+        );
     }
 
     let _ = writeln!(s, "\n## Known external specialists");
