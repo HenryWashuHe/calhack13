@@ -62,8 +62,17 @@ fn push(report: &mut HistoryAudit, revision: u64, invariant: &'static str, detai
 }
 
 /// Audit every snapshot and event in `store`.
+///
+/// A file-backed store is audited through its own read-only connection, so
+/// the whole-history replay (seconds on a long history) never holds the
+/// shared connection that kernel commits, workers and routes wait on. WAL
+/// readers neither block nor are blocked by the writer. Only an in-memory
+/// store, which has no file to reopen, is audited under the shared lock.
 pub fn audit_history(store: &Store) -> StoreResult<HistoryAudit> {
-    audit_connection(&store.lock(), store.org_id())
+    match store.path() {
+        Some(path) => audit_database(path, store.org_id()),
+        None => audit_connection(&store.lock(), store.org_id()),
+    }
 }
 
 /// Audit an organization database file, opened read-only.
@@ -173,4 +182,30 @@ fn audit_snapshot(conn: &Connection, org_id: &OrgId) -> StoreResult<HistoryAudit
         }
     }
     Ok(report)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::Duration;
+
+    #[test]
+    fn file_backed_audit_does_not_wait_for_the_shared_connection() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = Store::open(dir.path().join("org.sqlite"), OrgId::new("org_a")).unwrap();
+        // Anything holding the shared connection (a commit, a worker, a route).
+        let guard = store.lock();
+        let (tx, rx) = std::sync::mpsc::channel();
+        let reader = store.clone();
+        std::thread::spawn(move || {
+            let _ = tx.send(audit_history(&reader).map(|r| r.org_id));
+        });
+        let got = rx.recv_timeout(Duration::from_secs(10));
+        drop(guard);
+        assert!(
+            matches!(&got, Ok(Ok(org)) if org == "org_a"),
+            "audit waited on the shared connection: {:?}",
+            got.map(|r| r.is_ok())
+        );
+    }
 }
