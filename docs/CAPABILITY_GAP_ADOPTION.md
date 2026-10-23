@@ -37,7 +37,9 @@ adopted build). `adopt.json` is trusted operator configuration:
 have a different ID; B's suite decides whether it serves the need.
 `synthesis_fallback` lets a definitive empty search hand the gap to the gap
 driver (which must be configured separately). Without it the gap stops at
-attention.
+attention. The empty result belongs to the frozen grant: if the assignment or
+epoch has changed since (even for the same role), the gap is refused on
+authority instead, and nothing is handed to synthesis.
 
 ## What it does
 
