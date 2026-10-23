@@ -395,10 +395,9 @@ pub async fn serve_org(app: AppState, listener: TcpListener) -> anyhow::Result<(
         .gap_finalization_policy
         .is_some()
         .then(|| AbortWorker(capability_gap_finalizer::spawn(app.clone())));
-    let _gap_adoption = app
-        .gap_adoption_policy
-        .is_some()
-        .then(|| AbortWorker(capability_gap_adoption::spawn(app.clone())));
+    // Always runs: frozen adopt-first intents finish even if the policy is
+    // later removed (the driver keeps deferring their gaps until they do).
+    let _gap_adoption = AbortWorker(capability_gap_adoption::spawn(app.clone()));
     let _specialist_worker =
         specialist::spawn(app.clone(), Duration::from_millis(500)).map(AbortWorker);
     let _outbox_worker = AbortWorker(outbox::spawn(app.clone()));
