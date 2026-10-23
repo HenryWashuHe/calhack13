@@ -399,3 +399,81 @@ fn pending_validates_the_stored_digest_before_returning_an_outgoing_float() {
     // immutable send digest still distinguishes the attempted substitution.
     assert!(store.pending(at()).is_err());
 }
+
+fn legacy_float_drift(store: &RuntimeStore, dir: &tempfile::TempDir, drift_outbox: bool) {
+    let input: Value = serde_json::from_str(&format!("{{\"x\":{LOSSY}}}")).unwrap();
+    store
+        .prepare(PEER, task_with(5, input.clone()), at())
+        .unwrap();
+    let adjacent = json!(f64::from_bits(input["x"].as_f64().unwrap().to_bits() + 1));
+    change_cached(dir, |cached| {
+        cached["tasks"][id(5)]["request"]["body"]["task"]["input"]["x"] = adjacent.clone()
+    });
+    if drift_outbox {
+        let db = rusqlite::Connection::open(dir.path().join("fetch.sqlite")).unwrap();
+        let raw: String = db
+            .query_row("SELECT data FROM fetch_outbox WHERE id=?1", [id(5)], |row| {
+                row.get(0)
+            })
+            .unwrap();
+        let mut raw: Value = serde_json::from_str(&raw).unwrap();
+        raw["body"]["task"]["input"]["x"] = adjacent;
+        db.execute(
+            "UPDATE fetch_outbox SET data=?1 WHERE id=?2",
+            rusqlite::params![raw.to_string(), id(5)],
+        )
+        .unwrap();
+    }
+}
+
+#[test]
+fn review_float_drift_in_a_fenced_task_does_not_block_its_release() {
+    for drift_outbox in [false, true] {
+        let (dir, store) = store();
+        legacy_float_drift(&store, &dir, drift_outbox);
+        drop(store);
+        let reopened = RuntimeStore::open(dir.path().join("fetch.sqlite"), "org-a", BRIDGE).unwrap();
+        assert!(
+            reopened.pending(at()).is_err(),
+            "eligible drift must be refused"
+        );
+        let release = message(
+            20,
+            Body::ReleaseContract {
+                reason: "Stop work".into(),
+            },
+        );
+        reopened.prepare(PEER, release.clone(), at()).unwrap();
+        let sends = reopened
+            .pending(at())
+            .expect("fenced task must not block release");
+        assert_eq!(sends.len(), 1);
+        assert_eq!(sends[0].message, release);
+    }
+}
+
+#[test]
+fn review_float_drift_in_an_expired_task_does_not_block_another_contract() {
+    for drift_outbox in [false, true] {
+        for elapsed in [6, 11] {
+            let (dir, store) = store();
+            legacy_float_drift(&store, &dir, drift_outbox);
+            drop(store);
+            let reopened =
+                RuntimeStore::open(dir.path().join("fetch.sqlite"), "org-a", BRIDGE).unwrap();
+            let now = at() + Duration::minutes(elapsed);
+            // Six minutes expires the task deadline; eleven also expires its message.
+            let mut fresh = recruit();
+            fresh.message_id = id(20);
+            fresh.contract_id = "contract-b".into();
+            fresh.correlation_id = "correlation-b".into();
+            fresh.expires_at = now + Duration::minutes(10);
+            reopened.prepare(PEER, fresh.clone(), now).unwrap();
+            let sends = reopened
+                .pending(now)
+                .expect("expired task must not block other work");
+            assert_eq!(sends.len(), 1);
+            assert_eq!(sends[0].message, fresh);
+        }
+    }
+}
