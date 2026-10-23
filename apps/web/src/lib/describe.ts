@@ -66,7 +66,9 @@ export function describe(ev: DomainEvent, state: OrgState | null): Described {
     case "provisioning_failed":
       return {
         title: "Provisioning failed",
-        detail: `${ev.payload.role_key}: ${ev.payload.error}`,
+        detail:
+          `${ev.payload.role_key}: ${ev.payload.error}` +
+          (ev.payload.provider_agent_id ? ` (agent ${ev.payload.provider_agent_id} retained for cleanup)` : ""),
         category: "organization",
         refs: [ev.payload.change_id],
         tone: "bad",

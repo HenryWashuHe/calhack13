@@ -4,7 +4,7 @@
 
 GENESIS changes the organization a mission needs: it creates and recruits specialist agents, transfers responsibilities, develops missing executable capabilities, and lets independent organizations inherit verified capabilities.
 
-This repository currently contains the research, technical specification, provider contracts, and team workstreams. Application implementation has not started. Provider APIs have been checked against official documentation; authenticated integration checks are still pending.
+The Rust capability implementation now creates source-bearing Actors, resumes pinned builds and runs, verifies results against an independent oracle, and checkpoints the forge across process restarts. A runnable TypeScript scaffold supplies the extraction runtime. Kernel and UI integration are separate active workstreams; authenticated provider smoke tests are still pending.
 
 ## Start here
 
@@ -12,6 +12,17 @@ This repository currently contains the research, technical specification, provid
 2. [Team workstreams](docs/TEAM_WORKSTREAMS.md) — four parallel workstreams and integration milestones.
 3. [Provider contracts](docs/PROVIDER_CONTRACTS.md) — documented APIs and the smoke tests that must pass first.
 4. [Research report](GENESIS-organization-evolution-research.md) — competitive research, sponsor division, risks, and demo design.
+5. [Capability forge integration](docs/FORGE_INTEGRATION.md) — runnable commands, source packaging, checkpoint recovery, and the kernel boundary.
+
+## Run the capability checks
+
+With Rust 1.94 or newer (including rustfmt and Clippy) and Node.js 24 or newer:
+
+```sh
+bash scripts/check-capability-core.sh
+```
+
+These checks use loopback provider simulations and the actual Apify SDK with local storage. They do not claim a live cloud build or AI source generation. See the integration guide for the durable CLI and the remaining live gates.
 
 ## Stack decision
 
@@ -24,7 +35,7 @@ This repository currently contains the research, technical specification, provid
 | Generated Apify Actors | TypeScript with a fixed build scaffold |
 | Fetch agent transport | A small Python uAgents sidecar behind a typed local API |
 
-Rust is the core implementation language. The Fetch sidecar keeps the official Python SDK isolated from the organization kernel. Elastic, Apify, and CREAO integrations use HTTP. Exact dependency versions will be pinned when implementation begins.
+Rust is the core implementation language. The Fetch sidecar keeps the official Python SDK isolated from the organization kernel. Elastic, Apify, and CREAO integrations use HTTP. The implemented crates and Actor scaffold include dependency lockfiles.
 
 ## Sponsor responsibilities
 
@@ -42,4 +53,4 @@ The fixture environment and reservations are simulated. Provider agent creation,
 
 ## Working together
 
-Choose a workstream in the team document before implementation. Define shared Rust types and JSON contracts first, then implement adapters against those contracts. Use feature branches and pull requests; keep provider credentials and raw runtime logs out of Git. There are no application start commands or passing test claims yet.
+Consult the [handoff record](docs/AGENT_HANDOFF.md) before changing an active workstream. Use feature branches and pull requests; keep provider credentials and raw runtime logs out of Git. Commit and push working increments so teammates on other machines can integrate them.
