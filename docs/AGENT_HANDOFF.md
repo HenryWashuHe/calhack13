@@ -8,7 +8,8 @@ Updated: October 21, 2026.
 | --- | --- | --- |
 | Organization kernel, shared runtime contracts, database and application API | Claude | Assigned; no takeover recorded |
 | UI | Claude | Assigned; unchanged by the kernel fallback |
-| `crates/genesis-verification`, `crates/genesis-apify` and their checks | Codex | Implemented and pushed in [PR #1](https://github.com/HenryWashuHe/genesis/pull/1) |
+| `crates/genesis-verification`, `crates/genesis-apify` and their checks | Codex | Initial implementation merged in [PR #1](https://github.com/HenryWashuHe/genesis/pull/1) |
+| `crates/genesis-forge`, `actors/venue-extractor-template`, capability scripts/docs | Codex | Source/build/runtime and durable coordinator work in [PR #2](https://github.com/HenryWashuHe/genesis/pull/2), branch `codex/capability-forge` |
 
 The user has explicitly authorized **Codex to implement the kernel if Claude
 exhausts its credits**. No further user approval is needed for that conditional
@@ -32,20 +33,38 @@ component concurrently; it does not add an approval step.
 
 ## Kernel handoff record
 
-- **State:** Claude owns kernel; fallback authorized, not activated.
-- **Kernel branch / latest commit:** To be recorded by the kernel owner.
-- **Files currently being changed:** To be recorded by the kernel owner.
-- **Completed behavior:** To be recorded by the kernel owner.
-- **Checks run and failures:** To be recorded by the kernel owner.
-- **Next implementation steps:** To be recorded by the kernel owner.
-- **Unpushed work or recovery notes:** To be recorded by the kernel owner.
+- **State:** Claude owns kernel and UI; fallback authorized, not activated. Recorded October 21, 2026.
+- **Kernel branch / latest commit:** `feat/kernel-ui`, code checkpoint `4383315` (main merged in; this record is the commit after it). No PR opened yet.
+- **Files currently being changed:** root `Cargo.toml`/`Cargo.lock`, `crates/genesis-core`, `crates/genesis-providers`, `crates/genesis-server`, `schemas/`, `apps/web`, `scripts/dev-scenario.mjs`, `docs/DEV.md`. Codex-owned crates are untouched except that they are now workspace members.
+- **Completed behavior:**
+  - `genesis-core` (pure, no I/O): typed IDs, explicit lifecycle tables, `OrgState`, the TECH_SPEC §5 mutation vocabulary, validate/commit with invariants (unique accountability, constitution-bounded authority, retirement handoff, epoch fencing, exact capability versions), capability manifests with a publication bar, domain events.
+  - `genesis-providers`: `RoleProvisioner` and `CapabilityExecutor` traits, a labeled `DevStub` (bindings `provider: dev_stub`, IDs `devstub-<provider>-…`), `FailingProvisioner`.
+  - `genesis-server` (`genesis` binary): Axum routes from TECH_SPEC §10, SQLite snapshots per revision with events/outbox in one transaction, organization-change saga that persists each provider binding before advancing and resumes after restart, outbox worker, SSE with `Last-Event-ID`, operator/agent/adapter tokens, separate capability registry process, `genesis dev` (registry + Org A + Org B).
+  - `apps/web`: console with mission, organization tree (pending roles hatched, retired roles kept, revision scrubber) and evidence log; types generated from `schemas/`.
+- **Checks run and failures:** `cargo test --workspace` 122 passed (49 kernel + 73 capability), `cargo clippy --workspace --all-targets -- -D warnings` clean, `scripts/check-capability-core.sh` passes, `apps/web` vitest 7 passed and `vite build` succeeds. `node scripts/dev-scenario.mjs` completes the full A → B cycle against dev stubs. No live provider calls have been made.
+- **Next implementation steps:**
+  1. Implement `CapabilityExecutor` with `genesis-apify` (pinned build, persisted run tickets) and replace the registry's own `VerificationReport` checks with `genesis-verification` acceptance evidence when publishing and when Org B runs local acceptance.
+  2. Replace keyword registry search with Elastic retrieval; add real `RoleProvisioner`s for Elastic, CREAO and the Fetch bridge as those workstreams land.
+  3. UI: show verification evidence and Apify run tickets on capability rows.
+- **Unpushed work or recovery notes:** None once this branch is pushed. Start with `docs/DEV.md`. Kernel entry points: `crates/genesis-core/src/engine.rs` (rules), `crates/genesis-server/src/saga.rs` (change lifecycle), `crates/genesis-server/src/routes/`.
 
 ## Available capability implementation
 
-Branch: `codex/capability-verification`; implementation checkpoint: `6ea6e3d`.
-The [integration guide](VERIFICATION_INTEGRATION.md) describes the Rust APIs,
-oracle/receipt boundaries and persistable Apify run tickets. Run
-`bash scripts/check-capability-core.sh` for local validation. The implementation
-passes 72 tests and one compiled documentation example, plus formatting and
-Clippy. Live Apify smoke testing is still pending; hosted CI needs workflow-write
-permission. Kernel persistence and organization authority remain kernel work.
+The initial verification and execution implementation is on main at merge
+`dbb17f3`. [PR #2](https://github.com/HenryWashuHe/genesis/pull/2) adds Actor source
+upload, source-checked builds, the TypeScript runtime and a checkpointed Rust
+forge. The [forge guide](FORGE_INTEGRATION.md) describes the new source-to-result
+path; the [verification guide](VERIFICATION_INTEGRATION.md) describes the oracle
+and execution receipt boundary.
+
+Run `bash scripts/check-capability-core.sh` for local validation. PR descriptions
+record the latest check counts and limitations. Live Apify smoke testing is still
+pending; hosted CI needs workflow-write permission. Codex is not editing kernel
+models, SQLite/outbox state, Elastic integration or UI in this branch. The kernel
+must persist sessions before effects, enforce budgets and leases, publish approved
+packages, and decide whether to install them in either organization.
+
+The [kernel integration checkpoint](KERNEL_CAPABILITY_HANDOFF.md) records a passing
+temporary combined workspace (181 tests plus one documentation example), required
+executor/report wiring, and two optional JSON feature-unification findings for
+Claude. This is not a kernel ownership transfer.
