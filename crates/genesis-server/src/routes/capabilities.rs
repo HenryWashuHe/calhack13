@@ -485,6 +485,13 @@ pub async fn checks(
     p.require(&[Principal::Operator])?;
     let id = InstallationId::new(id);
     let _guard = app.kernel.lock().await;
+    if crate::capability_gap_finalizer::owns_installation(&app.store, &id) {
+        return Err(ApiError::new(
+            StatusCode::CONFLICT,
+            "gap_finalizer_owned",
+            "this installation's checks belong to its capability gap finalization",
+        ));
+    }
     let state = app.current_state()?;
     let plan = plan_checks(&app, &state, &id, &body, None)?;
     let status = if plan.prepared.is_empty() {
@@ -599,6 +606,13 @@ pub async fn acceptance(
             StatusCode::CONFLICT,
             "adoption_owned",
             "advance the adoption intent to commit its acceptance",
+        ));
+    }
+    if crate::capability_gap_finalizer::owns_installation(&app.store, &id) {
+        return Err(ApiError::new(
+            StatusCode::CONFLICT,
+            "gap_finalizer_owned",
+            "this installation's acceptance belongs to its capability gap finalization",
         ));
     }
     let state = app.current_state()?;

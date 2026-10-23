@@ -22,6 +22,7 @@ pub struct ScenarioVenueMonitoring {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ScenarioMonitoringReport {
+    pub subscription_id: String,
     pub provider_agent_id: String,
     pub monitor_role_id: String,
     pub policy_sha256: String,
@@ -82,6 +83,234 @@ enum Decision {
     Accepted,
     SemanticRejected,
     AuthorityRejected,
+}
+
+#[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+struct SubscriptionRequest {
+    client_request_id: String,
+    role_id: String,
+    responsibility_id: String,
+    source_job_id: String,
+    policy: VenueAssessmentPolicy,
+    expires_at: DateTime<Utc>,
+    max_assessments: u16,
+}
+
+#[derive(Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum SubscriptionStatus {
+    Active,
+    Attention,
+    Completed,
+    Stopped,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SubscriptionResponse {
+    monitor_id: String,
+    request: SubscriptionRequest,
+    status: SubscriptionStatus,
+    attention: Option<String>,
+    assessment_count: usize,
+    pending_source_job_id: Option<String>,
+    pending_assessment_id: Option<String>,
+    last_assessment_id: Option<String>,
+    requirement_id: Option<String>,
+    installation_id: String,
+    suite_id: String,
+    suite_sha256: String,
+    acceptance_report_ref: String,
+    event_cursor: u64,
+}
+
+struct Subscription {
+    id: String,
+    request: SubscriptionRequest,
+    installation_id: String,
+    suite_id: String,
+    suite_sha256: String,
+    acceptance_report_ref: String,
+    cursor: u64,
+}
+
+impl Subscription {
+    fn stopped(&self, reason: &'static str) -> ScenarioError {
+        ScenarioError::Observation {
+            kind: "venue monitor subscription",
+            id: self.id.clone(),
+            reason,
+        }
+    }
+
+    /// Correlate scheduling metadata only. A child still needs the independent
+    /// assessment proof, saved job and historical-effect checks below.
+    fn observe(
+        &mut self,
+        record: &SubscriptionResponse,
+        source: &InvocationProofResponse,
+        previous: Option<&str>,
+    ) -> Result<Option<String>> {
+        if record.monitor_id != self.id
+            || !safe_id(&record.monitor_id)
+            || record.request != self.request
+            || record.installation_id != self.installation_id
+            || record.suite_id != self.suite_id
+            || record.suite_sha256 != self.suite_sha256
+            || record.acceptance_report_ref != self.acceptance_report_ref
+            || record.event_cursor < self.cursor
+            || !(1..=2).contains(&record.assessment_count)
+            || [
+                record.pending_source_job_id.as_deref(),
+                record.pending_assessment_id.as_deref(),
+                record.last_assessment_id.as_deref(),
+                record.requirement_id.as_deref(),
+            ]
+            .into_iter()
+            .flatten()
+            .any(|id| !safe_id(id))
+        {
+            return Err(self.stopped("subscription binding changed"));
+        }
+        self.cursor = record.event_cursor;
+        if matches!(
+            record.status,
+            SubscriptionStatus::Attention | SubscriptionStatus::Stopped
+        ) {
+            return Err(self.stopped(
+                "subscription stopped or requires operator attention; inspect retained child IDs",
+            ));
+        }
+        if record.status == SubscriptionStatus::Active && record.attention.is_some() {
+            return Err(self.stopped("active subscription retains attention"));
+        }
+        let count = if previous.is_some() { 2 } else { 1 };
+        if previous.is_some() && record.assessment_count == 1 {
+            if record.status != SubscriptionStatus::Active
+                || record.pending_source_job_id.is_some()
+                || record.pending_assessment_id.is_some()
+                || record.last_assessment_id.as_deref() != previous
+                || record.requirement_id.is_some()
+            {
+                return Err(self.stopped("subscription baseline checkpoint changed"));
+            }
+            return Ok(None);
+        }
+        if record.assessment_count != count {
+            return Err(self.stopped("subscription consumed an unexpected source"));
+        }
+        if let Some(pending) = &record.pending_source_job_id {
+            if pending != &source.job_id
+                || record.status != SubscriptionStatus::Active
+                || record.last_assessment_id.as_deref() != previous
+                || record.requirement_id.is_some()
+                || record
+                    .pending_assessment_id
+                    .as_deref()
+                    .is_some_and(|id| Some(id) == previous)
+            {
+                return Err(self.stopped("subscription pending source or child changed"));
+            }
+            return Ok(record.pending_assessment_id.clone());
+        }
+        if record.pending_assessment_id.is_some()
+            || record.last_assessment_id.is_none()
+            || record.last_assessment_id.as_deref() == previous
+            || match previous {
+                None => {
+                    record.status != SubscriptionStatus::Active || record.requirement_id.is_some()
+                }
+                Some(_) => {
+                    record.status != SubscriptionStatus::Completed
+                        || record.attention.as_deref() != Some("replacement_requirement_created")
+                        || record.requirement_id.is_none()
+                }
+            }
+        {
+            return Err(self.stopped("subscription completion is inconsistent"));
+        }
+        Ok(record.last_assessment_id.clone())
+    }
+}
+
+async fn subscription_record(
+    driver: &ScenarioDriver,
+    subscription: &Subscription,
+) -> Result<SubscriptionResponse> {
+    decode(
+        driver
+            .get(
+                &driver.b,
+                &format!("/venue-monitors/{}", subscription.id),
+                "observe venue monitor subscription",
+            )
+            .await
+            .map_err(|_| {
+                subscription
+                    .stopped("subscription status read failed; authorized server work may continue")
+            })?,
+        "venue monitor subscription",
+    )
+}
+
+async fn await_child(
+    driver: &ScenarioDriver,
+    subscription: &mut Subscription,
+    source: &InvocationProofResponse,
+    previous: Option<&str>,
+) -> Result<String> {
+    for poll in 0..driver.limits.max_polls {
+        if poll > 0 {
+            tokio::time::sleep(driver.limits.poll_interval).await;
+        }
+        let record = subscription_record(driver, subscription).await?;
+        if let Some(id) = subscription.observe(&record, source, previous)? {
+            return Ok(id);
+        }
+    }
+    Err(subscription
+        .stopped("subscription child polling limit reached; authorized server work may continue"))
+}
+
+async fn await_settled(
+    driver: &ScenarioDriver,
+    subscription: &mut Subscription,
+    source: &InvocationProofResponse,
+    previous: Option<&str>,
+    assessment: &ScenarioAssessmentReport,
+) -> Result<()> {
+    for poll in 0..driver.limits.max_polls {
+        if poll > 0 {
+            tokio::time::sleep(driver.limits.poll_interval).await;
+        }
+        let record = subscription_record(driver, subscription).await?;
+        let child = subscription.observe(&record, source, previous)?;
+        if child
+            .as_deref()
+            .is_some_and(|id| id != assessment.assessment_id)
+        {
+            return Err(subscription.stopped("subscription selected a different assessment"));
+        }
+        if record.pending_source_job_id.is_none() && child.is_some() {
+            if record.last_assessment_id.as_deref() != Some(assessment.assessment_id.as_str())
+                || record.requirement_id != assessment.requirement_id
+            {
+                return Err(
+                    subscription.stopped("subscription effects differ from the accepted proof")
+                );
+            }
+            return Ok(());
+        }
+    }
+    Err(subscription.stopped(
+        "subscription completion polling limit reached; authorized server work may continue",
+    ))
+}
+
+struct AssessmentTarget {
+    id: String,
+    deadline: DateTime<Utc>,
 }
 
 struct Monitor {
@@ -399,34 +628,24 @@ fn validate_effects(
 
 async fn assess(
     driver: &ScenarioDriver,
-    spec: &ScenarioSpec,
     work: &Work,
     frozen: &Monitor,
     source: &InvocationProofResponse,
     policy: &VenueAssessmentPolicy,
     verdict: AssessmentVerdict,
+    target: &AssessmentTarget,
 ) -> Result<ScenarioAssessmentReport> {
     frozen.unchanged(&driver.state(&driver.b).await?, work, Utc::now())?;
-    // Generated once, never regenerated for a retry of this exact request key.
-    let deadline = Utc::now() + chrono::Duration::minutes(30);
-    let key = match verdict {
-        AssessmentVerdict::Feasible => "monitor-baseline",
-        AssessmentVerdict::Reopen => "monitor-reassessment",
-    };
+    let deadline = target.deadline;
     let initial = driver
-        .post(
+        .get(
             &driver.b,
-            "/venue-assessments",
-            json!({
-                "client_request_id": format!("{}-{key}", spec.run_id), "role_id": frozen.role_id,
-                "responsibility_id": frozen.responsibility_id, "source_job_id": source.job_id,
-                "policy": policy, "deadline": deadline,
-            }),
-            "request persistent venue assessment",
+            &format!("/venue-assessments/{}", target.id),
+            "read subscription assessment",
         )
         .await?;
     let mut record: AssessmentResponse = decode(initial, "venue assessment response")?;
-    let id = record.assessment_id.clone();
+    let id = target.id.clone();
     let job_id = record.job_id.clone();
     let expected = Expected {
         id: &id,
@@ -436,9 +655,9 @@ async fn assess(
         source,
         verdict,
     };
-    // The initial POST response costs no poll. Observe every permitted GET,
+    // The first child GET uses the first poll. Observe every permitted GET,
     // including the last one, before reporting exhaustion.
-    for polls in 0..=driver.limits.max_polls {
+    for polls in 1..=driver.limits.max_polls {
         if observe(&record, &expected)? {
             let persisted: AssessmentResponse = decode(
                 driver
@@ -548,16 +767,60 @@ pub(super) async fn run(
     let ledger = driver
         .get(&driver.b, "/ledger", "read pre-assessment commitments")
         .await?;
-    let baseline = assess(
+    // A timestamp from this backend avoids using client clock skew to infer
+    // the child deadline. Both intents are prepared later, so their capped
+    // deadline must equal this one common subscription expiration.
+    let expires_at = baseline.verified_at + chrono::Duration::minutes(30);
+    if expires_at <= Utc::now() {
+        return Err(bad("baseline is too old to register monitoring"));
+    }
+    let request = SubscriptionRequest {
+        client_request_id: format!("{}-venue-monitor", spec.run_id),
+        role_id: frozen.role_id.clone(),
+        responsibility_id: frozen.responsibility_id.clone(),
+        source_job_id: baseline.job_id.clone(),
+        policy: config.policy.clone(),
+        expires_at,
+        max_assessments: 2,
+    };
+    // A lost registration response is ambiguous. Never retry this POST or
+    // restart the fresh-only scenario against populated organizations.
+    let registered: SubscriptionResponse = decode(
+        driver
+            .post(
+                &driver.b,
+                "/venue-monitors",
+                json!(request),
+                "register persistent venue monitor",
+            )
+            .await?,
+        "venue monitor registration",
+    )?;
+    let mut subscription = Subscription {
+        id: registered.monitor_id.clone(),
+        request,
+        installation_id: baseline.installation_id.clone(),
+        suite_id: baseline.suite_id.clone(),
+        suite_sha256: baseline.suite_sha256.clone(),
+        acceptance_report_ref: baseline.acceptance_report_ref.clone(),
+        cursor: registered.event_cursor,
+    };
+    subscription.observe(&registered, baseline, None)?;
+    let baseline_id = await_child(driver, &mut subscription, baseline, None).await?;
+    let baseline_report = assess(
         driver,
-        spec,
         work,
         &frozen,
         baseline,
         &config.policy,
         AssessmentVerdict::Feasible,
+        &AssessmentTarget {
+            id: baseline_id,
+            deadline: expires_at,
+        },
     )
     .await?;
+    await_settled(driver, &mut subscription, baseline, None, &baseline_report).await?;
     let updated_context = InvocationContext {
         input: &config.updated_invocation_input,
         ..*invocation
@@ -571,16 +834,35 @@ pub(super) async fn run(
             Some(&suite_sha256),
         )
         .await?;
+    let updated_id = await_child(
+        driver,
+        &mut subscription,
+        &updated_source,
+        Some(&baseline_report.assessment_id),
+    )
+    .await?;
     let updated = assess(
         driver,
-        spec,
         work,
         &frozen,
         &updated_source,
         &config.policy,
         AssessmentVerdict::Reopen,
+        &AssessmentTarget {
+            id: updated_id,
+            deadline: expires_at,
+        },
     )
     .await?;
+    await_settled(
+        driver,
+        &mut subscription,
+        &updated_source,
+        Some(&baseline_report.assessment_id),
+        &updated,
+    )
+    .await?;
+    let baseline = baseline_report;
     if baseline.assessment_id == updated.assessment_id
         || baseline.job_id == updated.job_id
         || baseline.source_job_id == updated.source_job_id
@@ -600,6 +882,7 @@ pub(super) async fn run(
         return Err(bad("monitoring unexpectedly changed commitments"));
     }
     Ok(ScenarioMonitoringReport {
+        subscription_id: subscription.id,
         provider_agent_id: frozen.binding.provider_agent_id,
         monitor_role_id: monitor_id.into(),
         policy_sha256: json_sha256(&json!(config.policy)),
@@ -1066,6 +1349,203 @@ mod tests {
         assert!(validate_effects(&state, f.response().proof.as_ref().unwrap(), &expected).is_err());
     }
 
+    fn subscription_fixture(f: &Fixture) -> (Subscription, Value) {
+        let request = SubscriptionRequest {
+            client_request_id: "scenario-monitor".into(),
+            role_id: "monitor".into(),
+            responsibility_id: "responsibility".into(),
+            source_job_id: f.source.job_id.clone(),
+            policy: f.policy.clone(),
+            expires_at: f.now + chrono::Duration::minutes(30),
+            max_assessments: 2,
+        };
+        let subscription = Subscription {
+            id: "monitor_subscription".into(),
+            request: request.clone(),
+            installation_id: f.source.installation_id.clone(),
+            suite_id: f.source.suite_id.clone(),
+            suite_sha256: f.source.suite_sha256.clone(),
+            acceptance_report_ref: f.source.acceptance_report_ref.clone(),
+            cursor: 20,
+        };
+        let record = json!({
+            "monitor_id":subscription.id,"request":request,"status":"active","attention":null,"assessment_count":1,
+            "pending_source_job_id":f.source.job_id,"pending_assessment_id":null,"last_assessment_id":null,"requirement_id":null,
+            "installation_id":f.source.installation_id,"suite_id":f.source.suite_id,"suite_sha256":f.source.suite_sha256,
+            "acceptance_report_ref":f.source.acceptance_report_ref,"event_cursor":20,
+        });
+        (subscription, record)
+    }
+
+    #[test]
+    fn subscription_preserves_both_source_cycles_and_requires_replacement_completion() {
+        let f = Fixture::new(AssessmentVerdict::Feasible);
+        let (mut subscription, mut value) = subscription_fixture(&f);
+        let response =
+            |value: &Value| serde_json::from_value::<SubscriptionResponse>(value.clone()).unwrap();
+        assert_eq!(
+            subscription
+                .observe(&response(&value), &f.source, None)
+                .unwrap(),
+            None
+        );
+        value["pending_assessment_id"] = json!("assessment_baseline");
+        assert_eq!(
+            subscription
+                .observe(&response(&value), &f.source, None)
+                .unwrap()
+                .as_deref(),
+            Some("assessment_baseline")
+        );
+        value["pending_source_job_id"] = Value::Null;
+        value["pending_assessment_id"] = Value::Null;
+        value["last_assessment_id"] = json!("assessment_baseline");
+        assert_eq!(
+            subscription
+                .observe(&response(&value), &f.source, None)
+                .unwrap()
+                .as_deref(),
+            Some("assessment_baseline")
+        );
+        let mut updated = Fixture::new(AssessmentVerdict::Reopen).source;
+        updated.job_id = "source_updated".into();
+        assert_eq!(
+            subscription
+                .observe(&response(&value), &updated, Some("assessment_baseline"))
+                .unwrap(),
+            None
+        );
+        value["assessment_count"] = json!(2);
+        value["event_cursor"] = json!(30);
+        value["pending_source_job_id"] = json!("source_updated");
+        value["pending_assessment_id"] = json!("assessment_updated");
+        assert_eq!(
+            subscription
+                .observe(&response(&value), &updated, Some("assessment_baseline"))
+                .unwrap()
+                .as_deref(),
+            Some("assessment_updated")
+        );
+        let mut rebound = value.clone();
+        rebound["pending_assessment_id"] = json!("assessment_baseline");
+        assert!(subscription
+            .observe(&response(&rebound), &updated, Some("assessment_baseline"))
+            .is_err());
+        value["pending_source_job_id"] = Value::Null;
+        value["pending_assessment_id"] = Value::Null;
+        value["last_assessment_id"] = json!("assessment_updated");
+        value["status"] = json!("completed");
+        value["attention"] = json!("replacement_requirement_created");
+        value["requirement_id"] = json!("replacement");
+        assert_eq!(
+            subscription
+                .observe(&response(&value), &updated, Some("assessment_baseline"))
+                .unwrap()
+                .as_deref(),
+            Some("assessment_updated")
+        );
+        value["requirement_id"] = Value::Null;
+        value["attention"] = json!("assessment_limit_reached");
+        assert!(subscription
+            .observe(&response(&value), &updated, Some("assessment_baseline"))
+            .is_err());
+    }
+
+    /// Exercise the production subscription GET loop, including its final poll.
+    async fn subscription_sequence(
+        f: &Fixture,
+        replies: Vec<Value>,
+        max_polls: usize,
+    ) -> (Result<String>, Vec<String>) {
+        use axum::extract::{Request, State};
+        use axum::{Json, Router};
+        use std::collections::VecDeque;
+        use std::sync::{Arc, Mutex};
+        type Replies = Arc<Mutex<(VecDeque<Value>, Vec<String>)>>;
+        async fn reply(State(state): State<Replies>, request: Request) -> Json<Value> {
+            assert_eq!(request.method(), "GET");
+            assert_eq!(
+                request.uri().path(),
+                "/api/v1/venue-monitors/monitor_subscription"
+            );
+            let mut state = state.lock().unwrap();
+            state.1.push(request.method().to_string());
+            Json(
+                state
+                    .0
+                    .pop_front()
+                    .expect("unexpected extra subscription poll"),
+            )
+        }
+        let state = Arc::new(Mutex::new((replies.into(), vec![])));
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        let router = Router::new().fallback(reply).with_state(state.clone());
+        let server = tokio::spawn(async move { axum::serve(listener, router).await.unwrap() });
+        let driver = ScenarioDriver::new(
+            ScenarioEndpoint::new("https://unused.example", "fixture-operator").unwrap(),
+            ScenarioEndpoint::new(&format!("http://{address}"), "fixture-operator").unwrap(),
+            ScenarioLimits {
+                request_timeout: Duration::from_secs(2),
+                poll_interval: Duration::from_millis(1),
+                max_polls,
+                total_timeout: Duration::from_secs(5),
+                ..ScenarioLimits::default()
+            },
+        )
+        .unwrap();
+        let (mut subscription, _) = subscription_fixture(f);
+        let result = await_child(&driver, &mut subscription, &f.source, None).await;
+        server.abort();
+        let seen = state.lock().unwrap().1.clone();
+        (result, seen)
+    }
+
+    #[tokio::test]
+    async fn subscription_last_poll_returns_child_without_an_assessment_post() {
+        let f = Fixture::new(AssessmentVerdict::Feasible);
+        let (_, waiting) = subscription_fixture(&f);
+        let mut ready = waiting.clone();
+        ready["pending_assessment_id"] = json!("assessment_test");
+        let (result, seen) = subscription_sequence(&f, vec![waiting, ready], 2).await;
+        assert_eq!(result.unwrap(), "assessment_test");
+        assert_eq!(seen, vec!["GET", "GET"]);
+    }
+
+    #[tokio::test]
+    async fn subscription_attention_corruption_and_exhaustion_stop_without_replay() {
+        let f = Fixture::new(AssessmentVerdict::Feasible);
+        for (pointer, replacement) in [
+            ("/status", json!("attention")),
+            ("/status", json!("stopped")),
+            ("/assessment_count", json!(3)),
+            ("/event_cursor", json!(19)),
+            ("/request/source_job_id", json!("foreign")),
+            ("/suite_sha256", json!("9".repeat(64))),
+            ("/pending_source_job_id", json!("foreign")),
+            ("/installation_id", json!("foreign")),
+        ] {
+            let (_, mut record) = subscription_fixture(&f);
+            *record.pointer_mut(pointer).unwrap() = replacement;
+            let (result, seen) = subscription_sequence(&f, vec![record], 3).await;
+            assert!(result.is_err(), "{pointer} was accepted");
+            assert_eq!(
+                seen,
+                vec!["GET"],
+                "invalid subscription must not be retried"
+            );
+        }
+        let (_, waiting) = subscription_fixture(&f);
+        let (result, seen) = subscription_sequence(&f, vec![waiting.clone()], 1).await;
+        assert!(result.is_err());
+        assert_eq!(seen, vec!["GET"]);
+        let mut malformed = waiting;
+        malformed["caller_verified"] = json!(true);
+        let (result, seen) = subscription_sequence(&f, vec![malformed], 3).await;
+        assert!(result.is_err());
+        assert_eq!(seen, vec!["GET"]);
+    }
+
     /// Script only the organization HTTP API. This exercises the production
     /// assess loop and its persisted job/history reads, not native verification.
     async fn poll_sequence(
@@ -1079,7 +1559,6 @@ mod tests {
         use std::collections::VecDeque;
         use std::sync::{Arc, Mutex};
         struct Replies {
-            queued: Value,
             observations: VecDeque<Value>,
             last: Value,
             job: Value,
@@ -1097,18 +1576,10 @@ mod tests {
                 "Bearer fixture-operator"
             );
             let bytes = to_bytes(request.into_body(), 64 * 1024).await.unwrap();
-            let body: Value = if bytes.is_empty() {
-                Value::Null
-            } else {
-                serde_json::from_slice(&bytes).unwrap()
-            };
+            assert!(bytes.is_empty(), "child observation sends no body or POST");
             let mut state = shared.lock().unwrap();
             state.seen.push((method.clone(), path.clone()));
             let value = match (method.as_str(), path.as_str()) {
-                ("POST", "/api/v1/venue-assessments") => {
-                    state.job["deadline"] = body["deadline"].clone();
-                    state.queued.clone()
-                }
                 ("GET", "/api/v1/venue-assessments/assessment_test") => {
                     if let Some(next) = state.observations.pop_front() {
                         state.last = next;
@@ -1129,7 +1600,6 @@ mod tests {
         queued["finalization_attempts"] = json!(0);
         let shared = Arc::new(Mutex::new(Replies {
             last: queued.clone(),
-            queued,
             observations: observations.into(),
             job: json!(f.job()),
             org: json!(f.state),
@@ -1151,24 +1621,25 @@ mod tests {
             },
         )
         .unwrap();
-        let spec: ScenarioSpec =
-            serde_json::from_slice(include_bytes!("../../examples/scenario/mission.json")).unwrap();
         let frozen = f.frozen();
         let result = assess(
             &driver,
-            &spec,
             &f.work,
             &frozen,
             &f.source,
             &f.policy,
             AssessmentVerdict::Feasible,
+            &AssessmentTarget {
+                id: "assessment_test".into(),
+                deadline: f.now + chrono::Duration::minutes(30),
+            },
         )
         .await;
         server.abort();
         let seen = shared.lock().unwrap().seen.clone();
         assert_eq!(
             seen.iter().filter(|(method, _)| method == "POST").count(),
-            1,
+            0,
             "observation must never recreate the assessment or manually verify it"
         );
         (result, seen)

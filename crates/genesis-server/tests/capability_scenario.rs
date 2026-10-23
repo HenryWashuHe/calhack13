@@ -113,7 +113,9 @@ impl OrgRequest {
             && (matches!(path.rsplit('/').next(), Some("step" | "verify"))
                 || matches!(
                     path,
-                    "/api/v1/capabilities/search" | "/api/v1/capability-installations"
+                    "/api/v1/capabilities/search"
+                        | "/api/v1/capability-installations"
+                        | "/api/v1/venue-assessments"
                 )
                 || (path.starts_with("/api/v1/capability-installations/")
                     && matches!(path.rsplit('/').next(), Some("checks" | "acceptance"))))
@@ -1135,6 +1137,57 @@ async fn assert_native_monitoring(fixture: &Fixture, report: &ScenarioReport) ->
         .as_ref()
         .expect("two assessments are required"));
     assert_eq!(monitoring["monitor_role_id"], report.monitor_role_id);
+    let subscription_id = monitoring["subscription_id"].as_str().unwrap();
+    let (status, subscription) =
+        get(&fixture.b, &format!("/venue-monitors/{subscription_id}")).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(subscription["monitor_id"], subscription_id);
+    assert_eq!(subscription["status"], "completed");
+    assert_eq!(subscription["attention"], "replacement_requirement_created");
+    assert_eq!(subscription["assessment_count"], 2);
+    assert!(subscription["pending_source_job_id"].is_null());
+    assert!(subscription["pending_assessment_id"].is_null());
+    assert_eq!(
+        subscription["last_assessment_id"],
+        monitoring["updated"]["assessment_id"]
+    );
+    assert_eq!(
+        subscription["requirement_id"],
+        monitoring["updated"]["requirement_id"]
+    );
+    assert_eq!(subscription["installation_id"], report.installation_b_id);
+    assert_eq!(
+        subscription["suite_sha256"],
+        json_sha256(&json!(monitoring_suite()))
+    );
+    assert_eq!(
+        subscription["request"]["source_job_id"],
+        report.continuation_run_b_id
+    );
+    assert_eq!(subscription["request"]["max_assessments"], 2);
+    assert_eq!(
+        subscription["request"]["policy"],
+        json!(monitoring_policy())
+    );
+    {
+        let requests = fixture.b.requests.lock().unwrap();
+        let registrations: Vec<_> = requests
+            .iter()
+            .filter(|r| r.method == "POST" && r.path == "/api/v1/venue-monitors")
+            .collect();
+        assert_eq!(
+            registrations.len(),
+            1,
+            "one registration owns both assessment cycles"
+        );
+        assert_eq!(registrations[0].body, subscription["request"]);
+        assert!(
+            requests
+                .iter()
+                .all(|r| r.method != "POST" || !r.path.starts_with("/api/v1/venue-assessments")),
+            "the driver must never create or verify a child assessment"
+        );
+    }
     assert_eq!(
         monitoring["policy_sha256"],
         json_sha256(&json!(monitoring_policy()))
@@ -1145,7 +1198,7 @@ async fn assert_native_monitoring(fixture: &Fixture, report: &ScenarioReport) ->
     assert_eq!(binding.provider, Provider::Creao);
     assert_eq!(monitoring["provider_agent_id"], binding.provider_agent_id);
     let specialist = fixture.providers.specialist();
-    let mut records = Vec::new();
+    let mut records = vec![subscription.clone()];
     let mut assignment = None;
     let mut native_runs = BTreeSet::new();
     for (index, label, verdict) in [
@@ -1183,6 +1236,7 @@ async fn assert_native_monitoring(fixture: &Fixture, report: &ScenarioReport) ->
             .get_job(&JobId::new(summary["job_id"].as_str().unwrap()))
             .unwrap();
         assert_eq!(job.role_id, role.role_id);
+        assert_eq!(json!(job.deadline), subscription["request"]["expires_at"]);
         let current = (job.assignment_id.clone(), job.epoch);
         if let Some(previous) = &assignment {
             assert_eq!(previous, &current)
