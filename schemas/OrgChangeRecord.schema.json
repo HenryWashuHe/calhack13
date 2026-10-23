@@ -1,0 +1,810 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "OrgChangeRecord",
+  "description": "A stored organization change with its lifecycle.",
+  "type": "object",
+  "required": [
+    "allocation",
+    "change_id",
+    "created_at",
+    "proposal",
+    "status",
+    "submitted_by",
+    "updated_at"
+  ],
+  "properties": {
+    "change_id": {
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/definitions/ChangeStatus"
+    },
+    "proposal": {
+      "$ref": "#/definitions/OrgChangeProposal"
+    },
+    "allocation": {
+      "$ref": "#/definitions/KeyAllocation"
+    },
+    "provisioned": {
+      "description": "Provider bindings obtained during provisioning, keyed by role key.",
+      "default": {},
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/AgentBinding"
+      }
+    },
+    "errors": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/ValidationError"
+      }
+    },
+    "committed_revision": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint64",
+      "minimum": 0.0
+    },
+    "submitted_by": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "definitions": {
+    "ChangeStatus": {
+      "description": "Organization-change lifecycle (TECH_SPEC §5).",
+      "type": "string",
+      "enum": [
+        "PROPOSED",
+        "VALIDATED",
+        "PROVISIONING",
+        "READY",
+        "COMMITTED",
+        "REJECTED",
+        "FAILED"
+      ]
+    },
+    "OrgChangeProposal": {
+      "description": "A structured, untrusted proposal to change the organization.",
+      "type": "object",
+      "required": [
+        "expected_org_revision",
+        "operations",
+        "rationale",
+        "trigger_evidence_ids"
+      ],
+      "properties": {
+        "expected_org_revision": {
+          "description": "Revision the proposer reasoned about. A mismatch is a conflict.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "trigger_evidence_ids": {
+          "description": "Observations that justify the change. Must be non-empty and known.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "rationale": {
+          "type": "string"
+        },
+        "operations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/OrgOp"
+          }
+        },
+        "budget_limit_cents": {
+          "description": "Optional cap on new budget this change may allocate.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0.0
+        }
+      }
+    },
+    "OrgOp": {
+      "description": "The mutation vocabulary. Names match TECH_SPEC §5.",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "authority",
+            "charter",
+            "justification",
+            "key",
+            "name",
+            "op",
+            "provider"
+          ],
+          "properties": {
+            "op": {
+              "type": "string",
+              "enum": [
+                "CreateRole"
+              ]
+            },
+            "key": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "charter": {
+              "type": "string"
+            },
+            "authority": {
+              "$ref": "#/definitions/AuthorityGrant"
+            },
+            "reports_to": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/RoleRef"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "provider": {
+              "$ref": "#/definitions/Provider"
+            },
+            "justification": {
+              "$ref": "#/definitions/RoleJustification"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "key",
+            "op",
+            "protocol",
+            "scope",
+            "specialist_address"
+          ],
+          "properties": {
+            "op": {
+              "type": "string",
+              "enum": [
+                "RecruitSpecialist"
+              ]
+            },
+            "key": {
+              "type": "string"
+            },
+            "specialist_address": {
+              "type": "string"
+            },
+            "protocol": {
+              "type": "string"
+            },
+            "scope": {
+              "type": "string"
+            },
+            "deadline": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date-time"
+            },
+            "supervising_role": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/RoleRef"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "op",
+            "owner",
+            "target"
+          ],
+          "properties": {
+            "op": {
+              "type": "string",
+              "enum": [
+                "AssignResponsibility"
+              ]
+            },
+            "target": {
+              "$ref": "#/definitions/ResponsibilityTarget"
+            },
+            "owner": {
+              "$ref": "#/definitions/RoleRef"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "executor",
+            "op",
+            "responsibility",
+            "task"
+          ],
+          "properties": {
+            "op": {
+              "type": "string",
+              "enum": [
+                "DelegateTask"
+              ]
+            },
+            "responsibility": {
+              "$ref": "#/definitions/ResponsibilityRef"
+            },
+            "executor": {
+              "$ref": "#/definitions/ExecutorRef"
+            },
+            "task": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "from",
+            "op",
+            "responsibility_id",
+            "to"
+          ],
+          "properties": {
+            "op": {
+              "type": "string",
+              "enum": [
+                "ReassignResponsibility"
+              ]
+            },
+            "responsibility_id": {
+              "type": "string"
+            },
+            "from": {
+              "type": "string"
+            },
+            "to": {
+              "$ref": "#/definitions/RoleRef"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "capability",
+            "op",
+            "role"
+          ],
+          "properties": {
+            "op": {
+              "type": "string",
+              "enum": [
+                "AttachCapability"
+              ]
+            },
+            "role": {
+              "$ref": "#/definitions/RoleRef"
+            },
+            "capability": {
+              "$ref": "#/definitions/CapabilityRef"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "op",
+            "role"
+          ],
+          "properties": {
+            "op": {
+              "type": "string",
+              "enum": [
+                "ChangeReportingEdge"
+              ]
+            },
+            "role": {
+              "$ref": "#/definitions/RoleRef"
+            },
+            "reports_to": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/RoleRef"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "op",
+            "role_id"
+          ],
+          "properties": {
+            "op": {
+              "type": "string",
+              "enum": [
+                "RetireRole"
+              ]
+            },
+            "role_id": {
+              "type": "string"
+            },
+            "handoffs": {
+              "default": [],
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Handoff"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "AuthorityGrant": {
+      "description": "Scopes and budget a role may exercise. Scopes are free-form strings such as `\"ledger.reserve_venue\"`; the constitution lists which scopes exist.",
+      "type": "object",
+      "properties": {
+        "scopes": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "budget_cents": {
+          "default": 0,
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        }
+      }
+    },
+    "RoleRef": {
+      "description": "Refers to an existing role or to a role created earlier in the same proposal.",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "kind",
+            "role_id"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "existing"
+              ]
+            },
+            "role_id": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "key",
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "new"
+              ]
+            },
+            "key": {
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "Provider": {
+      "description": "Who implements a role or runs a job.",
+      "oneOf": [
+        {
+          "description": "Elastic Agent Builder on Serverless: internal specialists.",
+          "type": "string",
+          "enum": [
+            "elastic"
+          ]
+        },
+        {
+          "description": "Fetch.ai uAgents: independent external specialists.",
+          "type": "string",
+          "enum": [
+            "fetch"
+          ]
+        },
+        {
+          "description": "CREAO: persistent operational roles.",
+          "type": "string",
+          "enum": [
+            "creao"
+          ]
+        },
+        {
+          "description": "Apify: executable capabilities (Actors). Never an employee.",
+          "type": "string",
+          "enum": [
+            "apify"
+          ]
+        },
+        {
+          "description": "Implemented by the kernel itself (e.g. the mission controller).",
+          "type": "string",
+          "enum": [
+            "internal"
+          ]
+        },
+        {
+          "description": "Development-only stand-in. The UI must label it as not a live integration.",
+          "type": "string",
+          "enum": [
+            "dev_stub"
+          ]
+        }
+      ]
+    },
+    "RoleJustification": {
+      "description": "Why a separate role is needed instead of reusing one (TECH_SPEC §5).",
+      "type": "string",
+      "enum": [
+        "concurrency",
+        "authority",
+        "independent_ownership",
+        "expertise",
+        "lifecycle"
+      ]
+    },
+    "ResponsibilityTarget": {
+      "oneOf": [
+        {
+          "description": "An existing responsibility currently held by the mission controller.",
+          "type": "object",
+          "required": [
+            "kind",
+            "responsibility_id"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "existing"
+              ]
+            },
+            "responsibility_id": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "description": "A new continuing responsibility derived from an unmet requirement.",
+          "type": "object",
+          "required": [
+            "key",
+            "kind",
+            "purpose",
+            "requirement_id",
+            "termination",
+            "trigger"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "from_requirement"
+              ]
+            },
+            "key": {
+              "type": "string"
+            },
+            "requirement_id": {
+              "type": "string"
+            },
+            "purpose": {
+              "type": "string"
+            },
+            "trigger": {
+              "type": "string"
+            },
+            "termination": {
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "ResponsibilityRef": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "kind",
+            "responsibility_id"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "existing"
+              ]
+            },
+            "responsibility_id": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "key",
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "new"
+              ]
+            },
+            "key": {
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "ExecutorRef": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "kind",
+            "role"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "role"
+              ]
+            },
+            "role": {
+              "$ref": "#/definitions/RoleRef"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "contract",
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "contractor"
+              ]
+            },
+            "contract": {
+              "$ref": "#/definitions/ContractRef"
+            }
+          }
+        }
+      ]
+    },
+    "ContractRef": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "contract_id",
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "existing"
+              ]
+            },
+            "contract_id": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "key",
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "new"
+              ]
+            },
+            "key": {
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "CapabilityRef": {
+      "description": "Exact reference to an approved capability version. There is no `latest`.",
+      "type": "object",
+      "required": [
+        "capability_id",
+        "version"
+      ],
+      "properties": {
+        "capability_id": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      }
+    },
+    "Handoff": {
+      "type": "object",
+      "required": [
+        "responsibility_id",
+        "to"
+      ],
+      "properties": {
+        "responsibility_id": {
+          "type": "string"
+        },
+        "to": {
+          "$ref": "#/definitions/RoleRef"
+        }
+      }
+    },
+    "KeyAllocation": {
+      "description": "Which keys in a proposal map to which freshly allocated IDs. Allocated once at validation so that commit produces the same IDs.",
+      "type": "object",
+      "properties": {
+        "roles": {
+          "default": {},
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "responsibilities": {
+          "default": {},
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "contracts": {
+          "default": {},
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "AgentBinding": {
+      "description": "Provider-side implementation of a role.",
+      "type": "object",
+      "required": [
+        "config_digest",
+        "provider",
+        "provider_agent_id"
+      ],
+      "properties": {
+        "provider": {
+          "$ref": "#/definitions/Provider"
+        },
+        "provider_agent_id": {
+          "description": "Provider's own identifier (Elastic agent ID, Fetch address, CREAO agent ID).",
+          "type": "string"
+        },
+        "config_digest": {
+          "description": "Digest of the effective configuration sent to the provider.",
+          "type": "string"
+        },
+        "conversation_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "ValidationError": {
+      "type": "object",
+      "required": [
+        "code",
+        "message"
+      ],
+      "properties": {
+        "code": {
+          "$ref": "#/definitions/ValidationCode"
+        },
+        "op_index": {
+          "description": "Index of the offending operation in the proposal, if any.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint",
+          "minimum": 0.0
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "ValidationCode": {
+      "type": "string",
+      "enum": [
+        "empty_change",
+        "revision_conflict",
+        "missing_evidence",
+        "unknown_evidence",
+        "duplicate_key",
+        "unknown_key",
+        "unknown_role",
+        "unknown_responsibility",
+        "unknown_requirement",
+        "unknown_contract",
+        "unknown_mission",
+        "role_not_active",
+        "authority_exceeds_constitution",
+        "budget_exceeded",
+        "change_budget_exceeded",
+        "role_limit_exceeded",
+        "contract_limit_exceeded",
+        "accountability_conflict",
+        "responsibility_not_open",
+        "requirement_not_unmet",
+        "capability_unknown",
+        "capability_not_approved",
+        "reporting_cycle",
+        "retirement_drops_obligations",
+        "new_role_without_responsibility",
+        "not_provisioned",
+        "invalid_transition",
+        "invalid_input"
+      ]
+    }
+  }
+}

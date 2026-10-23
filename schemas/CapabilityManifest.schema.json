@@ -1,0 +1,251 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CapabilityManifest",
+  "description": "Shareable package published after verification (TECH_SPEC §9).",
+  "type": "object",
+  "required": [
+    "acceptance_suite_ref",
+    "artifact",
+    "capability_id",
+    "input_schema",
+    "intent",
+    "output_schema",
+    "publisher",
+    "source_digest",
+    "state",
+    "verification",
+    "version"
+  ],
+  "properties": {
+    "capability_id": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    },
+    "publisher": {
+      "type": "string"
+    },
+    "source_digest": {
+      "type": "string"
+    },
+    "intent": {
+      "type": "string"
+    },
+    "applicability_conditions": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "known_limitations": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "input_schema": true,
+    "output_schema": true,
+    "required_permissions": {
+      "description": "Scopes the installing organization must be able to grant.",
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "artifact": {
+      "$ref": "#/definitions/ActorArtifact"
+    },
+    "role_template": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/RoleTemplate"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "responsibility_template": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "workflow_procedure": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "local_configuration_schema": {
+      "default": null
+    },
+    "acceptance_suite_ref": {
+      "type": "string"
+    },
+    "verification": {
+      "$ref": "#/definitions/VerificationReport"
+    },
+    "provenance": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "state": {
+      "$ref": "#/definitions/CapabilityState"
+    },
+    "published_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    }
+  },
+  "definitions": {
+    "ActorArtifact": {
+      "description": "Pinned Apify artifact. Never `latest`.",
+      "type": "object",
+      "required": [
+        "actor_id",
+        "build_id",
+        "build_number"
+      ],
+      "properties": {
+        "actor_id": {
+          "type": "string"
+        },
+        "build_id": {
+          "type": "string"
+        },
+        "build_number": {
+          "type": "string"
+        }
+      }
+    },
+    "RoleTemplate": {
+      "type": "object",
+      "required": [
+        "charter",
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "charter": {
+          "type": "string"
+        },
+        "scopes": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "VerificationReport": {
+      "description": "Independent acceptance evidence. The oracle lives outside the generated Actor and outside the public portal.",
+      "type": "object",
+      "required": [
+        "cases",
+        "oracle_ref",
+        "passed",
+        "tested_environment",
+        "verified_at"
+      ],
+      "properties": {
+        "passed": {
+          "type": "boolean"
+        },
+        "cases": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CaseResult"
+          }
+        },
+        "tested_environment": {
+          "description": "What environment was tested, e.g. `\"fixture-portal v1, Apify LIMITED_PERMISSIONS\"`.",
+          "type": "string"
+        },
+        "limitations": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "oracle_ref": {
+          "type": "string"
+        },
+        "verified_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "CaseResult": {
+      "type": "object",
+      "required": [
+        "kind",
+        "name",
+        "passed"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/definitions/CaseKind"
+        },
+        "passed": {
+          "type": "boolean"
+        },
+        "detail": {
+          "default": "",
+          "type": "string"
+        }
+      }
+    },
+    "CaseKind": {
+      "oneOf": [
+        {
+          "description": "A fixture variant where extraction must succeed and match the oracle.",
+          "type": "string",
+          "enum": [
+            "success"
+          ]
+        },
+        {
+          "description": "A fixture where data is missing or unsupported and the Actor must say so.",
+          "type": "string",
+          "enum": [
+            "unsupported"
+          ]
+        }
+      ]
+    },
+    "CapabilityState": {
+      "description": "Capability version lifecycle (TECH_SPEC §8).",
+      "type": "string",
+      "enum": [
+        "REQUESTED",
+        "SYNTHESIZING",
+        "BUILDING",
+        "TESTING",
+        "APPROVED",
+        "PUBLISHED",
+        "REJECTED"
+      ]
+    }
+  }
+}
