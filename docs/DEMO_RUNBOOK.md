@@ -266,6 +266,26 @@ and 67 events, Org B 6 and 23, 0 violations. Use it as the closing line:
 | Planner rejected | Show the kernel's exact errors fed back and the repaired proposal |
 | A sponsor API is down | Fall back to that sponsor's recorded gate evidence (`data/live-gates`), labeled |
 
+### Don't restart an org mid-capability
+
+The crash-anywhere test (`tests/chaos_two_org.rs`) restarts each org at many
+points of the capability beat. Nothing is ever duplicated, but liveness has
+holes. Plan around them:
+
+- **Org A while its gap is `acquiring`:** a restart during any provider call
+  (the synthesis model call takes tens of seconds live) leaves the gap at
+  driver `attention / unknown_outcome`, which has no recovery path today.
+  Don't stop A from the gap commit until the gap reads `acquired`. If it
+  happens anyway, say it plainly: GENESIS refused to guess whether the
+  provider acted. Then switch to the labeled recording. Once `acquired`,
+  restarts during finalization were recovered in every run.
+- **Org B while adoption is checking:** a restart mid-check stops adoption at
+  `attention / checks`. One operator call recovers it (#86):
+  `POST /api/v1/capability-gaps/{gap}/adoption/retry` with the operator token.
+  It starts fresh checks; the stopped attempt stays in history.
+- Rehearse the restart you'd actually do, e.g. a laptop sleep, with
+  `rehearse_autonomy` before the event.
+
 ## Open human decisions
 
 1. Cal Hacks eligibility: past Cal Hacks rules say the hack must be developed
