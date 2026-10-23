@@ -138,7 +138,7 @@ fn activate(store: &RuntimeStore) {
 
 fn store() -> (tempfile::TempDir, RuntimeStore) {
     let dir = tempfile::tempdir().unwrap();
-    let store = RuntimeStore::open(&dir.path().join("fetch.sqlite"), "org-a", BRIDGE).unwrap();
+    let store = RuntimeStore::open(dir.path().join("fetch.sqlite"), "org-a", BRIDGE).unwrap();
     activate(&store);
     (dir, store)
 }
@@ -412,9 +412,11 @@ fn legacy_float_drift(store: &RuntimeStore, dir: &tempfile::TempDir, drift_outbo
     if drift_outbox {
         let db = rusqlite::Connection::open(dir.path().join("fetch.sqlite")).unwrap();
         let raw: String = db
-            .query_row("SELECT data FROM fetch_outbox WHERE id=?1", [id(5)], |row| {
-                row.get(0)
-            })
+            .query_row(
+                "SELECT data FROM fetch_outbox WHERE id=?1",
+                [id(5)],
+                |row| row.get(0),
+            )
             .unwrap();
         let mut raw: Value = serde_json::from_str(&raw).unwrap();
         raw["body"]["task"]["input"]["x"] = adjacent;
@@ -432,7 +434,8 @@ fn review_float_drift_in_a_fenced_task_does_not_block_its_release() {
         let (dir, store) = store();
         legacy_float_drift(&store, &dir, drift_outbox);
         drop(store);
-        let reopened = RuntimeStore::open(dir.path().join("fetch.sqlite"), "org-a", BRIDGE).unwrap();
+        let reopened =
+            RuntimeStore::open(dir.path().join("fetch.sqlite"), "org-a", BRIDGE).unwrap();
         assert!(
             reopened.pending(at()).is_err(),
             "eligible drift must be refused"
