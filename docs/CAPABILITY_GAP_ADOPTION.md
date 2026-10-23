@@ -41,6 +41,11 @@ attention. The empty result belongs to the frozen grant: if the assignment or
 epoch has changed since (even for the same role), the gap is refused on
 authority instead, and nothing is handed to synthesis.
 
+The planner learns these names from `GET /api/v1/capability-gaps/requestable`,
+where a name with no acquisition rule is marked `adoption_only` (see
+[CAPABILITY_GAP_POLICY.md](CAPABILITY_GAP_POLICY.md)). A request under any
+other name is never adopted.
+
 ## What it does
 
 For each open gap with a rule, one stage per pass (the worker runs twice a
