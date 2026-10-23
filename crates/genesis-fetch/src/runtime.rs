@@ -401,6 +401,50 @@ impl RuntimeStore {
         }
         Ok(result)
     }
+    /// Whether an exact prepared outgoing message has a recorded bridge queue
+    /// acknowledgment. `None` means no such intent was prepared. `Some(true)`
+    /// proves only durable bridge acceptance, never delivery or peer execution.
+    /// Historical lookup remains valid after the message expires.
+    pub fn outgoing_queued(
+        &self,
+        peer: &str,
+        expected: &Message,
+    ) -> Result<Option<bool>, RuntimeError> {
+        expected.validate()?;
+        if !address(peer) || peer == self.bridge_address || expected.org_id != self.org_id {
+            return Err(RuntimeError::Invalid);
+        }
+        let connection = self.lock()?;
+        let row: Option<(String, String, String, String, i64)> = connection
+            .query_row(
+                "SELECT contract_id,peer,data,digest,queued FROM fetch_outbox WHERE id=?1",
+                [&expected.message_id],
+                |row| {
+                    Ok((
+                        row.get(0)?,
+                        row.get(1)?,
+                        row.get(2)?,
+                        row.get(3)?,
+                        row.get(4)?,
+                    ))
+                },
+            )
+            .optional()?;
+        let Some((contract, recipient, data, digest, queued)) = row else {
+            return Ok(None);
+        };
+        let actual = Message::decode(data.as_bytes())?;
+        if contract != expected.contract_id
+            || recipient != peer
+            || actual.canonical_sha256()? != expected.canonical_sha256()?
+            || digest != send_digest(peer, &actual)?
+            || !matches!(queued, 0 | 1)
+        {
+            return Err(RuntimeError::Conflict);
+        }
+        Ok(Some(queued == 1))
+    }
+
     pub fn acknowledge(&self, receipt: &SendReceipt) -> Result<(), RuntimeError> {
         if receipt.schema_version != 1
             || receipt.bridge_address != self.bridge_address

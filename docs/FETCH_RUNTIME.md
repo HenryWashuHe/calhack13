@@ -89,8 +89,10 @@ Transport provenance remains separate from domain verification. A specialist can
 return a well-correlated but wrong answer, and a previously authorized task can
 finish after its authority is revoked. The later server integration must validate
 the result against verified source facts and recheck current kernel authority
-before applying any mission effects. That integration remains future work in the
-[scoped mission bridge plan](FETCH_MISSION_BRIDGE_PLAN.md).
+before applying any mission effects. The operator-started
+[venue recovery coordinator](VENUE_RECOVERY.md) implements this boundary on its
+work-in-progress branch; validation and live evidence remain separate. The earlier
+[scoped mission bridge plan](FETCH_MISSION_BRIDGE_PLAN.md) preserves its rationale.
 
 ## Run the complete local proof
 

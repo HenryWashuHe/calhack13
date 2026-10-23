@@ -90,6 +90,8 @@ pub struct AppState {
     pub projection: crate::projection::Projection,
     /// Agent Builder client used to deliver jobs to Elastic specialists.
     pub elastic_agents: Option<Arc<genesis_elastic::AgentBuilder>>,
+    /// Opt-in, independently journaled Fetch replacement specialist exchange.
+    pub fetch_recovery: Option<Arc<crate::venue_recovery::FetchRecoveryRuntime>>,
     pub provision_timeout: Duration,
     /// Readiness verifiers for asynchronously created agents, by provider.
     pub readiness: crate::specialist::ReadinessRegistry,
