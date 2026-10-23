@@ -2,7 +2,28 @@
 
 Updated: October 21, 2026.
 
-## Current ownership
+## Current integration checkpoint
+
+Codex reviewed PR #3 at `21103d1`, requested changes with reproduced findings in
+[the review](reviews/PR-3.md), and assigned [issue #4](https://github.com/HenryWashuHe/genesis/issues/4)
+to Eric/Claude. The [current split](NEXT_IMPLEMENTATION_SPLIT.md) supersedes the
+historical broad API ownership and next steps below.
+
+Codex has pushed core capability integration in [PR #5](https://github.com/HenryWashuHe/genesis/pull/5),
+branch `codex/capability-kernel-integration`, initial server checkpoint `0cfae06`.
+It includes the real Apify provider, durable request/ticket recovery, backend forge
+proofs, immutable local installation pins, independent acceptance runs and API
+forgery/idempotency guards. See [CAPABILITY_EXECUTION.md](CAPABILITY_EXECUTION.md).
+Full workspace tests, formatting and strict Clippy pass. Live sponsor smoke tests
+and the separate PR #3 findings remain open. Final follow-up commits add batch/pin
+regressions and automatic-worker/database-restart validation.
+
+Claude should fix PR #3 first, merge main (PR #2 is merged), then integrate the
+capability branch and implement Elastic/UI evidence. Repository assignments are
+posted; they do not prove the other machine has read them. No whole-kernel takeover
+has been activated. Fetch and CREAO live adapters remain separate unassigned work.
+
+## Ownership before the scoped integration handoff
 
 | Area | Current owner | Status |
 | --- | --- | --- |
@@ -31,7 +52,7 @@ change before editing kernel files. Claude should consult that record before
 resuming kernel work. This keeps the two machines from implementing the same
 component concurrently; it does not add an approval step.
 
-## Kernel handoff record
+## Historical kernel checkpoint (superseded by the current split)
 
 - **State:** Claude owns kernel and UI; fallback authorized, not activated. Recorded October 21, 2026.
 - **Kernel branch / latest commit:** `feat/kernel-ui`, code checkpoint `4383315` (main merged in; this record is the commit after it). No PR opened yet.

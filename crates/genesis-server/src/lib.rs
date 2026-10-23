@@ -168,12 +168,10 @@ pub async fn serve_org(app: AppState, listener: TcpListener) -> anyhow::Result<(
         tracing::info!(resumed, "resumed interrupted organization changes");
     }
     app.capability_runtime.recover_interrupted().await?;
-    let capability_worker = capability_worker(app.clone());
-    let worker = outbox::spawn(app.clone());
+    let _capability_worker = AbortWorker(capability_worker(app.clone()));
+    let _outbox_worker = AbortWorker(outbox::spawn(app.clone()));
     let router = app.router();
     let res = axum::serve(listener, router).await;
-    worker.abort();
-    capability_worker.abort();
     res.map_err(Into::into)
 }
 
@@ -249,4 +247,13 @@ fn capability_worker(app: AppState) -> tokio::task::JoinHandle<()> {
             }
         }
     })
+}
+
+/// Cancellation of the server future must cancel workers as well. Dropping a
+/// bare JoinHandle detaches it and could let external effects outlive the server.
+struct AbortWorker(tokio::task::JoinHandle<()>);
+impl Drop for AbortWorker {
+    fn drop(&mut self) {
+        self.0.abort();
+    }
 }
