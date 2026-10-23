@@ -39,12 +39,23 @@ const events = [
 ] as DomainEvent[];
 
 describe("storyHtml", () => {
-  const html = storyHtml(state, [change], events, new Date("2026-10-22T00:00:00Z"));
+  const audit = {
+    org_id: "org_a",
+    snapshots_checked: 3,
+    first_revision: 0,
+    last_revision: 2,
+    events_checked: 2,
+    invariants: ["role_limit", "budget_limit"],
+    violation_count: 0,
+    violations: [],
+  };
+  const html = storyHtml(state, [change], events, audit, new Date("2026-10-22T00:00:00Z"));
 
   it("is a standalone page with evolution, audit and per-role causes", () => {
     expect(html.startsWith("<!doctype html>")).toBe(true);
     expect(html).toContain("<h2>Evolution</h2>");
-    expect(html).toContain("Constitution audit at r2: 8/8 rules hold");
+    expect(html).toContain("Kernel audit: every stored revision r0–r2 passes 2 invariants");
+    expect(storyHtml(state, [change], events, null)).toContain("kernel audit was not available");
     expect(html).toContain("Why each role exists");
     expect(html).toContain("Need a scout");
     expect(html).toContain("2026-10-22T00:00:00.000Z");

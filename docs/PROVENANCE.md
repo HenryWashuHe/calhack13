@@ -54,6 +54,10 @@ generation the view shows:
 
 **View rN** shows the committed tree at that revision.
 
+Capability gaps appear too. They cover a role asking for a capability, the
+version being verified (never called installed), its installation (including
+an adopted foreign version) and refusal.
+
 Between generations, the view also lists the changes that **did not happen**,
 each at the revision the organization stayed at:
 
@@ -81,32 +85,27 @@ Generations are folded from the event log in `lib/evolution.ts`, sorted by
 kernel's own stored revision snapshot (`GET /organization/revisions/:n`), not
 a client reconstruction.
 
-# Constitution audit
+# Kernel audit in the console
 
-Under the scrubber, a strip re-checks the snapshot on screen against eight
-rules the kernel enforces when it commits changes:
+Under the scrubber, a strip shows the kernel's own audit of the organization's
+history. The audit is `GET /api/v1/organization/audit`, which is
+`genesis_server::audit::audit_history` (see [KERNEL_AUDIT.md](KERNEL_AUDIT.md)).
+It checks every stored snapshot against `genesis_core::audit`, every
+consecutive pair against the transition rules, and the event log against the
+storage rules. The dev stack reports 27 invariants.
 
-1. Every open duty has a live owner.
-2. Each open duty has one current holder: exactly one active assignment, held by its owner at the current epoch.
-3. Requirements follow their duty's owner.
-4. The budget held by live roles stays within the constitution.
-5. Live roles hold only scopes the constitution grants.
-6. Role and contract counts stay within the constitution's limits.
-7. Reporting lines form a tree of live roles.
-8. Delegated executors are live roles or known contracts.
+The strip shows one cell per revision. Selecting a cell opens that revision.
+Expanding the strip lists the rules and any violations at the revision on
+screen. If the server truncated its violation list, later revisions show as
+unknown, never as clean. The audit re-runs whenever the organization advances.
+The console holds no copy of the rules.
 
-The strip follows the scrubber and replay, so each frame is audited. **Audit
-all revisions** fetches every stored snapshot (r0 to the current revision),
-audits each one, and shows a cell per revision. Selecting a cell opens that
-revision.
+![Kernel audit across all revisions](img/console-audit.png)
 
-![Constitution audit across all revisions](img/console-audit.png)
-
-The audit is a second, independent reading of the kernel's own stored
-snapshots in `lib/audit.ts`. It is not the enforcement point. A red cell
-means the stored state and the rules disagree, and should be investigated.
-Every revision of both dev-scenario organizations passes (Org A r0–r10, Org B
-r0–r5). Unit tests mutate a consistent snapshot to show that each rule fires.
+The route is read-only and open to the operator and agent tokens.
+`tests/audit_route.rs` checks two things. A clean history reports no
+violations. A tampered snapshot, in which a role holds more budget than the
+constitution allows, is named as `budget_limit` at its revision.
 
 # Export story
 
@@ -115,7 +114,7 @@ page named `genesis-<org>-r<N>.html`. It holds no scripts and makes no
 network calls. The page contains:
 
 - the evolution timeline, including refusals;
-- the constitution audit of the current snapshot;
+- the kernel audit, fetched when the page is exported;
 - the "why" chain for every role, including retired roles.
 
 All recorded text is HTML-escaped. If any role was a DevStub, a notice says
