@@ -309,14 +309,12 @@ plan around them:
   provider acted. Then switch to the labeled recording. Once `acquired`,
   restarts during finalization were recovered in every run.
 - **Org B while adoption is checking:** a restart mid-check stops adoption at
-  `attention / checks`. If every check run has a definite outcome, one
-  operator call recovers it (#86):
-  `POST /api/v1/capability-gaps/{gap}/adoption/retry` with the operator token
-  starts fresh checks and keeps the stopped attempt in history. If the
-  restart hit a check submission (unknown outcome), the retry answers 409
-  `adoption_checks_unresolved` on purpose, so the check is never submitted
-  twice, and there is no recovery path today. Don't stop B between its
-  `RequestCapability` and INSTALLED.
+  `attention / checks`, and on main there is no recovery path: no retry
+  endpoint is merged. An operator retry is proposed in #86, still under
+  review; as proposed it refuses (409 `adoption_checks_unresolved`) whenever
+  any check run lacks terminal provider evidence, which includes every
+  restart that interrupted a check, so it would not recover this case either.
+  Don't stop B between its `RequestCapability` and INSTALLED.
 - `rehearse_autonomy` does not rehearse a restart: each launch creates fresh
   temporary databases, so stopping and relaunching it starts both orgs over
   rather than resuming them. Only the crash test above resumes the same
