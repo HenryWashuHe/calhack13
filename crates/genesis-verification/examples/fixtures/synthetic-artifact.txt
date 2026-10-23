@@ -1,0 +1,5 @@
+GENESIS offline verification example, version 0.0.1.
+This descriptor is not an Actor, executable parser, or deployed cloud artifact.
+Its SHA-256 supplies a reproducible synthetic source pin for the example receipts.
+Production adapters must replace it with the digest of the exact versioned source
+package submitted to the forge, using a documented canonical package format.
