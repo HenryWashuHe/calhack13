@@ -1,0 +1,42 @@
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials/
+secrets/
+
+# Runtime state and provider traces
+data/
+runtime/
+artifacts/
+logs/
+*.log
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Rust
+target/
+
+# TypeScript
+node_modules/
+dist/
+coverage/
+.next/
+
+# Python sidecar
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# Editor and OS
+.DS_Store
+.idea/
+.vscode/
