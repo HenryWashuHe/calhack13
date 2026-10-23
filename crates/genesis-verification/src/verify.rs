@@ -261,7 +261,8 @@ fn compare<T: PartialEq>(expected: &T, actual: &T, path: &str, issues: &mut Vec<
     }
 }
 
-fn validate_artifact(pin: &ArtifactPin) -> Result<(), ConfigurationError> {
+/// Validate a trusted exact artifact pin before dispatch.
+pub fn validate_artifact(pin: &ArtifactPin) -> Result<(), ConfigurationError> {
     for (field, value) in [
         ("capability_id", &pin.capability_id),
         ("capability_version", &pin.capability_version),
@@ -296,7 +297,8 @@ fn validate_artifact(pin: &ArtifactPin) -> Result<(), ConfigurationError> {
     Ok(())
 }
 
-fn validate_suite(suite: &OracleSuite) -> Result<(), ConfigurationError> {
+/// Validate trusted oracle coverage and bounds before any provider side effect.
+pub fn validate_suite(suite: &OracleSuite) -> Result<(), ConfigurationError> {
     if suite.schema_version != 1 {
         return Err(config("suite/schema_version", "unsupported schema version"));
     }

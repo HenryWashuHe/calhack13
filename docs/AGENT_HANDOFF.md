@@ -8,7 +8,8 @@ Updated: October 21, 2026.
 | --- | --- | --- |
 | Organization kernel, shared runtime contracts, database and application API | Claude | Assigned; no takeover recorded |
 | UI | Claude | Assigned; unchanged by the kernel fallback |
-| `crates/genesis-verification`, `crates/genesis-apify` and their checks | Codex | Implemented and pushed in [PR #1](https://github.com/HenryWashuHe/genesis/pull/1) |
+| `crates/genesis-verification`, `crates/genesis-apify` and their checks | Codex | Initial implementation merged in [PR #1](https://github.com/HenryWashuHe/genesis/pull/1) |
+| `crates/genesis-forge`, `actors/venue-extractor-template`, capability scripts/docs | Codex | Source/build/runtime and durable coordinator work in [PR #2](https://github.com/HenryWashuHe/genesis/pull/2), branch `codex/capability-forge` |
 
 The user has explicitly authorized **Codex to implement the kernel if Claude
 exhausts its credits**. No further user approval is needed for that conditional
@@ -49,10 +50,21 @@ component concurrently; it does not add an approval step.
 
 ## Available capability implementation
 
-Branch: `codex/capability-verification`; implementation checkpoint: `6ea6e3d`.
-The [integration guide](VERIFICATION_INTEGRATION.md) describes the Rust APIs,
-oracle/receipt boundaries and persistable Apify run tickets. Run
-`bash scripts/check-capability-core.sh` for local validation. The implementation
-passes 72 tests and one compiled documentation example, plus formatting and
-Clippy. Live Apify smoke testing is still pending; hosted CI needs workflow-write
-permission. Kernel persistence and organization authority remain kernel work.
+The initial verification and execution implementation is on main at merge
+`dbb17f3`. [PR #2](https://github.com/HenryWashuHe/genesis/pull/2) adds Actor source
+upload, source-checked builds, the TypeScript runtime and a checkpointed Rust
+forge. The [forge guide](FORGE_INTEGRATION.md) describes the new source-to-result
+path; the [verification guide](VERIFICATION_INTEGRATION.md) describes the oracle
+and execution receipt boundary.
+
+Run `bash scripts/check-capability-core.sh` for local validation. PR descriptions
+record the latest check counts and limitations. Live Apify smoke testing is still
+pending; hosted CI needs workflow-write permission. Codex is not editing kernel
+models, SQLite/outbox state, Elastic integration or UI in this branch. The kernel
+must persist sessions before effects, enforce budgets and leases, publish approved
+packages, and decide whether to install them in either organization.
+
+The [kernel integration checkpoint](KERNEL_CAPABILITY_HANDOFF.md) records a passing
+temporary combined workspace (181 tests plus one documentation example), required
+executor/report wiring, and two optional JSON feature-unification findings for
+Claude. This is not a kernel ownership transfer.
