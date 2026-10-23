@@ -937,9 +937,30 @@ pub async fn step(app: &AppState, id: &str) -> ApiResult<RecoveryRecord> {
         }
         if observe_child(app, &mut record)? {
             save(app, &mut record)?;
-            if record.phase == RecoveryPhase::Completed || record.attention.is_some() {
+            // A prepared CREAO child owns the remaining work. Its receipt can
+            // complete this record without another Fetch network dependency.
+            return Ok(record.record());
+        }
+        if record.phase == RecoveryPhase::Assessing {
+            if record.attention.is_some() {
                 return Ok(record.record());
             }
+            if authorize(app, runtime, &app.current_state()?, &record).is_err() {
+                record.pause("recovery authority, source evidence, or configuration changed");
+                save(app, &mut record)?;
+                return Ok(record.record());
+            }
+            let request = record
+                .child_request
+                .clone()
+                .ok_or_else(|| conflict("missing frozen assessment intent"))?;
+            match venue_assessments::create_locked(app, request) {
+                Ok((child, _)) => record.child_id = Some(child.assessment_id),
+                Err(_) => record
+                    .pause("replacement assessment preparation needs attention; intent retained"),
+            }
+            save(app, &mut record)?;
+            return Ok(record.record());
         }
     }
     let mut record;
@@ -974,24 +995,6 @@ pub async fn step(app: &AppState, id: &str) -> ApiResult<RecoveryRecord> {
             save(app, &mut record)?;
             return Ok(record.record());
         }
-        if record.phase == RecoveryPhase::Assessing {
-            if !observe_child(app, &mut record)? {
-                let request = record
-                    .child_request
-                    .clone()
-                    .ok_or_else(|| conflict("missing frozen assessment intent"))?;
-                match venue_assessments::create_locked(app, request) {
-                    Ok((child, _)) => {
-                        record.child_id = Some(child.assessment_id);
-                    }
-                    Err(_) => record.pause(
-                        "replacement assessment preparation needs attention; intent retained",
-                    ),
-                }
-            }
-            save(app, &mut record)?;
-            return Ok(record.record());
-        }
         // Replaying local preparation is idempotent and can recover a prior
         // cross-journal interruption. No new UUID or deadline is generated.
         let frozen = match record.phase {
@@ -1022,7 +1025,11 @@ pub async fn step(app: &AppState, id: &str) -> ApiResult<RecoveryRecord> {
         match advanced {
             Ok(true) => return Ok(record.record()),
             Err(_) => {
+                // Semantic rejection or a failed mission commit cannot erase
+                // the independently authenticated native receipt we just read.
+                let receipt_sha256 = record.receipt_sha256.clone();
                 record = checkpoint;
+                record.receipt_sha256 = receipt_sha256;
                 record.pause(
                     "Fetch evidence or selection failed verification; exact identities retained",
                 );
@@ -1159,7 +1166,19 @@ pub async fn drain_once(app: &AppState) -> ApiResult<usize> {
         ids.collect::<Result<_, _>>().map_err(StoreError::from)?
     };
     for id in &ids {
-        step(app, id).await?;
+        if let Err(error) = step(app, id).await {
+            tracing::warn!(recovery_id=%id, code=%error.error, "venue recovery step failed; deferring this record");
+            // The scheduling index is advisory and separate from the sealed
+            // decision. Delay an unreadable record so a full bad page cannot
+            // starve later work; never rewrite its evidence or authorization.
+            let now = Utc::now();
+            if let Err(error) = app.store.lock().execute(
+                "UPDATE venue_recoveries SET next_check_at=?1 WHERE recovery_id=?2 AND active=1 AND next_check_at<=?3",
+                params![(now + Duration::seconds(60)).to_rfc3339(), id, now.to_rfc3339()],
+            ) {
+                tracing::warn!(recovery_id=%id, error=%error, "venue recovery retry scheduling failed");
+            }
+        }
     }
     Ok(ids.len())
 }
