@@ -82,14 +82,21 @@ pub fn user_message(
     user_message_with(state, observation, specialists, &[])
 }
 
-/// As [`user_message`], plus the capability names the server's trusted gap
-/// policy can act on. A request under any other name is refused by policy, so
-/// when names are known the model is told to use one of them.
+/// A capability the server's trusted gap policy can act on.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Deserialize)]
+pub struct Requestable {
+    pub capability_id: String,
+    pub observed_sources: Vec<String>,
+}
+
+/// As [`user_message`], plus the capabilities the server's trusted gap policy
+/// can act on. A request under another name, or without the policy's
+/// sources, is refused, so when they are known the model is told to use them.
 pub fn user_message_with(
     state: &OrgState,
     observation: &Observation,
     specialists: &[KnownSpecialist],
-    requestable: &[String],
+    requestable: &[Requestable],
 ) -> String {
     let mut s = String::new();
     let mission = state.missions.get(&observation.mission_id);
@@ -276,12 +283,19 @@ pub fn user_message_with(
     }
 
     if !requestable.is_empty() {
-        let _ = writeln!(s, "\n## Requestable capability names (operator policy)");
+        let _ = writeln!(s, "\n## Requestable capabilities (operator policy)");
         let _ = writeln!(
             s,
-            "Only these capability_id values can be acquired or adopted here: {}. If you use RequestCapability, use one of them; if none fits the need, do not request a capability.",
-            requestable.join(", ")
+            "Only these can be acquired or adopted here. If you use RequestCapability, use one of these capability_id values with exactly its observed_sources; if none fits the need, do not request a capability."
         );
+        for r in requestable {
+            let _ = writeln!(
+                s,
+                "- {}: observed_sources {}",
+                r.capability_id,
+                r.observed_sources.join(" ")
+            );
+        }
     }
 
     let _ = writeln!(s, "\n## Known external specialists");
