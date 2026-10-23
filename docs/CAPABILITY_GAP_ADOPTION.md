@@ -124,4 +124,17 @@ loopback provider:
 - an operator's ordinary accepted adoption for the same requirement leaves
   the gap open; a squatted `gap-adopt:` key is refused as an invalid record.
 
+`tests/two_org_inheritance.rs` runs both organizations end to end with real
+`serve_org` and no operator calls: A's gap is synthesized, verified,
+published and installed (#66, #78); B's later gap for the same need, under a
+different capability name, installs A's exact version after B's own suite
+accepts it. Provider calls are attributed per organization by key: B makes
+zero model calls and zero Actor creations, and runs only its own suite
+inputs.
+
+Timing matters: if B's need is committed before A publishes, B's search is
+empty. With `synthesis_fallback` B then synthesizes its own; without it B
+stops at `attention: no_candidate`. Re-searching later would need a new
+intent (a retry route is not part of this change).
+
 No live provider was contacted.
