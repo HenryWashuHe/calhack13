@@ -269,6 +269,7 @@ button { font: inherit; color: inherit; }
 }
 
 .role {
+  min-width: 0;
   border: 1px solid var(--rule-strong);
   border-radius: var(--radius);
   background: var(--panel);
@@ -360,7 +361,11 @@ th {
 td { padding: 8px 10px 8px 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
 td .sub { display: block; color: var(--ink-3); font-size: 12px; }
 
-.change { border: 1px solid var(--rule); border-radius: var(--radius); padding: 10px 12px; display: grid; gap: 8px; }
+.change { border: 1px solid var(--rule); border-radius: var(--radius); padding: 10px 12px; display: grid; gap: 8px; min-width: 0; }
+.change > * { min-width: 0; }
+.change .mono, .role-meta .mono, .contractor .mono { overflow-wrap: anywhere; }
+.pipeline { min-width: 0; }
+.pipeline span { margin-bottom: 2px; }
 .change-head { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .pipeline { display: flex; gap: 0; flex-wrap: wrap; }
 .pipeline span {
