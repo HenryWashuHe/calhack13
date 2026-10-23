@@ -1,6 +1,62 @@
-# PR review queue — October 22, 2026
+# PR review queue — October 23, 2026
 
-## Latest review batch
+## Authoritative checkpoint
+
+Main `72cd0145400aae6a72a54cf36f2b9ecf0e662adc`, tree
+`5e5cf47702a08f462cb520a7cd7d6ce0d0919d03`, includes #99. Current GitHub
+heads and [issue #4](https://github.com/HenryWashuHe/genesis/issues/4) supersede
+this snapshot. The user authorizes ready merges; the active root reviewer
+sequences them after exact-source review and validation. The mission goal is
+still active, with no native sponsor outcome established.
+
+### Merged in this review batch
+
+| PR | Merge / reviewed source | Evidence and scope |
+| --- | --- | --- |
+| [#78 finalizer](https://github.com/HenryWashuHe/genesis/pull/78) | `f4b5cdf` / `f76a1ba` | Earlier requirement, acceptance-suite, authority and full-manifest conflict holds resolved before merge. Opt-in verified acquisition → publication/local acceptance is now on main. |
+| [#80 finalizer UI](https://github.com/HenryWashuHe/genesis/pull/80) | `d119341` / `0193143` | Original no-record regression and lifecycle controls pass; global enablement no longer claims every acquired gap is queued. Web tests, typecheck and build passed in reviewed composition. |
+| [#88 settled-check display](https://github.com/HenryWashuHe/genesis/pull/88) | `62edcee` / `0c2eb75` | Settled check jobs stop showing misleading unproven work; genuine unknown jobs remain visible. Web tests/typecheck/build passed. |
+| [#89 planner policy context](https://github.com/HenryWashuHe/genesis/pull/89) | `fd9d161` / `ae6d0e8` | Planner receives the configured capability names, source URLs and required scope. Model behavior still needs separate evidence. |
+| [#97 console guards](https://github.com/HenryWashuHe/genesis/pull/97) | `8cd0e37` / `205ffed` | Test-only guards; meaningful positive and rejection assertions, no weakened existing tests. |
+| #90 / #92 / #93 / #94 / #95 / #96 | Final merge `97d75eb`, exact composition tree `f305ca60` | **608 Rust tests / 68 targets**, scoped strict Clippy and fmt. Includes saga crash/refusal coverage and fixes, independent audit connection, validation/invariant controls and planner transport guards. Fake providers/runtime teardown do not establish native provider recovery. |
+| [#98 Fetch float identity](https://github.com/HenryWashuHe/genesis/pull/98) | `9f9a87d` / `11703e2` | **133 Fetch/verification tests**, including ten float cases. Three baseline failures and two stale-intent release regressions reproduced. Exact float identity is preserved; stale drift cannot block release or healthy independent work. |
+| [#99 monitor intake](https://github.com/HenryWashuHe/genesis/pull/99) | `72cd014` / `05d55e2` | **34 assessment + 117 server-library tests**, scoped strict Clippy/fmt. Four baseline failures and four controls. Persisted newest-candidate scan, manual-consumption handling and temporary provider waits retain child recovery and authority fencing. |
+
+These counts belong to the stated source/composition, not an aggregate test run
+of the final main tree. Earlier #81 immutable-receipt integration is also merged
+as `0c689d5`; #98 updates its JSON identity behavior. All provider evidence here
+is loopback, synthetic authenticated-boundary or local process evidence.
+
+### Open or dependent
+
+| PR / exact reviewed head | Status and next step |
+| --- | --- |
+| [#82 adopt first](https://github.com/HenryWashuHe/genesis/pull/82), `ae00fa9835f10b78b58fa743058522fd5206e0ee` | Latest fallback correction under validation; **not merged** at this checkpoint. Claude owns runtime. |
+| [#86 adoption retry](https://github.com/HenryWashuHe/genesis/pull/86), new `83998b051ad95e13310db52e57857aa9ecf386d8` | **Hold pending review of the new head.** Old `0ec6606` has two reproduced unknown-child retry failures. A new commit alone does not clear those failures. |
+| [#91 provenance console](https://github.com/HenryWashuHe/genesis/pull/91), `6776130365fb04ba0c77b589ba82688c9e553edc` | **Hold.** Nonstructural polling can continually reset replay; absent revisions are marked as audited success. Test-only `42aab93` has two failing regressions and a passing idle control. Original 125 web tests/typecheck/build passed, so those alone do not clear the hold. |
+| [#84 runbook/preflight](https://github.com/HenryWashuHe/genesis/pull/84), `e986a4e1d2e63b37f06262b5bafe653d48cd3b40` | **Draft hold.** Preflight skips finalizer/adoption semantic validation; an empty adoption policy can pass despite startup refusal. Test-only `4ed8c08` is pushed but **not executed**. Also distinguish seeded capability proposals from planner execution and temporary rehearsal databases from same-database restart evidence. This PR now adds an executable example, not only docs. |
+| [#83 two-org integration](https://github.com/HenryWashuHe/genesis/pull/83), `7c1900dd5c2855e882bf9d73cd4cd2d91c797711` | Static source review clean; pending #82 and dependent execution. Real workers after seeded proposals, B's own checks and no B synthesis. Fixed external receipts do not prove unseen-layout adaptation. |
+| [#85 adoption UI](https://github.com/HenryWashuHe/genesis/pull/85), `c2abcf93b7fac95b42a0a950d8fc2026a12d5413` | Scoped review and earlier web checks clean; dependent #82 integration remains. Extra lifecycle controls preserved in `caf2c72`. |
+| [#87 rehearsal](https://github.com/HenryWashuHe/genesis/pull/87), `88d917477ddab693d0d8a4c4aeec8e7ba9b1cd66` | Static source review clean; pending #83/#82 and execution. Explicit fixture mode seeds proposals; optional external planner mode is separate. Every external build/run reply remains a fixture. |
+
+#83/#85/#87 do not inherently require #86. Do not add that dependency merely
+because the retry PR is open. Preserve source branches and exact-head review
+regressions; never merge an outdated tested head after the source changes.
+
+Claude/Eric owns kernel/planner/readiness/adoption/UI and their open fixes.
+Codex's #98/#99 corrections are merged; its next core work is the Fetch
+venue-recovery implementation (`299ee0c`, `codex/fetch-venue-recovery`) and
+pending runtime/retirement tests. Do not treat that WIP as a merged result.
+Credentials are not yet supplied; native Apify, CREAO, Elastic and Fetch gates
+and genuine CREAO core-work/Share-link evidence remain open. See
+[the handoff](AGENT_HANDOFF.md) and [live gate setup](LIVE_GATES.md).
+
+## Historical review checkpoints
+
+Everything below is preserved history. Old holds, queue-closeout statements and
+“next implementation” assignments do not supersede the authoritative queue above.
+
+## Historical review batch — October 22, 2026
 
 - Immutable Fetch receipts (`afbe0bf`, original `6424bfb`): 64 crate tests including 13 new receipt checks, strict crate all-target Clippy, workspace fmt and clean independent review. Exact expected messages plus prepared/Applied journal chain; stable historical hashes, private serialization-only types and bounded/redacted payloads. Synthetic authenticated-boundary fixtures, no SDK/cloud/domain-verification claim. Server integration remains future work.
 
