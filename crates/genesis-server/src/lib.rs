@@ -349,6 +349,7 @@ pub async fn serve_org(app: AppState, listener: TcpListener) -> anyhow::Result<(
     let _specialist_worker =
         specialist::spawn(app.clone(), Duration::from_millis(500)).map(AbortWorker);
     let _outbox_worker = AbortWorker(outbox::spawn(app.clone()));
+    let _saga_sweeper = AbortWorker(saga::spawn_sweeper(app.clone(), Duration::from_secs(5)));
     let _projector = projection::spawn(app.clone()).map(AbortWorker);
     let router = app.router();
     let res = axum::serve(listener, router).await;
