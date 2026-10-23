@@ -8,6 +8,7 @@ import { Deck } from "./components/Deck";
 import { AttentionPanel } from "./components/AttentionPanel";
 import { GapIntakeContext, useGapIntake } from "./lib/gapIntake";
 import { GapFinalizationContext, useGapFinalization } from "./lib/gapFinalization";
+import { GapAdoptionContext, useGapAdoption } from "./lib/gapAdoption";
 
 function OrgTab({ ep, selected, onSelect }: { ep: OrgEndpoint; selected: boolean; onSelect: () => void }) {
   // Lightweight health poll for the tab badge; the selected org has its own live stream.
@@ -46,6 +47,7 @@ function Console({ ep }: { ep: OrgEndpoint }) {
   const view = useOrg(ep);
   const intake = useGapIntake(view.api, view.state);
   const finalization = useGapFinalization(view.api, view.state);
+  const adoption = useGapAdoption(view.api, view.state);
   const stubbed = useMemo(
     () => Object.values(view.state?.roles ?? {}).some((r) => r.binding?.provider === "dev_stub"),
     [view.state],
@@ -68,6 +70,7 @@ function Console({ ep }: { ep: OrgEndpoint }) {
           </div>
         </div>
       )}
+      <GapAdoptionContext.Provider value={adoption}>
       <GapFinalizationContext.Provider value={finalization}>
         <GapIntakeContext.Provider value={intake}>
           <main className="layout">
@@ -79,6 +82,7 @@ function Console({ ep }: { ep: OrgEndpoint }) {
           </main>
         </GapIntakeContext.Provider>
       </GapFinalizationContext.Provider>
+      </GapAdoptionContext.Provider>
     </>
   );
 }
