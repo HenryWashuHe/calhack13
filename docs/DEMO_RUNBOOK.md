@@ -161,16 +161,18 @@ Actor. Arrange that first, then set it to `true` in `runtime/mission.json`.
 Registry publication grants no provider access
 ([INHERITED_MISSION.md](INHERITED_MISSION.md), [VENUE_PORTAL.md](VENUE_PORTAL.md)).
 
-For the persistent CREAO core-work demonstration, also add the optional
-`venue_monitoring` fragment from [INHERITED_MISSION.md](INHERITED_MISSION.md#continuing-creao-mission-work).
-Before starting the servers, prepare baseline and capacity-cut pages in distinct
-immutable namespaces, include both exact inputs in B's one trusted suite and all
-URLs in A's initial allowlist, and choose a policy the baseline actually satisfies.
-The fragment-combining command above does not add that fourth case or configure
-monitoring. Configure B's CREAO creation/runtime/readiness path; development-role
-opt-in cannot stand in for this monitor. The report identifies two native runs and
-their accepted mission effects, but a live account run and genuine Share link
-remain separate evidence to capture.
+For the persistent CREAO core-work demonstration, use the
+[monitoring setup walkthrough](VENUE_PORTAL.md#prepare-continuing-creao-monitoring)
+before starting either server. It generates three immutable namespaces and uses
+`prepare-monitoring.mjs` to assemble the frozen B suite and complete scenario spec,
+including the public source allowlist and explicit event policy. Start B with
+`--oracle-suite runtime/monitoring-001/trusted/suite-b.json` and run the scenario
+with `--spec runtime/monitoring-001/scenario.json`. The simpler fragment-combining
+command above does not configure monitoring. Configure B's CREAO
+creation/runtime/readiness path; development-role opt-in cannot stand in for this
+monitor. The [scenario report](INHERITED_MISSION.md#continuing-creao-mission-work)
+identifies two native runs and their accepted mission effects, but a live account
+run and genuine Share link remain separate evidence to capture.
 
 Checked: with generated fragments, this merge and `true` pass the CLI's spec
 validation (it stops only at the unreachable org URLs). Keeping `note` fails
