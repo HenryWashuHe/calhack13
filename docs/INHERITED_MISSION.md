@@ -210,8 +210,12 @@ also cannot revoke B's already accepted local evidence implicitly.
 
 ## Continuing CREAO mission work
 
-Add this optional field to the scenario spec, replacing the example input and
-event constraints with the configured mission's values:
+Use the [monitoring setup walkthrough](VENUE_PORTAL.md#prepare-continuing-creao-monitoring)
+to generate a complete strict spec and frozen B suite from three immutable portal
+namespaces. The helper validates the baseline against an explicit policy, appends
+the same-event capacity-cut case and preserves the template's access flags. Its
+scenario includes this optional field (shown here as a schematic fragment; replace
+the example input and event constraints with the configured mission's values):
 
 ```json
 {
@@ -241,9 +245,9 @@ event constraints with the configured mission's values:
 This is a spec fragment, not a runnable source or an expected provider response.
 Keep both the baseline `invocation_input` and the distinct updated input in B's
 trusted suite **before starting either organization**. Put all source URLs in A's
-initial Actor allowlist. Generate two immutable portal namespaces and include the
-updated page as a separate supported case with a unique case ID in B's suite;
-retain the original source URL and hash. Never replace the suite after adoption.
+initial Actor allowlist. The setup helper retains B's baseline cases and the
+updated page's original source URL/hash, adding a unique case ID. Never replace
+the suite after adoption.
 The baseline must satisfy the actual event policy, and the update must fail at
 least one verified constraint. Portal presets randomize price, window and access;
 capacity alone does not guarantee a feasible baseline.
