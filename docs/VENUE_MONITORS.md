@@ -28,8 +28,10 @@ constraints: selected venue, attendance, budget and currency, requested window,
 and whether step-free access is required. These constraints are frozen for the
 subscription; later source content cannot alter them.
 
-The initial source is an explicit opt-in. Registration also records the durable
-event cursor for future results. Existing older results are not implicitly
+The initial source is an explicit opt-in. Registration refuses a source already
+consumed by an equal-or-newer assessment for this responsibility, and refuses an
+unresolved assessment cycle. Registration also records the durable event cursor
+for future results. Existing older results are not implicitly
 replayed. A job created before registration may qualify if its verification
 finishes afterward and it still meets the assessment freshness requirements.
 
@@ -91,10 +93,14 @@ saved intent can remain recorded indefinitely; it will not create a child after
 stop or expiration. This differs from an existing child whose native outcome
 remains unresolved.
 
-There is no resume endpoint in this version. Preparation failures put the monitor
-in `attention` and do not automatically retry child creation or event intake.
-Repairing configuration alone does not resume that preparation. The operator
-must stop the old subscription and, after resolving any existing child, register
+There is no resume endpoint in this version. Authority, binding and other
+preparation failures put the monitor in `attention` and do not automatically retry
+child creation or event intake. Temporarily missing CREAO configuration is a wait,
+not a permanent failure: idle or uncreated work remains `active` and resumes after
+the provider journal is restored, subject to the same authority and freshness
+checks. This wait sends no provider requests and does not replace an unknown run.
+Once a genuine preparation failure has put a record in `attention`, repairing
+configuration alone does not resume it. The operator must stop the old subscription and, after resolving any existing child, register
 a new explicit subscription. Replaying the old request does not reactivate it.
 An already-created child remains observable while in attention: if that same
 child later becomes accepted, monitoring can continue when the subscription has
@@ -102,10 +108,21 @@ not stopped or expired and its authority and assessment limit still allow work.
 
 ## Evidence selection
 
-The worker reads the durable event log in sequence order. A job-success event is
-only a discovery signal. Before preparing an assessment, it reconstructs the
-private invocation proof and checks its installation, exact artifact, suite,
-acceptance evidence, mission and responsibility against the subscription.
+The worker captures a durable event-log watermark and reads toward it in bounded
+pages. It saves the newest-created eligible candidate across pages and restarts,
+then reserves one intent only after reaching that watermark. Equal creation
+timestamps use job ID order as a deterministic tie-break. An older capacity-cut
+result cannot win merely by appearing before a newer feasible result in the same
+captured backlog. If another assessment or missing provider blocks delivery, the
+next pass includes newly arrived events before spending the saved candidate.
+
+A job-success event is only a discovery signal. Before preparing an assessment,
+the worker reconstructs the private invocation proof and checks its installation,
+exact artifact, suite, acceptance evidence, mission and responsibility against
+the subscription. It also checks the same source-ordering and unresolved-cycle
+gate used by explicit assessment creation. Sources already consumed by manual
+assessments are skipped without spending an intent; an unresolved manual child
+keeps the newest candidate waiting without losing its event cursor.
 
 Later invocation inputs must equal the initial event input after removing only
 the top-level `source_url` field. This permits a separately configured snapshot of
@@ -124,9 +141,15 @@ page was fetched; the current source snapshot schema has no fetch timestamp.
 Before creating a child assessment, the subscription persists its exact request,
 including the source job, deterministic request key and deadline. The source
 delivery and cursor advance together. Restart recovery reuses that request;
-it does not generate a new deadline or a replacement key. Each child deadline is
-the earlier of subscription expiration and 30 minutes after intent preparation.
-Read-only recovery never extends that deadline. Native work finishing after its
+it does not generate a new deadline or a replacement key. Each new child deadline
+is the earliest of subscription expiration, 30 minutes after preparation, and
+the source creation/verification times plus 30 minutes. Older saved requests keep
+their original deadlines; delivery still rechecks source age.
+An uncreated intent that expires or whose source is consumed by a manual
+assessment after reservation is retained as skipped. Its reserved count is not
+refunded; a later fresh source may continue within the remaining limit. A source
+that expires during a backlog scan is discarded before reservation. Read-only
+recovery never extends a saved deadline. Native work finishing after its
 deadline still faces the assessment runtime's deadline checks; observing a saved
 child does not authorize late mission effects.
 
@@ -174,7 +197,9 @@ remain eligible for read-only child lookup.
 
 Each worker pass visits at most 16 subscriptions, rotating by their last checked
 time. For an eligible subscription with no unresolved child, it reads at most 16
-events in that pass. The assessment limit includes the initial source. Expiration
+events in that pass. The scan retains at most one candidate and does not charge
+its discovery as an assessment. The assessment limit includes the initial source
+and any reserved intent later skipped before creation. Expiration
 and the limit stop new intake; they do not establish that already-created provider
 work has stopped.
 
@@ -191,3 +216,13 @@ Loopback provider tests can establish this control flow and its recovery behavio
 They cannot establish cloud execution, live web freshness, readiness callbacks or
 a genuine CREAO Share link. Native sponsor evidence remains separate; see
 [the CREAO sponsor notes](CREAO_SPONSOR_NOTES.md).
+
+## Offline regression evidence
+
+The intake regression fixtures cover already-consumed sources, registration
+refusal, newest-source selection, temporary provider absence, and authority
+fences. Additional loopback cases cover a newer source beyond 200 events with a
+restart mid-scan, waiting behind a manually prepared child, restoring an
+uncreated intent, and manual consumption after intent commit. These tests use
+real private invocation/assessment verification against configured snapshots;
+they do not establish live provider execution or page freshness.
