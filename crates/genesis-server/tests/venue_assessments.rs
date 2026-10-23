@@ -2,6 +2,9 @@
 //! loopback HTTP. Initial publication and monitor provisioning are explicitly
 //! trusted synthetic fixtures; no live provider, agent creation, readiness,
 //! source fetch, conversation memory, booking or sponsor evidence is claimed.
+#[path = "venue_assessments/subscriptions.rs"]
+mod subscriptions;
+
 use axum::{
     body::to_bytes,
     extract::{Request, State},
