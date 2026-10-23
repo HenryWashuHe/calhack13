@@ -392,6 +392,15 @@ pub async fn drain_once(app: &AppState) -> StoreResult<DrainSummary> {
         .collect();
     ids.sort();
     for (_, id) in ids {
+        // Adopt-first owns this open gap until a definitive empty search
+        // releases it; the driver never binds or synthesizes it meanwhile.
+        if state
+            .capability_gaps
+            .get(&id)
+            .is_some_and(|gap| crate::capability_gap_adoption::defers_driver(app, gap))
+        {
+            continue;
+        }
         summary.examined += 1;
         let decision = decide(app, &state, &id, &mut summary)?;
         let gap = state.capability_gaps.get(&id).ok_or_else(invalid)?;

@@ -18,6 +18,7 @@ use genesis_core::ids::ChangeId;
 use genesis_core::lifecycle::{ChangeStatus, StateMachine};
 use genesis_core::model::Provider;
 use genesis_providers::ProvisionRequest;
+use std::time::Duration;
 
 /// Validate and record a proposal. Valid proposals start provisioning in the
 /// background; the returned record is in `VALIDATED`.
@@ -119,13 +120,108 @@ fn spawn_run(app: &AppState, record: &OrgChangeRecord) {
     if record.status != ChangeStatus::Validated {
         return;
     }
+    spawn_driver(app, &record.change_id);
+}
+
+/// Start the background driver for a change unless one is already live.
+/// Returns whether a driver was started.
+pub(crate) fn spawn_driver(app: &AppState, change_id: &ChangeId) -> bool {
+    let Some(claim) = app.saga_gates.claim_driver(change_id) else {
+        return false;
+    };
     let app2 = app.clone();
-    let id = record.change_id.clone();
+    let id = change_id.clone();
     tokio::spawn(async move {
-        if let Err(e) = run(&app2, &id).await {
-            tracing::error!(change = %id, error = %e.message, "change saga failed");
-        }
+        let _claim = claim;
+        drive(&app2, &id).await;
     });
+    true
+}
+
+const DRIVER_MAX_BACKOFF: Duration = Duration::from_secs(5);
+
+fn terminal(status: ChangeStatus) -> bool {
+    matches!(
+        status,
+        ChangeStatus::Committed | ChangeStatus::Failed | ChangeStatus::Rejected
+    )
+}
+
+/// Drive a change to a terminal or waiting state. A server-side failure (for
+/// example a storage error) is transient from the change's point of view:
+/// the driver backs off and runs the saga again from its persisted state,
+/// instead of leaving the change stranded until the next process restart.
+/// Client errors (validation, authority, conflicts) are not retried.
+async fn drive(app: &AppState, change_id: &ChangeId) {
+    let mut backoff = Duration::from_millis(200);
+    loop {
+        match run(app, change_id).await {
+            Ok(_) => return,
+            Err(e) if e.status.is_server_error() => {
+                tracing::warn!(change = %change_id, error = %e.message, retry_in_ms = backoff.as_millis() as u64,
+                    "change saga hit a server-side failure; retrying from persisted state");
+                tokio::time::sleep(backoff).await;
+                backoff = (backoff * 2).min(DRIVER_MAX_BACKOFF);
+                if app
+                    .store
+                    .get_change(change_id)
+                    .is_ok_and(|r| terminal(r.status))
+                {
+                    return;
+                }
+            }
+            Err(e) => {
+                tracing::error!(change = %change_id, error = %e.message, "change saga failed");
+                return;
+            }
+        }
+    }
+}
+
+/// Changes the sweeper must leave alone: terminal ones, and ones waiting on
+/// an asynchronous provider operation (the specialist poller and operator
+/// own those).
+fn sweepable(record: &OrgChangeRecord) -> bool {
+    use genesis_core::change::ProviderOperationState as S;
+    !terminal(record.status)
+        && !record.operations.values().any(|o| {
+            matches!(
+                o.state,
+                S::Pending | S::AwaitingReadiness | S::NeedsReconciliation
+            )
+        })
+}
+
+/// One sweep: start a driver for every non-terminal change that has none.
+/// Covers drivers that stopped on a non-retryable error after the cause was
+/// fixed, and work left behind by a failed spawn. Returns the number started.
+pub fn sweep_once(app: &AppState) -> ApiResult<usize> {
+    let mut started = 0;
+    for c in app.store.list_changes()? {
+        if sweepable(&c) && spawn_driver(app, &c.change_id) {
+            started += 1;
+        }
+    }
+    Ok(started)
+}
+
+/// Background sweeper: a safety net so no change stays stranded in a
+/// non-terminal state while the process is alive.
+pub fn spawn_sweeper(app: AppState, every: Duration) -> tokio::task::JoinHandle<()> {
+    tokio::spawn(async move {
+        let mut tick = tokio::time::interval(every);
+        tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+        loop {
+            tick.tick().await;
+            match sweep_once(&app) {
+                Ok(n) if n > 0 => {
+                    tracing::info!(started = n, "resumed stranded organization changes")
+                }
+                Ok(_) => {}
+                Err(e) => tracing::warn!(error = %e.message, "change sweep failed; will retry"),
+            }
+        }
+    })
 }
 
 /// Validate a stored PROPOSED record against current state and persist the
@@ -637,12 +733,7 @@ pub async fn resume_pending(app: &AppState) -> ApiResult<usize> {
         .collect();
     let n = pending.len();
     for c in pending {
-        let app2 = app.clone();
-        tokio::spawn(async move {
-            if let Err(e) = run(&app2, &c.change_id).await {
-                tracing::error!(change = %c.change_id, error = %e.message, "resumed saga failed");
-            }
-        });
+        spawn_driver(app, &c.change_id);
     }
     Ok(n)
 }

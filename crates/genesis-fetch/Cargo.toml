@@ -13,7 +13,9 @@ genesis-verification = { path = "../genesis-verification" }
 reqwest.workspace = true
 rusqlite.workspace = true
 serde.workspace = true
-serde_json.workspace = true
+# Native JSON permits finite floats. Durable requests must preserve their f64
+# value when decoded again, including via genesis-verification's strict decoder.
+serde_json = { workspace = true, features = ["float_roundtrip"] }
 thiserror.workspace = true
 tokio.workspace = true
 uuid.workspace = true

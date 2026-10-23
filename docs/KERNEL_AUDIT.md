@@ -73,6 +73,44 @@ on purpose (setting a role back to `Active`, an installation back to
 - `crates/genesis-server/tests/history_audit.rs`: a stored history passes;
   rewritten snapshots, a missing revision, an orphaned event and the wrong
   organization are each named.
+- `crates/genesis-server/tests/saga_fuzz.rs` (Claude/Eric) exercises the
+  server path the engine fuzz does not reach. It runs with
+  `GENESIS_AUDIT_COMMITS=1` and checks with `audit`, `audit_transition` and
+  `audit_history`.
+  - `saga_self_modification_keeps_every_revision_valid` drives `saga::submit`
+    against a flaky Elastic provisioner, which returns rejections, HTTP 503 and
+    unknown outcomes. Two proposals sometimes race for one revision.
+    Observations, requirements, completions and `RequestCapability` gaps are
+    interleaved while changes are still in flight. A committed change must land
+    at exactly `expected_org_revision + 1`, with its roles active in that
+    revision and absent before it. Roles of uncommitted changes must never
+    appear. Nothing may be left non-terminal without asking an operator. Every
+    operation kind it targets must commit at least once.
+  - `crash_and_restart_mid_saga_never_corrupts_history` runs each process
+    lifetime on its own runtime over one SQLite file. It tears the runtime down
+    while sagas are provisioning, saving or committing, then recovers with
+    `saga::resume_pending` as `serve_org` does. No change may record a binding
+    twice for one role.
+  - Provider-side oracles. The fake provider keeps a ledger across restarts,
+    so the tests catch saga mistakes the state audit cannot see:
+    - A role whose readiness check answered not-ready or failed must never become active. The fake fails about 12% of readiness checks.
+    - Without crashes, each role is created at most once.
+    - Across crashes, a role may be created again only if no `role_provisioned` binding was recorded at the time of the call.
+  - Crash placement. Half the lifetimes hold the kernel lock before the crash, so sagas park in READY. Readiness is slow enough that crashes also land between a saved binding and readiness. The test asserts that both cases occur.
+  - `a_non_conflict_commit_refusal_is_recorded_as_failed` forces the rare commit branch. It parks a change in READY, removes its saved binding, and restarts. The change must end FAILED with `NotProvisioned`, have no committed revision, and leave no roles in the history.
+  - Mutation check, using Henry's Claude's four planted bugs from the #90 review. Each one now fails at least one test:
+    - M1, resume forgets READY;
+    - M2, re-provisions a bound role;
+    - M3, treats not-ready as ready;
+    - M4, records a non-conflict commit refusal as COMMITTED.
+  - Results:
+
+    | Run | Committed | Failed or rejected | Crashes (interrupted sagas resumed) | Time |
+    | --- | --- | --- | --- | --- |
+    | Default (6 seeds × 120 steps; 3 seeds × 10 lifetimes) | 121 | 424 | 30 (28–47) | about 7 s |
+    | `GENESIS_SAGA_FUZZ_STEPS=600`, `GENESIS_SAGA_FUZZ_LIFETIMES=40` | 747 (incl. 128 `RequestCapability`) | 2,001 | 120 (93) | about 1 min |
+
+    Both runs found no violations. Crash timing depends on the scheduler, so the resumed count varies from run to run.
 - After the demo: see [DEMO_RUNBOOK.md](DEMO_RUNBOOK.md).
 
 ## What it does not prove

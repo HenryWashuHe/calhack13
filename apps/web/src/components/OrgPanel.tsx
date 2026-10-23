@@ -5,18 +5,21 @@ import { buildTree, executedBy, ownedBy, pendingRoles, RoleNode, short } from ".
 import { HistoryEntry, historyView } from "../lib/snapshot";
 import { ProviderBadge, StateChip } from "./Chips";
 import { gapsForRole } from "../lib/gaps";
+import { shortLabel } from "../lib/capabilities";
 import { GapIntakeContext } from "../lib/gapIntake";
+import { GapFinalizationContext } from "../lib/gapFinalization";
 
 function RequestedCapabilities({ state, roleId }: { state: OrgState; roleId: string }) {
   const intake = useContext(GapIntakeContext);
-  const gaps = gapsForRole(state, roleId, intake);
+  const finalization = useContext(GapFinalizationContext);
+  const gaps = gapsForRole(state, roleId, intake, finalization);
   if (gaps.length === 0) return null;
   return (
     <ul className="duties gaps">
       {gaps.map((g) => (
         <li key={g.gapId} title={`Requested by this organization's change; sources: ${g.sources.join(", ")}`}>
           <span className="chip provider dashed" style={{ ["--pc" as string]: "var(--p-apify)" }}>
-            {g.version ?? g.capabilityId}
+            {shortLabel(g.version ?? g.capabilityId)}
           </span>
           <span className={`chip ${g.tone}`}>{g.label}</span>
           <span>{g.purpose}</span>
@@ -131,8 +134,13 @@ function Node({ node, state, freshRevision }: { node: RoleNode; state: OrgState;
         {(r.capabilities ?? []).length > 0 && (
           <div className="role-meta">
             {(r.capabilities ?? []).map((c) => (
-              <span key={`${c.capability_id}@${c.version}`} className="chip provider" style={{ ["--pc" as string]: "var(--p-apify)" }}>
-                {c.capability_id}@{c.version}
+              <span
+                key={`${c.capability_id}@${c.version}`}
+                className="chip provider"
+                style={{ ["--pc" as string]: "var(--p-apify)" }}
+                title={`${c.capability_id}@${c.version}`}
+              >
+                {shortLabel(`${c.capability_id}@${c.version}`)}
               </span>
             ))}
           </div>

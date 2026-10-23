@@ -339,6 +339,46 @@ pub async fn create(
     create_locked(app, request)
 }
 
+/// Read-only ordering and active-cycle gate shared by explicit and subscribed
+/// assessment preparation. The caller holds the organization's kernel lock.
+pub(crate) struct AssessmentIntake {
+    pub source_floor: Option<DateTime<Utc>>,
+    pub unresolved: bool,
+}
+impl AssessmentIntake {
+    pub fn consumed(&self, created_at: DateTime<Utc>) -> bool {
+        self.source_floor.is_some_and(|floor| created_at <= floor)
+    }
+}
+pub(crate) fn intake_locked(
+    app: &AppState,
+    responsibility: &ResponsibilityId,
+) -> ApiResult<AssessmentIntake> {
+    let mut intake = AssessmentIntake {
+        source_floor: None,
+        unresolved: false,
+    };
+    for id in app.store.responsibility_assessments(responsibility)? {
+        let previous = app.store.assessment_binding(&id)?;
+        let job = app.store.get_job(&previous.job.job_id)?;
+        if previous.job.responsibility_id != *responsibility || job_spec(&job) != previous.job {
+            return Err(conflict("assessment job changed"));
+        }
+        intake.source_floor = Some(
+            intake
+                .source_floor
+                .map_or(previous.source_created_at, |floor| {
+                    floor.max(previous.source_created_at)
+                }),
+        );
+        intake.unresolved |= !matches!(
+            job.status,
+            JobStatus::Succeeded | JobStatus::Failed | JobStatus::ResultRejected
+        );
+    }
+    Ok(intake)
+}
+
 /// Internal callers retain the kernel lock across their own frozen-authority
 /// check and this preparation. This performs no native provider request.
 pub(crate) fn create_locked(
@@ -393,25 +433,16 @@ pub(crate) fn create_locked(
             "source must be a recent verified invocation from this mission",
         ));
     }
-    for id in app
-        .store
-        .responsibility_assessments(&request.responsibility_id)?
-    {
-        let previous = app.store.assessment_binding(&id)?;
-        let previous_job = app.store.get_job(&previous.job.job_id)?;
-        if previous.source_created_at >= source_job.created_at {
-            return Err(conflict(
-                "assessment source was already used or predates an earlier update",
-            ));
-        }
-        if !matches!(
-            previous_job.status,
-            JobStatus::Succeeded | JobStatus::Failed | JobStatus::ResultRejected
-        ) {
-            return Err(conflict(
-                "responsibility already has an unresolved assessment",
-            ));
-        }
+    let intake = intake_locked(app, &request.responsibility_id)?;
+    if intake.consumed(source_job.created_at) {
+        return Err(conflict(
+            "assessment source was already used or predates an earlier update",
+        ));
+    }
+    if intake.unresolved {
+        return Err(conflict(
+            "responsibility already has an unresolved assessment",
+        ));
     }
     let context = AssessmentContext {
         assessment_id: format!("assessment_{}", uuid::Uuid::new_v4()),
