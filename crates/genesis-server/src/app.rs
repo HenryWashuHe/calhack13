@@ -100,6 +100,7 @@ pub struct AppState {
     pub gap_acquisition_policy: Option<Arc<crate::capability_gap_policy::GapAcquisitionPolicy>>,
     pub gap_finalization_policy:
         Option<Arc<crate::capability_gap_finalizer::GapFinalizationPolicy>>,
+    pub gap_adoption_policy: Option<Arc<crate::capability_gap_adoption::GapAdoptionPolicy>>,
     pub acquisition_runtime: Arc<crate::capability_acquisition_runtime::AcquisitionRuntime>,
     pub(crate) adoption_gate: Arc<Mutex<()>>,
 }
