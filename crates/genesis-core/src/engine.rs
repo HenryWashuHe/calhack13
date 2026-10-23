@@ -1146,13 +1146,7 @@ impl<'a> Sim<'a> {
         if !self.errors.is_empty() {
             return;
         }
-        let requirement_digest = crate::digest::canonical_sha256(&serde_json::json!({
-            "requirement_id": requirement.requirement_id,
-            "mission_id": requirement.mission_id,
-            "summary": requirement.summary,
-            "acceptance": requirement.acceptance,
-            "triggering_evidence": requirement.triggering_evidence,
-        }));
+        let requirement_digest = requirement_digest(&requirement);
         self.st.capability_gaps.insert(
             gap_id.clone(),
             CapabilityGap {
@@ -2103,6 +2097,19 @@ fn acquirable_source(source: &str) -> Option<String> {
         return None;
     }
     http_origin(source)
+}
+
+/// Digest a capability gap freezes for its requirement: identity, mission,
+/// summary, acceptance and triggering evidence (not status). Recompute it on
+/// the live requirement to tell whether the gap still describes current work.
+pub fn requirement_digest(requirement: &Requirement) -> String {
+    crate::digest::canonical_sha256(&serde_json::json!({
+        "requirement_id": requirement.requirement_id,
+        "mission_id": requirement.mission_id,
+        "summary": requirement.summary,
+        "acceptance": requirement.acceptance,
+        "triggering_evidence": requirement.triggering_evidence,
+    }))
 }
 
 fn valid_capability_name(name: &str) -> bool {

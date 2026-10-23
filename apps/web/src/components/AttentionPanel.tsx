@@ -10,6 +10,7 @@ import {
   validAgentId,
 } from "../lib/attention";
 import { GapIntakeContext, intakeAttention } from "../lib/gapIntake";
+import { finalizationAttention, GapFinalizationContext } from "../lib/gapFinalization";
 
 const LABEL: Record<AttentionKind, { text: string; tone: string; title: string }> = {
   action: { text: "NEEDS YOU", tone: "bad", title: "Blocked until an operator decides" },
@@ -139,13 +140,14 @@ export function AttentionPanel({
   state: OrgState | null;
 }) {
   const intake = useContext(GapIntakeContext);
+  const finalization = useContext(GapFinalizationContext);
   const items = useMemo(() => {
     const all = attention(changes, jobs, events, state);
-    // Gap intake items are open; keep them with the other open items.
-    const gaps = intakeAttention(state, intake);
+    // Gap intake and finalization items are open; keep them with the other open items.
+    const gaps = [...intakeAttention(state, intake), ...finalizationAttention(state, finalization)];
     const open = all.filter(isOpen);
     return [...open, ...gaps, ...all.filter((i) => !isOpen(i))];
-  }, [changes, jobs, events, state, intake]);
+  }, [changes, jobs, events, state, intake, finalization]);
   const [expanded, setExpanded] = useState(false);
   if (items.length === 0) return null;
   const c = counts(items);
