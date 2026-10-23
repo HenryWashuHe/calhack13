@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { CapabilityManifest, Installation, Job } from "./contracts";
 import {
   DEV_ASSERTION,
+  shortLabel,
   describeOutput,
   failureKind,
   jobsForInstallation,
@@ -125,5 +126,10 @@ describe("partitionJobs parent regressions", () => {
 
   it("labels adoption acceptance runs", () => {
     expect(summarizeRun({ ...acceptance("inst_a"), job_id: "j" }).purpose).toBe("adoption acceptance · s");
+  });
+  it("shortens generated digest versions for display only", () => {
+    const hex = "a7d1a9b3731821a793bc538383e83cbedf7567f499f2029da873d5dac33d3d23";
+    expect(shortLabel(`venue-reader@0.0.1-${hex}.0`)).toBe("venue-reader@0.0.1-a7d1a9b3….0");
+    expect(shortLabel("listing-reader@1")).toBe("listing-reader@1");
   });
 });
