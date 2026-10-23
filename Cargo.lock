@@ -561,6 +561,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "genesis-forge"
+version = "0.1.0"
+dependencies = [
+ "genesis-apify",
+ "genesis-verification",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tokio",
+ "url",
+]
+
+[[package]]
 name = "genesis-providers"
 version = "0.1.0"
 dependencies = [
