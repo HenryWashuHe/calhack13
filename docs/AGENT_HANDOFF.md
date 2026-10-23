@@ -2,6 +2,15 @@
 
 ## Current implementation and ownership — October 22, 2026
 
+Immutable Fetch receipts are implemented at `afbe0bf` (reviewed original
+`6424bfb`). Exact frozen recruitment/consent/task messages are checked against
+prepared outbox and authenticated Applied inbox records in one SQLite snapshot.
+Receipt hashes survive later work/release/restart; construction is private and
+Debug hides payloads. **64 Fetch crate tests**, including 13 receipt tests, strict
+crate all-target Clippy and workspace fmt pass. Independent review is clean.
+See [the API and trust boundary](FETCH_RUNTIME.md#immutable-receipt-reconstruction).
+This adds no server integration, native signature verification or domain verdict.
+
 [PR #79](https://github.com/HenryWashuHe/genesis/pull/79) is merged as `1fc1b8e`,
 reviewed source `135c839`, exact tree `c09245b`. Runtime `8741f38` registers one
 durable subscription and observes both accepted assessment cycles. All 40 scenario
@@ -23,10 +32,18 @@ claim work is queued. Its 66 original web tests/typecheck/build pass; `d369213`
 adds the failing no-record regression and passing organization-switch/terminal
 AttentionPanel control. Claude retains both implementations.
 
-Codex's next independent core scope is immutable Fetch receipt reconstruction,
-restricted to `genesis-fetch` and its focused docs/tests. It must bind exact
-prepared requests to authenticated Applied inbox evidence and preserve historical
-identity across later tasks and release. No server bridge, kernel, planner,
+After those fixes, Claude is assigned the opt-in adopt-before-acquire gap
+coordinator and narrow kernel transition in a separate PR. It must create one
+durable adoption intent, retain uncertain outcomes, and permit synthesis fallback
+only after a definitive persisted empty result. A correlation prefix cannot by
+itself authorize a different selected capability ID. The detailed acceptance
+criteria and ownership are in issue #4 comment `6354798168`; implementation has
+not yet been reported.
+
+Codex owns the immutable Fetch receipt slice, restricted to `genesis-fetch` and
+its focused docs/tests. The implementation binds exact prepared requests to
+authenticated Applied inbox evidence and preserves historical identity across
+later tasks and release. No server bridge, kernel, planner,
 readiness or UI changes are part of that slice. Native sponsor evidence remains
 open. See the scoped handoff in issue #4 and the Fetch mission bridge plan.
 

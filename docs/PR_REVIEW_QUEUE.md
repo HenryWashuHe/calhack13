@@ -2,6 +2,8 @@
 
 ## Latest review batch
 
+- Immutable Fetch receipts (`afbe0bf`, original `6424bfb`): 64 crate tests including 13 new receipt checks, strict crate all-target Clippy, workspace fmt and clean independent review. Exact expected messages plus prepared/Applied journal chain; stable historical hashes, private serialization-only types and bounded/redacted payloads. Synthetic authenticated-boundary fixtures, no SDK/cloud/domain-verification claim. Server integration remains future work.
+
 - [#79 subscribed monitoring scenario](https://github.com/HenryWashuHe/genesis/pull/79): **merged** as `1fc1b8e`, reviewed source `135c839`, exact tree `c09245b`. Runtime `8741f38`: 40 scenario unit/HTTP checks and five full scenarios, strict default workspace all-target Clippy/fmt, independent review clean. One durable registration and exact second-proof replacement requirement; loopback evidence only.
 - [#78 gap finalizer](https://github.com/HenryWashuHe/genesis/pull/78): **hold** at `7cb747c`. Review composition `6be7dc2` on `codex/review-gap-finalizer78` has 11 passing controls and five reproduced failures: stale requirement installation/dispatch, weaker-suite acceptance reuse, Accepted shortcut after real delegation, conflicting same-pin publication. Detailed review and scoped fix handoff are on GitHub. Claude owns runtime fixes; review branch changes only tests plus main composition.
 - [#80 finalizer UI](https://github.com/HenryWashuHe/genesis/pull/80): **hold** at `931192c`, stacked on #78. All 66 original web tests/typecheck/build pass. Test-only `d369213` reproduces a false queued claim for global enablement with no matching per-gap rule; organization-switch and terminal AttentionPanel controls pass. Await corrected parent and wording/eligibility.

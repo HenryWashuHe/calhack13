@@ -1,10 +1,17 @@
 # Proposed Fetch mission bridge
 
-**Status: future, unimplemented work.** This plan records a read-only assessment of
-main `1bb3c9f`. It adds no runtime integration or provider evidence. Ownership below
-is a proposal and requires a scope claim on [coordination issue #4](https://github.com/HenryWashuHe/genesis/issues/4)
-before implementation. Keep Claude-owned general saga, planner, readiness, UI and
-capability-gap finalization work outside this slice.
+**Status: the immutable receipt milestone is implemented at `afbe0bf` (original
+source `6424bfb`); the server mission bridge below remains future work.** All 64
+Fetch crate tests pass, including 13 receipt tests, with strict crate all-target
+Clippy, workspace formatting and clean independent review. The receipts use the
+private journal's authenticated ingestion boundary; these tests are synthetic
+protocol fixtures and do not execute the native SDK or cloud providers.
+
+The original assessment used main `1bb3c9f`. Scope was claimed on
+[coordination issue #4](https://github.com/HenryWashuHe/genesis/issues/4#issuecomment-6354668197).
+Only the Fetch crate and focused documentation changed. Claude retains the general
+saga, planner, readiness, UI, gap finalizer and subsequent adopt-before-acquire
+coordinator; a server recovery adapter still requires a separate scope claim.
 
 The proposed mission contribution is a recruited replacement-venue specialist
 after a verified CREAO assessment detects insufficient capacity. The independent
@@ -13,12 +20,12 @@ drives a real follow-up assessment for the outstanding replacement requirement.
 It does not make a reservation, establish live availability or satisfy the whole
 mission merely by returning a result.
 
-## First milestone: immutable Fetch receipts
+## Implemented first milestone: immutable Fetch receipts
 
-Implement a bounded, serialize-only receipt API in
+The bounded, serialize-only receipt API is in
 [`genesis-fetch::runtime`](../crates/genesis-fetch/src/runtime.rs), with focused
-tests in [`genesis-fetch/tests`](../crates/genesis-fetch/tests). This is the
-smallest independent prerequisite; it should land before server domain work.
+tests in [`genesis-fetch/tests`](../crates/genesis-fetch/tests). This is an
+independent prerequisite for later server domain work.
 
 Today `RuntimeStore::prepare` saves immutable outgoing messages and contract changes
 atomically. `ingest` saves reply dispositions, contract/task state and the bridge
@@ -27,8 +34,8 @@ cursor atomically. However, `get` validates stored message shapes and context; a
 `acceptance` field contains the outgoing `AcceptOffer`, not the received
 `ContractAccepted` message.
 
-The proposed receipt accessor must reconstruct the relevant evidence from the
-private journal and check:
+The receipt accessors reconstruct the relevant evidence from the private journal
+and check:
 
 - The caller's exact frozen recruitment/task request, organization and bridge
   identity, peer, mission, contract, correlation, job, attempt, assignment, epoch,
@@ -40,7 +47,7 @@ private journal and check:
   epoch. A rejected inbox record, unrelated result or bare phase label is
   insufficient.
 
-Return native message/peer identifiers, bounded output and domain-separated hashes
+They return native message/peer identifiers, bounded output and domain-separated hashes
 of the immutable request, response and evidence chain. Do not hash the entire
 mutable contract as the historical receipt identity: later tasks and release must
 not invalidate earlier evidence. Redact output in `Debug`; offer no `Deserialize`
@@ -55,12 +62,13 @@ Historical receipt reconstruction should survive expiry/release; applying its
 result still requires fresh kernel authority. Do not invent missing legacy
 evidence or receipt timestamps during migration.
 
-Required first-milestone tests: genuine negotiation/task ingestion; exact request
+The 13 receipt tests cover real runtime preparation and ingestion with synthetic
+protocol messages: exact request
 binding and cross-organization rejection; missing, pending and rejected evidence;
 changed sender/body/digest/link rejection; restart and zero-I/O reads; receipt
 identity surviving an unrelated later task and contract release; bounded output
-and redacted debug formatting. Reuse the existing runtime and bridge fixtures,
-keeping synthetic transport evidence labeled as such.
+and redacted debug formatting. No native SDK signature or provider execution is claimed by these receipt tests.
+See [the API and evidence boundary](FETCH_RUNTIME.md#immutable-receipt-reconstruction).
 
 ## Later bounded server integration
 
