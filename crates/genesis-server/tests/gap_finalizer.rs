@@ -93,9 +93,16 @@ struct World {
     wrong_outputs: bool,
     fail_build_read: bool,
     read_failed: bool,
+    fail_next_run_read: bool,
+    run_response_barrier: Option<Arc<RunResponseBarrier>>,
     requests: Vec<(String, String)>,
     actors: BTreeMap<String, Value>,
     runs: BTreeMap<String, (String, Value)>,
+}
+#[derive(Default)]
+struct RunResponseBarrier {
+    entered: tokio::sync::Notify,
+    release: tokio::sync::Notify,
 }
 impl World {
     fn build(&self, actor: &str) -> Value {
@@ -170,6 +177,13 @@ impl World {
                     .insert(id.clone(), ((*actor).into(), receipts[case].output.clone()));
                 (StatusCode::CREATED, self.run(&id))
             }
+            ("GET", ["v2", "actor-runs", _]) if self.fail_next_run_read => {
+                self.fail_next_run_read = false;
+                (
+                    StatusCode::SERVICE_UNAVAILABLE,
+                    json!({"error":"TEMPORARY_READ_FAILURE"}),
+                )
+            }
             ("GET", ["v2", "actor-runs", run]) => (StatusCode::OK, self.run(run)),
             ("GET", ["v2", "datasets", dataset, "items"]) => (
                 StatusCode::OK,
@@ -215,7 +229,18 @@ impl Providers {
                     } else {
                         serde_json::from_slice(&bytes).unwrap()
                     };
-                    let (status, body) = world.lock().unwrap().reply(&method, &path, body);
+                    let ((status, body), barrier) = {
+                        let mut world = world.lock().unwrap();
+                        let response = world.reply(&method, &path, body);
+                        let barrier = (method == "POST" && path.ends_with("/runs"))
+                            .then(|| world.run_response_barrier.clone())
+                            .flatten();
+                        (response, barrier)
+                    };
+                    if let Some(barrier) = barrier {
+                        barrier.entered.notify_one();
+                        barrier.release.notified().await;
+                    }
                     (status, Json(body))
                 },
             )
@@ -1257,4 +1282,143 @@ async fn review_acceptance_for_the_exact_frozen_suite_can_be_reused() {
             .report_ref,
         proof.report_ref
     );
+}
+
+#[tokio::test]
+async fn review_configuration_attention_preserves_prepared_checks_for_explicit_recovery() {
+    let mut f = Fixture::new(&["capability.acquire", PERMISSION]).await;
+    f.acquire().await;
+    for expected in [
+        Step::Frozen,
+        Step::Published,
+        Step::Installing,
+        Step::Checking,
+    ] {
+        assert_eq!(f.finalize_step().await, expected);
+    }
+    let record = f.app.store.gap_finalization(&f.gap_id).unwrap().unwrap();
+    let before = f.app.current_state().unwrap();
+    let posts = f.providers.count("POST", "/runs");
+    // A restart detects changed operator configuration, while the mission,
+    // requirement, assignment, epoch and scopes all remain valid and unchanged.
+    f.config.gap_finalization_policy.as_mut().unwrap().rules[0].intent =
+        "Temporarily changed operator configuration".into();
+    f.reopen();
+    assert_eq!(
+        f.finalize_step().await,
+        Step::Attention(FinalizerCode::Configuration)
+    );
+    let _ = f
+        .app
+        .capability_runtime
+        .step(&record.job_ids[0], false)
+        .await;
+    let paused = f.app.store.get_capability_run(&record.job_ids[0]).unwrap();
+    assert_eq!(f.providers.count("POST", "/runs"), posts);
+    assert_eq!(f.app.current_state().unwrap().revision, before.revision);
+
+    // Restore the exact frozen policy and use the public retry action. No new
+    // batch or request keys may be needed to finish these untouched requests.
+    f.config.gap_finalization_policy = Some(finalization());
+    f.reopen();
+    let base = serve_url(&f).await;
+    let response = reqwest::Client::new()
+        .post(format!(
+            "{base}/api/v1/capability-gaps/{}/finalization/retry",
+            f.gap_id
+        ))
+        .bearer_auth(format!("{ORG}-operator"))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: Value = response.json().await.unwrap();
+    assert_eq!(body["state"], "active");
+    let outcome = f.finish().await;
+    assert_eq!(
+        outcome,
+        Step::Installed,
+        "operational attention must pause, not permanently reject a valid prepared child: {:?}",
+        paused.phase
+    );
+    let recovered = f.app.store.gap_finalization(&f.gap_id).unwrap().unwrap();
+    assert_eq!(recovered.job_ids, record.job_ids);
+    assert_eq!(
+        f.providers.count("POST", "/runs") - posts,
+        suite().cases.len()
+    );
+}
+
+#[tokio::test]
+async fn review_sibling_attention_preserves_an_inflight_unknown_submission() {
+    use genesis_server::capability_runtime::CapabilityRunPhase;
+    let f = Fixture::new(&["capability.acquire", PERMISSION]).await;
+    f.acquire().await;
+    for expected in [
+        Step::Frozen,
+        Step::Published,
+        Step::Installing,
+        Step::Checking,
+    ] {
+        assert_eq!(f.finalize_step().await, expected);
+    }
+    let record = f.app.store.gap_finalization(&f.gap_id).unwrap().unwrap();
+    let before = f.app.current_state().unwrap();
+    // First child owns a real native ticket, then experiences a retryable GET.
+    f.app
+        .capability_runtime
+        .step(&record.job_ids[0], false)
+        .await
+        .unwrap();
+    f.providers.state.lock().unwrap().fail_next_run_read = true;
+    let failed_read = f
+        .app
+        .capability_runtime
+        .step(&record.job_ids[0], false)
+        .await
+        .unwrap();
+    assert_eq!(failed_read.phase, CapabilityRunPhase::Running);
+    assert!(failed_read.retryable_read);
+
+    // The second POST has reached the loopback provider, but its 503 reply is
+    // held while the separate finalizer observes the first child's read error.
+    let barrier = Arc::new(RunResponseBarrier::default());
+    {
+        let mut world = f.providers.state.lock().unwrap();
+        world.ambiguous_runs = true;
+        world.run_response_barrier = Some(barrier.clone());
+    }
+    let runtime = f.app.capability_runtime.clone();
+    let job = record.job_ids[1].clone();
+    let submitting = tokio::spawn(async move { runtime.step(&job, false).await });
+    tokio::time::timeout(Duration::from_secs(2), barrier.entered.notified())
+        .await
+        .unwrap();
+    assert_eq!(
+        f.finalize_step().await,
+        Step::Attention(FinalizerCode::Checks)
+    );
+    assert_eq!(f.app.current_state().unwrap().revision, before.revision);
+    barrier.release.notify_one();
+    let result = submitting.await.unwrap().unwrap();
+    let posts = f.providers.count("POST", "/runs");
+    // Further explicit child stepping must not issue the unknown POST a
+    // second time. The original uncertainty must remain visible, not become a
+    // definite authority rejection while the actual grant never changed.
+    let _ = f
+        .app
+        .capability_runtime
+        .step(&record.job_ids[1], false)
+        .await;
+    assert_eq!(f.providers.count("POST", "/runs"), posts);
+    assert_eq!(
+        result.phase,
+        CapabilityRunPhase::NeedsReconciliation,
+        "sibling operational attention overwrote an ambiguous native POST: {:?}",
+        result.failure
+    );
+    assert!(matches!(
+        result.failure,
+        Some(genesis_providers::ProviderError::Unknown(_))
+    ));
 }
