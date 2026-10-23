@@ -23,15 +23,18 @@ export interface HistoryAudit {
 
 export type RevisionVerdict = "ok" | "bad" | "unknown";
 
-/** Verdict per stored revision. Revisions past the reporting cap are unknown, never assumed clean. */
+/**
+ * Verdict per stored revision. When the server truncated its violation list,
+ * an unreported violation can sit at any revision (snapshot violations are
+ * listed first, then event-log ones), so no unflagged revision is called clean.
+ */
 export function verdicts(a: HistoryAudit): { revision: number; verdict: RevisionVerdict; violations: RevisionViolation[] }[] {
   if (a.first_revision === null || a.last_revision === null) return [];
   const truncated = a.violation_count > a.violations.length;
-  const lastReported = a.violations.reduce((m, v) => Math.max(m, v.revision), -1);
   const out = [];
   for (let r = a.first_revision; r <= a.last_revision; r++) {
     const vs = a.violations.filter((v) => v.revision === r);
-    const verdict: RevisionVerdict = vs.length > 0 ? "bad" : truncated && r > lastReported ? "unknown" : "ok";
+    const verdict: RevisionVerdict = vs.length > 0 ? "bad" : truncated ? "unknown" : "ok";
     out.push({ revision: r, verdict, violations: vs });
   }
   return out;

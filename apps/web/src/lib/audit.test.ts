@@ -22,9 +22,9 @@ describe("verdicts", () => {
     expect(verdicts(a).map((r) => r.verdict)).toEqual(["ok", "ok", "bad", "ok"]);
   });
 
-  it("never assumes revisions past a truncated list are clean", () => {
+  it("calls no unflagged revision clean when the list is truncated", () => {
     const a = { ...base, violation_count: 500, violations: [{ revision: 1, invariant: "role_limit", detail: "x" }] };
-    expect(verdicts(a).map((r) => r.verdict)).toEqual(["ok", "bad", "unknown", "unknown"]);
+    expect(verdicts(a).map((r) => r.verdict)).toEqual(["unknown", "bad", "unknown", "unknown"]);
   });
 
   it("handles an empty history", () => {

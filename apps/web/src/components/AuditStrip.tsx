@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import type { Api } from "../lib/api";
 import { HistoryAudit, ruleName, verdicts } from "../lib/audit";
 
+const AUDIT_SETTLE_MS = 2000;
+
 type Load = { kind: "loading" } | { kind: "ready"; audit: HistoryAudit } | { kind: "error"; message: string };
 
 /**
@@ -24,19 +26,28 @@ export function AuditStrip({
   const [load, setLoad] = useState<Load>({ kind: "loading" });
   const [open, setOpen] = useState(false);
 
+  // The audit replays the whole history, so its cost grows with it. Run it
+  // once on load, then at most once per settle period after the organization
+  // stops advancing; the previous result stays on screen meanwhile.
+  const [first, setFirst] = useState(true);
   useEffect(() => {
     let cancelled = false;
-    api
-      .get<HistoryAudit>("/organization/audit")
-      .then((audit) => {
-        if (!cancelled) setLoad({ kind: "ready", audit });
-      })
-      .catch((e: unknown) => {
-        if (!cancelled) setLoad({ kind: "error", message: e instanceof Error ? e.message : String(e) });
-      });
+    const run = () =>
+      api
+        .get<HistoryAudit>("/organization/audit")
+        .then((audit) => {
+          if (!cancelled) setLoad({ kind: "ready", audit });
+        })
+        .catch((e: unknown) => {
+          if (!cancelled) setLoad({ kind: "error", message: e instanceof Error ? e.message : String(e) });
+        });
+    const t = setTimeout(run, first ? 0 : AUDIT_SETTLE_MS);
+    setFirst(false);
     return () => {
       cancelled = true;
+      clearTimeout(t);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [api, current]);
 
   if (load.kind === "loading") return <div className="audit">Running the kernel audit…</div>;

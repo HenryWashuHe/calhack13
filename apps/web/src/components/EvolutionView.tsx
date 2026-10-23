@@ -22,6 +22,11 @@ function DeltaChip({ d }: { d: Delta }) {
       <span className="evo-text">
         <span>{d.text}</span>
         {d.devStub && <span className="chip warn">DEV STUB{d.provider ? ` · for ${d.provider}` : ""}</span>}
+        {d.operatorAttached && (
+          <span className="chip warn" title="Agent ID supplied by an operator; the provider never reported creating it">
+            attached by operator
+          </span>
+        )}
         {!d.devStub && d.provider && d.kind === "role_added" && <span className="muted">{d.provider}</span>}
       </span>
     </li>
@@ -121,7 +126,7 @@ function GenerationRow({
     <li key={g.revision} className={`evo-gen${selected === g.revision ? " selected" : ""}`}>
       <div className="evo-rail">
         <span className="mono">r{g.revision}</span>
-        <span className={`chip evo-label ${g.label.toLowerCase()}`}>{g.label}</span>
+        <span className={`chip evo-label ${g.label.toLowerCase().replace(/\s+/g, "-")}`}>{g.label}</span>
         <span
           className="evo-bar"
           style={{ ["--w" as string]: `${(g.activeRoles / peak) * 100}%` }}
