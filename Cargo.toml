@@ -1,9 +1,11 @@
 [workspace]
 resolver = "2"
 members = [
+    "crates/genesis-apify",
     "crates/genesis-core",
     "crates/genesis-providers",
     "crates/genesis-server",
+    "crates/genesis-verification",
 ]
 
 [workspace.package]
