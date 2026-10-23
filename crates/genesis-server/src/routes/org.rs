@@ -153,3 +153,56 @@ pub async fn update_contract(
         json!({ "revision": m.state.revision, "contract": m.state.contracts.get(&contract_id) }),
     ))
 }
+
+#[derive(Deserialize)]
+pub struct PlannerDecisionBody {
+    pub planner: String,
+    pub model: String,
+    pub observation_id: ObservationId,
+    pub verdict: genesis_core::events::PlannerVerdict,
+    pub summary: String,
+    pub rationale: String,
+    pub attempt: u32,
+    pub latency_ms: u64,
+    pub requirement_id: Option<genesis_core::ids::RequirementId>,
+    pub change_id: Option<genesis_core::ids::ChangeId>,
+    #[serde(default)]
+    pub kernel_errors: Vec<String>,
+}
+
+/// Record a planning agent's decision in the event log. This changes no
+/// organizational state; it makes the agent's reasoning auditable.
+pub async fn planner_decision(
+    State(app): State<AppState>,
+    p: Principal,
+    Json(b): Json<PlannerDecisionBody>,
+) -> ApiResult<(StatusCode, Json<Value>)> {
+    p.require(&[Principal::Agent, Principal::Operator])?;
+    let state = app.current_state()?;
+    let obs = state.observations.get(&b.observation_id).ok_or_else(|| {
+        crate::error::ApiError::not_found(format!("observation {}", b.observation_id))
+    })?;
+    let meta = EventMeta::mission(obs.mission_id.clone()).caused_by(b.observation_id.to_string());
+    let events = app.store.append_events(
+        vec![genesis_core::events::EventKind::PlannerDecision {
+            planner: b.planner,
+            model: b.model,
+            observation_id: b.observation_id,
+            verdict: b.verdict,
+            summary: b.summary,
+            rationale: b.rationale,
+            attempt: b.attempt,
+            latency_ms: b.latency_ms,
+            requirement_id: b.requirement_id,
+            change_id: b.change_id,
+            kernel_errors: b.kernel_errors,
+        }],
+        &meta,
+        |_| Ok(()),
+    )?;
+    app.broadcast(&events);
+    Ok((
+        StatusCode::CREATED,
+        Json(json!({ "seq": events.first().map(|e| e.seq) })),
+    ))
+}

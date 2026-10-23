@@ -178,6 +178,28 @@ export function describe(ev: DomainEvent, state: OrgState | null): Described {
         category: "capabilities",
         refs: [ev.payload.job_id],
       };
+    case "planner_decision": {
+      const v = ev.payload.verdict;
+      const label: Record<typeof v, string> = {
+        change_proposed: "Planner proposed a change",
+        no_change: "Planner: no change needed",
+        rejected: "Planner proposal rejected",
+        escalated: "Planner escalated to a human",
+      };
+      const tone = v === "change_proposed" ? "ok" : v === "no_change" ? "neutral" : v === "rejected" ? "warn" : "bad";
+      return {
+        title: label[v],
+        detail: `${ev.payload.summary} — ${ev.payload.rationale}`,
+        category: "changes",
+        refs: [
+          `${ev.payload.planner} · ${ev.payload.model}`,
+          `attempt ${ev.payload.attempt} · ${ev.payload.latency_ms} ms`,
+          ...(ev.payload.change_id ? [ev.payload.change_id] : []),
+          ...(ev.payload.kernel_errors ?? []),
+        ],
+        tone,
+      };
+    }
     default: {
       const unknown = ev as { type: string };
       return { title: unknown.type, detail: "", category: "organization", refs: [] };
