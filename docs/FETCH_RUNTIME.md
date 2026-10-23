@@ -49,6 +49,40 @@ persistent per-organization contracts and idempotent task receipts. Its output
 explicitly says `synthetic:true` and `domain_verified:false`; it performs no external
 business action. Two organizations use separate Rust journals and bridge identities.
 
+## Immutable receipt reconstruction
+
+The Rust journal exposes `recruitment_receipt(peer, expected_recruit,
+expected_accept)` and `task_receipt(peer, expected_recruit, expected_accept,
+expected_task)`. Supply the complete frozen outgoing messages, including the exact
+accepted offer identity and task input, grant, attempt, idempotency key and deadline.
+The accessors read one SQLite snapshot and reconstruct the immutable evidence
+chain from prepared outbox rows and authenticated inbox rows whose disposition is
+`Applied`. A current `Active` or `Collected` label alone is insufficient.
+
+Receipts bind the organization, configured bridge and selected peer, then check
+message identities, context, cross-message links and stored digests. Their hashes
+cover the relevant request/response chain, excluding later tasks, release, cursor,
+queue acknowledgments and mutable contract revision. Historical reconstruction
+therefore survives expiry and release; it does not authorize new work under an
+expired or revoked grant. A missing or inconsistent chain returns an error without
+preparing a request, retrying delivery or changing kernel state.
+
+The returned Rust types have private construction and serialization support,
+without deserialization into a trusted receipt. Debug formatting hides task input,
+output and offer terms. Serialized receipts contain evidence for trusted backend
+consumers; treat them as private data. A serialized object is not an independently
+verifiable signed envelope and must not be accepted from an HTTP caller as proof.
+The journal retains the authenticated sender and canonical message after the
+bridge verifies the SDK signature, rather than the complete native envelope.
+It also stores no ingestion timestamp, so these accessors invent none.
+
+Transport provenance remains separate from domain verification. A specialist can
+return a well-correlated but wrong answer, and a previously authorized task can
+finish after its authority is revoked. The later server integration must validate
+the result against verified source facts and recheck current kernel authority
+before applying any mission effects. That integration remains future work in the
+[scoped mission bridge plan](FETCH_MISSION_BRIDGE_PLAN.md).
+
 ## Run the complete local proof
 
 ```sh

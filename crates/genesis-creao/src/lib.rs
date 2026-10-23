@@ -9,7 +9,7 @@ mod model;
 mod rate_limiter;
 pub mod runtime;
 
-pub use client::CreaoClient;
+pub use client::{CreaoClient, PreEffectGuard};
 pub use model::{
     AgentObservation, CreateAgentRequest, Error, ErrorKind, Limits, NativeRunStatus,
     OperationRequest, RunObservation, RunRequest, RunTicket, Stage, WriteAutonomy,

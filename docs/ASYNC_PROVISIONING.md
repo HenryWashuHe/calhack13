@@ -84,19 +84,42 @@ Tests: `crates/genesis-server/tests/specialist_jobs.rs`,
   in the git-ignored `.env`; none set means CREAO stays unconfigured, a partial
   set refuses to start and names the missing variables (never the key).
   Startup runs `recover_interrupted()` before serving. `/health` lists
-  `configured_specialists`. Being registered is not being ready: without the
-  verifier below a CREAO role stays PROVISIONING after collection.
-- **A readiness verifier** for CREAO: a saved bridge-readiness run whose
-  gateway receipt the backend observes, registered with
-  `AppState::with_readiness_verifier(Provider::Creao, …)`.
-- **Attaching a found native agent** to a `needs_reconciliation` operation.
-  Today an operator can only abandon it:
-  `POST /api/v1/org-changes/{id}/operations/{role_key}/abandon` with
-  `{"reason": "..."}` (operator token) marks the operation failed and ends the
-  change FAILED, keeping every provider ID; nothing is retried.
+  `configured_specialists`. Being registered is not being ready: without a
+  readiness verifier a created CREAO agent stays `awaiting_readiness`.
+- **The readiness verifier's kernel side is done**: `GatewayReadiness` issues a
+  one-time challenge and accepts the agent's receipt at
+  `POST /api/v1/gateway/readiness-receipts` (see
+  [GATEWAY_READINESS.md](GATEWAY_READINESS.md)). The CREAO provider probe and its
+  distinct durable readiness purpose are implemented. Set `GENESIS_PUBLIC_URL`
+  along with the complete CREAO configuration to register it. Actual skill
+  installation and a live-account receipt remain unverified; see
+  [CREAO_READINESS.md](CREAO_READINESS.md).
+- **Reconciling a lost creation is done.** For a `needs_reconciliation`
+  operation an operator (operator token) can either:
+  - **attach** the native agent found in the provider account:
+    `POST /api/v1/org-changes/{id}/operations/{role_key}/attach` with
+    `{"provider_agent_id": "...", "reason": "..."}`. The binding uses the
+    configuration digest of the role's original creation request, the
+    operation moves to `awaiting_readiness` with
+    `native_status: "operator_attached"` (no `role_provisioned` event: the
+    provider never reported this agent), and the role activates only after
+    the readiness verifier passes for that agent ID (for CREAO, a gateway
+    receipt naming it). No provider request is made and nothing is
+    re-created. Refused with `409 operation_not_reconcilable` unless the
+    outcome is unknown and no agent is bound yet, and with
+    `409 agent_already_bound` if the ID is bound to any role or to another
+    change. Readiness shows that the agent can run its gateway skill and reach
+    GENESIS; the kernel does not check that the agent's configuration matches
+    the role. That stays the operator's assertion, recorded with the reason.
+  - **abandon** it:
+    `POST /api/v1/org-changes/{id}/operations/{role_key}/abandon` with
+    `{"reason": "..."}` marks the operation failed and ends the change FAILED,
+    keeping every provider ID; nothing is retried.
 - A **domain verifier** that can move a `VERIFYING` job to `SUCCEEDED`, and
   draining/retirement handling of jobs still running when a role retires
   (today they are fenced on the next advance).
+
+Attach tests: `crates/genesis-server/tests/operation_attach.rs`.
 
 Tests: `crates/genesis-server/tests/specialist_readiness.rs` (scripted runtime
 and verifier: pending → created → ready, no verifier, ambiguous creation,

@@ -33,7 +33,7 @@ pub struct CreateAgentRequest {
     pub conversation_id: Option<String>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Serialize, Deserialize, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct RunRequest {
     pub agent_id: String,
@@ -44,6 +44,17 @@ pub struct RunRequest {
     pub conversation_id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub workspace_id: Option<String>,
+}
+impl fmt::Debug for RunRequest {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("RunRequest")
+            .field("agent_id", &self.agent_id)
+            .field("input", &"[redacted]")
+            .field("model", &self.model)
+            .field("conversation_id", &self.conversation_id)
+            .field("workspace_id", &self.workspace_id)
+            .finish()
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
@@ -125,7 +136,7 @@ impl OperationRequest {
 
 /// An account-bound receipt from trusted backend storage. Deserialization does
 /// not grant organization authority or prove a caller owns the remote run.
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Serialize, Deserialize, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct RunTicket {
     pub(crate) schema_version: u32,
@@ -136,6 +147,20 @@ pub struct RunTicket {
     pub(crate) conversation_id: Option<String>,
     pub(crate) workspace_id: Option<String>,
     pub(crate) model: Option<String>,
+}
+impl fmt::Debug for RunTicket {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("RunTicket")
+            .field("schema_version", &self.schema_version)
+            .field("account_namespace", &self.account_namespace)
+            .field("request_sha256", &self.request_sha256)
+            .field("run_id", &self.run_id)
+            .field("agent_id", &self.agent_id)
+            .field("conversation_id", &self.conversation_id)
+            .field("workspace_id", &self.workspace_id)
+            .field("model", &"[redacted]")
+            .finish()
+    }
 }
 impl RunTicket {
     pub fn run_id(&self) -> &str {
@@ -267,7 +292,7 @@ impl<'de> Deserialize<'de> for NativeRunStatus {
 /// Provider metadata and untrusted output, never a verified domain outcome.
 /// `raw_response` preserves future fields; do not log it or feed it into an
 /// authority decision without validating the responsibility's output contract.
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Serialize, Deserialize, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct RunObservation {
     pub run_id: String,
@@ -278,6 +303,25 @@ pub struct RunObservation {
     pub model: Option<String>,
     pub result: Option<Value>,
     pub raw_response: Value,
+}
+impl fmt::Debug for RunObservation {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let status = if matches!(self.status, NativeRunStatus::Unknown(_)) {
+            "unknown"
+        } else {
+            self.status.as_str()
+        };
+        f.debug_struct("RunObservation")
+            .field("run_id", &self.run_id)
+            .field("status", &status)
+            .field("agent_id", &self.agent_id)
+            .field("conversation_id", &self.conversation_id)
+            .field("workspace_id", &self.workspace_id)
+            .field("model", &"[redacted]")
+            .field("result", &"[redacted]")
+            .field("raw_response", &"[redacted]")
+            .finish()
+    }
 }
 impl RunObservation {
     pub fn validate_for(
@@ -395,6 +439,8 @@ pub enum ErrorKind {
     MalformedResponse,
     ProvenanceMismatch,
     CredentialEcho,
+    /// Backend authority denied the request before any network effect.
+    GuardRejected,
 }
 /// Contains no provider text, request contents, URL, or credentials.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]

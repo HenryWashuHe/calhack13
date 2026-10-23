@@ -38,6 +38,10 @@ pub enum Readiness {
     Ready { evidence_ref: String },
     /// The check is still running; ask again later.
     Pending,
+    /// Still running, with a sanitized note for operators (shown as the
+    /// operation's attention). Keep it stable across passes: a changed note
+    /// is a new progress event.
+    Waiting(String),
     /// The agent exists but is not usable.
     NotReady(String),
 }
@@ -350,6 +354,10 @@ pub(crate) async fn drive_role(
         }
         Ok(Readiness::Pending) => {
             update(app, record, &key, |o| o.attention = None, vec![])?;
+            Ok(Drive::Waiting)
+        }
+        Ok(Readiness::Waiting(note)) => {
+            update(app, record, &key, |o| o.attention = Some(note), vec![])?;
             Ok(Drive::Waiting)
         }
         Ok(Readiness::NotReady(reason)) => Ok(Drive::Failed(format!("readiness: {reason}"))),

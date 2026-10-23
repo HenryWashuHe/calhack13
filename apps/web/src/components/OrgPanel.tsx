@@ -9,6 +9,8 @@ import { EvolutionView } from "./EvolutionView";
 import { generations, timeline } from "../lib/evolution";
 import { AuditStrip } from "./AuditStrip";
 import { downloadStory } from "../lib/story";
+import { gapsForRole } from "../lib/gaps";
+import { GapIntakeContext } from "../lib/gapIntake";
 
 /** Records the "Why?" drawer explains a role from. Absent → no drawer. */
 const Provenance = createContext<{ changes: OrgChangeRecord[]; events: DomainEvent[] } | null>(null);
@@ -31,6 +33,26 @@ function Why({ open, roleId, state }: { open: boolean; roleId: string; state: Or
   const records = useContext(Provenance);
   if (!open || !records) return null;
   return <WhyDrawer roleId={roleId} state={state} changes={records.changes} events={records.events} />;
+}
+
+function RequestedCapabilities({ state, roleId }: { state: OrgState; roleId: string }) {
+  const intake = useContext(GapIntakeContext);
+  const gaps = gapsForRole(state, roleId, intake);
+  if (gaps.length === 0) return null;
+  return (
+    <ul className="duties gaps">
+      {gaps.map((g) => (
+        <li key={g.gapId} title={`Requested by this organization's change; sources: ${g.sources.join(", ")}`}>
+          <span className="chip provider dashed" style={{ ["--pc" as string]: "var(--p-apify)" }}>
+            {g.version ?? g.capabilityId}
+          </span>
+          <span className={`chip ${g.tone}`}>{g.label}</span>
+          <span>{g.purpose}</span>
+          {g.detail && <span className="muted">{g.detail}</span>}
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 function Duties({ state, roleId }: { state: OrgState; roleId: string }) {
@@ -89,7 +111,17 @@ function Node({ node, state, freshRevision }: { node: RoleNode; state: OrgState;
                 {p.operation.state.replace(/_/g, " ")}
               </span>
               {p.operation.run_id && <span className="mono">run {p.operation.run_id}</span>}
+              {p.operation.native_status === "operator_attached" && (
+                <span className="chip warn" title="Agent ID supplied by an operator; the provider never reported it">
+                  attached by operator
+                </span>
+              )}
               {p.operation.attention && <span className="muted">{p.operation.attention}</span>}
+              {p.operation.readiness_evidence && (
+                <span className="chip ok" title="Backend-observed readiness evidence">
+                  readiness {p.operation.readiness_evidence}
+                </span>
+              )}
             </div>
           )}
           <div className="role-meta">
@@ -125,6 +157,7 @@ function Node({ node, state, freshRevision }: { node: RoleNode; state: OrgState;
         </div>
         <div className="role-charter">{r.charter}</div>
         <Duties state={state} roleId={r.role_id} />
+        <RequestedCapabilities state={state} roleId={r.role_id} />
         {(r.capabilities ?? []).length > 0 && (
           <div className="role-meta">
             {(r.capabilities ?? []).map((c) => (
