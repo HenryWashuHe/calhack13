@@ -354,23 +354,10 @@ impl RuntimeStore {
         for row in rows {
             let (id, contract_id, peer, data, digest) = row?;
             let message = Message::decode(data.as_bytes())?;
-            if id != message.message_id
-                || contract_id != message.contract_id
-                || message.org_id != self.org_id
-                || !address(&peer)
-                || peer == self.bridge_address
-                || digest != send_digest(&peer, &message)?
-            {
-                return Err(RuntimeError::Conflict);
-            }
-            let c = load(&connection, &message.contract_id)?.ok_or(RuntimeError::Invalid)?;
-            // Legacy lossy decoding may already have changed a cached request
-            // while its original outbox digest survived. Never silently send or
-            // rehash a different request under that old application identity.
-            check_cached_outgoing(&c, &peer, &message)?;
             if message.expires_at <= now {
                 continue;
             }
+            let c = load(&connection, &message.contract_id)?.ok_or(RuntimeError::Invalid)?;
             let eligible = match &message.body {
                 Body::RecruitRequest { .. } => c.phase == ContractPhase::Requested,
                 Body::AcceptOffer { .. } => c.phase == ContractPhase::Accepting,
@@ -385,13 +372,29 @@ impl RuntimeStore {
                 Body::ReleaseContract { .. } => c.phase == ContractPhase::Released,
                 _ => false,
             };
-            if eligible {
-                result.push(SendRequest {
-                    schema_version: 1,
-                    recipient: peer,
-                    message,
-                });
+            if !eligible {
+                continue;
             }
+            // Expired or fenced historical work must not block a release or
+            // another contract. Validate every message still eligible to send.
+            if id != message.message_id
+                || contract_id != message.contract_id
+                || message.org_id != self.org_id
+                || !address(&peer)
+                || peer == self.bridge_address
+                || digest != send_digest(&peer, &message)?
+            {
+                return Err(RuntimeError::Conflict);
+            }
+            // Legacy lossy decoding may already have changed a cached request
+            // while its original outbox digest survived. Never silently send or
+            // rehash a different request under that old application identity.
+            check_cached_outgoing(&c, &peer, &message)?;
+            result.push(SendRequest {
+                schema_version: 1,
+                recipient: peer,
+                message,
+            });
             if result.len() == 50 {
                 break;
             }
