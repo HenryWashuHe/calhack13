@@ -50,7 +50,12 @@ pub async fn drain_once(app: &AppState) -> anyhow::Result<usize> {
 
 async fn deliver(app: &AppState, item: &OutboxItem) -> Result<(), String> {
     match (item.destination.as_str(), item.kind.as_str()) {
-        (_, "job_dispatch") if item.payload["job_id"].as_str().and_then(|id| app.store.get_job(&JobId::new(id)).ok()).is_some_and(|job| app.store.recovery_manages_job(&job).unwrap_or(true)) => {
+        (_, "job_dispatch")
+            if item.payload["job_id"]
+                .as_str()
+                .and_then(|id| app.store.get_job(&JobId::new(id)).ok())
+                .is_some_and(|job| app.store.recovery_manages_job(&job).unwrap_or(true)) =>
+        {
             Err("Fetch recovery is delivered only by its durable exchange worker".into())
         }
         (_, "job_dispatch") if crate::specialist_jobs::handles(app, item) => {

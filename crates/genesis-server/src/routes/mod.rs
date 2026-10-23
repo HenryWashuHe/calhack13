@@ -47,7 +47,10 @@ pub fn router(state: AppState) -> Router {
         .route("/venue-recoveries", post(venue_recoveries::create))
         .route("/venue-recoveries/{id}", get(venue_recoveries::get))
         .route("/venue-recoveries/{id}/step", post(venue_recoveries::step))
-        .route("/venue-recoveries/{id}/retry", post(venue_recoveries::retry))
+        .route(
+            "/venue-recoveries/{id}/retry",
+            post(venue_recoveries::retry),
+        )
         .route(
             "/venue-assessments/{id}/verify",
             post(venue_assessments::verify),
