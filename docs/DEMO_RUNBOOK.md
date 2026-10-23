@@ -119,7 +119,7 @@ Targets from the research report §10, with what each beat actually shows today.
 | 0:20–0:40 | Judge closes the venue / changes the portal in the lab | lab → new namespace; observation with `evidence_ref` = portal URL | ready |
 | 0:40–1:15 | Planner: new requirement → CreateRole / AssignResponsibility / **RequestCapability**; Elastic specialist; Fetch offer | decision event, gap chip REQUESTED (#54) | planner, gap chip, lifecycle wake-up and opt-in driver merged (#49/#54/#57/#66) |
 | 1:15–1:45 | Acquisition: generated parser, pinned build, oracle checks pass: **held out** only if A was generated with `--holdout` (#60); otherwise call them reproducibility checks, since A's examples would be suite cases | gap ACQUIRING → ACQUIRED; actor/build/run IDs (publication and installation are separate) | needs keys + trusted policy; driver stops at ACQUIRED; full scenario path below is operator-directed |
-| 1:45–2:10 | Second disruption (capacity cut) handled by the existing owner, **no new role** | distinct frozen capacity-cut source; same CREAO monitor, accepted reassessment and linked replacement requirement | assessment API on main; optional two-cycle scenario; native run evidence pending |
+| 1:45–2:10 | Second disruption (capacity cut) handled by the existing owner, **no new role** | distinct frozen capacity-cut source; one subscription, same CREAO monitor, accepted reassessment and linked replacement requirement | bounded two-cycle scenario; native run evidence pending |
 | 2:10–2:40 | Org B: own requirement, discovers A's capability, own acceptance, different input | B adoption intent, B's acceptance runs, 0 synthesis calls | ready (loopback-proven) |
 | 2:40–3:00 | Temporary role retires after handoff; capability remains | retirement event, stale epoch fenced | ready |
 
@@ -170,9 +170,13 @@ including the public source allowlist and explicit event policy. Start B with
 with `--spec runtime/monitoring-001/scenario.json`. The simpler fragment-combining
 command above does not configure monitoring. Configure B's CREAO
 creation/runtime/readiness path; development-role opt-in cannot stand in for this
-monitor. The [scenario report](INHERITED_MISSION.md#continuing-creao-mission-work)
-identifies two native runs and their accepted mission effects, but a live account
-run and genuine Share link remain separate evidence to capture.
+monitor. The driver registers one subscription for both cycles, then observes its
+children without directly creating assessments. The
+[scenario report](INHERITED_MISSION.md#continuing-creao-mission-work) identifies the
+subscription, two native runs and their accepted mission effects, but a live
+account run and genuine Share link remain separate evidence to capture. A timeout
+or ambiguous registration does not make fresh-scenario replay safe: bounded server
+work can continue, and an operator must inspect or reconcile it.
 
 Checked: with generated fragments, this merge and `true` pass the CLI's spec
 validation (it stops only at the unreachable org URLs). Keeping `note` fails
