@@ -1645,13 +1645,18 @@ pub fn update_contract(
             format!("unknown contract {id}"),
         )
     })?;
+    let from = c.state;
     c.state = c.state.transition(to).map_err(|e| {
         ValidationError::new(ValidationCode::InvalidTransition, None, e.to_string())
     })?;
     st.revision += 1;
     Ok(Outcome {
         state: st,
-        effects: vec![],
+        effects: vec![EventKind::ContractStateChanged {
+            contract_id: id.clone(),
+            from,
+            to,
+        }],
     })
 }
 
