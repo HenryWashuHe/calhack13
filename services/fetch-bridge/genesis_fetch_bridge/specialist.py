@@ -1,16 +1,38 @@
-"""Synthetic independent contractor. Advisories are never verified domain success."""
+"""Independent contractor modes; only the kernel can verify domain success."""
 
 from __future__ import annotations
 
 from uuid import NAMESPACE_URL, uuid5
 
-from .store import Store
-from .wire import canonical, decode, now, timestamp
+from .store import Conflict, Store
+from .venue_selection import select_venue
+from .wire import Invalid, canonical, decode, now, timestamp
+
+MODES = ("advisory", "venue_selection")
 
 
 class Specialist:
-    def __init__(self, store: Store):
+    def __init__(self, store: Store, mode: str = "advisory"):
+        if mode not in MODES:
+            raise Invalid("invalid specialist mode")
         self.store = store
+        self.mode = mode
+        # Mode is part of this specialist's persistent identity. In particular,
+        # legacy advisory contracts must never become selection contracts merely
+        # because a restarted process received a different command-line flag.
+        with store.transaction():
+            saved = store.db.execute(
+                "SELECT value FROM metadata WHERE key='specialist_mode'"
+            ).fetchone()
+            legacy = store.db.execute(
+                "SELECT EXISTS(SELECT 1 FROM specialist_contracts)"
+            ).fetchone()[0]
+            previous = saved[0] if saved else ("advisory" if legacy else mode)
+            if previous != mode:
+                raise Conflict("specialist mode does not match database")
+            store.db.execute(
+                "INSERT OR IGNORE INTO metadata VALUES('specialist_mode',?)", (mode,)
+            )
 
     def _reply(self, message: dict, kind: str, body: dict, suffix: str = "") -> dict:
         return {
@@ -73,6 +95,19 @@ class Specialist:
         if kind == "recruit_request":
             if contract is not None:
                 return  # A contract ID is never repurposed, including after retirement.
+            if self.mode == "venue_selection" and set(body["capabilities"]) != {
+                "venue.select"
+            }:
+                return  # This specialist cannot promise arbitrary capabilities.
+            terms = (
+                {
+                    "scope": "venue_selection",
+                    "kind": "venue_replacement_v1",
+                    "domain_verified": False,
+                }
+                if self.mode == "venue_selection"
+                else {"synthetic": True, "scope": "advisory_only", "domain_verified": False}
+            )
             reply = self._reply(
                 message,
                 "offer",
@@ -80,11 +115,7 @@ class Specialist:
                     "recruit_message_id": message["message_id"],
                     "offer_id": "offer-" + message["message_id"],
                     "capabilities": body["capabilities"],
-                    "terms": {
-                        "synthetic": True,
-                        "scope": "advisory_only",
-                        "domain_verified": False,
-                    },
+                    "terms": terms,
                     "lease_expires_at": body["lease_expires_at"],
                 },
             )
@@ -180,6 +211,22 @@ class Specialist:
                 "job_id": task["job_id"],
                 "attempt_id": task["attempt_id"],
             }
+            if self.mode == "venue_selection":
+                try:
+                    output = select_venue(task["input"])
+                except Invalid:
+                    # Null is invalid domain evidence, not a fabricated
+                    # no-match decision. Persist the refusal with this exact
+                    # task attempt so restart or replay cannot reinterpret it.
+                    output = None
+            else:
+                output = {
+                    "synthetic": True,
+                    "domain_verified": False,
+                    "advisory": "Independent specialist received this task. Verify all mission outcomes in the organization kernel.",
+                    "specialist_address": self.store.identity,
+                    "capabilities": decode(contract["capabilities"]),
+                }
             self.store._queue(sender, self._reply(message, "task_accepted", common))
             self.store._queue(
                 sender,
@@ -189,13 +236,7 @@ class Specialist:
                     {
                         **common,
                         "epoch": task["epoch"],
-                        "output": {
-                            "synthetic": True,
-                            "domain_verified": False,
-                            "advisory": "Independent specialist received this task. Verify all mission outcomes in the organization kernel.",
-                            "specialist_address": self.store.identity,
-                            "capabilities": decode(contract["capabilities"]),
-                        },
+                        "output": output,
                     },
                 ),
             )
