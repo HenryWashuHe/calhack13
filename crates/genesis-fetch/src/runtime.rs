@@ -210,18 +210,34 @@ impl RuntimeStore {
         let digest = send_digest(peer, &message)?;
         let mut connection = self.lock()?;
         let tx = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
-        if let Some(saved) = tx
+        if let Some((saved, stored_peer, stored_contract, stored_data)) = tx
             .query_row(
-                "SELECT digest FROM fetch_outbox WHERE id=?1",
+                "SELECT digest,peer,contract_id,data FROM fetch_outbox WHERE id=?1",
                 [&message.message_id],
-                |r| r.get::<_, String>(0),
+                |r| {
+                    Ok((
+                        r.get::<_, String>(0)?,
+                        r.get::<_, String>(1)?,
+                        r.get::<_, String>(2)?,
+                        r.get::<_, String>(3)?,
+                    ))
+                },
             )
             .optional()?
         {
-            if saved != digest {
+            let actual = Message::decode(stored_data.as_bytes())?;
+            if saved != digest
+                || stored_peer != peer
+                || stored_contract != message.contract_id
+                || actual.message_id != message.message_id
+                || actual.contract_id != stored_contract
+                || send_digest(&stored_peer, &actual)? != saved
+            {
                 return Err(RuntimeError::Conflict);
             }
-            return load(&tx, &message.contract_id)?.ok_or(RuntimeError::Invalid);
+            let contract = load(&tx, &message.contract_id)?.ok_or(RuntimeError::Invalid)?;
+            check_cached_outgoing(&contract, peer, &actual)?;
+            return Ok(contract);
         }
         if message.expires_at <= now {
             return Err(RuntimeError::Invalid);
@@ -322,18 +338,26 @@ impl RuntimeStore {
     /// queued work immediately, before any native delivery acknowledgment.
     pub fn pending(&self, now: DateTime<Utc>) -> Result<Vec<SendRequest>, RuntimeError> {
         let connection = self.lock()?;
-        let mut statement = connection
-            .prepare("SELECT peer,data FROM fetch_outbox WHERE queued=0 ORDER BY rowid")?;
-        let rows =
-            statement.query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?)))?;
+        let mut statement = connection.prepare(
+            "SELECT id,contract_id,peer,data,digest FROM fetch_outbox WHERE queued=0 ORDER BY rowid",
+        )?;
+        let rows = statement.query_map([], |r| {
+            Ok((
+                r.get::<_, String>(0)?,
+                r.get::<_, String>(1)?,
+                r.get::<_, String>(2)?,
+                r.get::<_, String>(3)?,
+                r.get::<_, String>(4)?,
+            ))
+        })?;
         let mut result = Vec::new();
         for row in rows {
-            let (peer, data) = row?;
+            let (id, contract_id, peer, data, digest) = row?;
             let message = Message::decode(data.as_bytes())?;
-            let c = load(&connection, &message.contract_id)?.ok_or(RuntimeError::Invalid)?;
             if message.expires_at <= now {
                 continue;
             }
+            let c = load(&connection, &message.contract_id)?.ok_or(RuntimeError::Invalid)?;
             let eligible = match &message.body {
                 Body::RecruitRequest { .. } => c.phase == ContractPhase::Requested,
                 Body::AcceptOffer { .. } => c.phase == ContractPhase::Accepting,
@@ -348,13 +372,29 @@ impl RuntimeStore {
                 Body::ReleaseContract { .. } => c.phase == ContractPhase::Released,
                 _ => false,
             };
-            if eligible {
-                result.push(SendRequest {
-                    schema_version: 1,
-                    recipient: peer,
-                    message,
-                });
+            if !eligible {
+                continue;
             }
+            // Expired or fenced historical work must not block a release or
+            // another contract. Validate every message still eligible to send.
+            if id != message.message_id
+                || contract_id != message.contract_id
+                || message.org_id != self.org_id
+                || !address(&peer)
+                || peer == self.bridge_address
+                || digest != send_digest(&peer, &message)?
+            {
+                return Err(RuntimeError::Conflict);
+            }
+            // Legacy lossy decoding may already have changed a cached request
+            // while its original outbox digest survived. Never silently send or
+            // rehash a different request under that old application identity.
+            check_cached_outgoing(&c, &peer, &message)?;
+            result.push(SendRequest {
+                schema_version: 1,
+                recipient: peer,
+                message,
+            });
             if result.len() == 50 {
                 break;
             }
@@ -608,6 +648,37 @@ fn send_digest(peer: &str, message: &Message) -> Result<String, RuntimeError> {
     Ok(json_sha256(
         &serde_json::json!({"sender_or_recipient":peer,"message":message}),
     ))
+}
+
+/// Message/Value PartialEq equates signed floating-point zero. Immutable wire
+/// identity instead uses the existing canonical digest, which preserves it.
+fn canonical_message_eq(left: &Message, right: &Message) -> Result<bool, RuntimeError> {
+    Ok(left.canonical_sha256()? == right.canonical_sha256()?)
+}
+
+fn check_cached_outgoing(
+    contract: &Contract,
+    peer: &str,
+    message: &Message,
+) -> Result<(), RuntimeError> {
+    let cached = match &message.body {
+        Body::RecruitRequest { .. } => Some(&contract.recruit),
+        Body::AcceptOffer { .. } => contract.acceptance.as_ref(),
+        Body::TaskRequest { .. } => contract
+            .tasks
+            .get(&message.message_id)
+            .map(|task| &task.request),
+        Body::ReleaseContract { .. } => contract.release.as_ref(),
+        _ => None,
+    }
+    .ok_or(RuntimeError::Invalid)?;
+    if contract.peer != peer
+        || !contract.context(message)
+        || !canonical_message_eq(cached, message)?
+    {
+        return Err(RuntimeError::Conflict);
+    }
+    Ok(())
 }
 fn load(connection: &Connection, id: &str) -> Result<Option<Contract>, RuntimeError> {
     let data: Option<String> = connection
