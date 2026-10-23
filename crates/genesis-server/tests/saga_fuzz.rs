@@ -53,11 +53,45 @@ impl Rng {
     }
 }
 
-/// Fails some creations outright, and leaves a few with an unknown outcome.
-/// Its own generator keeps provider behavior independent of task timing.
+/// What the fake provider was asked to do, kept across process lifetimes so
+/// the oracles can see saga mistakes the kernel audit cannot.
+#[derive(Default)]
+struct Ledger {
+    /// One entry per `provision` call: the role, and whether a binding for it
+    /// was already recorded (a `role_provisioned` event) when the call came.
+    calls: Mutex<Vec<(String, bool)>>,
+    /// Roles whose readiness check answered not-ready or failed.
+    readiness_failed: Mutex<BTreeSet<String>>,
+}
+
+/// Fails some creations outright, leaves a few with an unknown outcome, and
+/// fails some readiness checks. Its own generator keeps provider behavior
+/// independent of task timing.
 struct Flaky {
     rng: Mutex<Rng>,
     max_delay_ms: u64,
+    ledger: Arc<Ledger>,
+    /// When set, `provision` checks the event log for an existing binding.
+    db: Option<std::path::PathBuf>,
+}
+
+impl Flaky {
+    fn already_bound(&self, role_id: &str) -> bool {
+        let Some(db) = &self.db else { return false };
+        let Ok(conn) =
+            rusqlite::Connection::open_with_flags(db, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)
+        else {
+            return false;
+        };
+        let _ = conn.busy_timeout(Duration::from_secs(5));
+        conn.query_row(
+            "SELECT COUNT(*) FROM events WHERE event_type = 'role_provisioned' AND payload_json LIKE ?1",
+            [format!("%{role_id}%")],
+            |r| r.get::<_, i64>(0),
+        )
+        .map(|n| n > 0)
+        .unwrap_or(false)
+    }
 }
 type ProviderFuture<'a, T> = Pin<Box<dyn Future<Output = Result<T, ProviderError>> + Send + 'a>>;
 impl RoleProvisioner for Flaky {
@@ -77,6 +111,9 @@ impl RoleProvisioner for Flaky {
             let mut rng = self.rng.lock().unwrap();
             (rng.below(100), rng.next() % self.max_delay_ms.max(1))
         };
+        let role_id = req.role.role_id.to_string();
+        let bound = self.already_bound(&role_id);
+        self.ledger.calls.lock().unwrap().push((role_id, bound));
         Box::pin(async move {
             tokio::time::sleep(Duration::from_millis(delay)).await;
             match roll {
@@ -97,27 +134,60 @@ impl RoleProvisioner for Flaky {
             }
         })
     }
-    fn check_ready<'a, 'b, 'f>(&'a self, _: &'b AgentBinding) -> ProviderFuture<'f, bool>
+    fn check_ready<'a, 'b, 'f>(&'a self, binding: &'b AgentBinding) -> ProviderFuture<'f, bool>
     where
         'a: 'f,
         'b: 'f,
         Self: 'f,
     {
-        Box::pin(async { Ok(true) })
+        let (roll, delay) = {
+            let mut rng = self.rng.lock().unwrap();
+            (rng.below(100), rng.next() % self.max_delay_ms.max(1))
+        };
+        let role_id = binding
+            .provider_agent_id
+            .strip_prefix("fuzz-elastic-")
+            .unwrap_or(&binding.provider_agent_id)
+            .to_owned();
+        let ledger = self.ledger.clone();
+        Box::pin(async move {
+            // Readiness takes time too, so a crash can land after the
+            // binding is saved and before the role is ready.
+            tokio::time::sleep(Duration::from_millis(delay)).await;
+            let answer = match roll {
+                0..=7 => Ok(false),
+                8..=11 => Err(ProviderError::Http {
+                    status: 503,
+                    body: "fuzz readiness".into(),
+                }),
+                _ => Ok(true),
+            };
+            if !matches!(answer, Ok(true)) {
+                ledger.readiness_failed.lock().unwrap().insert(role_id);
+            }
+            answer
+        })
     }
 }
 
-fn app(seed: u64) -> AppState {
-    app_with(seed, None, 7)
+fn app(seed: u64, ledger: Arc<Ledger>) -> AppState {
+    app_with(seed, None, 7, ledger)
 }
 
-fn app_with(seed: u64, db: Option<std::path::PathBuf>, max_delay_ms: u64) -> AppState {
+fn app_with(
+    seed: u64,
+    db: Option<std::path::PathBuf>,
+    max_delay_ms: u64,
+    ledger: Arc<Ledger>,
+) -> AppState {
     let mut config = OrgConfig::dev("org_saga_fuzz", "Saga fuzz");
     config.provision_timeout = Duration::from_secs(5);
-    config.db = db;
+    config.db = db.clone();
     let flaky = Arc::new(Flaky {
         rng: Mutex::new(Rng(seed ^ 0xA5A5_5A5A)),
         max_delay_ms,
+        ledger,
+        db,
     });
     // After a simulated crash the previous lifetime's threads may still be
     // finishing a statement; a real process exit would release the file at
@@ -371,13 +441,65 @@ async fn drain(app: &AppState) {
 }
 
 async fn run(seed: u64, steps: u64) -> (u64, u64, u64) {
-    let app = app(seed);
+    let ledger = Arc::new(Ledger::default());
+    let app = app(seed, ledger.clone());
     let mission = bootstrap(&app).await;
     let mut rng = Rng(seed.max(1));
     act(&app, &mission, &mut rng, seed, 0..steps).await;
     drain(&app).await;
     tokio::time::sleep(Duration::from_millis(50)).await;
-    verify_history(&app, seed)
+    let totals = verify_history(&app, seed);
+    READINESS_FAILURES.fetch_add(
+        check_ledger(&app, seed, &ledger, false),
+        std::sync::atomic::Ordering::SeqCst,
+    );
+    totals
+}
+
+/// Readiness failures the fake produced across all runs in this process.
+static READINESS_FAILURES: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+
+/// Provider-side oracles. A role whose readiness failed never becomes active.
+/// Without crashes each role is created at most once; across crashes a role
+/// may be created again only if no binding for it was recorded yet (the
+/// create can have been lost before its save).
+fn check_ledger(app: &AppState, seed: u64, ledger: &Ledger, crashes: bool) -> usize {
+    let head = app.current_state().unwrap();
+    let failed = ledger.readiness_failed.lock().unwrap().clone();
+    for r in 0..=head.revision {
+        let s = app.store.state_at(r).unwrap();
+        for id in &failed {
+            let active = s
+                .roles
+                .values()
+                .any(|role| role.role_id.as_str() == id && role.state == RoleState::Active);
+            assert!(
+                !active,
+                "seed {seed}: role {id} failed readiness but is active at r{r}"
+            );
+        }
+    }
+    let calls = ledger.calls.lock().unwrap().clone();
+    if crashes {
+        for (role, bound) in &calls {
+            assert!(
+                !bound,
+                "seed {seed}: role {role} was created again after its binding was recorded"
+            );
+        }
+    } else {
+        let mut per_role: BTreeMap<&str, usize> = BTreeMap::new();
+        for (role, _) in &calls {
+            *per_role.entry(role.as_str()).or_insert(0) += 1;
+        }
+        for (role, n) in per_role {
+            assert!(
+                n <= 1,
+                "seed {seed}: role {role} was created {n} times without a crash"
+            );
+        }
+    }
+    failed.len()
 }
 
 async fn act(
@@ -594,6 +716,11 @@ async fn saga_self_modification_keeps_every_revision_valid() {
         );
     }
     assert!(totals["committed"] > 0 && totals["failed_or_rejected"] > 0);
+    // The readiness oracle proves nothing unless the fake failed some checks.
+    assert!(
+        READINESS_FAILURES.load(std::sync::atomic::Ordering::SeqCst) > 0,
+        "no readiness failure was exercised"
+    );
 }
 
 /// Each "process lifetime" runs on its own Tokio runtime against one SQLite
@@ -616,9 +743,13 @@ fn crash_and_restart_mid_saga_never_corrupts_history() {
         .unwrap_or(10);
     let mut totals = (0, 0, 0, 0usize);
     let mut resumed_total = 0usize;
+    // How often a crash caught a change at each interesting point.
+    let mut crashed_ready = 0usize;
+    let mut crashed_bound_not_ready = 0usize;
     for seed in seeds {
         let dir = tempfile::tempdir().unwrap();
         let db = dir.path().join("org.db");
+        let ledger = Arc::new(Ledger::default());
         let mut rng = Rng(seed);
         let mut mission: Option<MissionId> = None;
         for life in 0..lifetimes {
@@ -632,8 +763,10 @@ fn crash_and_restart_mid_saga_never_corrupts_history() {
             let db2 = db.clone();
             let m = mission.clone();
             let mut life_rng = Rng(rng.next() | 1);
-            let (m2, resumed) = rt.block_on(async move {
-                let app = app_with(seed ^ life, Some(db2), 80);
+            let hold_commits = rng.chance(50);
+            let ledger2 = ledger.clone();
+            let (m2, resumed, at_crash) = rt.block_on(async move {
+                let app = app_with(seed ^ life, Some(db2), 80, ledger2);
                 let resumed = saga::resume_pending(&app).await.unwrap();
                 let mission = match m {
                     Some(m) => m,
@@ -648,11 +781,35 @@ fn crash_and_restart_mid_saga_never_corrupts_history() {
                     life * 1000..life * 1000 + work,
                 )
                 .await;
+                if hold_commits {
+                    // Hold the kernel lock so sagas that reach commit wait
+                    // in READY; the crash then lands between READY and commit.
+                    let kernel = app.kernel.clone();
+                    tokio::spawn(async move {
+                        let _held = kernel.lock_owned().await;
+                        std::future::pending::<()>().await;
+                    });
+                    tokio::time::sleep(Duration::from_millis(150)).await;
+                }
                 tokio::time::sleep(crash_after).await;
-                (mission, resumed)
+                let changes = app.store.list_changes().unwrap_or_default();
+                let ready = changes
+                    .iter()
+                    .filter(|c| c.status == ChangeStatus::Ready)
+                    .count();
+                let bound = changes
+                    .iter()
+                    .filter(|c| {
+                        c.status == ChangeStatus::Provisioning
+                            && c.provisioned.keys().any(|k| !c.ready.contains(k))
+                    })
+                    .count();
+                (mission, resumed, (ready, bound))
             });
             mission = Some(m2);
             resumed_total += resumed;
+            crashed_ready += at_crash.0;
+            crashed_bound_not_ready += at_crash.1;
             // Crash: drop every task wherever it is.
             rt.shutdown_timeout(Duration::from_millis(0));
             totals.3 += 1;
@@ -664,7 +821,7 @@ fn crash_and_restart_mid_saga_never_corrupts_history() {
             .build()
             .unwrap();
         let ((c, f, u), last_resumed) = rt.block_on(async {
-            let app = app_with(seed ^ 0xFFFF, Some(db.clone()), 1);
+            let app = app_with(seed ^ 0xFFFF, Some(db.clone()), 1, ledger.clone());
             let resumed = saga::resume_pending(&app).await.unwrap();
             drain(&app).await;
             tokio::time::sleep(Duration::from_millis(100)).await;
@@ -683,7 +840,12 @@ fn crash_and_restart_mid_saga_never_corrupts_history() {
                     );
                 }
             }
-            (verify_history(&app, seed), resumed)
+            let totals = verify_history(&app, seed);
+            READINESS_FAILURES.fetch_add(
+                check_ledger(&app, seed, &ledger, true),
+                std::sync::atomic::Ordering::SeqCst,
+            );
+            (totals, resumed)
         });
         rt.shutdown_timeout(Duration::from_millis(0));
         resumed_total += last_resumed;
@@ -692,12 +854,122 @@ fn crash_and_restart_mid_saga_never_corrupts_history() {
         totals.2 += u;
     }
     eprintln!(
-        "crash fuzz: {} crashes, {resumed_total} interrupted changes resumed; committed {}, failed/rejected {}, unresolved {}",
+        "crash fuzz: {} crashes, {resumed_total} interrupted changes resumed ({crashed_ready} caught in READY, {crashed_bound_not_ready} with a saved binding not yet ready); committed {}, failed/rejected {}, unresolved {}",
         totals.3, totals.0, totals.1, totals.2
+    );
+    assert!(
+        crashed_ready > 0,
+        "no crash landed between READY and commit"
+    );
+    assert!(
+        crashed_bound_not_ready > 0,
+        "no crash landed between a saved binding and readiness"
     );
     assert!(totals.0 > 0);
     assert!(
         resumed_total > 0,
         "no crash interrupted a saga; the test would prove nothing"
     );
+}
+
+/// A refusal at commit that is not a revision conflict must end FAILED, with
+/// no committed revision and none of the change's roles in any snapshot. The
+/// fuzzers rarely reach that branch, so it is forced here: the process stops
+/// while the change waits in READY, its saved binding is removed, and on
+/// restart the kernel refuses to activate an unprovisioned role.
+#[test]
+fn a_non_conflict_commit_refusal_is_recorded_as_failed() {
+    std::env::set_var("GENESIS_AUDIT_COMMITS", "1");
+    let dir = tempfile::tempdir().unwrap();
+    let db = dir.path().join("org.db");
+    let ledger = Arc::new(Ledger::default());
+    let rt = tokio::runtime::Builder::new_multi_thread()
+        .worker_threads(2)
+        .enable_all()
+        .build()
+        .unwrap();
+    let change_id = rt.block_on(async {
+        // Seed chosen so the first creation and readiness both succeed.
+        let app = app_with(0, Some(db.clone()), 1, ledger.clone());
+        let mission = bootstrap(&app).await;
+        app.mutate(EventMeta::default(), |s| {
+            engine::record_observation(s, &mission, "t", "Obs", None, Utc::now()).map_err(Into::into)
+        })
+        .await
+        .unwrap();
+        let st = app.current_state().unwrap();
+        let obs = st.observations.keys().next().unwrap().clone();
+        let proposal: OrgChangeProposal = serde_json::from_value(json!({
+            "expected_org_revision": st.revision, "trigger_evidence_ids": [obs],
+            "rationale": "A scout takes over duty a",
+            "operations": [
+              {"op":"CreateRole","key":"scout","name":"Scout","charter":"Scout",
+               "authority":{"scopes":["mission.coordinate"],"budget_cents":0},
+               "reports_to": null, "provider":"elastic","justification":"lifecycle"},
+              {"op":"ReassignResponsibility",
+               "responsibility_id": st.responsibilities.values().find(|r| r.purpose == "Duty a").unwrap().responsibility_id,
+               "from": st.roles.values().find(|r| r.name == "Role a").unwrap().role_id,
+               "to": {"kind":"new","key":"scout"}}]
+        }))
+        .unwrap();
+        // Submit first (submission validates under the kernel lock), then
+        // hold the kernel lock so the change parks in READY before commit.
+        let (_, record) = saga::submit(&app, "fuzz", "forced", proposal).await.unwrap();
+        let kernel = app.kernel.clone();
+        tokio::spawn(async move {
+            let _g = kernel.lock_owned().await;
+            std::future::pending::<()>().await;
+        });
+        for _ in 0..200 {
+            if app.store.get_change(&record.change_id).unwrap().status == ChangeStatus::Ready {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+        record.change_id
+    });
+    rt.shutdown_timeout(Duration::from_millis(0));
+    // Remove the saved binding from the parked change.
+    {
+        let conn = rusqlite::Connection::open(&db).unwrap();
+        conn.busy_timeout(Duration::from_secs(5)).unwrap();
+        let json: String = conn
+            .query_row(
+                "SELECT record_json FROM org_changes WHERE change_id = ?1",
+                [change_id.as_str()],
+                |r| r.get(0),
+            )
+            .unwrap();
+        let mut rec: OrgChangeRecord = serde_json::from_str(&json).unwrap();
+        assert_eq!(
+            rec.status,
+            ChangeStatus::Ready,
+            "the change must be parked in READY"
+        );
+        rec.provisioned.clear();
+        conn.execute(
+            "UPDATE org_changes SET record_json = ?2 WHERE change_id = ?1",
+            rusqlite::params![change_id.as_str(), serde_json::to_string(&rec).unwrap()],
+        )
+        .unwrap();
+    }
+    let rt = tokio::runtime::Builder::new_multi_thread()
+        .worker_threads(2)
+        .enable_all()
+        .build()
+        .unwrap();
+    rt.block_on(async {
+        let app = app_with(1, Some(db.clone()), 1, ledger.clone());
+        saga::resume_pending(&app).await.unwrap();
+        drain(&app).await;
+        let rec = app.store.get_change(&change_id).unwrap();
+        assert_eq!(rec.status, ChangeStatus::Failed, "{rec:#?}");
+        assert_eq!(rec.committed_revision, None);
+        assert!(rec
+            .errors
+            .iter()
+            .any(|e| e.code == genesis_core::engine::ValidationCode::NotProvisioned));
+        verify_history(&app, 0);
+    });
+    rt.shutdown_timeout(Duration::from_millis(0));
 }

@@ -91,6 +91,18 @@ on purpose (setting a role back to `Active`, an installation back to
     while sagas are provisioning, saving or committing, then recovers with
     `saga::resume_pending` as `serve_org` does. No change may record a binding
     twice for one role.
+  - Provider-side oracles. The fake provider keeps a ledger across restarts,
+    so the tests catch saga mistakes the state audit cannot see:
+    - A role whose readiness check answered not-ready or failed must never become active. The fake fails about 12% of readiness checks.
+    - Without crashes, each role is created at most once.
+    - Across crashes, a role may be created again only if no `role_provisioned` binding was recorded at the time of the call.
+  - Crash placement. Half the lifetimes hold the kernel lock before the crash, so sagas park in READY. Readiness is slow enough that crashes also land between a saved binding and readiness. The test asserts that both cases occur.
+  - `a_non_conflict_commit_refusal_is_recorded_as_failed` forces the rare commit branch. It parks a change in READY, removes its saved binding, and restarts. The change must end FAILED with `NotProvisioned`, have no committed revision, and leave no roles in the history.
+  - Mutation check, using Henry's Claude's four planted bugs from the #90 review. Each one now fails at least one test:
+    - M1, resume forgets READY;
+    - M2, re-provisions a bound role;
+    - M3, treats not-ready as ready;
+    - M4, records a non-conflict commit refusal as COMMITTED.
   - Results:
 
     | Run | Committed | Failed or rejected | Crashes (interrupted sagas resumed) | Time |
