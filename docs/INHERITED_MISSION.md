@@ -8,6 +8,13 @@ discovers a foreign capability, collects its own acceptance evidence and uses it
 Both temporary roles then retire with explicit responsibility handoffs. B's successor uses the
 same accepted artifact without generating another tool.
 
+With optional `venue_monitoring`, that successor also performs CREAO mission work:
+it assesses the verified baseline venue, then assesses a second verified source
+snapshot with the same event constraints. The driver requires an accepted
+`feasible` result followed by an accepted `reopen` result and its evidence-backed
+replacement requirement. The same active CREAO agent and responsibility serve both
+cycles. A successful capability invocation alone does not establish this work.
+
 This demonstrates a structural change and executable capability inheritance. The
 scenario chooses its changes explicitly. Autonomous planning, live Elastic role
 creation, authenticated Fetch recruitment and CREAO role activation remain separate
@@ -29,18 +36,30 @@ recording HTTP proxies that reject every `/step` and `/verify` POST, as well as 
 legacy search, installation, checks and acceptance writes. Automatic adoption uses
 one intent creation request and status reads. The full scenario test requires one
 semantic repair (two model calls, Actors and builds; six A verification runs),
-three B acceptance checks, initial and successor invocations, then a new successor invocation after reopening B's SQLite database.
-Its six B runs share the repaired artifact. B has no acquisition or model client;
+four B acceptance checks, initial and successor invocations, an updated-source
+invocation, then another successor invocation after reopening B's SQLite database.
+Its eight B Apify runs share the repaired artifact. The fourth B case freezes a
+separate capacity-cut snapshot before acquisition; A still has three cases and
+six verification submissions across its two attempts. B has no acquisition or model client;
 recorded provider traffic contains no B model, Actor-create or build calls. Both
 commitment ledgers remain empty. Acceptance jobs remain `VERIFYING`,
 while fresh invocation jobs become `SUCCEEDED` only after backend semantic verification.
+
+The same success fixture also uses the real CREAO client, creation adapter,
+specialist runtime and private journal against a loopback API. A clearly labeled
+fixture readiness verifier checks the completed creation journal; it does not
+exercise the native gateway callback. One created monitor performs two distinct
+assessment executions. The first is feasible; the second detects capacity 100
+below 121 attendees and creates exactly one cited replacement requirement. Both
+assessment proofs and the same agent binding survive B's restart without another
+CREAO creation or execution request.
 
 Negative fixtures confirm incorrect fresh data stops the scenario before handoffs,
 an ambiguous Actor creation remains unreplayed after restarting A, and disabled
 automation is refused before mission creation. The report is checked for private
 source, oracle and credential leakage. These tests establish automatic progression
 through the real Rust server workers with canned HTTP provider replies; they do not
-establish live-provider execution or native sponsor role activation. Canned driver
+establish live-provider execution or cloud sponsor role activation. Canned driver
 HTTP tests additionally require adoption attention, polling exhaustion and mismatched
 accepted bindings to stop with the intent ID, without legacy fallback or another
 creation request.
@@ -188,3 +207,76 @@ Once acceptance commits, its verification evidence belongs to the organization.
 Retiring the verifier does not erase it. A successor can reuse that accepted proof
 with its own current assignment and capability attachment. The producer's retirement
 also cannot revoke B's already accepted local evidence implicitly.
+
+## Continuing CREAO mission work
+
+Use the [monitoring setup walkthrough](VENUE_PORTAL.md#prepare-continuing-creao-monitoring)
+to generate a complete strict spec and frozen B suite from three immutable portal
+namespaces. The helper validates the baseline against an explicit policy, appends
+the same-event capacity-cut case and preserves the template's access flags. Its
+scenario includes this optional field (shown here as a schematic fragment; replace
+the example input and event constraints with the configured mission's values):
+
+```json
+{
+  "venue_monitoring": {
+    "policy": {
+      "selected_venue_id": "grand-hall",
+      "attendees": 150,
+      "budget": { "minor_units": 100000, "currency": "USD" },
+      "window": {
+        "start": "2026-11-14T18:00:00-08:00",
+        "end": "2026-11-14T22:00:00-08:00"
+      },
+      "step_free_required": true
+    },
+    "updated_invocation_input": {
+      "source_url": "https://your-public-portal.example/capacity-cut/venues/grand-hall.html",
+      "attendees": 150,
+      "requested_window": {
+        "start": "2026-11-14T18:00:00-08:00",
+        "end": "2026-11-14T22:00:00-08:00"
+      }
+    }
+  }
+}
+```
+
+This is a spec fragment, not a runnable source or an expected provider response.
+Keep both the baseline `invocation_input` and the distinct updated input in B's
+trusted suite **before starting either organization**. Put all source URLs in A's
+initial Actor allowlist. The setup helper retains B's baseline cases and the
+updated page's original source URL/hash, adding a unique case ID. Never replace
+the suite after adoption.
+The baseline must satisfy the actual event policy, and the update must fail at
+least one verified constraint. Portal presets randomize price, window and access;
+capacity alone does not guarantee a feasible baseline.
+
+This demonstration uses two configured snapshots of the same event. B checks
+both during independent acceptance. It does not prove discovery of an unforeseen
+page or the freshness of live availability. Neither the spec nor CREAO receives
+the oracle's expected answers; assessment input contains the backend-verified
+extraction and event policy, and the backend independently recomputes all five
+checks. See [VENUE_ASSESSMENTS.md](VENUE_ASSESSMENTS.md).
+
+B must configure a real CREAO specialist runtime, native role provisioning and
+readiness, and grant `monitor.venue` in its constitution. The scenario gives the
+new monitor that scope and `capability.venue_lookup`. `allow_development_roles`
+may still permit other roles to use labeled stubs; it cannot substitute a stub
+for this monitor. Runtime configuration is checked before creating missions,
+and the committed active CREAO binding is checked before assessment.
+
+The driver submits one assessment for the existing post-handoff invocation,
+waits for its saved accepted feasible proof, invokes the updated input, and
+submits one further assessment. It observes server-owned finalization in both
+progression modes. The saved native receipt, exact source proof, policy, job,
+assignment, observation and replacement requirement must agree. Failed or unknown
+work stops the narrative; no POST is automatically retried. An interrupted
+scenario remains fresh-only, while the server retains its durable recovery state.
+
+The optional report section contains native agent/run IDs, assessment and source
+job IDs, proof and receipt digests, verdicts and mission effect IDs. It omits raw
+outputs and event-policy contents. A genuine CREAO Share link still has to be
+obtained from the provider and included with the agent ID in the submission;
+the driver does not fabricate one. Omitting `venue_monitoring` preserves the
+earlier inheritance-only scenario and makes no CREAO core-work claim.
