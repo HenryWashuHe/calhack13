@@ -95,10 +95,10 @@ on purpose (setting a role back to `Active`, an installation back to
 
     | Run | Committed | Failed or rejected | Crashes (interrupted sagas resumed) | Time |
     | --- | --- | --- | --- | --- |
-    | Default (6 seeds × 120 steps; 3 seeds × 10 lifetimes) | | | | about 7 s |
-    | `GENESIS_SAGA_FUZZ_STEPS=600`, `GENESIS_SAGA_FUZZ_LIFETIMES=40` | 747 (incl. 128 `RequestCapability`) | 2,001 | 120 (93) | |
+    | Default (6 seeds × 120 steps; 3 seeds × 10 lifetimes) | 121 | 424 | 30 (28–47) | about 7 s |
+    | `GENESIS_SAGA_FUZZ_STEPS=600`, `GENESIS_SAGA_FUZZ_LIFETIMES=40` | 747 (incl. 128 `RequestCapability`) | 2,001 | 120 (93) | about 1 min |
 
-    Both runs found no violations.
+    Both runs found no violations. Crash timing depends on the scheduler, so the resumed count varies from run to run.
 - After the demo: see [DEMO_RUNBOOK.md](DEMO_RUNBOOK.md).
 
 ## What it does not prove
