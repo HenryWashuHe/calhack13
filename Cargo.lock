@@ -561,6 +561,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "genesis-creao"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "chrono",
+ "clap",
+ "genesis-verification",
+ "reqwest",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
 name = "genesis-forge"
 version = "0.1.0"
 dependencies = [
@@ -578,8 +597,10 @@ name = "genesis-providers"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "chrono",
  "genesis-apify",
  "genesis-core",
+ "genesis-creao",
  "genesis-verification",
  "serde",
  "serde_json",
