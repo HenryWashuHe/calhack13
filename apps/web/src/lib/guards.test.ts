@@ -2,9 +2,9 @@
 // unobserved (each `it` names the line it guards). What the console claims
 // is what judges see, so each case asserts the claim, not the markup.
 import { describe as suite, expect, it } from "vitest";
-import type { CapabilityGap, CapabilityRunRecord, Installation, Job, OrgChangeRecord, OrgState } from "./contracts";
+import type { CapabilityGap, Installation, Job, OrgChangeRecord, OrgState } from "./contracts";
 import { attention } from "./attention";
-import { failureKind, holders, jobsForInstallation, summarizeRun } from "./capabilities";
+import { failureKind, holders, jobsForInstallation, summarizeRun, type CapabilityRunRecord } from "./capabilities";
 import { executedBy, ownedBy } from "./graph";
 import { intakeAttention, type GapIntakeStatus } from "./gapIntake";
 
