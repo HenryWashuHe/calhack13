@@ -174,6 +174,17 @@ fn check(i: &Inputs) -> Report {
         }
     }
     if let Some(fin) = &i.a_finalize {
+        // The same semantic check startup runs (`build_org`).
+        match fin.validate() {
+            Ok(()) => add(
+                Level::Pass,
+                format!("A finalization policy valid ({} rule(s))", fin.rules.len()),
+            ),
+            Err(e) => add(Level::Fail, format!("A finalization policy invalid: {e}")),
+        }
+        if i.a_gaps.is_none() {
+            add(Level::Warn, "A finalization policy given without the A gap policy; startup refuses finalization without gap acquisition".into());
+        }
         for f in &fin.rules {
             let id = f.capability_id.as_str();
             let mut needed = f.required_permissions.clone();
@@ -217,6 +228,15 @@ fn check(i: &Inputs) -> Report {
     match &i.b_adopt {
         None => add(Level::Skip, "B adoption policy not given".into()),
         Some(adopt) => {
+            // The same semantic check startup runs (`build_org`); an empty
+            // rules array would otherwise pass every per-rule check below.
+            match adopt.validate() {
+                Ok(()) => add(
+                    Level::Pass,
+                    format!("B adoption policy valid ({} rule(s))", adopt.rules.len()),
+                ),
+                Err(e) => add(Level::Fail, format!("B adoption policy invalid: {e}")),
+            }
             let a_perms: BTreeSet<String> = i
                 .a_finalize
                 .iter()
@@ -501,6 +521,18 @@ mod tests {
                         .scopes
                         .clear();
                 }),
+            ),
+            (
+                "A finalization policy invalid",
+                Box::new(|i| {
+                    let fin = i.a_finalize.as_mut().unwrap();
+                    let dup = fin.rules[0].clone();
+                    fin.rules.push(dup);
+                }),
+            ),
+            (
+                "B adoption policy invalid",
+                Box::new(|i| i.b_adopt.as_mut().unwrap().rules.clear()),
             ),
             (
                 "env APIFY_TOKEN: missing",
