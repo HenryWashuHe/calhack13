@@ -100,6 +100,11 @@ pub async fn dispatch(
     if req.client_request_id.trim().is_empty() {
         return Err(ApiError::bad_request("client_request_id is required"));
     }
+    if !super::capabilities::development(&app) && req.capability.is_some() {
+        return Err(ApiError::bad_request(
+            "use /capability-runs for real capability execution",
+        ));
+    }
     let _guard = app.kernel.lock().await;
     let state = app.current_state()?;
     let (job, effects, outbox) = new_job(&app, &state, &req)?;
@@ -167,6 +172,7 @@ pub async fn submit_result(
     let _guard = app.kernel.lock().await;
     let state = app.current_state()?;
     let mut job = app.store.get_job(&JobId::new(id))?;
+    super::capabilities::reject_managed_result(&app, &job)?;
     if sub.attempt_id != job.attempt_id {
         return Err(ApiError::new(
             StatusCode::CONFLICT,
