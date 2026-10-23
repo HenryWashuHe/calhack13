@@ -802,6 +802,11 @@ pub async fn step(app: &AppState, gap_id: &CapabilityGapId) -> StoreResult<Step>
 /// Step every open gap and every active record once.
 pub async fn drain_once(app: &AppState) -> StoreResult<BTreeMap<CapabilityGapId, Step>> {
     let mut out = BTreeMap::new();
+    // The worker runs in every organization; without a policy it only has
+    // frozen intents to finish, so don't take the kernel lock for nothing.
+    if app.gap_adoption_policy.is_none() && app.store.gap_adoptions_active()?.is_empty() {
+        return Ok(out);
+    }
     let _kernel = app.kernel.lock().await;
     let state = app.store.current_state()?;
     let mut ids: BTreeSet<(u64, CapabilityGapId)> = state
