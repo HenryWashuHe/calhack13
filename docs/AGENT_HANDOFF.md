@@ -2,6 +2,18 @@
 
 ## Current implementation and ownership — October 22, 2026
 
+[PR #76](https://github.com/HenryWashuHe/genesis/pull/76) adds the offline monitoring
+setup helper; implementation checkpoint `bfcfe00`, based on main `64d6492`.
+It validates three immutable portal namespaces and atomically emits B's frozen
+baseline/update suite and the complete strict scenario. The explicit policy must
+accept the baseline and reject only the update's capacity. Public aliases and
+non-string identities are refused; template access flags are preserved.
+All **35 portal tests pass without skips**, including the actual Rust verifier
+and scenario CLI. Independent review is clean; the exact documented walkthrough
+also passed with temporary paths and a fake HTTPS origin. See the
+[executable setup](VENUE_PORTAL.md#prepare-continuing-creao-monitoring).
+These checks make no native provider or unforeseen-update claim.
+
 [PR #75](https://github.com/HenryWashuHe/genesis/pull/75) connects persistent CREAO
 assessment to the two-organization scenario. Runtime checkpoint `f5136fe`, based
 on reviewed main `8187430`, adds optional `venue_monitoring`: after independent
@@ -26,17 +38,17 @@ CREAO Share link and the complete autonomous mission remain open. The underlying
 assessment API from merged #72 remains unchanged; see
 [its runtime contract](VENUE_ASSESSMENTS.md).
 
-Reviewed #73, #71 and #74 are merged; main checkpoint `8187430` has the refused
-request bound, corrected gap intake UI and bounded planner provider retries.
-[#70](https://github.com/HenryWashuHe/genesis/pull/70) has a new head `e552a39`
-under review. Earlier `c1162d1` is held; preserve negative controls `c92f9d5` on
-`codex/review-kernel-audit70-refusal`. Exact findings and evidence remain in
-[the review queue](PR_REVIEW_QUEUE.md).
+Reviewed #70, #71, #73, #74 and #75 are merged. Main checkpoint `64d6492`
+includes the persistent scenario and corrected audit. All three original audit
+regressions from `c92f9d5` now pass unchanged: frozen gap binding, acquired pin /
+publication stability, and consistent concurrent history reads. Six latest
+history/regression tests and 37 scenario units pass; the prior composition's
+identical core/CLI files passed 65 core and 14 CLI checks. Strict core/server
+all-target Clippy and formatting pass. See [the review queue](PR_REVIEW_QUEUE.md).
 
-Claude/Eric owns kernel/planner/readiness/UI, #70 fixes, and the explicitly assigned
-opt-in gap `Acquired → Installed` finalizer. Codex owns the scenario and its next
-operator setup helper (`prepare-monitoring.mjs` and tests), which will assemble
-immutable portal inputs and the frozen B suite without manual oracle copying.
+Claude/Eric owns kernel/planner/readiness/UI and the explicitly assigned opt-in
+gap `Acquired → Installed` finalizer. Codex owns scenario integration and the
+completed operator setup helper. No audit review hold remains from this batch.
 Coordinate through [issue #4](https://github.com/HenryWashuHe/genesis/issues/4).
 The ongoing mission goal remains active; historical notes below do not supersede
 this ownership or current GitHub heads.
