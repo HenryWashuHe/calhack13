@@ -116,6 +116,8 @@ fn manifest(capability: &str, publisher: &str) -> Value {
 #[derive(Default)]
 struct World {
     ambiguous_runs: bool,
+    /// Native runs remain RUNNING until explicitly changed by the fixture.
+    running_runs: bool,
     /// Next run submissions that are created but finish FAILED (definite).
     failing_runs: usize,
     failed: BTreeSet<usize>,
@@ -123,9 +125,10 @@ struct World {
     runs: BTreeMap<usize, usize>,
 }
 impl World {
-    fn run(run: usize) -> Value {
+    fn run(&self, run: usize) -> Value {
         json!({"data":{"id":format!("b-run-{run}"),"actId":pin().actor_id,"buildId":pin().build_id,
-            "status":"SUCCEEDED","defaultDatasetId":format!("b-dataset-{run}")}})
+            "status":if self.running_runs { "RUNNING" } else { "SUCCEEDED" },
+            "defaultDatasetId":format!("b-dataset-{run}")}})
     }
     fn reply(&mut self, method: &str, path: &str, body: Value) -> (StatusCode, Value) {
         self.requests.push((method.into(), path.into()));
@@ -162,11 +165,11 @@ impl World {
                         json!({"error":"PRIVATE_AMBIGUOUS_RUN"}),
                     );
                 }
-                (StatusCode::CREATED, Self::run(run))
+                (StatusCode::CREATED, self.run(run))
             }
             ("GET", ["v2", "actor-runs", run]) => {
                 let run: usize = run.strip_prefix("b-run-").unwrap().parse().unwrap();
-                let mut reply = Self::run(run);
+                let mut reply = self.run(run);
                 if self.failed.contains(&run) {
                     reply["data"]["status"] = json!("FAILED");
                 }
@@ -200,9 +203,10 @@ impl Drop for Providers {
     }
 }
 impl Providers {
-    async fn start(ambiguous_runs: bool) -> Self {
+    async fn start(ambiguous_runs: bool, running_runs: bool) -> Self {
         let world = Arc::new(Mutex::new(World {
             ambiguous_runs,
+            running_runs,
             ..World::default()
         }));
         let router = Router::new()
@@ -285,6 +289,7 @@ struct Options {
     foreign: bool,
     registry_up: bool,
     ambiguous_runs: bool,
+    running_runs: bool,
     fallback: bool,
     adopt_first: bool,
     sibling: bool,
@@ -297,6 +302,7 @@ impl Default for Options {
             foreign: true,
             registry_up: true,
             ambiguous_runs: false,
+            running_runs: false,
             fallback: true,
             adopt_first: true,
             sibling: false,
@@ -413,7 +419,7 @@ async fn registry(foreign: bool, searches: Arc<Mutex<usize>>, fail_first: usize)
 
 impl Fixture {
     async fn new(o: Options) -> Self {
-        let providers = Arc::new(Providers::start(o.ambiguous_runs).await);
+        let providers = Arc::new(Providers::start(o.ambiguous_runs, o.running_runs).await);
         let registry_searches = Arc::new(Mutex::new(0));
         let registry_url = if o.registry_up {
             registry(o.foreign, registry_searches.clone(), o.failed_searches).await
@@ -2091,4 +2097,119 @@ async fn review_configuration_retry_cannot_replay_an_unknown_native_check() {
         "new adoption {second_id} submitted the same native check again while {} still has an unknown outcome",
         first.id()
     );
+}
+
+#[tokio::test]
+async fn review_rejected_local_check_does_not_settle_a_still_running_native_effect() {
+    use genesis_server::capability_runtime::CapabilityRunPhase;
+    let mut f = Fixture::new(Options {
+        running_runs: true,
+        ..Options::default()
+    })
+    .await;
+    assert_eq!(f.drain().await, Some(Step::Frozen));
+    assert_eq!(f.drain().await, Some(Step::Dispatched));
+    f.adoption_step().await;
+    f.adoption_step().await;
+    let first = f.adoptions()[0].clone();
+    assert_eq!(first.phase(), AdoptionPhase::Checking);
+    let old_job = first.job_ids()[0].clone();
+    let submitted = f
+        .app
+        .capability_runtime
+        .step(&old_job, false)
+        .await
+        .unwrap();
+    assert_eq!(submitted.phase, CapabilityRunPhase::Running);
+    assert!(submitted.receipt.is_some());
+    let posts = f.providers.runs();
+    assert_eq!(posts, 1);
+
+    // An ordinary restart with suite drift stops the adoption while the
+    // provider's accepted run is still executing. Other checks are Prepared.
+    let mut suite = b_suite();
+    suite.cases[0].input["attendees"] =
+        json!(suite.cases[0].input["attendees"].as_u64().unwrap() + 1);
+    f.config.oracle_suites = vec![suite];
+    f.reopen();
+    f.adoption_step().await;
+    assert_eq!(
+        f.drain().await,
+        Some(Step::Attention(GapAdoptionCode::Configuration))
+    );
+    let (_, before) = adoption_status(&f, f.gap_id.as_str()).await;
+    assert_eq!(before["retryable"], false, "{before}");
+
+    // The normal capability worker also steps Running records. Since their
+    // parent has stopped, this rejects the local result without canceling or
+    // collecting the native run. Rejection therefore is not reconciliation.
+    let rejected = f
+        .app
+        .capability_runtime
+        .step(&old_job, false)
+        .await
+        .unwrap();
+    assert_eq!(rejected.phase, CapabilityRunPhase::Rejected);
+    assert_eq!(
+        serde_json::to_value(&rejected.receipt).unwrap(),
+        serde_json::to_value(&submitted.receipt).unwrap()
+    );
+    assert_eq!(f.providers.count("GET", "/v2/actor-runs/"), 0);
+    assert_eq!(f.providers.runs(), posts);
+
+    f.config.oracle_suites = vec![b_suite()];
+    f.reopen();
+    let (status_code, status_body) = adoption_status(&f, f.gap_id.as_str()).await;
+    assert_eq!(status_code, reqwest::StatusCode::OK, "{status_body}");
+    let (retry_code, retry_body) = retry(&f, "operator").await;
+    if retry_code == reqwest::StatusCode::OK {
+        // Exercise an incorrectly allowed retry so the regression measures
+        // the duplicate native POST, not only an optimistic status flag.
+        assert_eq!(f.drain().await, Some(Step::Dispatched));
+        let second_id = f.record().unwrap().adoption_id.unwrap();
+        assert_ne!(second_id, first.id());
+        f.adoption_step().await;
+        f.adoption_step().await;
+        let second = f.app.store.get_adoption(&second_id).unwrap();
+        let new_job = second.job_ids()[0].clone();
+        let replay = f
+            .app
+            .capability_runtime
+            .step(&new_job, false)
+            .await
+            .unwrap();
+        assert_eq!(replay.phase, CapabilityRunPhase::Running);
+    }
+
+    // The original native effect really remains RUNNING, independently of
+    // the terminal label on its local checkpoint.
+    let native: Value = reqwest::Client::builder()
+        .no_proxy()
+        .build()
+        .unwrap()
+        .get(format!("{}/v2/actor-runs/b-run-0", f.providers.url))
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert_eq!(native["data"]["status"], "RUNNING");
+    assert_eq!(
+        f.providers.runs(),
+        posts,
+        "retry submitted a duplicate while the first provider run is still RUNNING; status={status_body}, retry={retry_code}: {retry_body}"
+    );
+    assert_eq!(status_body["retryable"], false, "{status_body}");
+    assert_eq!(retry_code, reqwest::StatusCode::CONFLICT, "{retry_body}");
+    assert_eq!(retry_body["error"], "adoption_checks_unresolved");
+    let record = f.record().unwrap();
+    assert_eq!(record.adoption_id.as_deref(), Some(first.id()));
+    assert_eq!(record.attempt, 0);
+    assert_eq!(record.state, GapAdoptionState::Attention);
+    assert_eq!(f.adoptions().len(), 1);
+    assert_eq!(f.providers.model_calls(), 0);
+    assert!(!f.driver_bound());
 }
