@@ -947,15 +947,20 @@ fn can_retry(r: &GapAdoptionRecord) -> bool {
         && r.attempt < MAX_RETRIES
 }
 
-/// Every native check run of the stopped adoption has a definite outcome
-/// (collected, failed or rejected) or was never submitted. A run that is
-/// unknown (`NeedsReconciliation`) or in flight keeps the stopped adoption's
-/// identity: a fresh adoption would submit the same check again while the
-/// first may still be running. `Prepared` counts as never submitted only once
-/// the adoption has left Checking for good, since the runtime then refuses to
-/// submit it (`authorized_job` requires Checking, checked under the kernel
-/// lock this route also holds). Unreadable records count as unsettled; only
-/// storage errors propagate.
+/// Every native check run of the stopped adoption has terminal provider
+/// evidence or was never submitted:
+/// - `Collected` (the provider reported success) or `Failed` (a definite
+///   refusal or terminal failure; ambiguous submissions become
+///   `NeedsReconciliation`, and a run that lost authority becomes `Rejected`
+///   instead) settle it;
+/// - `Prepared` settles it only once the adoption has left Checking for good,
+///   since the runtime then refuses to submit it (`authorized_job` requires
+///   Checking, checked under the kernel lock this route also holds).
+/// Everything else blocks a retry. That includes `Rejected`: it is a local
+/// authority/configuration verdict that can overwrite a submitted or even
+/// still-running native run without polling it (Codex, #86), so it is no
+/// evidence that the provider effect ended. Unreadable records count as
+/// unsettled; only storage errors propagate.
 fn checks_settled(app: &AppState, r: &GapAdoptionRecord) -> StoreResult<bool> {
     use crate::capability_adoption_store::AdoptionError;
     use crate::capability_runtime::{CapabilityRunPhase as P, CapabilityRuntimeError as E};
@@ -973,7 +978,7 @@ fn checks_settled(app: &AppState, r: &GapAdoptionRecord) -> StoreResult<bool> {
     );
     for job in adoption.job_ids() {
         match app.store.get_capability_run(job) {
-            Ok(run) if matches!(run.phase, P::Collected | P::Failed | P::Rejected) => {}
+            Ok(run) if matches!(run.phase, P::Collected | P::Failed) => {}
             Ok(run) if stopped && run.phase == P::Prepared => {}
             Ok(_) => return Ok(false),
             // No run recorded for the job: nothing was ever submitted.
