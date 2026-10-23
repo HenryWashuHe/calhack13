@@ -69,6 +69,24 @@ The HTTP tests in `crates/genesis-server/tests/api.rs` start a real registry and
 4. `READY → COMMITTED` happens in one SQLite transaction: new snapshot at revision + 1, events, and outbox items for the newly responsible roles. New roles are never visible as active before this.
 5. Any provisioning failure ends in `FAILED` and leaves the organization untouched.
 
+Each change has at most one background driver per process. If a saga step
+fails on the server side, for example a storage error, the driver backs off
+(200 ms, doubling to at most 5 s) and runs the saga again from the persisted
+record. Client errors (validation, authority, conflicts) are not retried. Every
+5 s a sweeper starts a driver for any non-terminal change that has none. It
+skips changes waiting on an asynchronous provider operation, which the
+specialist poller and operators own.
+
+Recovery is the same as after a restart. A step whose binding was not persisted
+calls the provider again; for Elastic that is safe because agent IDs are
+deterministic and adopted only if identical. The SQLite connection also waits up
+to 5 s for another connection's lock before failing.
+`tests/saga_resilience.rs` covers three cases:
+
+- a change-record outage in the middle of provisioning;
+- a snapshot outage at commit;
+- an orphaned validated change, which a single sweep drives to completion without starting a second driver.
+
 ## Contracts for other workstreams
 
 Regenerate after changing any Rust type that crosses a boundary:
