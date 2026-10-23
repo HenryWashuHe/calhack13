@@ -197,6 +197,9 @@ pub async fn submit_result(
     let _guard = app.kernel.lock().await;
     let state = app.current_state()?;
     let mut job = app.store.get_job(&JobId::new(id))?;
+    if app.store.recovery_manages_job(&job)? {
+        return Err(ApiError::new(StatusCode::CONFLICT, "managed_fetch_result", "Fetch recovery output requires a native journal receipt and backend domain verification"));
+    }
     super::capabilities::reject_managed_result(&app, &job)?;
     if crate::specialist_jobs::backend_managed(&job) {
         return Err(ApiError::new(

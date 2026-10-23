@@ -80,6 +80,9 @@ pub struct NewOutbox {
 pub struct Store {
     conn: Arc<Mutex<Connection>>,
     org_id: OrgId,
+    /// File behind `conn`, so read-only work (the history audit) can open
+    /// its own connection without waiting on the shared one.
+    path: Option<std::path::PathBuf>,
     /// Refuse any commit whose state or transition breaks a
     /// [`genesis_core::audit`] invariant. Opt-in: `GENESIS_AUDIT_COMMITS=1`.
     audit_commits: bool,
@@ -168,8 +171,10 @@ impl Store {
                 let _ = std::fs::create_dir_all(parent);
             }
         }
-        let conn = Connection::open(path)?;
-        Self::from_conn(conn, org_id)
+        let conn = Connection::open(path.as_ref())?;
+        let mut store = Self::from_conn(conn, org_id)?;
+        store.path = Some(path.as_ref().to_path_buf());
+        Ok(store)
     }
 
     pub fn open_in_memory(org_id: OrgId) -> StoreResult<Self> {
@@ -177,10 +182,14 @@ impl Store {
     }
 
     fn from_conn(conn: Connection, org_id: OrgId) -> StoreResult<Self> {
+        // Wait briefly for another connection's lock (an operator tool, a
+        // second process during a restart) instead of failing the write.
+        conn.busy_timeout(std::time::Duration::from_secs(5))?;
         conn.execute_batch(MIGRATIONS)?;
         Ok(Self {
             conn: Arc::new(Mutex::new(conn)),
             org_id,
+            path: None,
             audit_commits: std::env::var("GENESIS_AUDIT_COMMITS").is_ok_and(|v| v == "1"),
         })
     }
@@ -195,6 +204,11 @@ impl Store {
     /// The organization this store belongs to.
     pub fn org_id(&self) -> &OrgId {
         &self.org_id
+    }
+
+    /// The database file, or `None` for an in-memory store.
+    pub fn path(&self) -> Option<&Path> {
+        self.path.as_deref()
     }
 
     pub(crate) fn lock(&self) -> std::sync::MutexGuard<'_, Connection> {

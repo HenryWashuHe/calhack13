@@ -533,6 +533,14 @@ fn finalize(
     };
     let outcome = engine::finish_installation(state, installation_id, passed, &reference, reasons)
         .map_err(|_| internal())?;
+    // An adopt-first gap intent that owns this adoption records its gap
+    // installed in this same transaction (no-op for ordinary adoptions).
+    let (outcome, gap_link) = if passed {
+        crate::capability_gap_adoption::link_accepted(&app.store, outcome, record)
+            .map_err(|_| internal())?
+    } else {
+        (outcome, None)
+    };
     let next = if passed {
         record.accept(reference, Utc::now())
     } else {
@@ -553,7 +561,11 @@ fn finalize(
                 if let Some(proof) = &proof {
                     capability_store::save_acceptance(tx, installation_id, proof)?;
                 }
-                storage::save_in_tx(tx, record, &next)
+                storage::save_in_tx(tx, record, &next)?;
+                match &gap_link {
+                    Some(link) => crate::capability_gap_adoption::save_link(tx, link),
+                    None => Ok(()),
+                }
             },
         )
         .map_err(|_| internal())?;

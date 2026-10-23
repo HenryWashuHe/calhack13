@@ -87,3 +87,18 @@ transaction rollback, restart recovery, changed requirements and assignments,
 unknown outcomes and paused reads. A configured server also advances a committed
 gap to `Acquired` using loopback model/Actor responses without manual step calls.
 These are local checks; no live provider evidence is claimed.
+
+## What the planner sees (Henry's Claude)
+
+A rule matches only the exact `capability_id`, the requested `observed_sources`
+must include every suite page and one example page, and the requesting role
+must hold `capability.acquire`. A live planner can't guess any of that, so
+`GET /api/v1/capability-gaps/requestable` (agent or operator token) returns
+each rule's `capability_id` and `observed_sources` (its allowed public URLs)
+plus `required_scope`, and the planner lists them in its prompt. Suite IDs,
+oracle answers, example HTML and model settings are not exposed. The source
+URLs already reach the synthesis model in the acquisition request.
+
+For a demo, give the role that will own the capability `capability.acquire`
+in the mission's role authority (the planner can also create a new role with
+it).

@@ -13,6 +13,7 @@ mod org;
 mod search;
 mod venue_assessments;
 mod venue_monitors;
+mod venue_recoveries;
 
 use crate::app::AppState;
 use axum::extract::DefaultBodyLimit;
@@ -44,6 +45,13 @@ pub fn router(state: AppState) -> Router {
         .route("/venue-monitors", post(venue_monitors::create))
         .route("/venue-monitors/{id}", get(venue_monitors::get))
         .route("/venue-monitors/{id}/stop", post(venue_monitors::stop))
+        .route("/venue-recoveries", post(venue_recoveries::create))
+        .route("/venue-recoveries/{id}", get(venue_recoveries::get))
+        .route("/venue-recoveries/{id}/step", post(venue_recoveries::step))
+        .route(
+            "/venue-recoveries/{id}/retry",
+            post(venue_recoveries::retry),
+        )
         .route(
             "/venue-assessments/{id}/verify",
             post(venue_assessments::verify),
@@ -72,6 +80,10 @@ pub fn router(state: AppState) -> Router {
         )
         .route("/capability-installations", post(capabilities::install))
         .route(
+            "/capability-gaps/requestable",
+            get(capability_gaps::requestable),
+        )
+        .route(
             "/capability-gaps/{id}/acquisition",
             get(capability_gaps::acquisition),
         )
@@ -82,6 +94,10 @@ pub fn router(state: AppState) -> Router {
         .route(
             "/capability-gaps/{id}/finalization/retry",
             post(crate::capability_gap_finalizer::retry_route),
+        )
+        .route(
+            "/capability-gaps/{id}/adoption",
+            get(crate::capability_gap_adoption::status_route),
         )
         .route(
             "/capability-adoptions",

@@ -107,6 +107,31 @@ struct Intent {
     source_proof_ref: String,
     assessment_id: Option<String>,
     finished: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    skipped: Option<SkippedIntent>,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+enum SkippedIntent {
+    SourceConsumed,
+    SourceExpired,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ScanCandidate {
+    source_job_id: JobId,
+    source_created_at: DateTime<Utc>,
+    source_proof_ref: String,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Scan {
+    /// Finish this durable backlog before choosing its newest-created source.
+    through: u64,
+    candidate: Option<ScanCandidate>,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -120,6 +145,8 @@ struct Monitor {
     intents: Vec<Intent>,
     last_assessment_id: Option<String>,
     requirement_id: Option<RequirementId>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    scan: Option<Scan>,
     #[serde(skip)]
     revision: u64,
 }
@@ -185,6 +212,15 @@ fn new_intent(
     proof: &InvocationProof,
     now: DateTime<Utc>,
 ) -> ApiResult<Intent> {
+    let deadline = binding
+        .request
+        .expires_at
+        .min(now + Duration::minutes(30))
+        .min(job.created_at + Duration::minutes(30))
+        .min(proof.verified_at + Duration::minutes(30));
+    if deadline <= now {
+        return Err(conflict("source freshness window has expired"));
+    }
     Ok(Intent {
         request: CreateAssessmentRequest {
             client_request_id: child_key(&binding.monitor_id, &job.job_id)?,
@@ -192,12 +228,13 @@ fn new_intent(
             responsibility_id: binding.request.responsibility_id.clone(),
             source_job_id: job.job_id.clone(),
             policy: binding.request.policy.clone(),
-            deadline: binding.request.expires_at.min(now + Duration::minutes(30)),
+            deadline,
         },
         source_created_at: job.created_at,
         source_proof_ref: proof.proof_ref.clone(),
         assessment_id: None,
         finished: false,
+        skipped: None,
     })
 }
 
@@ -250,12 +287,31 @@ impl Store {
                 || intent.request.policy != b.request.policy
                 || intent.request.deadline > b.request.expires_at
                 || intent.request.deadline <= b.created_at
-                || (intent.finished && intent.assessment_id.is_none())
+                || (intent.finished && intent.assessment_id.is_none() && intent.skipped.is_none())
+                || (intent.skipped.is_some()
+                    && (!intent.finished || intent.assessment_id.is_some()))
                 || (index + 1 < monitor.intents.len() && !intent.finished)
                 || (index > 0
                     && intent.source_created_at <= monitor.intents[index - 1].source_created_at)
             {
                 return Err(conflict("stored monitor intent changed"));
+            }
+        }
+        if let Some(scan) = &monitor.scan {
+            if scan.through < monitor.cursor
+                || monitor.pending().is_some()
+                || scan.candidate.as_ref().is_some_and(|candidate| {
+                    candidate.source_created_at <= monitor.intents.last().unwrap().source_created_at
+                        || candidate.source_job_id.as_str().is_empty()
+                        || candidate.source_job_id.as_str().len() > 256
+                        || candidate.source_proof_ref.len() != "invocation:".len() + 64
+                        || !candidate.source_proof_ref.starts_with("invocation:")
+                        || !candidate.source_proof_ref["invocation:".len()..]
+                            .bytes()
+                            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+                })
+            {
+                return Err(conflict("stored monitor scan changed"));
             }
         }
         monitor.revision = revision;
@@ -320,7 +376,6 @@ fn current(
     {
         return Err(conflict("monitor's frozen authority changed"));
     }
-    app.providers.specialist(Provider::Creao)?;
     let installation = state
         .installations
         .get(&binding.installation_id)
@@ -446,6 +501,18 @@ pub async fn create(
         created_at: now,
     };
     current(app, &state, &binding, now)?;
+    app.providers.specialist(Provider::Creao)?;
+    let intake = venue_assessments::intake_locked(app, &binding.request.responsibility_id)?;
+    if intake.consumed(job.created_at) {
+        return Err(conflict(
+            "initial source was already assessed or superseded",
+        ));
+    }
+    if intake.unresolved {
+        return Err(conflict(
+            "responsibility already has an unresolved assessment",
+        ));
+    }
     let initial = new_intent(&binding, &job, &proof, now)?;
     let monitor = Monitor {
         binding_sha256: digest(&binding)?,
@@ -456,6 +523,7 @@ pub async fn create(
         intents: vec![initial],
         last_assessment_id: None,
         requirement_id: None,
+        scan: None,
         revision: 0,
     };
     let text = serde_json::to_string(&monitor).map_err(StoreError::from)?;
@@ -556,6 +624,27 @@ fn observe_child(monitor: &mut Monitor, child: AssessmentRecord) -> ApiResult<()
     Ok(())
 }
 
+fn fresh(job: &Job, proof: &InvocationProof, now: DateTime<Utc>) -> bool {
+    job.created_at <= now
+        && job.created_at > now - Duration::minutes(30)
+        && proof.verified_at <= now
+        && proof.verified_at > now - Duration::minutes(30)
+}
+
+fn watermark(app: &AppState) -> ApiResult<u64> {
+    app.store
+        .lock()
+        .query_row("SELECT COALESCE(MAX(seq),0) FROM events", [], |r| r.get(0))
+        .map_err(StoreError::from)
+        .map_err(Into::into)
+}
+
+fn skip_pending(monitor: &mut Monitor, reason: SkippedIntent) {
+    let intent = monitor.intents.last_mut().unwrap();
+    intent.finished = true;
+    intent.skipped = Some(reason);
+}
+
 fn advance(app: &AppState, monitor: &mut Monitor) -> ApiResult<()> {
     let now = Utc::now();
     if monitor.status.open() && monitor.binding.request.expires_at <= now {
@@ -563,10 +652,18 @@ fn advance(app: &AppState, monitor: &mut Monitor) -> ApiResult<()> {
         monitor.attention = Some("expired".into());
     }
     if let Some(intent) = monitor.pending().cloned() {
-        // Historical lookup is permitted even after stop/expiry/reassignment.
-        // It can recover a child committed just before a process crash, never
-        // create a replacement or renew the frozen deadline.
-        let child = venue_assessments::lookup_request_locked(app, &intent.request)?;
+        // Historical lookup precedes intake, even after stop/expiry/reassignment.
+        // Missing provider configuration can prevent receipt reconstruction;
+        // retain the exact child intent until its journal is available again.
+        let child = match venue_assessments::lookup_request_locked(app, &intent.request) {
+            Err(error)
+                if error.error == "provider_configuration"
+                    && app.providers.specialist(Provider::Creao).is_err() =>
+            {
+                return Ok(());
+            }
+            result => result?,
+        };
         if let Some(child) = child {
             observe_child(monitor, child)?;
         } else if monitor.status == MonitorStatus::Active {
@@ -579,11 +676,22 @@ fn advance(app: &AppState, monitor: &mut Monitor) -> ApiResult<()> {
             {
                 return Err(conflict("pending monitor source changed"));
             }
-            let (child, _) = venue_assessments::create_locked(app, intent.request)?;
-            observe_child(monitor, child)?;
+            let intake =
+                venue_assessments::intake_locked(app, &monitor.binding.request.responsibility_id)?;
+            if intake.consumed(job.created_at) {
+                // An operator may prepare the source after our intent commit.
+                // Keep its reserved count, but never replay it or halt newer work.
+                skip_pending(monitor, SkippedIntent::SourceConsumed);
+            } else if intent.request.deadline <= now || !fresh(&job, &proof, now) {
+                skip_pending(monitor, SkippedIntent::SourceExpired);
+            } else if intake.unresolved || app.providers.specialist(Provider::Creao).is_err() {
+                return Ok(());
+            } else {
+                let (child, _) = venue_assessments::create_locked(app, intent.request)?;
+                observe_child(monitor, child)?;
+            }
         }
-        // A pending/unknown/failed child never permits a later source. Persist
-        // its exact identity so restart cannot replace or resubmit native work.
+        // An existing pending/unknown/failed child never permits a later source.
         if monitor.pending().is_some() {
             return Ok(());
         }
@@ -597,9 +705,36 @@ fn advance(app: &AppState, monitor: &mut Monitor) -> ApiResult<()> {
         return Ok(());
     }
     current(app, &app.current_state()?, &monitor.binding, now)?;
+    let intake = venue_assessments::intake_locked(app, &monitor.binding.request.responsibility_id)?;
+    let floor = intake
+        .source_floor
+        .map_or(monitor.intents.last().unwrap().source_created_at, |floor| {
+            floor.max(monitor.intents.last().unwrap().source_created_at)
+        });
+    let latest = watermark(app)?;
+    let scan = monitor.scan.get_or_insert(Scan {
+        through: latest,
+        candidate: None,
+    });
+    // If delivery was blocked by another assessment/provider configuration,
+    // include the new backlog before acting on the saved candidate.
+    if monitor.cursor == scan.through {
+        scan.through = latest;
+    }
+    if scan.through > latest || monitor.cursor > scan.through {
+        return Err(conflict("monitor event watermark changed"));
+    }
+    if scan
+        .candidate
+        .as_ref()
+        .is_some_and(|c| c.source_created_at <= floor)
+    {
+        scan.candidate = None;
+    }
     for event in app.store.events_after(monitor.cursor, EVENT_PAGE)? {
-        // Advancing the cursor and preparing a selected intent are one atomic
-        // row update before any child creation, never a transient memory claim.
+        if event.seq > scan.through {
+            break;
+        }
         monitor.cursor = event.seq;
         let EventKind::JobStatusChanged {
             job_id,
@@ -615,9 +750,9 @@ fn advance(app: &AppState, monitor: &mut Monitor) -> ApiResult<()> {
             || job.responsibility_id != monitor.binding.request.responsibility_id
             || job.provider != Some(Provider::Apify)
             || job.status != JobStatus::Succeeded
-            || job.created_at <= monitor.intents.last().unwrap().source_created_at
+            || job.created_at <= floor
             || job.created_at > now
-            || job.created_at < now - Duration::minutes(30)
+            || job.created_at <= now - Duration::minutes(30)
         {
             continue;
         }
@@ -636,16 +771,55 @@ fn advance(app: &AppState, monitor: &mut Monitor) -> ApiResult<()> {
         let (_, proof) = source(app, &job_id)?;
         if !matches_pin(&monitor.binding, &proof)
             || event_input(&job)? != monitor.binding.event_input
-            || proof.verified_at > now
-            || proof.verified_at < now - Duration::minutes(30)
+            || !fresh(&job, &proof, now)
         {
             continue;
         }
-        monitor
-            .intents
-            .push(new_intent(&monitor.binding, &job, &proof, now)?);
-        break;
+        let newer = scan.candidate.as_ref().is_none_or(|candidate| {
+            (job.created_at, job_id.as_str())
+                > (
+                    candidate.source_created_at,
+                    candidate.source_job_id.as_str(),
+                )
+        });
+        if newer {
+            scan.candidate = Some(ScanCandidate {
+                source_job_id: job_id,
+                source_created_at: job.created_at,
+                source_proof_ref: proof.proof_ref,
+            });
+        }
     }
+    if monitor.cursor < scan.through {
+        return Ok(());
+    }
+    let Some(candidate) = scan.candidate.clone() else {
+        monitor.scan = None;
+        return Ok(());
+    };
+    // A saved candidate is only a discovery hint. Reconstruct the proof again
+    // after restart and just before spending a bounded intent.
+    let (job, proof) = source(app, &candidate.source_job_id)?;
+    if job.created_at != candidate.source_created_at
+        || job.mission_id != monitor.binding.mission_id
+        || job.responsibility_id != monitor.binding.request.responsibility_id
+        || proof.proof_ref != candidate.source_proof_ref
+        || !matches_pin(&monitor.binding, &proof)
+        || event_input(&job)? != monitor.binding.event_input
+    {
+        return Err(conflict("saved monitor candidate changed"));
+    }
+    if !fresh(&job, &proof, now) || intake.consumed(job.created_at) {
+        monitor.scan = None;
+        return Ok(());
+    }
+    if intake.unresolved || app.providers.specialist(Provider::Creao).is_err() {
+        return Ok(());
+    }
+    monitor
+        .intents
+        .push(new_intent(&monitor.binding, &job, &proof, now)?);
+    monitor.scan = None;
     Ok(())
 }
 
