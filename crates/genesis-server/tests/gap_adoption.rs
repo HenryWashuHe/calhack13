@@ -42,7 +42,7 @@ use genesis_server::{
 use genesis_verification::{decode_json, ArtifactPin, ExecutionEvidence, OracleSuite};
 use serde_json::{json, Value};
 use std::{
-    collections::BTreeMap,
+    collections::{BTreeMap, BTreeSet},
     sync::{Arc, Mutex},
     time::Duration,
 };
@@ -116,6 +116,9 @@ fn manifest(capability: &str, publisher: &str) -> Value {
 #[derive(Default)]
 struct World {
     ambiguous_runs: bool,
+    /// Next run submissions that are created but finish FAILED (definite).
+    failing_runs: usize,
+    failed: BTreeSet<usize>,
     requests: Vec<(String, String)>,
     runs: BTreeMap<usize, usize>,
 }
@@ -149,6 +152,10 @@ impl World {
                     .expect("only B's own suite inputs may execute");
                 let run = self.runs.len();
                 self.runs.insert(run, case);
+                if self.failing_runs > 0 {
+                    self.failing_runs -= 1;
+                    self.failed.insert(run);
+                }
                 if self.ambiguous_runs {
                     return (
                         StatusCode::SERVICE_UNAVAILABLE,
@@ -159,7 +166,11 @@ impl World {
             }
             ("GET", ["v2", "actor-runs", run]) => {
                 let run: usize = run.strip_prefix("b-run-").unwrap().parse().unwrap();
-                (StatusCode::OK, Self::run(run))
+                let mut reply = Self::run(run);
+                if self.failed.contains(&run) {
+                    reply["data"]["status"] = json!("FAILED");
+                }
+                (StatusCode::OK, reply)
             }
             ("GET", ["v2", "datasets", dataset, "items"]) => {
                 let run: usize = dataset.strip_prefix("b-dataset-").unwrap().parse().unwrap();
@@ -250,6 +261,9 @@ impl Providers {
     }
     fn runs(&self) -> usize {
         self.count("POST", &format!("/v2/actors/{}/runs", pin().actor_id))
+    }
+    fn fail_runs(&self, n: usize) {
+        self.world.lock().unwrap().failing_runs = n;
     }
 }
 fn limits() -> RunLimits {
@@ -1368,7 +1382,7 @@ async fn a_registry_outage_can_be_retried_once_by_an_operator_and_then_adopts() 
 }
 
 #[tokio::test]
-async fn unknown_check_outcomes_need_an_operator_and_retries_are_bounded() {
+async fn unknown_check_outcomes_block_retry_definite_ones_allow_it_and_retries_are_bounded() {
     let mut f = Fixture::new(Options {
         ambiguous_runs: true,
         ..Options::default()
@@ -1387,17 +1401,48 @@ async fn unknown_check_outcomes_need_an_operator_and_retries_are_bounded() {
     tokio::time::sleep(Duration::from_millis(1200)).await;
     assert_eq!(f.providers.runs(), posts);
     assert_eq!(f.record().unwrap().attempt, 0);
-    // Agents can't retry; an operator can, as a new attempt that keeps the
-    // stopped adoption (and its unknown run) in history.
+    // Agents can't retry. Nor can an operator while a native check has an
+    // unknown outcome: a fresh adoption would submit it again (Codex, #86).
     let (status, _) = retry(&f, "agent").await;
     assert!(status.is_client_error(), "{status}");
+    let (status, body) = retry(&f, "operator").await;
+    assert_eq!(status, reqwest::StatusCode::CONFLICT, "{body}");
+    assert_eq!(body["error"], "adoption_checks_unresolved", "{body}");
+    let (_, status_body) = adoption_status(&f, f.gap_id.as_str()).await;
+    assert_eq!(status_body["retryable"], false, "{status_body}");
+    let record = f.record().unwrap();
+    assert_eq!(record.attempt, 0);
+    assert_eq!(record.adoption_id.as_deref(), Some(first.as_str()));
+    assert_eq!(record.state, GapAdoptionState::Attention);
+    // The stopped adoption is never resubmitted or revived.
+    assert_eq!(f.providers.runs(), posts);
+    assert!(!f.driver_bound());
+    assert_eq!(f.providers.model_calls(), 0);
+
+    // A definite failure (the provider reports the run FAILED) is settled:
+    // the operator may retry, and the fresh adoption's checks run and install.
+    let mut f = Fixture::new(Options::default()).await;
+    f.providers.fail_runs(usize::MAX);
+    f.serve().await;
+    f.wait_for("checks attention", |f| {
+        f.record()
+            .is_some_and(|r| r.state == GapAdoptionState::Attention)
+    })
+    .await;
+    f.stop();
+    assert_eq!(f.record().unwrap().code, Some(GapAdoptionCode::Checks));
+    let first = f.record().unwrap().adoption_id.unwrap();
+    f.providers.fail_runs(0);
     let (status, body) = retry(&f, "operator").await;
     assert_eq!(status, reqwest::StatusCode::OK, "{body}");
     assert_eq!(body["attempt"], 1);
     assert_eq!(body["previous_adoption_ids"], json!([first]));
-    // The stopped adoption is never resubmitted or revived.
-    assert_eq!(f.providers.runs(), posts);
-    assert!(!f.driver_bound());
+    f.serve().await;
+    f.wait_for("installed after retry", |f| {
+        installed(&f.gap_status()).is_some()
+    })
+    .await;
+    assert_eq!(f.adoptions().len(), 2);
     assert_eq!(f.providers.model_calls(), 0);
 
     // Registry outages: two retries, then no more.

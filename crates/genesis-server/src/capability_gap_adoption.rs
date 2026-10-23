@@ -184,11 +184,11 @@ pub const MAX_RETRIES: u32 = 2;
 impl GapAdoptionCode {
     /// Stops a fresh adoption may resolve: a registry blip, a bad candidate
     /// that may have been replaced, changed configuration, an installation
-    /// conflict, or failed/unknown checks (e.g. a restart during a check
-    /// run). Nothing is replayed: the stopped adoption can only be fenced
-    /// from here, keeps its runs and stays in history, and the operator's
-    /// retry starts new checks under a new key. The cost is at most one
-    /// duplicate check run per retry. Inconsistent records are never retried.
+    /// conflict, or failed checks. Whatever the code, a retry also requires
+    /// every native check run of the stopped adoption to have a definite
+    /// outcome (`checks_settled`): an unknown or still-moving run keeps its
+    /// identity and blocks the retry, so no check is ever submitted twice.
+    /// Inconsistent records are never retried.
     pub fn retryable(self) -> bool {
         matches!(
             self,
@@ -933,7 +933,10 @@ pub async fn status_route(
             .as_ref()
             .map(|r| r.previous_adoption_ids.clone())
             .unwrap_or_default(),
-        retryable: r.as_ref().is_some_and(can_retry),
+        retryable: match r.as_ref() {
+            Some(r) => retryable_now(&app, r)?,
+            None => false,
+        },
     }))
 }
 
@@ -942,6 +945,48 @@ fn can_retry(r: &GapAdoptionRecord) -> bool {
         && r.code.is_some_and(GapAdoptionCode::retryable)
         && r.adoption_id.is_some()
         && r.attempt < MAX_RETRIES
+}
+
+/// Every native check run of the stopped adoption has a definite outcome
+/// (collected, failed or rejected) or was never submitted. A run that is
+/// unknown (`NeedsReconciliation`) or in flight keeps the stopped adoption's
+/// identity: a fresh adoption would submit the same check again while the
+/// first may still be running. `Prepared` counts as never submitted only once
+/// the adoption has left Checking for good, since the runtime then refuses to
+/// submit it (`authorized_job` requires Checking, checked under the kernel
+/// lock this route also holds). Unreadable records count as unsettled; only
+/// storage errors propagate.
+fn checks_settled(app: &AppState, r: &GapAdoptionRecord) -> StoreResult<bool> {
+    use crate::capability_adoption_store::AdoptionError;
+    use crate::capability_runtime::{CapabilityRunPhase as P, CapabilityRuntimeError as E};
+    let Some(id) = r.adoption_id.as_deref() else {
+        return Ok(true);
+    };
+    let adoption = match app.store.get_adoption(id) {
+        Ok(a) => a,
+        Err(AdoptionError::Db(e)) => return Err(StoreError::Db(e)),
+        Err(_) => return Ok(false),
+    };
+    let stopped = !matches!(
+        adoption.phase(),
+        AdoptionPhase::Discovering | AdoptionPhase::Selected | AdoptionPhase::Checking
+    );
+    for job in adoption.job_ids() {
+        match app.store.get_capability_run(job) {
+            Ok(run) if matches!(run.phase, P::Collected | P::Failed | P::Rejected) => {}
+            Ok(run) if stopped && run.phase == P::Prepared => {}
+            Ok(_) => return Ok(false),
+            // No run recorded for the job: nothing was ever submitted.
+            Err(E::Store(StoreError::NotFound(_))) => {}
+            Err(E::Store(e)) => return Err(e),
+            Err(_) => return Ok(false),
+        }
+    }
+    Ok(true)
+}
+
+fn retryable_now(app: &AppState, r: &GapAdoptionRecord) -> StoreResult<bool> {
+    Ok(can_retry(r) && checks_settled(app, r)?)
 }
 
 /// Operator recovery for a retryable stop: keep the stopped adoption in
@@ -967,6 +1012,13 @@ pub async fn retry_route(
                 axum::http::StatusCode::CONFLICT,
                 "adoption_not_retryable",
                 "this gap adoption is not stopped for a retryable reason, or its retries are used up",
+            ));
+        }
+        if !checks_settled(&app, &r)? {
+            return Err(ApiError::new(
+                axum::http::StatusCode::CONFLICT,
+                "adoption_checks_unresolved",
+                "a check run of the stopped adoption has no definite outcome yet; retrying could submit it twice",
             ));
         }
         let open = app
