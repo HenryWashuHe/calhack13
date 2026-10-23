@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { Api } from "../lib/api";
 import type { DomainEvent, OrgChangeRecord, OrgState } from "../lib/contracts";
 import { buildTree, executedBy, ownedBy, pendingRoles, RoleNode, short } from "../lib/graph";
@@ -227,9 +227,16 @@ export function OrgPanel({
     [events, changes, state, mode],
   );
   const replaying = replay !== null ? gens[replay] : undefined;
+  // The replay timer depends on the generation sequence, not on the array:
+  // ordinary event traffic (job status, etc.) re-derives `gens` without
+  // changing it, and must not keep restarting the step's deadline.
+  const gensRef = useRef(gens);
+  gensRef.current = gens;
+  const genKey = useMemo(() => gens.map((g) => g.revision).join(","), [gens]);
 
   useEffect(() => {
     if (replay === null) return;
+    const gens = gensRef.current;
     const g = gens[replay];
     if (!g) {
       setReplay(null);
@@ -244,7 +251,7 @@ export function OrgPanel({
       }
     }, 2400);
     return () => clearTimeout(t);
-  }, [replay, gens]);
+  }, [replay, genKey]);
 
   const stopReplay = () => setReplay(null);
 

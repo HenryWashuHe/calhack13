@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Api } from "../lib/api";
-import { HistoryAudit, ruleName, verdicts } from "../lib/audit";
+import { allPass, HistoryAudit, ruleName, verdicts } from "../lib/audit";
 
 const AUDIT_SETTLE_MS = 2000;
 
@@ -85,7 +85,7 @@ export function AuditView({
   onToggle: () => void;
 }) {
   const rows = useMemo(() => verdicts(a), [a]);
-  const ok = a.violation_count === 0;
+  const ok = allPass(a);
   const here = rows.find((r) => r.revision === shown);
   return (
     <div className={`audit${ok ? " ok" : " bad"}`}>
@@ -96,7 +96,9 @@ export function AuditView({
           </span>
           {ok
             ? `Kernel audit: every revision r${a.first_revision ?? 0}–r${a.last_revision ?? 0} passes ${a.invariants.length} invariants`
-            : `Kernel audit: ${a.violation_count} violation${a.violation_count === 1 ? "" : "s"} in stored history`}
+            : a.violation_count === 0
+              ? `Kernel audit: ${a.snapshots_checked} of r${a.first_revision ?? 0}–r${a.last_revision ?? 0} checked; the rest are unverified`
+              : `Kernel audit: ${a.violation_count} violation${a.violation_count === 1 ? "" : "s"} in stored history`}
         </button>
         <span className="muted tabular">
           {a.snapshots_checked} snapshots · {a.events_checked} events
@@ -109,7 +111,7 @@ export function AuditView({
               ? `r${r.revision}: passes`
               : r.verdict === "bad"
                 ? `r${r.revision}: ${r.violations.map((v) => ruleName(v.invariant)).join(", ")}`
-                : `r${r.revision}: not reported (violation list truncated)`;
+                : `r${r.revision}: ${r.note ?? "not reported"}`;
           return (
             <button
               key={r.revision}
