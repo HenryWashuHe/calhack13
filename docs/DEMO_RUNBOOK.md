@@ -17,7 +17,9 @@ prebuilt artifact must never be presented as freshly generated.
 | --- | --- | --- | --- |
 | Kernel: changes, saga, fencing, retirement | real | always | event log, revisions, stale-epoch rejection |
 | Planner proposes changes | real code; model needs `GENESIS_LLM_*` or `GENESIS_LLM_PROVIDER=elastic` | model key set | decision events, kernel rejections fed back |
-| Capability need → acquisition | `RequestCapability`, trusted policy and opt-in durable driver merged (#49/#56/#66); publication and installation remain separate | acquisition options and keys configured, **https portal evidence** | `capability_gap_opened` → `…status_changed` (`acquiring`, `acquired`), independent verification proof |
+| Capability need → acquisition | `RequestCapability`, trusted policy and opt-in durable driver merged (#49/#56/#66) | acquisition options and keys configured, **https portal evidence** | `capability_gap_opened` → `…status_changed` (`acquiring`, `acquired`), independent verification proof |
+| Verified → published + installed (A) | opt-in finalizer, #78 (+ console #80) | `--gap-finalization-policy` + registry | gap `installed`, `registry:<id>@<version>`, local acceptance runs |
+| B adopts before synthesizing | opt-in adopt-first, #82; two-org test #83 | `--gap-adoption-policy` + registry, B's Apify access to A's Actor | B gap `installed` as A's exact version, 0 B model/Actor calls |
 | Source generation, Actor build, verification | real code; needs `ANTHROPIC_API_KEY` + `APIFY_TOKEN` | keys + reachable portal | actor/build/run IDs, oracle verdict |
 | Venue portal (judge varies it) | real, merged | tunnel up | lab variant, page hashes |
 | Org B independent adoption | real code (loopback-proven) | both orgs + registry | B's own acceptance runs, 0 synthesis calls |
@@ -77,10 +79,12 @@ genesis org --org-id org_a --name "Org A" --db data/a.db --bind 127.0.0.1:7101 \
   --registry-url http://127.0.0.1:7100 --registry-token $REG_A \
   --oracle-suite data/portal/trusted/suites/portal-a-v1.json \
   --acquisition-policy runtime/acquisition-policy.json --auto-acquire \
-  --gap-acquisition-policy runtime/gap-policy.json
+  --gap-acquisition-policy runtime/gap-policy.json \
+  --gap-finalization-policy runtime/finalize-a.json        # #78
 genesis org --org-id org_b --name "Org B" --db data/b.db --bind 127.0.0.1:7102 \
   --registry-url http://127.0.0.1:7100 --registry-token $REG_B \
-  --oracle-suite data/portal/trusted/suites/portal-b-v1.json
+  --oracle-suite data/portal/trusted/suites/portal-b-v1.json \
+  --gap-adoption-policy runtime/adopt-b.json               # #82
 
 # 3. Console and planner
 (cd apps/web && npm run dev)                          # http://127.0.0.1:5173
@@ -109,6 +113,35 @@ callback URL. A provider run ID or completion is insufficient: the matching
 gateway receipt is required. This readiness check is separate from persistent
 CREAO mission work and its genuine run share link.
 
+### Autonomous capability path (#78, #82)
+
+With both flags above, neither organization needs an operator call for the
+capability beat:
+
+1. A's planner commits `RequestCapability`. The gap driver synthesizes and
+   verifies (`acquired`); the finalizer publishes that exact pin with
+   recomputed proof, installs it and runs A's local acceptance checks
+   (`installed`); the kernel note wakes A's planner to attach it.
+2. B's planner later commits its own `RequestCapability` (any capability
+   name). Adopt-first searches the registry, skips B's own publications,
+   installs A's version and accepts it only with B's suite; the gap records
+   A's exact version as `installed`. B makes no model or Actor-creation call.
+
+`runtime/finalize-a.json` ([CAPABILITY_GAP_FINALIZER.md](CAPABILITY_GAP_FINALIZER.md)):
+one rule per capability ID with A's suite and the publication text.
+`runtime/adopt-b.json` ([CAPABILITY_GAP_ADOPTION.md](CAPABILITY_GAP_ADOPTION.md)):
+`{"rules":[{"capability_id":"<B's requested ID>","suite_id":"portal-b-v1","synthesis_fallback":false}]}`.
+
+Two honesty points. The adoption policy is B's provider-access
+acknowledgement: write it only after B's own Apify credentials can run A's
+Actor (same rule as `provider_access_acknowledged` below). And order matters:
+B's need must be committed after A's publication, or B's search is empty;
+with `synthesis_fallback: false` B then stops at `attention: no_candidate`
+(status at `GET /api/v1/capability-gaps/{id}/adoption`).
+
+Evidence: `tests/two_org_inheritance.rs` runs exactly this with real
+`serve_org` on both sides against loopback providers. No live run yet.
+
 ## The 3 minutes
 
 Targets from the research report §10, with what each beat actually shows today.
@@ -118,9 +151,9 @@ Targets from the research report §10, with what each beat actually shows today.
 | 0:00–0:20 | Mission, starting org, budget | console org tree | ready |
 | 0:20–0:40 | Judge closes the venue / changes the portal in the lab | lab → new namespace; observation with `evidence_ref` = portal URL | ready |
 | 0:40–1:15 | Planner: new requirement → CreateRole / AssignResponsibility / **RequestCapability**; Elastic specialist; Fetch offer | decision event, gap chip REQUESTED (#54) | planner, gap chip, lifecycle wake-up and opt-in driver merged (#49/#54/#57/#66) |
-| 1:15–1:45 | Acquisition: generated parser, pinned build, oracle checks pass: **held out** only if A was generated with `--holdout` (#60); otherwise call them reproducibility checks, since A's examples would be suite cases | gap ACQUIRING → ACQUIRED; actor/build/run IDs (publication and installation are separate) | needs keys + trusted policy; driver stops at ACQUIRED; full scenario path below is operator-directed |
+| 1:15–1:45 | Acquisition: generated parser, pinned build, oracle checks pass: **held out** only if A was generated with `--holdout` (#60); otherwise call them reproducibility checks, since A's examples would be suite cases | gap ACQUIRING → ACQUIRED → INSTALLED; actor/build/run IDs, `registry:` ref | needs keys + trusted policy; INSTALLED needs the finalizer (#78) |
 | 1:45–2:10 | Second disruption (capacity cut) handled by the existing owner, **no new role** | distinct frozen capacity-cut source; one subscription, same CREAO monitor, accepted reassessment and linked replacement requirement | bounded two-cycle scenario; native run evidence pending |
-| 2:10–2:40 | Org B: own requirement, discovers A's capability, own acceptance, different input | B adoption intent, B's acceptance runs, 0 synthesis calls | ready (loopback-proven) |
+| 2:10–2:40 | Org B: own requirement, discovers A's capability, own acceptance, different input | B gap INSTALLED as A's version, B's acceptance runs, 0 synthesis calls | operator scenario ready; no-operator path needs #82 (loopback-proven, #83) |
 | 2:40–3:00 | Temporary role retires after handoff; capability remains | retirement event, stale epoch fenced | ready |
 
 The planner doc's best evidence of reasoning: two disruptions, two different
@@ -131,9 +164,9 @@ way to force a repair: the hand-written baseline parser matches the oracle
 ## Operator-directed full scenario
 
 The existing scenario coordinates acquisition, publication and independent
-adoption under an operator request. Label that path explicitly. The automatic
-`RequestCapability` → policy-driver path reaches verified `Acquired`; it does
-not automatically invoke publication or installation.
+adoption under an operator request. Label that path explicitly. Without the
+finalizer and adopt-first flags, the automatic `RequestCapability` →
+policy-driver path stops at verified `Acquired`.
 
 ```sh
 GENESIS_ORG_A_OPERATOR_TOKEN=… GENESIS_ORG_B_OPERATOR_TOKEN=… \
