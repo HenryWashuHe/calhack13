@@ -17,7 +17,7 @@ use rusqlite::{params, Connection, OptionalExtension, Transaction, TransactionBe
 use serde::{Deserialize, Serialize};
 
 const MAX_RECORD_BYTES: usize = 9 * 1024 * 1024;
-const ACQUIRE_SCOPE: &str = "capability.acquire";
+pub(crate) const ACQUIRE_SCOPE: &str = "capability.acquire";
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]

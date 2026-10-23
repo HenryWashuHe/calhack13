@@ -70,6 +70,10 @@ async fn the_prompt_lists_the_policy_names_and_nothing_else_about_the_policy() {
         prompt.contains("- venue-reader: observed_sources https://portal.example/venue-reader/a.html https://portal.example/venue-reader/b.html"),
         "{prompt}"
     );
+    assert!(
+        prompt.contains("must hold the capability.acquire scope"),
+        "{prompt}"
+    );
     assert!(!prompt.contains("PRIVATE"), "{prompt}");
 }
 

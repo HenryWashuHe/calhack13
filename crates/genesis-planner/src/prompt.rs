@@ -79,7 +79,7 @@ pub fn user_message(
     observation: &Observation,
     specialists: &[KnownSpecialist],
 ) -> String {
-    user_message_with(state, observation, specialists, &[])
+    user_message_with(state, observation, specialists, &RequestPolicy::default())
 }
 
 /// A capability the server's trusted gap policy can act on.
@@ -89,6 +89,16 @@ pub struct Requestable {
     pub observed_sources: Vec<String>,
 }
 
+/// What the server's trusted gap policy accepts: capabilities with their
+/// sources, and the scope the requesting role must hold.
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Deserialize)]
+pub struct RequestPolicy {
+    #[serde(default)]
+    pub capabilities: Vec<Requestable>,
+    #[serde(default)]
+    pub required_scope: Option<String>,
+}
+
 /// As [`user_message`], plus the capabilities the server's trusted gap policy
 /// can act on. A request under another name, or without the policy's
 /// sources, is refused, so when they are known the model is told to use them.
@@ -96,7 +106,7 @@ pub fn user_message_with(
     state: &OrgState,
     observation: &Observation,
     specialists: &[KnownSpecialist],
-    requestable: &[Requestable],
+    policy: &RequestPolicy,
 ) -> String {
     let mut s = String::new();
     let mission = state.missions.get(&observation.mission_id);
@@ -282,13 +292,19 @@ pub fn user_message_with(
         }
     }
 
-    if !requestable.is_empty() {
+    if !policy.capabilities.is_empty() {
         let _ = writeln!(s, "\n## Requestable capabilities (operator policy)");
         let _ = writeln!(
             s,
             "Only these can be acquired or adopted here. If you use RequestCapability, use one of these capability_id values with exactly its observed_sources; if none fits the need, do not request a capability."
         );
-        for r in requestable {
+        if let Some(scope) = &policy.required_scope {
+            let _ = writeln!(
+                s,
+                "The role you request it for must hold the {scope} scope: pick a role that has it, or give it to a new role in CreateRole authority."
+            );
+        }
+        for r in &policy.capabilities {
             let _ = writeln!(
                 s,
                 "- {}: observed_sources {}",

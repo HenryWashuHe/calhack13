@@ -158,17 +158,15 @@ impl KernelClient {
     /// without a policy) yield an empty list.
     pub async fn requestable_capabilities(
         &self,
-    ) -> Result<Vec<crate::prompt::Requestable>, KernelError> {
-        #[derive(serde::Deserialize)]
-        struct Response {
-            capabilities: Vec<crate::prompt::Requestable>,
-        }
+    ) -> Result<crate::prompt::RequestPolicy, KernelError> {
         match self
-            .send::<Response>(self.http.get(self.url("/capability-gaps/requestable")))
+            .send::<crate::prompt::RequestPolicy>(
+                self.http.get(self.url("/capability-gaps/requestable")),
+            )
             .await
         {
-            Ok(r) => Ok(r.capabilities),
-            Err(KernelError::Api { status: 404, .. }) => Ok(vec![]),
+            Ok(r) => Ok(r),
+            Err(KernelError::Api { status: 404, .. }) => Ok(Default::default()),
             Err(e) => Err(e),
         }
     }

@@ -31,6 +31,8 @@ pub async fn acquisition(
 #[derive(Debug, serde::Serialize)]
 pub struct Requestable {
     pub capabilities: Vec<RequestableCapability>,
+    /// Scope the requesting role must hold for acquisition to proceed.
+    pub required_scope: &'static str,
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -58,5 +60,8 @@ pub async fn requestable(
         })
         .unwrap_or_default();
     capabilities.sort_by(|a, b| a.capability_id.cmp(&b.capability_id));
-    Ok(Json(Requestable { capabilities }))
+    Ok(Json(Requestable {
+        capabilities,
+        required_scope: crate::capability_acquisition_store::ACQUIRE_SCOPE,
+    }))
 }
