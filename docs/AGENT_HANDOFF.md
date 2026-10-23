@@ -2,8 +2,8 @@
 
 ## Authoritative checkpoint — October 23, 2026
 
-Source basis: main `72cd0145400aae6a72a54cf36f2b9ecf0e662adc`, tree
-`5e5cf47702a08f462cb520a7cd7d6ce0d0919d03`, after #99. This checkpoint
+Source basis: main `9a9c7a0a459c929e3612dc942c5a8dcb9fd7d8bd`, tree
+`05767561a3017163e9ff7af77de655070d6929f6`, after #82. This checkpoint
 supersedes the historical status and ownership notes below; exact newer GitHub
 heads and the scoped handoffs in [issue #4](https://github.com/HenryWashuHe/genesis/issues/4)
 take precedence. The ongoing two-organization mission goal remains active.
@@ -20,7 +20,7 @@ new aggregate count for every later main commit.
   stale changed intents cannot block release or unrelated healthy work.
   **133 Fetch/verification tests**, including ten float cases, pass. Three
   baseline defects and two release regressions were reproduced before fixes.
-- **#99 monitor intake:** merged `72cd014`, source `05d55e2`, exact tree above.
+- **#99 monitor intake:** merged `72cd014`, source `05d55e2`, tree `5e5cf477`.
   Persisted scans choose the newest eligible source within their captured
   backlog, including across pages/restart. Manual consumption and temporary
   CREAO absence no longer permanently halt valid intake; exact child recovery,
@@ -28,19 +28,36 @@ new aggregate count for every later main commit.
   tests**, scoped strict Clippy and formatting pass. Baseline evidence was four
   failing regressions plus four passing controls. See [monitor semantics](VENUE_MONITORS.md).
 
-**Open review queue:** #82 `ae00fa9` is being validated after its fallback fix;
-not merged at this checkpoint. #86's old `0ec6606` has two reproduced
-unknown-child retry failures; new head `83998b0` awaits review, so the hold is
-not cleared. #91 `6776130` remains held on replay starvation under frequent
-nonstructural events and missing revisions displayed as audited success.
-Draft #84 `e986a4e` remains held on preflight policy validation and overstated
-planner/restart coverage; test-only `4ed8c08` is preserved but not yet executed.
-#83 `7c1900d`, #85 `c2abcf9` and #87 `88d9174` have clean scoped source reviews,
-pending #82 and dependent execution; they do not inherently require #86.
+- **#82 adopt first:** merged `9a9c7a0`, source correction `ae00fa9`, tested
+  composition `4c8c461` with the exact main tree above. The original same-owner
+  delegation regression is unchanged and now passes. **41 focused tests**,
+  scoped strict Clippy and formatting pass. The author branch
+  `henry-claude/gap-adoption` was fast-forwarded to `4c8c461` to include current
+  main; no history was rewritten. Claude should pull before continuing it.
+
+**Open review queue:** #86 `83998b0` remains **held on a reproduced failure**.
+A local check marked `Rejected` after suite drift can retain a native receipt
+whose provider run is still `RUNNING`. Retry submits a second POST while an
+independent GET confirms the first run remains active. Test-only `a497651` on
+`codex/review-adoption86-rejected`, composed with current main at `c33c93f`,
+reproduces this; it is loopback provider evidence, not a live sponsor run.
+#91 `6776130` remains held on replay starvation under frequent nonstructural
+events and missing revisions displayed as audited success. Draft #84 has a new
+head `3d3219c`, **not yet reviewed**; the earlier preflight/coverage findings are
+not cleared by its arrival. Test-only `4ed8c08` is preserved but not yet executed.
+#83 `7c1900d`, #85 `c2abcf9` and #87 `88d9174` have clean scoped source reviews
+and can proceed to current-main integration and execution independently of #86.
 See [the exact queue](PR_REVIEW_QUEUE.md).
 
 **Ownership:** Claude/Eric retains kernel, planner, readiness, adoption and UI,
-including #82/#86/#91 fixes. Codex's monitor and Fetch float fixes are merged.
+including #86/#91 fixes. Claude's `henry-claude/requestable-adoption` claim covers
+`crates/genesis-server/src/routes/capability_gaps.rs` requestable policy visibility,
+`crates/genesis-planner/src/prompt.rs`, matching `RequestPolicy` / `Requestable`
+deserialization and adjacent tests. The follow-up exposes adoption-only names
+without acquisition sources/scope and uses the observation's public page URLs;
+it does not change the coordinator, kernel or acquisition. See the
+[scoped claim](https://github.com/HenryWashuHe/genesis/issues/4#issuecomment-6372394586).
+Codex's monitor and Fetch float fixes are merged.
 Codex continues the Fetch venue-recovery implementation at `299ee0c` on
 `codex/fetch-venue-recovery`, with runtime/retirement integration tests still
 pending; this is work in progress, not a merged mission result. Coordinate
