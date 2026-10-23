@@ -1,0 +1,45 @@
+name: Capability core
+
+on:
+  pull_request:
+    paths:
+      - "crates/genesis-verification/**"
+      - "crates/genesis-apify/**"
+      - ".github/workflows/capability-core.yml"
+      - "Cargo.toml"
+      - "Cargo.lock"
+  push:
+    branches: [main, "codex/**"]
+    paths:
+      - "crates/genesis-verification/**"
+      - "crates/genesis-apify/**"
+      - ".github/workflows/capability-core.yml"
+      - "Cargo.toml"
+      - "Cargo.lock"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: capability-core-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rust:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        crate: [genesis-verification, genesis-apify]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.94.0 --profile minimal --component clippy --component rustfmt
+      - name: Check formatting
+        run: cargo +1.94.0 fmt --manifest-path crates/${{ matrix.crate }}/Cargo.toml --check
+      - name: Test core and transport failures
+        run: cargo +1.94.0 test --locked --manifest-path crates/${{ matrix.crate }}/Cargo.toml
+      - name: Check canonical digests under workspace feature unification
+        if: matrix.crate == 'genesis-verification'
+        run: cargo +1.94.0 test --locked --manifest-path crates/genesis-verification/Cargo.toml --features serde_json/preserve_order
+      - name: Reject lint warnings
+        run: cargo +1.94.0 clippy --locked --manifest-path crates/${{ matrix.crate }}/Cargo.toml --all-targets -- -D warnings
