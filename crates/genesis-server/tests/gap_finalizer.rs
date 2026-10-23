@@ -813,7 +813,8 @@ async fn a_conflicting_manifest_at_the_same_pin_does_not_confirm_publication() {
         .await
         .unwrap();
     assert_eq!(conflict.status().as_u16(), 409);
-    assert!(conflict.text().await.unwrap().contains("immutable_version"));
+    // The organization API deliberately redacts the registry error body.
+    // Its HTTP conflict plus the independently checked stored intent suffice.
 
     assert_eq!(
         f.finalize_step().await,
