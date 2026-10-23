@@ -6,6 +6,9 @@ const MARK: Record<Delta["kind"], string> = {
   role_retired: "−",
   duty_moved: "⇄",
   capability: "◆",
+  capability_requested: "?",
+  capability_progress: "…",
+  capability_refused: "✗",
   contractor: "↗",
   reporting: "↳",
 };

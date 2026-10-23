@@ -185,3 +185,41 @@ describe("humanizeIds", () => {
     );
   });
 });
+
+describe("capability gaps in evolution", () => {
+  const gapEvents: DomainEvent[] = [
+    ev(1, "mission_created", { mission_id: "m", goal: "g" }),
+    ev(1, "role_created", { role_id: "r", name: "Venue ops", provider: "internal" }),
+    ev(1, "role_activated", { role_id: "r" }),
+    ev(3, "capability_gap_opened", { gap_id: "gap1", requirement_id: "q", role_id: "r", responsibility_id: "d", capability_id: "venue-reader" }),
+    ev(4, "capability_gap_status_changed", { gap_id: "gap1", from: { state: "open" }, to: { state: "acquiring", acquisition_id: "a1" } }),
+    ev(5, "capability_gap_status_changed", {
+      gap_id: "gap1",
+      from: { state: "acquiring", acquisition_id: "a1" },
+      to: { state: "acquired", acquisition_id: "a1", capability: { capability_id: "venue-reader", version: "1" } },
+    }),
+    ev(6, "capability_gap_status_changed", {
+      gap_id: "gap1",
+      from: { state: "acquired", acquisition_id: "a1", capability: { capability_id: "venue-reader", version: "1" } },
+      to: { state: "installed", acquisition_id: "a1", installation_id: "i1", capability: { capability_id: "shared-venue-reader", version: "1.0.0" } },
+    }),
+    ev(7, "capability_gap_opened", { gap_id: "gap2", requirement_id: "q", role_id: "r", responsibility_id: "d", capability_id: "pdf-reader" }),
+    ev(8, "capability_gap_status_changed", { gap_id: "gap2", from: { state: "open" }, to: { state: "refused", reason: "no acquisition policy" } }),
+  ];
+  const g = generations(gapEvents, [], null);
+
+  it("shows requests, verification, installation and refusal; never calls verified installed", () => {
+    expect(g.map((x) => [x.revision, x.label])).toEqual([
+      [1, "Founded"],
+      [3, "Asked"],
+      [5, "Asked"],
+      [6, "Equipped"],
+      [7, "Asked"],
+      [8, "Asked"],
+    ]);
+    expect(g[1]!.deltas[0]!.text).toBe("Venue ops asked for a capability: venue-reader");
+    expect(g[2]!.deltas[0]!.text).toBe("venue-reader for Venue ops verified as venue-reader@1; not installed yet");
+    expect(g[3]!.deltas[0]!.text).toBe("venue-reader for Venue ops installed as shared-venue-reader@1.0.0");
+    expect(g[5]!.deltas[0]).toEqual({ kind: "capability_refused", text: "pdf-reader for Venue ops refused: no acquisition policy" });
+  });
+});
