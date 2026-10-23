@@ -8,6 +8,9 @@ The [research report](../GENESIS-organization-evolution-research.md) records API
 
 ## Ownership
 
+For current agent assignments and the user-authorized Codex kernel fallback when
+Claude runs out of credits, see [the agent handoff record](AGENT_HANDOFF.md).
+
 | Person | Owns | Integration deliverable | Depends on |
 | --- | --- | --- | --- |
 | 1 — Organization kernel and Elastic | Rust/Axum/Tokio kernel, typed lifecycle models, mission/role/responsibility state, organization revisions, jobs/outbox, permissions, Elastic HTTP adapter and native retrieval | A validated organization change creates a real Elastic specialist and changes actual ownership/dispatch. Approved manifests are discoverable through native retrieval. | Shared contracts; readiness/results from Persons 3 and 4; contractor results from Person 2 |
