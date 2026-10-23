@@ -167,7 +167,7 @@ fn same_origin(a: &Source, b: &Source) -> bool {
         && a.suite_sha256 == b.suite_sha256
         && a.acceptance_report_ref == b.acceptance_report_ref
         && a.artifact == b.artifact
-        && a.event_input == b.event_input
+        && json_sha256(&a.event_input) == json_sha256(&b.event_input)
 }
 
 fn reconstruct(
@@ -346,7 +346,11 @@ pub(crate) fn resolve(
 pub(crate) fn revalidate(app: &AppState, frozen: &SourceBinding) -> ApiResult<()> {
     let ids: Vec<_> = frozen.candidates.iter().map(|s| s.job_id.clone()).collect();
     let resolved = reconstruct(app, &frozen.reopened_assessment_id, &ids)?;
-    if resolved.binding != *frozen {
+    if resolved.binding != *frozen
+        // Value equality treats signed zero as equal. Invocation identity uses
+        // canonical JSON, so keep the same distinction in historical binding.
+        || json_sha256(&resolved.binding.event_input) != json_sha256(&frozen.event_input)
+    {
         return Err(invalid("recovery source binding changed after preparation"));
     }
     Ok(())
@@ -356,6 +360,46 @@ pub(crate) fn revalidate(app: &AppState, frozen: &SourceBinding) -> ApiResult<()
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn event_identity_preserves_signed_zero_but_ignores_object_key_order() {
+        // Pure origin comparison fixture, not a fabricated invocation proof.
+        let source = |input| Source {
+            summary: SourceSummary {
+                job_id: JobId::new("job"),
+                proof_ref: format!("invocation:{}", "a".repeat(64)),
+                output_sha256: "b".repeat(64),
+                created_at: Utc::now(),
+                verified_at: Utc::now(),
+                source: SourceSnapshot {
+                    url: "https://example.test/venue".into(),
+                    sha256: "c".repeat(64),
+                },
+                extraction: ExtractionOutcome::Supported { venues: vec![] },
+            },
+            org_id: OrgId::new("org"),
+            mission_id: MissionId::new("mission"),
+            installation_id: InstallationId::new("installation"),
+            suite_id: "suite".into(),
+            suite_sha256: "d".repeat(64),
+            acceptance_report_ref: "acceptance".into(),
+            artifact: ArtifactPin {
+                capability_id: "reader".into(),
+                capability_version: "1".into(),
+                source_sha256: "e".repeat(64),
+                actor_id: "actor".into(),
+                build_id: "build".into(),
+                build_number: "1".into(),
+            },
+            event_input: input,
+        };
+        let original = source(json!({"event":"same", "ratio":0.0}));
+        let changed = source(json!({"event":"same", "ratio":-0.0}));
+        assert_eq!(original.event_input, changed.event_input);
+        assert!(!same_origin(&original, &changed));
+        let reordered = source(serde_json::from_str(r#"{"ratio":0.0,"event":"same"}"#).unwrap());
+        assert!(same_origin(&original, &reordered));
+    }
 
     #[test]
     fn only_the_exact_source_url_is_removed_from_the_event_identity() {
