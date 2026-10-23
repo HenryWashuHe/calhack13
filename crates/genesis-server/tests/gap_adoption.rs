@@ -274,6 +274,8 @@ struct Options {
     fallback: bool,
     adopt_first: bool,
     sibling: bool,
+    /// Searches that fail before the registry answers.
+    failed_searches: usize,
 }
 impl Default for Options {
     fn default() -> Self {
@@ -284,6 +286,7 @@ impl Default for Options {
             fallback: true,
             adopt_first: true,
             sibling: false,
+            failed_searches: 0,
         }
     }
 }
@@ -323,7 +326,7 @@ impl Drop for Fixture {
     }
 }
 
-async fn registry(foreign: bool, searches: Arc<Mutex<usize>>) -> String {
+async fn registry(foreign: bool, searches: Arc<Mutex<usize>>, fail_first: usize) -> String {
     let state = RegistryState::open_in_memory(
         parse_publishers("org-a:a-registry,org-b:b-registry"),
         vec![],
@@ -355,7 +358,16 @@ async fn registry(foreign: bool, searches: Arc<Mutex<usize>>) -> String {
             let method = request.method().clone();
             let path = request.uri().path().to_owned();
             if path.ends_with("/search") {
-                *searches.lock().unwrap() += 1;
+                let mut n = searches.lock().unwrap();
+                *n += 1;
+                // The first `fail_first` searches hit an outage.
+                if *n <= fail_first {
+                    return (
+                        StatusCode::SERVICE_UNAVAILABLE,
+                        [("content-type", "application/json")],
+                        b"{\"error\":\"outage\"}".to_vec(),
+                    );
+                }
             }
             let auth = request.headers().get("authorization").cloned();
             let bytes = to_bytes(request.into_body(), 1024 * 1024).await.unwrap();
@@ -390,7 +402,7 @@ impl Fixture {
         let providers = Arc::new(Providers::start(o.ambiguous_runs).await);
         let registry_searches = Arc::new(Mutex::new(0));
         let registry_url = if o.registry_up {
-            registry(o.foreign, registry_searches.clone()).await
+            registry(o.foreign, registry_searches.clone(), o.failed_searches).await
         } else {
             // Nothing listens here: every registry call fails.
             let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
@@ -1195,4 +1207,114 @@ async fn an_acceptance_before_the_adoption_id_is_saved_still_links_the_gap() {
     assert_eq!(record.state, GapAdoptionState::Installed);
     assert_eq!(record.adoption_id.as_deref(), Some(id.as_str()));
     assert_eq!(f.drain().await, None);
+}
+
+async fn retry(f: &Fixture, principal: &str) -> (reqwest::StatusCode, Value) {
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let url = format!("http://{}", listener.local_addr().unwrap());
+    let router = f.app.clone().router();
+    let server = tokio::spawn(async move { axum::serve(listener, router).await.unwrap() });
+    let response = reqwest::Client::builder()
+        .no_proxy()
+        .build()
+        .unwrap()
+        .post(format!(
+            "{url}/api/v1/capability-gaps/{}/adoption/retry",
+            f.gap_id
+        ))
+        .bearer_auth(format!("{ORG}-{principal}"))
+        .send()
+        .await
+        .unwrap();
+    let status = response.status();
+    let body = response.json().await.unwrap_or(Value::Null);
+    server.abort();
+    (status, body)
+}
+
+#[tokio::test]
+async fn a_registry_outage_can_be_retried_once_by_an_operator_and_then_adopts() {
+    let mut f = Fixture::new(Options {
+        failed_searches: 1,
+        ..Options::default()
+    })
+    .await;
+    f.drain().await;
+    f.drain().await;
+    let first = f.record().unwrap().adoption_id.unwrap();
+    f.adoption_step().await;
+    assert_eq!(
+        f.drain().await,
+        Some(Step::Attention(GapAdoptionCode::Registry))
+    );
+    // Only operators may retry.
+    let (status, _) = retry(&f, "agent").await;
+    assert!(status.is_client_error(), "{status}");
+    let (status, body) = retry(&f, "operator").await;
+    assert_eq!(status, reqwest::StatusCode::OK, "{body}");
+    assert_eq!(body["attempt"], 1);
+    assert_eq!(body["previous_adoption_ids"], json!([first]));
+    assert_eq!(body["state"], "active");
+    // A second retry while active is refused; nothing was synthesized.
+    let (status, _) = retry(&f, "operator").await;
+    assert_eq!(status, reqwest::StatusCode::CONFLICT);
+    assert!(!f.driver_bound());
+    f.serve().await;
+    f.wait_for("installed after retry", |f| {
+        installed(&f.gap_status()).is_some()
+    })
+    .await;
+    let record = f.record().unwrap();
+    assert_ne!(record.adoption_id.as_deref(), Some(first.as_str()));
+    assert_eq!(f.adoptions().len(), 2);
+    assert_eq!(f.searches(), 2);
+    assert_eq!(f.providers.model_calls(), 0);
+}
+
+#[tokio::test]
+async fn unknown_check_outcomes_and_exhausted_retries_are_not_retryable() {
+    let mut f = Fixture::new(Options {
+        ambiguous_runs: true,
+        ..Options::default()
+    })
+    .await;
+    f.serve().await;
+    f.wait_for("checks attention", |f| {
+        f.record()
+            .is_some_and(|r| r.state == GapAdoptionState::Attention)
+    })
+    .await;
+    f.stop();
+    let posts = f.providers.runs();
+    let (status, body) = retry(&f, "operator").await;
+    assert_eq!(status, reqwest::StatusCode::CONFLICT, "{body}");
+    assert_eq!(f.record().unwrap().attempt, 0);
+    assert_eq!(f.providers.runs(), posts);
+
+    // Registry outages: two retries, then no more.
+    let f = Fixture::new(Options {
+        failed_searches: 3,
+        ..Options::default()
+    })
+    .await;
+    f.drain().await;
+    for attempt in 0..=genesis_server::capability_gap_adoption::MAX_RETRIES {
+        f.drain().await;
+        f.adoption_step().await;
+        assert_eq!(
+            f.drain().await,
+            Some(Step::Attention(GapAdoptionCode::Registry)),
+            "attempt {attempt}"
+        );
+        let (status, _) = retry(&f, "operator").await;
+        let expected = if attempt < genesis_server::capability_gap_adoption::MAX_RETRIES {
+            reqwest::StatusCode::OK
+        } else {
+            reqwest::StatusCode::CONFLICT
+        };
+        assert_eq!(status, expected, "attempt {attempt}");
+    }
+    assert_eq!(f.adoptions().len(), 3);
+    assert!(!f.driver_bound());
+    assert_eq!(f.gap_status(), CapabilityGapStatus::Open);
 }
