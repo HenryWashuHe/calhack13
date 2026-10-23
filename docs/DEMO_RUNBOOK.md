@@ -142,6 +142,23 @@ status at `GET /api/v1/capability-gaps/{id}/adoption`).
 Evidence: `tests/two_org_inheritance.rs` runs exactly this with real
 `serve_org` on both sides against loopback providers. No live run yet.
 
+Live preflight for this path (each of these fails silently into a refusal or
+attention if missed; loopback tests set them by hand):
+
+- [ ] A's owning role holds `capability.acquire` and every scope in A's
+      finalization rule `required_permissions` (e.g. `capability.venue_lookup`).
+- [ ] B's owning role holds the adopted manifest's `required_permissions`.
+- [ ] A's gap policy rule, A's finalization rule and B's adoption rule use the
+      capability names the planners will request. With #89 the planner sees the
+      policy's names, sources and required scope; without it, pre-agree names.
+- [ ] Gap policy `allowed_source_urls` are the exact https tunnel pages and
+      include every suite page plus one example page.
+- [ ] Both orgs share one registry; A's publisher token and B's reader token
+      are configured.
+- [ ] B's own Apify credentials can run A's Actor before writing `adopt-b.json`.
+- [ ] Start A's planner before A's observation; start B's planner only after
+      A's gap shows INSTALLED.
+
 Rehearse it without keys: `cargo run -p genesis-server --example
 rehearse_autonomy` starts the registry and both orgs on the console's default
 ports with a slowed fixture provider (`REHEARSAL_DELAY_MS`), then runs A's and
