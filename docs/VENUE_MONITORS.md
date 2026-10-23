@@ -17,8 +17,10 @@ result can create an observation or a replacement requirement.
 Use a current CREAO monitor role and its open mission responsibility. Its active
 assignment, epoch, provider binding and `monitor.venue` authority must remain
 valid. An accountable owner can hold the responsibility without a separate
-executor. Keep the capability attachment and lookup authority when the same role
-also submits capability invocations.
+executor. The exact accepted capability version must be attached to the monitor
+role at registration and remain attached while it prepares further work, even
+when another role supplies the invocation results. A role that also submits
+invocations needs the capability's lookup authority as usual.
 
 Choose an accepted local installation and a recent, independently verified
 invocation from that installation in the same mission. Supply explicit event
@@ -84,9 +86,19 @@ To stop intake, use `POST /api/v1/venue-monitors/{monitor_id}/stop`. Stopping or
 expiration prevents new child creation. It does not cancel an already-created
 child: exact historical lookup and read-only observation of that child's result
 continue. Retained pending IDs must not be interpreted as a new dispatch. There
-is no resume endpoint in this version. After resolving any existing child, an
-operator can register a new explicit subscription; replaying the old request
-does not reactivate it.
+may be a pending source with no child ID if intake stopped before creation. That
+saved intent can remain recorded indefinitely; it will not create a child after
+stop or expiration. This differs from an existing child whose native outcome
+remains unresolved.
+
+There is no resume endpoint in this version. Preparation failures put the monitor
+in `attention` and do not automatically retry child creation or event intake.
+Repairing configuration alone does not resume that preparation. The operator
+must stop the old subscription and, after resolving any existing child, register
+a new explicit subscription. Replaying the old request does not reactivate it.
+An already-created child remains observable while in attention: if that same
+child later becomes accepted, monitoring can continue when the subscription has
+not stopped or expired and its authority and assessment limit still allow work.
 
 ## Evidence selection
 
@@ -114,6 +126,9 @@ including the source job, deterministic request key and deadline. The source
 delivery and cursor advance together. Restart recovery reuses that request;
 it does not generate a new deadline or a replacement key. Each child deadline is
 the earlier of subscription expiration and 30 minutes after intent preparation.
+Read-only recovery never extends that deadline. Native work finishing after its
+deadline still faces the assessment runtime's deadline checks; observing a saved
+child does not authorize late mission effects.
 
 If a process stops after child creation but before recording its ID, replaying
 the same request recovers the existing assessment. The existing assessment
@@ -136,20 +151,32 @@ checks also apply before provider work and before a result changes the mission.
 
 A verified `feasible` assessment records its observation and allows a later
 eligible source to be considered. A verified `reopen` assessment records the
-existing verifier's replacement requirement and completes this subscription,
-retaining that requirement ID. Subscription completion does **not** complete the
-mission, close the continuing responsibility, reserve a venue, or satisfy other
-requirements. The existing planner can consider the new requirement.
+existing verifier's replacement requirement. If the subscription is still open,
+it becomes `completed` and retains that requirement ID. If it was already stopped
+or expired before the worker observes an accepted child, it remains `stopped`
+while retaining the child's result and requirement ID.
+
+Reaching the configured assessment limit also produces `completed`, with
+`attention: "assessment_limit_reached"`; it does not imply a replacement
+requirement. Subscription completion does **not** complete the mission, close the
+continuing responsibility, reserve a venue, or satisfy other requirements. The
+existing planner can consider any verified replacement requirement.
 
 Native completion or a terminal job status alone is not accepted domain evidence.
 Rejected, unresolved or inconsistent results retain attention rather than being
 reported as a completed monitoring outcome.
 
-Registration is explicit and bounded: at most 16 active subscriptions per
-organization, a requested assessment limit of 1 through 16, and expiration within
-24 hours. The worker reads at most 16 events per subscription per pass. The
-assessment limit includes the initial source. Expiration and the limit stop new
-intake; they do not establish that already-created provider work has stopped.
+Registration is explicit and bounded: at most 16 open subscriptions per
+organization, counting both `active` and `attention`, a requested assessment limit
+of 1 through 16, and expiration within 24 hours. `completed` and `stopped` records
+do not consume the open-subscription limit. Stopped records with pending intents
+remain eligible for read-only child lookup.
+
+Each worker pass visits at most 16 subscriptions, rotating by their last checked
+time. For an eligible subscription with no unresolved child, it reads at most 16
+events in that pass. The assessment limit includes the initial source. Expiration
+and the limit stop new intake; they do not establish that already-created provider
+work has stopped.
 
 ## Demonstration scope
 
