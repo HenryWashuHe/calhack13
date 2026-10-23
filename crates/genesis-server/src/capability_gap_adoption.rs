@@ -183,13 +183,16 @@ pub const MAX_RETRIES: u32 = 2;
 
 impl GapAdoptionCode {
     /// Stops a fresh adoption may resolve: a registry blip, a bad candidate
-    /// that may have been replaced, changed configuration, or an installation
-    /// conflict. Unknown check outcomes and inconsistent records are never
-    /// retried: their provider effects must be reconciled, not replayed.
+    /// that may have been replaced, changed configuration, an installation
+    /// conflict, or failed/unknown checks (e.g. a restart during a check
+    /// run). Nothing is replayed: the stopped adoption can only be fenced
+    /// from here, keeps its runs and stays in history, and the operator's
+    /// retry starts new checks under a new key. The cost is at most one
+    /// duplicate check run per retry. Inconsistent records are never retried.
     pub fn retryable(self) -> bool {
         matches!(
             self,
-            Self::Registry | Self::Candidate | Self::Configuration | Self::Conflict
+            Self::Registry | Self::Candidate | Self::Configuration | Self::Conflict | Self::Checks
         )
     }
 }
@@ -936,9 +939,9 @@ fn can_retry(r: &GapAdoptionRecord) -> bool {
 
 /// Operator recovery for a retryable stop: keep the stopped adoption in
 /// history and let the coordinator dispatch one fresh adoption under a new
-/// key, rechecking the requirement and grant first. Bounded per gap; unknown
-/// check outcomes are never retried. Synthesis fallback is unchanged: only a
-/// definitive empty search can release the gap.
+/// key, rechecking the requirement and grant first. Bounded per gap.
+/// Synthesis fallback is unchanged: only a definitive empty search can
+/// release the gap.
 pub async fn retry_route(
     State(app): State<AppState>,
     p: Principal,
