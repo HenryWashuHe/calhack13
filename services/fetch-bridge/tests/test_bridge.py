@@ -580,6 +580,8 @@ class SeparateProcessTests(unittest.TestCase):
         ]
         if index == 2:
             command.append("--specialist")
+            if getattr(self, "specialist_mode", None) is not None:
+                command.extend(["--specialist-mode", self.specialist_mode])
         process = subprocess.Popen(
             command,
             env=env,

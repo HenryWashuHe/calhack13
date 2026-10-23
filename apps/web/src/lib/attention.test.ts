@@ -142,4 +142,18 @@ suite("validAgentId", () => {
     expect(validAgentId("../x")).toBe(false);
     expect(validAgentId("a".repeat(129))).toBe(false);
   });
+  it("treats acceptance check runs of a decided installation as settled, not unproven", () => {
+    const cap = { capability_id: "venue-reader", version: "1.0.0" };
+    const check = (id: string) => job(id, "VERIFYING", { task: "accept inst_1 with suite-b", capability: cap });
+    const state = (status: string) =>
+      ({ installations: { inst_1: { installation_id: "inst_1", capability: cap, status } } }) as never;
+    // While the installation is still checking, the runs are waiting.
+    expect(attention([], [check("j1"), check("j2")], [], state("CHECKING")).filter(isOpen)).toHaveLength(2);
+    // Once local acceptance decides, they are settled.
+    expect(attention([], [check("j1"), check("j2")], [], state("ACCEPTED")).filter(isOpen)).toEqual([]);
+    expect(attention([], [check("j1")], [], state("REJECTED")).filter(isOpen)).toEqual([]);
+    // Ordinary verifying jobs, or a check for another capability, still wait.
+    const other = job("j3", "VERIFYING", { task: "accept inst_1 with suite-b", capability: { ...cap, version: "2" } });
+    expect(attention([], [job("j4", "VERIFYING"), other], [], state("ACCEPTED")).filter(isOpen)).toHaveLength(2);
+  });
 });

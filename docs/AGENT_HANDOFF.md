@@ -1,6 +1,98 @@
 # GENESIS implementation handoff
 
-## Current implementation and ownership — October 22, 2026
+## Authoritative checkpoint — October 23, 2026
+
+Source basis: main `0a0c175aa452d2dfcdee617e6f1647a523f5cceb`, tree
+`ec382ccbfabc37487d23e3962e955f49f295493c`, after #101. This checkpoint
+supersedes the historical status and ownership notes below; exact newer GitHub
+heads and the scoped handoffs in [issue #4](https://github.com/HenryWashuHe/genesis/issues/4)
+take precedence. The ongoing two-organization mission goal remains active.
+
+**Merged:** #78 finalizer, #80 finalizer UI, #88 settled-check display,
+#89 planner policy names/sources/scopes, #97 console guard tests, and
+#90/#92/#93/#94/#95/#96 saga, audit and planner changes. The six-PR Rust
+composition at `97d75eb` (tree `f305ca60`) passed **608 tests across 68 targets**,
+scoped strict Clippy and formatting. These are source-specific results, not a
+new aggregate count for every later main commit.
+
+- **#98 Fetch float identity:** merged `9f9a87d`, source `11703e2`.
+  Canonical JSON float identity survives journal/receipt reconstruction;
+  stale changed intents cannot block release or unrelated healthy work.
+  **133 Fetch/verification tests**, including ten float cases, pass. Three
+  baseline defects and two release regressions were reproduced before fixes.
+- **#99 monitor intake:** merged `72cd014`, source `05d55e2`, tree `5e5cf477`.
+  Persisted scans choose the newest eligible source within their captured
+  backlog, including across pages/restart. Manual consumption and temporary
+  CREAO absence no longer permanently halt valid intake; exact child recovery,
+  stop/expiry and authority fences remain. **34 assessment + 117 server-library
+  tests**, scoped strict Clippy and formatting pass. Baseline evidence was four
+  failing regressions plus four passing controls. See [monitor semantics](VENUE_MONITORS.md).
+
+- **#82 adopt first:** merged `9a9c7a0`, source correction `ae00fa9`, tested
+  composition `4c8c461`, tree `05767561`. The original same-owner
+  delegation regression is unchanged and now passes. **41 focused tests**,
+  scoped strict Clippy and formatting pass. The author branch
+  `henry-claude/gap-adoption` was fast-forwarded to `4c8c461` to include current
+  main; no history was rewritten. Claude should pull before continuing it.
+- **#83 / #85 / #87:** merged as `b58ac99` / `090700b` / `8027428`.
+  The two-organization integration passes; adoption UI passes **85 web tests**,
+  typecheck and build. The local rehearsal reached synthesis, publication and
+  installation in A, then discovery, checks and installation in B with no B
+  synthesis. These are fixture-provider results, not a live planner/sponsor run.
+- **#101 Fetch venue recovery:** merged `0a0c175`, source `093010b`, exact tree
+  above. **255 focused Rust tests** (42 assessment, 135 server-library, 78 Fetch),
+  the newly merged two-organization test, **34 Python tests**, scoped strict
+  Clippy and formatting pass; independent source review is clean. Recovery
+  preserves verified source/child identity and retires its local contract with
+  bounded exact release delivery. Bridge queue acknowledgment does not prove
+  peer release. See [the API and evidence boundary](VENUE_RECOVERY.md).
+
+**Open review queue:** #86 `83998b0` remains **held on a reproduced failure**.
+A local check marked `Rejected` after suite drift can retain a native receipt
+whose provider run is still `RUNNING`. Retry submits a second POST while an
+independent GET confirms the first run remains active. Test-only `a497651` on
+`codex/review-adoption86-rejected`, composed with then-current main at `c33c93f`,
+reproduces this; it is loopback provider evidence, not a live sponsor run.
+#91 `6776130` remains held on replay starvation under frequent nonstructural
+events and missing revisions displayed as audited success. Draft #84 `3d3219c`
+now passes **four preflight tests** and scoped strict Clippy; its original policy
+validation defect is cleared. Its remaining hold is the runbook's presentation
+of unreleased #86 retry behavior and the claim that a check is never submitted
+twice (`docs/DEMO_RUNBOOK.md:311`), which the #86 regression contradicts.
+See [the exact queue](PR_REVIEW_QUEUE.md).
+
+**Ownership:** Claude/Eric retains kernel, planner, readiness, adoption and UI,
+including #86/#91 fixes. Claude's `henry-claude/requestable-adoption` claim covers
+`crates/genesis-server/src/routes/capability_gaps.rs` requestable policy visibility,
+`crates/genesis-planner/src/prompt.rs`, matching `RequestPolicy` / `Requestable`
+deserialization and adjacent tests. The follow-up exposes adoption-only names
+without acquisition sources/scope and uses the observation's public page URLs;
+it does not change the coordinator, kernel or acquisition. See the
+[scoped claim](https://github.com/HenryWashuHe/genesis/issues/4#issuecomment-6372394586).
+Codex's monitor, Fetch float and #101 recovery implementations are merged.
+Codex's next focus is composing the native Python bridge with the Rust recovery
+coordinator in one fixture-backed integration run. Existing Python signed-process
+and coordinator authenticated-boundary tests pass separately; the combined path
+is not yet established. Coordinate before overlapping files. Preserve review
+evidence and push tested increments; the active root reviewer sequences merges.
+
+**Evidence and credentials:** no native sponsor run is established. Loopback
+fixtures and local signed-process checks do not prove cloud execution or a
+completed autonomous mission. The user has not supplied the required credentials:
+`APIFY_TOKEN`, `CREAO_ACCOUNT_API_KEY`, `ELASTICSEARCH_URL`,
+`ELASTIC_DATA_API_KEY`, `ELASTIC_KIBANA_URL`, `ELASTIC_MANAGEMENT_API_KEY`, and
+`AGENTVERSE_API_KEY`. Setup also needs each provider's configured runtime and,
+for synthesis/planning, the relevant model credentials. Follow
+[LIVE_GATES.md](LIVE_GATES.md); preserve actual agent/run evidence and a
+genuine CREAO Share link separately. Never put credentials in handoff files.
+
+## Historical checkpoints
+
+Everything below preserves earlier source-specific results and assignments.
+Statements such as “current,” “next” or “hold” below describe their original
+checkpoint, not the authoritative status above.
+
+## Historical implementation and ownership — October 22, 2026
 
 Immutable Fetch receipts are implemented at `afbe0bf` (reviewed original
 `6424bfb`). Exact frozen recruitment/consent/task messages are checked against

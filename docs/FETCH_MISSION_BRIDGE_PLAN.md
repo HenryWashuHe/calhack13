@@ -1,11 +1,11 @@
-# Proposed Fetch mission bridge
+# Fetch mission bridge design history
 
-**Status: the immutable receipt milestone is implemented at `afbe0bf` (original
-source `6424bfb`); the server mission bridge below remains future work.** All 64
-Fetch crate tests pass, including 13 receipt tests, with strict crate all-target
-Clippy, workspace formatting and clean independent review. The receipts use the
-private journal's authenticated ingestion boundary; these tests are synthetic
-protocol fixtures and do not execute the native SDK or cloud providers.
+**Historical design:** the immutable receipt foundation and the narrower
+operator-started server recovery are implemented. See [VENUE_RECOVERY.md](VENUE_RECOVERY.md)
+for the current API, authority boundaries, cleanup semantics and source-specific
+validation. Statements below that describe the server adapter as future work
+belong to the original planning checkpoint; they are preserved as design history.
+No cloud-provider or completed autonomous mission result is established.
 
 The original assessment used main `1bb3c9f`. Scope was claimed on
 [coordination issue #4](https://github.com/HenryWashuHe/genesis/issues/4#issuecomment-6354668197).

@@ -1,0 +1,448 @@
+{
+  "input": {
+    "schema_version": 1,
+    "kind": "venue_replacement_v1",
+    "context_sha256": "346235d38515773b7bbb2fb0aa7580fba1bdf8473f1b34aa9bcdfa6bdbf0a3d0",
+    "context": {
+      "recovery_id": "recovery_contract_vector",
+      "policy_sha256": "4138a10477c0ead92f5cc42d457167b68ba11370222fe167292620562d83b32b",
+      "policy": {
+        "selected_venue_id": "grand-hall",
+        "attendees": 121,
+        "budget": {
+          "minor_units": 80000,
+          "currency": "USD"
+        },
+        "window": {
+          "start": "2026-11-14T18:00:00.000000001-08:00",
+          "end": "2026-11-14T22:00:00.000000009-08:00"
+        },
+        "step_free_required": true
+      },
+      "candidates": [
+        {
+          "source_job_id": "job_replacements",
+          "invocation_proof_ref": "invocation:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "venue": {
+            "venue_id": "grand-hall",
+            "capacity": 180,
+            "price": {
+              "minor_units": 10000,
+              "currency": "USD"
+            },
+            "window": {
+              "start": "2026-11-15T02:00:00.000000001Z",
+              "end": "2026-11-15T06:00:00.000000009Z"
+            },
+            "availability": "available",
+            "step_free": true,
+            "evidence": {
+              "source_url": "https://fixtures.genesis.example/replacements.html",
+              "snapshot_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "locator": "venue:grand-hall"
+            }
+          }
+        },
+        {
+          "source_job_id": "job_replacements",
+          "invocation_proof_ref": "invocation:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "venue": {
+            "venue_id": "zeta-hall",
+            "capacity": 180,
+            "price": {
+              "minor_units": 60000,
+              "currency": "USD"
+            },
+            "window": {
+              "start": "2026-11-15T02:00:00.000000001Z",
+              "end": "2026-11-15T06:00:00.000000009Z"
+            },
+            "availability": "available",
+            "step_free": true,
+            "evidence": {
+              "source_url": "https://fixtures.genesis.example/replacements.html",
+              "snapshot_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "locator": "venue:zeta-hall"
+            }
+          }
+        },
+        {
+          "source_job_id": "job_replacements",
+          "invocation_proof_ref": "invocation:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "venue": {
+            "venue_id": "alpha-hall",
+            "capacity": 180,
+            "price": {
+              "minor_units": 60000,
+              "currency": "USD"
+            },
+            "window": {
+              "start": "2026-11-15T02:00:00.000000001Z",
+              "end": "2026-11-15T06:00:00.000000009Z"
+            },
+            "availability": "available",
+            "step_free": true,
+            "evidence": {
+              "source_url": "https://fixtures.genesis.example/replacements.html",
+              "snapshot_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "locator": "venue:alpha-hall"
+            }
+          }
+        },
+        {
+          "source_job_id": "job_replacements",
+          "invocation_proof_ref": "invocation:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "venue": {
+            "venue_id": "éclair",
+            "capacity": 180,
+            "price": {
+              "minor_units": 60000,
+              "currency": "USD"
+            },
+            "window": {
+              "start": "2026-11-15T02:00:00.000000001Z",
+              "end": "2026-11-15T06:00:00.000000009Z"
+            },
+            "availability": "available",
+            "step_free": true,
+            "evidence": {
+              "source_url": "https://fixtures.genesis.example/replacements.html",
+              "snapshot_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "locator": "venue:éclair"
+            }
+          }
+        },
+        {
+          "source_job_id": "job_replacements",
+          "invocation_proof_ref": "invocation:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "venue": {
+            "venue_id": "wrong-currency",
+            "capacity": 180,
+            "price": {
+              "minor_units": 1000,
+              "currency": "CAD"
+            },
+            "window": {
+              "start": "2026-11-15T02:00:00.000000001Z",
+              "end": "2026-11-15T06:00:00.000000009Z"
+            },
+            "availability": "available",
+            "step_free": true,
+            "evidence": {
+              "source_url": "https://fixtures.genesis.example/replacements.html",
+              "snapshot_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "locator": "venue:wrong-currency"
+            }
+          }
+        },
+        {
+          "source_job_id": "job_replacements",
+          "invocation_proof_ref": "invocation:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "venue": {
+            "venue_id": "too-small",
+            "capacity": 120,
+            "price": {
+              "minor_units": 1000,
+              "currency": "USD"
+            },
+            "window": {
+              "start": "2026-11-15T02:00:00.000000001Z",
+              "end": "2026-11-15T06:00:00.000000009Z"
+            },
+            "availability": "available",
+            "step_free": true,
+            "evidence": {
+              "source_url": "https://fixtures.genesis.example/replacements.html",
+              "snapshot_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "locator": "venue:too-small"
+            }
+          }
+        },
+        {
+          "source_job_id": "job_replacements",
+          "invocation_proof_ref": "invocation:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "venue": {
+            "venue_id": "stairs-only",
+            "capacity": 180,
+            "price": {
+              "minor_units": 1000,
+              "currency": "USD"
+            },
+            "window": {
+              "start": "2026-11-15T02:00:00.000000001Z",
+              "end": "2026-11-15T06:00:00.000000009Z"
+            },
+            "availability": "available",
+            "step_free": false,
+            "evidence": {
+              "source_url": "https://fixtures.genesis.example/replacements.html",
+              "snapshot_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "locator": "venue:stairs-only"
+            }
+          }
+        },
+        {
+          "source_job_id": "job_replacements",
+          "invocation_proof_ref": "invocation:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "venue": {
+            "venue_id": "late-opening",
+            "capacity": 180,
+            "price": {
+              "minor_units": 1000,
+              "currency": "USD"
+            },
+            "window": {
+              "start": "2026-11-15T02:00:00.000000002Z",
+              "end": "2026-11-15T06:00:00.000000009Z"
+            },
+            "availability": "available",
+            "step_free": true,
+            "evidence": {
+              "source_url": "https://fixtures.genesis.example/replacements.html",
+              "snapshot_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "locator": "venue:late-opening"
+            }
+          }
+        },
+        {
+          "source_job_id": "job_replacements",
+          "invocation_proof_ref": "invocation:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "venue": {
+            "venue_id": "booked",
+            "capacity": 180,
+            "price": {
+              "minor_units": 1000,
+              "currency": "USD"
+            },
+            "window": {
+              "start": "2026-11-15T02:00:00.000000001Z",
+              "end": "2026-11-15T06:00:00.000000009Z"
+            },
+            "availability": "unavailable",
+            "step_free": true,
+            "evidence": {
+              "source_url": "https://fixtures.genesis.example/replacements.html",
+              "snapshot_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "locator": "venue:booked"
+            }
+          }
+        },
+        {
+          "source_job_id": "job_replacements",
+          "invocation_proof_ref": "invocation:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "venue": {
+            "venue_id": "too-expensive",
+            "capacity": 180,
+            "price": {
+              "minor_units": 80001,
+              "currency": "USD"
+            },
+            "window": {
+              "start": "2026-11-15T02:00:00.000000001Z",
+              "end": "2026-11-15T06:00:00.000000009Z"
+            },
+            "availability": "available",
+            "step_free": true,
+            "evidence": {
+              "source_url": "https://fixtures.genesis.example/replacements.html",
+              "snapshot_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "locator": "venue:too-expensive"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "output": {
+    "schema_version": 1,
+    "recovery_id": "recovery_contract_vector",
+    "policy_sha256": "4138a10477c0ead92f5cc42d457167b68ba11370222fe167292620562d83b32b",
+    "context_sha256": "346235d38515773b7bbb2fb0aa7580fba1bdf8473f1b34aa9bcdfa6bdbf0a3d0",
+    "evaluations": [
+      {
+        "source_job_id": "job_replacements",
+        "venue_id": "grand-hall",
+        "invocation_proof_ref": "invocation:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "evidence": {
+          "source_url": "https://fixtures.genesis.example/replacements.html",
+          "snapshot_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "locator": "venue:grand-hall"
+        },
+        "checks": {
+          "capacity": true,
+          "price": true,
+          "window": true,
+          "availability": true,
+          "step_free": true
+        },
+        "eligible": false
+      },
+      {
+        "source_job_id": "job_replacements",
+        "venue_id": "zeta-hall",
+        "invocation_proof_ref": "invocation:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "evidence": {
+          "source_url": "https://fixtures.genesis.example/replacements.html",
+          "snapshot_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "locator": "venue:zeta-hall"
+        },
+        "checks": {
+          "capacity": true,
+          "price": true,
+          "window": true,
+          "availability": true,
+          "step_free": true
+        },
+        "eligible": true
+      },
+      {
+        "source_job_id": "job_replacements",
+        "venue_id": "alpha-hall",
+        "invocation_proof_ref": "invocation:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "evidence": {
+          "source_url": "https://fixtures.genesis.example/replacements.html",
+          "snapshot_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "locator": "venue:alpha-hall"
+        },
+        "checks": {
+          "capacity": true,
+          "price": true,
+          "window": true,
+          "availability": true,
+          "step_free": true
+        },
+        "eligible": true
+      },
+      {
+        "source_job_id": "job_replacements",
+        "venue_id": "éclair",
+        "invocation_proof_ref": "invocation:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "evidence": {
+          "source_url": "https://fixtures.genesis.example/replacements.html",
+          "snapshot_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "locator": "venue:éclair"
+        },
+        "checks": {
+          "capacity": true,
+          "price": true,
+          "window": true,
+          "availability": true,
+          "step_free": true
+        },
+        "eligible": true
+      },
+      {
+        "source_job_id": "job_replacements",
+        "venue_id": "wrong-currency",
+        "invocation_proof_ref": "invocation:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "evidence": {
+          "source_url": "https://fixtures.genesis.example/replacements.html",
+          "snapshot_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "locator": "venue:wrong-currency"
+        },
+        "checks": {
+          "capacity": true,
+          "price": false,
+          "window": true,
+          "availability": true,
+          "step_free": true
+        },
+        "eligible": false
+      },
+      {
+        "source_job_id": "job_replacements",
+        "venue_id": "too-small",
+        "invocation_proof_ref": "invocation:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "evidence": {
+          "source_url": "https://fixtures.genesis.example/replacements.html",
+          "snapshot_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "locator": "venue:too-small"
+        },
+        "checks": {
+          "capacity": false,
+          "price": true,
+          "window": true,
+          "availability": true,
+          "step_free": true
+        },
+        "eligible": false
+      },
+      {
+        "source_job_id": "job_replacements",
+        "venue_id": "stairs-only",
+        "invocation_proof_ref": "invocation:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "evidence": {
+          "source_url": "https://fixtures.genesis.example/replacements.html",
+          "snapshot_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "locator": "venue:stairs-only"
+        },
+        "checks": {
+          "capacity": true,
+          "price": true,
+          "window": true,
+          "availability": true,
+          "step_free": false
+        },
+        "eligible": false
+      },
+      {
+        "source_job_id": "job_replacements",
+        "venue_id": "late-opening",
+        "invocation_proof_ref": "invocation:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "evidence": {
+          "source_url": "https://fixtures.genesis.example/replacements.html",
+          "snapshot_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "locator": "venue:late-opening"
+        },
+        "checks": {
+          "capacity": true,
+          "price": true,
+          "window": false,
+          "availability": true,
+          "step_free": true
+        },
+        "eligible": false
+      },
+      {
+        "source_job_id": "job_replacements",
+        "venue_id": "booked",
+        "invocation_proof_ref": "invocation:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "evidence": {
+          "source_url": "https://fixtures.genesis.example/replacements.html",
+          "snapshot_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "locator": "venue:booked"
+        },
+        "checks": {
+          "capacity": true,
+          "price": true,
+          "window": true,
+          "availability": false,
+          "step_free": true
+        },
+        "eligible": false
+      },
+      {
+        "source_job_id": "job_replacements",
+        "venue_id": "too-expensive",
+        "invocation_proof_ref": "invocation:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "evidence": {
+          "source_url": "https://fixtures.genesis.example/replacements.html",
+          "snapshot_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "locator": "venue:too-expensive"
+        },
+        "checks": {
+          "capacity": true,
+          "price": false,
+          "window": true,
+          "availability": true,
+          "step_free": true
+        },
+        "eligible": false
+      }
+    ],
+    "selected": {
+      "source_job_id": "job_replacements",
+      "venue_id": "alpha-hall"
+    }
+  }
+}

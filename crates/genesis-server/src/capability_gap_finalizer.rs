@@ -853,7 +853,13 @@ async fn install(app: &AppState, r: &FinalizationRecord) -> Result<Step> {
     else {
         return attention(app, r, FinalizerCode::Publication);
     };
-    if pin_of(&manifest) != r.artifact || manifest.publisher != app.org_id {
+    // The exact frozen contract, not just the pin: a registry serving the
+    // same id/version/build with other permissions or intent must not be
+    // installed (or pinned) in its place.
+    if pin_of(&manifest) != r.artifact
+        || manifest.publisher != app.org_id
+        || !same_contract(&manifest, &r.manifest)
+    {
         return attention(app, r, FinalizerCode::Installation);
     }
     if caps::check_manifest(app, &manifest).is_err() {
@@ -894,7 +900,9 @@ async fn install(app: &AppState, r: &FinalizationRecord) -> Result<Step> {
             .store
             .adoption_owns_installation(&existing.installation_id)
             .unwrap_or(true);
-        if owned || pinned.is_none_or(|m| pin_of(&m) != r.artifact) {
+        if owned
+            || pinned.is_none_or(|m| pin_of(&m) != r.artifact || !same_contract(&m, &r.manifest))
+        {
             return attention(app, r, FinalizerCode::Installation);
         }
         // An accepted one is reused only with this record's exact suite,
@@ -1034,7 +1042,7 @@ async fn accept(app: &AppState, r: &FinalizationRecord) -> Result<Step> {
     }
     // Same authority checks as the acceptance endpoint, before applying.
     let manifest = match app.store.capability_manifest(&installation_id) {
-        Ok(m) if pin_of(&m) == r.artifact => m,
+        Ok(m) if pin_of(&m) == r.artifact && same_contract(&m, &r.manifest) => m,
         _ => return attention(app, r, FinalizerCode::InvalidRecord),
     };
     let at = now();

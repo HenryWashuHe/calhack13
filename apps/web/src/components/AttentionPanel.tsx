@@ -10,6 +10,8 @@ import {
   validAgentId,
 } from "../lib/attention";
 import { GapIntakeContext, intakeAttention } from "../lib/gapIntake";
+import { finalizationAttention, GapFinalizationContext } from "../lib/gapFinalization";
+import { adoptionAttention, GapAdoptionContext } from "../lib/gapAdoption";
 
 const LABEL: Record<AttentionKind, { text: string; tone: string; title: string }> = {
   action: { text: "NEEDS YOU", tone: "bad", title: "Blocked until an operator decides" },
@@ -139,13 +141,26 @@ export function AttentionPanel({
   state: OrgState | null;
 }) {
   const intake = useContext(GapIntakeContext);
+  const finalization = useContext(GapFinalizationContext);
+  const adoption = useContext(GapAdoptionContext);
   const items = useMemo(() => {
     const all = attention(changes, jobs, events, state);
-    // Gap intake items are open; keep them with the other open items.
-    const gaps = intakeAttention(state, intake);
+    // Gap intake and finalization items are open; keep them with the other open items.
+    // While adoption owns an open gap the driver is deferred, so its intake
+    // item would describe work that is not happening.
+    const adopting = new Set(
+      Object.values(adoption)
+        .filter((s) => s.state === "active" || s.state === "attention")
+        .map((s) => s.gap_id),
+    );
+    const gaps = [
+      ...adoptionAttention(state, adoption),
+      ...intakeAttention(state, intake).filter((i) => !i.refs.some((r) => adopting.has(r))),
+      ...finalizationAttention(state, finalization),
+    ];
     const open = all.filter(isOpen);
     return [...open, ...gaps, ...all.filter((i) => !isOpen(i))];
-  }, [changes, jobs, events, state, intake]);
+  }, [changes, jobs, events, state, intake, finalization, adoption]);
   const [expanded, setExpanded] = useState(false);
   if (items.length === 0) return null;
   const c = counts(items);

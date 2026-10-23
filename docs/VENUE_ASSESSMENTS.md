@@ -95,6 +95,11 @@ consider the new requirement. The mission and continuing monitor responsibility
 remain open. A feasible assessment neither satisfies other requirements nor makes
 a reservation. Repeated verification creates no duplicate mission effects.
 
+The work-in-progress [Fetch venue recovery API](VENUE_RECOVERY.md) lets an operator
+use an accepted Reopen plus verified same-event candidate invocations to recruit
+a replacement selector and prepare one follow-up assessment. It uses a separate
+recovery responsibility, preserving the continuing monitor's assignment.
+
 The final proof preserves the native run and agent IDs, receipt digest, invocation
 proof reference, accepted structured output, decision revision and observation /
 requirement IDs. Historical reads reconstruct the decision against saved authority
