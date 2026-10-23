@@ -162,9 +162,9 @@ impl RuntimeStore {
         expected_task: &Message,
     ) -> Result<TaskReceipt, RuntimeError> {
         expected_task.validate()?;
-        let Body::TaskRequest { task } = &expected_task.body else {
+        if !matches!(&expected_task.body, Body::TaskRequest { .. }) {
             return Err(RuntimeError::Invalid);
-        };
+        }
         let connection = self.lock()?;
         let tx = connection.unchecked_transaction()?;
         let (recruitment, accepted_sequence) =
@@ -174,17 +174,24 @@ impl RuntimeStore {
         {
             return Err(RuntimeError::Conflict);
         }
-        outgoing(&tx, peer, expected_task)?;
+        let stored_task = outgoing(&tx, peer, expected_task)?;
+        let expected_task = &stored_task;
+        let Body::TaskRequest { task } = &expected_task.body else {
+            return Err(RuntimeError::Invalid);
+        };
         let contract = read_contract(&tx, &expected_recruit.contract_id)?;
         let saved = contract
             .tasks
             .get(&expected_task.message_id)
             .ok_or(RuntimeError::NotFound)?;
-        if saved.phase != TaskPhase::Collected || saved.request != *expected_task {
+        if saved.phase != TaskPhase::Collected
+            || !canonical_message_eq(&saved.request, expected_task)?
+        {
             return Err(RuntimeError::Conflict);
         }
         let result = saved.evidence.as_ref().ok_or(RuntimeError::Invalid)?;
         let item = incoming(&tx, peer, result)?;
+        let result = &item.message;
         let Body::TaskResult {
             task_request_id,
             job_id,
@@ -256,7 +263,7 @@ fn read_contract(db: &Connection, id: &str) -> Result<Contract, RuntimeError> {
     load(db, id)?.ok_or(RuntimeError::NotFound)
 }
 
-fn outgoing(db: &Connection, peer: &str, expected: &Message) -> Result<(), RuntimeError> {
+fn outgoing(db: &Connection, peer: &str, expected: &Message) -> Result<Message, RuntimeError> {
     expected.validate()?;
     let row: Option<(String, String, String, String, i64)> = db
         .query_row(
@@ -271,13 +278,13 @@ fn outgoing(db: &Connection, peer: &str, expected: &Message) -> Result<(), Runti
     let actual = Message::decode(data.as_bytes())?;
     if contract != expected.contract_id
         || recipient != peer
-        || actual != *expected
+        || !canonical_message_eq(&actual, expected)?
         || digest != send_digest(peer, &actual)?
         || !matches!(queued, 0 | 1)
     {
         return Err(RuntimeError::Conflict);
     }
-    Ok(())
+    Ok(actual)
 }
 
 fn incoming(db: &Connection, peer: &str, expected: &Message) -> Result<InboxItem, RuntimeError> {
@@ -300,7 +307,7 @@ fn incoming(db: &Connection, peer: &str, expected: &Message) -> Result<InboxItem
     item.message.validate()?;
     if disposition != Disposition::Applied
         || item.sender != peer
-        || item.message != *expected
+        || !canonical_message_eq(&item.message, expected)?
         || digest != send_digest(peer, &item.message)?
         || item.sequence == 0
         || item.sequence > i64::MAX as u64
@@ -357,12 +364,19 @@ fn recruitment(
     else {
         return Err(RuntimeError::Invalid);
     };
-    outgoing(db, peer, expected_recruit)?;
-    outgoing(db, peer, expected_accept)?;
+    let stored_recruit = outgoing(db, peer, expected_recruit)?;
+    let stored_accept = outgoing(db, peer, expected_accept)?;
+    let expected_recruit = &stored_recruit;
+    let expected_accept = &stored_accept;
     let contract = read_contract(db, &expected_recruit.contract_id)?;
     if contract.peer != peer
-        || contract.recruit != *expected_recruit
-        || contract.acceptance.as_ref() != Some(expected_accept)
+        || !canonical_message_eq(&contract.recruit, expected_recruit)?
+        || !contract
+            .acceptance
+            .as_ref()
+            .map(|actual| canonical_message_eq(actual, expected_accept))
+            .transpose()?
+            .unwrap_or(false)
         || !matches!(
             contract.phase,
             ContractPhase::Active | ContractPhase::Released
@@ -372,6 +386,7 @@ fn recruitment(
     }
     let offer = contract.offer.as_ref().ok_or(RuntimeError::Invalid)?;
     let offer_item = incoming(db, peer, offer)?;
+    let offer = &offer_item.message;
     let Body::Offer {
         recruit_message_id,
         offer_id,
