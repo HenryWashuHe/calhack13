@@ -23,7 +23,7 @@ prebuilt artifact must never be presented as freshly generated.
 | Org B independent adoption | real code (loopback-proven) | both orgs + registry | B's own acceptance runs, 0 synthesis calls |
 | Elastic specialists / planner agent | real code | Elastic keys | smoke report, agent IDs |
 | Fetch recruitment | real code; discovery + signed bridge | Agentverse key + bridge | search ID, signed receipts |
-| CREAO persistent role | creation/runtime, execution receipts, gateway verification, operator attach and native readiness probe (#26/#27/#29) merged; persistent core mission assessment and live evidence still open | CREAO key + configured durable runtime + reachable gateway callback | agent ID **and run share link** required by the track |
+| CREAO persistent role | creation/runtime, execution receipts, gateway verification, operator attach, readiness probe and verified persistent mission assessment (#72) merged; optional scenario assessment cycles documented below; live evidence open | CREAO key + configured durable runtime + reachable gateway callback | same agent, two verified assessments, replacement requirement; actual agent ID **and run share link** required by the track |
 | Console | real, including Attention panel #28 | always; Attention appears when persisted work needs it | role cards, evidence tables, gap chips and attention items |
 
 ## T−24 h: live gates first
@@ -119,7 +119,7 @@ Targets from the research report §10, with what each beat actually shows today.
 | 0:20–0:40 | Judge closes the venue / changes the portal in the lab | lab → new namespace; observation with `evidence_ref` = portal URL | ready |
 | 0:40–1:15 | Planner: new requirement → CreateRole / AssignResponsibility / **RequestCapability**; Elastic specialist; Fetch offer | decision event, gap chip REQUESTED (#54) | planner, gap chip, lifecycle wake-up and opt-in driver merged (#49/#54/#57/#66) |
 | 1:15–1:45 | Acquisition: generated parser, pinned build, oracle checks pass: **held out** only if A was generated with `--holdout` (#60); otherwise call them reproducibility checks, since A's examples would be suite cases | gap ACQUIRING → ACQUIRED; actor/build/run IDs (publication and installation are separate) | needs keys + trusted policy; driver stops at ACQUIRED; full scenario path below is operator-directed |
-| 1:45–2:10 | Second disruption (capacity cut) handled by the existing owner, **no new role** | lab `capacity-cut` namespace; planner `no_change` or reassignment | ready (planner); CREAO second run pending |
+| 1:45–2:10 | Second disruption (capacity cut) handled by the existing owner, **no new role** | distinct frozen capacity-cut source; same CREAO monitor, accepted reassessment and linked replacement requirement | assessment API on main; optional two-cycle scenario; native run evidence pending |
 | 2:10–2:40 | Org B: own requirement, discovers A's capability, own acceptance, different input | B adoption intent, B's acceptance runs, 0 synthesis calls | ready (loopback-proven) |
 | 2:40–3:00 | Temporary role retires after handoff; capability remains | retirement event, stale epoch fenced | ready |
 
@@ -160,6 +160,17 @@ separately managed Apify credentials are actually authorized to run A's
 Actor. Arrange that first, then set it to `true` in `runtime/mission.json`.
 Registry publication grants no provider access
 ([INHERITED_MISSION.md](INHERITED_MISSION.md), [VENUE_PORTAL.md](VENUE_PORTAL.md)).
+
+For the persistent CREAO core-work demonstration, also add the optional
+`venue_monitoring` fragment from [INHERITED_MISSION.md](INHERITED_MISSION.md#continuing-creao-mission-work).
+Before starting the servers, prepare baseline and capacity-cut pages in distinct
+immutable namespaces, include both exact inputs in B's one trusted suite and all
+URLs in A's initial allowlist, and choose a policy the baseline actually satisfies.
+The fragment-combining command above does not add that fourth case or configure
+monitoring. Configure B's CREAO creation/runtime/readiness path; development-role
+opt-in cannot stand in for this monitor. The report identifies two native runs and
+their accepted mission effects, but a live account run and genuine Share link
+remain separate evidence to capture.
 
 Checked: with generated fragments, this merge and `true` pass the CLI's spec
 validation (it stops only at the unreachable org URLs). Keeping `note` fails
