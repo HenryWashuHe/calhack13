@@ -85,7 +85,8 @@ It never returns the manifest, suite or evidence.
 | Installation can't be created, or an existing one doesn't match | `attention: installation` |
 | A check run failed, has a retryable read failure, or its outcome is unknown | `attention: checks`; jobs and installation kept, nothing resubmitted |
 | Local verification rejects the outputs | gap `refused`, installation closed `rejected`, one transaction |
-| Role's assignment, epoch or permissions changed | gap `refused`; a still-checking installation is closed `rejected` |
+| Role's assignment, epoch or permissions changed, or the live requirement changed or is no longer assigned | gap `refused`; a still-checking installation is closed `rejected` |
+| An accepted installation of this pin exists with a different suite, a report not backed by its stored proof, or runs that no longer verify | `attention: installation` (never reused) |
 | Storage error during a pass | logged; that gap is retried next pass, others continue |
 
 Attention is sticky. `POST /api/v1/capability-gaps/{id}/finalization/retry`
@@ -97,6 +98,29 @@ apart from timestamps).
 
 Refusal is used only for a definite answer (semantic rejection, lost
 authority). Unknown outcomes are never turned into refusals.
+
+## Ownership and fences
+
+Once the finalizer records an installation, that installation is
+finalizer-owned: the public `/checks` and `/acceptance` endpoints refuse it
+with `409 gap_finalizer_owned`, so acceptance stays the finalizer's atomic
+decision. The capability worker also checks the finalizer before submitting a
+check run and before applying its result: a run on a finalizer-owned
+installation proceeds only while that record is active, its frozen
+assignment/epoch is current, and the live requirement is still assigned with
+the same digest (`engine::requirement_digest`). Otherwise the run is rejected
+without a provider call.
+
+Authority is "current" when the same role holds the same assignment and epoch
+for the responsibility, the mission is active and in time, the role holds every
+manifest permission, and the live requirement is unchanged and still assigned.
+An already accepted installation (an interrupted pass, or an operator's earlier
+acceptance) completes the gap only if its stored proof is for this record's
+exact suite, the installation's report is that proof's report, its runs still
+verify against the frozen pin, and every proof job is authorized now.
+Publication is confirmed only when the registry's manifest equals the frozen
+one apart from fields publication itself sets (recomputed verification, its
+suite reference and provenance, state and timestamp).
 
 ## Why not adoption?
 

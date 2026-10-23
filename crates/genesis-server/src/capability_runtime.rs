@@ -823,14 +823,19 @@ fn authorized(
         }),
         ExecutionPurpose::LocalAcceptance {
             installation_id, ..
-        } => state
-            .installations
-            .get(installation_id)
-            .is_some_and(|installation| {
-                installation.status == InstallationStatus::Checking
-                    && installation.capability == *capability
-                    && installation.source_digest == record.request.artifact.source_sha256
-            }),
+        } => {
+            state
+                .installations
+                .get(installation_id)
+                .is_some_and(|installation| {
+                    installation.status == InstallationStatus::Checking
+                        && installation.capability == *capability
+                        && installation.source_digest == record.request.artifact.source_sha256
+                })
+                // A gap finalizer's checks also need its frozen grant and live
+                // requirement, before submission and before applying a result.
+                && crate::capability_gap_finalizer::run_allowed(store, state, installation_id)
+        }
     }
 }
 
