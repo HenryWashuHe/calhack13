@@ -197,3 +197,10 @@ export function holders(state: OrgState | null, inst: Installation): string[] {
     .filter((r) => (r.capabilities ?? []).some((c) => capabilityKey(c) === key))
     .map((r) => r.name);
 }
+
+/**
+ * Display form of a capability label: a 64-hex digest inside a version (as in
+ * generated `0.0.1-<sha256>.0` versions) is shortened to 8 characters. Use the
+ * full label for keys and tooltips.
+ */
+export const shortLabel = (label: string) => label.replace(/\b([0-9a-f]{8})[0-9a-f]{56}\b/g, "$1…");
