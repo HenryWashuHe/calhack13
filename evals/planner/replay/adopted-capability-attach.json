@@ -1,0 +1,3 @@
+[
+  "{\"assessment\": \"The adopted reader shared-venue-reader@1.0.0 is installed and approved but not attached.\", \"verdict\": \"change\", \"requirement\": {\"summary\": \"Read venue availability with the adopted reader\", \"acceptance\": \"Venue operations holds shared-venue-reader@1.0.0\"}, \"rationale\": \"Attach the installed, approved capability to the owner of venue work instead of requesting another one.\", \"budget_limit_cents\": null, \"operations\": [{\"op\": \"AttachCapability\", \"role\": {\"kind\": \"existing\", \"role_id\": \"{{role:Venue operations}}\"}, \"capability\": {\"capability_id\": \"shared-venue-reader\", \"version\": \"1.0.0\"}}]}"
+]

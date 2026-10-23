@@ -8,11 +8,13 @@ import { gapsForRole } from "../lib/gaps";
 import { shortLabel } from "../lib/capabilities";
 import { GapIntakeContext } from "../lib/gapIntake";
 import { GapFinalizationContext } from "../lib/gapFinalization";
+import { GapAdoptionContext } from "../lib/gapAdoption";
 
 function RequestedCapabilities({ state, roleId }: { state: OrgState; roleId: string }) {
   const intake = useContext(GapIntakeContext);
   const finalization = useContext(GapFinalizationContext);
-  const gaps = gapsForRole(state, roleId, intake, finalization);
+  const adoption = useContext(GapAdoptionContext);
+  const gaps = gapsForRole(state, roleId, intake, finalization, adoption);
   if (gaps.length === 0) return null;
   return (
     <ul className="duties gaps">
