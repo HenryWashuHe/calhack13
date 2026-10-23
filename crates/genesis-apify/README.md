@@ -68,13 +68,26 @@ sleep, and dataset reading. `request_timeout` also bounds each request. Defaults
 cap input at 256 KiB and each response at 1 MiB; configurable caps never exceed
 8 MiB. Input depth and node limits prevent unbounded hashing/serialization.
 
+For durable jobs, call `submit(&request)` first. It validates the build and submits
+once, then returns a serializable `RunTicket` immediately, without polling. Save
+the ticket and original request in trusted kernel storage. After persistence or
+restart, call `resume(&request, &ticket)`: it only makes GET requests, rechecks the
+build and run identities, and collects output. The ticket binds the case, complete
+artifact pin, source snapshot, canonical input digest, run ID, and initially
+observed dataset ID. Changed request context is rejected before network access.
+The ticket is a recovery record, not a signed authorization token; deserialize it
+only from trusted storage. `execute` is the single-call convenience path when
+durable recovery is not needed.
+
 Errors include a stage, a known `run_id` when available, and
 `submission_may_have_occurred`. If that flag is true, the kernel must reconcile
 before submitting again. **A timeout or task cancellation does not cancel the
-remote Actor.** This library does not implement durable outbox records, provider
-reconciliation, automatic cancellation, account-wide rate limits, or a global
-budget. Those belong to the kernel's job lifecycle. The client exposes explicit
-errors instead of retrying an ambiguous side effect.
+remote Actor.** The ticket enables recovery after receiving a submission response;
+a process crash or lost response before durable ticket storage still requires
+kernel reconciliation. This library does not implement a database, durable outbox,
+automatic cancellation, account-wide rate limits, or a global budget. Those belong
+to the kernel's job lifecycle. The client exposes explicit errors instead of
+retrying an ambiguous side effect.
 
 ## Local validation
 
@@ -86,7 +99,10 @@ cargo clippy --locked --manifest-path crates/genesis-apify/Cargo.toml --all-targ
 Native loopback HTTP tests exercise wire-level pinned submission, provenance
 checks before and during polling, unknown/failing runs, timeout recovery,
 malformed/duplicate JSON, oversized or ambiguous datasets, redirection, credential
-redaction, and invalid configuration. They use no live credentials or Apify
+redaction (including provider-echoed secrets), bounded input serialization, ticket
+round trips, and restart recovery without resubmission. A complete mock-provider
+pipeline runs every shipped oracle case through the adapter and verifier, then
+confirms that incorrect output from a successful run is rejected. Tests use no live credentials or Apify
 account. Authenticated cloud smoke testing remains required before claiming
 provider integration has been validated.
 
