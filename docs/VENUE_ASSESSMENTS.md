@@ -6,11 +6,14 @@ facts and citations, the invocation proof, and the specialist's current assignme
 CREAO proposes a structured assessment. GENESIS independently checks every
 predicate before recording an observation or creating replacement work.
 
-This is an operator-triggered assessment path with automatic dispatch, collection
-and local finalization. It does not yet subscribe to arbitrary web changes or
-replace the planner. The same role and native agent can handle successive updates
-with fresh conversations. Persistence here means continuing ownership and durable
-execution history; conversation-memory reuse is not asserted.
+This endpoint supports operator-triggered updates with automatic dispatch,
+collection and local finalization. For continuing work after the client exits,
+register a [bounded monitor subscription](VENUE_MONITORS.md) once: it consumes
+later eligible verified invocation events and prepares assessments through this
+same path. Neither interface subscribes to arbitrary web changes or replaces the
+planner. The same role and native agent can handle successive updates with fresh
+conversations. Persistence means continuing ownership and durable execution
+history; conversation-memory reuse is not asserted.
 
 ## Prepare a monitor
 

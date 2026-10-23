@@ -2,8 +2,31 @@
 
 ## Current implementation and ownership — October 22, 2026
 
+[PR #77](https://github.com/HenryWashuHe/genesis/pull/77) adds opt-in durable venue
+monitor subscriptions; runtime checkpoint `e699659`, based on main `3ea5ec4`.
+One operator registration freezes the existing role/assignment/CREAO binding,
+accepted capability and event policy. The server follows verified invocation
+events, persists each exact child intent before creation, and uses the existing
+assessment verifier for mission effects. Work is bounded by expiry and 1–16
+intents. Unknown work retains its child identity; an accepted Reopen completes
+the subscription with its replacement requirement, without completing the mission.
+See [the API and limits](VENUE_MONITORS.md).
+
+Validation: **154 source-scoped Rust checks** across four targets: 113 server
+library, 14 CLI, 22 assessment integration (including nine subscription tests),
+and five full scenarios. The original 21 assessment checks passed together; the
+final test-only addition passed with all nine subscription checks. The same
+runtime passed strict default workspace all-target Clippy and formatting.
+The crash regression recovers a committed child after its link write fails,
+including a stopped subscription, without changing the job/deadline/native run.
+A 205-event regression preserves the cursor through restart, skips a different
+event input and processes a job verified after registration. Providers are
+loopback; the subscription tests use trusted synthetic provisioning/publication.
+Native sponsor evidence remains open.
+
 [PR #76](https://github.com/HenryWashuHe/genesis/pull/76) adds the offline monitoring
-setup helper; implementation checkpoint `bfcfe00`, based on main `64d6492`.
+setup helper; merged as `3ea5ec4`, reviewed source `1ff0c94`, exact tree
+`fe419e7`. Implementation checkpoint `bfcfe00` was based on main `64d6492`.
 It validates three immutable portal namespaces and atomically emits B's frozen
 baseline/update suite and the complete strict scenario. The explicit policy must
 accept the baseline and reject only the update's capacity. Public aliases and
@@ -47,8 +70,9 @@ identical core/CLI files passed 65 core and 14 CLI checks. Strict core/server
 all-target Clippy and formatting pass. See [the review queue](PR_REVIEW_QUEUE.md).
 
 Claude/Eric owns kernel/planner/readiness/UI and the explicitly assigned opt-in
-gap `Acquired → Installed` finalizer. Codex owns scenario integration and the
-completed operator setup helper. No audit review hold remains from this batch.
+gap `Acquired → Installed` finalizer. Codex owns the monitor subscription and
+its next scenario integration, along with the completed operator setup helper.
+No audit review hold remains from the previous batch.
 Coordinate through [issue #4](https://github.com/HenryWashuHe/genesis/issues/4).
 The ongoing mission goal remains active; historical notes below do not supersede
 this ownership or current GitHub heads.

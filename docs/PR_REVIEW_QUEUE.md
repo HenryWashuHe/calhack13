@@ -2,7 +2,9 @@
 
 ## Latest review batch
 
-- [#76 immutable monitoring setup](https://github.com/HenryWashuHe/genesis/pull/76): implementation `bfcfe00`, based on main `64d6492`. All 35 portal tests pass without skips, including real Rust verifier and strict scenario CLI. Independent review reproduced and fixed public symlink aliases and non-string generator identities. Exact documented walkthrough also passes in a fresh temporary directory. Offline configured snapshot coverage only.
+- [#77 continuing venue subscriptions](https://github.com/HenryWashuHe/genesis/pull/77): runtime `e699659`, based on main `3ea5ec4`. 154 source-scoped Rust checks: 113 server library, 14 CLI, 22 assessment integration including nine subscription checks, and five full scenarios. The final test-only addition passed with all nine subscription tests; earlier 21 assessment tests passed together. Strict default workspace all-target Clippy/fmt pass. Genuine Rust clients/private journals over loopback, trusted fixture publication/provisioning; no native sponsor claim. Crash-link recovery, authority/unknown/stop bounds and 205-event late-verification regression pass. Independent runtime review is clean through `e5ca93d`; later handoff edits are documentation only.
+
+- [#76 immutable monitoring setup](https://github.com/HenryWashuHe/genesis/pull/76): **merged** as `3ea5ec4`, reviewed source `1ff0c94`, exact tree `fe419e7`. Implementation `bfcfe00` was based on main `64d6492`. All 35 portal tests pass without skips, including real Rust verifier and strict scenario CLI. Independent review reproduced and fixed public symlink aliases and non-string generator identities. Exact documented walkthrough also passes in a fresh temporary directory. Offline configured snapshot coverage only.
 
 - [#75 continuing CREAO scenario](https://github.com/HenryWashuHe/genesis/pull/75): **merged** as `7e92e37`, reviewed source `67291ab`, exact tree `a9e63cd`. Runtime `f5136fe` based on reviewed main `8187430`. 145 default-feature Rust checks across four targets pass: 113 server library (37 scenario unit/HTTP), 14 CLI, 13 assessment and five full scenario tests. Strict default workspace all-target Clippy/fmt pass. Three observer regressions failed before their fixes. Real CREAO creation/runtime/journal against loopback, explicitly labeled fixture readiness; no live sponsor or Share-link claim.
 - [#72 persistent CREAO assessments](https://github.com/HenryWashuHe/genesis/pull/72): **merged** as `8823d81`, exact reviewed source tree `50b508a`; runtime `0dc0986`. Durable specialist work over verified invocation facts, independent semantic acceptance, atomic replacement requirements and queued-effect authority checks. `1a340a9` passed 858 Rust tests / 90 nonempty suites (109 including empty suites); final recovery delta passed 50 default-feature tests / six suites, including all 13 assessment tests. Strict default workspace Clippy and fmt pass. No native sponsor run is claimed. See [setup](VENUE_ASSESSMENTS.md).
@@ -13,7 +15,8 @@
 
 Claude/Eric owns the explicitly assigned opt-in gap `Acquired → Installed`
 finalizer and kernel/planner/readiness/UI. Codex owns assessment/scenario
-integration and the monitoring setup helper. No review hold remains from the
+integration, continuing monitor subscriptions and the monitoring setup helper.
+No review hold remains from the
 #70/#71/#73/#74/#75 batch. Current GitHub heads supersede this snapshot. The earlier queue closeout
 below is historical.
 
