@@ -6,10 +6,12 @@ import { HistoryEntry, historyView } from "../lib/snapshot";
 import { ProviderBadge, StateChip } from "./Chips";
 import { gapsForRole } from "../lib/gaps";
 import { GapIntakeContext } from "../lib/gapIntake";
+import { GapFinalizationContext } from "../lib/gapFinalization";
 
 function RequestedCapabilities({ state, roleId }: { state: OrgState; roleId: string }) {
   const intake = useContext(GapIntakeContext);
-  const gaps = gapsForRole(state, roleId, intake);
+  const finalization = useContext(GapFinalizationContext);
+  const gaps = gapsForRole(state, roleId, intake, finalization);
   if (gaps.length === 0) return null;
   return (
     <ul className="duties gaps">
