@@ -1,11 +1,12 @@
 # Invention lab: adopting an executable development method
 
-**Status: contract proposal (Henry's core Claude, issue #122). Not implemented.**
-It specifies how a receiving organization decides whether to install and use an
-exact version of an executable development method. The method artifact itself,
-its executor and its receipts are Codex's contract in issue #124
-(`docs/invention-lab/contracts/**`, not yet written); evaluator and simulator
-are issue #126 (unassigned). Where this document needs something from those
+**Status: contract proposal (Henry's core Claude, lane genesis#122). Not
+implemented.** It specifies how a receiving organization decides whether to
+install and use an exact version of an executable development method. The
+method identity, execution and scoring receipts are Codex's experimental
+contracts (#18, #22; lane genesis#124, under `docs/invention-lab/contracts/**`
+on those branches); the evaluator and simulator are genesis#126, assigned to
+Henry's core Claude in this repository's issue #1 (contract #13). Where this document needs something from those
 contracts it says so under [Required from the method contract](#required-from-the-method-contract)
 instead of inventing their fields.
 
@@ -79,7 +80,7 @@ binding, one acceptance suite), in rank order over at most five candidates:
 | 5 | Artifact kind is one this organization can execute | `unsupported_kind`, next candidate | proposed |
 | 6 | Environment compatible: executor kind and version, design-language / simulator version, every dependency digest resolvable and allowed | `incompatible_environment`, next candidate; `dependency_unavailable` (→ `unknown`) if a dependency can't be fetched | proposed |
 | 7 | Declared budget fits the receiver's policy (CPU, wall time, experiments, model calls) | `budget_exceeds_policy`, next candidate | proposed |
-| 8 | Declared evaluator requirement matches an evaluator the receiver trusts, by id and version | `evaluator_unavailable`, next candidate | proposed |
+| 8 | Declared evaluator requirement matches an evaluator the receiver trusts: id, version **and the receiver-resolved content digest** | `evaluator_unavailable`, next candidate | proposed |
 | 9 | No `checking`/`accepted` installation of the same exact version | `installation_conflict`, stop | check on main / value in #116 |
 | 10 | First candidate passing 1–9 | `selected` → local acceptance | check on main / value in #116 |
 
@@ -122,7 +123,7 @@ small experiment:
   executor supports one.
 - **Treatment and control:** the candidate method versus the receiver's current
   method (or its configured baseline method if it has none), same tasks, same
-  budget, same evaluator version. No control means the method can only be
+  budget, same evaluator (id, version and content digest). No control means the method can only be
   accepted on an absolute threshold, and the receipt says so.
 - **Criterion, fixed before the run:** e.g. "at least as many tasks solved as
   the control, with no task regressing past the tolerated margin, within
@@ -179,7 +180,11 @@ Unchanged from adopt-first for task capabilities, and explicit per rule:
 ## Pinning, upgrade and retirement
 
 - An accepted method installation names `method_id@version`, its digest, its
-  dependency digests, the acceptance suite digest and evaluator version.
+  dependency digests, the acceptance suite digest, and the trusted evaluator's
+  id, version and **content digest** as the receiver resolved them. The same
+  evaluator digest is pinned in the adoption intent, the acceptance evidence
+  and every execution and scoring receipt (#18/#22 carry it as an exact
+  content reference).
 - Every method execution receipt names the installation and purpose it ran
   under. An `invocation` refuses an installation that is not `accepted`;
   acceptance and comparison follow the purposes above.
@@ -191,7 +196,8 @@ Unchanged from adopt-first for task capabilities, and explicit per rule:
   job may use the accepted installation (`routes/capabilities.rs`).
 - **Proposed, for methods only:** re-acceptance when the *semantic
   applicability* changes, namely the acceptance suite or criterion, the
-  trusted evaluator version, or a dependency digest the receiver resolves.
+  trusted evaluator's content digest (even under an unchanged version label),
+  or a dependency digest the receiver resolves.
   This is separate from fencing stale jobs and is not on main.
 - v1 and v2 may both be `accepted`. Which one a development run uses is an
   explicit, recorded choice (planner or policy), never "the newest".
@@ -234,26 +240,27 @@ issue #124's contract. Names are placeholders until that contract fixes them.
   version, and a dependency list of exact digests.
 - Declared resource budget per development task, in units the executor enforces.
 - Evaluator requirement: evaluator id and version the method expects to be
-  scored by. The method never supplies the evaluator.
+  scored by. The receiver resolves it to a content digest it trusts and pins
+  that digest; the method never supplies the evaluator or its digest.
 - Input/output interface: task specification type, tool interface, candidate
   design and trace types.
 - Derivation: `derived_from` exact identities and the receipt of the
   development run that produced it.
 - Execution receipt fields: installation id, method identity, dependency
-  digests, task, evaluator version, model id/settings, seed where supported,
+  digests, task, evaluator id/version/content digest, model id/settings, seed where supported,
   consumed budget, outcome (`succeeded`, `failed`, `unknown`), evidence refs.
 - A terminal-failure signal distinct from transport uncertainty, equivalent to
   `RunFailed`, so the retry gate can stay conservative.
 
 ## Implementation boundary (gated)
 
-Not started; requires the agreed #124 contract and the #126 evaluator contract.
+Not started; requires agreed #18/#22 contracts and the evaluator contract (#13).
 When it starts, the adoption side is expected to touch: the adoption coordinator
 (artifact-kind branch and steps 5–8), the candidate decision log (new decision
 kinds), the acceptance-suite type (treatment/control and criterion), and the
 outcome classifier (mapping the new decisions). Kernel installation identity,
 the executor and receipts belong to their owners and need explicit claims in
-issue #4. No UI, simulator or evaluator code is part of this lane.
+this repository's issue #1. No UI, simulator or evaluator code is part of this lane.
 
 ## Acceptance scenarios for the implementation
 
