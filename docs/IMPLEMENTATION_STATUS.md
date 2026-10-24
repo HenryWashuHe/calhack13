@@ -11,8 +11,8 @@ weights. Event organization remains superseded. G0–G4 are still open.
 The revised app Goal was activated on October 24, 2026 after the stale record
 was cleared; the existing hourly continuation remains active.
 
-Main through `d810a670b4f32e4ba1a251be28351b90a589a8ff`, tree
-`648cc186a46b9c16cc95d4069fdd71229e3baba3`, includes the reviewed
+Main through `5ed65deb469a6a7a8c8bf747517a143e90de5dad`, tree
+`c041cadc58eccb9ed736dd8e5bf09ee1d3c238dd`, includes the reviewed
 foundations below. Method generation merged at `d1be8443fee46e1196861926a963563f48407936`,
 whose tree `dc9d6adc19863d8584fd5af1fd11eae7552014eb` exactly matches the independently
 validated generation stack. Counts refer to the named source/composition, not a
@@ -20,11 +20,13 @@ combined main run.
 
 | Work | Validation and evidence boundary |
 | --- | --- |
+| Explicit reasoning policy #120 `a2c4ff15` → `70a00d51` | Independent `f3a74b58`: 42 tests/10 targets; author 37 tests/7 targets overlaps. Final eight focused tests and strict all-target Clippy/fmt pass. Three `80f8544` cases are unchanged; eight historical checkpoints and four roster/admission pairs retain identity. Sonnet 5.5 adaptive effort pins client choices only; no live request, fixed hosted weights or G4 result. |
+| Evidence manifest UI #109 `2cfb4058` → `5ed65deb` | 66 focused tests/11 files and typecheck pass, including all five original `f2ac45e5` cases/70 lines unchanged. Format and full inspection-attribution holds cleared; separate real-evidence continuation unreviewed. |
 | B receiving #116 `59cbf0ad` → `e091ce0d` and A return #117 `3c1994f` → `8eed5043` | Independently checked retained records: B child 3/6 loses to random 4/6 and parent 6/6, beats fixed cart 2/6. A-return comparisons 0–3, 0–1 and 1–3 all Rejected. Separate cost scopes and read-only review; no accepted return, local adoption, Linux assurance or G0–G4 closure. |
 | Generated B source revision #112/#113 (`163e952` / `e5d7ece`), result merge `4bcd5c5` | Preparation merged before one request. Independently checked 34 final hashes, 23 unchanged prepared entries plus their manifest, 33 JSON records and six byte-identical read-only CLI outputs; all 36 input files unchanged by review. Child `4f455dc6`, changed source bytes and AST parsing only. Operator-assigned exploratory rough-transport work; no execution/scoring in that source bundle, adoption or G3 closure. |
 | UI evidence labels/organization #93/#94, retained guards #115 | #94 `7ed70f9` → `0398dc56`: composition `ef484cbf` passes 21 focused checks/typecheck, including all six unchanged `78adef37` cases. #115 `e9c25f38` → `54cb42e` retains label cases; main preserves the full 121-line original file. Both holds cleared. |
-| UI ledger/scoring #99/#100 (`f09bf473` / `76c2cd54`) → `302397ae` / `d11f01fc` | 42 focused checks/typecheck pass, including four unchanged #99/#100 cases, four actual Rust receipt hashes and 11 SHA vectors. Exact arithmetic and receipt attribution corrected; #109 remains held separately. |
-| UI lineage/checkpoint #101 `ed8b64de` → `95256998` | 52 focused UI checks/typecheck pass; reviewed `db10b04` and merged tree `ec822b18` match. Complete 119-line independent `59c3e1c` file is unchanged. #109 remains held separately. |
+| UI ledger/scoring #99/#100 (`f09bf473` / `76c2cd54`) → `302397ae` / `d11f01fc` | 42 focused checks/typecheck pass, including four unchanged #99/#100 cases, four actual Rust receipt hashes and 11 SHA vectors. Exact arithmetic and receipt attribution corrected; #109 clearance is recorded above. |
+| UI lineage/checkpoint #101 `ed8b64de` → `95256998` | 52 focused UI checks/typecheck pass; reviewed `db10b04` and merged tree `ec822b18` match. Complete 119-line independent `59c3e1c` file is unchanged. #109 clearance is recorded above. |
 | Public feedback #102 `c8bf7a0` → `7accefd3` | Eight focused tests independently pass with strict Clippy/fmt, preserving `8ad9d645`. Hidden-policy and byte-cap holds cleared; read-only regeneration retains all 24 live-record experiments in 18,152 bytes. No source execution, adoption or revised-method result. |
 | Optional chain generation guard #110 `4b57cfa` → `0f277d7` | Independent 34 focused tests pass; author 33 focused tests and strict Clippy/fmt. Optional retained-chain validation precedes recovery/credentials/reservation/provider calls. Counts overlap; cooperating commands only, no runtime-entry or global enforcement claim. |
 | Retained chain CLI (`f8b6919`, composition `42d15cd`) | Create-only whole-chain declaration and per-stage bindings; read-only checks reuse existing generation allocation and trial bindings. Full forge 221/42 plus independent 20 focused checks, strict Clippy/fmt. [Contract](invention-lab/contracts/chain-allocation.md#retained-cli-files). No automatic runtime consumption or controlled comparison. |
@@ -203,8 +205,19 @@ exclude child/parent comparison and earlier attempts/trials; do not sum them
 with other reports as exhaustive history. Organization IDs are labels on one
 operator's host, not independently authenticated organizations. No local
 adoption, accepted return or positive benefit is established; G0–G4 stay open.
-Codex's next proposed forge prerequisite is explicit reasoning policy, not yet
-implemented. No new generation is declared.
+[Explicit reasoning policy #120](invention-lab/contracts/generation.md#settings-and-accounting)
+is now merged: Sonnet 5.5 adaptive effort is part of frozen client settings.
+It does not pin hosted weights/stochasticity or upgrade prior runs to G4. No live
+request or new generation is declared. Codex is implementing the pure retained-
+reference catalogue audit; Henry retains any future pre-experiment enforcement.
+A fixed-pool search-policy ablation remains a separate proposed mechanism study,
+with task-artifact and identical-information local controls; it is not full G4
+or a restriction on capability development. Henry is preparing a corrected K=3
+workflow-versus-fresh declaration across all four families, adaptive/high client
+effort, neither arm seeded with old feedback, and public fresh-task assessment.
+The first-seed option does not hide instances from a running method. Freeze
+source/selection before assessment, retain failures and actual costs, and agree
+exact protocol identities/whole-chain ceilings before new generation.
 
 Eric retains the UI lane. #93/#94/#99/#100 corrections are merged: label
 fallback, organization binding, exact ledger arithmetic and execution/scoring
@@ -214,9 +227,17 @@ unchanged on main, including #115's retained label cases. #99 `f09bf473` /
 #100 `76c2cd54` passed 42 focused checks/typecheck, including four unchanged
 regressions, four actual Rust receipt hashes and 11 SHA vectors. #101 `ed8b64de`
 merged at `95256998`: 52 focused UI checks/typecheck pass, preserving the full
-119-line `59c3e1c` file. Last reviewed #109 `723ce82` still has four unchanged regression
-failures/eight passing controls; typecheck passes. Preserve `f2ac45e5`; later
-pushes require exact-head review.
+119-line `59c3e1c` file. #109 `2cfb4058` merged at `5ed65deb`, passing 66
+focused tests/11 files and typecheck with all five original `f2ac45e5` cases
+unchanged. Separate real-evidence `e72fec53` has three reproduced folder-dedup,
+raw-package-byte and full inspection-identity defects (`0672dcbe`: three failures,
+two controls); newer pushes need exact review. Its 74 existing tests/typecheck
+pass, and real retained-record intake is a passing control, not clearance.
+Henry's receiving wrapper #118 `68bc82d0` merged at `ec23efb5`: copies checked
+package/spec bytes and atomically records each completed/failed launch. All six
+original mocked cases pass with the full 203-line `e3f3779` unchanged; reviewed
+composition `428c1ceb` / tree `a996da20` preserves source bytes. Trusted-host
+storage only; no generated-source/runtime/namespace/provider execution in review.
 Archival stage presenter #108 `ece3c614` merged at `d810a670`: reviewed
 composition `1632f08` / tree `0ab8d80a` passes 22 Node checks and independent
 DOM probes. Visibility/stale-caption findings cleared; presentation support is
