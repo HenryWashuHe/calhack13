@@ -44,3 +44,25 @@ pub async fn get_one(
     p.require(&[Principal::Operator, Principal::Agent])?;
     Ok(Json(app.store.get_change(&ChangeId::new(id))?))
 }
+
+#[derive(Deserialize)]
+pub struct AbandonBody {
+    pub reason: String,
+}
+
+/// Operator: stop waiting on a role's asynchronous provider operation; the
+/// change ends FAILED with all provider IDs retained.
+pub async fn abandon_operation(
+    State(app): State<AppState>,
+    p: Principal,
+    Path((id, role_key)): Path<(String, String)>,
+    Json(body): Json<AbandonBody>,
+) -> ApiResult<Json<OrgChangeRecord>> {
+    p.require(&[Principal::Operator])?;
+    if body.reason.trim().is_empty() {
+        return Err(crate::error::ApiError::bad_request("reason is required"));
+    }
+    Ok(Json(
+        saga::abandon_operation(&app, &ChangeId::new(id), &role_key, &body.reason).await?,
+    ))
+}

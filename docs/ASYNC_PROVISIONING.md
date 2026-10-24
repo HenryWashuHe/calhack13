@@ -70,7 +70,11 @@ Tests: `crates/genesis-server/tests/specialist_jobs.rs`.
 - **A readiness verifier** for CREAO: a saved bridge-readiness run whose
   gateway receipt the backend observes, registered with
   `AppState::with_readiness_verifier(Provider::Creao, …)`.
-- **Operator reconciliation** for `needs_reconciliation` operations (no API yet).
+- **Attaching a found native agent** to a `needs_reconciliation` operation.
+  Today an operator can only abandon it:
+  `POST /api/v1/org-changes/{id}/operations/{role_key}/abandon` with
+  `{"reason": "..."}` (operator token) marks the operation failed and ends the
+  change FAILED, keeping every provider ID; nothing is retried.
 - A **domain verifier** that can move a `VERIFYING` job to `SUCCEEDED`, and
   draining/retirement handling of jobs still running when a role retires
   (today they are fenced on the next advance).

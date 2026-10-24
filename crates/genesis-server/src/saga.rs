@@ -303,6 +303,68 @@ pub async fn run(app: &AppState, change_id: &ChangeId) -> ApiResult<OrgChangeRec
     Ok(record)
 }
 
+/// Operator decision to stop waiting on a role's asynchronous provider
+/// operation (e.g. an ambiguous creation that was investigated natively).
+/// The operation is marked failed and the change ends FAILED; any created
+/// agent ID and the operation/run IDs stay on the record for cleanup. The
+/// organization is unchanged. Nothing is retried or resubmitted.
+pub async fn abandon_operation(
+    app: &AppState,
+    change_id: &ChangeId,
+    role_key: &str,
+    reason: &str,
+) -> ApiResult<OrgChangeRecord> {
+    use genesis_core::change::ProviderOperationState as S;
+    let _drive = app.saga_gates.acquire(change_id).await?;
+    let mut record = app.store.get_change(change_id)?;
+    if record.status != ChangeStatus::Provisioning {
+        return Err(ApiError::new(
+            StatusCode::CONFLICT,
+            "not_provisioning",
+            format!("change is {:?}, not PROVISIONING", record.status),
+        ));
+    }
+    let reason: String = reason
+        .chars()
+        .filter(|c| !c.is_control())
+        .take(200)
+        .collect();
+    let Some(op) = record.operations.get_mut(role_key) else {
+        return Err(ApiError::not_found(format!(
+            "operation for role `{role_key}`"
+        )));
+    };
+    if !matches!(
+        op.state,
+        S::Pending | S::AwaitingReadiness | S::NeedsReconciliation
+    ) {
+        return Err(ApiError::new(
+            StatusCode::CONFLICT,
+            "operation_not_open",
+            "the operation is not waiting",
+        ));
+    }
+    op.state = S::Failed;
+    op.attention = Some(format!("abandoned by operator: {reason}"));
+    op.updated_at = Utc::now();
+    let progress = EventKind::ProvisioningProgress {
+        change_id: record.change_id.clone(),
+        role_key: role_key.to_owned(),
+        provider: op.provider,
+        operation_id: op.operation_id.clone(),
+        state: op.state,
+        run_id: op.run_id.clone(),
+        attention: op.attention.clone(),
+    };
+    save(app, &record, vec![progress])?;
+    fail(
+        app,
+        record,
+        role_key,
+        format!("abandoned by operator: {reason}"),
+    )
+}
+
 /// End provisioning as FAILED. Any provider binding already created stays on
 /// the record and in the failure event for reconciliation and cleanup.
 fn fail(
