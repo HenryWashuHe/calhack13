@@ -6,10 +6,13 @@
 //!   per job attempt) after checking live authority. Outbox redelivery finds
 //!   the same operation; it never causes a second POST.
 //! - The specialist poller advances each running job at most once per pass.
-//!   Live authority (active role, open responsibility, current epoch,
-//!   deadline, matching binding) is checked before **each** advance and again
-//!   before a collected result is applied; a late result is archived as
+//!   The full current grant (exact assignment and epoch, active mission before
+//!   its deadline, unexpired lease and job deadline, the same binding) is
+//!   checked before **each** provider call, including the read retry, and
+//!   again before a collected result is applied; a late result is archived as
 //!   `RESULT_REJECTED`.
+//! - The generic results route refuses these jobs: their results come only
+//!   from the runtime and stay unverified.
 //! - Native completion is not task success: collected output is stored with
 //!   `domain_verified: false` and the job moves to `VERIFYING`. An unknown
 //!   submission outcome moves the job to `UNKNOWN` for reconciliation.
@@ -17,7 +20,6 @@
 use crate::app::AppState;
 use crate::store::{put_job, EventMeta, OutboxItem};
 use chrono::Utc;
-use genesis_core::engine;
 use genesis_core::events::EventKind;
 use genesis_core::ids::JobId;
 use genesis_core::jobs::Job;
@@ -74,14 +76,14 @@ fn refuse(app: &AppState, job: &mut Job, reason: String, rejected: bool) -> Resu
     save(app, job, effects)
 }
 
-/// Live authority for a job; returns the role's binding.
+/// The job's full current grant (active role and open responsibility, the
+/// exact assignment and epoch, an active mission before its deadline, an
+/// unexpired assignment lease and job deadline) and the role's binding, which
+/// must be the agent the job was prepared for. Returns the binding.
 fn authorize(app: &AppState, job: &Job) -> Result<AgentBinding, String> {
     let state = app.current_state().map_err(|e| e.message)?;
-    engine::check_job_result(&state, &job.role_id, &job.responsibility_id, job.epoch)
+    crate::capability_authority::authorize_job(&state, job, None, Utc::now())
         .map_err(|e| e.to_string())?;
-    if job.deadline.is_some_and(|d| d <= Utc::now()) {
-        return Err("job deadline has passed".into());
-    }
     let binding = state
         .roles
         .get(&job.role_id)
@@ -89,6 +91,13 @@ fn authorize(app: &AppState, job: &Job) -> Result<AgentBinding, String> {
         .ok_or_else(|| "role has no provider binding".to_owned())?;
     if Some(binding.provider) != job.provider {
         return Err("role binding does not match the job's provider".into());
+    }
+    if job
+        .provider_refs
+        .get("agent_id")
+        .is_some_and(|prepared| prepared != &binding.provider_agent_id)
+    {
+        return Err("the role's agent changed after the job was prepared".into());
     }
     Ok(binding)
 }
