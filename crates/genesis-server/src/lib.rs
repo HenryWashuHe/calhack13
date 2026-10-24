@@ -8,6 +8,7 @@
 //! - `genesis dev` runs a registry plus Org A and Org B locally.
 
 pub mod app;
+pub mod audit;
 pub mod auth;
 pub mod capability_acquisition_bootstrap;
 pub mod capability_acquisition_driver;
