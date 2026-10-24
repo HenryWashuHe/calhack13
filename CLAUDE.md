@@ -1,6 +1,46 @@
 # GENESIS agent coordination
 
-## Current checkpoint after #108
+## Current checkpoint: recursive capability roadmap
+
+Main through #110 is `16783da6063e463472aafa0ac228e2d7eab9f8e0`; after the queue cleared, #114 opened for an ASI:One mission adapter and this roadmap became #115.
+Newer GitHub state and [issue #4](https://github.com/HenryWashuHe/genesis/issues/4)
+take precedence over the historical snapshots below. The mission goal is active.
+
+- #86 is merged (`ad622a9`); final reviewed source `ac50d35` safely limits retries.
+- #111 is merged: the full scenario now uses exact source freshness deadlines.
+  Five full scenarios and 40 scenario units passed with strict Clippy/fmt.
+- #112 is merged and implements opt-in automatic Reopen-to-recovery intake: runtime `1b2610c`,
+  integration coverage `bbe1872`. See [its contract](docs/VENUE_RECOVERY_INTAKE.md).
+  139 library and 90 assessment tests passed, then the final 12 intake tests
+  passed; one pre-existing native test remains opt-in. Strict Clippy/fmt and
+  independent source review passed. These counts overlap, and providers are fixtures.
+- #110 supersedes #91; #113's `08f2b74` fix clears structural replay starvation.
+  Reviewed composition `9fd1eb0` preserves the independent `b677414` regression
+  as `5b20bdf`. All 133 web tests, typecheck/build, audit route/library tests and
+  strict server Clippy/fmt pass. The parent branch was fast-forwarded; pull before
+  continuing it. Claude/Eric retains UI ownership.
+
+The ongoing goal now includes [networked recursive capability improvement with
+fixed model weights](docs/RECURSIVE_CAPABILITY_IMPROVEMENT.md): cross-organization
+repair → executable development capabilities → controlled baseline/task-tool/
+development-workflow evaluation. Appropriate non-reuse is valid. Preserve one
+justified organizational change, local acceptance, independent evaluation and
+failed/unknown outcomes; capability counts do not prove improvement.
+
+Use the [refreshed ownership map](docs/AGENT_HANDOFF.md#current-ownership-and-next-work)
+and newer issue #4 claims before assigning or editing work. Henry's Claude keeps
+candidate decision logging and the narrow terminal-RunFailed retry contract.
+Eric's replay work is merged, with no new claim inferred. Codex continues native
+Fetch + automatic intake composition; later network repair contracts need a scoped
+handoff. Claude's #114 owns its new mission ACP adapter/pitch/submission changes;
+review it before implementing overlapping ACP work. Preserve this framing when
+composing its README changes. The side-chat Claude brief is a proposal, not a blanket assignment.
+
+The current ACP gateway supports fixed recovery cases only. Public Agentverse/
+ASI execution and live sponsor credentials/evidence remain open. Keep the repo
+private until its owner authorizes a visibility change.
+
+## Historical checkpoint after #108
 
 Main `74b99c3fabf6d17188b5bf53fba9cd83d828305d`, tree
 `f75934c42770f902e40700079b50d9972806d220`. Read the current
