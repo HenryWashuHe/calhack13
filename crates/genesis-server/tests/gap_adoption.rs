@@ -123,6 +123,9 @@ struct World {
     /// Next run submissions that are created but finish FAILED (definite).
     failing_runs: usize,
     failed: BTreeSet<usize>,
+    /// Next submissions whose POST response already reports the run FAILED
+    /// (a definite terminal result, recorded with no receipt).
+    failing_submits: usize,
     requests: Vec<(String, String)>,
     runs: BTreeMap<usize, usize>,
 }
@@ -166,6 +169,12 @@ impl World {
                         StatusCode::SERVICE_UNAVAILABLE,
                         json!({"error":"PRIVATE_AMBIGUOUS_RUN"}),
                     );
+                }
+                if self.failing_submits > 0 {
+                    self.failing_submits -= 1;
+                    let mut reply = self.run(run);
+                    reply["data"]["status"] = json!("FAILED");
+                    return (StatusCode::CREATED, reply);
                 }
                 (StatusCode::CREATED, self.run(run))
             }
@@ -273,6 +282,9 @@ impl Providers {
     }
     fn runs(&self) -> usize {
         self.count("POST", &format!("/v2/actors/{}/runs", pin().actor_id))
+    }
+    fn fail_submits(&self, n: usize) {
+        self.world.lock().unwrap().failing_submits = n;
     }
     fn fail_runs(&self, n: usize) {
         self.world.lock().unwrap().failing_runs = n;
@@ -1436,10 +1448,11 @@ async fn unknown_check_outcomes_block_retry_definite_ones_allow_it_and_retries_a
     assert!(!f.driver_bound());
     assert_eq!(f.providers.model_calls(), 0);
 
-    // A definite failure (the provider reports the run FAILED) is settled:
-    // the operator may retry, and the fresh adoption's checks run and install.
+    // A definite failure recorded without a receipt (the submission response
+    // itself reports the run FAILED) is settled: the operator may retry, and
+    // the fresh adoption's checks run and install.
     let mut f = Fixture::new(Options::default()).await;
-    f.providers.fail_runs(usize::MAX);
+    f.providers.fail_submits(usize::MAX);
     f.serve().await;
     f.wait_for("checks attention", |f| {
         f.record()
@@ -1449,7 +1462,7 @@ async fn unknown_check_outcomes_block_retry_definite_ones_allow_it_and_retries_a
     f.stop();
     assert_eq!(f.record().unwrap().code, Some(GapAdoptionCode::Checks));
     let first = f.record().unwrap().adoption_id.unwrap();
-    f.providers.fail_runs(0);
+    f.providers.fail_submits(0);
     let (status, body) = retry(&f, "operator").await;
     assert_eq!(status, reqwest::StatusCode::OK, "{body}");
     assert_eq!(body["attempt"], 1);
@@ -2227,7 +2240,7 @@ async fn review_rejected_local_check_does_not_settle_a_still_running_native_effe
 
 #[tokio::test]
 async fn a_never_submitted_sibling_of_a_failed_check_settles_and_is_never_submitted_later() {
-    // Henry's Claude: one check run FAILED at the provider; its siblings were
+    // Henry's Claude: one check run FAILED at submission; its siblings were
     // prepared but never submitted. The stopped adoption can no longer
     // authorize them, so they settle the retry, and stepping them afterwards
     // rejects them locally with no POST.
@@ -2241,7 +2254,7 @@ async fn a_never_submitted_sibling_of_a_failed_check_settles_and_is_never_submit
     assert_eq!(first.phase(), AdoptionPhase::Checking);
     let jobs = first.job_ids().to_vec();
     assert!(jobs.len() > 1, "need siblings: {jobs:?}");
-    f.providers.fail_runs(1);
+    f.providers.fail_submits(1);
     for _ in 0..10 {
         let _ = f.app.capability_runtime.step(&jobs[0], false).await;
         if f.app.store.get_capability_run(&jobs[0]).unwrap().phase == CapabilityRunPhase::Failed {
@@ -2383,4 +2396,42 @@ async fn review_failed_check_read_does_not_settle_a_still_running_native_effect(
     assert_eq!(f.adoptions().len(), 1);
     assert_eq!(f.providers.model_calls(), 0);
     assert!(!f.driver_bound());
+}
+
+#[tokio::test]
+async fn a_check_failed_after_submission_still_blocks_retry_without_terminal_evidence() {
+    // Henry's Claude: POST accepted the run, then a status read reported it
+    // FAILED. The local record keeps its receipt and a sanitized failure that
+    // can't be told apart from a failed read (Codex, d84eb44), so retry stays
+    // refused rather than risk a second POST beside a live run. Recovering this
+    // case needs the runtime to record terminal provider evidence.
+    use genesis_server::capability_runtime::CapabilityRunPhase;
+    let f = Fixture::new(Options::default()).await;
+    assert_eq!(f.drain().await, Some(Step::Frozen));
+    assert_eq!(f.drain().await, Some(Step::Dispatched));
+    f.adoption_step().await;
+    f.adoption_step().await;
+    let first = f.adoptions()[0].clone();
+    let job = first.job_ids()[0].clone();
+    f.providers.fail_runs(1);
+    for _ in 0..10 {
+        let _ = f.app.capability_runtime.step(&job, false).await;
+        if f.app.store.get_capability_run(&job).unwrap().phase == CapabilityRunPhase::Failed {
+            break;
+        }
+    }
+    let run = f.app.store.get_capability_run(&job).unwrap();
+    assert_eq!(run.phase, CapabilityRunPhase::Failed);
+    assert!(run.receipt.is_some(), "the POST was accepted");
+    f.adoption_step().await;
+    assert_eq!(
+        f.drain().await,
+        Some(Step::Attention(GapAdoptionCode::Checks))
+    );
+    let posts = f.providers.runs();
+    let (code, body) = retry(&f, "operator").await;
+    assert_eq!(code, reqwest::StatusCode::CONFLICT, "{body}");
+    assert_eq!(body["error"], "adoption_checks_unresolved", "{body}");
+    assert_eq!(f.record().unwrap().adoption_id.as_deref(), Some(first.id()));
+    assert_eq!(f.providers.runs(), posts);
 }
