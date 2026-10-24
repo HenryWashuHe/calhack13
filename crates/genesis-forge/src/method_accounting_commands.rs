@@ -7,6 +7,7 @@ use genesis_forge::{
     method_accounting::{assess_costs, CostScope},
     method_admission::GenerationAdmission,
     method_admitted_costs::assess_admitted_costs,
+    method_stage::{StageAllocation, StageTrialBinding},
     method_synthesis::MethodSynthesisSession,
 };
 use serde::Deserialize;
@@ -75,10 +76,27 @@ pub fn run(args: &Arguments) -> Result<u8, String> {
     let trial = trial.as_ref().map(|(p, e)| (p, e.as_slice()));
     if let Some(path) = args.paths.get("--admission") {
         let admission: GenerationAdmission = storage::read_json(path)?;
-        emit(
-            &assess_admitted_costs(&admission, &scope, &generations, trial)
-                .map_err(|e| e.to_string())?,
-        )?;
+        if let Some(path) = args.paths.get("--allocation") {
+            let allocation: StageAllocation = storage::read_json(path)?;
+            let binding: StageTrialBinding =
+                storage::read_json(&crate::method_stage_commands::binding_path(path))?;
+            emit(
+                &binding
+                    .assess(
+                        &allocation,
+                        &admission,
+                        &scope,
+                        &generations,
+                        trial.ok_or("stage assessment requires its exact trial plan")?,
+                    )
+                    .map_err(|e| e.to_string())?,
+            )?;
+        } else {
+            emit(
+                &assess_admitted_costs(&admission, &scope, &generations, trial)
+                    .map_err(|e| e.to_string())?,
+            )?;
+        }
     } else {
         emit(&assess_costs(&scope, &generations, trial).map_err(|e| e.to_string())?)?;
     }

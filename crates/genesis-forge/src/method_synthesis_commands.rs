@@ -2,6 +2,7 @@
 use crate::{emit, storage, Arguments};
 use genesis_forge::{
     method_admission::GenerationAdmission,
+    method_stage::StageAllocation,
     method_synthesis::{MethodSynthesisPhase, MethodSynthesisPlan, MethodSynthesisSession},
     AnthropicGenerator,
 };
@@ -23,6 +24,15 @@ pub async fn run(args: &Arguments) -> Result<u8, String> {
             Ok::<_, String>((lock, journal))
         })
         .transpose()?;
+    if let Some(path) = args.paths.get("--allocation") {
+        let allocation: StageAllocation = storage::read_json(path)?;
+        let (_, journal) = admission
+            .as_ref()
+            .ok_or("--allocation requires --admission")?;
+        allocation
+            .validate_admission(journal)
+            .map_err(|e| e.to_string())?;
+    }
     let lock = storage::CheckpointLock::acquire(args.path("--checkpoint")?)?;
     if args.command == "method-generate-prepare" {
         let plan: MethodSynthesisPlan = storage::read_json(args.path("--plan")?)?;
