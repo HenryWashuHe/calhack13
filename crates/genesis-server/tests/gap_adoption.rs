@@ -3207,3 +3207,41 @@ async fn outcome_without_recorded_decisions_does_not_invent_search_cardinality()
         o.reason
     );
 }
+
+// Independent review: a settled retry gate includes checks rejected locally
+// before any HTTP request. It is not proof that a provider run failed.
+#[tokio::test]
+async fn review_local_input_refusal_does_not_claim_a_confirmed_provider_failure() {
+    let mut f = Fixture::new(Options::default()).await;
+    let mut small_input = limits();
+    small_input.max_input_bytes = 1;
+    let client = ApifyClient::for_local_testing(KEY, small_input, &f.providers.url).unwrap();
+    f.app = build_org(
+        &f.config,
+        Some(ProviderSet::new().with_executor(Arc::new(ApifyCapabilityExecutor::new(client)))),
+    )
+    .unwrap();
+    settle(&mut f).await;
+    assert_eq!(f.record().unwrap().code, Some(GapAdoptionCode::Checks));
+    let adoption = f.adoptions().pop().unwrap();
+    assert!(!adoption.job_ids().is_empty());
+    assert!(adoption.job_ids().iter().any(|job| {
+        let run = f.app.store.get_capability_run(job).unwrap();
+        run.phase == genesis_server::capability_runtime::CapabilityRunPhase::Failed
+            && run.receipt.is_none()
+            && matches!(
+                run.failure,
+                Some(genesis_providers::ProviderError::Rejected(_))
+            )
+    }));
+    // Even the build lookup was never sent: this was a local input-size limit.
+    assert_eq!(f.providers.count("GET", "/v2/"), 0);
+    assert_eq!(f.providers.runs(), 0);
+    let o = outcome(&f);
+    assert_eq!(o.outcome.as_str(), "insufficient_evidence", "{o:?}");
+    assert!(
+        !o.reason.contains("confirmed provider failure"),
+        "a local refusal must not be attributed to the provider: {}",
+        o.reason
+    );
+}

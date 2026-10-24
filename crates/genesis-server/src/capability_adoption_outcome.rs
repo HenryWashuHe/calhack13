@@ -161,7 +161,7 @@ pub fn classify(
         ),
         (_, Some(C::Checks)) if checks_settled => (
             AdoptionOutcome::InsufficientEvidence,
-            "acceptance checks ended without evidence (a confirmed provider failure), so no verdict was reached".into(),
+            "the acceptance checks settled without a successful result and no effect is unresolved, so no verdict was reached".into(),
         ),
         (_, Some(C::Checks)) => (
             AdoptionOutcome::Unknown,
