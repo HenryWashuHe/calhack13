@@ -28,12 +28,14 @@ described by a `CapabilityManifest`. Pieces this contract reuses:
 | Committed acceptance is organization-owned evidence; current authority gates live jobs and the initial decision | `capability_authority.rs` | on main | n/a |
 | Pinned installations; publication never changes one | kernel `begin_installation`, registry | on main | one `checking`/`accepted` installation per exact `capability_id@version` |
 | Unknown submission never becomes empty or a retry | #86 | on main | `needs_reconciliation`, retry gate `adoption_checks_unresolved` |
-| Per-candidate decision log, committed with the outcome it explains | #116, `capability_adoption_candidates.rs` | open PR | `selected`, `adopted`, `not_applicable`, `own_publication`, `missing_scope`, `invalid_manifest`, `unusable_state`, `manifest_unavailable`, `invalid_response`, `installation_conflict`, `not_evaluated` |
-| Conclusion of an adopt-first gap | #128, `capability_adoption_outcome.rs` | open PR (stacked on #116) | `pending`, `adopted`, `not_applicable`, `insufficient_evidence`, `no_candidate`, `unknown`, `stopped` |
-| Confirmed terminal provider failure distinct from transport uncertainty | #121 | open PR | `ProviderError::RunFailed` |
+| Per-candidate decision log, committed with the outcome it explains | legacy #116 → #8, `capability_adoption_candidates.rs` | on main | `selected`, `adopted`, `not_applicable`, `own_publication`, `missing_scope`, `invalid_manifest`, `unusable_state`, `manifest_unavailable`, `invalid_response`, `installation_conflict`, `not_evaluated` |
+| Conclusion of an adopt-first gap | legacy #128 → #11, `capability_adoption_outcome.rs` | open PR | `pending`, `adopted`, `not_applicable`, `insufficient_evidence`, `no_candidate`, `unknown`, `stopped` |
+| Confirmed terminal provider failure distinct from transport uncertainty | legacy #121 → #10 | on main | `ProviderError::RunFailed` |
 
-Values from open PRs are pending dependencies of this proposal, not main's
-current wire contract.
+Values from open PRs (#11) are pending dependencies of this proposal, not
+main's current wire contract. #18 (execution) and #22 (scoring) are merged
+experimental contracts; the pre-execution trial plan is draft #28 and the
+experiment-call ledger draft #32.
 
 The method case keeps all of these rules. It adds an artifact kind, an
 environment check and a different acceptance experiment. It does not add a
@@ -73,26 +75,26 @@ binding, one acceptance suite), in rank order over at most five candidates:
 
 | Step | Check | On failure (decision) | Status (check / decision value) |
 | --- | --- | --- | --- |
-| 1 | Registry answer well-formed; candidate's score usable | `invalid_response`, discovery stops | check on main / value in #116 |
-| 2 | Not this organization's own publication | `own_publication`, next candidate | check on main / value in #116 |
-| 3 | Requesting role holds every declared permission | `missing_scope`, next candidate | check on main / value in #116 |
-| 4 | Manifest readable and matches the search answer exactly | `manifest_unavailable` (→ `unknown`) or `invalid_manifest`, stop | check on main / value in #116 |
+| 1 | Registry answer well-formed; candidate's score usable | `invalid_response`, discovery stops | check and value on main |
+| 2 | Not this organization's own publication | `own_publication`, next candidate | check and value on main |
+| 3 | Requesting role holds every declared permission | `missing_scope`, next candidate | check and value on main |
+| 4 | Manifest readable and matches the search answer exactly | `manifest_unavailable` (→ `unknown`) or `invalid_manifest`, stop | check and value on main |
 | 5 | Artifact kind is one this organization can execute | `unsupported_kind`, next candidate | proposed |
 | 6 | Environment compatible: executor kind and version, design-language / simulator version, every dependency digest resolvable and allowed | `incompatible_environment`, next candidate; `dependency_unavailable` (→ `unknown`) if a dependency can't be fetched | proposed |
 | 7 | Declared budget fits the receiver's policy (CPU, wall time, experiments, model calls) | `budget_exceeds_policy`, next candidate | proposed |
 | 8 | Declared evaluator requirement matches an evaluator the receiver trusts: id, version **and the receiver-resolved content digest** | `evaluator_unavailable`, next candidate | proposed |
-| 9 | No `checking`/`accepted` installation of the same exact version | `installation_conflict`, stop | check on main / value in #116 |
-| 10 | First candidate passing 1–9 | `selected` → local acceptance | check on main / value in #116 |
+| 9 | No `checking`/`accepted` installation of the same exact version | `installation_conflict`, stop | check and value on main |
+| 10 | First candidate passing 1–9 | `selected` → local acceptance | check and value on main |
 
-Every recorded decision value comes from #116 (open PR); the checks for steps
-1–4, 9 and 10 already run on main without the log. Steps 5–8 are new and must be decided **before** anything executes. They never
+Steps 1–4, 9 and 10 and their decision values are on main (decision log
+from #8, legacy #116). Steps 5–8 are new and must be decided **before** anything executes. They never
 use similarity. Their reasons name the mismatched requirement (e.g. "needs
 design language 2, this organization runs 1"), never hidden evaluation data.
 
 "Next candidate" versus "stop" follows the existing rule: problems specific to
 one candidate move on; a problem that makes the registry answer or the selected
 manifest untrustworthy stops discovery. This keeps first-eligible selection
-unchanged (the #116 review finding).
+unchanged (the legacy #116 review finding).
 
 ### Execution purposes
 
@@ -104,13 +106,15 @@ installations execute" is wrong as a blanket rule. Following main's
 | --- | --- | --- | --- |
 | `invocation` | ordinary mission work | an `accepted` installation and the requesting role's current grant | mission effects and an execution receipt |
 | acceptance (`local_acceptance` / `adoption_acceptance` on main; method variant proposed) | a `checking` installation on the receiver's development instances only | the adoption intent's frozen binding, bounded by its budget | an acceptance or rejection receipt; never mission effects |
-| comparison (#18 purpose, experimental; protocol in #13/#22) | any frozen version, accepted or declined, on the comparison's committed hidden instances, scored privately by the evaluator owner before the reveal | the comparison runner's own declared protocol, not a mission grant | score receipts for the comparison only |
+| comparison (#18 purpose, experimental; protocol in #13/#22/#28) | any frozen version, accepted or declined, developing **only on the plan's frozen public instances**; the frozen designs it outputs are then scored separately by the evaluator owner on the committed hidden instances, privately, before the reveal | the comparison plan's frozen grant, not a mission grant | an execution receipt and transcript per run; the separate trusted scoring step produces the score receipts |
 
 A comparison run never grants mission authority, never installs, and never
-reads a holdout before the salt is revealed. A version A declined can still
-run in a comparison as the alternative arm; that is a measurement, not an
-adoption. #18 carries the execution purpose and the distinct execution,
-evaluation and adoption receipts.
+sees a hidden instance: it develops on public instances, its outputs and
+transcript are frozen and every candidate process stops, and only then does
+trusted scoring run on the hidden set. A version A declined can still run in a
+comparison as the alternative arm; that is a measurement, not an adoption.
+#18 carries the execution purpose and execution receipts; #22 carries scoring
+receipts. Method-adoption receipts are still proposed here.
 
 ### Local acceptance for a method
 
@@ -145,7 +149,7 @@ improvement is a separate claim for the comparison runner (#13, #22).
 ## Outcome vocabulary
 
 The five evidence-distinguished conclusions are already wire values for task
-capabilities (#128) and carry over unchanged for methods:
+capabilities (#11, legacy #128) and carry over unchanged for methods:
 
 | Outcome | Method meaning |
 | --- | --- |
@@ -168,7 +172,7 @@ except `dependency_unavailable`, which makes it `unknown`.
 Unchanged from adopt-first for task capabilities, and explicit per rule:
 
 - `unknown`: no fallback. The intent stops at attention; an operator may retry
-  only once every native effect is settled (the #86/#121 gate).
+  only once every native effect is settled (the #86 / #10 gate).
 - `no_candidate` from a definitive search: the rule's fallback decides. For
   methods the fallback is "develop with the receiver's current method", not
   "synthesize a new method", unless a separate reviewed policy adds method
@@ -246,9 +250,12 @@ the #18/#22 contracts. Names are placeholders where those drafts don't fix them 
   design and trace types.
 - Derivation: `derived_from` exact identities and the receipt of the
   development run that produced it.
-- Execution receipt fields: installation id, method identity, dependency
-  digests, task, evaluator id/version/content digest, model id/settings, seed where supported,
-  consumed budget, outcome (`succeeded`, `failed`, `unknown`), evidence refs.
+- Execution receipt: #18's fields as merged (binding with method,
+  dependencies, task, evaluator ref with content digest, model settings,
+  environment, purpose and grant; actual method/environment; outcome
+  `output_generated`, `failed`, `interrupted` or `unknown`; outputs; transcript;
+  measured or unknown usage). The installation id is adoption evidence, kept
+  in the proposed method-adoption receipt, not in #18.
 - A terminal-failure signal distinct from transport uncertainty, equivalent to
   `RunFailed`, so the retry gate can stay conservative.
 
@@ -276,8 +283,11 @@ organization databases and grants.
    B's development tasks → `not_applicable`; v1 is never *invoked* for B's
    mission work. It may still run as a comparison arm, which produces score
    receipts only.
-4. **Unrelated task:** v1 is never executed; its non-use is recorded and scored
-   separately from task success.
+4. **Different task:** if v1 declares a precondition B's task doesn't meet
+   (for example design language 2, or a sensor B's language lacks), it is
+   declined before execution and its non-use is recorded. Without such a
+   precondition a different task label proves nothing: v1 goes through B's
+   local acceptance and transfer is measured, not assumed.
 5. **Registry, dependency or evaluator timeout:** `unknown`; no method synthesis,
    no resubmission of an unknown run.
 6. **Restart and duplicate events:** one decision log, one installation, one
