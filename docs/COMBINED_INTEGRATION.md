@@ -5,19 +5,19 @@ This is an assembled development checkpoint
 for both machines. It is draft because the source reviews below still have open
 findings. Passing the existing suite does not resolve those findings.
 
-The [PR review queue](PR_REVIEW_QUEUE.md) records eleven capability PRs now
-merged to main and eleven remaining held PRs, exact heads and source-fix ownership.
-Main's capability merge is `4ecc397`; handoff-only PR #30 is merged at `e57097f`.
-This branch reconciles that main history with the existing draft. Resolution is
-limited to coordination/sponsor documentation; no runtime, dependency, schema or
-test file changes from the previously validated combined source. The unchanged
-Rust suite was not rerun for this documentation/history reconciliation.
+The [PR review queue](PR_REVIEW_QUEUE.md) distinguishes merged additions from
+held source changes. Latest source integration `8014683` includes main `f03ce9b`
+(CREAO execution receipts #32) and #28 at `17b6b02` (reviewed UI fix #31).
+Both merged cleanly. The UI finding is resolved; #28's backend dependencies remain
+held. Henry's Claude has claimed the scoped #27/#28 corrections in issue #4;
+other source ownership is unchanged.
 
 ## Included snapshots
 
 | Source | Exact head | Purpose |
 | --- | --- | --- |
 | Main capability stack through #24 | `9e7939a` | Synthesis, bounded repair, durable acquisition/adoption, fresh verification, automatic two-organization scenario |
+| Main receipt addition #32 | `050b099` (merge `f03ce9b`) | Bound, read-only CREAO native execution receipts; no domain-success claim |
 | #11 `feat/elastic` | `aa94d100` | Evidence projection, retrieval, Agent Builder specialists, Elastic capability search and jobs |
 | #12 `feat/planner` | `22fefe62` | Mission planner and persisted decision/reconciliation API |
 | #20 `feat/creao-readiness` | `e8cad205` | Asynchronous specialist readiness/jobs and CREAO environment registration |
@@ -26,7 +26,7 @@ Rust suite was not rerun for this documentation/history reconciliation.
 | #23 `docs/claude-checkpoint` | `665aab42` | Claude's source handoff and development guide |
 | #26 `feat/creao-gateway-readiness` | `3dc95d6b` | Kernel gateway readiness challenges and receipts |
 | #27 `feat/creao-attach` | `95a33a0e` | Operator attachment of uncertain native agent creations |
-| #28 `feat/attention-ui` | `de0f5bc0` | Attention panel and development failure drills |
+| #28 `feat/attention-ui` | `17b6b02` | Attention panel, failure drills and reviewed Abandon-only readiness fix #31 |
 | #29 `codex/creao-readiness-probe` | `c1e6ba4` | Durable provider challenge dispatch and explicit CREAO gateway registration |
 
 Merge resolutions preserve acquisition model/Apify configuration before Elastic
@@ -45,15 +45,23 @@ registration of `creao_readiness`. No route or worker changed in this merge.
 
 ## Validation
 
+Latest source `8014683` passes **112 focused Rust tests across 17 suites**:
+`genesis-creao`, `genesis-providers`, and the five server suites for CREAO config,
+provider readiness probes, gateway readiness, specialist readiness and jobs.
+Formatting and strict workspace all-target Clippy pass. The assembled console
+passes **37 tests across six suites** and its TypeScript/Vite production build.
+These checks cover the newly combined source; the full Rust suite was not rerun
+for this narrow integration. Main's separate #32 head passes 598 tests/65 suites.
+
 The assembled source snapshot `1004934` passes **699 Rust tests across 87 suites**
 with `serde_json/preserve_order`, zero failed or ignored, strict default-feature
 all-target Clippy and formatting. This includes #29's concurrent dispatch,
 cancellation, restart, callback, purpose-isolation and failed-checkpoint cases.
 
-Web/schema sources are unchanged by #29. Their prior `dde0682` evidence remains:
-**33 console tests**, TypeScript/Vite production build, and Rust-exported schema
-plus generated TypeScript regeneration without drift. Those unaffected checks
-were not repeated for the provider-only merge.
+Before the latest UI fix, `dde0682` passed 33 console tests, a production build
+and schema/type regeneration without drift. Schema/type source is unchanged by
+#31/#32; regeneration was not repeated. The current 37-test UI check above
+supersedes the older console test count.
 
 The full run includes the strengthened scenario fixture (`9d63cc0`). A recording
 proxy proves B's actual automatic adoption sends
@@ -97,11 +105,14 @@ landed separately under the user's authorization.
 | #22 / shared #11 client | Revalidate cached planner configuration and disable Agent Builder redirects | [Source review](https://github.com/HenryWashuHe/genesis/pull/22#pullrequestreview-5615620695); no new redirect/configuration-drift reproduction |
 | #26 | Reconcile early receipt run correlation against the trusted dispatch result | [Review](https://github.com/HenryWashuHe/genesis/pull/26#pullrequestreview-5616058167); test-only `8d82c32`, one failure and one passing control |
 | #27 | Refuse attaching one native agent to sibling roles in the same change | [Review](https://github.com/HenryWashuHe/genesis/pull/27#pullrequestreview-5616058543); test-only `e161aad`, one failure with two duplicate committed bindings |
-| #28 | Preserve an Abandon-only action while awaiting readiness after attachment | [Review](https://github.com/HenryWashuHe/genesis/pull/28#pullrequestreview-5616058888); component-render reproduction, no browser interaction |
 
-Claude retains planner, general lifecycle/saga/outbox, asynchronous role activation,
-Elastic and UI ownership. Codex retains capability evolution/execution/verification
-and this narrow integration checkpoint. No whole-kernel credit fallback is active.
+#28's UI finding is resolved by #31 at `17b6b02`; it remains held by #27/#26/#20.
+The corrected actions were tested through component rendering, not browser clicks.
+
+Claude/Eric retains planner, general lifecycle/saga/outbox, asynchronous role
+activation and Elastic ownership. Henry's Claude has claimed the scoped #27/#28
+fixes. Codex retains capability/provider implementation and narrow integration.
+No whole-kernel credit fallback is active.
 
 ## Reproduce
 

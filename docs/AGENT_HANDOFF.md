@@ -25,25 +25,22 @@ mission-execution evidence. Keep this separate from readiness and Apify receipts
 
 Current priority: [review queue and merge dependencies](PR_REVIEW_QUEUE.md).
 The user requested a backlog review; capability stack review found no new blockers,
-while #11/#12/#20/#21/#22/#26/#27/#28 retain source findings. The capability stack has since landed; these source findings remain.
+while #11/#12/#20/#21/#22/#26/#27 retain source findings. #28's UI correction has landed in its parent branch; backend dependency holds remain.
 
-Latest assembled checkpoint: [draft PR #25](https://github.com/HenryWashuHe/genesis/pull/25),
-`codex/combined-integration`, source merge `1004934`.
-It combines capability #24, Claude #11/#12/#20/#21/#22/#23/#26/#27/#28 and Codex
-provider readiness #29 at their recorded heads. The assembled source passes
-699 Rust tests (87 suites), strict Clippy and formatting. The unchanged web/schema
-files retain the earlier `dde0682` evidence: 33 web tests, production build and
-schema/type regeneration without drift. Rust coverage includes independent
-adoption through Elastic, gateway receipts, operator attachment and durable CREAO
-probe recovery. No live sponsor evidence is claimed.
-See [the full integration matrix](COMBINED_INTEGRATION.md) and [the review queue](PR_REVIEW_QUEUE.md).
+Latest assembled source: [draft PR #25](https://github.com/HenryWashuHe/genesis/pull/25),
+`codex/combined-integration` at `8014683`. It adds main's CREAO execution receipts
+#32 and #28's reviewed UI fix #31 to the previous combined stack. Affected checks
+pass: 112 Rust tests/17 suites, 37 web tests, production build, formatting and
+strict all-target Clippy. The previous full Rust run at `1004934` passed 699 tests;
+it was not repeated for this narrow integration. No live sponsor evidence is claimed.
+See [the integration matrix](COMBINED_INTEGRATION.md) and [review queue](PR_REVIEW_QUEUE.md).
 
 This branch remains draft: thirteen reproduced failing regressions across
-#11/#12/#20/#26/#27 remain on separate test-only branches, alongside source/UI
-findings on #21/#22/#28. They are not part of the passing baseline. Keep source
-fixes with Claude and absorb tested new commits here. The current priority is
-clearing the review queue. No held source merge or whole-kernel ownership transfer is
-implied; the ongoing objective and hourly continuation remain active.
+#11/#12/#20/#26/#27 remain on separate test-only branches, with source findings
+on #21/#22. #28's own UI finding is resolved but its backend dependencies remain
+held. Henry's Claude is handling scoped #27/#28 fixes; Claude/Eric owns the other
+source fixes. No whole-kernel takeover is active. The ongoing mission goal remains
+active; CREAO core mission work is still distinct from readiness and provenance.
 
 ### CREAO provider readiness addition
 
