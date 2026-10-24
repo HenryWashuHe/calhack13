@@ -4,6 +4,8 @@
 // unexpected value is shown as unrecognized rather than guessed. Decoders never
 // read generated text, prompts or request bodies.
 
+import { canonicalSha256, sha256Hex } from "./digest";
+
 export class DecodeError extends Error {}
 
 type Obj = Record<string, unknown>;
@@ -136,6 +138,7 @@ export function decodeGenerationStatus(v: unknown): GenerationStatus {
 
 /** Only the enum outcome of a generation checkpoint; returned text is skipped. */
 export interface CheckpointOutcome {
+  org_id: string;
   operation_id: string;
   phase: string;
   request_sha256: string;
@@ -153,6 +156,7 @@ export function decodeCheckpointOutcome(v: unknown): CheckpointOutcome {
     outcome = { kind, reason: kind === "returned" ? null : optStr(c, "reason", `${at}.completion.outcome`) };
   }
   return {
+    org_id: str(plan, "org_id", `${at}.plan`),
     operation_id: str(plan, "operation_id", `${at}.plan`),
     phase: str(o, "phase", at),
     request_sha256: str(o, "request_sha256", at),
@@ -267,12 +271,17 @@ export interface ExecutionReceipt {
   outcome: string;
   outputs: ExactRef[];
   usage: Record<UsageDimension, Usage>;
+  /** genesis-core `execution_receipt_identity_hash`: canonical SHA-256 of the
+   * whole retained receipt under its domain. Evaluations name this value. */
+  receipt_sha256: string;
 }
+export const EXECUTION_RECEIPT_DOMAIN = "genesis.development_execution_receipt";
 export function decodeExecutionReceipt(v: unknown): ExecutionReceipt {
   const at = "execution";
   const o = obj(v, at);
   const b = obj(o.binding, `${at}.binding`);
   return {
+    receipt_sha256: canonicalSha256({ domain: EXECUTION_RECEIPT_DOMAIN, version: 1, record: o }),
     org_id: str(b, "org_id", `${at}.binding`),
     run_id: str(b, "run_id", `${at}.binding`),
     attempt_id: str(b, "attempt_id", `${at}.binding`),
@@ -315,11 +324,6 @@ export function decodeEvaluationReceipt(v: unknown): EvaluationReceipt {
   };
 }
 
-async function sha256Hex(bytes: Uint8Array): Promise<string> {
-  const digest = await globalThis.crypto.subtle.digest("SHA-256", bytes);
-  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
 /** An exported canonical method package file (`genesis.development_method_source`).
  * Its identity is the SHA-256 of the exact file bytes, computed here; source text
  * is measured, never retained in the view. */
@@ -332,33 +336,31 @@ export interface PackageFile {
   files: { path: string; bytes: number; lines: number; sha256: string }[];
 }
 export const PACKAGE_DOMAIN = "genesis.development_method_source";
-export async function decodePackageFile(bytes: Uint8Array): Promise<PackageFile> {
+export function decodePackageFile(bytes: Uint8Array): PackageFile {
   const at = "package";
   const o = obj(JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes)), at);
   if (o.domain !== PACKAGE_DOMAIN) throw new DecodeError(`${at}.domain: expected ${PACKAGE_DOMAIN}`);
   const p = obj(o.package, `${at}.package`);
   if (!Array.isArray(p.files)) throw new DecodeError(`${at}.package.files: expected array`);
   const enc = new TextEncoder();
-  const files = await Promise.all(
-    p.files.map(async (f, i) => {
-      const fo = obj(f, `${at}.package.files[${i}]`);
-      const text = str(fo, "content", `${at}.package.files[${i}]`);
-      const content = enc.encode(text);
-      return {
-        path: str(fo, "path", `${at}.package.files[${i}]`),
-        bytes: content.length,
-        lines: text === "" ? 0 : text.split("\n").length - (text.endsWith("\n") ? 1 : 0),
-        sha256: await sha256Hex(content),
-      };
-    }),
-  );
+  const files = p.files.map((f, i) => {
+    const fo = obj(f, `${at}.package.files[${i}]`);
+    const text = str(fo, "content", `${at}.package.files[${i}]`);
+    const content = enc.encode(text);
+    return {
+      path: str(fo, "path", `${at}.package.files[${i}]`),
+      bytes: content.length,
+      lines: text === "" ? 0 : text.split("\n").length - (text.endsWith("\n") ? 1 : 0),
+      sha256: sha256Hex(content),
+    };
+  });
   return {
     ref: {
       domain: "genesis",
       schema: "development-method-source/1",
       id: str(p, "id", `${at}.package`),
       version: str(p, "version", `${at}.package`),
-      sha256: await sha256Hex(bytes),
+      sha256: sha256Hex(bytes),
     },
     entrypoint: str(p, "entrypoint", `${at}.package`),
     runtime: decodeRef(p.runtime, `${at}.package.runtime`),

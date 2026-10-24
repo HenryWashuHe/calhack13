@@ -26,9 +26,8 @@ function runsText(l: Lineage, org: string, methods: Set<string>): Fact {
 }
 
 export function beats(l: Lineage, a: string, b: string): Beat[] {
-  const orgOf = new Map(l.attempts.map((x) => [x.status.operation_id, x.status.org_id]));
   const generatedBy = (org: string) =>
-    new Set(l.edges.flatMap((e) => (e.kind === "generated" && orgOf.get(e.operation_id) === org ? [e.to] : [])));
+    new Set(l.edges.flatMap((e) => (e.kind === "generated" && e.org_id === org ? [e.to] : [])));
   const aMethods = generatedBy(a);
   const revisions = l.edges.flatMap((e) => (e.kind === "revised_from" && e.org_id === b && aMethods.has(e.from) ? [e] : []));
   const bRevisions = new Set(revisions.map((r) => r.to));
