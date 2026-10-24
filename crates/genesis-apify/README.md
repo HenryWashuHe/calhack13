@@ -48,12 +48,16 @@ header, never a query parameter. Debug/error messages omit tokens and raw bodies
    Require **exactly one object**, which is the complete `ExtractionOutcome`
    envelope. Actors call `pushData(outcome)` once, not once per venue. Two items
    expose overflow instead of silently truncating it; any supplied pagination
-   headers must agree. After a `SUCCEEDED` run, an empty page is reread at most
-   fifteen times (sixteen reads total), waiting one second between reads
+   headers must agree before accepting the output. After a `SUCCEEDED` run, an
+   empty page or a single-object page whose supplied total/count counters lag
+   below its length is reread at most fifteen times (sixteen reads total), waiting one second between reads
    independently of the Actor polling interval. This allows about fifteen
    seconds plus HTTP request time for visibility, bounded by the same operation
    deadline; it does not extend that deadline. This never resubmits the Actor.
-   Malformed data, overflow, and inconsistent pagination headers fail immediately. Byte limits
+   Each read validates its own body and headers; a prior body is never accepted
+   using a later page's counters. Malformed data or counters, overflow, counters
+   above the body length (except total 1 on an empty page), and nonzero offsets
+   fail immediately. Exhausting the window fails closed. Byte limits
    apply while streaming, before JSON parsing.
    Duplicate JSON keys are rejected at every depth. [Dataset API](https://docs.apify.com/api/v2/dataset-items-get)
 5. Construct receipt metadata from the trusted request and authenticated provider
