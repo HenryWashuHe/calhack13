@@ -98,6 +98,29 @@ Uncertain outcomes stop at attention with the adoption ID kept and never fall
 back to synthesis: an unknown result is not an empty result. The gap stays
 `open`.
 
+### What the adoption concluded
+
+`GET .../adoption` also returns `outcome`, a read-only classification of the
+current adoption built from this organization's [candidate
+decisions](CAPABILITY_ADOPTION.md#candidate-decisions) and the stop code. It
+changes no fallback and grants nothing.
+
+| `outcome` | When | Candidate shown |
+| --- | --- | --- |
+| `pending` | adoption still owns the gap | none |
+| `adopted` | installed after this organization's own suite accepted it | exact id, version, publisher, `acceptance_ref` |
+| `not_applicable` | the suite rejected the selection (`refused: rejected`); `reason` is the oracle-free failed-case summary | the rejected candidate and its rejection reference |
+| `insufficient_evidence` | a candidate was offered but couldn't reach a verdict: invalid/unusable manifest or score (`attention: candidate`), or checks that all definitely ended without evidence (`attention: checks` with settled runs) | the candidate, if one was reached |
+| `no_candidate` | the search answered and nothing was eligible, or it was empty (`released` or `refused: no_candidate`); `reason` counts own publications and missing permissions | none |
+| `unknown` | the registry or a manifest couldn't be read, or a check's provider outcome is unresolved | the selected candidate, still `selected` |
+| `stopped` | authority, configuration, conflict or an inconsistent record | the candidate, if one was reached; never a verdict |
+
+`considered` and `decisions` count what the registry offered and how each was
+decided. Similarity score is not part of the outcome. Only `no_candidate` from
+a definitive empty search can ever lead to synthesis, and only through the
+existing `released` path. If the decision log can't be read, `outcome` is
+omitted rather than guessed.
+
 ## Retrying a stop
 
 `POST /api/v1/capability-gaps/{id}/adoption/retry` (operator) starts one fresh
