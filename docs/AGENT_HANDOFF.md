@@ -11,8 +11,8 @@ issue #4/task numbers below are historical. Preserve rewritten ancestry.
 
 The [ongoing goal](ONGOING_GOAL.md), revised app Goal and hourly continuation are
 active. The stale app record was cleared and replaced on October 24, 2026. Main
-through `f2b33d50610c19ee19a31965ad195fd54010bd9a`, tree
-`45bd7f6667d519d5175904558b00e6d8fe39e605`, includes the experimental core
+through `86505a09c076d1f759c8963f70ae7027f3b3b2da`, tree
+`0c85d6726c9b3314810ac1d6fb9f5fb2faf15284`, includes the experimental core
 contracts, source loader, corrected adoption proposal/UI, simulator primitives,
 #50–#52 method-source generation, #42/#43 executor foundations/session and #56
 accounting identity checks plus #58/#59 declared combined-cost assessment and
@@ -55,9 +55,16 @@ Apify baseline do not close those gates. Event organizing remains superseded.
 | Henry's core Claude | #46/#48/#64/#70/#72 merged; #98 `cb29a95` receiving records merged after independent checks; #102 `c8bf7a0` checked public feedback merged at `7accefd3` | Own execution/scoring/adoption and receiving-side record plumbing. Retain B's explicit selection/local acceptance decision and intended responsibility, including the rejected random-search comparison. #116 retains checked rough-transport trials of frozen child `4f455dc6`, rejected against parent/random control. Local acceptance remains unestablished; #117 checked A-return records are Rejected in every comparison. Retain prior declarations and all negative results; do not edit forge. #57/#65 are separate unmerged assurance work. |
 | Eric / Eric's Claude | #93/#94/#99/#100/#101/#109 merged; real-evidence #123 integrated through #128 | `docs/invention-lab/ui.md` and `apps/web/src/invention-lab/**`, no shared routes. #123 `7196d5c` → parent merge `4515f728`; #128 `2f0b6734` → main `a3be74d0`, identical web bytes. Independent 81 tests/13 files and typecheck pass, original regressions unchanged. Preserve `78adef37`, `59c3e1c`, `f2ac45e5` and `0672dcbe`. The separate `apps/stage` queue does not transfer this lane. [MethodOffer/MethodSearchResults intake](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388858370) is requested next, awaiting acknowledgment/exact files: publisher-qualified identity and canonical bytes, no inferred authentication or adoption. |
 | ACP Claude session | #3/#5 and stage #20 merged; [Stage lane explicitly claimed](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388347592) | Own bridge and `apps/stage/**`; #125/#126 remain held as below. [New iteration files](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6389024893) remain proposed/exploratory pending existing-contract interface agreement, not a second default orchestrator. Reconcile held #4 routing/status/demo docs with merged #3/#5, local executor/scorer and issue #1. Preserve the superseded event-organizer boundary. Eric [withdrew only his separate Stage claim](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388539814), leaving his lab UI lane intact. |
-| Codex main chat | #120/#124/#127/#130 and method registry API/client/CLI #132/#133/#141/#150/#151 merged | The [existing-registry path](invention-lab/contracts/method-registry.md) now carries explicit selected metadata and exact parent source through the bounded revision-input CLI into the receiver's ordinary Prepared checkpoint. Maintain shared contracts/generation integration and review; source transport grants no acceptance/authority. Henry retains adoption/roles/grants. Corrected W/F protocol awaits freezing; no new request declared. |
+| Codex main chat | #120/#124/#127/#130/#153 and method registry API/client/CLI #132/#133/#141/#150/#151 merged | The [existing-registry path](invention-lab/contracts/method-registry.md) carries explicit selected metadata and exact parent into receiver-owned revision preparation. #153 adds explicit generation-only accounting without dummy trials or changed historical evidence. [Intake integration is now claimed](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6389431891): new server module plus minimal init/export/router, source-free exact selection/receiver need retained atomically with one observation and replay/conflict handling. Separate scripted-planner tests reuse the real kernel/saga. Active work, not merged or demonstrated; no second planner or adoption/current-grant edits. No provider request declared. |
 | EricZhu-31 / Codex provider session | #104 nullable-ticket correction merged; [separate CREAO Trigger smoke slice claimed](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388887582), #137 held at `08a68e3` | Own `scripts/live-gates/creao-trigger.mjs`, focused offline test, trigger guide and narrow live-gate docs link. Keep team `capi_`/app-ID Trigger separate from existing Developer API adapters/gate. Offline infrastructure only, no hosted run or G0–G4 result; ACP retains hosted-gate evidence. [Review](https://github.com/HenryWashuHe/genesis-history-experiment/pull/137#issuecomment-6389011299): 32 original offline cases pass; three new regressions fail for directory durability, stream bounds and stale concurrent polling. Preserve 102-line `f8f9ea3` unchanged. This provider claim does not acknowledge the lab UI request. |
 | Ines | Unassigned by explicit user instruction | Do not infer identity from another collaborator handle. |
+
+Henry's [requested receiver-ID correction](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6389372825)
+belongs to his existing receiver lane: namespace run, attempt and scoring IDs
+from each predeclared trial identity before execution, preserving same-trial
+preparation stability. Current repeated IDs prevent distinct same-org trials
+from composing under chain-cost uniqueness checks. This follow-up is requested,
+not acknowledged or implemented; preserve old retained evidence without relabeling.
 
 Eric's results UI [#148 `1519c275` is held](https://github.com/HenryWashuHe/genesis-history-experiment/pull/148#issuecomment-6389291887):
 first-match conflicting metrics, unsupported metrics identity and mislabeled Unknown.
@@ -208,6 +215,19 @@ checks; local adoption and a recorded accepted return remain unproved. Source id
 improved development or budget compliance.
 
 ### Evidence for this checkpoint
+
+Generation-only accounting #153 source `2efdca901eb4345cc569a2c4b9f0f61279f65fcc`
+merged at `86505a09c076d1f759c8963f70ae7027f3b3b2da`; matching tree
+`0c85d6726c9b3314810ac1d6fb9f5fb2faf15284`. Behavior `7c2fb3b` passes root's
+36 focused stage/chain/library/CLI cases plus four independently authored cases
+rerun by root (40 total), scoped strict Clippy and fmt/diff. The original
+241-line `5596b771` file is unchanged in `2efdca90`.
+[Independent final source review](https://github.com/HenryWashuHe/genesis-history-experiment/pull/153#pullrequestreview-5639985373)
+confirms the exact head and preserved tests without another build. Explicit
+zero-slot generation stages require zero trial grants and cannot bind trials.
+Measured failures/overruns stay charged, missing/uncertain costs stay unknown,
+and historical #113 hashes and nonzero-slot uncertainty are unchanged. No
+provider request, generated-source/runtime execution, adoption or gate closure.
 
 B preparation #112 source `163e952696e62a9bcb937e22ef1b96e327427dad` merged at
 `dec357f91a33083ab50e73c23508ccbc13162d46` before the call. #113 result source

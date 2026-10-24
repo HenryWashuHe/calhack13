@@ -180,6 +180,22 @@ every milestone. All lower checkpoints are historical.
   [Read-only chain-cost CLI #130](docs/invention-lab/contracts/chain-allocation.md#read-only-chain-cost-cli)
   is merged at `fc16ba14`, source `04e22315`: 21 focused tests/6 targets and scoped
   strict Clippy/fmt/diff pass. No provider/runtime calls or gate closure.
+  Explicit generation-only stages #153 `2efdca90` merged at `86505a09`, matching
+  tree `0c85d672`: root 40 focused checks (36 plus four independent regressions)
+  and scoped strict Clippy/fmt pass; independent exact-head source review clear.
+  The 241-line `5596b771` guard is preserved unchanged. Zero trial slots require
+  zero development/scoring grants and cannot bind a trial. Missing/uncertain
+  generation stays unknown, as do historical nonzero-slot stages without trial
+  evidence; #113 records and hashes are unchanged. This is local accounting,
+  not new execution or G4.
+  Henry's [receiver-ID follow-up](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6389372825)
+  is requested within his lane: derive unique run/attempt/scoring IDs from the
+  predeclared trial before execution, with same-trial preparation stable.
+  Do not relabel old receipts. Codex [has claimed the intake integration](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6389431891):
+  selected method plus receiver-owned need → one atomic ordinary observation →
+  existing planner/saga. Scope is the new server intake module, minimal
+  init/export/router wiring and separate scripted-planner tests. Work is active,
+  not merged or demonstrated; no second planner or adoption/current-grant edits.
   [Method registry API #132](https://github.com/HenryWashuHe/genesis-history-experiment/pull/132)
   is merged at `26b6cc87`: authenticated immutable publication, bounded keyword
   metadata search and exact-source fetch reuse the existing registry process.
