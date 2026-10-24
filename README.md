@@ -4,7 +4,7 @@
 
 GENESIS changes the organization a mission needs: it creates and recruits specialist agents, transfers responsibilities, develops missing executable capabilities, and lets independent organizations inherit verified capabilities.
 
-The Rust capability implementation now creates source-bearing Actors, resumes pinned builds and runs, verifies results against an independent oracle, and checkpoints the forge across process restarts. A runnable TypeScript scaffold supplies the extraction runtime. The organization API now uses backend-owned proofs and durable execution for independent capability adoption in [PR #5](https://github.com/HenryWashuHe/genesis/pull/5). Claude’s kernel/UI fixes through `efa3b4f` are integrated into the provider branches; the A→B→A delegation-fencing follow-up and authenticated provider smoke tests remain open. The Fetch milestone adds independently signed specialist negotiation with durable Rust journals and a runnable two-organization proof.
+The Rust capability implementation now creates source-bearing Actors, resumes pinned builds and runs, verifies results against an independent oracle, and checkpoints the forge across process restarts. A runnable TypeScript scaffold supplies the extraction runtime. The organization API now uses backend-owned proofs and durable execution for independent capability adoption in [PR #5](https://github.com/HenryWashuHe/genesis/pull/5). Claude’s kernel/UI fixes and the follow-up delegation and concurrent saga guards are integrated into the provider branches. The Fetch milestone adds independently signed specialist negotiation with durable Rust journals and a runnable two-organization proof. Asynchronous provider activation and authenticated provider smoke tests remain open.
 
 ## Start here
 

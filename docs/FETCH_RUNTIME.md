@@ -122,9 +122,13 @@ for kernel authorization or a cross-process cancellation barrier.
    the local contract, fencing future effects and transferring obligations. Do not
    shut down an independent specialist that may serve another organization.
 
-The known PR #3 A→B→A delegation-fencing follow-up must be fixed before enabling
-live effects through any provider. This Fetch implementation does not patch Claude's
-core engine, saga, planner or UI.
+The PR #3 A→B→A delegation-fencing follow-up is resolved by `7a00da4`: each changed
+executor rotates the assignment and epoch, including when the old executor returns.
+Existing owner work also becomes stale and must be redispatched. The per-change
+process-local saga guard in `1460831` prevents overlapping drivers in one server.
+These narrow merge-readiness fixes do not implement the asynchronous role activation
+or live-authority checks required for Fetch integration. Claude retains that hook,
+the planner and UI.
 
 ## Validation and remaining live gate
 
