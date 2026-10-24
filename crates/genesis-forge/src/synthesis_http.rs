@@ -6,7 +6,8 @@ use reqwest::header::{HeaderValue, CONTENT_TYPE};
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
-const MESSAGES_URL: &str = "https://api.anthropic.com/v1/messages";
+pub(crate) const MESSAGES_URL: &str = "https://api.anthropic.com/v1/messages";
+pub(crate) const ANTHROPIC_VERSION: &str = "2023-06-01";
 const MAX_RESPONSE_BYTES: usize = 1024 * 1024;
 const MAX_TIMEOUT: Duration = Duration::from_secs(120);
 
@@ -99,13 +100,24 @@ impl AnthropicGenerator {
             }],
             stream: false,
         };
+        let bytes = serde_json::to_vec(&body).map_err(|_| SynthesisError::InvalidInput)?;
+        parse_response(&self.post_message(&bytes).await?, prompt, config)
+    }
+
+    pub(crate) fn is_loopback_fixture(&self) -> bool {
+        self.endpoint.scheme() == "http"
+    }
+
+    // Shared transport only. The legacy parser and method generator retain
+    // separate response contracts and checkpoint identities.
+    pub(crate) async fn post_message(&self, body: &[u8]) -> Result<Vec<u8>, SynthesisError> {
         let mut response = self
             .client
             .post(self.endpoint.clone())
             .header("x-api-key", self.api_key.clone())
-            .header("anthropic-version", "2023-06-01")
+            .header("anthropic-version", ANTHROPIC_VERSION)
             .header(CONTENT_TYPE, "application/json")
-            .json(&body)
+            .body(body.to_vec())
             .send()
             .await
             .map_err(|_| SynthesisError::AmbiguousTransport)?;
@@ -134,7 +146,7 @@ impl AnthropicGenerator {
             }
             bytes.extend_from_slice(&chunk);
         }
-        parse_response(&bytes, prompt, config)
+        Ok(bytes)
     }
 }
 

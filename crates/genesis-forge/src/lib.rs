@@ -17,3 +17,5 @@ pub use source::*;
 pub use synthesis::*;
 pub use synthesis_http::AnthropicGenerator;
 pub use synthesis_source::generated_candidate;
+
+pub mod text_generation;
