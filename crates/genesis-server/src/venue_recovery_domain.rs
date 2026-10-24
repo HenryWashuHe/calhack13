@@ -289,6 +289,11 @@ fn fields_valid(context: &RecoveryContext) -> Result<(), RecoveryError> {
         let mut selected_policy = context.policy.clone();
         selected_policy.selected_venue_id = candidate.venue.venue_id.clone();
         if !text(candidate.source_job_id.as_str(), 256)
+            // The Python specialist does not apply WHATWG URL repairs. Freeze
+            // an already canonical citation rather than dispatching input it
+            // will reject or interpret differently from the Rust verifier.
+            || !reqwest::Url::parse(&evidence.source_url)
+                .is_ok_and(|url| url.as_str() == evidence.source_url)
             || !candidate
                 .invocation_proof_ref
                 .strip_prefix("invocation:")
@@ -707,6 +712,32 @@ mod tests {
                 Err(RecoveryError::InvalidContext),
                 "{invalid}"
             );
+        }
+    }
+
+    #[test]
+    fn source_urls_must_be_canonical_before_dispatch() {
+        let (mut context, _, _) = vector();
+        context.candidates.truncate(1);
+        for source in [
+            "http:///fixtures.genesis.example/v",
+            "http:fixtures.genesis.example/v",
+            r"http:\\fixtures.genesis.example\v",
+            "http://:@fixtures.genesis.example/v",
+        ] {
+            context.candidates[0].venue.evidence.source_url = source.into();
+            assert_eq!(
+                provider_input(&context),
+                Err(RecoveryError::InvalidContext),
+                "{source}"
+            );
+        }
+        for source in [
+            "https://fixtures.genesis.example/v",
+            "http://fixtures.genesis.example/v?q=space%20here",
+        ] {
+            context.candidates[0].venue.evidence.source_url = source.into();
+            assert!(provider_input(&context).is_ok(), "{source}");
         }
     }
 
