@@ -147,21 +147,21 @@ fn the_example_plan_is_a_valid_frozen_acceptance_plan() {
 }
 
 #[test]
-fn a_slot_store_is_held_by_one_opener_at_a_time() {
-    let dir = std::env::temp_dir().join(format!("lab-store-lock-{}", std::process::id()));
+fn a_slot_claim_is_held_by_one_owner_at_a_time() {
+    use genesis_lab_exec::store::{is_busy, SlotClaim};
+    let dir = std::env::temp_dir().join(format!("lab-slot-claim-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
-    let first = Store::open(&dir).unwrap();
-    let second = Store::open(&dir);
+    let first = SlotClaim::acquire(&dir).unwrap();
     assert!(
-        second.as_ref().is_err_and(genesis_lab_exec::store::is_busy),
-        "second opener admitted"
+        SlotClaim::acquire(&dir).as_ref().is_err_and(is_busy),
+        "second owner admitted"
     );
     // From another thread too: the lock belongs to the open file, not the thread.
     let d = dir.clone();
-    let busy = std::thread::spawn(move || Store::open(&d).is_err())
+    let busy = std::thread::spawn(move || SlotClaim::acquire(&d).as_ref().is_err_and(is_busy))
         .join()
         .unwrap();
     assert!(busy);
     drop(first);
-    Store::open(&dir).unwrap();
+    SlotClaim::acquire(&dir).unwrap();
 }
