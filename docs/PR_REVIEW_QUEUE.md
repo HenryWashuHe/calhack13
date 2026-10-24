@@ -1,6 +1,6 @@
 # PR review queue — October 22, 2026
 
-Reviewed main checkpoint: `a313a8e151f2110847d2bb93651d127eab1f34ca`.
+Reviewed main checkpoint: `f0d295ac71f6140f0554a66cf930f7bb5fe98cbb`.
 The user authorizes merging reviewed ready PRs. Preserve ancestry and check the
 exact resulting tree; do not merge a passing but outdated candidate after its
 source changes. Current GitHub heads and comments supersede this snapshot.
@@ -18,9 +18,14 @@ source changes. Current GitHub heads and comments supersede this snapshot.
 | [#21 evidence UI](https://github.com/HenryWashuHe/genesis/pull/21) | `f8856f1` | `84463a1`, exact tree; 40 tests, clean install, typecheck/build. Includes reviewed #45 and integrations #53/#55, preserving both authors' assertions. Backend/schema unchanged. |
 | [#54 gap lifecycle UI](https://github.com/HenryWashuHe/genesis/pull/54) | `50db34b` | `e212741` clean integration, exact computed merge tree; 42 web tests/typecheck/build. Backend/schema unchanged. Duplicate #50 closed with branches preserved. |
 | [#23 development guide](https://github.com/HenryWashuHe/genesis/pull/23) | `a313a8e` | Reviewed child #58 `ee37037` / parent `99db48a`; final DEV.md-only delta, 12 relative links and whitespace checked, exact computed merge tree. |
+| [#56 gap policy](https://github.com/HenryWashuHe/genesis/pull/56) | `00ad205` | `02cfc90`, exact tree; runtime identical to `cf591a3`, ten policy tests/strict server Clippy. Offline materializer only; worker and startup remain unimplemented. |
+| [#47 live gates](https://github.com/HenryWashuHe/genesis/pull/47) | `1857b38` | `c91424a`, exact computed merge tree; 14 offline tests including unchanged retry, terminal-result, independent checkpoint, shared quota and resume regressions. No provider calls. |
+| [#51 demo runbook](https://github.com/HenryWashuHe/genesis/pull/51) | `dd33842` | `ae81688`, exact computed tree; original setup/acknowledgment/wording findings fixed, four relative links and whitespace checked. #60 has an explicit fallback. Documentation only. |
+| [#61 gap event log](https://github.com/HenryWashuHe/genesis/pull/61) | `e0c0d5d` | Reviewed #64 correction `245c3e1` / parent `c34ccc1`; 45 web tests, typecheck/build and component render/filter checks. Main web source equals reviewed source; backend/schema unchanged. |
+| [#52 planner eval](https://github.com/HenryWashuHe/genesis/pull/52) | `aec4792` | `b887280` resolves the three unchanged negative probes. Integration `278ecfc`, exact tree: 12 tests and strict default workspace Clippy pass. Separate recorded replay: nine scenarios pass, zero skips/errors. No live model run. |
+| [#63 planner lifecycle](https://github.com/HenryWashuHe/genesis/pull/63), [#57 gap wakeup](https://github.com/HenryWashuHe/genesis/pull/57) | `b91ad0a`, `f0d295a` | Exact final tree equals `7731aa3`. Tested `bffd82c` differs only by one additional queued-wakeup test file: 74 focused tests (41 planner, 16 core, five server, 12 eval), formatting and strict workspace Clippy pass. No planning on closed missions at entry/replay; in-flight cancellation not claimed. |
 
-Rust functional checks above use `serde_json/preserve_order`; strict Clippy uses
-default features. An additional planner integration Clippy run with the JSON-order
+Strict Clippy checks above use default features. An additional planner integration Clippy run with the JSON-order
 feature reported size lints and is not claimed green. Counts belong to their
 listed sources, not an aggregate current-main test run. Review caches are separate
 per checkout; the specialist/planner cache is exclusively
@@ -34,19 +39,16 @@ are on main. Historical detailed evidence remains in
 
 | PR / inspected source | Remaining work |
 | --- | --- |
-| [#26](https://github.com/HenryWashuHe/genesis/pull/26) `8c424ce`, [#37](https://github.com/HenryWashuHe/genesis/pull/37) `5e6072d` | Durable provisional-receipt correlation: original failed-retirement regression and real reopen variant fail. [Current review](https://github.com/HenryWashuHe/genesis/pull/26#pullrequestreview-5619948320), test-only `fed49ff`. The earlier alternative `51dd431` had a first trusted-reference-save failure, preserved at `f939615`. |
+| [#26](https://github.com/HenryWashuHe/genesis/pull/26) `8c424ce` (child [#37](https://github.com/HenryWashuHe/genesis/pull/37) merged) | Durable provisional-receipt correlation: original failed-retirement regression and real reopen variant fail. [Current review](https://github.com/HenryWashuHe/genesis/pull/26#pullrequestreview-5619948320), test-only `fed49ff`. Child [#62](https://github.com/HenryWashuHe/genesis/pull/62) `3e046bc` fixes the original fresh-schema recovery but promotes old wrong-run receipts during migration. New regression `ada0aad` fails; 28 existing scoped checks pass. [Migration review](https://github.com/HenryWashuHe/genesis/pull/62#issuecomment-6352188639). The earlier alternative `51dd431` had a first trusted-reference-save failure, preserved at `f939615`. |
 | [#27](https://github.com/HenryWashuHe/genesis/pull/27) `29c9853`, [#28](https://github.com/HenryWashuHe/genesis/pull/28) `606b92b`, draft #29 | Current #27 passes 23 focused tests and strict server Clippy ([review](https://github.com/HenryWashuHe/genesis/pull/27#issuecomment-6350033955)); #28 passes 32 web tests/typecheck/build ([review](https://github.com/HenryWashuHe/genesis/pull/28#issuecomment-6350024085)). Their own changes are conditionally ready; readiness ancestry and final integration remain pending. No native readiness or skill-installation proof. |
-| [#47 live gates](https://github.com/HenryWashuHe/genesis/pull/47) `0aa2169` | Original four regressions pass. Follow-up `7be7164` reproduces CREAO quota history resetting per run and unusable resume commands. [Review](https://github.com/HenryWashuHe/genesis/pull/47#issuecomment-6349759998). |
-| [#51 runbook](https://github.com/HenryWashuHe/genesis/pull/51) `c354bb8` | Correct clean-checkout build/PATH commands, provider-access acknowledgment and example/verification overlap wording. [Review](https://github.com/HenryWashuHe/genesis/pull/51#issuecomment-6349760305). |
-| [#52 planner eval](https://github.com/HenryWashuHe/genesis/pull/52) `4a7a261` | Model errors/fallback escalations count as successful budget decisions; assigning the wrong existing role passes the capacity scenario. Three failing regressions at `1b14990`; existing eight tests and strict crate Clippy pass. [Review](https://github.com/HenryWashuHe/genesis/pull/52#pullrequestreview-5620023859). No live model run. |
-| [#57 gap planner wakeup](https://github.com/HenryWashuHe/genesis/pull/57) `86d8168` | Terminal gap-transition behavior and recovery under review. |
-| [Draft #56 gap policy](https://github.com/HenryWashuHe/genesis/pull/56) `cf591a3` | Tested policy materializer; server worker, durable gap binding and explicit startup opt-in remain Codex's next core slice. |
+| [#60 portal holdout](https://github.com/HenryWashuHe/genesis/pull/60) `794a34d` | Example index links return verification pages with mismatching displayed hashes. Failing loopback regression `f881345`; 18 existing tests pass with no skips, and holdout separation/backward compatibility checks pass. [Review](https://github.com/HenryWashuHe/genesis/pull/60#issuecomment-6352087071). |
 
 Draft [#25](https://github.com/HenryWashuHe/genesis/pull/25) is pushed at `2829025`
 with 132 affected Rust tests and strict default Clippy. It includes main through
-#22 but not #49/#21/#54; it must not merge wholesale while readiness findings remain.
+#22 but not #49/#21/#54/#56; it must not merge wholesale while readiness findings remain.
 See [the combined checkpoint](COMBINED_INTEGRATION.md).
 
+Codex next owns the durable gap-to-intent binding and opt-in worker.
 The mission still needs planner-driven acquisition, verified publication and
 independent adoption in the visible workflow, persistent CREAO core mission work,
 and native sponsor receipts. Fixture execution, API presence, callback reachability
