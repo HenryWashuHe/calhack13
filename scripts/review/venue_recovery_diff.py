@@ -61,17 +61,27 @@ FIXTURE = json.load(open(os.path.join(ROOT, "contracts/fixtures/fetch_venue_repl
 BASE = FIXTURE["input"]["context"]
 
 URLS_OK = [
+    # Canonical WHATWG serializations (merged #101 refuses anything else
+    # before dispatch); the non-canonical spellings live in URLS_EDGE.
     "https://fixtures.genesis.example/replacements.html",
-    "https://Fixtures.Genesis.Example/a?b=c",
-    "HTTPS://fixtures.genesis.example/x",
+    "https://fixtures.genesis.example/a?b=c",
+    "https://fixtures.genesis.example/x",
     "http://[::1]/v",
     "http://127.0.0.1:8080/v",
+    "https://xn--bcher-kva.example/v",
+    "https://fixtures.genesis.example/v",
+    "https://fixtures.genesis.example/a%20b",
+    "https://fixtures.genesis.example:8443/v?q=1&r=%C3%A9",
+]
+URLS_EDGE_NONCANONICAL = [
+    "https://Fixtures.Genesis.Example/a?b=c",
+    "HTTPS://fixtures.genesis.example/x",
     "https://bücher.example/v",
     "https://fixtures.genesis.example:443/v",
     "http://h:/v",
-    "https://fixtures.genesis.example/a%20b",
+    "https://fixtures.genesis.example",
 ]
-URLS_EDGE = [
+URLS_EDGE = URLS_EDGE_NONCANONICAL + [
     "http:///fixtures.genesis.example/v",
     "http:fixtures.genesis.example/v",
     "http:\\\\fixtures.genesis.example\\v",
