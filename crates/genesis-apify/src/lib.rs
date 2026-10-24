@@ -20,7 +20,8 @@ use std::fmt;
 use std::time::Duration;
 use tokio::time::{sleep, timeout_at, Instant};
 
-const MAX_DATASET_VISIBILITY_READS: usize = 5;
+const MAX_DATASET_VISIBILITY_READS: usize = 16;
+const DATASET_VISIBILITY_INTERVAL: Duration = Duration::from_secs(1);
 
 #[derive(Clone, Debug)]
 pub struct RunLimits {
@@ -451,12 +452,9 @@ impl ApifyClient {
             if reads == MAX_DATASET_VISIBILITY_READS {
                 return Err(error(ErrorKind::InvalidDataset, Stage::Dataset));
             }
-            timeout_at(
-                deadline,
-                sleep(self.limits.poll_interval.min(Duration::from_secs(1))),
-            )
-            .await
-            .map_err(|_| error(ErrorKind::DeadlineExceeded, Stage::Dataset))?;
+            timeout_at(deadline, sleep(DATASET_VISIBILITY_INTERVAL))
+                .await
+                .map_err(|_| error(ErrorKind::DeadlineExceeded, Stage::Dataset))?;
         };
         let evidence = ExecutionEvidence {
             case_id: request.case_id.clone(),
