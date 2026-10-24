@@ -427,26 +427,35 @@ impl ApifyClient {
             if items.len() > 1 || items.first().is_some_and(|item| !item.is_object()) {
                 return Err(error(ErrorKind::InvalidDataset, Stage::Dataset));
             }
-            // Headers are optional in intermediated local responses. An empty
-            // page can be transient, but its headers cannot indicate overflow.
+            // Headers are optional in intermediated local responses. A page
+            // may become visible before its total/count counters catch up.
+            // Never accept that inconsistent page or hide overflow/offsets.
+            let mut counters_lag = false;
             for (name, expected) in [
                 ("x-apify-pagination-total", items.len()),
                 ("x-apify-pagination-count", items.len()),
                 ("x-apify-pagination-offset", 0),
             ] {
                 if let Some(value) = response.headers.get(name) {
-                    let parsed = value.to_str().ok().and_then(|v| v.parse::<usize>().ok());
+                    let parsed = value
+                        .to_str()
+                        .ok()
+                        .and_then(|v| v.parse::<usize>().ok())
+                        .ok_or_else(|| error(ErrorKind::InvalidDataset, Stage::Dataset))?;
                     let valid = if name == "x-apify-pagination-total" && items.is_empty() {
-                        parsed.is_some_and(|total| total <= 1)
+                        parsed <= 1
+                    } else if name != "x-apify-pagination-offset" && !items.is_empty() {
+                        counters_lag |= parsed < expected;
+                        parsed <= expected
                     } else {
-                        parsed == Some(expected)
+                        parsed == expected
                     };
                     if !valid {
                         return Err(error(ErrorKind::InvalidDataset, Stage::Dataset));
                     }
                 }
             }
-            if !items.is_empty() {
+            if !items.is_empty() && !counters_lag {
                 break items;
             }
             if reads == MAX_DATASET_VISIBILITY_READS {
