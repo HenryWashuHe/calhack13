@@ -10,12 +10,13 @@ are preserved. The [ongoing goal](ONGOING_GOAL.md) remains open: a bounded
 A → B → A executable development-method loop and honest controlled evaluation
 with fixed model weights. Event organization remains superseded.
 
-At main `728d42c`, these reviewed increments are merged:
+At main `df945c9`, these reviewed increments are merged:
 
 | Work | Validation and evidence boundary |
 | --- | --- |
 | Method execution #18 (`07961f1`) and independent scoring #22 (`7510b86`) | Composition `785a22c` / `4d64fe6` passed 102 core tests and strict Clippy; merged tree matches `6742948e`. Pure experimental records, not executor/evaluator runtime. |
 | Trial plan #28 (`e47ee64`, source `f52f182`) and experiment ledger #32 (`8578759`, source `0fa3773`) | Independent composition `d386fb0` / tree `680cf27e` passed 116 core tests and strict Clippy. Frozen-plan records retain all declared attempts; the ledger binds cumulative public experiments, unknown/overrun evidence and exact sealed transcripts. |
+| Method source packages #36 (`2b2ecac`, source `f856a5b`) and independent probes #40 (`df945c9`, source `78dde86`) | Reviewed composition `a735bc7` / tree `0125f83c`: 123 core tests plus two independent multi-case probes pass (125 total), strict Clippy. Received-byte identity, host-selected runtime/protocol, ordered dependencies and bounded source loading; no execution or adoption. |
 | Adoption outcomes #11 (`eefde296`, source `7f2102f`) and refusals #12 (`7010866`, source `9eaf8e0`) | 70 focused tests and strict Clippy pass, preserving original independent regressions. Local refusal no longer claims a confirmed provider failure. Existing #8/#10 adoption foundations remain merged. |
 | Stage #20 (`7023077`, source `bfe10d9`) | Independent composition `7508c5b` passed 15 VM tests, preserving both independent test files. Neutral startup, explicit replay opt-in, ordered live responses and exact manifest identity are checked. No browser walkthrough or sponsor evidence. |
 | Evaluator proposal #13 (`728d42c`, source `1a7f542`) | Corrected protocol clauses are agreed: immutable commitment, unambiguous encoding, public comparison development, frozen normalized outputs before private scoring/reveal, exact evaluator identity. This is a reviewed proposal, not approved runtime or G0 completion. |
@@ -28,13 +29,20 @@ timing. Trusted executor/evaluator integration remains necessary. Their merge
 does not establish affected-owner agreement on the complete runtime or close G0.
 
 Henry [acknowledged and started the evaluator/executor lane](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6381504911).
-Branch-only evaluator `72eb7a6` has not been independently reviewed; its author’s
-content-digest/reservation changes and executor isolation design are not verified
-runtime evidence. Neither runtime is on main. The handwritten seed is a control,
-not a generated method. Codex's source-package [#36](https://github.com/HenryWashuHe/genesis-history-experiment/pull/36)
-`f856a5b` is active/unmerged, with independent review pending: canonical source
-bytes and trusted loading are a G1/G2 prerequisite, not a selected ABI, dependency
-resolver, executor, local acceptance decision or method-derivation proof.
+The split evaluator PRs #37 `53c4473`, #38 `b141b89` and #39 `24b1ecd`
+were reviewed on composition `2415024`. All 13 original tests and strict Clippy
+pass, but independent geometry regressions `68e8857` reject separated circles
+and accept off-body anchors; weld regression `577e928` shows initial relative
+rotation erased in the first step. Motor torque also lacks the promised ceiling.
+#37/#38 remain held. #39 fixes source-content hashing, reservation-only usage
+and unknown consumption in its own delta, but depends on those fixes; it is
+explicitly simulation primitives, not the trusted scoring adapter.
+
+Neither simulator nor executor is on main. Henry's executor isolation design is
+still a proposal pending independent checks; the handwritten seed is a control,
+not a generated method. The merged source loader is available for executor
+integration without selecting its ABI or resolving dependency bytes. A loaded
+artifact is not execution, local acceptance or method-derivation proof.
 
 Henry retains adoption proposal #14 `c67a324`: its control-free acceptance option
 conflicts with TrialPlan v1's required candidate/control pair, and its receipt

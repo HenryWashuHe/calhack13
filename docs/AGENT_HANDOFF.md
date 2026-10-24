@@ -11,10 +11,10 @@ issue #4/task numbers below are historical. Initial new main `e1f2264` matches
 old `8794e25` by complete tree; preserve rewritten ancestry.
 
 The [ongoing goal](ONGOING_GOAL.md) and hourly continuation are active; the stale
-app Goal remains paused and must not be falsely completed. Main `728d42c`
+app Goal remains paused and must not be falsely completed. Main `df945c9`
 contains experimental execution/scoring records #18/#22, trial plan #28,
 experiment ledger #32 and corrected evaluator proposal #13. Adoption #11/#12
-and stage #20 corrections are also merged. No method executor, trusted scoring
+and stage #20 corrections are also merged, with #36 source loading and #40 independent probes. No method executor, trusted scoring
 adapter or A → B → A comparison exists on this main. G0 stays open; accumulation,
 reuse/composition and measured benefit remain distinct. Event organizing is
 superseded.
@@ -24,10 +24,10 @@ superseded.
 | Owner/session | Active lane and acknowledgment | Scope / next deliverable |
 | --- | --- | --- |
 | Henry's core Claude | Adoption/planner acknowledged; #8/#10/#11/#12 merged, #14/#15 held | #14 `c67a324`: resolve control-free acceptance versus TrialPlan v1 and the #18 installation-ID claim. #15 `87624fff`: fix three independent `ae6ba16` UI regressions. Retain adoption wiring and existing console UI. |
-| Henry's core Claude | Evaluator and executor acknowledged/active in [issue #1](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6381504911); #13 proposal merged, evaluator `72eb7a6` unreviewed | Own `experiments/invention-lab/evaluator/**` and `executor/**`. Consume #28/#32 and coordinate exact source-package compatibility with #36. Isolation is a proposed design pending independent checks; seed is a handwritten control. |
+| Henry's core Claude | Evaluator and executor acknowledged/active in [issue #1](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6381504911); #13 proposal merged; split evaluator #37/#38/#39 reviewed and held | Own `experiments/invention-lab/evaluator/**` and `executor/**`. Correct #37 geometry and #38 weld/motor findings, preserve `68e8857` / `577e928`; integrate merged #28/#32/#36. Isolation is a proposed design pending independent checks; seed is a handwritten control. |
 | Eric / Eric's Claude | Audit #9 merged; isolated invention-lab UI assignment still unacknowledged | `docs/invention-lab/ui.md`, then `apps/web/src/invention-lab/**` after receipts settle. `EricZhu-31` has write access; do not silently transfer this lane. |
 | ACP Claude session | Acknowledged bridge #3/#4/#5; stage #20 merged | Migrate old journal constraints using preserved `bb5a841`; correct #4 routing/status. #5's own bounds/fixture holds are cleared but it depends on #3. Historical fixture remains secondary. |
-| Codex main chat | #18/#22/#28/#32 merged; source-package #36 `f856a5b` active/unmerged | Own `development_package.rs`, additive export, focused tests and `contracts/packages.md`. Independent review pending. Exact-byte loading binds the frozen method, dependencies and trusted runtime/protocol; no runtime/ABI selection or execution claim. |
+| Codex main chat | #18/#22/#28/#32/#36/#40 merged | Shared method/receipt/trial/experiment/source contracts and independent integration review. Next: review Henry’s corrected simulator and executor against exact package/plan/ledger boundaries. No duplicate executor or implicit runtime/ABI selection. |
 | EricZhu-31 / Codex provider session | #25/#26/#27/#30 merged; #34 bounded reread correction merged | Continue already authorized provider validation from preserved checkpoints on that machine; report exact artifacts and unsuccessful outcomes. No duplicate cloud run here. Elastic permissions remain with key owner. |
 | Ines | Unassigned by explicit user instruction | Do not infer identity from another collaborator handle. |
 
@@ -45,7 +45,9 @@ separate scoring authority and all candidates stopped before disclosure.
 | --- | --- |
 | #18 `07961f1` and #22 `7510b86` | Composition `785a22c` / `4d64fe6`: 102 core tests and strict Clippy; merged tree `6742948e` matches. Pure execution/scoring records. |
 | #28 source `f52f182`, merge `e47ee64`; #32 source `0fa3773`, merge `8578759` | Independent composition `d386fb0`, tree `680cf27e`: 116 core tests and strict Clippy. Complete declared-trial assessment and cumulative experiment ledger are implemented as libraries. No owner-agreement, durable runtime, freeze/reveal enforcement or G0-completion claim. |
-| #13 source `1a7f542`, merge `728d42c` | Recorded protocol holds cleared; proposal clauses agreed. Branch-only evaluator `72eb7a6` remains unreviewed. Prior spike `b065a70` had seven passing tests and reproduced caller-reset budgets; those results do not validate the new runtime. |
+| #13 source `1a7f542`, merge `728d42c` | Recorded protocol holds cleared; proposal clauses agreed. Split evaluator review is recorded below; no simulator runtime on main. |
+| #36 source `f856a5b`, merge `2b2ecac`; #40 source `78dde86`, merge `df945c9` | Composition `a735bc7`, tree `0125f83c`: 125 core tests including two independent probes, strict Clippy/fmt. Canonical source transport and frozen-binding loader implemented; dependency/runtime resolution, authority and execution remain host responsibilities. |
+| #37 `53c4473`, #38 `b141b89`, #39 `24b1ecd` | Composition `2415024`: 13 original tests and strict Clippy pass. #37 has two failing geometry regressions `68e8857`; #38 has failing rotated-weld regression `577e928` plus uncapped motor force. #39 clears its content-hash/reservation/unknown-usage findings but stack remains held; these are primitives, not trusted scoring. |
 | #11 source `7f2102f`, merge `eefde296`; #12 source `9eaf8e0`, merge `7010866` | 70 focused tests and strict Clippy pass; original independent regressions preserved. Neutral settled-check/refusal wording now merged. |
 | #20 source `bfe10d9`, merge `7023077` | Independent composition `7508c5b`: 15 VM tests pass. Original `d7e06e7` and additional `10d1edd` files unchanged; exact manifest identity and real opt-in replay callback holds cleared. No browser/cloud proof. |
 | #15 `87624fff` | Ten original tests pass, three independent `ae6ba16` cases fail: future-outcome history leak, stale candidate response overwrite and registry-absence tooltip. Henry retains corrections. |
@@ -54,8 +56,7 @@ separate scoring authority and all candidates stopped before disclosure.
 | #34 source `0425f8f`, merge `0b4c18b` | Sixteen reads one second apart within unchanged deadline. Regression fails before correction; 187 Apify/forge test executions including repeated harness cases, strict Clippy and formatting pass. No live resolution established. |
 | ACP #3 `3ad7685`; #5 `fc956a8` | 138 existing tests pass, upgraded-journal `bb5a841` still fails. #5 exact-ID/size and fixture holds cleared; inherited migration hold remains. #4 routing/status remains held; #6 sync script withdrawn. |
 
-These source-specific counts overlap; they are not one main test run. #36 is
-unmerged and under independent review, with no result recorded here. Current PR
+These source-specific counts overlap; they are not one main test run. Current PR
 heads/reviews supersede this checkpoint. Venue fallback #2 was closed unmerged
 as superseded; its branch is preserved, not assigned as current goal work.
 
