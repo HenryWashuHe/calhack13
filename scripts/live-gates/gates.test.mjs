@@ -116,6 +116,19 @@ console.log(JSON.stringify(seq[Math.min(n, seq.length - 1)]));`,
   assert.ok(!steps[1].includes("--retry-read") && !steps[3].includes("--retry-read"));
 });
 
+test("creao v2 gate freezes protocol in the prepared spec", async () => {
+  const bin = mkdtempSync(join(tmpdir(), "bin-"));
+  const out = mkdtempSync(join(tmpdir(), "out-"));
+  stub(bin, "genesis-creao", `process.exit(1)`);
+  const r = await run(bin, out, {
+    gates: ["creao"],
+    env: { ...fullEnv, CREAO_API_VERSION: "v2" },
+  });
+  assert.equal(r.results.creao.stage, "prepare");
+  const spec = JSON.parse(readFileSync(join(out, "creao", "t1", "spec.json"), "utf8"));
+  assert.equal(spec.api_version, "v2");
+});
+
 test("apify stops at an unknown outcome and never steps again", async () => {
   const bin = mkdtempSync(join(tmpdir(), "bin-"));
   stub(
