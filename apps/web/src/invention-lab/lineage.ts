@@ -56,7 +56,7 @@ export interface MethodNode {
 
 export type Edge =
   | { kind: "generated"; operation_id: string; to: string }
-  | { kind: "revised_from"; operation_id: string; from: string; to: string; source_changed: boolean }
+  | { kind: "revised_from"; org_id: string; operation_id: string; from: string; to: string; source_changed: boolean }
   | {
       kind: "adoption";
       org_id: string;
@@ -119,6 +119,7 @@ export function buildLineage(records: LabRecords): Lineage {
       problems.push(`revision child differs from the package of operation ${r.operation_id}`);
     edges.push({
       kind: "revised_from",
+      org_id: r.org_id,
       operation_id: r.operation_id,
       from: node(r.parent),
       to: node(r.child),
