@@ -773,6 +773,67 @@ async fn a_publication_whose_reply_was_lost_is_confirmed_not_duplicated() {
 }
 
 #[tokio::test]
+async fn a_conflicting_manifest_at_the_same_pin_does_not_confirm_publication() {
+    let f = Fixture::new(&["capability.acquire", PERMISSION]).await;
+    f.acquire().await;
+    assert_eq!(f.finalize_step().await, Step::Frozen);
+    let record = f.app.store.gap_finalization(&f.gap_id).unwrap().unwrap();
+    // A legitimate earlier publication shares the exact artifact and scopes,
+    // but its operator-authored promise differs from this frozen intent.
+    let mut earlier = record.manifest.clone();
+    earlier.intent = "An earlier, different promise for this same parser".into();
+    let url = format!("{}/api/v1/capabilities/publish", serve_url(&f).await);
+    let client = reqwest::Client::new();
+    let verification_ref = format!("acquisition:{}", record.acquisition_id);
+    let published = client
+        .post(&url)
+        .bearer_auth(format!("{ORG}-operator"))
+        .json(&json!({"manifest": earlier, "verification_ref": verification_ref}))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(published.status().as_u16(), 201);
+    let published: Value = published.json().await.unwrap();
+    assert_eq!(published["intent"], earlier.intent);
+    assert_eq!(published["artifact"], json!(record.manifest.artifact));
+    assert_eq!(published["source_digest"], record.manifest.source_digest);
+    assert_eq!(published["publisher"], json!(record.manifest.publisher));
+    assert_eq!(
+        published["required_permissions"],
+        json!(record.manifest.required_permissions)
+    );
+    assert_eq!(published["verification"]["passed"], true);
+
+    // Confirm this is a definite immutable-manifest conflict, not a lost reply.
+    let conflict = client
+        .post(&url)
+        .bearer_auth(format!("{ORG}-operator"))
+        .json(&json!({"manifest": record.manifest, "verification_ref": verification_ref}))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(conflict.status().as_u16(), 409);
+    // The organization API deliberately redacts the registry error body.
+    // Its HTTP conflict plus the independently checked stored intent suffice.
+
+    assert_eq!(
+        f.finalize_step().await,
+        Step::Attention(FinalizerCode::Publication),
+        "a same-pin read must not replace the frozen publication contract"
+    );
+    let record = f.app.store.gap_finalization(&f.gap_id).unwrap().unwrap();
+    assert!(record.publication_ref.is_none());
+    assert!(record.installation_id.is_none());
+    let CapabilityGapStatus::Acquired {
+        publication_ref, ..
+    } = f.gap().status
+    else {
+        panic!("{:?}", f.gap().status)
+    };
+    assert!(publication_ref.is_none());
+}
+
+#[tokio::test]
 async fn a_reassignment_after_installation_refuses_and_closes_it() {
     let f = Fixture::new(&["capability.acquire", PERMISSION]).await;
     f.acquire().await;
@@ -854,4 +915,346 @@ async fn serve_org_takes_a_committed_gap_all_the_way_to_installed() {
     assert_eq!(f.providers.count("POST", "/messages"), 1);
     assert_eq!(f.providers.count("POST", "/actors"), 1);
     assert_eq!(f.providers.count("POST", "/runs"), 3 + suite().cases.len());
+}
+
+// Read-only PR review regressions. Requirement edits below deliberately use
+// the existing kernel/store seam: there is currently no HTTP requirement-edit
+// or satisfy endpoint. They model a committed requirement revision, not a
+// caller-supplied proof or an invented public route.
+async fn review_commit_requirement(
+    f: &Fixture,
+    change: impl FnOnce(&mut genesis_core::model::Requirement),
+) {
+    let _guard = f.app.kernel.lock().await;
+    let before = f.app.current_state().unwrap();
+    let gap = before.capability_gaps[&f.gap_id].clone();
+    let mut after = before.clone();
+    change(after.requirements.get_mut(&gap.requirement_id).unwrap());
+    after.revision += 1;
+    f.app
+        .store
+        .commit_state(
+            before.revision,
+            &after,
+            vec![],
+            &EventMeta::mission(gap.mission_id),
+            vec![],
+            |_| Ok(()),
+        )
+        .unwrap();
+}
+
+#[tokio::test]
+async fn review_changed_requirement_must_stop_before_local_installation() {
+    let f = Fixture::new(&["capability.acquire", PERMISSION]).await;
+    f.acquire().await;
+    assert_eq!(f.finalize_step().await, Step::Frozen);
+    assert_eq!(f.finalize_step().await, Step::Published);
+    let frozen = f.app.store.gap_finalization(&f.gap_id).unwrap().unwrap();
+    review_commit_requirement(&f, |requirement| {
+        requirement.acceptance =
+            "The old venue extraction task is superseded by a different acceptance contract".into();
+    })
+    .await;
+    assert_eq!(f.gap().requirement_digest, frozen.requirement_digest);
+    let effects_before = f.providers.count("POST", "/runs");
+    let outcome = capability_gap_finalizer::step(&f.app, &f.gap_id).await;
+    assert!(
+        f.app.current_state().unwrap().installations.is_empty(),
+        "a stale gap digest must not authorize installation after its live requirement changed: {outcome:?}"
+    );
+    assert_eq!(f.providers.count("POST", "/runs"), effects_before);
+}
+
+#[tokio::test]
+async fn review_satisfied_requirement_must_fence_prepared_native_checks() {
+    let f = Fixture::new(&["capability.acquire", PERMISSION]).await;
+    f.acquire().await;
+    for expected in [
+        Step::Frozen,
+        Step::Published,
+        Step::Installing,
+        Step::Checking,
+    ] {
+        assert_eq!(f.finalize_step().await, expected);
+    }
+    let record = f.app.store.gap_finalization(&f.gap_id).unwrap().unwrap();
+    review_commit_requirement(&f, |requirement| {
+        requirement.status = genesis_core::lifecycle::RequirementStatus::Satisfied;
+    })
+    .await;
+    // The separate capability worker can run before the finalizer's next tick.
+    // Its native dispatch must still honor the finalizer's frozen work identity.
+    let posts_before = f.providers.count("POST", "/runs");
+    let result = f
+        .app
+        .capability_runtime
+        .step(&record.job_ids[0], false)
+        .await;
+    assert_eq!(
+        f.providers.count("POST", "/runs"),
+        posts_before,
+        "a prepared finalizer check dispatched after its requirement was satisfied: {result:?}"
+    );
+    assert!(!matches!(
+        f.gap().status,
+        CapabilityGapStatus::Installed { .. }
+    ));
+}
+
+#[tokio::test]
+async fn review_public_acceptance_then_delegation_must_not_finalize_a_revoked_grant() {
+    let f = Fixture::new(&["capability.acquire", PERMISSION]).await;
+    f.acquire().await;
+    for expected in [
+        Step::Frozen,
+        Step::Published,
+        Step::Installing,
+        Step::Checking,
+    ] {
+        assert_eq!(f.finalize_step().await, expected);
+    }
+    f.run_checks().await;
+    let frozen = f.app.store.gap_finalization(&f.gap_id).unwrap().unwrap();
+    let installation = frozen.installation_id.as_ref().unwrap();
+    let url = serve_url(&f).await;
+    let http = reqwest::Client::new();
+    // This is the existing public acceptance endpoint, with genuine collected
+    // evidence. It is currently not fenced as finalizer-owned installation.
+    let accepted = http
+        .post(format!(
+            "{url}/api/v1/capability-installations/{installation}/acceptance"
+        ))
+        .bearer_auth(format!("{ORG}-operator"))
+        .json(&json!({"suite_id":frozen.suite_id,"job_ids":frozen.job_ids}))
+        .send()
+        .await
+        .unwrap();
+    let accepted_status = accepted.status();
+    let accepted_body = accepted.text().await.unwrap();
+    // An ownership guard is also a safe fix: acceptance then must remain the
+    // finalizer's atomic decision, not this ordinary endpoint's decision.
+    if accepted_status == StatusCode::CONFLICT {
+        assert_eq!(
+            f.app.current_state().unwrap().installations[installation].status,
+            InstallationStatus::Checking
+        );
+        return;
+    }
+    assert_eq!(accepted_status, StatusCode::OK, "{accepted_body}");
+    assert_eq!(
+        f.app.current_state().unwrap().installations[installation].status,
+        InstallationStatus::Accepted
+    );
+    // Explicit delegation to the same role is a genuine public kernel change:
+    // None -> Role advances the epoch and fences the old owner's assignment.
+    let state = f.app.current_state().unwrap();
+    let response = http
+        .post(format!("{url}/api/v1/org-changes"))
+        .bearer_auth(format!("{ORG}-operator"))
+        .json(&json!({
+            "client_request_id":"review-finalizer-public-delegation",
+            "proposal":{
+                "expected_org_revision":state.revision,
+                "trigger_evidence_ids":f.gap().triggering_evidence,
+                "rationale":"Make the accountable role the explicit executor under a fresh grant",
+                "budget_limit_cents":0,
+                "operations":[{"op":"DelegateTask",
+                    "responsibility":{"kind":"existing","responsibility_id":frozen.responsibility_id},
+                    "executor":{"kind":"role","role":{"kind":"existing","role_id":frozen.role_id}},
+                    "task":"Continue work under the new explicit executor grant"}]
+            }
+        }))
+        .send().await.unwrap();
+    let status = response.status();
+    let body: Value = response.json().await.unwrap();
+    assert!(status.is_success(), "{status}: {body}");
+    let current = f.app.current_state().unwrap();
+    let grant = current
+        .active_assignment(&frozen.responsibility_id)
+        .unwrap();
+    assert_ne!(grant.assignment_id, frozen.assignment_id, "{body}");
+    assert!(grant.epoch > frozen.epoch);
+    let outcome = capability_gap_finalizer::step(&f.app, &f.gap_id).await;
+    assert!(
+        !matches!(f.gap().status, CapabilityGapStatus::Installed { .. }),
+        "the Accepted shortcut finalized an old grant after real public delegation: {outcome:?}"
+    );
+}
+
+/// Review fixture: establish genuine local acceptance through the public API,
+/// before the finalizer has selected an installation. The native run receipts
+/// come from the real Rust Apify client; no accepted checkpoint is fabricated.
+async fn review_accept_published_artifact(f: &Fixture, suite_id: &str) -> InstallationId {
+    let record = f.app.store.gap_finalization(&f.gap_id).unwrap().unwrap();
+    assert!(record.publication_ref.is_some());
+    assert!(record.installation_id.is_none());
+    let base = serve_url(f).await;
+    let http = reqwest::Client::new();
+    let response = http
+        .post(format!("{base}/api/v1/capability-installations"))
+        .bearer_auth(format!("{ORG}-operator"))
+        .json(&json!({"capability_id":record.capability.capability_id,
+            "version":record.capability.version,"configuration":{}}))
+        .send()
+        .await
+        .unwrap();
+    let status = response.status();
+    let body: Value = response.json().await.unwrap();
+    assert_eq!(status.as_u16(), 201, "{body}");
+    let id = InstallationId::new(body["installation_id"].as_str().unwrap());
+    let response = http
+        .post(format!(
+            "{base}/api/v1/capability-installations/{id}/checks"
+        ))
+        .bearer_auth(format!("{ORG}-operator"))
+        .json(&json!({"client_request_id":"review-preexisting-acceptance",
+            "role_id":record.role_id,"responsibility_id":record.responsibility_id,
+            "suite_id":suite_id}))
+        .send()
+        .await
+        .unwrap();
+    let status = response.status();
+    let checks: Value = response.json().await.unwrap();
+    assert_eq!(status.as_u16(), 202, "{checks}");
+    let jobs: Vec<JobId> = serde_json::from_value(checks["job_ids"].clone()).unwrap();
+    assert_eq!(jobs.len(), suite().cases.len());
+    for job in &jobs {
+        for _ in 0..10 {
+            if f.app.store.get_capability_run(job).unwrap().phase
+                == genesis_server::capability_runtime::CapabilityRunPhase::Collected
+            {
+                break;
+            }
+            f.app.capability_runtime.step(job, false).await.unwrap();
+        }
+        assert_eq!(
+            f.app.store.get_capability_run(job).unwrap().phase,
+            genesis_server::capability_runtime::CapabilityRunPhase::Collected
+        );
+    }
+    let response = http
+        .post(format!(
+            "{base}/api/v1/capability-installations/{id}/acceptance"
+        ))
+        .bearer_auth(format!("{ORG}-operator"))
+        .json(&json!({"suite_id":suite_id,"job_ids":jobs}))
+        .send()
+        .await
+        .unwrap();
+    let status = response.status();
+    let accepted: Value = response.json().await.unwrap();
+    assert_eq!(status.as_u16(), 200, "{accepted}");
+    assert_eq!(accepted["installation"]["status"], "ACCEPTED");
+    let proof = f.app.store.capability_acceptance(&id).unwrap().unwrap();
+    assert_eq!(proof.suite_id, suite_id);
+    assert_eq!(proof.job_ids, jobs);
+    assert_eq!(
+        f.app.current_state().unwrap().installations[&id]
+            .acceptance_report_ref
+            .as_deref(),
+        Some(proof.report_ref.as_str())
+    );
+    assert!(f
+        .app
+        .store
+        .gap_finalization(&f.gap_id)
+        .unwrap()
+        .unwrap()
+        .installation_id
+        .is_none());
+    id
+}
+
+#[tokio::test]
+async fn review_acceptance_from_a_weaker_suite_cannot_complete_the_frozen_finalizer_suite() {
+    let mut f = Fixture::new(&["capability.acquire", PERMISSION]).await;
+    // Both suites are trusted before any provider work. The finalizer requires
+    // an additional exact input; the independently accepted installation covers
+    // only the original three cases. The new source remains in the allowlist.
+    let mut stronger = suite();
+    stronger.suite_id = "review-finalizer-four-case-suite".into();
+    stronger.scope = "Original three cases plus a distinct attendee input".into();
+    let mut extra = stronger.cases[0].clone();
+    extra.case_id = "review-additional-attendee-input".into();
+    extra.input["attendees"] = json!(121);
+    stronger.cases.push(extra);
+    genesis_verification::validate_suite(&stronger).unwrap();
+    f.config.oracle_suites.push(stronger.clone());
+    f.config.gap_finalization_policy.as_mut().unwrap().rules[0].suite_id =
+        stronger.suite_id.clone();
+    f.reopen();
+    f.acquire().await;
+    assert_eq!(f.finalize_step().await, Step::Frozen);
+    assert_eq!(f.finalize_step().await, Step::Published);
+    let installation = review_accept_published_artifact(&f, &suite().suite_id).await;
+    let accepted = f
+        .app
+        .store
+        .capability_acceptance(&installation)
+        .unwrap()
+        .unwrap();
+    let before = f.providers.count("POST", "/runs");
+    let first = f.finalize_step().await;
+    let next = if first == Step::Installing {
+        f.finalize_step().await
+    } else {
+        first
+    };
+    let record = f.app.store.gap_finalization(&f.gap_id).unwrap().unwrap();
+    assert_eq!(record.suite_id, stronger.suite_id);
+    assert_ne!(accepted.suite_id, record.suite_id);
+    assert_eq!(accepted.job_ids.len(), 3);
+    assert_eq!(stronger.cases.len(), 4);
+    assert_eq!(f.providers.count("POST", "/runs"), before);
+    assert_ne!(
+        next,
+        Step::Installed,
+        "the finalizer must require its frozen four-case suite, not reuse a three-case acceptance of the same pin"
+    );
+    assert!(!matches!(
+        f.gap().status,
+        CapabilityGapStatus::Installed { .. }
+    ));
+    // Blocking at attention or preparing a fresh matching batch is safe. Any
+    // new checks must explicitly belong to the frozen suite.
+    for job in &record.job_ids {
+        assert!(matches!(
+            f.app.store.get_capability_run(job).unwrap().purpose,
+            genesis_server::capability_runtime::ExecutionPurpose::LocalAcceptance {
+                installation_id,
+                suite_id,
+            } if installation_id == installation && suite_id == stronger.suite_id
+        ));
+    }
+}
+
+#[tokio::test]
+async fn review_acceptance_for_the_exact_frozen_suite_can_be_reused() {
+    let f = Fixture::new(&["capability.acquire", PERMISSION]).await;
+    f.acquire().await;
+    assert_eq!(f.finalize_step().await, Step::Frozen);
+    assert_eq!(f.finalize_step().await, Step::Published);
+    let installation = review_accept_published_artifact(&f, &suite().suite_id).await;
+    let proof = f
+        .app
+        .store
+        .capability_acceptance(&installation)
+        .unwrap()
+        .unwrap();
+    let before = f.providers.count("POST", "/runs");
+    assert_eq!(f.finish().await, Step::Installed);
+    let record = f.app.store.gap_finalization(&f.gap_id).unwrap().unwrap();
+    assert_eq!(record.installation_id, Some(installation.clone()));
+    assert_eq!(record.suite_id, proof.suite_id);
+    assert_eq!(f.providers.count("POST", "/runs"), before);
+    assert_eq!(
+        f.app
+            .store
+            .capability_acceptance(&installation)
+            .unwrap()
+            .unwrap()
+            .report_ref,
+        proof.report_ref
+    );
 }

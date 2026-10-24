@@ -41,7 +41,7 @@ use chrono::{DateTime, Utc};
 use genesis_core::capability::{ActorArtifact, CapabilityManifest, VerificationReport};
 use genesis_core::engine::{self, Outcome};
 use genesis_core::ids::*;
-use genesis_core::lifecycle::{CapabilityState, InstallationStatus};
+use genesis_core::lifecycle::{CapabilityState, InstallationStatus, RequirementStatus};
 use genesis_core::model::{CapabilityGap, CapabilityGapStatus, CapabilityRef, OrgState};
 use genesis_verification::ArtifactPin;
 use rusqlite::{params, OptionalExtension, Transaction};
@@ -380,6 +380,140 @@ fn authorized(state: &OrgState, r: &FinalizationRecord) -> bool {
             .capability_gaps
             .get(&r.gap_id)
             .is_some_and(|g| g.requirement_digest == r.requirement_digest && g.role_id == r.role_id)
+        // The live requirement, not the gap's frozen copy: still assigned and
+        // still the same work.
+        && state.requirements.get(&r.requirement_id).is_some_and(|q| {
+            q.status == RequirementStatus::Assigned
+                && q.mission_id == r.mission_id
+                && engine::requirement_digest(q) == r.requirement_digest
+        })
+}
+
+/// Records whose installation is `installation`, if a finalizer owns it.
+fn owner_of(
+    store: &Store,
+    installation: &InstallationId,
+) -> StoreResult<Option<FinalizationRecord>> {
+    let conn = store.lock();
+    // A store that never enabled the finalizer has no table and no owners.
+    let enabled: bool = conn.query_row(
+        "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='capability_gap_finalizations')",
+        [],
+        |r| r.get(0),
+    )?;
+    if !enabled {
+        return Ok(None);
+    }
+    let mut stmt = conn.prepare("SELECT record_json FROM capability_gap_finalizations")?;
+    let rows = stmt.query_map([], |r| r.get::<_, String>(0))?;
+    for row in rows {
+        let record: FinalizationRecord = serde_json::from_str(&row?)?;
+        if record.installation_id.as_ref() == Some(installation) {
+            return Ok(Some(record));
+        }
+    }
+    Ok(None)
+}
+
+/// Whether a finalizer owns `installation` (its public checks and acceptance
+/// are then refused: the finalizer makes that decision atomically).
+pub fn owns_installation(store: &Store, installation: &InstallationId) -> bool {
+    // Unreadable records fail closed.
+    owner_of(store, installation).map_or(true, |r| r.is_some())
+}
+
+/// Fence for the capability worker: a local-acceptance run on a
+/// finalizer-owned installation may run, or have its result applied, only
+/// while that finalizer's frozen grant and live requirement are current.
+pub fn run_allowed(store: &Store, state: &OrgState, installation: &InstallationId) -> bool {
+    match owner_of(store, installation) {
+        Ok(None) => true,
+        Ok(Some(r)) => r.state == FinalizerState::Active && authorized(state, &r),
+        Err(_) => false,
+    }
+}
+
+/// An accepted installation may complete the gap only with this record's
+/// exact suite, the stored proof behind its report, the frozen pin, and
+/// every proof job still authorized now.
+fn accepted_matches(
+    app: &AppState,
+    state: &OrgState,
+    r: &FinalizationRecord,
+    id: &InstallationId,
+) -> Acceptance {
+    let Some(installation) = state.installations.get(id) else {
+        return Acceptance::Mismatch;
+    };
+    let Ok(Some(proof)) = app.store.capability_acceptance(id) else {
+        return Acceptance::Mismatch;
+    };
+    let pinned = app.store.capability_manifest(id).ok();
+    if installation.status != InstallationStatus::Accepted
+        || installation.acceptance_report_ref.as_deref() != Some(proof.report_ref.as_str())
+        || proof.suite_id != r.suite_id
+        || pinned.is_none_or(|m| pin_of(&m) != r.artifact)
+    {
+        return Acceptance::Mismatch;
+    }
+    let Some(manifest) = app.store.capability_manifest(id).ok() else {
+        return Acceptance::Mismatch;
+    };
+    let at = now();
+    for job_id in &proof.job_ids {
+        let (Ok(job), Ok(run)) = (
+            app.store.get_job(job_id),
+            app.store.get_capability_run(job_id),
+        ) else {
+            return Acceptance::Mismatch;
+        };
+        if job.role_id != r.role_id || job.responsibility_id != r.responsibility_id {
+            return Acceptance::Mismatch;
+        }
+        let ok = authorize_job(state, &job, run.required_scope.as_deref(), at).is_ok()
+            && run
+                .required_permissions
+                .iter()
+                .all(|s| authorize_job(state, &job, Some(s), at).is_ok())
+            && caps::authorize_permissions(state, &job.role_id, &job.responsibility_id, &manifest)
+                .is_ok();
+        if !ok {
+            return Acceptance::Unauthorized;
+        }
+    }
+    // Recompute the verdict from the persisted runs; never trust the label.
+    match caps::local_runs(app, id, &r.suite_id, &proof.job_ids)
+        .ok()
+        .and_then(|runs| {
+            app.evidence_policy
+                .accept_suite(&r.suite_id, &r.artifact, &runs)
+                .ok()
+        }) {
+        Some(evidence) if evidence.reference == proof.report_ref => Acceptance::Matches,
+        _ => Acceptance::Mismatch,
+    }
+}
+
+enum Acceptance {
+    Matches,
+    Mismatch,
+    Unauthorized,
+}
+
+/// Whether the registry's stored manifest is this record's frozen manifest,
+/// apart from what publication itself sets (recomputed proof, its suite
+/// reference and provenance, state and timestamp).
+fn same_contract(stored: &CapabilityManifest, frozen: &CapabilityManifest) -> bool {
+    let normalize = |m: &CapabilityManifest| {
+        let mut m = m.clone();
+        m.verification = frozen.verification.clone();
+        m.acceptance_suite_ref = frozen.acceptance_suite_ref.clone();
+        m.provenance = vec![];
+        m.state = CapabilityState::Approved;
+        m.published_at = None;
+        m
+    };
+    normalize(stored) == normalize(frozen) && stored.verification.passed
 }
 
 /// The gap still names the frozen acquisition and exact capability.
@@ -646,7 +780,7 @@ async fn publish(app: &AppState, r: &FinalizationRecord) -> Result<Step> {
         // Ambiguous or definite, only a confirming read can tell. Publication
         // is repeated only after an operator retry (`/finalization/retry`).
         if !matches!(registry.manifest(&r.capability.capability_id, &r.capability.version).await,
-            Ok(m) if pin_of(&m) == r.artifact && m.publisher == app.org_id)
+            Ok(m) if same_contract(&m, &r.manifest))
         {
             return attention(app, r, FinalizerCode::Publication);
         }
@@ -660,8 +794,7 @@ async fn publish(app: &AppState, r: &FinalizationRecord) -> Result<Step> {
     };
     if pin_of(&confirmed) != r.artifact
         || confirmed.publisher != app.org_id
-        || confirmed.required_permissions != r.manifest.required_permissions
-        || !confirmed.verification.passed
+        || !same_contract(&confirmed, &r.manifest)
     {
         return attention(app, r, FinalizerCode::Publication);
     }
@@ -750,6 +883,15 @@ async fn install(app: &AppState, r: &FinalizationRecord) -> Result<Step> {
         if owned || pinned.is_none_or(|m| pin_of(&m) != r.artifact) {
             return attention(app, r, FinalizerCode::Installation);
         }
+        // An accepted one is reused only with this record's exact suite,
+        // proof and current authority; anything weaker stops for an operator.
+        if existing.status == InstallationStatus::Accepted {
+            match accepted_matches(app, &state, r, &existing.installation_id) {
+                Acceptance::Matches => {}
+                Acceptance::Mismatch => return attention(app, r, FinalizerCode::Installation),
+                Acceptance::Unauthorized => return attention(app, r, FinalizerCode::Authority),
+            }
+        }
         next.installation_id = Some(existing.installation_id.clone());
         let unchanged = Outcome {
             state: state.clone(),
@@ -794,7 +936,9 @@ async fn checks(app: &AppState, r: &FinalizationRecord) -> Result<Step> {
     }
     match state.installations.get(&installation_id).map(|i| i.status) {
         Some(InstallationStatus::Checking) => {}
-        Some(InstallationStatus::Accepted) => return installed(app, &state, r, None),
+        Some(InstallationStatus::Accepted) => {
+            return accepted_shortcut(app, &state, r, &installation_id)
+        }
         _ => return attention(app, r, FinalizerCode::Installation),
     }
     let body = ChecksBody {
@@ -832,9 +976,20 @@ async fn accept(app: &AppState, r: &FinalizationRecord) -> Result<Step> {
     if !gap_matches(&state, r) {
         return attention(app, r, FinalizerCode::Acquisition);
     }
+    if !authorized(&state, r) {
+        return refuse(
+            app,
+            &state,
+            r,
+            "The requesting role's authority or requirement changed during local checks.",
+            FinalizerCode::Authority,
+        );
+    }
     match state.installations.get(&installation_id).map(|i| i.status) {
         Some(InstallationStatus::Checking) => {}
-        Some(InstallationStatus::Accepted) => return installed(app, &state, r, None),
+        Some(InstallationStatus::Accepted) => {
+            return accepted_shortcut(app, &state, r, &installation_id)
+        }
         _ => return attention(app, r, FinalizerCode::Installation),
     }
     let mut pending = false;
@@ -916,6 +1071,36 @@ async fn accept(app: &AppState, r: &FinalizationRecord) -> Result<Step> {
             FinalizerCode::Checks,
         ),
         Err(_) => attention(app, r, FinalizerCode::Configuration),
+    }
+}
+
+/// An installation of ours is already accepted: complete only if its proof is
+/// this record's exact suite and every proof job is still authorized.
+fn accepted_shortcut(
+    app: &AppState,
+    state: &OrgState,
+    r: &FinalizationRecord,
+    id: &InstallationId,
+) -> Result<Step> {
+    if !authorized(state, r) {
+        return refuse(
+            app,
+            state,
+            r,
+            "The requesting role's authority changed before completion.",
+            FinalizerCode::Authority,
+        );
+    }
+    match accepted_matches(app, state, r, id) {
+        Acceptance::Matches => installed(app, state, r, None),
+        Acceptance::Mismatch => attention(app, r, FinalizerCode::Installation),
+        Acceptance::Unauthorized => refuse(
+            app,
+            state,
+            r,
+            "The requesting role's authority changed before completion.",
+            FinalizerCode::Authority,
+        ),
     }
 }
 
