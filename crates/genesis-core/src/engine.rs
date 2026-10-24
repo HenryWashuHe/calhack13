@@ -699,7 +699,9 @@ impl<'a> Sim<'a> {
             }
         };
         if let Some(owner_id) = owner_id {
-            let epoch = self.set_owner(&rid, &owner_id);
+            let Some(epoch) = self.set_owner(i, &rid, &owner_id) else {
+                return;
+            };
             self.effects.push(EventKind::ResponsibilityAssigned {
                 responsibility_id: rid,
                 owner: owner_id,
@@ -710,7 +712,15 @@ impl<'a> Sim<'a> {
 
     /// Make `owner` the accountable owner of `rid`: advance the epoch, fence the
     /// previous assignment and create a new one. Returns the new epoch.
-    fn set_owner(&mut self, rid: &ResponsibilityId, owner: &RoleId) -> u64 {
+    fn set_owner(&mut self, i: usize, rid: &ResponsibilityId, owner: &RoleId) -> Option<u64> {
+        let Some(next_epoch) = self.st.responsibilities[rid].epoch.checked_add(1) else {
+            self.err(
+                ValidationCode::InvalidInput,
+                Some(i),
+                "responsibility epoch is exhausted",
+            );
+            return None;
+        };
         let epoch = {
             let r = self
                 .st
@@ -718,7 +728,7 @@ impl<'a> Sim<'a> {
                 .get_mut(rid)
                 .expect("checked by caller");
             r.owner = Owner::Role(owner.clone());
-            r.epoch += 1;
+            r.epoch = next_epoch;
             if matches!(&r.executor, Some(Executor::Role(e)) if e != owner) {
                 r.executor = None;
             }
@@ -757,7 +767,7 @@ impl<'a> Sim<'a> {
                 lease_expires_at: None,
             },
         );
-        epoch
+        Some(epoch)
     }
 
     fn delegate(
@@ -787,6 +797,37 @@ impl<'a> Sim<'a> {
             }
         };
         if let Some(exec) = exec {
+            if self.st.responsibilities[&rid].executor.as_ref() != Some(&exec) {
+                // A role returning after A -> B -> A must receive a new grant.
+                // Fence the whole responsibility, including prior owner work;
+                // the accountable owner and its lease remain unchanged.
+                let Owner::Role(owner) = self.st.responsibilities[&rid].owner.clone() else {
+                    return;
+                };
+                let lease = self
+                    .st
+                    .active_assignment(&rid)
+                    .and_then(|a| a.lease_expires_at);
+                let Some(epoch) = self.set_owner(i, &rid, &owner) else {
+                    return;
+                };
+                let assignment = self
+                    .st
+                    .active_assignment(&rid)
+                    .expect("just created")
+                    .assignment_id
+                    .clone();
+                self.st
+                    .assignments
+                    .get_mut(&assignment)
+                    .expect("just created")
+                    .lease_expires_at = lease;
+                self.effects.push(EventKind::ResponsibilityAssigned {
+                    responsibility_id: rid.clone(),
+                    owner,
+                    epoch,
+                });
+            }
             let r = self.st.responsibilities.get_mut(&rid).expect("checked");
             r.executor = Some(exec.clone());
             self.effects.push(EventKind::TaskDelegated {
@@ -826,7 +867,9 @@ impl<'a> Sim<'a> {
             );
             return;
         }
-        let epoch = self.set_owner(&id, &to_id);
+        let Some(epoch) = self.set_owner(i, &id, &to_id) else {
+            return;
+        };
         self.effects.push(EventKind::ResponsibilityTransferred {
             responsibility_id: id,
             from: from.clone(),
@@ -965,7 +1008,9 @@ impl<'a> Sim<'a> {
                 );
                 continue;
             }
-            let epoch = self.set_owner(&h.responsibility_id, &to);
+            let Some(epoch) = self.set_owner(i, &h.responsibility_id, &to) else {
+                continue;
+            };
             self.effects.push(EventKind::ResponsibilityTransferred {
                 responsibility_id: h.responsibility_id.clone(),
                 from: role_id.clone(),
@@ -1628,7 +1673,8 @@ pub fn check_result_epoch(
 /// same epoch, a role that is still ACTIVE, and that the role still holds the
 /// work: either the owner of the current active assignment or the current
 /// delegated executor. A replaced, retired or otherwise revoked executor's
-/// late result is rejected even though the responsibility epoch is unchanged.
+/// late result is rejected. Changed delegation rotates the responsibility epoch
+/// and assignment, so reappointing the same executor cannot revive its old grant.
 pub fn check_job_result(
     state: &OrgState,
     role_id: &RoleId,
