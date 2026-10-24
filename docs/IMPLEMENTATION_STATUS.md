@@ -28,8 +28,8 @@ arms, local candidate/control acceptance and equal grants. 109 core tests pass;
 seven new cases were independently rerun, and strict Clippy/formatting pass.
 Affected-owner interface feedback is pending. This does not enforce prior
 freezing, process isolation, cumulative experiment budgets, reveal timing or
-authentication. A trusted executor, call-level transcript and evaluator adapter
-remain necessary; no G0 completion or positive comparative result is claimed.
+authentication. Trusted runtime integration for the executor, experiment transcript
+and evaluator remains necessary; no G0 completion or comparative result is claimed.
 
 Draft [#32](https://github.com/HenryWashuHe/genesis-history-experiment/pull/32)
 `0fa3773`, stacked on #28, now implements the library experiment-call ledger.
