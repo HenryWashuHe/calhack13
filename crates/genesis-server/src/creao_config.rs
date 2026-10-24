@@ -14,7 +14,9 @@ use crate::app::AppState;
 use crate::creao_readiness::CreaoReadinessProbe;
 use crate::gateway_readiness::{self, GatewayConfig};
 use genesis_core::model::Provider;
-use genesis_creao::{AccountLimiter, CreaoClient, Limits, QuotaLimits, Runtime, RuntimeStore};
+use genesis_creao::{
+    AccountLimiter, ApiVersion, CreaoClient, Limits, QuotaLimits, Runtime, RuntimeStore,
+};
 use genesis_providers::CreaoSpecialist;
 use std::sync::Arc;
 use std::time::Duration;
@@ -31,6 +33,7 @@ struct Configuration {
     account: String,
     quota_db: String,
     token: String,
+    api_version: ApiVersion,
     gateway: Option<GatewayConfig>,
 }
 
@@ -46,10 +49,16 @@ fn env_value(name: &str) -> anyhow::Result<Option<String>> {
 fn configuration(
     values: [Option<String>; 4],
     public_url: Option<String>,
+    version: Option<String>,
 ) -> anyhow::Result<Option<Configuration>> {
-    if values.iter().all(Option::is_none) && public_url.is_none() {
+    if values.iter().all(Option::is_none) && public_url.is_none() && version.is_none() {
         return Ok(None);
     }
+    let api_version = match version.as_deref() {
+        None | Some("v1") => ApiVersion::V1,
+        Some("v2") => ApiVersion::V2,
+        Some(_) => anyhow::bail!("CREAO_API_VERSION must be v1 or v2"),
+    };
     let missing: Vec<&str> = VARS
         .iter()
         .zip(&values)
@@ -71,6 +80,7 @@ fn configuration(
         account,
         quota_db,
         token,
+        api_version,
         gateway,
     }))
 }
@@ -84,11 +94,17 @@ pub async fn attach_creao_from_env(app: AppState) -> anyhow::Result<AppState> {
         env_value(VARS[2])?,
         env_value(VARS[3])?,
     ];
-    let Some(cfg) = configuration(values, env_value("GENESIS_PUBLIC_URL")?)? else {
+    let Some(cfg) = configuration(
+        values,
+        env_value("GENESIS_PUBLIC_URL")?,
+        env_value("CREAO_API_VERSION")?,
+    )?
+    else {
         return Ok(app);
     };
     let limiter = AccountLimiter::open(&cfg.quota_db, &cfg.account, QuotaLimits::default())?;
-    let client = CreaoClient::new(&cfg.token, Limits::default(), limiter)?;
+    let client =
+        CreaoClient::new_for_version(&cfg.token, Limits::default(), limiter, cfg.api_version)?;
     let runtime = Runtime::new(
         client,
         RuntimeStore::open(&cfg.db, app.org_id.as_str())?,
@@ -141,15 +157,15 @@ mod tests {
 
     #[test]
     fn gateway_configuration_is_explicit_complete_and_errors_hide_values() {
-        assert!(configuration([None, None, None, None], None)
+        assert!(configuration([None, None, None, None], None, None)
             .unwrap()
             .is_none());
-        assert!(configuration(values(), None)
+        assert!(configuration(values(), None, None)
             .unwrap()
             .unwrap()
             .gateway
             .is_none());
-        let cfg = configuration(values(), Some("https://genesis.example".into()))
+        let cfg = configuration(values(), Some("https://genesis.example".into()), None)
             .unwrap()
             .unwrap();
         assert_eq!(
@@ -159,7 +175,7 @@ mod tests {
         for missing in 0..4 {
             let mut partial = values();
             partial[missing] = None;
-            let error = configuration(partial, Some("https://genesis.example".into()))
+            let error = configuration(partial, Some("https://genesis.example".into()), None)
                 .err()
                 .unwrap()
                 .to_string();
@@ -168,7 +184,8 @@ mod tests {
         }
         assert!(configuration(
             [None, None, None, None],
-            Some("https://genesis.example".into())
+            Some("https://genesis.example".into()),
+            None,
         )
         .is_err());
         for url in [
@@ -176,12 +193,21 @@ mod tests {
             "https://user:PRIVATE_SECRET@genesis.example",
             "https://genesis.example/?PRIVATE_SECRET",
         ] {
-            let error = configuration(values(), Some(url.into()))
+            let error = configuration(values(), Some(url.into()), None)
                 .err()
                 .unwrap()
                 .to_string();
             assert!(!error.contains("PRIVATE_SECRET"));
         }
+        assert_eq!(
+            configuration(values(), None, Some("v2".into()))
+                .unwrap()
+                .unwrap()
+                .api_version,
+            ApiVersion::V2
+        );
+        assert!(configuration(values(), None, Some("v3".into())).is_err());
+        assert!(configuration([None, None, None, None], None, Some("v2".into())).is_err());
     }
 
     #[test]

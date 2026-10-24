@@ -2,8 +2,8 @@
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use genesis_creao::{
-    AccountLimiter, CreaoClient, Limits, OperationRecord, OperationSpec, QuotaLimits, Runtime,
-    RuntimeStore,
+    AccountLimiter, ApiVersion, CreaoClient, Limits, OperationRecord, OperationSpec, QuotaLimits,
+    Runtime, RuntimeStore,
 };
 use genesis_verification::decode_json;
 use serde_json::{json, Value};
@@ -92,7 +92,13 @@ fn runtime(db: &Path, org: &str, account: &str, quota_db: &Path) -> Result<Runti
         anyhow::anyhow!("CREAO_ACCOUNT_API_KEY is required in the backend environment")
     })?;
     let limiter = AccountLimiter::open(quota_db, account, QuotaLimits::default())?;
-    let client = CreaoClient::new(&token, Limits::default(), limiter)?;
+    let version = match std::env::var("CREAO_API_VERSION") {
+        Err(std::env::VarError::NotPresent) => ApiVersion::V1,
+        Ok(value) if value == "v1" => ApiVersion::V1,
+        Ok(value) if value == "v2" => ApiVersion::V2,
+        _ => anyhow::bail!("CREAO_API_VERSION must be v1 or v2"),
+    };
+    let client = CreaoClient::new_for_version(&token, Limits::default(), limiter, version)?;
     Ok(Runtime::new(
         client,
         RuntimeStore::open(db, org)?,
@@ -102,7 +108,8 @@ fn runtime(db: &Path, org: &str, account: &str, quota_db: &Path) -> Result<Runti
 
 fn summary(record: &OperationRecord) -> Value {
     json!({"operation_id":record.spec.operation_id,"org_id":record.spec.org_id,"role_id":record.spec.role_id,
-        "account_namespace":record.spec.account_namespace,"phase":record.phase,
+        "account_namespace":record.spec.account_namespace,"api_version":record.spec.api_version,
+        "phase":record.phase,
         "run_id":record.ticket.as_ref().map(|ticket|ticket.run_id()),
         "native_status":record.observation.as_ref().map(|observation|observation.status.as_str()),
         "provider_agent_id":record.observation.as_ref().and_then(|observation|observation.agent_id.as_deref()),
