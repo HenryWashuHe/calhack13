@@ -113,3 +113,21 @@ fn overlap_and_anchors_use_exact_rotated_shapes() {
     assert!(d.contains(tip, 1.5, 0.05));
     assert!(!d.contains(-3.0 + 0.6, 1.5 + 0.6, 0.05));
 }
+
+#[test]
+fn every_body_starts_wholly_inside_the_build_zone() {
+    let rules = instance(Family::RavineCrossing, 0).rules;
+    let plank = |x: f32| -> Design {
+        serde_json::from_value(serde_json::json!({
+            "language": 1, "payload_on": "p",
+            "bodies": [{"shape":"rect","id":"p","x":x,"y":0.5,"w":4.0,"h":0.3,"material":"wood"}]
+        }))
+        .unwrap()
+    };
+    // Center inside the zone (x <= 0) but reaching 2 m past its edge.
+    assert!(plank(-0.02)
+        .validate(&rules)
+        .unwrap_err()
+        .contains("build zone"));
+    assert!(plank(-2.1).validate(&rules).is_ok());
+}
