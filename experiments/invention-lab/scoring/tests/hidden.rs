@@ -209,8 +209,11 @@ fn hidden_scoring_refuses_before_simulating_anything() {
     };
 
     refused("salt", &p, &closed, &descriptor(3), "a guessed salt");
-    // A different descriptor than the plan pinned (another draw size).
+    // A different descriptor than the plan pinned: another draw size, or the
+    // same size under another comparison (which the step grant can't catch).
     refused("descriptor", &p, &closed, &descriptor(4), SALT);
+    let other = Descriptor::new("another-comparison", SALT, Family::RavineCrossing, 3);
+    refused("comparison", &p, &closed, &other, SALT);
     // Not closed: the control arm hasn't finished, or appears twice.
     refused("open", &p, &[("candidate", &cand)], &descriptor(3), SALT);
     refused(
