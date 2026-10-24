@@ -565,6 +565,85 @@ struct Installed {
 }
 
 #[tokio::test]
+async fn elastic_bound_role_can_use_backend_apify_checks_and_invocation() {
+    let registry = registry().await;
+    let mock = ApifyMock::start().await;
+    let mut config = OrgConfig::dev("org_a", "org_a");
+    config.registry_url = Some(registry.url.clone());
+    config.registry_token = Some("org_a-registry".into());
+    config.oracle_suites = vec![suite()];
+    config.forge_checkpoints = vec![checkpoint()];
+    let app = build_org(&config, Some(mock.providers())).unwrap();
+    let org = Org {
+        server: Server::start(app.clone().router()).await,
+        id: "org_a".into(),
+        http: reqwest::Client::new(),
+    };
+    org.publish().await;
+    let installed = org.seed_and_install().await;
+    {
+        // Trusted fixture state models an active Elastic specialist; this test
+        // makes no native Elastic provisioning or converse claim. Actual Actor
+        // requests use the real Apify adapter against the loopback fixture.
+        let _guard = app.kernel.lock().await;
+        let mut state = app.current_state().unwrap();
+        let revision = state.revision;
+        let role = state
+            .roles
+            .get_mut(&genesis_core::ids::RoleId::new(&installed.role))
+            .unwrap();
+        role.binding = Some(genesis_core::model::AgentBinding {
+            provider: genesis_core::model::Provider::Elastic,
+            provider_agent_id: "genesis-review-agent".into(),
+            config_digest: "c".repeat(64),
+            conversation_ref: None,
+        });
+        state.revision += 1;
+        app.store
+            .commit_state(
+                revision,
+                &state,
+                vec![],
+                &Default::default(),
+                vec![],
+                |_| Ok(()),
+            )
+            .unwrap();
+    }
+    let (status, rejected) = org
+        .post(
+            "/jobs",
+            json!({"client_request_id":"generic-apify-override","role_id":installed.role,
+                "responsibility_id":installed.responsibility,"task":"Read venue data",
+                "input":{},"provider":"apify"}),
+        )
+        .await;
+    assert_eq!(status, StatusCode::CONFLICT, "{rejected}");
+    assert_eq!(rejected["error"], "provider_mismatch");
+    assert_eq!(mock.submissions(), 0);
+
+    let checks = org.checks(&installed).await;
+    org.collect(&checks).await;
+    org.accept(&installed, &checks).await;
+    org.attach(&installed).await;
+    let (status, job) = org
+        .post(
+            "/capability-runs",
+            json!({"client_request_id":"elastic-role-actor-run","installation_id":installed.id,
+                "role_id":installed.role,"responsibility_id":installed.responsibility,
+                "suite_id":suite().suite_id,"input":suite().cases[0].input}),
+        )
+        .await;
+    assert_eq!(status, StatusCode::ACCEPTED, "{job}");
+    assert_eq!(job["provider"], "apify");
+    org.collect(&[job["job_id"].as_str().unwrap().to_owned()])
+        .await;
+    assert_eq!(mock.submissions(), suite().cases.len() + 1);
+    assert!(org.get("/ledger").await.as_array().unwrap().is_empty());
+    mock.assert_no_oracle_or_synthesis_requests();
+}
+
+#[tokio::test]
 async fn production_publication_requires_known_backend_proof_and_exact_pin() {
     let registry = registry().await;
     let mock = ApifyMock::start().await;
