@@ -1,0 +1,25 @@
+{
+  "operation_id": "venue-generated-001",
+  "candidate": {
+    "capability_id": "venue-extraction",
+    "capability_version": "1",
+    "actor_name": "genesis-venue-generated-001",
+    "source_version": "0.1"
+  },
+  "requirement": "Extract venue listings from table and card HTML. Return every venue with explicit source evidence, capacity, price in integer minor units and ISO currency, available window, availability, and step-free access. Never infer missing prices or facts. Return unsupported with missing_required_data for incomplete listings, or unsupported_format for unknown page formats. Generalize from HTML structure rather than copying sample venue values. Use the fixed TypeScript contract.",
+  "allowed_source_urls": [
+    "https://fixtures.genesis.example/venues/table.html",
+    "https://fixtures.genesis.example/venues/cards.html",
+    "https://fixtures.genesis.example/venues/missing-data.html"
+  ],
+  "examples": [
+    {
+      "url": "https://fixtures.genesis.example/venues/table.html",
+      "html": "<!doctype html>\n<html lang=\"en\">\n<head><meta charset=\"utf-8\"><title>GENESIS synthetic venue table</title></head>\n<body>\n  <h1>Campus event rooms \u2014 November 14, 2026</h1>\n  <p>This is public synthetic demo data. All times below use UTC\u221208:00.</p>\n  <table>\n    <thead><tr><th>Venue ID</th><th>Capacity</th><th>Price</th><th>Window</th><th>Availability</th><th>Step-free access</th></tr></thead>\n    <tbody>\n      <tr id=\"grand-hall\"><td>grand-hall</td><td>180</td><td>USD 750.00</td><td><time datetime=\"2026-11-14T18:00:00-08:00\">18:00</time>\u2013<time datetime=\"2026-11-14T22:00:00-08:00\">22:00</time></td><td>Available</td><td>Yes</td></tr>\n      <tr id=\"makers-loft\"><td>makers-loft</td><td>90</td><td>USD 250.00</td><td><time datetime=\"2026-11-14T18:00:00-08:00\">18:00</time>\u2013<time datetime=\"2026-11-14T22:00:00-08:00\">22:00</time></td><td>Unavailable</td><td>No</td></tr>\n    </tbody>\n  </table>\n</body>\n</html>\n"
+    },
+    {
+      "url": "https://fixtures.genesis.example/venues/cards.html",
+      "html": "<!doctype html>\n<html lang=\"en\">\n<head><meta charset=\"utf-8\"><title>GENESIS synthetic venue cards</title></head>\n<body>\n  <h1>Community spaces \u2014 November 15, 2026</h1>\n  <p>This is public synthetic demo data. Prices are CAD, not USD. Times use UTC\u221208:00.</p>\n  <article id=\"lakeside-room\">\n    <h2>Lakeside Room</h2>\n    <dl><dt>Venue ID</dt><dd>lakeside-room</dd><dt>Capacity</dt><dd>140</dd><dt>Price</dt><dd>CAD 640.00</dd><dt>Availability</dt><dd>Available</dd><dt>Step-free access</dt><dd>Yes</dd></dl>\n    <p>Window: <time datetime=\"2026-11-15T12:00:00-08:00\">12:00</time> to <time datetime=\"2026-11-15T17:00:00-08:00\">17:00</time></p>\n  </article>\n  <article id=\"hill-auditorium\">\n    <h2>Hill Auditorium</h2>\n    <dl><dt>Venue ID</dt><dd>hill-auditorium</dd><dt>Capacity</dt><dd>220</dd><dt>Price</dt><dd>CAD 990.00</dd><dt>Availability</dt><dd>Unavailable</dd><dt>Step-free access</dt><dd>No</dd></dl>\n    <p>Window: <time datetime=\"2026-11-15T13:00:00-08:00\">13:00</time> to <time datetime=\"2026-11-15T18:00:00-08:00\">18:00</time></p>\n  </article>\n</body>\n</html>\n"
+    }
+  ]
+}

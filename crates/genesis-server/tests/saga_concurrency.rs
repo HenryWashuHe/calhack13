@@ -166,6 +166,7 @@ async fn change(app: &AppState) -> OrgChangeRecord {
         allocation,
         provisioned: Default::default(),
         ready: Default::default(),
+        operations: Default::default(),
         errors: vec![],
         committed_revision: None,
         submitted_by: "operator".into(),
