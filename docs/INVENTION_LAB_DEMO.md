@@ -19,15 +19,19 @@ independent namespace-lifecycle assurance. The first trial's cost report exclude
 the two failed generations, reference run and second comparison.
 
 No local adoption/promotion, distinct B task, feedback-driven B revision or
-fresh-task A return has been demonstrated. Public feedback export #102 remains
-held pending corrected-source review. Changed source bytes or an accepted
-verdict against one control do not establish recursive improvement.
+fresh-task A return has been demonstrated. Public feedback #102 is merged after
+independent policy/byte-boundary checks. A source-only exploratory B revision
+using this checked feedback is proposed; it does not replace receiving acceptance
+or the distinct B and fresh A tasks. Changed bytes or an accepted verdict against
+one control do not establish recursive improvement.
 
 [Finite chain ceilings (#103)](invention-lab/contracts/chain-allocation.md) and
 [retained chain CLI files (#107)](invention-lab/contracts/chain-allocation.md#retained-cli-files)
 are merged, alongside generation reservations, stage allocations and cost
 assessment. They support declared generation and trial-only stages without dummy
-calls. Automatic runtime consumption, chronology/copy/rollback protection,
+calls. Merged optional generation chain guard #110 checks that retained binding
+before recovery or a provider request on the cooperating generation path.
+Automatic runtime consumption, chronology/copy/rollback protection,
 complete adaptive cost accounting and the controlled comparison remain open.
 Provider-default sampling does not establish fixed settings; the observed calls
 cannot acquire a prior chain declaration retroactively. Experimental isolation
