@@ -90,7 +90,15 @@ installation ID.
 
 Definite outcomes refuse the gap the way the gap driver does, so the planner
 hears about it and the gap stops counting against the live-gap limits; the
-refusal carries the adoption ID. A requirement that changed before anything
+refusal carries the adoption ID. For a local rejection the refusal reason reads
+`Not applicable here: <capability>@<version> from <publisher> was tested
+locally; <oracle-free failed-case summary>`; for an empty search without
+fallback it reads `No candidate: <why nothing was eligible>; synthesis is not
+allowed for it.` Both are clipped to the kernel's 400 characters, never include
+similarity scores or expected values, and fall back to the fixed sentence if
+the decision log can't be read. Authority refusals keep their fixed sentence.
+The planner's rules tell it a `Not applicable here` refusal won't change by
+requesting the same capability again for the same need. A requirement that changed before anything
 was frozen is refused too (no record is written). A role still waiting for
 activation is not a refusal: the gap waits, deferred from the driver.
 

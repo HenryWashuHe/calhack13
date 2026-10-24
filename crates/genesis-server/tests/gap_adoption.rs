@@ -3030,3 +3030,74 @@ async fn outcome_is_stable_across_restart() {
     f.drain().await;
     assert_eq!(outcome(&f), before);
 }
+
+fn refusal(f: &Fixture) -> String {
+    match f.gap_status() {
+        CapabilityGapStatus::Refused { reason, .. } => reason,
+        other => panic!("gap not refused: {other:?}"),
+    }
+}
+
+#[tokio::test]
+async fn a_rejected_adoption_tells_the_planner_which_version_failed_locally_and_why() {
+    // Henry's Claude: the refusal the planner reads names the exact candidate
+    // and the oracle-free local reason, so it can pick another path instead
+    // of re-requesting the same thing blind.
+    let mut f = Fixture::new(Options::default()).await;
+    f.providers.wrong_outputs();
+    settle(&mut f).await;
+    let reason = refusal(&f);
+    let version = manifest(FOREIGN, "org-a")["version"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    assert!(reason.starts_with("Not applicable here: "), "{reason}");
+    assert!(
+        reason.contains(&format!("{FOREIGN}@{version} from org-a")),
+        "{reason}"
+    );
+    assert!(reason.contains("cases failed"), "{reason}");
+    let expected = receipts()[0].output["venues"][0]["capacity"].to_string();
+    assert!(!reason.contains(&expected), "{reason}");
+    assert!(!reason.contains("score"), "{reason}");
+    assert!(reason.chars().count() <= 400);
+}
+
+#[tokio::test]
+async fn an_empty_search_without_fallback_tells_the_planner_why_nothing_was_eligible() {
+    let f = Fixture::new(Options {
+        foreign: false,
+        fallback: false,
+        ..Options::default()
+    })
+    .await;
+    f.drain().await;
+    f.drain().await;
+    f.adoption_step().await;
+    f.drain().await;
+    let reason = refusal(&f);
+    assert!(reason.starts_with("No candidate: "), "{reason}");
+    assert!(
+        reason.contains("published by this organization"),
+        "{reason}"
+    );
+    assert!(
+        reason.ends_with("synthesis is not allowed for it."),
+        "{reason}"
+    );
+}
+
+#[tokio::test]
+async fn an_authority_refusal_keeps_its_fixed_reason() {
+    let mut f = Fixture::new(Options::default()).await;
+    f.drain().await;
+    f.drain().await;
+    f.adoption_step().await;
+    f.adoption_step().await;
+    f.change_requirement();
+    settle(&mut f).await;
+    assert_eq!(
+        refusal(&f),
+        "The original requirement or its assignment is no longer valid."
+    );
+}
