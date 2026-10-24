@@ -2,8 +2,8 @@
 
 ## Authoritative checkpoint — October 23, 2026
 
-Source basis: main `9a9c7a0a459c929e3612dc942c5a8dcb9fd7d8bd`, tree
-`05767561a3017163e9ff7af77de655070d6929f6`, after #82. This checkpoint
+Source basis: main `0a0c175aa452d2dfcdee617e6f1647a523f5cceb`, tree
+`ec382ccbfabc37487d23e3962e955f49f295493c`, after #101. This checkpoint
 supersedes the historical status and ownership notes below; exact newer GitHub
 heads and the scoped handoffs in [issue #4](https://github.com/HenryWashuHe/genesis/issues/4)
 take precedence. The ongoing two-organization mission goal remains active.
@@ -29,24 +29,36 @@ new aggregate count for every later main commit.
   failing regressions plus four passing controls. See [monitor semantics](docs/VENUE_MONITORS.md).
 
 - **#82 adopt first:** merged `9a9c7a0`, source correction `ae00fa9`, tested
-  composition `4c8c461` with the exact main tree above. The original same-owner
+  composition `4c8c461`, tree `05767561`. The original same-owner
   delegation regression is unchanged and now passes. **41 focused tests**,
   scoped strict Clippy and formatting pass. The author branch
   `henry-claude/gap-adoption` was fast-forwarded to `4c8c461` to include current
   main; no history was rewritten. Claude should pull before continuing it.
+- **#83 / #85 / #87:** merged as `b58ac99` / `090700b` / `8027428`.
+  The two-organization integration passes; adoption UI passes **85 web tests**,
+  typecheck and build. The local rehearsal reached synthesis, publication and
+  installation in A, then discovery, checks and installation in B with no B
+  synthesis. These are fixture-provider results, not a live planner/sponsor run.
+- **#101 Fetch venue recovery:** merged `0a0c175`, source `093010b`, exact tree
+  above. **255 focused Rust tests** (42 assessment, 135 server-library, 78 Fetch),
+  the newly merged two-organization test, **34 Python tests**, scoped strict
+  Clippy and formatting pass; independent source review is clean. Recovery
+  preserves verified source/child identity and retires its local contract with
+  bounded exact release delivery. Bridge queue acknowledgment does not prove
+  peer release. See [the API and evidence boundary](docs/VENUE_RECOVERY.md).
 
 **Open review queue:** #86 `83998b0` remains **held on a reproduced failure**.
 A local check marked `Rejected` after suite drift can retain a native receipt
 whose provider run is still `RUNNING`. Retry submits a second POST while an
 independent GET confirms the first run remains active. Test-only `a497651` on
-`codex/review-adoption86-rejected`, composed with current main at `c33c93f`,
+`codex/review-adoption86-rejected`, composed with then-current main at `c33c93f`,
 reproduces this; it is loopback provider evidence, not a live sponsor run.
 #91 `6776130` remains held on replay starvation under frequent nonstructural
-events and missing revisions displayed as audited success. Draft #84 has a new
-head `3d3219c`, **not yet reviewed**; the earlier preflight/coverage findings are
-not cleared by its arrival. Test-only `4ed8c08` is preserved but not yet executed.
-#83 `7c1900d`, #85 `c2abcf9` and #87 `88d9174` have clean scoped source reviews
-and can proceed to current-main integration and execution independently of #86.
+events and missing revisions displayed as audited success. Draft #84 `3d3219c`
+now passes **four preflight tests** and scoped strict Clippy; its original policy
+validation defect is cleared. Its remaining hold is the runbook's presentation
+of unreleased #86 retry behavior and the claim that a check is never submitted
+twice (`docs/DEMO_RUNBOOK.md:311`), which the #86 regression contradicts.
 See [the exact queue](docs/PR_REVIEW_QUEUE.md).
 
 **Ownership:** Claude/Eric retains kernel, planner, readiness, adoption and UI,
@@ -57,12 +69,12 @@ deserialization and adjacent tests. The follow-up exposes adoption-only names
 without acquisition sources/scope and uses the observation's public page URLs;
 it does not change the coordinator, kernel or acquisition. See the
 [scoped claim](https://github.com/HenryWashuHe/genesis/issues/4#issuecomment-6372394586).
-Codex's monitor and Fetch float fixes are merged.
-Codex continues the Fetch venue-recovery implementation at `299ee0c` on
-`codex/fetch-venue-recovery`, with runtime/retirement integration tests still
-pending; this is work in progress, not a merged mission result. Coordinate
-before overlapping files. Preserve review evidence and push tested increments;
-the active root reviewer sequences merges.
+Codex's monitor, Fetch float and #101 recovery implementations are merged.
+Codex's next focus is composing the native Python bridge with the Rust recovery
+coordinator in one fixture-backed integration run. Existing Python signed-process
+and coordinator authenticated-boundary tests pass separately; the combined path
+is not yet established. Coordinate before overlapping files. Preserve review
+evidence and push tested increments; the active root reviewer sequences merges.
 
 **Evidence and credentials:** no native sponsor run is established. Loopback
 fixtures and local signed-process checks do not prove cloud execution or a
