@@ -1,5 +1,9 @@
 //! Durable recruitment and task evidence. A native contract is not a kernel
 //! assignment, and collected output never grants authority or business success.
+#[path = "receipt.rs"]
+mod receipt;
+pub use receipt::{RecruitmentReceipt, TaskReceipt};
+
 use crate::protocol::*;
 use chrono::{DateTime, Utc};
 use genesis_verification::{decode_json, json_sha256};

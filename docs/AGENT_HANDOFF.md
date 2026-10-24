@@ -2,20 +2,50 @@
 
 ## Current implementation and ownership — October 22, 2026
 
-The optional monitoring scenario now registers one durable subscription and
-observes both accepted assessment cycles (`8741f38`). It preserves the existing
-proof/job/source/authority checks, requires the subscription's final replacement
-requirement to match the second accepted proof, and reports its subscription ID.
-The HTTP fixture rejects direct assessment POSTs and asserts one registration,
-two distinct executions, exact deadlines and unchanged history after restart.
-All **40 scenario unit/HTTP checks and five full scenarios** pass; strict default
-workspace all-target Clippy and formatting pass. Independent review is clean.
-These remain loopback provider tests, not native sponsor evidence.
+Immutable Fetch receipts are implemented at `afbe0bf` (reviewed original
+`6424bfb`). Exact frozen recruitment/consent/task messages are checked against
+prepared outbox and authenticated Applied inbox records in one SQLite snapshot.
+Receipt hashes survive later work/release/restart; construction is private and
+Debug hides payloads. **64 Fetch crate tests**, including 13 receipt tests, strict
+crate all-target Clippy and workspace fmt pass. Independent review is clean.
+See [the API and trust boundary](FETCH_RUNTIME.md#immutable-receipt-reconstruction).
+This adds no server integration, native signature verification or domain verdict.
 
-Claude's [PR #78](https://github.com/HenryWashuHe/genesis/pull/78) adds the assigned
-gap finalizer and is under independent review at `7cb747c`. Its runtime is not
-included in the scenario validation above. Claude retains that implementation;
-Codex is reviewing it while completing the scenario follow-up.
+[PR #79](https://github.com/HenryWashuHe/genesis/pull/79) is merged as `1fc1b8e`,
+reviewed source `135c839`, exact tree `c09245b`. Runtime `8741f38` registers one
+durable subscription and observes both accepted assessment cycles. All 40 scenario
+unit/HTTP checks and five full scenarios pass, with strict default workspace
+all-target Clippy/fmt and clean independent review. Loopback evidence only.
+
+Claude's [PR #78](https://github.com/HenryWashuHe/genesis/pull/78) is on review
+hold at `7cb747c`. Composition `6be7dc2` on `codex/review-gap-finalizer78` preserves
+five reproduced regressions and 11 passing controls: live requirement fencing,
+weaker-suite acceptance, acceptance followed by delegation, and conflicting
+same-pin publication. The ten original tests still pass. The two requirement
+mutation tests use an explicitly documented Store commit seam; the acceptance,
+delegation and publication paths use genuine public endpoints and loopback clients.
+No production fix is included in that review branch.
+
+Stacked [PR #80](https://github.com/HenryWashuHe/genesis/pull/80), `931192c`, also
+awaits correction: global finalizer enablement with no per-gap record must not
+claim work is queued. Its 66 original web tests/typecheck/build pass; `d369213`
+adds the failing no-record regression and passing organization-switch/terminal
+AttentionPanel control. Claude retains both implementations.
+
+After those fixes, Claude is assigned the opt-in adopt-before-acquire gap
+coordinator and narrow kernel transition in a separate PR. It must create one
+durable adoption intent, retain uncertain outcomes, and permit synthesis fallback
+only after a definitive persisted empty result. A correlation prefix cannot by
+itself authorize a different selected capability ID. The detailed acceptance
+criteria and ownership are in issue #4 comment `6354798168`; implementation has
+not yet been reported.
+
+Codex owns the immutable Fetch receipt slice, restricted to `genesis-fetch` and
+its focused docs/tests. The implementation binds exact prepared requests to
+authenticated Applied inbox evidence and preserves historical identity across
+later tasks and release. No server bridge, kernel, planner,
+readiness or UI changes are part of that slice. Native sponsor evidence remains
+open. See the scoped handoff in issue #4 and the Fetch mission bridge plan.
 
 [PR #77](https://github.com/HenryWashuHe/genesis/pull/77) adds opt-in durable venue
 monitor subscriptions; **merged** as `1bb3c9f`, reviewed source `c889491`,
