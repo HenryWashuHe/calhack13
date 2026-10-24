@@ -1,4 +1,5 @@
 mod acquisition_commands;
+mod method_synthesis_commands;
 mod storage;
 mod synthesis_commands;
 
@@ -16,6 +17,10 @@ use storage::{CheckpointLock, MAX_EXTRACTOR_BYTES};
 
 const HELP: &str = "Usage:
   genesis-forge prepare --candidate metadata.json --extractor parser.ts --suite suite.json --checkpoint session.json
+  genesis-forge method-generate-prepare --plan method-plan.json --checkpoint method-generation.json
+  genesis-forge method-generate-step --checkpoint method-generation.json
+  genesis-forge method-generate-status --checkpoint method-generation.json
+  genesis-forge method-generate-export --checkpoint method-generation.json
   genesis-forge generate-prepare --request public-request.json --model-config model.json --checkpoint generation.json
   genesis-forge generate-step --checkpoint generation.json
   genesis-forge generate-status --checkpoint generation.json
@@ -82,6 +87,10 @@ impl Arguments {
         let allowed: &[&str] = match command.as_str() {
             "prepare" => &["--candidate", "--extractor", "--suite", "--checkpoint"],
             "prepare-generated" => &["--candidate", "--generation", "--suite", "--checkpoint"],
+            "method-generate-prepare" => &["--plan", "--checkpoint"],
+            "method-generate-step" | "method-generate-status" | "method-generate-export" => {
+                &["--checkpoint"]
+            }
             "generate-prepare" => &["--request", "--model-config", "--checkpoint"],
             "generate-step" | "generate-status" => &["--checkpoint"],
             "acquire-prepare" => &["--plan", "--suite", "--checkpoint"],
@@ -174,6 +183,9 @@ async fn run() -> Result<u8, String> {
         print!("{HELP}");
         return Ok(0);
     };
+    if args.command.starts_with("method-generate-") {
+        return method_synthesis_commands::run(&args).await;
+    }
     if args.command.starts_with("generate-") {
         return synthesis_commands::run(&args).await;
     }
