@@ -727,3 +727,73 @@ async fn unsupported_guarded_adapter_rejects_without_using_unguarded_advance() {
         .await;
     assert!(matches!(result, Err(ProviderError::Rejected(_))));
 }
+
+// Independent PR25 regression: the exported receipt must identify the native
+// operation actually sent, including its protocol version and exact payload.
+async fn review_receipt_hash_matches_wire(version: genesis_creao::ApiVersion) {
+    let mock = Mock::serve(vec![
+        Reply {
+            status: 202,
+            body: response(RUN_A, Some(AGENT), "pending", None),
+        },
+        Reply {
+            status: 200,
+            body: response(RUN_A, Some(AGENT), "completed", Some(json!({"ok":true}))),
+        },
+    ])
+    .await;
+    let store = RuntimeStore::in_memory("org-a").unwrap();
+    let limiter = AccountLimiter::in_memory("shared-account", QuotaLimits::default()).unwrap();
+    let client = match version {
+        genesis_creao::ApiVersion::V1 => CreaoClient::for_local_testing(
+            "cr_sk_local_test_only",
+            Limits::default(),
+            limiter,
+            &mock.base,
+        ),
+        genesis_creao::ApiVersion::V2 => CreaoClient::for_local_testing_v2(
+            "cr_sk_local_test_only",
+            Limits::default(),
+            limiter,
+            &mock.base.replace("/v1", "/v2"),
+        ),
+    }
+    .unwrap();
+    let runtime = Runtime::new(client, store.clone(), Duration::from_millis(1)).unwrap();
+    let adapter = CreaoSpecialist::new(runtime);
+    let job = job();
+    let binding = binding();
+    let operation = adapter
+        .prepare_job(&job, &binding)
+        .unwrap()
+        .operation_id()
+        .to_owned();
+    adapter.advance(&operation, false).await.unwrap();
+    due(&store, &operation).await;
+    adapter.advance(&operation, false).await.unwrap();
+    let receipt = adapter.execution_receipt(&job, &binding).unwrap();
+    let requests = mock.finish().await;
+    assert_eq!(requests.len(), 2);
+    let (schema, hash_path, wire_path) = match version {
+        genesis_creao::ApiVersion::V1 => (1, "runs", "/v1/runs"),
+        genesis_creao::ApiVersion::V2 => (2, "/v2/runs", "/v2/runs"),
+    };
+    assert!(requests[0].starts_with(&format!("POST {wire_path} ")));
+    let expected = genesis_verification::json_sha256(&json!({
+        "schema_version":schema,"path":hash_path,"payload":body(&requests[0])
+    }));
+    assert_eq!(
+        receipt.request_sha256, expected,
+        "receipt identifies a different native protocol/payload"
+    );
+}
+
+#[tokio::test]
+async fn review_v1_execution_receipt_preserves_legacy_wire_digest() {
+    review_receipt_hash_matches_wire(genesis_creao::ApiVersion::V1).await;
+}
+
+#[tokio::test]
+async fn review_v2_execution_receipt_hashes_the_actual_v2_wire_operation() {
+    review_receipt_hash_matches_wire(genesis_creao::ApiVersion::V2).await;
+}
