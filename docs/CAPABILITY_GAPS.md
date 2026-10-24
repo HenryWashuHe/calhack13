@@ -36,6 +36,9 @@ The kernel commits it only if:
   responsibility's mission;
 - the role resolves (existing ACTIVE, or created earlier in the change) and
   **owns** the responsibility when the operation applies (assign it first);
+- the responsibility was created **for this exact requirement**
+  (`responsibility.requirement_id == requirement_id`) and the requirement is
+  owned by the same role, the link acquisition authority checks later;
 - `capability_id` is 3–64 characters of `a-z 0-9 - .`, starting alphanumeric;
   `purpose` is 1–400 characters;
 - `observed_sources` holds 1–8 http(s) URLs without credentials, each on the
@@ -66,6 +69,7 @@ capability attachable; `AttachCapability` still checks the installation.
 | `open` | `acquiring` | `acquisition_id` (1–400) |
 | `open` | `refused` | `reason` (1–400), no acquisition |
 | `acquiring` | `acquired` | same `acquisition_id`; this gap's `capability_id` at an exact version (not `latest`); optional `publication_ref` |
+| `acquired` (no `publication_ref`) | `acquired` (with `publication_ref`) | publication is a separate effect: record its reference **once**, same acquisition and capability; never replace or remove it |
 | `acquiring` | `refused` | `reason`, same `acquisition_id` |
 | `acquired` | `installed` | same acquisition and capability; `installation_id` must exist here for that exact capability with status **Accepted** |
 | `acquired` | `refused` | `reason`, same `acquisition_id` |
