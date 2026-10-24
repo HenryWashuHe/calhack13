@@ -276,7 +276,7 @@ export async function apifyGate(ctx) {
 export async function creaoGate(ctx) {
   const bin = join(ctx.binDir, "genesis-creao");
   if (!existsSync(bin)) return { status: "not_tested", reason: `no ${bin}` };
-  const apiVersion = ctx.env.CREAO_API_VERSION ?? "v1";
+  const apiVersion = ctx.env.CREAO_API_VERSION?.trim() ? ctx.env.CREAO_API_VERSION : "v1";
   if (apiVersion !== "v1" && apiVersion !== "v2") {
     return { status: "failed", stage: "configuration", reason: "CREAO_API_VERSION must be v1 or v2" };
   }
