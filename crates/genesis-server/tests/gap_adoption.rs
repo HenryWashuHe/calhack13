@@ -2663,3 +2663,91 @@ async fn candidate_decisions_are_operator_only_and_carry_no_private_text() {
     }
     assert!(!text.contains("\"intent\""), "{text}");
 }
+
+// Independent PR116 checks: logging must stay readable for refused answers and
+// must not change first-eligible selection merely by examining later ranks.
+async fn review_registry_answer(f: &mut Fixture, candidates: Value) -> tokio::task::JoinHandle<()> {
+    let router = Router::new().fallback(move |request: Request| {
+        let candidates = candidates.clone();
+        async move {
+            if request.uri().path().ends_with("/search") {
+                Json(candidates)
+            } else {
+                Json(manifest(FOREIGN, "org-a"))
+            }
+        }
+    });
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let url = format!("http://{}", listener.local_addr().unwrap());
+    let task = tokio::spawn(async move { axum::serve(listener, router).await.unwrap() });
+    f.app.registry = Some(genesis_server::registry::RegistryClient::new(
+        url,
+        "fixture-reader",
+    ));
+    task
+}
+
+fn review_search_candidate(score: f64) -> Value {
+    let m = manifest(FOREIGN, "org-a");
+    json!({"capability_id":m["capability_id"],"version":m["version"],
+        "publisher":m["publisher"],"source_digest":m["source_digest"],
+        "intent":m["intent"],"applicability_conditions":m["applicability_conditions"],
+        "required_permissions":m["required_permissions"],"score":score})
+}
+
+#[tokio::test]
+async fn review_candidate_log_preserves_first_eligible_selection() {
+    let mut f = Fixture::new(Options::default()).await;
+    let registry = review_registry_answer(
+        &mut f,
+        json!([review_search_candidate(2.0), review_search_candidate(0.0)]),
+    )
+    .await;
+    f.drain().await;
+    f.drain().await;
+    let id = f.record().unwrap().adoption_id.unwrap();
+    let record = capability_adoption::step(&f.app, &id).await.unwrap();
+    registry.abort();
+    assert_eq!(
+        record.phase(),
+        AdoptionPhase::Selected,
+        "observability-only logging must preserve selection before an unevaluated later candidate"
+    );
+}
+
+#[tokio::test]
+async fn review_overflow_score_refusal_keeps_candidate_log_readable() {
+    let mut f = Fixture::new(Options::default()).await;
+    // This is a valid finite JSON number, but it exceeds f32's range.
+    let registry = review_registry_answer(&mut f, json!([review_search_candidate(1e39)])).await;
+    f.drain().await;
+    f.drain().await;
+    let id = f.record().unwrap().adoption_id.unwrap();
+    let record = capability_adoption::step(&f.app, &id).await.unwrap();
+    registry.abort();
+    assert_eq!(record.phase(), AdoptionPhase::Attention);
+    let recorded = f.app.store.adoption_candidates(&id);
+    assert!(
+        recorded.is_ok(),
+        "a refused registry score must not persist an unreadable decision: {recorded:?}"
+    );
+}
+
+#[tokio::test]
+async fn review_zero_score_refusal_is_readable_control() {
+    let mut f = Fixture::new(Options::default()).await;
+    let registry = review_registry_answer(&mut f, json!([review_search_candidate(0.0)])).await;
+    f.drain().await;
+    f.drain().await;
+    let id = f.record().unwrap().adoption_id.unwrap();
+    let record = capability_adoption::step(&f.app, &id).await.unwrap();
+    registry.abort();
+    assert_eq!(record.phase(), AdoptionPhase::Attention);
+    assert_eq!(
+        record.attention_code(),
+        Some(AdoptionAttention::InvalidCandidate)
+    );
+    let recorded = f.app.store.adoption_candidates(&id).unwrap();
+    assert_eq!(recorded.len(), 1);
+    assert_eq!(recorded[0].decision.as_str(), "invalid_response");
+}
