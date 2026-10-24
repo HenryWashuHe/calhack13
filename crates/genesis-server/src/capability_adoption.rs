@@ -1,6 +1,9 @@
 //! Durable, requirement-bound independent adoption. Discovery is a bounded
 //! registry read; paid execution stays in the existing capability runtime.
 use crate::app::AppState;
+use crate::capability_adoption_candidates::{
+    self as candidates, CandidateDecision, CandidateDecisionKind as Decided,
+};
 use crate::capability_adoption_store::{
     self as storage, AdoptionAttention, AdoptionError, AdoptionPhase, AdoptionRecord,
 };
@@ -165,6 +168,40 @@ fn attention(
     )
 }
 
+/// A discovery that ends without a selection: the attention code and the
+/// candidate decisions that explain it are committed together. Discovery
+/// never has an installation yet, so this is a plain save.
+fn stop_discovery(
+    app: &AppState,
+    state: &OrgState,
+    record: &AdoptionRecord,
+    code: AdoptionAttention,
+    decisions: &[CandidateDecision],
+) -> ApiResult<AdoptionRecord> {
+    if record.installation_id().is_some() {
+        return Err(internal());
+    }
+    let next = record
+        .attention(code, Utc::now())
+        .map_err(error)?
+        .for_revision(state.revision)
+        .map_err(error)?;
+    app.store
+        .commit_state(
+            state.revision,
+            state,
+            vec![],
+            &EventMeta::default(),
+            vec![],
+            |tx| {
+                storage::save_in_tx(tx, record, &next)?;
+                candidates::insert_in_tx(tx, decisions)
+            },
+        )
+        .map_err(|_| internal())?;
+    Ok(next)
+}
+
 /// Terminal work must not strand an unaccepted installation in Checking. This
 /// records an operational stop, not a semantic verdict about the parser. The
 /// old child tickets remain available; a later explicit intent is separate work.
@@ -266,11 +303,29 @@ fn candidate_matches(candidate: &SearchCandidate, manifest: &CapabilityManifest)
             == manifest.required_permissions.iter().collect()
 }
 
-async fn discover(
+/// Outcome of one registry read: what was decided about each candidate (in
+/// registry rank order), and either the selected manifest (with its rank),
+/// a definitive empty answer, or why discovery stopped.
+struct Discovery {
+    decisions: Vec<CandidateDecision>,
+    result: Result<Option<(usize, CapabilityManifest)>, AdoptionAttention>,
+}
+
+async fn discover(app: &AppState, record: &AdoptionRecord, scopes: Vec<String>) -> Discovery {
+    let mut decisions = Vec::new();
+    let result = discover_into(app, record, scopes, &mut decisions).await;
+    Discovery { decisions, result }
+}
+
+/// Rank and score only order candidates; each one is still checked here
+/// (publisher, permissions, manifest identity and state) and only this
+/// organization's acceptance suite can make it applicable later.
+async fn discover_into(
     app: &AppState,
     record: &AdoptionRecord,
     scopes: Vec<String>,
-) -> Result<Option<CapabilityManifest>, AdoptionAttention> {
+    decisions: &mut Vec<CandidateDecision>,
+) -> Result<Option<(usize, CapabilityManifest)>, AdoptionAttention> {
     let registry = app
         .registry
         .as_ref()
@@ -283,34 +338,124 @@ async fn discover(
         })
         .await
         .map_err(|_| AdoptionAttention::RegistryUnavailable)?;
-    if candidates.len() > 5 {
+    let now = Utc::now();
+    let id = record.id();
+    if candidates.len() > 5
+        || candidates
+            .iter()
+            .any(|c| !c.score.is_finite() || c.score <= 0.0)
+    {
+        // A malformed answer is evaluated as a whole: nothing in it is used.
+        decisions.extend(candidates.iter().take(5).enumerate().map(|(rank, c)| {
+            CandidateDecision::new(
+                id,
+                rank,
+                c,
+                Decided::InvalidResponse,
+                "the registry answer was invalid (too many candidates or an unusable score), so no candidate in it was evaluated",
+                now,
+            )
+        }));
         return Err(AdoptionAttention::InvalidCandidate);
     }
-    for candidate in candidates {
-        if !candidate.score.is_finite() || candidate.score <= 0.0 {
-            return Err(AdoptionAttention::InvalidCandidate);
-        }
-        if candidate.publisher == app.org_id
-            || candidate
-                .required_permissions
-                .iter()
-                .any(|scope| !scopes.contains(scope))
-        {
+    let mut outcome = Ok(None);
+    for (rank, candidate) in candidates.iter().enumerate() {
+        if !matches!(outcome, Ok(None)) {
+            decisions.push(CandidateDecision::new(
+                id,
+                rank,
+                candidate,
+                Decided::NotEvaluated,
+                match &outcome {
+                    Ok(Some(_)) => "a higher-ranked candidate was selected first",
+                    _ => "discovery stopped at a higher-ranked candidate",
+                },
+                now,
+            ));
             continue;
         }
-        let manifest = registry
+        if candidate.publisher == app.org_id {
+            decisions.push(CandidateDecision::new(
+                id,
+                rank,
+                candidate,
+                Decided::OwnPublication,
+                "published by this organization; adoption only inherits from other organizations",
+                now,
+            ));
+            continue;
+        }
+        let missing: Vec<String> = candidate
+            .required_permissions
+            .iter()
+            .filter(|scope| !scopes.contains(scope))
+            .cloned()
+            .collect();
+        if !missing.is_empty() {
+            decisions.push(
+                CandidateDecision::new(
+                    id,
+                    rank,
+                    candidate,
+                    Decided::MissingScope,
+                    format!(
+                        "needs permissions the requesting role doesn't hold: {}",
+                        missing.join(", ")
+                    ),
+                    now,
+                )
+                .with_missing(missing),
+            );
+            continue;
+        }
+        let manifest = match registry
             .manifest(&candidate.capability_id, &candidate.version)
             .await
-            .map_err(|_| AdoptionAttention::RegistryUnavailable)?;
-        if !candidate_matches(&candidate, &manifest)
-            || capabilities::check_manifest(app, &manifest).is_err()
-            || !manifest.state.is_usable()
         {
-            return Err(AdoptionAttention::InvalidCandidate);
-        }
-        return Ok(Some(manifest));
+            Ok(manifest) => manifest,
+            Err(_) => {
+                decisions.push(CandidateDecision::new(
+                    id,
+                    rank,
+                    candidate,
+                    Decided::ManifestUnavailable,
+                    "its manifest couldn't be read, so its applicability is unknown",
+                    now,
+                ));
+                outcome = Err(AdoptionAttention::RegistryUnavailable);
+                continue;
+            }
+        };
+        let (decided, reason) = if !candidate_matches(candidate, &manifest)
+            || capabilities::check_manifest(app, &manifest).is_err()
+        {
+            (
+                Decided::InvalidManifest,
+                "its manifest disagrees with the search answer or fails local manifest checks",
+            )
+        } else if !manifest.state.is_usable() {
+            (
+                Decided::UnusableState,
+                "its manifest is not in an installable state",
+            )
+        } else {
+            decisions.push(CandidateDecision::new(
+                id,
+                rank,
+                candidate,
+                Decided::Selected,
+                "first eligible candidate by registry rank; selected for this organization's own acceptance checks",
+                now,
+            ));
+            outcome = Ok(Some((rank, manifest)));
+            continue;
+        };
+        decisions.push(CandidateDecision::new(
+            id, rank, candidate, decided, reason, now,
+        ));
+        outcome = Err(AdoptionAttention::InvalidCandidate);
     }
-    Ok(None)
+    outcome
 }
 
 /// Performs one durable transition. Repeated calls cannot duplicate the selected
@@ -340,7 +485,10 @@ pub async fn step(app: &AppState, id: &str) -> ApiResult<AdoptionRecord> {
         let next = record.begin_discovery(Utc::now()).map_err(error)?;
         (save(app, &state, &record, next)?, scopes)
     };
-    let result = discover(app, &record, scopes).await;
+    let Discovery {
+        mut decisions,
+        result,
+    } = discover(app, &record, scopes).await;
     let _kernel = app.kernel.lock().await;
     let current = app.store.get_adoption(id).map_err(error)?;
     if current.version() != record.version() {
@@ -351,10 +499,18 @@ pub async fn step(app: &AppState, id: &str) -> ApiResult<AdoptionRecord> {
     if let Some(record) = reconcile(app, &state, &record)? {
         return Ok(record);
     }
-    let manifest = match result {
-        Ok(Some(manifest)) => manifest,
-        Ok(None) => return attention(app, &state, &record, AdoptionAttention::NoCandidate),
-        Err(code) => return attention(app, &state, &record, code),
+    let (selected_rank, manifest) = match result {
+        Ok(Some(selected)) => selected,
+        Ok(None) => {
+            return stop_discovery(
+                app,
+                &state,
+                &record,
+                AdoptionAttention::NoCandidate,
+                &decisions,
+            )
+        }
+        Err(code) => return stop_discovery(app, &state, &record, code, &decisions),
     };
     if capabilities::authorize_permissions(
         &state,
@@ -364,7 +520,22 @@ pub async fn step(app: &AppState, id: &str) -> ApiResult<AdoptionRecord> {
     )
     .is_err()
     {
-        return attention(app, &state, &record, AdoptionAttention::InvalidCandidate);
+        if let Some(d) = decisions
+            .iter_mut()
+            .find(|d| d.rank as usize == selected_rank)
+        {
+            d.decision = Decided::MissingScope;
+            d.reason =
+                "the requesting role's current authority doesn't cover its manifest permissions"
+                    .into();
+        }
+        return stop_discovery(
+            app,
+            &state,
+            &record,
+            AdoptionAttention::InvalidCandidate,
+            &decisions,
+        );
     }
     let (outcome, installation_id) =
         match engine::begin_installation(&state, &manifest, json!({}), Utc::now()) {
@@ -393,7 +564,8 @@ pub async fn step(app: &AppState, id: &str) -> ApiResult<AdoptionRecord> {
             vec![],
             |tx| {
                 capability_store::insert_pin(tx, &installation_id, &manifest)?;
-                storage::save_in_tx(tx, &record, &next)
+                storage::save_in_tx(tx, &record, &next)?;
+                candidates::insert_in_tx(tx, &decisions)
             },
         )
         .map_err(|_| internal())?;
@@ -504,6 +676,7 @@ fn finalize(
     }
     let runs = capabilities::local_runs(app, installation_id, record.suite_id(), record.job_ids())
         .map_err(|_| internal())?;
+    let mut rejection: Option<String> = None;
     let (passed, reference, proof) = match app.evidence_policy.accept_suite(
         record.suite_id(),
         &capabilities::artifact(manifest),
@@ -522,6 +695,7 @@ fn finalize(
                 "adoption-rejection:{}",
                 json_sha256(&json!({"adoption_id":record.id(),"report":report}))
             );
+            rejection = Some(candidates::rejection_summary(&report));
             (false, reference, None)
         }
         Err(_) => return attention(app, state, record, AdoptionAttention::ConfigurationChanged),
@@ -542,9 +716,9 @@ fn finalize(
         (outcome, None)
     };
     let next = if passed {
-        record.accept(reference, Utc::now())
+        record.accept(reference.clone(), Utc::now())
     } else {
-        record.rejected(reference, Utc::now())
+        record.rejected(reference.clone(), Utc::now())
     }
     .map_err(error)?
     .for_revision(outcome.state.revision)
@@ -562,6 +736,27 @@ fn finalize(
                     capability_store::save_acceptance(tx, installation_id, proof)?;
                 }
                 storage::save_in_tx(tx, record, &next)?;
+                if passed {
+                    candidates::conclude_in_tx(
+                        tx,
+                        record.id(),
+                        Decided::Adopted,
+                        "this organization's acceptance suite accepted it",
+                        &reference,
+                        Utc::now(),
+                    )?;
+                } else {
+                    candidates::conclude_in_tx(
+                        tx,
+                        record.id(),
+                        Decided::NotApplicable,
+                        rejection
+                            .as_deref()
+                            .unwrap_or("this organization's acceptance suite rejected it"),
+                        &reference,
+                        Utc::now(),
+                    )?;
+                }
                 match &gap_link {
                     Some(link) => crate::capability_gap_adoption::save_link(tx, link),
                     None => Ok(()),

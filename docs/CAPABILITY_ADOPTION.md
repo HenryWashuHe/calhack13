@@ -27,6 +27,37 @@ All adoption routes require the organization's operator token:
 - `GET /api/v1/capability-adoptions/{id}` returns its bounded status.
 - `POST /api/v1/capability-adoptions/{id}/step` accepts only `{}` and advances
   one coordinator stage. Normal operation uses the worker started by `serve_org`.
+- `GET /api/v1/capability-adoptions/{id}/candidates` returns why each registry
+  candidate was or wasn't used (see below).
+
+## Candidate decisions
+
+A registry search ranks candidates by similarity. Rank and score only order
+them; they never make a candidate applicable. For every candidate in the
+search answer, discovery records the exact `capability_id`, `version`,
+`publisher`, `source_digest`, required permissions, the publisher's
+`applicability_conditions` (display only) and this organization's decision:
+
+| Decision | Meaning |
+|---|---|
+| `own_publication` | published by this organization; adoption only inherits from others |
+| `missing_scope` | needs permissions the requesting role doesn't hold (`missing_scopes` lists them) |
+| `invalid_manifest` | the manifest disagrees with the search answer or fails local checks; discovery stops |
+| `unusable_state` | the manifest can't be installed; discovery stops |
+| `manifest_unavailable` | the manifest couldn't be read: applicability unknown; discovery stops |
+| `invalid_response` | the registry answer as a whole was invalid; nothing in it was evaluated |
+| `selected` | first eligible candidate by rank; sent to this organization's own acceptance checks |
+| `adopted` | this organization's acceptance suite accepted it (`acceptance_ref`) |
+| `not_applicable` | this organization's acceptance suite rejected it (`acceptance_ref` and a summary of failed cases and issue kinds, never expected values) |
+| `not_evaluated` | a higher-ranked candidate was selected, or discovery stopped first |
+
+Decisions are written in the same transaction as the discovery outcome they
+explain, and the suite's verdict replaces `selected` in the transaction that
+finishes the installation, so a restart or repeated step can't record a
+different story. A registry that can't be searched records nothing: the
+outcome stays unknown (`registry_unavailable`) and never becomes an empty
+result. The candidate's free-text intent is not copied, since it can echo the
+private requirement query. Adoptions made before this log existed have no rows.
 
 The client request key is durable. Repeating an identical request returns the
 same intent; changing its binding returns a conflict. An organization retains at
