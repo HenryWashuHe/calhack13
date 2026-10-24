@@ -175,8 +175,10 @@ Codex next prepares an exact-parent B revision from checked public feedback and
 explicit decision context, with immutable request/settings/parent and a separate
 budget; Henry retains receiving/adoption/return record plumbing. Eric
 [claimed CREAO nullable-ticket reconciliation](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6387513389)
-as separate provider support, now open as #104 `5023a48` for review; no completed
-recovery, retroactive recovery or duplicate create is claimed.
+as separate provider support, merged #104 `5023a48` at `62a2f009`. Its 69
+original tests and three independent guards pass; #106 source `e8cf6010` retains
+those guards at merge `90a26e00`. No hosted recovery, retroactive recovery or
+duplicate create is claimed.
 Ines remains unassigned. Provider-default sampling is not fixed-settings evaluation;
 credentials stay ignored and out of commits.
 
