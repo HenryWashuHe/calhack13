@@ -304,7 +304,11 @@ class MissionGateway:
             if message_only_unique():
                 row = self.db.execute("SELECT seq FROM sqlite_sequence WHERE name='reports'").fetchone()
                 sequence = row[0] if row else 0
+                # Both old guards go inside the transaction too: a journal from the intermediate
+                # schema already carries reports_sender_message on the old table, and the new
+                # index must take that name on the rebuilt table. A failure rolls all of it back.
                 self.db.execute("DROP INDEX IF EXISTS reports_message")
+                self.db.execute("DROP INDEX IF EXISTS reports_sender_message")
                 self.db.execute("""
                     CREATE TABLE reports_migrated(
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
