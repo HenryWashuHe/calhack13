@@ -2,7 +2,7 @@
 
 ## Current checkpoint: #111 and #112
 
-This supersedes the historical #108 snapshot. Main through #111 is `6194e53`;
+This supersedes the historical #108 snapshot. Main through #112 is `6e4f1ff`;
 current GitHub state and newer [issue #4](https://github.com/HenryWashuHe/genesis/issues/4)
 comments remain authoritative. The two-organization mission goal is active.
 
@@ -18,7 +18,7 @@ child deadline expectation failed deterministically. It now authenticates the
 source job and uses the exact minimum freshness deadline, without weakening the
 runtime. Five full scenarios and 40 scenario units passed, plus strict Clippy/fmt.
 
-**Implemented #112:** runtime `1b2610c`, tests `bbe1872`, composed with #111 at
+**Merged #112 at `6e4f1ff`:** runtime `1b2610c`, tests `bbe1872`, composed with #111 at
 `db2c906`. The explicitly enabled worker observes accepted Reopens, discovers
 fresh verified same-event alternatives, checks current authority, persists one
 exact request, and recruits through the existing Fetch coordinator. Local proof
@@ -33,10 +33,15 @@ strict server all-target Clippy/fmt and clean independent source review. Counts
 overlap. The native-process integration stays opt-in; these new tests use
 loopback providers/transport. No cloud or completed-live-mission claim follows.
 
-**Current UI hold:** #110 `91b0169` supersedes #91. Original `42aab93` stays
-unchanged and passes; new `b677414` reproduces replay starvation from structural
-updates every second (one failure, three passing original controls). Claude/Eric
-keeps the correction. See [the review](https://github.com/HenryWashuHe/genesis/pull/110#issuecomment-6378307607).
+**Provenance hold cleared:** #113 `08f2b74` fixes the structural replay
+starvation in #110. The independent `b677414` failure passes unchanged as
+`5b20bdf`, alongside all original `42aab93` cases. Reviewed composition `9fd1eb0`
+with current main passes 133 web tests, typecheck/build, the audit route/library
+checks and strict server Clippy/fmt. #113 merged into #110 as `50cb501`; the
+parent branch was then fast-forwarded to the tested composition without rewriting
+history. Claude/Eric should pull before continuing it. This is jsdom/stub API
+and local backend evidence, not a new browser walkthrough. Current GitHub state
+gives the parent PR's merge status.
 
 **Ownership:** Claude/Eric keeps kernel/planner/readiness/adoption/UI. Codex
 explicitly authorized Claude's requested narrow terminal RunFailed provider

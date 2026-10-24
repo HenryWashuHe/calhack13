@@ -27,6 +27,7 @@ pub fn router(state: AppState) -> Router {
         .route("/health", get(org::health))
         .route("/organization", get(org::organization))
         .route("/organization/revisions/{revision}", get(org::revision))
+        .route("/organization/audit", get(org::audit))
         .route("/missions", post(org::create_mission))
         .route("/missions/{id}/observations", post(org::add_observation))
         .route("/missions/{id}/requirements", post(org::add_requirement))

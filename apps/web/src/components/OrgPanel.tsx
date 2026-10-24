@@ -1,14 +1,43 @@
-import { useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { Api } from "../lib/api";
-import type { OrgChangeRecord, OrgState } from "../lib/contracts";
+import type { DomainEvent, OrgChangeRecord, OrgState } from "../lib/contracts";
 import { buildTree, executedBy, ownedBy, pendingRoles, RoleNode, short } from "../lib/graph";
 import { HistoryEntry, historyView } from "../lib/snapshot";
 import { ProviderBadge, StateChip } from "./Chips";
+import { WhyDrawer } from "./WhyDrawer";
+import { EvolutionView } from "./EvolutionView";
+import { generations, timeline } from "../lib/evolution";
+import { AuditStrip } from "./AuditStrip";
+import { downloadStory } from "../lib/story";
+import type { HistoryAudit } from "../lib/audit";
 import { gapsForRole } from "../lib/gaps";
 import { shortLabel } from "../lib/capabilities";
 import { GapIntakeContext } from "../lib/gapIntake";
 import { GapFinalizationContext } from "../lib/gapFinalization";
 import { GapAdoptionContext } from "../lib/gapAdoption";
+
+/** Records the "Why?" drawer explains a role from. Absent → no drawer. */
+const Provenance = createContext<{ changes: OrgChangeRecord[]; events: DomainEvent[] } | null>(null);
+
+function WhyButton({ open, onToggle }: { open: boolean; onToggle: () => void }) {
+  if (!useContext(Provenance)) return null;
+  return (
+    <button
+      className="btn why-btn"
+      aria-expanded={open}
+      aria-label={open ? "Hide why this role exists" : "Why does this role exist?"}
+      onClick={onToggle}
+    >
+      {open ? "Hide why" : "Why?"}
+    </button>
+  );
+}
+
+function Why({ open, roleId, state }: { open: boolean; roleId: string; state: OrgState }) {
+  const records = useContext(Provenance);
+  if (!open || !records) return null;
+  return <WhyDrawer roleId={roleId} state={state} changes={records.changes} events={records.events} />;
+}
 
 function RequestedCapabilities({ state, roleId }: { state: OrgState; roleId: string }) {
   const intake = useContext(GapIntakeContext);
@@ -125,6 +154,7 @@ function Node({ node, state, freshRevision }: { node: RoleNode; state: OrgState;
   const retired = r.state === "RETIRED";
   const fresh = !retired && r.created_in_revision === freshRevision && freshRevision > 1;
   const scopes = r.authority.scopes ?? [];
+  const [why, setWhy] = useState(false);
   return (
     <li>
       <div className={`role${retired ? " retired" : ""}${fresh ? " fresh" : ""}`}>
@@ -133,6 +163,7 @@ function Node({ node, state, freshRevision }: { node: RoleNode; state: OrgState;
           <StateChip state={r.state} />
           <ProviderBadge binding={r.binding} />
           {fresh && <span className="chip accent">NEW IN r{r.created_in_revision}</span>}
+          <WhyButton open={why} onToggle={() => setWhy((w) => !w)} />
         </div>
         <div className="role-charter">{r.charter}</div>
         <Duties state={state} roleId={r.role_id} />
@@ -162,6 +193,7 @@ function Node({ node, state, freshRevision }: { node: RoleNode; state: OrgState;
             {r.retired_in_revision ? ` → retired r${r.retired_in_revision}` : ""}
           </span>
         </div>
+        <Why open={why} roleId={r.role_id} state={state} />
       </div>
       {node.children.length > 0 && (
         <ul>
@@ -178,15 +210,54 @@ export function OrgPanel({
   api,
   state,
   changes,
+  events,
 }: {
   api: Api;
   state: OrgState | null;
   changes: OrgChangeRecord[];
+  /** Full event history; enables the per-role "Why?" explanation. */
+  events?: DomainEvent[];
 }) {
   const [showRetired, setShowRetired] = useState(true);
   const [viewRevision, setViewRevision] = useState<number | null>(null);
   const [entry, setEntry] = useState<HistoryEntry | null>(null);
+  const [mode, setMode] = useState<"tree" | "evolution">("tree");
+  /** Index into `gens` while replaying the organization's evolution. */
+  const [replay, setReplay] = useState<number | null>(null);
   const live = viewRevision === null;
+  const gens = useMemo(() => (events ? generations(events, changes, state) : []), [events, changes, state]);
+  const entries = useMemo(
+    () => (events && mode === "evolution" ? timeline(events, changes, state) : []),
+    [events, changes, state, mode],
+  );
+  const replaying = replay !== null ? gens[replay] : undefined;
+  // The replay timer is keyed to the step being shown, not to the generation
+  // array or sequence: ordinary event traffic re-derives `gens`, and new
+  // structural generations append to it, and neither may restart the step's
+  // deadline. When the timer fires it reads the latest generations, so replay
+  // continues into generations that arrived while it was running.
+  const gensRef = useRef(gens);
+  gensRef.current = gens;
+  const stepRevision = replaying?.revision;
+
+  useEffect(() => {
+    if (replay === null) return;
+    if (stepRevision === undefined) {
+      setReplay(null);
+      return;
+    }
+    setViewRevision(stepRevision);
+    const t = setTimeout(() => {
+      if (replay + 1 < gensRef.current.length) setReplay(replay + 1);
+      else {
+        setReplay(null);
+        setViewRevision(null);
+      }
+    }, 2400);
+    return () => clearTimeout(t);
+  }, [replay, stepRevision]);
+
+  const stopReplay = () => setReplay(null);
 
   useEffect(() => {
     // Drop the previous revision's snapshot immediately; it is never shown
@@ -225,6 +296,45 @@ export function OrgPanel({
           r{shown?.revision ?? "–"} · {rolesCount} active roles
         </span>
         <div className="right org-tools">
+          {events && (
+            <div className="seg" role="group" aria-label="Organization view">
+              <button className="btn" aria-pressed={mode === "tree"} onClick={() => setMode("tree")}>
+                Tree
+              </button>
+              <button className="btn" aria-pressed={mode === "evolution"} onClick={() => setMode("evolution")}>
+                Evolution
+              </button>
+            </div>
+          )}
+          {gens.length > 1 && (
+            <button
+              className="btn"
+              aria-pressed={replaying !== undefined}
+              onClick={() => {
+                if (replaying) {
+                  stopReplay();
+                  setViewRevision(null);
+                } else {
+                  setMode("tree");
+                  setReplay(0);
+                }
+              }}
+            >
+              {replaying ? "■ Stop" : "▶ Replay"}
+            </button>
+          )}
+          {events && state && (
+            <button
+              className="btn"
+              title="Download a self-contained HTML record of this organization's evolution"
+              onClick={async () => {
+                const audit = await api.get<HistoryAudit>("/organization/audit").catch(() => null);
+                downloadStory(state, changes, events, audit);
+              }}
+            >
+              Export story
+            </button>
+          )}
           <label>
             <input type="checkbox" checked={showRetired} onChange={(e) => setShowRetired(e.target.checked)} />
             Show retired
@@ -243,6 +353,7 @@ export function OrgPanel({
               max={Math.max(current, 0)}
               value={viewRevision ?? current}
               onChange={(e) => {
+                stopReplay();
                 const v = Number(e.target.value);
                 setViewRevision(v === current ? null : v);
               }}
@@ -250,14 +361,52 @@ export function OrgPanel({
             />
             <span className="mono tabular">r{viewRevision ?? current}</span>
           </div>
-          <button className="btn" aria-pressed={live} onClick={() => setViewRevision(null)}>
+          <button
+            className="btn"
+            aria-pressed={live}
+            onClick={() => {
+              stopReplay();
+              setViewRevision(null);
+            }}
+          >
             Live
           </button>
         </div>
-        {!live && (
+        {!live && replaying && (
+          <div className="history-banner replay" aria-live="polite">
+            <strong>
+              r{replaying.revision} · {replaying.label}
+            </strong>{" "}
+            {replaying.cause}
+            {replaying.triggers.length > 0 && <span className="muted"> — because {replaying.triggers.join("; ")}</span>}
+          </div>
+        )}
+        {!live && !replaying && (
           <div className="history-banner">
             Viewing revision r{viewRevision} as it was committed. In-flight changes are hidden.
           </div>
+        )}
+        {shown && (
+          <AuditStrip
+            api={api}
+            shown={shown.revision}
+            current={current}
+            onSelect={(rev) => {
+              stopReplay();
+              setViewRevision(rev);
+            }}
+          />
+        )}
+        {mode === "evolution" && (
+          <EvolutionView
+            entries={entries}
+            selected={viewRevision}
+            onSelect={(rev) => {
+              stopReplay();
+              setViewRevision(rev === current ? null : rev);
+              setMode("tree");
+            }}
+          />
         )}
         {history.kind === "loading" && <p className="empty">Loading revision r{history.revision}…</p>}
         {history.kind === "error" && (
@@ -265,13 +414,15 @@ export function OrgPanel({
             Could not load revision r{history.revision}: {history.message}
           </div>
         )}
-        {shown && tree.length === 0 && <p className="empty">No roles yet.</p>}
-        {shown && (
-          <ul className="tree">
-            {tree.map((n) => (
-              <Node key={n.id} node={n} state={shown} freshRevision={current} />
-            ))}
-          </ul>
+        {mode === "tree" && shown && tree.length === 0 && <p className="empty">No roles yet.</p>}
+        {mode === "tree" && shown && (
+          <Provenance.Provider value={live && events ? { changes, events } : null}>
+            <ul className="tree">
+              {tree.map((n) => (
+                <Node key={n.id} node={n} state={shown} freshRevision={viewRevision ?? current} />
+              ))}
+            </ul>
+          </Provenance.Provider>
         )}
       </div>
     </section>
