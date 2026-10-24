@@ -1236,7 +1236,21 @@ async fn assert_native_monitoring(fixture: &Fixture, report: &ScenarioReport) ->
             .get_job(&JobId::new(summary["job_id"].as_str().unwrap()))
             .unwrap();
         assert_eq!(job.role_id, role.role_id);
-        assert_eq!(json!(job.deadline), subscription["request"]["expires_at"]);
+        // Since #99 the child deadline is the subscription expiry capped by
+        // its source job's creation plus 30 minutes (the source proof is
+        // verified after its job is created, so that cap never binds first).
+        let source = fixture
+            .b
+            .app
+            .store
+            .get_job(&JobId::new(summary["source_job_id"].as_str().unwrap()))
+            .unwrap();
+        let expires: chrono::DateTime<chrono::Utc> =
+            serde_json::from_value(subscription["request"]["expires_at"].clone()).unwrap();
+        assert_eq!(
+            job.deadline,
+            Some(expires.min(source.created_at + chrono::Duration::minutes(30)))
+        );
         let current = (job.assignment_id.clone(), job.epoch);
         if let Some(previous) = &assignment {
             assert_eq!(previous, &current)

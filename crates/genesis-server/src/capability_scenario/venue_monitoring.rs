@@ -743,6 +743,30 @@ async fn assess(
     })
 }
 
+/// The child deadline the server freezes for a source (`venue_monitors::
+/// new_intent`, since #99): the subscription expiry, capped by the source
+/// job's creation and the source proof's verification, each plus 30 minutes.
+/// The job is read from this backend, so no client clock is involved.
+async fn child_deadline(
+    driver: &ScenarioDriver,
+    source: &InvocationProofResponse,
+    expires_at: DateTime<Utc>,
+) -> Result<DateTime<Utc>> {
+    let job: Job = decode(
+        driver
+            .get(
+                &driver.b,
+                &format!("/jobs/{}", source.job_id),
+                "read monitoring source job",
+            )
+            .await?,
+        "monitoring source job",
+    )?;
+    Ok(expires_at
+        .min(job.created_at + chrono::Duration::minutes(30))
+        .min(source.verified_at + chrono::Duration::minutes(30)))
+}
+
 pub(super) async fn run(
     driver: &ScenarioDriver,
     spec: &ScenarioSpec,
@@ -768,8 +792,8 @@ pub(super) async fn run(
         .get(&driver.b, "/ledger", "read pre-assessment commitments")
         .await?;
     // A timestamp from this backend avoids using client clock skew to infer
-    // the child deadline. Both intents are prepared later, so their capped
-    // deadline must equal this one common subscription expiration.
+    // the child deadline. Each child's deadline is this expiration capped by
+    // its own source (see `child_deadline`).
     let expires_at = baseline.verified_at + chrono::Duration::minutes(30);
     if expires_at <= Utc::now() {
         return Err(bad("baseline is too old to register monitoring"));
@@ -816,7 +840,7 @@ pub(super) async fn run(
         AssessmentVerdict::Feasible,
         &AssessmentTarget {
             id: baseline_id,
-            deadline: expires_at,
+            deadline: child_deadline(driver, baseline, expires_at).await?,
         },
     )
     .await?;
@@ -850,7 +874,7 @@ pub(super) async fn run(
         AssessmentVerdict::Reopen,
         &AssessmentTarget {
             id: updated_id,
-            deadline: expires_at,
+            deadline: child_deadline(driver, &updated_source, expires_at).await?,
         },
     )
     .await?;
