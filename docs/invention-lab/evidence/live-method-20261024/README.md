@@ -9,7 +9,7 @@ The project key authenticated successfully; no credentials are in this bundle.
 | --- | --- |
 | Endpoint/model reported by the adapter | `anthropic_https` / `claude-sonnet-5-5` |
 | Terminal state | `failed`, completion reason `protocol` |
-| Provider-reported calls/input/output | 1 / 3971 / 8192 tokens |
+| Adapter-recorded calls / provider-reported input/output | 1 / 3971 / 8192 tokens |
 | Locally measured request wall time | 62131ms |
 | Declared cap | 1 call, 8192 output tokens, 120000ms request timeout |
 | Admission after completion | One reservation, zero remaining attempts |
