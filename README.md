@@ -25,10 +25,11 @@ whether to adopt, adapt, or decline them.
 The current code supports governed organization changes, web-extraction Actor
 acquisition and verification, and independently checked inheritance between two
 organizations. Experimental simulator primitives, method-source generation and
-parent-bound revision preparation, a local process runtime and trusted public
-acceptance scoring are also merged. These do not establish general untrusted-code
-isolation, actual execution of a model-generated method, independent method
-adoption or the A → B → A return. Measured recursive benefit remains open. See the
+parent-bound revision preparation, a local process runtime, trusted public
+acceptance scoring and receiver-bound method-adoption mechanics are also merged.
+A source-free generation roster and offline CLI retain declared attempts before
+results. These foundations do not establish general untrusted-code isolation, a model-developed
+method's accepted A → B → A return, or measured recursive benefit. See the
 [evidence-backed implementation status](docs/IMPLEMENTATION_STATUS.md).
 
 ## The proposed demonstration: invention labs
@@ -91,7 +92,7 @@ The research goal is measurable improvement on a declared mix of tasks, with fai
 | Cross-organization inheritance | Immutable versioned manifests, shared discovery, adopt-before-acquire, and organization-local acceptance are implemented. A two-organization integration exercises A creating/publishing a capability and B adopting it without B synthesizing another copy. |
 | Persistent specialist work | Fetch supplies independent signed specialist exchanges; CREAO supplies persistent operational agents; Elastic supports organizational evidence, retrieval, and Agent Builder integrations. End-to-end live sponsor evidence remains a separate gate. |
 | Recovery and control | SQLite journals, exact artifact/request identities, authority checks, bounded attempts, and reconciliation states protect the tested workflows. Ambiguous external effects can require operator attention; recovery does not mean every operation can safely be replayed. |
-| Development-method foundations | Exact packages/trial plans/accounting, single-attempt source generation and parent-bound revision preparation/observation are merged. An experimental local process runtime and trusted public acceptance scorer have local tests. Source derivation is distinct from actual generated-method execution, independent adoption, general isolation and improved behavior. |
+| Development-method foundations | Exact packages/trial plans/accounting, source generation/revision, pre-result rosters, optional generation reservations and structural stage allocations are merged. Offline commands retain an exact trial binding and assess costs without dropping unsuccessful or unknown observations. Local runtime, public scoring and receiver-bound adoption mechanics have fixture evidence; two rehearsals return Rejected. Runtime entry checks, whole-chain budgets, provider billing/input-token/wall enforcement, authenticated chronology, complete history and recursive benefit remain open. |
 | Recursive composition and network healing | Enforced method execution, selective method inheritance, genuine method revision and measured improvement remain open. Shared repair advisories and controlled upgrades are separate future work. |
 
 A manifest already carries schemas, permissions, provenance, verification evidence, and optional role/workflow descriptions. Those descriptions do not yet constitute a general executable workflow package or dependency resolver. The network currently uses a shared registry service; it is not a decentralized peer-to-peer capability protocol.
@@ -116,6 +117,22 @@ Its exact request survives restart, uncertain submissions never replay, and
 source validity is separate from provider accounting. This path has fixture
 evidence only. Provider-default sampling and separate generation costs are
 explicit limitations until the comparison settings and total budget are enforced.
+An [optional admission journal](docs/invention-lab/contracts/generation-admission.md#cli)
+reserves declared requests and requested maximum output before the existing
+generation step. Failed or uncertain attempts retain their reservations; legacy
+steps without the option remain ungated. These cooperative bounds do not measure
+provider billing or enforce input-token/wall limits.
+
+The [admission-aware cost assessment](docs/invention-lab/contracts/admitted-costs.md#cli)
+adds `--admission` to the existing `method-cost-assess` command. It checks the
+entire original roster and later observations, then joins generation and optional
+trial costs while retaining unknown usage and overruns. It makes no writes or
+provider calls. The [stage-allocation CLI](docs/invention-lab/contracts/stage-allocation.md#cli-and-retained-files)
+can also retain an allocation from unused Prepared attempts, followed by one
+exact trial binding. Optional `--allocation` checks that retained context during
+generation and cost assessment. These are cooperating local-file mechanisms;
+runtime consumption and complete budget allocation for an adaptive A → B → A
+chain remain open.
 
 ### Run the local inheritance rehearsal
 

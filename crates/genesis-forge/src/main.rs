@@ -1,6 +1,9 @@
 mod acquisition_commands;
 mod method_accounting_commands;
+mod method_admission_commands;
 mod method_revision_commands;
+mod method_roster_commands;
+mod method_stage_commands;
 mod method_synthesis_commands;
 mod storage;
 mod synthesis_commands;
@@ -20,10 +23,16 @@ use storage::{CheckpointLock, MAX_EXTRACTOR_BYTES};
 const HELP: &str = "Usage:
   genesis-forge prepare --candidate metadata.json --extractor parser.ts --suite suite.json --checkpoint session.json
   genesis-forge method-generate-prepare --plan method-plan.json --checkpoint method-generation.json
-  genesis-forge method-generate-step --checkpoint method-generation.json
+  genesis-forge method-generate-step --checkpoint method-generation.json [--admission admission.json [--allocation stage.json]]
+  genesis-forge method-stage-prepare --manifest stage-input.json --admission admission.json --allocation stage.json
+  genesis-forge method-stage-bind --manifest trial-input.json --allocation stage.json
+  genesis-forge method-admission-prepare --roster roster.json --admission admission.json
+  genesis-forge method-admission-status --admission admission.json
   genesis-forge method-generate-status --checkpoint method-generation.json
   genesis-forge method-generate-export --checkpoint method-generation.json
-  genesis-forge method-cost-assess --manifest cost-evidence.json
+  genesis-forge method-cost-assess --manifest cost-evidence.json [--admission admission.json [--allocation stage.json]]
+  genesis-forge method-roster-prepare --manifest declaration.json --roster roster.json
+  genesis-forge method-roster-assess --manifest snapshots.json --roster roster.json
   genesis-forge method-revise-prepare --plan revision.json --parent parent.package.json --checkpoint generation.json
   genesis-forge method-revise-observe --plan revision.json --parent parent.package.json --checkpoint generation.json
   genesis-forge generate-prepare --request public-request.json --model-config model.json --checkpoint generation.json
@@ -95,13 +104,17 @@ impl Arguments {
             "prepare" => &["--candidate", "--extractor", "--suite", "--checkpoint"],
             "prepare-generated" => &["--candidate", "--generation", "--suite", "--checkpoint"],
             "method-generate-prepare" => &["--plan", "--checkpoint"],
-            "method-cost-assess" => &["--manifest"],
+            "method-cost-assess" => &["--manifest", "--admission", "--allocation"],
+            "method-stage-prepare" => &["--manifest", "--admission", "--allocation"],
+            "method-stage-bind" => &["--manifest", "--allocation"],
+            "method-admission-prepare" => &["--roster", "--admission"],
+            "method-admission-status" => &["--admission"],
+            "method-roster-prepare" | "method-roster-assess" => &["--manifest", "--roster"],
             "method-revise-prepare" | "method-revise-observe" => {
                 &["--plan", "--parent", "--checkpoint"]
             }
-            "method-generate-step" | "method-generate-status" | "method-generate-export" => {
-                &["--checkpoint"]
-            }
+            "method-generate-step" => &["--checkpoint", "--admission", "--allocation"],
+            "method-generate-status" | "method-generate-export" => &["--checkpoint"],
             "generate-prepare" => &["--request", "--model-config", "--checkpoint"],
             "generate-step" | "generate-status" => &["--checkpoint"],
             "acquire-prepare" => &["--plan", "--suite", "--checkpoint"],
@@ -155,9 +168,24 @@ impl Arguments {
             }
         }
         for flag in allowed {
+            if matches!(
+                command.as_str(),
+                "method-generate-step" | "method-cost-assess"
+            ) && matches!(*flag, "--admission" | "--allocation")
+            {
+                continue;
+            }
             if !paths.contains_key(*flag) {
                 return Err(format!("missing {flag}"));
             }
+        }
+        if matches!(
+            command.as_str(),
+            "method-generate-step" | "method-cost-assess"
+        ) && paths.contains_key("--allocation")
+            && !paths.contains_key("--admission")
+        {
+            return Err("--allocation requires --admission".into());
         }
         if command == "acquire-run" && max_steps.is_none() {
             return Err("acquire-run requires --max-steps".into());
@@ -197,8 +225,20 @@ async fn run() -> Result<u8, String> {
     if args.command.starts_with("method-generate-") {
         return method_synthesis_commands::run(&args).await;
     }
+    if args.command.starts_with("method-admission-") {
+        return method_admission_commands::run(&args);
+    }
     if args.command == "method-cost-assess" {
         return method_accounting_commands::run(&args);
+    }
+    if matches!(
+        args.command.as_str(),
+        "method-stage-prepare" | "method-stage-bind"
+    ) {
+        return method_stage_commands::run(&args);
+    }
+    if args.command.starts_with("method-roster-") {
+        return method_roster_commands::run(&args);
     }
     if args.command.starts_with("method-revise-") {
         return method_revision_commands::run(&args);

@@ -1,0 +1,7 @@
+{
+  "public_demo": true,
+  "evidence_ref": "https://<your-tunnel>.trycloudflare.com/org-b/venues/main-hall.html",
+  "source": "asi-one",
+  "max_reports_per_hour": 12,
+  "follow_seconds": 75
+}

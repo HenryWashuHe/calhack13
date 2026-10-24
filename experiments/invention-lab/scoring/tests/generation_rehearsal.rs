@@ -8,7 +8,8 @@
 //! frozen as the candidate slot; both slots run as real child processes
 //! (sandbox mode `none`, so this is not namespace evidence); both outputs are
 //! scored by the trusted adapter, the verdict decides and the combined cost
-//! report accounts for generation, execution and scoring together.
+//! report accounts for generation, execution and scoring together, both in
+//! process and from the retained files through the forge's own CLI.
 //!
 //! The "generated" source is the hand-written random-search control. This
 //! checks plumbing only: no generated method, no live provider, no benefit.
@@ -272,4 +273,90 @@ async fn generation_to_verdict_runs_end_to_end_offline() {
     assert_eq!(total(&report.combined, "model_calls"), (1, true, false));
     let (steps, unknown, over) = total(&report.combined, "simulation_steps");
     assert!(steps > 0 && !unknown && !over, "{steps} {unknown} {over}");
+
+    // 6. The same assessment from retained files through the forge's own
+    // `method-cost-assess` CLI: the saved checkpoint, plan, evidence and
+    // declared scope, read back by a separate process, give the same report.
+    let retained = tmp("retained");
+    std::fs::create_dir_all(&retained).unwrap();
+    let write = |name: &str, value: serde_json::Value| {
+        std::fs::write(retained.join(name), serde_json::to_vec(&value).unwrap()).unwrap();
+    };
+    write("scope.json", serde_json::to_value(&scope).unwrap());
+    write("generation.json", serde_json::to_value(&session).unwrap());
+    write("plan.json", serde_json::to_value(&trial).unwrap());
+    write(
+        "evidence.json",
+        serde_json::Value::Array(
+            rows.iter()
+                .map(|e| serde_json::json!({"slot_id": e.slot_id, "execution": e.execution, "scoring": e.scoring}))
+                .collect(),
+        ),
+    );
+    write(
+        "manifest.json",
+        serde_json::json!({
+            "schema": "genesis-method-cost-input/1",
+            "scope": "scope.json",
+            "generation_checkpoints": ["generation.json"],
+            "trial": {"plan": "plan.json", "evidence": "evidence.json"},
+        }),
+    );
+    let out = std::process::Command::new(forge_cli())
+        .args(["method-cost-assess", "--manifest"])
+        .arg(retained.join("manifest.json"))
+        .output()
+        .unwrap();
+    assert!(
+        out.status.success(),
+        "method-cost-assess: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let from_files: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(from_files, serde_json::to_value(&report).unwrap());
+
+    // Control: the CLI really reads the files. Drop the control's scoring
+    // receipt and the retained-file report shows scoring as unknown.
+    let mut partial: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(retained.join("evidence.json")).unwrap()).unwrap();
+    partial[1]["scoring"] = serde_json::Value::Null;
+    write("evidence.json", partial);
+    let out = std::process::Command::new(forge_cli())
+        .args(["method-cost-assess", "--manifest"])
+        .arg(retained.join("manifest.json"))
+        .output()
+        .unwrap();
+    assert!(out.status.success());
+    let partial: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    let scoring_steps = partial["scoring"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|t| t["resource"] == "simulation_steps")
+        .unwrap();
+    assert_eq!(scoring_steps["unknown"], true, "{scoring_steps}");
+}
+
+/// The forge CLI, built from this checkout into this test target's scratch
+/// directory (a separate target directory, so no build lock is shared).
+fn forge_cli() -> PathBuf {
+    let target = Path::new(env!("CARGO_TARGET_TMPDIR")).join("forge-cli");
+    let manifest = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../Cargo.toml");
+    let status = std::process::Command::new(env!("CARGO"))
+        .args([
+            "build",
+            "-q",
+            "-p",
+            "genesis-forge",
+            "--bin",
+            "genesis-forge",
+        ])
+        .arg("--manifest-path")
+        .arg(&manifest)
+        .arg("--target-dir")
+        .arg(&target)
+        .status()
+        .unwrap();
+    assert!(status.success(), "building the forge CLI failed");
+    target.join("debug").join("genesis-forge")
 }
