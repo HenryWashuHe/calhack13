@@ -276,13 +276,17 @@ export async function apifyGate(ctx) {
 export async function creaoGate(ctx) {
   const bin = join(ctx.binDir, "genesis-creao");
   if (!existsSync(bin)) return { status: "not_tested", reason: `no ${bin}` };
+  const apiVersion = ctx.env.CREAO_API_VERSION ?? "v1";
+  if (apiVersion !== "v1" && apiVersion !== "v2") {
+    return { status: "failed", stage: "configuration", reason: "CREAO_API_VERSION must be v1 or v2" };
+  }
   const work = join(ctx.out, "creao", ctx.stamp);
   mkdirSync(work, { recursive: true });
   // The operation database is per run; the quota database belongs to the
   // provider account, so request/write debits and cooldowns carry across runs.
   const quotaDb = join(ctx.out, "creao", "quota.sqlite");
   const spec = JSON.parse(readFileSync(join(ctx.repo, "crates/genesis-creao/examples/create-monitor.json"), "utf8"));
-  if (ctx.env.CREAO_API_VERSION === "v2") spec.api_version = "v2";
+  if (apiVersion === "v2") spec.api_version = "v2";
   spec.operation_id = `live-gate-${ctx.stamp}`;
   writeFileSync(join(work, "spec.json"), JSON.stringify(spec, null, 2));
   const db = join(work, "creao.sqlite");
@@ -322,6 +326,7 @@ export async function creaoGate(ctx) {
     duration_ms: Date.now() - started,
     evidence: {
       operation_id: spec.operation_id,
+      api_version: apiVersion,
       phase: last.phase ?? null,
       native_status: last.native_status ?? null,
       run_id: last.run_id ?? null,

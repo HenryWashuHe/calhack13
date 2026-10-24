@@ -108,7 +108,8 @@ fn runtime(db: &Path, org: &str, account: &str, quota_db: &Path) -> Result<Runti
 
 fn summary(record: &OperationRecord) -> Value {
     json!({"operation_id":record.spec.operation_id,"org_id":record.spec.org_id,"role_id":record.spec.role_id,
-        "account_namespace":record.spec.account_namespace,"phase":record.phase,
+        "account_namespace":record.spec.account_namespace,"api_version":record.spec.api_version,
+        "phase":record.phase,
         "run_id":record.ticket.as_ref().map(|ticket|ticket.run_id()),
         "native_status":record.observation.as_ref().map(|observation|observation.status.as_str()),
         "provider_agent_id":record.observation.as_ref().and_then(|observation|observation.agent_id.as_deref()),
