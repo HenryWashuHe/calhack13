@@ -181,11 +181,21 @@ export function roleProvenance(
       tone: "ok",
     });
   } else if (role) {
-    // Created with a mission bootstrap: find the mission whose responsibilities it owns.
-    const owned = Object.values(state?.responsibilities ?? {}).filter(
-      (r) => r.owner.kind === "role" && r.owner.id === roleId,
-    );
-    const mission = owned.length ? state?.missions?.[owned[0]!.mission_id] : undefined;
+    // Created with a mission bootstrap: the mission created in the same
+    // revision as the role. Without events, fall back to the mission of the
+    // oldest-epoch duty it still owns (a bootstrap duty is never transferred
+    // to its first owner).
+    const createdAt = events.find((e) => e.type === "role_created" && e.payload.role_id === roleId)?.revision;
+    const boot =
+      createdAt !== undefined
+        ? events.find((e) => e.type === "mission_created" && e.revision === createdAt)
+        : undefined;
+    const owned = Object.values(state?.responsibilities ?? {})
+      .filter((r) => r.owner.kind === "role" && r.owner.id === roleId)
+      .sort((a, b) => a.epoch - b.epoch);
+    const missionId =
+      boot?.type === "mission_created" ? boot.payload.mission_id : owned.length ? owned[0]!.mission_id : undefined;
+    const mission = missionId ? state?.missions?.[missionId] : undefined;
     cause.push({
       kind: "mission",
       title: mission ? "Created with the mission" : "Created at bootstrap",
@@ -198,6 +208,7 @@ export function roleProvenance(
   const since: ProvenanceStep[] = [];
   const purpose = (rid: string) => state?.responsibilities?.[rid]?.purpose ?? rid;
   const myGaps = new Map<string, string>();
+  const createdIn = created?.change.committed_revision ?? undefined;
   for (const e of events) {
     switch (e.type) {
       case "capability_gap_opened":
@@ -235,6 +246,8 @@ export function roleProvenance(
         break;
       }
       case "responsibility_transferred":
+        // A handoff in the creating commit is already the "Inherits a duty" cause.
+        if (e.payload.to === roleId && createdIn !== undefined && e.revision === createdIn) break;
         if (e.payload.to === roleId) {
           since.push({
             kind: "ownership",

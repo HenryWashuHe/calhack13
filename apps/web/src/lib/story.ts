@@ -22,7 +22,9 @@ function entryHtml(e: TimelineEntry): string {
   const deltas = e.deltas
     .map(
       (d) =>
-        `<li class="${d.kind}">${esc(d.text)}${d.devStub ? ` <span class="tag warn">DEV STUB${d.provider ? ` · for ${esc(d.provider)}` : ""}</span>` : ""}</li>`,
+        `<li class="${d.kind}">${esc(d.text)}${d.devStub ? ` <span class="tag warn">DEV STUB${d.provider ? ` · for ${esc(d.provider)}` : ""}</span>` : ""}${
+          d.operatorAttached ? ' <span class="tag warn">attached by operator</span>' : ""
+        }</li>`,
     )
     .join("");
   return `<li><div class="rev">r${e.revision}<span class="tag">${esc(e.label)}</span><small>${e.activeRoles} roles</small></div><div><b>${esc(

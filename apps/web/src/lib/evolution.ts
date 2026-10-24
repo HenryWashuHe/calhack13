@@ -25,11 +25,13 @@ export interface Delta {
   provider?: Provider;
   /** The role was provisioned by a development stub. */
   devStub?: boolean;
+  /** An operator supplied the provider agent ID; the provider never reported creating it. */
+  operatorAttached?: boolean;
 }
 
 export interface Generation {
   revision: number;
-  /** Short label: "Founded", "Grew", "Reshaped", "Shrank", "Equipped", "Asked", "Contracted", "Rewired". */
+  /** Short label: "Founded", "New mission", "Grew", "Reshaped", "Shrank", "Equipped", "Asked", "Contracted", "Rewired". */
   label: string;
   /** Why the organization changed, from the change rationale or mission goal. */
   cause: string;
@@ -88,6 +90,15 @@ export function generations(events: DomainEvent[], changes: OrgChangeRecord[], s
   const gaps = new Map<string, { capability: string; role: string }>();
   const committedAt = new Map<number, OrgChangeRecord>();
   for (const c of changes) if (c.status === "COMMITTED" && c.committed_revision != null) committedAt.set(c.committed_revision, c);
+  // attach_operation emits no role_provisioned; the mark lives on the operation.
+  const attached = new Set<string>();
+  for (const c of changes) {
+    for (const [key, op] of Object.entries(c.operations ?? {})) {
+      const roleId = c.allocation?.roles?.[key];
+      if (roleId && op.native_status === "operator_attached") attached.add(roleId);
+    }
+  }
+  let founded = false;
 
   const out: Generation[] = [];
   let active = 0;
@@ -107,7 +118,13 @@ export function generations(events: DomainEvent[], changes: OrgChangeRecord[], s
           active += 1;
           added += 1;
           const id = e.payload.role_id;
-          deltas.push({ kind: "role_added", text: name(id), provider: providers.get(id), devStub: stubs.has(id) });
+          deltas.push({
+            kind: "role_added",
+            text: name(id),
+            provider: providers.get(id),
+            devStub: stubs.has(id),
+            ...(attached.has(id) ? { operatorAttached: true } : {}),
+          });
           break;
         }
         case "role_retired":
@@ -173,7 +190,9 @@ export function generations(events: DomainEvent[], changes: OrgChangeRecord[], s
       ? sorted.find((e) => e.type === "planner_decision" && e.payload.change_id === change.change_id)
       : undefined;
     const label = mission
-      ? "Founded"
+      ? founded
+        ? "New mission"
+        : "Founded"
       : added > 0 && retired > 0
         ? "Reshaped"
         : added > 0
@@ -187,6 +206,7 @@ export function generations(events: DomainEvent[], changes: OrgChangeRecord[], s
                 : deltas.every((d) => d.kind === "contractor")
                   ? "Contracted"
                   : "Rewired";
+    if (mission) founded = true;
     out.push({
       revision: rev,
       label,
@@ -247,21 +267,56 @@ export function timeline(events: DomainEvent[], changes: OrgChangeRecord[], stat
   }
   const decisionFor = (changeId: string) =>
     sorted.find((e) => e.type === "planner_decision" && e.payload.change_id === changeId);
+  const provisioned = new Set<string>();
+  for (const e of sorted) if (e.type === "role_provisioned") provisioned.add(e.payload.change_id);
+  const plannerErrors = (errs: string[] | undefined) => (errs ?? []).map((x) => humanizeIds(x, state));
+
+  // The planner records a kernel-rejected attempt with no change id, while
+  // the server stores the same submission as a REJECTED change. Pair each
+  // such decision with the REJECTED change proposed just before it for the
+  // same observation, so the attempt is listed once, with planner attribution.
+  const pairedDecision = new Map<string, Extract<DomainEvent, { type: "planner_decision" }>>();
+  const pairedSeqs = new Set<number>();
+  for (const e of sorted) {
+    if (e.type !== "planner_decision" || e.payload.verdict !== "rejected" || e.payload.change_id) continue;
+    let best: { id: string; seq: number } | null = null;
+    for (const c of changes) {
+      if (c.status !== "REJECTED" || pairedDecision.has(c.change_id)) continue;
+      const at = proposedAt.get(c.change_id);
+      if (!at || at.seq > e.seq || !c.proposal.trigger_evidence_ids.includes(e.payload.observation_id)) continue;
+      if (!best || at.seq > best.seq) best = { id: c.change_id, seq: at.seq };
+    }
+    if (best) {
+      pairedDecision.set(best.id, e);
+      pairedSeqs.add(e.seq);
+    }
+  }
 
   for (const c of changes) {
     if (c.status !== "REJECTED" && c.status !== "FAILED") continue;
     const at = proposedAt.get(c.change_id);
     const rejected = c.status === "REJECTED";
-    const reasons = rejected
-      ? (c.errors ?? []).map((e) => `${e.code.replace(/_/g, " ")}: ${humanizeIds(e.message, state)}`)
-      : (failures.get(c.change_id) ?? (c.errors ?? []).map((e) => humanizeIds(e.message, state)));
-    const d = decisionFor(c.change_id);
+    const providerFailure = failures.get(c.change_id);
+    // FAILED with validation errors and no provisioning failure: provisioning
+    // finished, and the kernel refused the change at commit.
+    const refusedAtCommit = !rejected && !providerFailure && (c.errors ?? []).length > 0;
+    const kernelReasons = (c.errors ?? []).map((e) => `${e.code.replace(/_/g, " ")}: ${humanizeIds(e.message, state)}`);
+    const reasons = rejected || refusedAtCommit ? kernelReasons : (providerFailure ?? kernelReasons);
+    const d = decisionFor(c.change_id) ?? pairedDecision.get(c.change_id);
     out.push({
       kind: "refusal",
       revision: at?.revision ?? c.proposal.expected_org_revision,
       seq: at?.seq ?? Number.MAX_SAFE_INTEGER,
-      by: rejected ? "kernel" : "provider",
-      title: rejected ? "Kernel refused the change" : "Provisioning failed; nothing committed",
+      by: rejected || refusedAtCommit ? "kernel" : "provider",
+      title: rejected
+        ? d?.type === "planner_decision"
+          ? `Kernel refused planner attempt ${d.payload.attempt}`
+          : "Kernel refused the change"
+        : refusedAtCommit
+          ? provisioned.has(c.change_id)
+            ? "Kernel refused at commit, after provisioning; nothing committed"
+            : "Kernel refused at commit; nothing committed"
+          : "Provisioning failed; nothing committed",
       rationale: c.proposal.rationale,
       reasons,
       changeId: c.change_id,
@@ -274,6 +329,7 @@ export function timeline(events: DomainEvent[], changes: OrgChangeRecord[], stat
     const p = e.payload;
     if (p.verdict !== "escalated" && p.verdict !== "rejected") continue;
     if (p.change_id && byId.has(p.change_id) && byId.get(p.change_id)!.status !== "PROPOSED") continue;
+    if (pairedSeqs.has(e.seq)) continue;
     out.push({
       kind: "refusal",
       revision: e.revision,
@@ -281,7 +337,7 @@ export function timeline(events: DomainEvent[], changes: OrgChangeRecord[], stat
       by: p.verdict === "escalated" ? "planner" : "kernel",
       title: p.verdict === "escalated" ? "Planner escalated to an operator" : `Kernel refused planner attempt ${p.attempt}`,
       rationale: `${p.summary}${p.rationale ? ` — ${p.rationale}` : ""}`,
-      reasons: p.kernel_errors ?? [],
+      reasons: plannerErrors(p.kernel_errors),
       changeId: p.change_id ?? undefined,
       submittedBy: `planner ${p.model}`,
       operations: [],
