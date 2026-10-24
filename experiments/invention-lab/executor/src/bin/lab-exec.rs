@@ -2,7 +2,9 @@
 //!
 //!   lab-exec ref evaluator | environment <namespaces|none> | runtime | protocol
 //!   lab-exec package <source-dir> <id> <version> <entry> <out.json>
-//!   lab-exec example-plan <namespaces|none> <instances> <sim-steps> <wall-ms> <out-dir> [family]
+//!   lab-exec synthesis-plan <family> <model> <operation-id> <out.json>
+//!     (a genesis-forge MethodSynthesisPlan for this host's runtime and protocol)
+//!   lab-exec example-plan <namespaces|none> <instances> <sim-steps> <wall-ms> <out-dir> [family [candidate.package.json]]
 //!     (writes plan.json, criterion.json and both control packages)
 //!   lab-exec run <plan.json> <slot> <package.json> <state-dir> <namespaces|none>
 //!   lab-exec recover <plan.json> <slot> <state-dir> <namespaces|none>
@@ -108,7 +110,39 @@ fn main() -> ExitCode {
                 Path::new(out),
             )?)
             .unwrap(),
-            ["example-plan", m, n, steps, wall, out, rest @ ..] if rest.len() <= 1 => {
+            ["synthesis-plan", family, model, operation, out] => {
+                let family = genesis_lab_eval::family::Family::parse(family)
+                    .ok_or_else(|| format!("unknown family {family}"))?;
+                let doc = |schema: &str, id: &str, text: &str| serde_json::json!({"reference": refs::content(schema, id, "1", text.as_bytes()), "text": text});
+                let task = format!(
+                    "Task family {name} (version {version}) in the GENESIS invention lab. \
+                     A run gets public development instances of this family through the protocol. \
+                     Develop one design that meets the family's success rule on as many instances \
+                     as possible, using experiments within the run's remaining simulation steps, \
+                     and submit it. The submitted design is later scored by a separate trusted \
+                     evaluator on the receiving organization's instances.",
+                    name = family.name(),
+                    version = genesis_lab_eval::family::FAMILY_VERSION,
+                );
+                let plan = serde_json::json!({
+                    "operation_id": operation,
+                    "org_id": "org_example_a",
+                    "target_id": "generated-method",
+                    "target_version": "0.1.0",
+                    "runtime": refs::runtime(&interpreter_version()),
+                    "protocol": {"reference": refs::protocol(), "text": refs::PROTOCOL},
+                    "entrypoint": "method.py",
+                    "dependencies": [],
+                    "public_task": doc("lab-task-description/1", family.name(), &task),
+                    "public_inputs": [doc("lab-design-language/1", "language-1", include_str!("../../DESIGN_LANGUAGE.md"))],
+                    "instruction": "Write one Python 3 program using only the standard library that implements the protocol exactly: read the instances, spend experiments within the remaining simulation steps to search for a design that succeeds on many instances, then submit the best design found and exit 0. Never write anything but protocol requests to standard output.",
+                    "settings": {"model": model, "max_tokens": 8192, "timeout_ms": 120000, "sampling": "provider_default"},
+                });
+                std::fs::write(out, serde_json::to_vec_pretty(&plan).unwrap())
+                    .map_err(|e| format!("write {out}: {e}"))?;
+                serde_json::json!({"plan": out, "runtime": refs::runtime(&interpreter_version()), "protocol": refs::protocol()})
+            }
+            ["example-plan", m, n, steps, wall, out, rest @ ..] if rest.len() <= 2 => {
                 let family = match rest.first() {
                     Some(f) => genesis_lab_eval::family::Family::parse(f)
                         .ok_or_else(|| format!("unknown family {f}"))?,
@@ -117,8 +151,31 @@ fn main() -> ExitCode {
                 let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("methods");
                 let out = Path::new(out);
                 std::fs::create_dir_all(out).map_err(|e| format!("{}: {e}", out.display()))?;
-                let methods = example::ExampleMethods {
-                    candidate: write_package(
+                // An optional candidate package (for example one exported by
+                // genesis-forge method-generate-export) replaces the
+                // random-search control; its bytes are frozen as-is.
+                let candidate = match rest.get(1) {
+                    Some(path) => {
+                        let bytes = std::fs::read(path).map_err(|e| format!("read {path}: {e}"))?;
+                        let v: serde_json::Value = serde_json::from_slice(&bytes)
+                            .map_err(|e| format!("candidate package: {e}"))?;
+                        let label = |k: &str| {
+                            v["package"][k]
+                                .as_str()
+                                .map(str::to_owned)
+                                .ok_or_else(|| format!("candidate package has no {k}"))
+                        };
+                        std::fs::write(out.join("candidate.package.json"), &bytes)
+                            .map_err(|e| format!("write candidate: {e}"))?;
+                        ExactContentRef {
+                            domain: "genesis".into(),
+                            schema: "development-method-source/1".into(),
+                            id: label("id")?,
+                            version: label("version")?,
+                            sha256: refs::sha256_hex(&bytes),
+                        }
+                    }
+                    None => write_package(
                         &package(
                             &root.join("random-search"),
                             "seed-random-search",
@@ -127,6 +184,9 @@ fn main() -> ExitCode {
                         )?,
                         &out.join("candidate.package.json"),
                     )?,
+                };
+                let methods = example::ExampleMethods {
+                    candidate,
                     control: write_package(
                         &package(
                             &root.join("fixed-cart"),
