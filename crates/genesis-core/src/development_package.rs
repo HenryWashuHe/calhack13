@@ -172,15 +172,31 @@ impl MethodPackage {
         protocol: &ExactContentRef,
     ) -> Result<Self, ContractError> {
         expected.validate()?;
+        Self::load_source_for(
+            bytes,
+            &expected.method,
+            &expected.dependencies,
+            runtime,
+            protocol,
+        )
+    }
+
+    /// Inspect exact source bytes without inventing an execution grant. This
+    /// confers no execution, installation or adoption authority.
+    pub fn load_source_for(
+        bytes: &[u8],
+        method: &ExactContentRef,
+        dependencies: &[ExactContentRef],
+        runtime: &ExactContentRef,
+        protocol: &ExactContentRef,
+    ) -> Result<Self, ContractError> {
+        method.validate()?;
         runtime.validate()?;
         protocol.validate()?;
         if bytes.len() > MAX_PACKAGE_BYTES {
             return Err(invalid("method package bytes"));
         }
-        if expected.method.domain != "genesis"
-            || expected.method.schema != SCHEMA
-            || hash(bytes) != expected.method.sha256
-        {
+        if method.domain != "genesis" || method.schema != SCHEMA || hash(bytes) != method.sha256 {
             return Err(ContractError::IdentityMismatch);
         }
         let envelope: Envelope =
@@ -192,9 +208,9 @@ impl MethodPackage {
         if package.artifact_json()?.as_bytes() != bytes {
             return Err(invalid("noncanonical method package"));
         }
-        if package.id != expected.method.id
-            || package.version != expected.method.version
-            || package.dependencies != expected.dependencies
+        if package.id != method.id
+            || package.version != method.version
+            || package.dependencies != dependencies
             || &package.runtime != runtime
             || &package.protocol != protocol
         {
