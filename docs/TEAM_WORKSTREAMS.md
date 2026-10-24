@@ -1,5 +1,7 @@
 # GENESIS team workstreams
 
+> **Historical coordination plan — superseded.** The current framing is networked recursive capability improvement with fixed model weights. Event organization is no longer the product/demo. Use [the current ownership map](AGENT_HANDOFF.md#current-ownership-and-next-work) and issue #4; assignments and “must” statements below are historical, not current instructions.
+
 Four-person plan for a 36–48 hour build. The demo must complete one cycle: a disrupted event creates a new responsibility and specialist role, recruits an independent agent, gains a verified executable capability, transfers continuing work, and lets a second independent organization inherit that capability.
 
 **Stack:** Rust + Axum/Tokio for the organization kernel and HTTP integration adapters; TypeScript + React for the UI; TypeScript for generated Apify Actors. A small, isolated Python service uses the official Fetch uAgents SDK for registration and agent messaging. Use SQLite for authoritative demo state and Elastic for searchable projections, evidence, and approved capability manifests. Rust owns organizational authority, durable jobs, and state transitions; the Python service is a protocol bridge, not a second orchestrator. Language choices are implementation decisions, not sponsor requirements.
