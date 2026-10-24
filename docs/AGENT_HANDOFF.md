@@ -77,10 +77,17 @@ all calls, with separate scoring authority and frozen outputs before disclosure.
   need work there. Newer `d65cf3e` is not independently reviewed. The executor
   subtree is now explicitly assigned in [issue #1](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6381016259),
   awaiting acknowledgment; Codex retains shared call/transcript contracts.
-- #20 `b91b9a4`: storyboard wording and paging cleared; six author tests pass.
-  Independent `d7e06e7` has two passes and four failures for delayed callback
-  mixing, stale poll ordering, mismatched source digests and same-org inheritance.
-  ACP owns correction; no assignment to Eric or duplicate `apps/web` work.
+- #20 `9a6234a`, composition `853c5fe8`: neutral startup, replay/poll ordering,
+  distinct organizations and installation digest equality cleared; 12 existing
+  tests pass. Test-only `10d1edd` adds one passing real opt-in callback case and
+  two remaining manifest-identity failures. Require returned ID/version and
+  nonempty exact digest before inheritance; ACP also owns README correction.
+- #12 `a047f59`: three refusal cases and one planner test independently pass on
+  composition `77143c3`; its wording holds are cleared, but base #11 is still held.
+- #34 source `0425f8f`, merge `0b4c18b`: cap sixteen dataset reads with fixed
+  one-second spacing within the original deadline. New regression fails before
+  correction. Apify/forge pass 187 executions (78 Apify including 30 repeated
+  harness cases, 109 forge), strict Clippy and formatting. No cloud call.
 - ACP #3 `3ad7685` passes 138 existing tests, but old inline journal uniqueness
   still fails `bb5a841`. #5 `fc956a8` corrects the omission fixture, independently
   rerun; its inherited migration hold remains. #4 needs routing/status language.
@@ -95,8 +102,10 @@ main test run. Current PR heads/reviews supersede the checkpoint.
 reports successful Apify build and case run, followed by immediate forge
 `InvalidDataset` collection and 0/3 credited cases. Later dataset presence and
 an offline venue-field comparison do not make the failed gate verified. The
-private cloud checkpoint was not independently inspected here; no live retry
-confirms #26's mitigation. No hosted v2 CREAO agent/run completed through #25.
+private cloud checkpoint was not independently inspected here. A [later retry](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6381127464)
+still failed after #26, about 1.3 s after successful completion by its reported
+timing. #34 widens the window, with no new live validation yet. No hosted v2
+CREAO agent/run completed through #25.
 Its merged opt-in v2 path replaces the earlier missing compatibility prerequisite;
 renaming a v2 key into the v1 adapter remains incorrect. Fetch discovery and
 Elastic permission failure are separate evidence. Credentials stay ignored/local.
