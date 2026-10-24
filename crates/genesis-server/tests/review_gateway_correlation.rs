@@ -18,8 +18,11 @@ const TRUSTED_RUN: &str = "trusted-native-probe-run";
 const WRONG_RUN: &str = "unrelated-native-probe-run";
 
 struct Probe {
-    early_receipt: bool,
+    /// `None`: no early receipt. `Some(r)`: answer before dispatch returns,
+    /// with receipt `probe_ref` `r`.
+    early: Option<Option<&'static str>>,
     seen: Mutex<Option<ProbeRequest>>,
+    challenges: Mutex<Vec<String>>,
     receipt_status: Mutex<Option<u16>>,
 }
 
@@ -27,9 +30,18 @@ struct Probe {
 impl ReadinessProbe for Probe {
     async fn dispatch(&self, request: &ProbeRequest) -> Result<ProbeDispatch, ProviderError> {
         *self.seen.lock().unwrap() = Some(request.clone());
-        if self.early_receipt {
+        self.challenges
+            .lock()
+            .unwrap()
+            .push(request.challenge_id.clone());
+        if let Some(early_ref) = self.early {
             let mut receipt = request.expected_receipt();
-            receipt["probe_ref"] = json!(WRONG_RUN);
+            match early_ref {
+                Some(r) => receipt["probe_ref"] = json!(r),
+                None => {
+                    receipt.as_object_mut().unwrap().remove("probe_ref");
+                }
+            }
             let response = reqwest::Client::new()
                 .post(&request.receipt_url)
                 .json(&receipt)
@@ -66,14 +78,29 @@ fn subject() -> (RoleToProvision, AgentBinding) {
 }
 
 async fn probe_case(early_receipt: bool) -> (u16, bool, Option<String>) {
+    let c = run_case(early_receipt.then_some(Some(WRONG_RUN))).await;
+    (c.status, c.ready, c.stored_run)
+}
+
+struct Case {
+    status: u16,
+    ready: bool,
+    stored_run: Option<String>,
+    first: genesis_server::gateway_readiness::Challenge,
+    challenges: Vec<String>,
+}
+
+async fn run_case(early: Option<Option<&'static str>>) -> Case {
+    let early_receipt = early.is_some();
     let app = build_org(&OrgConfig::dev("org_a", "Org A"), None).unwrap();
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let base = format!("http://{}", listener.local_addr().unwrap());
     let router = app.clone().router();
     let server = tokio::spawn(async move { axum::serve(listener, router).await.unwrap() });
     let probe = Arc::new(Probe {
-        early_receipt,
+        early,
         seen: Mutex::new(None),
+        challenges: Mutex::new(Vec::new()),
         receipt_status: Mutex::new(None),
     });
     let verifier = GatewayReadiness::new(
@@ -87,6 +114,7 @@ async fn probe_case(early_receipt: bool) -> (u16, bool, Option<String>) {
     let (role, binding) = subject();
     verifier.verify(&role, &binding).await.unwrap();
     let request = probe.seen.lock().unwrap().clone().unwrap();
+    let first_id = request.challenge_id.clone();
     let status = if early_receipt {
         probe.receipt_status.lock().unwrap().unwrap()
     } else {
@@ -105,11 +133,16 @@ async fn probe_case(early_receipt: bool) -> (u16, bool, Option<String>) {
         verifier.verify(&role, &binding).await.unwrap(),
         Readiness::Ready { .. }
     );
-    let challenge = get_challenge(&app.store, &request.challenge_id)
-        .unwrap()
-        .unwrap();
+    let challenge = get_challenge(&app.store, &first_id).unwrap().unwrap();
+    let challenges = probe.challenges.lock().unwrap().clone();
     server.abort();
-    (status, ready, challenge.probe_ref)
+    Case {
+        status,
+        ready,
+        stored_run: challenge.probe_ref.clone(),
+        first: challenge,
+        challenges,
+    }
 }
 
 #[tokio::test]
@@ -128,4 +161,56 @@ async fn post_dispatch_wrong_run_is_rejected_control() {
     assert_eq!(status, 403);
     assert!(!ready);
     assert_eq!(stored_run.as_deref(), Some(TRUSTED_RUN));
+}
+
+// Henry's Claude follow-ups: early receipts that agree with (or omit) the
+// trusted run are kept; a mismatch retires only that challenge.
+
+#[tokio::test]
+async fn early_receipt_matching_the_trusted_run_stays_ready() {
+    let c = run_case(Some(Some(TRUSTED_RUN))).await;
+    assert_eq!(c.status, 200);
+    assert!(c.ready);
+    assert_eq!(c.stored_run.as_deref(), Some(TRUSTED_RUN));
+    assert_eq!(
+        c.challenges.len(),
+        1,
+        "no new challenge for a valid early receipt"
+    );
+}
+
+#[tokio::test]
+async fn early_receipt_without_a_run_stays_ready_and_records_the_trusted_run() {
+    let c = run_case(Some(None)).await;
+    assert_eq!(c.status, 200);
+    assert!(c.ready);
+    assert_eq!(c.stored_run.as_deref(), Some(TRUSTED_RUN));
+    assert_eq!(c.challenges.len(), 1);
+}
+
+#[tokio::test]
+async fn early_wrong_run_retires_the_challenge_and_issues_a_new_one() {
+    let c = run_case(Some(Some(WRONG_RUN))).await;
+    assert!(!c.ready);
+    assert_eq!(
+        c.first.status,
+        genesis_server::gateway_readiness::ChallengeStatus::Expired
+    );
+    assert_eq!(
+        c.stored_run.as_deref(),
+        Some(TRUSTED_RUN),
+        "trusted run is the record"
+    );
+    assert!(c
+        .first
+        .detail
+        .as_deref()
+        .unwrap_or("")
+        .contains("different run"));
+    assert_eq!(
+        c.challenges.len(),
+        2,
+        "the next pass issues a fresh challenge"
+    );
+    assert_ne!(c.challenges[0], c.challenges[1]);
 }
