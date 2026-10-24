@@ -333,7 +333,8 @@ details.live summary { cursor: pointer; color: var(--chalk-dim); }
     const el = document.createElement("article");
     el.className = "role" + (r.child ? " child" : "") + (r.state ? " " + r.state : "") + (r.state === "new" && prevIds && !prevIds.has(r.id) ? "" : "");
     if (r.state === "new" && prevIds && prevIds.has(r.id)) el.classList.remove("new");
-    const chip = `<span class="chip ${r.prov}${r.stub ? " stub" : ""}">${provLabel[r.prov] || r.prov}${r.stub ? " · DEV STUB" : ""}</span>`;
+    const chipText = r.prov === "dev_stub" ? "DEV STUB" : (provLabel[r.prov] || r.prov) + (r.stub ? " · DEV STUB" : "");
+    const chip = `<span class="chip ${r.prov}${r.stub ? " stub" : ""}">${chipText}</span>`;
     el.innerHTML = `<span class="name">${esc(r.name)}</span>${chip}<span class="owns">${esc(r.owns || "")}</span>` +
       (r.extra ? `<span class="owns">${esc(r.extra)}</span>` : "") +
       (r.cap ? `<span class="cap">${esc(r.cap)}</span>` : "");
