@@ -28,11 +28,12 @@ export interface Ledger {
 export function buildLedger(attempts: Attempt[]): Ledger {
   const totals = {} as Record<UsageDimension, LedgerTotal>;
   for (const d of USAGE_DIMENSIONS) totals[d] = { measured: 0, measuredCount: 0, missingCount: 0 };
-  const byPhase: Record<string, number> = {};
+  // Counted in a Map: a recorded phase such as "__proto__" or "constructor" is just a key.
+  const phases = new Map<string, number>();
   const tiers: Tier[] = [];
   let packages = 0;
   for (const a of attempts) {
-    byPhase[a.status.phase] = (byPhase[a.status.phase] ?? 0) + 1;
+    phases.set(a.status.phase, (phases.get(a.status.phase) ?? 0) + 1);
     if (a.status.package) packages += 1;
     if (!tiers.includes(a.tier)) tiers.push(a.tier);
     for (const d of USAGE_DIMENSIONS) {
@@ -45,6 +46,8 @@ export function buildLedger(attempts: Attempt[]): Ledger {
       }
     }
   }
+  // fromEntries defines own data properties, so "__proto__" stays an ordinary key.
+  const byPhase = Object.fromEntries(phases) as Record<string, number>;
   return { attempts: attempts.length, byPhase, packages, tiers, totals };
 }
 
