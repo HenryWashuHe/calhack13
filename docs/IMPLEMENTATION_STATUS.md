@@ -17,7 +17,7 @@ Apify and CREAO v2 metadata reads authenticated, but no hosted CREAO agent was
 returned and the current v1 adapter needs a separately scoped compatibility path.
 This is not full live-provider execution. See current ownership in the handoff.
 
-Current merged checkpoint `f8bffa26` includes the new routing docs (#17),
+Earlier merged checkpoint `f8bffa26` includes the new routing docs (#17),
 live-gate path/redaction fixes (#16, 24 offline tests) and constitution transition
 audit (#9, 18 independent scoped tests). Draft [#18](https://github.com/HenryWashuHe/genesis-history-experiment/pull/18)
 contains proposed pure method identity/run-binding/receipt validators, source
@@ -25,6 +25,34 @@ contains proposed pure method identity/run-binding/receipt validators, source
 It remains **unmerged and experimental**, with affected-owner agreement pending.
 It does not implement method execution, independent scoring, adoption or comparison.
 ACP #3/#5 remain held: 145 tests pass, but four additional defects reproduce.
+Later merged checkpoint `983f0443` adds adoption candidate evidence (#8,
+`8f26401e`) and terminal-run retry (#10, `1aed609f`). Adoption merge `1aed609f` has the same tree as
+independently tested composition `015e4fc5`: 47 adoption and 17 provider-executor
+tests plus strict Clippy. Unknown/live effects remain blocked from retry.
+
+Fresh Actor packaging (#21, source `d20cb5e`, reviewed head `7cc59ee`) now binds
+Actor name/version before source hashing. Generated provenance v2 coexists with
+exact read-only validation of saved v1 packages. Strict returned-source checks
+and unresolved-effect recovery are unchanged. Three previous regressions were
+reproduced; 149 author tests and 58 independent focused reruns passed. Main's tree
+matches reviewed `be312625`. ACP reported a real Actor creation followed by name
+normalization/source mismatch; this fix has no new live build/run evidence and
+does not rewrite or resubmit that old checkpoint.
+
+Draft [#22](https://github.com/HenryWashuHe/genesis-history-experiment/pull/22)
+(`0871df6`, stacked on #18) adds pure independent scoring requests/receipts bound
+to the entire execution, exact output and trusted scoring context. Its request
+roster retains missing/invalid/failed/unknown outcomes and separate development
+and scoring accounting. 102 core tests and strict Clippy passed; independent
+review reran all nine new tests. This is **unmerged and experimental**. A roster
+created after output selection cannot prove complete predeclared development
+trials, and no evaluator, holdout isolation or comparative result is implemented.
+
+The new #20 stage is unmerged. Review found replay/live mixing, overclaimed
+installation inheritance and incomplete event paging; its default event-organizer
+story is superseded. It must not replace the invention-lab direction or become
+live-provider or method-improvement evidence.
+
 The [goal ledger](ONGOING_GOAL.md#current-milestone-ledger) records next steps.
 
 ## Historical source checkpoint before migration

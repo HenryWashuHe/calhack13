@@ -1,6 +1,6 @@
 # GENESIS implementation handoff
 
-## Current checkpoint: repository migration
+## Current checkpoint: scoring contracts and reviewed foundations
 
 **Networked recursive capability improvement with fixed model weights** remains
 the owner's chosen direction. Work in
@@ -23,11 +23,11 @@ authentication check or local test establishes a positive recursive-benefit resu
 
 | Owner/session | Active lane and acknowledgment | Scope / next deliverable |
 | --- | --- | --- |
-| Henry's core Claude | Adoption/planner acknowledged; new #8/#10/#11/#12/#14/#15 | Fix remaining review findings; retain adoption wiring and existing adoption console UI. No transfer of Eric's invention-lab UI. |
+| Henry's core Claude | Adoption/planner acknowledged; #8/#10 merged, #11/#12/#14/#15 open | Fix remaining review findings; retain adoption wiring and existing adoption console UI. No transfer of Eric's invention-lab UI. |
 | Henry's core Claude | Requested evaluator lane assigned in issue #1; implementation acknowledgment pending | New #13 `docs/invention-lab/evaluator.md`; then `experiments/invention-lab/evaluator/**` after method/interface agreement. Correct holdout timing, exact evaluator/task identities and resource/receipt bindings. |
 | Eric / Eric's Claude | Audit #9 merged at `f8bffa26`; new UI assignment not yet acknowledged | `docs/invention-lab/ui.md`, then isolated `apps/web/src/invention-lab/**` after receipts settle. `EricZhu-31` has write access. |
-| ACP Claude session | Acknowledged bridge lane; new #3/#4/#5 | Preserve independent regressions, correct remaining defects, keep method commands proposed. Small Fetch sponsor paragraph approved within this lane. Existing Elastic diagnosis stays here. |
-| Codex main chat | Shared method contracts and migration active | Draft #18 at `1d84587e` implements proposed exact identities, run bindings and receipt validation (93 core tests/strict Clippy). Obtain affected-owner feedback; independent evaluation/comparison plans are next. Runner prerequisite #16 is merged (24 offline tests); do not duplicate it. |
+| ACP Claude session | Acknowledged bridge lane #3/#4/#5 and new isolated stage #20 | Correct bridge holds plus #20 replay/live, adoption provenance and paging defects. Keep `apps/stage/**` separate from Eric’s UI and the superseded event story secondary. Do not duplicate merged packaging #21 or take CREAO v2 files without a fresh scoped claim. |
+| Codex main chat | Shared method/evaluation contracts active; packaging fix merged | Draft #18 at `1d84587e` and stacked #22 at `0871df6` implement experimental execution and independent scoring records (102 core tests/strict Clippy; nine scoring tests independently rerun). Obtain owner feedback, then freeze a separate pre-execution trial plan. Packaging #21 is merged; no live rerun or CREAO v2 takeover. |
 | Ines | Unassigned by explicit user instruction | Do not infer her identity from another collaborator handle. |
 
 The same GitHub account hosts multiple sessions; ownership is by session and
@@ -50,13 +50,30 @@ metadata reads returned 200; there are no hosted CREAO agents in that project.
 The v1 adapter is not compatible by merely renaming the v2 key. These checks
 are separate from ACP's Fetch/Elastic results and do not prove sponsor execution.
 
-Latest merged main `f8bffa26` includes routing #17 (`6d1b7dc`), runner #16
-(`66fc95b8`) and Eric's audit #9. Independent audit composition `ddc5140`
-passed 18 scoped core/server checks; merged tree matches the tested composition.
-Draft #18 adds no executor, provider effects or adopted-method wiring. Its
-`WithinLimits` result describes accounting only; unknown usage remains explicit.
-Henry's adoption/evaluator lanes should review exact digest/purpose/budget
-bindings before shared runtime integration. G0 and the recursive loop remain open.
+Latest merged main `983f0443` includes #8/#10 adoption foundations and #21
+Actor packaging. The adoption composition `015e4fc5` passed 47 adoption + 17
+provider-executor tests and strict Clippy; its tree matched merged `1aed609f`.
+Packaging source `d20cb5e` and reviewed composition `7cc59ee` passed 149 author
+and 58 independent focused tests; main tree `be312625` matches the reviewed tree.
+Fresh source binds intended Actor name/version before hashing. Exact saved v1
+packages remain byte-identical; unresolved POSTs stay in reconciliation. ACP's
+reported Actor creation/name-normalization failure is retained evidence, not a
+successful cloud build/run, and this cycle made no new provider calls.
+
+Draft #22 (`0871df6`) adds separate scoring receipts on #18. Its scoring-request
+roster starts after output selection; no-output development failures require a
+separate pre-execution trial ledger. Unknown development/scoring consumption and
+failed development outcomes remain visible. No executor, independent evaluator,
+method-adoption wiring or positive comparative result exists in these contracts.
+Henry's adoption/evaluator lanes should review the exact digest/purpose/budget
+bindings before shared integration. G0 and the recursive loop remain open.
+
+#20 introduces `apps/stage/**`, an acknowledged ACP claim. Independent review
+found replay controls can display fixtures under a Live badge, arbitrary B
+installations can appear as inherited/adopted, and event paging stops at the first
+1,000 entries. Its event-organizer default is superseded; keep any historical
+fixture view secondary and visibly labeled. These are review holds, not a new
+assignment for Eric or permission to duplicate `apps/web`.
 
 Current PR heads and issue #1 supersede this snapshot. Historical evidence below
 retains original repository hashes and links; it does not restore superseded scope.
