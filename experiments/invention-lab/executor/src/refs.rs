@@ -3,7 +3,6 @@
 use genesis_core::development_method::ExactContentRef;
 use genesis_lab_eval::family::{instance, instance_digest, Family, Instance, FAMILY_VERSION};
 use genesis_lab_eval::score::{evaluator_digest, EVALUATOR_ID, EVALUATOR_VERSION};
-use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 pub const DOMAIN: &str = "genesis-lab";
@@ -64,34 +63,31 @@ pub fn resolve_instance(reference: &ExactContentRef) -> Option<Instance> {
     (instance_ref(family, seed) == *reference).then(|| instance(family, seed))
 }
 
-/// A development method: a manifest plus one entry script.
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(deny_unknown_fields)]
-pub struct MethodManifest {
-    pub id: String,
-    pub version: String,
-    /// `control` for hand-written seeds; never a generated or improved method.
-    pub label: String,
-    pub interpreter: String,
-    pub entry: String,
+/// The method runtime this host provides: an interpreter at an exact version.
+/// Selected by the host from its own configuration, never from a package.
+pub fn runtime(interpreter_version: &str) -> ExactContentRef {
+    content(
+        "lab-runtime/1",
+        "python3",
+        "1",
+        genesis_core::digest::canonical_json(&serde_json::json!({
+            "interpreter": "python3", "version": interpreter_version,
+        }))
+        .as_bytes(),
+    )
 }
 
-/// Digest over the manifest bytes and the entry bytes, length-prefixed.
-pub fn method_ref(manifest_bytes: &[u8], entry_bytes: &[u8]) -> Result<ExactContentRef, String> {
-    let m: MethodManifest =
-        serde_json::from_slice(manifest_bytes).map_err(|e| format!("method manifest: {e}"))?;
-    let mut h = Sha256::new();
-    for part in [manifest_bytes, entry_bytes] {
-        h.update((part.len() as u64).to_be_bytes());
-        h.update(part);
-    }
-    Ok(ExactContentRef {
-        domain: DOMAIN.into(),
-        schema: "lab-method/1".into(),
-        id: m.id,
-        version: m.version,
-        sha256: format!("{:x}", h.finalize()),
-    })
+/// The JSON-line protocol between a method and this executor.
+pub const PROTOCOL: &str = "genesis-lab-exec-lines/1: one JSON object per line on stdin/stdout; \
+ops instances, experiment{instance,design}, submit{design}; replies carry ok and refused";
+
+pub fn protocol() -> ExactContentRef {
+    content(
+        "lab-protocol/1",
+        "genesis-lab-exec-lines",
+        "1",
+        PROTOCOL.as_bytes(),
+    )
 }
 
 /// Executor sources, so the environment digest changes when they do.

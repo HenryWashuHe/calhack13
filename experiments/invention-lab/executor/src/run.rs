@@ -9,6 +9,7 @@ use genesis_core::development_experiment::{
     ExperimentLedger, ExperimentOutcome, ExperimentScope, ExperimentSettlement,
 };
 use genesis_core::development_method::{ExactContentRef, ExecutionOutcome, ResourceUsage};
+use genesis_core::development_package::MethodPackage;
 use genesis_core::development_trial::TrialPlan;
 use std::io::{BufRead, BufReader, Read, Write};
 use std::path::{Path, PathBuf};
@@ -20,34 +21,6 @@ pub const MAX_LINE: usize = 1 << 20;
 /// The method is killed this long before its wall-time grant ends, so the
 /// measured time stays inside the grant in the ordinary case.
 pub const KILL_MARGIN_MS: u64 = 250;
-
-pub struct Method {
-    pub manifest: refs::MethodManifest,
-    pub manifest_bytes: Vec<u8>,
-    pub entry_bytes: Vec<u8>,
-}
-
-impl Method {
-    pub fn load(manifest_path: &Path) -> Result<Self, String> {
-        let manifest_bytes =
-            std::fs::read(manifest_path).map_err(|e| format!("read manifest: {e}"))?;
-        let manifest: refs::MethodManifest =
-            serde_json::from_slice(&manifest_bytes).map_err(|e| format!("method manifest: {e}"))?;
-        let entry = manifest_path
-            .parent()
-            .unwrap_or(Path::new("."))
-            .join(&manifest.entry);
-        let entry_bytes = std::fs::read(&entry).map_err(|e| format!("read entry: {e}"))?;
-        Ok(Self {
-            manifest,
-            manifest_bytes,
-            entry_bytes,
-        })
-    }
-    pub fn reference(&self) -> Result<ExactContentRef, String> {
-        refs::method_ref(&self.manifest_bytes, &self.entry_bytes)
-    }
-}
 
 /// `<interpreter> --version`, pinned in the environment reference.
 pub fn interpreter_version(interpreter: &str) -> String {
@@ -61,7 +34,7 @@ pub fn interpreter_version(interpreter: &str) -> String {
 pub struct Config {
     pub sandbox: Mode,
     pub interpreter_version: String,
-    /// Where entry scripts are staged; must not be under a hidden directory.
+    /// Where package files are staged; must not be under a hidden directory.
     pub stage_root: PathBuf,
 }
 
@@ -69,7 +42,14 @@ impl Config {
     pub fn environment(&self) -> ExactContentRef {
         refs::environment(self.sandbox, &self.interpreter_version)
     }
+    /// The runtime this host provides; a package must name exactly this.
+    pub fn runtime(&self) -> ExactContentRef {
+        refs::runtime(&self.interpreter_version)
+    }
 }
+
+/// The interpreter behind [`refs::runtime`].
+pub const INTERPRETER: &str = "python3";
 
 /// Recovers a slot whose executor stopped mid-run: a pending call is settled
 /// unknown (never resubmitted), the ledger is sealed and the receipt says
@@ -141,21 +121,22 @@ pub fn recover(
     )
 }
 
-/// Runs the slot once. Identity checks happen before anything is spawned.
+/// Runs the slot once from the exact package bytes the plan names. Identity
+/// checks happen before anything is spawned.
 pub fn execute(
     plan: &TrialPlan,
     slot_id: &str,
-    method: &Method,
+    package_bytes: &[u8],
     dir: &Path,
     cfg: &Config,
 ) -> Result<Finished, RunError> {
     let binding = plan.expected_binding(slot_id)?;
-    let actual = method.reference().map_err(RunError::Refused)?;
-    if actual != binding.method {
-        return Err(RunError::Refused(
-            "method digest differs from the plan's slot".into(),
-        ));
-    }
+    // Digest, canonical bytes, labels, dependencies, and the host-selected
+    // runtime and protocol, all against the frozen binding (#36).
+    let package =
+        MethodPackage::load_for(package_bytes, &binding, &cfg.runtime(), &refs::protocol())
+            .map_err(|e| RunError::Refused(format!("method package: {e}")))?;
+    let actual = binding.method.clone();
     if cfg.environment() != binding.environment {
         return Err(RunError::Refused(
             "executor environment differs from the plan".into(),
@@ -193,24 +174,30 @@ pub fn execute(
         std::process::id(),
         &refs::sha256_hex(slot_id.as_bytes())[..12]
     ));
-    std::fs::create_dir_all(&stage)?;
-    std::fs::write(stage.join("entry"), &method.entry_bytes)?;
+    let files = stage.join("files");
+    std::fs::create_dir_all(&files)?;
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
         // Only root (before the privilege drop) or the same user reads it.
         std::fs::set_permissions(&stage, std::fs::Permissions::from_mode(0o700))?;
-        std::fs::set_permissions(stage.join("entry"), std::fs::Permissions::from_mode(0o600))?;
     }
-    let work = stage.join("work");
-    std::fs::create_dir_all(&work)?;
+    // Paths are validated relative paths with no `..`; files are created
+    // here, never linked.
+    for file in package.files() {
+        let path = files.join(&file.path);
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+        std::fs::write(&path, file.content.as_bytes())?;
+    }
 
     let grant = binding.budget.wall_time_ms;
     let deadline = Duration::from_millis(grant.saturating_sub(KILL_MARGIN_MS));
     let started = Instant::now();
     let mut child = match cfg
         .sandbox
-        .command(&method.manifest.interpreter, &stage, &work)
+        .command(INTERPRETER, package.entrypoint(), &stage)
         .spawn()
     {
         Ok(c) => c,
