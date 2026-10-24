@@ -80,7 +80,7 @@ test("inheritance is drawn only for an exact accepted version and digest A publi
   const digest = "d".repeat(64);
   const a = stateWith({ x: { status: "ACCEPTED", capability: cap, source_digest: digest } });
   const b = stateWith({ y: { status: "ACCEPTED", capability: cap, source_digest: digest } }, "org_b");
-  const h = harness(async (url) => ok(url.includes("/capabilities/") ? { publisher: "org_a", source_digest: digest } : url.includes("/events/") ? [] : url.includes("local-urlA") ? a : b));
+  const h = harness(async (url) => ok(url.includes("/capabilities/") ? { publisher: "org_a", capability_id: "cap_a", version: "1.0", source_digest: digest } : url.includes("/events/") ? [] : url.includes("local-urlA") ? a : b));
   h.submit(); await settle();
   assert.ok(h.get("lineage").children.some((n) => n.innerHTML.includes("Org B · adopted")));
   assert.equal(h.get("token").style["--pos"], "94%");
