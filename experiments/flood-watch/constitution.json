@@ -1,0 +1,13 @@
+{
+  "scopes": [
+    "mission.coordinate",
+    "alerts.notify",
+    "flood.respond",
+    "evacuation.plan",
+    "monitor.river",
+    "capability.river_gauge"
+  ],
+  "budget_cents": 1000000,
+  "max_active_roles": 8,
+  "max_active_contracts": 3
+}
