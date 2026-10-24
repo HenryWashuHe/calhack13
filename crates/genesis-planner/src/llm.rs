@@ -356,7 +356,7 @@ pub fn from_env() -> Result<Option<Box<dyn LlmClient>>, LlmError> {
         )),
         other => {
             return Err(LlmError::NotConfigured(format!(
-                "unknown GENESIS_LLM_PROVIDER `{other}` (use anthropic, openai, gemini or openai-compatible)"
+                "unknown GENESIS_LLM_PROVIDER `{other}` (use anthropic, openai, gemini, openai-compatible or elastic)"
             )))
         }
     };
