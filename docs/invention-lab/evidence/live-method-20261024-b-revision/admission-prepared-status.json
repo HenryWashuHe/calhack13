@@ -1,0 +1,9 @@
+{
+  "schema": "genesis-generation-admission-status/1",
+  "journal_sha256": "f048ad75d7ebf544838b662320a1b7f6eb5422bd1fa426ce9e6a36d26ad703f2",
+  "roster_sha256": "0965161d890476b764ff2ad591a0449387993d513c3513b93863600a99ea1b2b",
+  "reserved_attempts": 0,
+  "remaining_attempts": 1,
+  "reserved_output_token_caps": 0,
+  "reserved_prepared_checkpoints": []
+}
