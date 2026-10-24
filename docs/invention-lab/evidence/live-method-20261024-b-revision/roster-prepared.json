@@ -1,0 +1,5 @@
+{
+  "authority": "declaration only; does not gate provider calls or prove chronology",
+  "declared_attempts": 1,
+  "roster_sha256": "0965161d890476b764ff2ad591a0449387993d513c3513b93863600a99ea1b2b"
+}

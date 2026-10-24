@@ -1,0 +1,22 @@
+{
+  "ast_parse": true,
+  "authority": "syntax and bytes only, not execution or correctness",
+  "imports": [
+    "json",
+    "math",
+    "sys"
+  ],
+  "package": {
+    "domain": "genesis",
+    "id": "receiver-revised-method",
+    "schema": "development-method-source/1",
+    "sha256": "4f455dc6e625bdaf554d567bdd7f0bc0c7b601a1ea6332d4e7a13e02005db14d",
+    "version": "0.1.0"
+  },
+  "schema": "genesis-static-source-inspection/1",
+  "source_bytes": 6044,
+  "source_changed": true,
+  "source_executed": false,
+  "source_lines": 192,
+  "source_sha256": "4adde0d840bcb733166c3db7f587fd295f1f986369433ea3db58e40be1d76de5"
+}

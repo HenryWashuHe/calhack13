@@ -1,0 +1,16 @@
+{
+  "authority": "none: source preparation only; no generation, execution or adoption",
+  "checkpoint_sha256": "f02248fd50ea40de443ac68b600b47e013c68dccad3e562d72821d5961e57aad",
+  "operation_id": "live-b-revision-20261024t182242z-80adc80d",
+  "org_id": "org_example_b",
+  "parent": {
+    "domain": "genesis",
+    "id": "generated-method",
+    "schema": "development-method-source/1",
+    "sha256": "8215c3679a06724069759bcbdaa576b64ec0ef1251c5238a797c0cb34962b944",
+    "version": "0.1.0"
+  },
+  "phase": "prepared",
+  "request_sha256": "6f6225669059fd7dd512c194cec783787f37fffa77d87e2684311fc4f0ab80ef",
+  "revision_spec_sha256": "0211e9ea4fdce3e0cc998366ae59fb9db5b8e4db096997084e17f875a3457b3c"
+}
