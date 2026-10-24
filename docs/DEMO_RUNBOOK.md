@@ -142,6 +142,13 @@ status at `GET /api/v1/capability-gaps/{id}/adoption`).
 Evidence: `tests/two_org_inheritance.rs` runs exactly this with real
 `serve_org` on both sides against loopback providers. No live run yet.
 
+Rehearse it without keys: `cargo run -p genesis-server --example
+rehearse_autonomy` starts the registry and both orgs on the console's default
+ports with a slowed fixture provider (`REHEARSAL_DELAY_MS`), then runs A's and
+B's requests in order while the console shows the chips move. Every external
+effect is a fixture; it is for timing and narration practice only, never a
+recording to present as live.
+
 ## The 3 minutes
 
 Targets from the research report §10, with what each beat actually shows today.
