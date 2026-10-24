@@ -1307,3 +1307,212 @@ async fn fabricated_generic_result_cannot_replace_the_durable_native_execution_r
         native.output_sha256
     );
 }
+
+#[tokio::test]
+async fn historical_decisions_survive_retirement_and_restart_but_pin_every_native_output() {
+    for mode in [ResponseMode::Correct, ResponseMode::WrongCapacity] {
+        let mut f = Fixture::start().await;
+        let source = f.source("historical-source", 0).await;
+        f.providers.mode(mode);
+        let request = f.request_body("historical-assessment", &source);
+        let record = f.create(request.clone()).await;
+        f.collected(&record).await;
+        let decision = f.verify(&record).await;
+        let expected = if matches!(mode, ResponseMode::Correct) {
+            "accepted"
+        } else {
+            "semantic_rejected"
+        };
+        assert_eq!(proof(&decision)["decision"], expected);
+        assert_eq!(
+            proof(&decision)["output"].is_null(),
+            matches!(mode, ResponseMode::WrongCapacity)
+        );
+        let job = f
+            .app
+            .store
+            .get_job(&JobId::new(record["job_id"].as_str().unwrap()))
+            .unwrap();
+        let native = f.specialist.execution_receipt(&job, &binding()).unwrap();
+        f.change("retire-persistent-monitor", json!([{"op":"RetireRole","role_id":f.monitor,
+            "handoffs":[{"responsibility_id":f.responsibility,"to":{"kind":"existing","role_id":f.backup}}]}])).await;
+        assert_eq!(
+            f.app.current_state().unwrap().roles[&RoleId::new(&f.monitor)].state,
+            RoleState::Retired
+        );
+        let requests = f.providers.world.lock().unwrap().seen.len();
+        f.restart(false).await;
+        let path = format!(
+            "/venue-assessments/{}",
+            record["assessment_id"].as_str().unwrap()
+        );
+        assert_eq!(f.get(&path).await, decision);
+        assert_eq!(f.verify(&record).await, decision);
+        let (status, replay) = f.post("/venue-assessments", request).await;
+        assert_eq!(status, StatusCode::OK, "{replay}");
+        assert_eq!(
+            replay, decision,
+            "exact replay is historical lookup, not renewed authority"
+        );
+        assert_eq!(f.providers.world.lock().unwrap().seen.len(), requests);
+        assert_eq!(f.providers.execution_posts().len(), 1);
+
+        // Change the saved provider result AND its raw-response projection so
+        // the native journal remains internally valid. The assessment proof
+        // must independently detect changed receipt contents, including a
+        // prior rejection whose public domain output is None.
+        let runtime_db =
+            rusqlite::Connection::open(f.directory.path().join("creao.sqlite")).unwrap();
+        let original: String = runtime_db
+            .query_row(
+                "SELECT record_json FROM creao_operations WHERE operation_id=?1",
+                [&native.operation_id],
+                |row| row.get(0),
+            )
+            .unwrap();
+        let mut altered: Value = serde_json::from_str(&original).unwrap();
+        altered["observation"]["result"]["text"] = json!("{\"tampered\":true}");
+        altered["observation"]["raw_response"]["result"]["text"] = json!("{\"tampered\":true}");
+        runtime_db
+            .execute(
+                "UPDATE creao_operations SET record_json=?2 WHERE operation_id=?1",
+                rusqlite::params![
+                    native.operation_id,
+                    serde_json::to_string(&altered).unwrap()
+                ],
+            )
+            .unwrap();
+        assert!(
+            f.journal.get(&native.operation_id).is_ok(),
+            "the tampered native record must pass its own shape/projection validation"
+        );
+        let altered_native = f.specialist.execution_receipt(&job, &binding()).unwrap();
+        assert_ne!(altered_native.output_sha256, native.output_sha256);
+        assert_eq!(
+            f.request(Method::GET, &path, "operator", None).await.0,
+            StatusCode::CONFLICT
+        );
+        assert_eq!(
+            f.post(&format!("{path}/verify"), json!({})).await.0,
+            StatusCode::CONFLICT
+        );
+        assert_eq!(f.providers.world.lock().unwrap().seen.len(), requests);
+        runtime_db
+            .execute(
+                "UPDATE creao_operations SET record_json=?2 WHERE operation_id=?1",
+                rusqlite::params![native.operation_id, original],
+            )
+            .unwrap();
+        assert_eq!(f.get(&path).await, decision);
+    }
+}
+
+#[tokio::test]
+async fn revoked_scope_after_real_account_cooldown_wait_prevents_the_native_post() {
+    let f = Fixture::start().await;
+    let source = f.source("cooldown-source", 0).await;
+    let limiter = AccountLimiter::open(
+        f.directory.path().join("quota.sqlite"),
+        "synthetic-assessment-account",
+        QuotaLimits::default(),
+    )
+    .unwrap();
+    // Shares the exact persisted account policy used by the real HTTP client;
+    // this is actual quota waiting, not an injected substitute for the guard.
+    limiter.defer_for(Duration::from_secs(2)).unwrap();
+    let cooldown_end = tokio::time::Instant::now() + Duration::from_secs(2);
+    let quota_db = rusqlite::Connection::open(f.directory.path().join("quota.sqlite")).unwrap();
+    // The limiter persists its observed clock even when cooldown prevents a
+    // reservation. Observe that call so revocation cannot win before advance.
+    quota_db.execute_batch("CREATE TABLE fixture_admission_attempts (seen INTEGER NOT NULL); CREATE TRIGGER fixture_limiter_entered AFTER UPDATE OF last_seen_ms ON creao_account_limits BEGIN INSERT INTO fixture_admission_attempts VALUES (NEW.last_seen_ms); END;").unwrap();
+    let record = f
+        .create(f.request_body("cooldown-assessment", &source))
+        .await;
+    let operation = tokio::time::timeout(Duration::from_secs(1), async {
+        loop {
+            let entered: i64 = quota_db
+                .query_row(
+                    "SELECT COUNT(*) FROM fixture_admission_attempts",
+                    [],
+                    |row| row.get(0),
+                )
+                .unwrap();
+            if entered > 0 {
+                if let Some(operation) =
+                    f.journal.list().unwrap().into_iter().find(|operation| {
+                        operation.phase == genesis_creao::OperationPhase::Prepared
+                    })
+                {
+                    break operation;
+                }
+            }
+            tokio::time::sleep(Duration::from_millis(5)).await;
+        }
+    })
+    .await
+    .expect(
+        "native operation must remain prepared while the real client waits for quota admission",
+    );
+    assert!(tokio::time::Instant::now() < cooldown_end);
+    let queued = f
+        .app
+        .store
+        .get_job(&JobId::new(record["job_id"].as_str().unwrap()))
+        .unwrap();
+    assert_eq!(queued.status, JobStatus::Submitting);
+    let reservations: i64 = quota_db
+        .query_row(
+            "SELECT COUNT(*) FROM creao_account_reservations",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(
+        reservations, 0,
+        "the actual limiter call must still be waiting"
+    );
+    assert!(f.providers.execution_posts().is_empty());
+    let before = f.side_effect_counts();
+    f.mutate(|state| {
+        assert!(state
+            .roles
+            .get_mut(&RoleId::new(&f.monitor))
+            .unwrap()
+            .authority
+            .scopes
+            .remove("monitor.venue"));
+    })
+    .await;
+    let job = f
+        .wait(
+            &format!("/jobs/{}", record["job_id"].as_str().unwrap()),
+            |job| job["status"] == "RESULT_REJECTED",
+        )
+        .await;
+    assert!(job["rejection_reason"].is_string());
+    let saved = f.journal.get(&operation.spec.operation_id).unwrap();
+    assert_eq!(saved.phase, genesis_creao::OperationPhase::Failed);
+    assert!(
+        matches!(
+            saved.failure,
+            Some(genesis_creao::RuntimeFailure::Provider(
+                genesis_creao::Error {
+                    kind: genesis_creao::ErrorKind::GuardRejected,
+                    post_may_have_run: false,
+                    ..
+                }
+            ))
+        ),
+        "must be authority rejection after admission, not a deadline or transport failure"
+    );
+    assert!(f.providers.execution_posts().is_empty());
+    assert_eq!(f.side_effect_counts(), before);
+    assert!(proof(
+        &f.get(&format!(
+            "/venue-assessments/{}",
+            record["assessment_id"].as_str().unwrap()
+        ))
+        .await
+    )
+    .is_null());
+}
