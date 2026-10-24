@@ -224,13 +224,21 @@ both are shown as verbatim key/value phrases (`python_ast_parse passed` or
 `ast_parse true`), and an inspection without an entrypoint is checked against
 its package's entrypoint.
 
-On the committed evidence through #113 the checklist reads: A has 3 generation
-attempts with 1 package and no runs of its own. B has no adoption decision on
-A's method; B ran it in two trials, `accepted: candidate 1/6 vs control 0/6`
-against the fixed-cart control and `rejected: candidate 1/6 does not exceed
-control 2/6 by 1` against random search. B revised the method (source changed),
-with no runs of the revision. A has no decision or runs on B's revision, so the
-chain is incomplete. No problems are reported.
+On the committed evidence through #117 (the first complete return pass) the
+checklist reads:
+- **A invents:** 3 generation attempts with 1 package.
+- **B inherits:** no adoption decision. B's trials of A's method are
+  `accepted 1/6 vs 0/6` against fixed-cart and `rejected 1/6 vs 2/6` against
+  random search.
+- **B revises the method:** source changed. B's trials of its revision are
+  accepted 3/6 vs 2/6 against fixed-cart, and rejected against the parent
+  (3/6 vs 6/6) and random search (3/6 vs 4/6).
+- **A faces a fresh challenge:** no adoption decision. A's return-mix trials
+  of B's revision are both rejected (0/6 vs 3/6 and 0/6 vs 1/6).
+- **Network remembers:** the chain stays incomplete. Its fact names the
+  missing decision and notes that A's trials of the revision are recorded
+  (2 rejected), since a rejected update is a valid selective-transfer outcome
+  but not an accepted return. No problems are reported.
 
 ## Attempt ledger
 
