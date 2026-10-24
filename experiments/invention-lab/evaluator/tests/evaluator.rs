@@ -4,7 +4,8 @@ use genesis_lab_eval::commit::{commitment, hidden_seed};
 use genesis_lab_eval::design::Design;
 use genesis_lab_eval::family::{instance, Family};
 use genesis_lab_eval::score::{
-    experiment, is_hidden_seed, score_acceptance, score_comparison, Outcome, Purpose, Refusal,
+    experiment, is_hidden_seed, score_acceptance, score_comparison, HiddenSet, Outcome, Purpose,
+    Refusal,
 };
 
 fn load(name: &str) -> Design {
@@ -81,7 +82,7 @@ fn invalid_designs_are_refused_without_simulating() {
 #[test]
 fn experiments_refuse_hidden_instances_and_spent_budgets_and_debit_steps() {
     let d = load("reference-five-wheel.json");
-    let hidden = hidden_seed("salt", Family::RavineCrossing, 0);
+    let hidden = hidden_seed("cmp", "salt", Family::RavineCrossing, 0);
     assert_eq!(
         experiment(&d, Family::RavineCrossing, hidden, u64::MAX).unwrap_err(),
         Refusal::HiddenInstance
@@ -112,34 +113,41 @@ fn a_design_that_misses_its_task_is_scored_not_failed() {
 }
 
 #[test]
-fn hidden_instances_follow_their_commitment_and_need_the_revealed_salt() {
+fn hidden_instances_follow_their_commitment_and_need_the_matching_salt() {
     let d = load("reference-five-wheel.json");
     let f = Family::ReturnMix;
-    let c = commitment("secret-salt", f);
-    assert_eq!(c, commitment("secret-salt", f));
-    assert_ne!(c, commitment("other-salt", f));
-    let seeds: Vec<u64> = (0..5).map(|i| hidden_seed("secret-salt", f, i)).collect();
+    let c = commitment("cmp-1", "secret-salt", f, 5);
+    assert_eq!(c, commitment("cmp-1", "secret-salt", f, 5));
+    // Comparison id, salt and count are all bound.
+    assert_ne!(c, commitment("cmp-2", "secret-salt", f, 5));
+    assert_ne!(c, commitment("cmp-1", "other-salt", f, 5));
+    assert_ne!(c, commitment("cmp-1", "secret-salt", f, 6));
+    let seeds: Vec<u64> = (0..5)
+        .map(|i| hidden_seed("cmp-1", "secret-salt", f, i))
+        .collect();
     assert!(seeds.iter().all(|s| is_hidden_seed(*s)));
+    assert_ne!(seeds[0], hidden_seed("cmp-2", "secret-salt", f, 0));
+    let set = HiddenSet {
+        comparison: "cmp-1",
+        family: f,
+        count: 5,
+        commitment: &c,
+    };
     assert_eq!(
-        seeds,
-        (0..5)
-            .map(|i| hidden_seed("secret-salt", f, i))
-            .collect::<Vec<_>>()
+        score_comparison(&d, &set, "wrong-salt", 0).unwrap_err(),
+        Refusal::WrongSalt
     );
     assert_eq!(
-        score_comparison(&d, f, 0, &c, None).unwrap_err(),
-        Refusal::NotRevealed
+        score_comparison(&d, &set, "secret-salt", 5).unwrap_err(),
+        Refusal::IndexOutOfRange
     );
-    assert_eq!(
-        score_comparison(&d, f, 0, &c, Some("wrong-salt")).unwrap_err(),
-        Refusal::NotRevealed
-    );
-    let r = score_comparison(&d, f, 0, &c, Some("secret-salt")).unwrap();
+    let r = score_comparison(&d, &set, "secret-salt", 0).unwrap();
     assert_eq!(r.purpose, Purpose::Comparison);
     assert_eq!(r.seed, seeds[0]);
     assert_eq!(r.hidden_commitment.as_deref(), Some(c.as_str()));
-    // Anyone with the salt regenerates the same instance.
+    // After the reveal anyone regenerates the same instance and score.
     assert_eq!(instance(f, seeds[0]), instance(f, r.seed));
+    assert_eq!(score_comparison(&d, &set, "secret-salt", 0).unwrap(), r);
 }
 
 #[test]

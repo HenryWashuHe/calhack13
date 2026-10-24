@@ -16,8 +16,8 @@ cargo test --release
 cargo run --release --bin lab-eval -- instance ravine-crossing 3
 cargo run --release --bin lab-eval -- accept designs/reference-five-wheel.json ravine-crossing 0 1 2 3
 cargo run --release --bin lab-eval -- experiment designs/cart-long.json ravine-crossing 0 100000
-cargo run --release --bin lab-eval -- commit my-salt return-mix
-cargo run --release --bin lab-eval -- compare designs/reference-five-wheel.json return-mix 0 <commitment> my-salt
+cargo run --release --bin lab-eval -- commit cmp-1 my-salt return-mix 5
+cargo run --release --bin lab-eval -- compare designs/reference-five-wheel.json cmp-1 return-mix 5 <commitment> my-salt 0
 ```
 
 | Family | Task | Notes |

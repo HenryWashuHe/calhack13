@@ -3,8 +3,8 @@
 //!   lab-eval instance <family> <seed>
 //!   lab-eval experiment <design.json> <family> <seed> <steps-remaining>
 //!   lab-eval accept <design.json> <family> <seed>...
-//!   lab-eval commit <salt> <family>
-//!   lab-eval compare <design.json> <family> <index> <commitment> <salt>
+//!   lab-eval commit <comparison> <salt> <family> <count>
+//!   lab-eval compare <design.json> <comparison> <family> <count> <commitment> <salt> <index>
 use genesis_lab_eval::{commit, design::Design, family, score};
 use std::process::ExitCode;
 
@@ -49,14 +49,23 @@ fn main() -> ExitCode {
                     .count();
                 serde_json::json!({"succeeded": ok, "of": receipts.len(), "receipts": receipts})
             }
-            ["commit", salt, f] => {
-                serde_json::json!({"commitment": commit::commitment(salt, fam(f)?)})
+            ["commit", cmp, salt, f, n] => serde_json::json!({
+                "comparison": cmp, "family": f, "count": num::<u32>(n)?,
+                "commitment": commit::commitment(cmp, salt, fam(f)?, num(n)?)
+            }),
+            ["compare", d, cmp, f, n, c, salt, i] => {
+                let set = score::HiddenSet {
+                    comparison: cmp,
+                    family: fam(f)?,
+                    count: num(n)?,
+                    commitment: c,
+                };
+                serde_json::to_value(
+                    score::score_comparison(&design(d)?, &set, salt, num(i)?)
+                        .map_err(|e| format!("refused: {e:?}"))?,
+                )
+                .unwrap()
             }
-            ["compare", d, f, i, c, salt] => serde_json::to_value(
-                score::score_comparison(&design(d)?, fam(f)?, num(i)?, c, Some(salt))
-                    .map_err(|e| format!("refused: {e:?}"))?,
-            )
-            .unwrap(),
             _ => return Err("usage: see the header of src/bin/lab-eval.rs".into()),
         })
     })();

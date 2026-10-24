@@ -147,9 +147,23 @@ fn evaluate(design: &Design, inst: &Instance, purpose: Purpose) -> (Receipt, Vec
 #[derive(Debug, PartialEq, Eq)]
 pub enum Refusal {
     HiddenInstance,
-    BudgetSpent { needed: u32, remaining: u64 },
-    NotRevealed,
-    DevelopmentInstanceForComparison,
+    BudgetSpent {
+        needed: u32,
+        remaining: u64,
+    },
+    /// The salt doesn't open the published commitment.
+    WrongSalt,
+    /// Outside the committed draw.
+    IndexOutOfRange,
+}
+
+/// One declared comparison's hidden draw.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct HiddenSet<'a> {
+    pub comparison: &'a str,
+    pub family: Family,
+    pub count: u32,
+    pub commitment: &'a str,
 }
 
 /// Development seeds are below 2^32; hidden seeds have the top bit set.
@@ -193,24 +207,23 @@ pub fn score_acceptance(design: &Design, family: Family, seed: u64) -> Result<Re
     Ok(evaluate(design, &instance(family, seed), Purpose::Acceptance).0)
 }
 
-/// Comparison scoring on a hidden instance: only with the revealed salt that
-/// matches the published commitment.
+/// Private comparison scoring by the salt holder (holdout timeline step 5):
+/// the salt must open the published commitment and the index must be inside
+/// the committed draw. Anyone can re-run this after the reveal.
 pub fn score_comparison(
     design: &Design,
-    family: Family,
+    set: &HiddenSet<'_>,
+    salt: &str,
     index: u32,
-    commitment: &str,
-    revealed_salt: Option<&str>,
 ) -> Result<Receipt, Refusal> {
-    let salt = revealed_salt.ok_or(Refusal::NotRevealed)?;
-    if crate::commit::commitment(salt, family) != commitment {
-        return Err(Refusal::NotRevealed);
+    if crate::commit::commitment(set.comparison, salt, set.family, set.count) != set.commitment {
+        return Err(Refusal::WrongSalt);
     }
-    let seed = crate::commit::hidden_seed(salt, family, index);
-    if !is_hidden_seed(seed) {
-        return Err(Refusal::DevelopmentInstanceForComparison);
+    if index >= set.count {
+        return Err(Refusal::IndexOutOfRange);
     }
-    let mut r = evaluate(design, &instance(family, seed), Purpose::Comparison).0;
-    r.hidden_commitment = Some(commitment.to_owned());
+    let seed = crate::commit::hidden_seed(set.comparison, salt, set.family, index);
+    let mut r = evaluate(design, &instance(set.family, seed), Purpose::Comparison).0;
+    r.hidden_commitment = Some(set.commitment.to_owned());
     Ok(r)
 }
