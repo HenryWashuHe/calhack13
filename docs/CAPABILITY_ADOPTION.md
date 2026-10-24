@@ -45,8 +45,9 @@ search answer, discovery records the exact `capability_id`, `version`,
 | `invalid_manifest` | the manifest disagrees with the search answer or fails local checks; discovery stops |
 | `unusable_state` | the manifest can't be installed; discovery stops |
 | `manifest_unavailable` | the manifest couldn't be read: applicability unknown; discovery stops |
-| `invalid_response` | the registry answer as a whole was invalid; nothing in it was evaluated |
+| `invalid_response` | more than five candidates (nothing in the answer is evaluated), or the candidate discovery reached has a score that isn't a positive finite number (discovery stops there) |
 | `selected` | first eligible candidate by rank; sent to this organization's own acceptance checks |
+| `installation_conflict` | eligible, but this organization already holds a checking or accepted installation of the same exact version; the intent stops without running checks |
 | `adopted` | this organization's acceptance suite accepted it (`acceptance_ref`) |
 | `not_applicable` | this organization's acceptance suite rejected it (`acceptance_ref` and a summary of failed cases and issue kinds, never expected values) |
 | `not_evaluated` | a higher-ranked candidate was selected, or discovery stopped first |
@@ -56,7 +57,10 @@ explain, and the suite's verdict replaces `selected` in the transaction that
 finishes the installation, so a restart or repeated step can't record a
 different story. A registry that can't be searched records nothing: the
 outcome stays unknown (`registry_unavailable`) and never becomes an empty
-result. The candidate's free-text intent is not copied, since it can echo the
+result. Candidates are evaluated in rank order, so a later candidate's
+score can't undo an earlier selection. `score` is `null` when the registry's
+number isn't finite in `f32` (for example `1e39`); it orders only. The
+candidate's free-text intent is not copied, since it can echo the
 private requirement query. Adoptions made before this log existed have no rows.
 
 The client request key is durable. Repeating an identical request returns the
