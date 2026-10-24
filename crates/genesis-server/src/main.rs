@@ -118,6 +118,10 @@ struct OrgArgs {
     /// gap acquisitions be published, installed and locally accepted here.
     #[arg(long, value_name = "FILE", requires = "gap_acquisition_policy")]
     gap_finalization_policy: Option<PathBuf>,
+    /// Trusted JSON rules letting a committed gap adopt an existing foreign
+    /// publication (verified by this organization's own suite) before synthesis.
+    #[arg(long, value_name = "FILE", requires = "registry_url")]
+    gap_adoption_policy: Option<PathBuf>,
     #[arg(long, env = "GENESIS_REGISTRY_URL")]
     registry_url: Option<String>,
     #[arg(long, env = "GENESIS_REGISTRY_TOKEN")]
@@ -271,6 +275,7 @@ async fn main() -> anyhow::Result<()> {
                 auto_acquire,
                 gap_acquisition_policy,
                 gap_finalization_policy,
+                gap_adoption_policy,
                 registry_url,
                 registry_token,
                 operator_token,
@@ -307,6 +312,12 @@ async fn main() -> anyhow::Result<()> {
                     >,
                 )
                 .transpose()?;
+            let gap_adoption_policy = gap_adoption_policy
+                .as_deref()
+                .map(
+                    load_trusted_json::<genesis_server::capability_gap_adoption::GapAdoptionPolicy>,
+                )
+                .transpose()?;
             let tokens = Tokens {
                 operator: token_or_dev(operator_token, &org_id, "operator", dev_stub)?,
                 agent: token_or_dev(agent_token, &org_id, "agent", dev_stub)?,
@@ -328,6 +339,7 @@ async fn main() -> anyhow::Result<()> {
                 acquisition,
                 gap_acquisition_policy,
                 gap_finalization_policy,
+                gap_adoption_policy,
             };
             if dev_stub {
                 tracing::warn!(
@@ -709,6 +721,25 @@ mod cli_tests {
         assert!(
             matches!(Cli::try_parse_from(args).unwrap().command, Command::Org(args)
             if args.gap_finalization_policy.as_deref() == Some(Path::new("finalize.json")))
+        );
+    }
+
+    #[test]
+    fn gap_adoption_requires_a_registry() {
+        let base = ["genesis", "org", "--org-id", "test-org", "--name", "Test"];
+        let mut alone = base.to_vec();
+        alone.extend(["--gap-adoption-policy", "adopt.json"]);
+        assert!(Cli::try_parse_from(alone).is_err());
+        let mut args = base.to_vec();
+        args.extend([
+            "--registry-url",
+            "https://registry.example",
+            "--gap-adoption-policy",
+            "adopt.json",
+        ]);
+        assert!(
+            matches!(Cli::try_parse_from(args).unwrap().command, Command::Org(args)
+            if args.gap_adoption_policy.as_deref() == Some(Path::new("adopt.json")))
         );
     }
 

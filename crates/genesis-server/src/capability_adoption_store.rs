@@ -197,6 +197,9 @@ pub struct AdoptionStatus {
 }
 
 impl AdoptionRecord {
+    pub fn client_request_id(&self) -> &str {
+        &self.client_request_id
+    }
     pub fn id(&self) -> &str {
         &self.id
     }
