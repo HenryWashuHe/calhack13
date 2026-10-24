@@ -4,7 +4,7 @@
 
 GENESIS changes the organization a mission needs: it creates and recruits specialist agents, transfers responsibilities, develops missing executable capabilities, and lets independent organizations inherit verified capabilities.
 
-The Rust capability implementation now creates source-bearing Actors, resumes pinned builds and runs, verifies results against an independent oracle, and checkpoints the forge across process restarts. A runnable TypeScript scaffold supplies the extraction runtime. Kernel and UI integration are separate active workstreams; authenticated provider smoke tests are still pending.
+The Rust capability implementation now creates source-bearing Actors, resumes pinned builds and runs, verifies results against an independent oracle, and checkpoints the forge across process restarts. A runnable TypeScript scaffold supplies the extraction runtime. The organization API now uses backend-owned proofs and durable execution for independent capability adoption in [PR #5](https://github.com/HenryWashuHe/genesis/pull/5). Claude’s kernel/UI fixes and the follow-up delegation and concurrent saga guards are integrated into the provider branches. The Fetch milestone adds independently signed specialist negotiation with durable Rust journals and a runnable two-organization proof. Asynchronous provider activation and authenticated provider smoke tests remain open.
 
 ## Start here
 
@@ -13,6 +13,10 @@ The Rust capability implementation now creates source-bearing Actors, resumes pi
 3. [Provider contracts](docs/PROVIDER_CONTRACTS.md) — documented APIs and the smoke tests that must pass first.
 4. [Research report](GENESIS-organization-evolution-research.md) — competitive research, sponsor division, risks, and demo design.
 5. [Capability forge integration](docs/FORGE_INTEGRATION.md) — runnable commands, source packaging, checkpoint recovery, and the kernel boundary.
+6. [Organization capability API](docs/CAPABILITY_EXECUTION.md) — trusted publication, independent adoption, persisted runs, and recovery.
+7. [Persistent CREAO specialists](docs/CREAO_RUNTIME.md) — asynchronous creation/execution, shared account limits, recovery and the pending kernel hook.
+8. [Independent Fetch specialists](docs/FETCH_RUNTIME.md) — discovery, signed transport, durable recruitment, restart and release isolation.
+9. [Current implementation split](docs/NEXT_IMPLEMENTATION_SPLIT.md) — Codex capability work and Claude kernel/UI/Elastic assignments.
 
 ## Run the capability checks
 
@@ -44,6 +48,8 @@ Rust is the core implementation language. The Fetch sidecar keeps the official P
 - **Apify:** create, build, and execute missing web capabilities.
 - **CREAO:** create reusable agents for continuing operational responsibilities.
 - **GENESIS:** own roles, authority, budgets, assignments, lifecycle, verification gates, and adoption decisions.
+
+[Apify sponsor announcement notes](docs/APIFY_SPONSOR_NOTES.md) cover the announced credits, meaningful-use demo and separate AI Chat category.
 
 ## MVP
 
