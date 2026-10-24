@@ -42,14 +42,14 @@ candidate/control plan. It re-validates everything before deciding:
 
 Outcomes:
 
-- `accepted` when both slots' development generated output with fully known
-  resource accounting (or unknown only in fields the frozen criterion lists in
+- `accepted` when both slots' development has a known outcome (a confirmed
+  failure or interruption counts when its retained output was scored, as
+  adoption.md specifies) with fully known resource accounting (or unknown only in fields the frozen criterion lists in
   `unknown_usage_allowed`), both scorings are `Scored` within their grants, and
   the candidate's successes are at least the control's plus `min_margin`;
 - `rejected` when the margin isn't met, or when the candidate's output is an
   invalid design;
-- `insufficient` for anything else: failed, interrupted or unknown
-  development, unknown usage the criterion doesn't allow, or missing, failed or
+- `insufficient` for anything else: unknown or missing development, unknown usage the criterion doesn't allow, or missing, failed or
   unknown scoring. Missing evidence never counts as a pass or a rejection.
 
 Metrics rows must be exactly one per criterion instance, in order, each naming
