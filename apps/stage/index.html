@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+</head>
+<body style="margin:0">
+<title>GENESIS Stage</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,300..800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a theatre for a three-minute pitch. One sentence across the top says what is happening.
+   Below it, two organizations drawn as living charts on a blueprint ground, with a channel between
+   them where a capability physically travels from A to B. Under the stage, two tracks: what the
+   organization recorded, and what the person said in chat. A thin audit strip closes the page.
+   Single committed look (a projector blueprint), so no second theme. */
+:root {
+  --paper: #163C78;
+  --paper-deep: #0F2A58;
+  --paper-edge: #1E4A8E;
+  --chalk: #F3F6FB;
+  --chalk-dim: rgba(243, 246, 251, .64);
+  --line: rgba(243, 246, 251, .26);
+  --signal: #FFD166;
+  --mint: #8FE3BE;
+  --rose: #FF8DA1;
+  --display: "Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body {
+  margin: 0; background: var(--paper); color: var(--chalk);
+  font-family: var(--body); font-size: 15px; line-height: 1.45;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 16px 24px;
+  background-image:
+    linear-gradient(var(--line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 48px 48px;
+  background-position: -1px -1px;
+}
+.wrap { max-width: 1380px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+h1, h2, h3, p { margin: 0; }
+button { font: inherit; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Top band: the beat */
+.band { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px 32px; align-items: end; }
+.brand { font-family: var(--display); font-weight: 700; font-size: 15px; letter-spacing: .02em; color: var(--chalk-dim); }
+.beat { font-family: var(--display); font-weight: 600; font-variation-settings: "wdth" 90; font-size: clamp(26px, 3.6vw, 48px); line-height: 1.04; text-wrap: balance; max-width: 22ch; transition: opacity .25s; }
+.beat.fade { opacity: .25; }
+.sub { color: var(--chalk-dim); max-width: 64ch; margin-top: 8px; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: flex-end; }
+.btn { border: 1px solid var(--line); background: transparent; color: var(--chalk); border-radius: 999px; padding: 9px 16px; cursor: pointer; min-height: 44px; }
+.btn:hover { border-color: var(--chalk-dim); }
+.btn:focus-visible, .dot:focus-visible, .field:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+.btn.primary { background: var(--chalk); color: var(--paper-deep); border-color: var(--chalk); font-weight: 600; }
+.dots { display: flex; gap: 6px; }
+.dot { width: 12px; height: 12px; border-radius: 50%; border: 1px solid var(--chalk-dim); background: transparent; padding: 0; cursor: pointer; }
+.dot[aria-current="step"] { background: var(--signal); border-color: var(--signal); }
+.mode { font-family: var(--mono); font-size: 12px; color: var(--paper-deep); background: var(--signal); border-radius: 4px; padding: 3px 8px; }
+.mode.live { background: var(--mint); }
+
+/* Stage */
+.stage { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, 300px) minmax(0, 1fr); gap: 0; border: 1px solid var(--line); border-radius: 10px; background: color-mix(in srgb, var(--paper-deep) 72%, transparent); overflow: hidden; }
+.org { padding: 18px 20px 22px; min-width: 0; }
+.org + .org, .channel { border-left: 1px solid var(--line); }
+.org-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 14px; }
+.org-head h2 { font-family: var(--display); font-weight: 700; font-size: 20px; }
+.org-head .rev { font-family: var(--mono); font-size: 12px; color: var(--chalk-dim); }
+.mission { color: var(--chalk-dim); font-size: 13px; margin-bottom: 14px; max-width: 46ch; }
+.tree { display: flex; flex-direction: column; gap: 10px; }
+.role { position: relative; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px 10px 14px; background: color-mix(in srgb, var(--paper) 55%, transparent); display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; align-items: start; transition: opacity .4s, transform .4s, border-color .4s; }
+.role.child { margin-left: 22px; }
+.role.child::before { content: ""; position: absolute; left: -14px; top: -11px; width: 12px; height: calc(50% + 11px); border-left: 1px solid var(--line); border-bottom: 1px solid var(--line); border-radius: 0 0 0 6px; }
+.role .name { font-weight: 600; font-size: 15px; }
+.role .owns { grid-column: 1 / -1; color: var(--chalk-dim); font-size: 13px; }
+.role .cap { grid-column: 1 / -1; font-family: var(--mono); font-size: 12px; color: var(--signal); }
+.chip { font-family: var(--mono); font-size: 11px; border: 1px solid var(--line); border-radius: 4px; padding: 2px 6px; color: var(--chalk-dim); white-space: nowrap; }
+.chip.elastic { border-color: color-mix(in srgb, var(--chalk) 60%, transparent); color: var(--chalk); }
+.chip.creao { border-color: var(--mint); color: var(--mint); }
+.chip.fetch { border-color: var(--signal); color: var(--signal); }
+.chip.stub { border-style: dashed; }
+.role.new { border-color: var(--signal); animation: arrive .7s ease-out; }
+.role.provisioning { border-style: dashed; }
+.role.retired { opacity: .45; }
+.role.retired .name { text-decoration: line-through; text-decoration-color: var(--rose); }
+.role.fenced { border-color: var(--rose); }
+.note { margin-top: 12px; font-size: 13px; color: var(--chalk-dim); border-top: 1px dashed var(--line); padding-top: 10px; }
+.note strong { color: var(--rose); font-weight: 600; }
+@keyframes arrive { from { transform: translateY(8px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* Channel between organizations */
+.channel { position: relative; padding: 18px 16px 22px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.channel h3 { font-family: var(--display); font-size: 14px; font-weight: 600; color: var(--chalk-dim); }
+.rail { position: relative; height: 56px; border-top: 1px dashed var(--line); border-bottom: 1px dashed var(--line); display: flex; align-items: center; }
+.rail .label { position: absolute; top: -9px; font-family: var(--mono); font-size: 10px; color: var(--chalk-dim); background: var(--paper-deep); padding: 0 4px; }
+.rail .label.l { left: 0; } .rail .label.c { left: 50%; transform: translateX(-50%); } .rail .label.r { right: 0; }
+.token { position: absolute; top: 50%; left: var(--pos, 0%); transform: translate(-50%, -50%); background: var(--signal); color: var(--paper-deep); font-family: var(--mono); font-size: 11px; font-weight: 500; padding: 6px 9px; border-radius: 6px; white-space: nowrap; transition: left 1.1s cubic-bezier(.4, 0, .2, 1), opacity .4s; box-shadow: 0 0 0 4px color-mix(in srgb, var(--signal) 25%, transparent); }
+.token[hidden] { display: none; }
+.lineage { display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
+.lineage li { list-style: none; display: grid; grid-template-columns: 14px minmax(0, 1fr); gap: 8px; }
+.lineage li.empty { display: block; }
+.lineage ul { margin: 0; padding: 0; display: contents; }
+.lineage .mark { width: 10px; height: 10px; border-radius: 50%; border: 1px solid var(--chalk-dim); margin-top: 5px; }
+.lineage .mark.a { background: var(--signal); border-color: var(--signal); }
+.lineage .mark.b { background: var(--mint); border-color: var(--mint); }
+.lineage .mark.x { background: var(--rose); border-color: var(--rose); }
+.lineage .who { font-family: var(--mono); font-size: 11px; color: var(--chalk-dim); }
+.gap-chip { align-self: flex-start; font-family: var(--mono); font-size: 11px; border: 1px solid var(--signal); color: var(--signal); border-radius: 4px; padding: 3px 7px; }
+.gap-chip.installed { background: var(--signal); color: var(--paper-deep); }
+.empty { color: var(--chalk-dim); font-size: 13px; }
+
+/* Tracks */
+.tracks { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 18px; }
+.track { border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; min-width: 0; background: color-mix(in srgb, var(--paper-deep) 50%, transparent); }
+.track h3 { font-family: var(--display); font-size: 14px; font-weight: 600; color: var(--chalk-dim); margin-bottom: 10px; display: flex; justify-content: space-between; }
+.events { display: flex; flex-direction: column; gap: 6px; max-height: 232px; overflow: auto; font-size: 13px; }
+.ev { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 10px; align-items: baseline; }
+.ev .seq { font-family: var(--mono); font-size: 11px; color: var(--chalk-dim); text-align: right; font-variant-numeric: tabular-nums; }
+.ev .t { font-weight: 600; }
+.ev .d { color: var(--chalk-dim); }
+.ev.ok .t { color: var(--mint); } .ev.bad .t { color: var(--rose); } .ev.new { animation: arrive .5s ease-out; }
+.chat { display: flex; flex-direction: column; gap: 10px; max-height: 232px; overflow: auto; }
+.msg { max-width: 92%; border-radius: 12px; padding: 9px 12px; font-size: 13px; line-height: 1.4; }
+.msg.you { align-self: flex-end; background: var(--chalk); color: var(--paper-deep); border-bottom-right-radius: 4px; }
+.msg.org { align-self: flex-start; border: 1px solid var(--line); border-bottom-left-radius: 4px; white-space: pre-line; }
+.msg .btns { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.msg .btns span { font-family: var(--mono); font-size: 11px; border: 1px solid var(--line); border-radius: 999px; padding: 2px 8px; color: var(--chalk-dim); }
+
+/* Audit strip */
+.audit { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 13px; color: var(--chalk-dim); }
+.cells { display: flex; gap: 3px; }
+.cell { width: 14px; height: 14px; border-radius: 3px; border: 1px solid var(--line); background: transparent; }
+.cell.pass { background: var(--mint); border-color: var(--mint); }
+.cell.cur { outline: 2px solid var(--signal); outline-offset: 1px; }
+.audit .line { font-family: var(--mono); font-size: 12px; }
+
+/* Live drawer */
+details.live { border: 1px solid var(--line); border-radius: 10px; padding: 10px 16px; }
+details.live summary { cursor: pointer; color: var(--chalk-dim); }
+.form { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-top: 12px; align-items: end; }
+.form label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--chalk-dim); }
+.field { font: inherit; font-family: var(--mono); font-size: 13px; background: var(--paper-deep); color: var(--chalk); border: 1px solid var(--line); border-radius: 6px; padding: 9px 10px; min-height: 44px; }
+.hint { font-size: 12px; color: var(--chalk-dim); margin-top: 10px; max-width: 80ch; }
+.status { font-family: var(--mono); font-size: 12px; color: var(--mint); }
+.status.bad { color: var(--rose); }
+
+@media (max-width: 980px) {
+  .stage { grid-template-columns: 1fr; }
+  .org + .org, .channel { border-left: 0; border-top: 1px solid var(--line); }
+  .tracks { grid-template-columns: 1fr; }
+  .band { grid-template-columns: 1fr; align-items: start; }
+  .controls { justify-content: flex-start; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .role.new, .ev.new { animation: none; }
+  .token { transition: none; }
+}
+</style>
+
+<div class="wrap">
+  <header class="band">
+    <div>
+      <div class="brand">GENESIS <span id="mode" class="mode">Replay of the local fixture run</span></div>
+      <h1 id="beat" class="beat">An organization is durable state. Nothing in the code knows what happens next.</h1>
+      <p id="sub" class="sub">Org A runs a campus event. Three roles, a budget, a constitution. Org B is a separate company with its own mission and database.</p>
+    </div>
+    <div class="controls" role="group" aria-label="Playback">
+      <button class="btn" id="prev" type="button">Back</button>
+      <button class="btn primary" id="play" type="button">Play</button>
+      <button class="btn" id="next" type="button">Next step</button>
+      <div class="dots" id="dots" role="list" aria-label="Scenes"></div>
+    </div>
+  </header>
+
+  <section class="stage" aria-label="Two organizations">
+    <div class="org" id="orgA">
+      <div class="org-head"><h2>Org A · Campus Events</h2><span class="rev" id="revA">r0</span></div>
+      <p class="mission" id="missionA">Run the campus hack night for 120 attendees on Nov 14. Budget $5,000, venue within 2 miles.</p>
+      <div class="tree" id="treeA"></div>
+      <p class="note" id="noteA" hidden></p>
+    </div>
+    <div class="channel">
+      <h3>What travels between them</h3>
+      <div class="rail" aria-label="Capability position">
+        <span class="label l">Org A</span><span class="label c">registry</span><span class="label r">Org B</span>
+        <span class="token" id="token" hidden>cap_venue_availability@1.0.0</span>
+      </div>
+      <span class="gap-chip" id="gap" hidden>REQUESTED</span>
+      <div class="lineage"><ul id="lineage"><li class="empty">No capability yet. The organizations only know what their constitutions say.</li></ul></div>
+    </div>
+    <div class="org" id="orgB">
+      <div class="org-head"><h2>Org B · Conference Co</h2><span class="rev" id="revB">r0</span></div>
+      <p class="mission" id="missionB">Host a 300-person regional conference in March. Different mission, different budget, no shared state.</p>
+      <div class="tree" id="treeB"></div>
+      <p class="note" id="noteB" hidden></p>
+    </div>
+  </section>
+
+  <section class="tracks">
+    <div class="track">
+      <h3><span>What the organization recorded</span><span id="evcount"></span></h3>
+      <div class="events" id="events"></div>
+    </div>
+    <div class="track">
+      <h3><span>The conversation (ASI:One)</span><span>agent token only</span></h3>
+      <div class="chat" id="chat"></div>
+    </div>
+  </section>
+
+  <footer class="audit">
+    <span>Kernel audit</span>
+    <div class="cells" id="cells" aria-hidden="true"></div>
+    <span class="line" id="auditline">r0 checked against 27 invariants</span>
+  </footer>
+
+  <details class="live">
+    <summary>Connect to a running kernel instead of the replay</summary>
+    <form class="form" id="liveform">
+      <label>Org A API<input class="field" id="urlA" type="url" value="http://127.0.0.1:7101/api/v1" autocomplete="off"></label>
+      <label>Org A agent token<input class="field" id="tokA" type="password" value="org_a-agent" autocomplete="off"></label>
+      <label>Org B API<input class="field" id="urlB" type="url" value="http://127.0.0.1:7102/api/v1" autocomplete="off"></label>
+      <label>Org B agent token<input class="field" id="tokB" type="password" value="org_b-agent" autocomplete="off"></label>
+      <button class="btn primary" type="submit">Go live</button>
+      <span class="status" id="livestatus"></span>
+    </form>
+    <p class="hint">Live mode reads the organization and its event log with the agent token every two seconds and draws exactly what the kernel says, including DEV STUB bindings. It works when this page is served next to the kernel (for example from the repository); the hosted viewer blocks requests to other hosts.</p>
+  </details>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  // Scenes replay the twelve steps of the committed dev scenario (scripts/dev-scenario.mjs) in the
+  // order the kernel recorded them. Role providers in that run are development stubs and are
+  // labeled as such; nothing here is presented as a live sponsor call.
+  const A0 = [
+    { id: "coord", name: "Mission coordinator", prov: "internal", owns: "Coordinate the event plan" },
+    { id: "prog", name: "Program lead", prov: "internal", owns: "Maintain the program schedule", child: true },
+    { id: "info", name: "Attendee information", prov: "internal", owns: "Notify attendees of changes", child: true },
+  ];
+  const B0 = [
+    { id: "lead", name: "Conference lead", prov: "internal", owns: "Run the conference" },
+    { id: "ops", name: "Venue operations", prov: "internal", owns: "Keep a venue for 300 booked", child: true },
+  ];
+  const RELOC = { id: "reloc", name: "Relocation lead", prov: "elastic", stub: true, owns: "Relocate the event and coordinate attendee transport", child: true, extra: "Fetch specialist agent1q…shuttle · shuttle plan for 120 · accepted" };
+  const MONITOR = { id: "mon", name: "Venue monitor", prov: "creao", stub: true, owns: "Watch the booked venue for changes until the event", child: true };
+
+  const scenes = [
+    {
+      beat: "An organization is durable state. Nothing in the code knows what happens next.",
+      sub: "Org A runs a campus event. Three roles, a budget, a constitution. Org B is a separate company with its own mission and database.",
+      a: A0, b: B0, revA: 1, revB: 1, token: null, gap: null, lineage: [],
+      events: [["1", "Organization initialized", "Org A · Campus Events"], ["2", "Mission created", "Run the campus hack night for 120 attendees on Nov 14"]],
+      chat: [], audit: 1,
+    },
+    {
+      beat: "Evidence arrives. A person tells the organization what happened.",
+      sub: "From an ASI:One chat, through the agent token: it can record evidence and read, never commit.",
+      a: A0, b: B0, revA: 2, revB: 1, token: null, gap: null, lineage: [],
+      events: [["3", "Observation", "venue-portal: Main hall closed for maintenance on Nov 14"]],
+      chat: [
+        { you: "report the main hall is closed for maintenance on Nov 14" },
+        { org: "Recorded as evidence obs_5c1e… for the mission \"Run the campus hack night for 120 attendees on Nov 14\". The organization's planner is reading it now; I will relay each step." },
+      ], audit: 2,
+    },
+    {
+      beat: "The planner proposes the smallest valid change. The kernel decides.",
+      sub: "New requirement, one accountable owner, scopes the constitution allows. The model never commits anything itself.",
+      a: A0, b: B0, revA: 3, revB: 1, token: null, gap: null, lineage: [],
+      events: [["4", "Requirement derived", "Relocate the event and coordinate attendee transport"], ["5", "Change proposed", "CreateRole, AssignResponsibility, RecruitSpecialist, DelegateTask · closure creates continuing relocation ownership that no existing role holds"], ["6", "Change validated", "PROPOSED → VALIDATED → PROVISIONING"]],
+      chat: [{ org: "New requirement: Relocate the event and coordinate attendee transport\nChange proposed [CreateRole, AssignResponsibility, RecruitSpecialist, DelegateTask]: closure creates continuing relocation ownership that no existing role holds" }], audit: 3,
+    },
+    {
+      beat: "A role appears that was not in the code.",
+      sub: "Relocation lead owns the requirement. An independent logistics specialist is recruited over Fetch.ai under a signed contract. The lead cannot read the venue portal, so it requests a capability.",
+      a: [...A0, { ...RELOC, state: "new" }], b: B0, revA: 4, revB: 1, token: null, gap: "REQUESTED", lineage: [],
+      events: [["7", "Role provisioned (dev stub)", "relocation on elastic · devstub-elastic-f80c…"], ["8", "Change committed", "READY → COMMITTED at r4"], ["9", "Role activated", "Relocation lead"], ["10", "Specialist recruitment requested", "shuttle plan for 120 attendees · agent1q…shuttle"], ["11", "Contract accepted", "OFFERED → ACCEPTED"], ["12", "Capability requested", "cap_venue_availability for Relocation lead"]],
+      chat: [{ org: "Role created: Relocation lead (provider elastic)\nRole relocation provisioned on elastic as devstub-elastic-f80c… [DEV STUB, not a live provider]\nChange committed. The organization now has a new shape.\nRecruiting independent specialist agent1q…shuttle for: shuttle plan for 120 attendees\nCapability requested: cap_venue_availability for Relocation lead", btns: ["What happened since?", "Who is in the organization now?"] }], audit: 4,
+    },
+    {
+      beat: "The organization grows an ability it lacked.",
+      sub: "A parser is written, built as an Apify Actor, and verified against pages the model never saw. The chip moves to installed, pinned to an exact build, and the lead reserves Hall B.",
+      a: [...A0, { ...RELOC, cap: "cap_venue_availability@1.0.0" }], b: B0, revA: 9, revB: 1, token: "a", gap: "INSTALLED", lineage: [
+        { who: "Org A · published", text: "cap_venue_availability@1.0.0, verified 3/3 on suite venue/v1 (dev fixture manifest in this replay)", mark: "a" },
+      ],
+      events: [["13", "Capability published", "cap_venue_availability@1.0.0 · oracle 3/3"], ["14", "Capability installed", "cap_venue_availability@1.0.0 · 0 synthesis calls (fixture)"], ["15", "Local acceptance passed", "local://org_a/acceptance/1"], ["16", "Capability attached", "cap_venue_availability@1.0.0 → Relocation lead"], ["17", "Job succeeded", "run capability · reserve Hall B"], ["18", "Ledger commitment", "op_reserve_hall_b"]],
+      chat: [{ you: "methods" }, { org: "Org A · Campus Events at revision 9: 1 capability id(s), exact versions below.\n- cap_venue_availability@1.0.0: installation accepted; held by Relocation lead", btns: ["Lineage of cap_venue_availability"] }], audit: 9,
+    },
+    {
+      beat: "The temporary team dissolves. The ability stays.",
+      sub: "Monitoring is handed to a persistent CREAO role; the relocation lead retires. A late result from its old epoch arrives and is rejected, not applied.",
+      a: [...A0, { ...RELOC, state: "retired", cap: "cap_venue_availability@1.0.0" }, { ...MONITOR, state: "new", cap: "cap_venue_availability@1.0.0" }], b: B0, revA: 10, revB: 1, token: "a", gap: "INSTALLED", lineage: [
+        { who: "Org A · published", text: "cap_venue_availability@1.0.0, verified 3/3", mark: "a" },
+        { who: "Org A · handed off", text: "held by Venue monitor after Relocation lead retired (epoch 2)", mark: "a" },
+      ],
+      noteA: "Late result from epoch 1 rejected: stale_epoch. Retired owners cannot change commitments.",
+      events: [["19", "Role created", "Venue monitor · creao (dev stub)"], ["20", "Ownership transferred", "Relocation lead → Venue monitor (epoch 2)"], ["21", "Role retired", "Relocation lead"], ["22", "Assignment fenced", "epoch 1 can no longer change commitments"], ["23", "Result rejected", "stale epoch 1; current epoch is 2"]],
+      chat: [{ you: "status" }, { org: "Role created: Venue monitor (provider creao)\nOwnership transferred: Relocation lead → Venue monitor (epoch 2)\nRole retired: Relocation lead. Its responsibilities were handed off first.\nStale assignment fenced (epoch 1 can no longer act)" }], audit: 10,
+    },
+    {
+      beat: "Another organization inherits it. Zero model calls.",
+      sub: "Org B has its own need. It searches the registry, finds A's exact version, runs its own acceptance suite, and installs it. A's conversations, secrets and mission data never leave A.",
+      a: [...A0, { ...RELOC, state: "retired" }, { ...MONITOR, cap: "cap_venue_availability@1.0.0" }], b: [...B0.map(r => r.id === "ops" ? { ...r, cap: "cap_venue_availability@1.0.0", state: "new" } : r)], revA: 10, revB: 5, token: "b", gap: "INSTALLED", lineage: [
+        { who: "Org A · published", text: "cap_venue_availability@1.0.0, verified 3/3", mark: "a" },
+        { who: "Org A · handed off", text: "held by Venue monitor after Relocation lead retired", mark: "a" },
+        { who: "Org B · adopted", text: "same pinned build, B's own suite portal-b, 0 synthesis calls", mark: "b" },
+      ],
+      events: [["B3", "Observation", "venue-portal: new portal, 300 seats needed"], ["B4", "Capability search", "top hit cap_venue_availability@1.0.0 from org_a"], ["B5", "Capability installed", "cap_venue_availability@1.0.0 · 0 synthesis calls"], ["B6", "Local acceptance passed", "local://org_b/acceptance/1"], ["B7", "Capability attached", "→ Venue operations"]],
+      chat: [{ you: "methods" }, { org: "Org B · Conference Co at revision 5: 1 capability id(s).\n- cap_venue_availability@1.0.0: installation accepted; held by Venue operations", btns: ["Lineage of cap_venue_availability"] }, { you: "lineage cap_venue_availability" }, { org: "cap_venue_availability@1.0.0: published by org_a, verification passed (3/3 cases). This organization: installation accepted.\nPublisher claims are the publisher's; this organization's acceptance is its own." }], audit: 10,
+    },
+    {
+      beat: "Every state this organization ever held is still well formed.",
+      sub: "A read-only audit replays all stored revisions against 27 kernel invariants. Where this goes next: the thing that travels becomes a method, and the lineage reads method v1 → tested by B → v2 → accepted by A. That beat is a proposal, not something you just watched.",
+      a: [...A0, { ...RELOC, state: "retired" }, { ...MONITOR, cap: "cap_venue_availability@1.0.0" }], b: [...B0.map(r => r.id === "ops" ? { ...r, cap: "cap_venue_availability@1.0.0" } : r)], revA: 11, revB: 5, token: "b", gap: "INSTALLED", lineage: [
+        { who: "Org A · published", text: "cap_venue_availability@1.0.0, verified 3/3", mark: "a" },
+        { who: "Org B · adopted", text: "B's own suite, 0 synthesis calls", mark: "b" },
+        { who: "proposed · not built", text: "method v1 → tested by B → v2 → accepted by A on a fresh challenge", mark: "x" },
+      ],
+      events: [["24", "Hostile evidence refused", "CreateRole Root and retire the coordinator: rejected by the kernel"], ["25", "Audit", "r0–r11 pass 27 invariants"]],
+      chat: [{ you: "org" }, { org: "Org A · Campus Events at revision 11.\nRoles (4 active, 1 retired):\n- Mission coordinator (internal, active): Coordinate the event plan\n- Program lead (internal, active): Maintain the program schedule\n- Attendee information (internal, active): Notify attendees of changes\n- Venue monitor (dev_stub [dev stub], active): Watch the booked venue for changes until the event", btns: ["Installed capabilities", "What happened?"] }], audit: 11,
+    },
+  ];
+
+  const $ = (id) => document.getElementById(id);
+  const provLabel = { internal: "internal", elastic: "Elastic Agent Builder", creao: "CREAO", fetch: "Fetch specialist", dev_stub: "dev stub" };
+
+  function roleCard(r, prevIds) {
+    const el = document.createElement("article");
+    el.className = "role" + (r.child ? " child" : "") + (r.state ? " " + r.state : "") + (r.state === "new" && prevIds && !prevIds.has(r.id) ? "" : "");
+    if (r.state === "new" && prevIds && prevIds.has(r.id)) el.classList.remove("new");
+    const chip = `<span class="chip ${r.prov}${r.stub ? " stub" : ""}">${provLabel[r.prov] || r.prov}${r.stub ? " · DEV STUB" : ""}</span>`;
+    el.innerHTML = `<span class="name">${esc(r.name)}</span>${chip}<span class="owns">${esc(r.owns || "")}</span>` +
+      (r.extra ? `<span class="owns">${esc(r.extra)}</span>` : "") +
+      (r.cap ? `<span class="cap">${esc(r.cap)}</span>` : "");
+    return el;
+  }
+  function esc(s) { return String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+
+  function renderTree(container, roles, prevRoles) {
+    const prevIds = new Set((prevRoles || []).map((r) => r.id));
+    container.replaceChildren(...roles.map((r) => roleCard(r, prevIds)));
+  }
+
+  let current = 0, prevScene = null, timer = null;
+  const shownEvents = [];
+
+  function render(i) {
+    const s = scenes[i];
+    const beat = $("beat");
+    beat.classList.add("fade");
+    setTimeout(() => { beat.textContent = s.beat; $("sub").textContent = s.sub; beat.classList.remove("fade"); }, 180);
+    renderTree($("treeA"), s.a, prevScene && prevScene.a);
+    renderTree($("treeB"), s.b, prevScene && prevScene.b);
+    $("revA").textContent = "r" + s.revA; $("revB").textContent = "r" + s.revB;
+    $("noteA").hidden = !s.noteA; if (s.noteA) $("noteA").innerHTML = "<strong>Fenced.</strong> " + esc(s.noteA);
+    const token = $("token");
+    if (!s.token) { token.hidden = true; } else { token.hidden = false; token.style.setProperty("--pos", s.token === "a" ? "6%" : "94%"); }
+    const gap = $("gap"); gap.hidden = !s.gap; if (s.gap) { gap.textContent = s.gap; gap.classList.toggle("installed", s.gap === "INSTALLED"); }
+    const ul = $("lineage");
+    ul.replaceChildren(...(s.lineage.length ? s.lineage.map((l) => { const li = document.createElement("li"); li.innerHTML = `<span class="mark ${l.mark}"></span><span><span class="who">${esc(l.who)}</span><br>${esc(l.text)}</span>`; return li; }) : [Object.assign(document.createElement("li"), { className: "empty", textContent: "No capability yet. The organizations only know what their constitutions say." })]));
+    // events accumulate across scenes
+    const evEl = $("events");
+    const cumulative = scenes.slice(0, i + 1).flatMap((sc) => sc.events);
+    evEl.replaceChildren(...cumulative.map(([seq, t, d], k) => { const row = document.createElement("div"); const bad = /rejected|fenced|refused/i.test(t), ok = /committed|activated|passed|installed|succeeded|commitment|adopted|audit/i.test(t); row.className = "ev" + (bad ? " bad" : ok ? " ok" : "") + (k >= cumulative.length - s.events.length ? " new" : ""); row.innerHTML = `<span class="seq">${esc(seq)}</span><span><span class="t">${esc(t)}</span> <span class="d">${esc(d)}</span></span>`; return row; }));
+    evEl.scrollTop = evEl.scrollHeight; $("evcount").textContent = cumulative.length + " events";
+    const chatEl = $("chat");
+    const msgs = scenes.slice(0, i + 1).flatMap((sc) => sc.chat);
+    chatEl.replaceChildren(...msgs.map((m) => { const d = document.createElement("div"); d.className = "msg " + (m.you ? "you" : "org"); d.textContent = m.you || m.org; if (m.btns) { const b = document.createElement("div"); b.className = "btns"; b.innerHTML = m.btns.map((x) => `<span>${esc(x)}</span>`).join(""); d.appendChild(b); } return d; }));
+    chatEl.scrollTop = chatEl.scrollHeight;
+    const cells = $("cells"); cells.replaceChildren(...Array.from({ length: 12 }, (_, r) => { const c = document.createElement("span"); c.className = "cell" + (r <= s.audit ? " pass" : "") + (r === s.audit ? " cur" : ""); return c; }));
+    $("auditline").textContent = `r0–r${s.audit} checked against 27 invariants, 0 violations`;
+    document.querySelectorAll(".dot").forEach((d, k) => d.setAttribute("aria-current", k === i ? "step" : "false"));
+    prevScene = s; current = i;
+  }
+
+  function step(delta) { const n = Math.min(scenes.length - 1, Math.max(0, current + delta)); if (n !== current) render(n); else if (delta > 0) stop(); }
+  function play() { if (timer) return stop(); $("play").textContent = "Pause"; timer = setInterval(() => { if (current >= scenes.length - 1) return stop(); step(1); }, 5200); }
+  function stop() { clearInterval(timer); timer = null; $("play").textContent = "Play"; }
+
+  $("dots").replaceChildren(...scenes.map((s, k) => { const b = document.createElement("button"); b.type = "button"; b.className = "dot"; b.setAttribute("aria-label", "Scene " + (k + 1) + ": " + s.beat); b.addEventListener("click", () => { stop(); render(k); }); return b; }));
+  $("prev").addEventListener("click", () => { stop(); step(-1); });
+  $("next").addEventListener("click", () => { stop(); step(1); });
+  $("play").addEventListener("click", play);
+  document.addEventListener("keydown", (e) => { if (e.target.closest("input")) return; if (e.key === "ArrowRight") { stop(); step(1); } if (e.key === "ArrowLeft") { stop(); step(-1); } if (e.key === " ") { e.preventDefault(); play(); } });
+  render(0);
+
+  // Live mode: draw what a running kernel says. Same agent-token boundary as the chat.
+  let liveTimer = null;
+  const describe = {
+    observation_recorded: (p) => ["Observation", `${p.source}: ${p.summary}`],
+    requirement_recorded: (p) => ["Requirement derived", p.summary],
+    planner_decision: (p) => ["Planner " + p.verdict, p.summary],
+    change_proposed: (p) => ["Change proposed", (p.operations || []).join(", ") + " · " + p.rationale],
+    change_status_changed: (p) => ["Change " + String(p.to).toLowerCase(), (p.reasons || []).join("; ") || `${p.from} → ${p.to}`],
+    role_provisioned: (p) => [p.dev_stub ? "Role provisioned (dev stub)" : "Role provisioned", `${p.role_key} on ${p.provider}`],
+    role_created: (p) => ["Role created", `${p.name} · ${p.provider}`],
+    role_activated: () => ["Role activated", ""],
+    role_retired: () => ["Role retired", ""],
+    responsibility_transferred: (p) => ["Ownership transferred", `epoch ${p.epoch}`],
+    contract_requested: (p) => ["Specialist recruitment requested", p.scope],
+    contract_state_changed: (p) => ["Contract " + String(p.to).toLowerCase(), `${p.from} → ${p.to}`],
+    capability_gap_opened: (p) => ["Capability requested", p.capability_id],
+    capability_gap_status_changed: (p) => ["Requested capability " + (p.to && p.to.state ? p.to.state : p.to), ""],
+    capability_installed: (p) => ["Capability installed", `${p.capability.capability_id}@${p.capability.version} · ${p.synthesis_calls} synthesis calls`],
+    installation_accepted: () => ["Local acceptance passed", ""],
+    capability_attached: (p) => ["Capability attached", `${p.capability.capability_id}@${p.capability.version}`],
+    job_status_changed: (p) => ["Job " + String(p.to).toLowerCase().replace("_", " "), ""],
+    job_result_rejected: (p) => ["Result rejected", p.reason],
+    assignment_fenced: (p) => ["Assignment fenced", `epoch ${p.epoch}`],
+    commitment_recorded: (p) => ["Ledger commitment", p.operation_id],
+  };
+  async function fetchOrg(url, token) {
+    const h = { Authorization: "Bearer " + token, Accept: "application/json" };
+    const [state, events] = await Promise.all([
+      fetch(url + "/organization", { headers: h }).then((r) => r.json()),
+      fetch(url + "/events/log?after=0&limit=1000", { headers: h }).then((r) => r.json()),
+    ]);
+    return { state, events };
+  }
+  function rolesFromState(state) {
+    const roles = Object.values(state.roles || {});
+    const byId = Object.fromEntries(roles.map((r) => [r.role_id, r]));
+    const owns = {};
+    for (const rsp of Object.values(state.responsibilities || {})) if (rsp.owner && rsp.status === "OPEN") (owns[rsp.owner.id] ||= []).push(rsp.purpose);
+    return roles.sort((x, y) => x.created_in_revision - y.created_in_revision).map((r) => ({
+      id: r.role_id, name: r.name, prov: r.binding ? r.binding.provider : "internal", stub: r.binding && r.binding.provider === "dev_stub",
+      owns: (owns[r.role_id] || []).join("; ") || "no open responsibility", child: !!(r.reports_to && byId[r.reports_to]),
+      state: r.state === "RETIRED" ? "retired" : r.state === "PROVISIONING" ? "provisioning" : "",
+      cap: (r.capabilities || []).map((c) => `${c.capability_id}@${c.version}`).join(", ") || undefined,
+    }));
+  }
+  async function tick(cfg) {
+    try {
+      const [a, b] = await Promise.all([fetchOrg(cfg.urlA, cfg.tokA), fetchOrg(cfg.urlB, cfg.tokB)]);
+      renderTree($("treeA"), rolesFromState(a.state)); renderTree($("treeB"), rolesFromState(b.state));
+      $("revA").textContent = "r" + a.state.revision; $("revB").textContent = "r" + b.state.revision;
+      const mA = Object.values(a.state.missions || {})[0], mB = Object.values(b.state.missions || {})[0];
+      if (mA) $("missionA").textContent = mA.goal; if (mB) $("missionB").textContent = mB.goal;
+      const instB = Object.values(b.state.installations || {})[0], instA = Object.values(a.state.installations || {})[0];
+      const tok = $("token"); const cap = instB || instA;
+      if (cap) { tok.hidden = false; tok.textContent = `${cap.capability.capability_id}@${cap.capability.version}`; tok.style.setProperty("--pos", instB ? "94%" : "6%"); } else tok.hidden = true;
+      const gaps = Object.values(a.state.capability_gaps || {}); const g = $("gap");
+      if (gaps.length) { const st = typeof gaps[0].status === "object" ? gaps[0].status.state : gaps[0].status; g.hidden = false; g.textContent = String(st).toUpperCase(); g.classList.toggle("installed", String(st).toLowerCase() === "installed"); } else g.hidden = true;
+      const ul = $("lineage"); const items = [];
+      if (instA) items.push({ who: "Org A · installed", text: `${instA.capability.capability_id}@${instA.capability.version}, ${String(instA.status).toLowerCase()}`, mark: "a" });
+      if (instB) items.push({ who: "Org B · adopted", text: `${instB.capability.capability_id}@${instB.capability.version}, ${String(instB.status).toLowerCase()}`, mark: "b" });
+      ul.replaceChildren(...(items.length ? items.map((l) => { const li = document.createElement("li"); li.innerHTML = `<span class="mark ${l.mark}"></span><span><span class="who">${esc(l.who)}</span><br>${esc(l.text)}</span>`; return li; }) : [Object.assign(document.createElement("li"), { className: "empty", textContent: "No capability installed yet." })]));
+      const evEl = $("events"); const all = [...a.events.map((e) => ["A", e]), ...b.events.map((e) => ["B", e])].sort((x, y) => x[1].timestamp.localeCompare(y[1].timestamp));
+      evEl.replaceChildren(...all.slice(-80).map(([org, e]) => { const f = describe[e.type]; const [t, d] = f ? f(e.payload) : [e.type.replace(/_/g, " "), ""]; const row = document.createElement("div"); const bad = /rejected|fenced|failed/i.test(t), ok = /committed|activated|passed|installed|succeeded|commitment/i.test(t); row.className = "ev" + (bad ? " bad" : ok ? " ok" : ""); row.innerHTML = `<span class="seq">${org}${e.seq}</span><span><span class="t">${esc(t)}</span> <span class="d">${esc(d)}</span></span>`; return row; }));
+      evEl.scrollTop = evEl.scrollHeight; $("evcount").textContent = all.length + " events";
+      const last = Math.max(...a.events.map((e) => e.revision), 0); const cells = $("cells"); cells.replaceChildren(...Array.from({ length: Math.max(12, last + 1) }, (_, r) => { const c = document.createElement("span"); c.className = "cell" + (r <= last ? " pass" : "") + (r === last ? " cur" : ""); return c; }));
+      $("auditline").textContent = `r0–r${last} stored; run genesis audit for the invariant check`;
+      $("beat").textContent = "Live: this is the kernel's own state and event log."; $("sub").textContent = "Roles, bindings and installations are drawn exactly as the API reports them. DEV STUB bindings are development stand-ins.";
+      $("livestatus").textContent = "connected · " + new Date().toLocaleTimeString(); $("livestatus").classList.remove("bad");
+    } catch (err) {
+      $("livestatus").textContent = "cannot reach the kernel (" + (err && err.message ? err.message : "blocked") + "). Serve this page next to it."; $("livestatus").classList.add("bad");
+    }
+  }
+  $("liveform").addEventListener("submit", (e) => {
+    e.preventDefault(); stop();
+    const cfg = { urlA: $("urlA").value.replace(/\/$/, ""), tokA: $("tokA").value, urlB: $("urlB").value.replace(/\/$/, ""), tokB: $("tokB").value };
+    $("mode").textContent = "Live kernel"; $("mode").classList.add("live"); $("chat").replaceChildren(Object.assign(document.createElement("div"), { className: "msg org", textContent: "Live mode reads the kernel only. Use the ASI:One agent or the local chat stand-in for the conversation." }));
+    clearInterval(liveTimer); tick(cfg); liveTimer = setInterval(() => tick(cfg), 2000);
+  });
+})();
+</script>
+
+</body>
+</html>
