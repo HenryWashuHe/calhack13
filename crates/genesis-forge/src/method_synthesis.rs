@@ -199,6 +199,15 @@ impl MethodSynthesisSession {
     pub fn checkpoint_sha256(&self) -> &str {
         &self.record.checkpoint_sha256
     }
+    /// Derive the initial identity from the saved historical request, without
+    /// changing this session or authorizing another call. This is not chronology.
+    pub fn prepared_checkpoint_sha256(&self) -> Result<String, SynthesisError> {
+        self.validate()?;
+        let mut initial = self.clone();
+        initial.record.phase = MethodSynthesisPhase::Prepared;
+        initial.record.completion = None;
+        initial.digest()
+    }
     pub fn phase(&self) -> MethodSynthesisPhase {
         self.record.phase
     }

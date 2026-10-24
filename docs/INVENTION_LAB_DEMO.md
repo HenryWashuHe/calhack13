@@ -10,11 +10,13 @@ also merged; their reviewed composition executed 19 portable tests, while one
 Linux namespace test self-skipped. The generation path exports a host-bound
 package; no live model generation or execution of a generated method is established.
 Process runtime/CLI and acceptance scoring/verdict (#44/#45/#46/#48) are
-merged after independent composition checks. Hidden-scoring #57
-clears its original recovery case but remains held: an actual local CLI probe
-returns Scored while a forked candidate descendant continues running. This does
-not establish Linux namespace behavior. Method-adoption #64 still has an
-independently confirmed offer/receiver binding hold. Source-only parent-bound
+merged after independent composition checks. Receiver-bound method-adoption
+mechanics (#64), retained-file cost assessment (#70) and exact-parent revision
+rehearsal (#72) are also merged. Both rehearsals use handwritten loopback source
+and return Rejected at 0/3 versus 0/3. #57/#65 clear their portable findings but
+remain unmerged pending namespace lifecycle validation, which was interrupted by
+an automated safety filter; no Linux proof or failure reproduction is claimed.
+Source-only parent-bound
 revision preparation (#66) is merged: seven focused synthetic-completion tests
 pass independently, but changed source bytes do not establish parent adoption,
 authenticated organization identity, execution or improvement. Its offline CLI (#68) is also merged. See the
@@ -22,10 +24,35 @@ authenticated organization identity, execution or improvement. Its offline CLI (
 the separately reported live Apify parser baseline, do not demonstrate generated
 methods. The merged #61 rehearsal returns Rejected (0/3 versus 0/3) and passes
 its cost assertions using fixture source; no actual model generation is shown.
-No independent method acceptance, A → B → A loop or recursive-benefit
+No accepted model-developed A → B → A return or recursive-benefit
 result is established. Core identity checks and declared combined-cost accounting
 (#56/#58/#59) are merged, including unsuccessful or unused generation and unknown
-usage. The offline assessment CLI (#60) is also merged. Provider-default sampling,
+usage. The offline assessment CLI (#60) and source-free pre-result generation
+roster/CLI (#73/#74) are also merged. Every declared unsuccessful/missing attempt
+remains visible; provider budget enforcement and authenticated chronology or
+completeness are not established. Independent guard tests are preserved in #75.
+Merged [generation reservations and the optional step guard](invention-lab/contracts/generation-admission.md#cli)
+(#77/#78) reserve each exact declared Prepared attempt once under one trusted
+journal's request-count/requested-output caps, durably before provider submission.
+Stranded, failed and unknown attempts never refund; actual usage remains
+separately assessed. Legacy ungated calls, input-token/wall limits, billing and
+global enforcement remain outside this cooperative mechanism.
+Merged [admission-aware cost assessment](invention-lab/contracts/admitted-costs.md)
+(#81/#82) binds the entire original generation roster and its reservations to
+later observations and one optional trial. Original generation and combined
+grants remain separate, with unsuccessful, missing and unknown rows retained.
+The join is read-only and its scope can be declared after generation; it does
+not establish pre-spend trial allocation or full adaptive-chain accounting.
+Merged [stage allocations and retained CLI binding](invention-lab/contracts/stage-allocation.md#cli-and-retained-files)
+(#85/#86) structurally fit the full generation grant plus bounded trial-slot
+grants under all five resource ceilings. Preparation checks an unused exact roster;
+binding retains one exact trial/scope companion per canonical allocation path.
+Optional generation and assessment checks are implemented, but runtime entry
+consumption, protection from copies/rollback and trusted chronology are not.
+Finite whole-chain ceilings remain proposed work, including trial-only inherited,
+declined and control paths without dummy generation. Independent guards are
+preserved in #87; these checks do not demonstrate the proposed method loop.
+Provider-default sampling,
 complete operation history, budget enforcement and the controlled comparison
 remain open for G4. Experimental namespace and storage foundations are not a
 general untrusted-code isolation guarantee.

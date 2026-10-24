@@ -1,12 +1,38 @@
 //! One durable attempt. Generated source is exported without executing it.
 use crate::{emit, storage, Arguments};
 use genesis_forge::{
+    method_admission::GenerationAdmission,
+    method_stage::StageAllocation,
     method_synthesis::{MethodSynthesisPhase, MethodSynthesisPlan, MethodSynthesisSession},
     AnthropicGenerator,
 };
 use std::io::Write;
 
+#[cfg(test)]
+#[path = "method_admission_step_tests.rs"]
+mod admission_tests;
+
 pub async fn run(args: &Arguments) -> Result<u8, String> {
+    // Every participating step takes the shared journal lock first. Both locks
+    // are fail-fast and remain held through the provider action and final save.
+    let mut admission = args
+        .paths
+        .get("--admission")
+        .map(|path| {
+            let lock = storage::CheckpointLock::acquire(path)?;
+            let journal: GenerationAdmission = lock.load()?;
+            Ok::<_, String>((lock, journal))
+        })
+        .transpose()?;
+    if let Some(path) = args.paths.get("--allocation") {
+        let allocation: StageAllocation = storage::read_json(path)?;
+        let (_, journal) = admission
+            .as_ref()
+            .ok_or("--allocation requires --admission")?;
+        allocation
+            .validate_admission(journal)
+            .map_err(|e| e.to_string())?;
+    }
     let lock = storage::CheckpointLock::acquire(args.path("--checkpoint")?)?;
     if args.command == "method-generate-prepare" {
         let plan: MethodSynthesisPlan = storage::read_json(args.path("--plan")?)?;
@@ -16,6 +42,18 @@ pub async fn run(args: &Arguments) -> Result<u8, String> {
         return Ok(0);
     }
     let mut session: MethodSynthesisSession = lock.load()?;
+    if let Some((_, journal)) = &admission {
+        let reserved = journal.is_reserved(&session).map_err(|e| e.to_string())?;
+        if session.phase() == MethodSynthesisPhase::Prepared && reserved {
+            return Err(
+                "admission already reserved; inspect the interrupted attempt, never replay it"
+                    .into(),
+            );
+        }
+        if session.phase() != MethodSynthesisPhase::Prepared && !reserved {
+            return Err("advanced generation has no reservation in this admission journal".into());
+        }
+    }
     if args.command == "method-generate-export" {
         let bytes = session
             .package()
@@ -55,7 +93,13 @@ pub async fn run(args: &Arguments) -> Result<u8, String> {
         }
     })?;
     let client = AnthropicGenerator::new(&key).map_err(|e| e.to_string())?;
-    execute_once(&lock, &mut session, &client).await?;
+    execute_once(
+        &lock,
+        &mut session,
+        &client,
+        admission.as_mut().map(|(lock, journal)| (&*lock, journal)),
+    )
+    .await?;
     status(&session)?;
     Ok(if session.phase() == MethodSynthesisPhase::Generated {
         0
@@ -67,7 +111,15 @@ async fn execute_once(
     lock: &storage::CheckpointLock,
     session: &mut MethodSynthesisSession,
     client: &AnthropicGenerator,
+    admission: Option<(&storage::CheckpointLock, &mut GenerationAdmission)>,
 ) -> Result<(), String> {
+    if let Some((journal_lock, journal)) = admission {
+        journal.reserve(session).map_err(|e| e.to_string())?;
+        // No refund if this save or the later session-intent save is uncertain.
+        // The next process must inspect retained state; no provider call occurs
+        // until BOTH durable writes have returned success.
+        journal_lock.replace(journal)?;
+    }
     let request = session.begin().map_err(|e| e.to_string())?;
     let completion = lock
         .persist_before_effect(&*session, || client.generate_text(&request))
@@ -206,7 +258,7 @@ mod tests {
         )
         .await;
         let client = AnthropicGenerator::with_test_endpoint(&endpoint, "synthetic-key").unwrap();
-        super::execute_once(&lock, &mut session, &client)
+        super::execute_once(&lock, &mut session, &client, None)
             .await
             .unwrap();
         server.await.unwrap();
