@@ -17,6 +17,16 @@ Apify and CREAO v2 metadata reads authenticated, but no hosted CREAO agent was
 returned and the current v1 adapter needs a separately scoped compatibility path.
 This is not full live-provider execution. See current ownership in the handoff.
 
+Current merged checkpoint `f8bffa26` includes the new routing docs (#17),
+live-gate path/redaction fixes (#16, 24 offline tests) and constitution transition
+audit (#9, 18 independent scoped tests). Draft [#18](https://github.com/HenryWashuHe/genesis-history-experiment/pull/18)
+contains proposed pure method identity/run-binding/receipt validators, source
+`40e481e` and tested composition `1d84587e` (93 core tests; strict Clippy).
+It remains **unmerged and experimental**, with affected-owner agreement pending.
+It does not implement method execution, independent scoring, adoption or comparison.
+ACP #3/#5 remain held: 145 tests pass, but four additional defects reproduce.
+The [goal ledger](ONGOING_GOAL.md#current-milestone-ledger) records next steps.
+
 ## Historical source checkpoint before migration
 
 
