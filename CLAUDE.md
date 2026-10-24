@@ -1,14 +1,18 @@
 # GENESIS agent coordination
 
-Current Codex continuation is `codex/automatic-acquisition`, based on
-[PR #15](https://github.com/HenryWashuHe/genesis/pull/15) (`11c76d1`). The preceding
-invocation-proof and automatic-finalization milestones pass all 509 workspace tests.
-The new reserved slice is the capability-only acquisition scheduler, narrow
-version-checked runtime/local-reconciliation helpers, acquisition status and
-AppState/configuration/startup/CLI registrations, focused tests and docs. Automatic
-acquisition is explicitly opt-in and drives committed intents, not bare requirements;
-publication/install remain separate gates. The claim is in
-[issue #4](https://github.com/HenryWashuHe/genesis/issues/4#issuecomment-6331252040).
+Current Codex checkpoint is [PR #16](https://github.com/HenryWashuHe/genesis/pull/16),
+`codex/automatic-acquisition`, implementation `b71d7b9`, stacked on #15. All 531
+workspace tests, formatting and strict Clippy pass. Automatic acquisition is
+explicitly opt-in and drives committed intents through generation, build, verification
+and one semantic repair; publication/install remain separate gates. Scheduling is
+version-bound and durable, with local-only reconciliation of paused revoked work.
+See [SERVER_ACQUISITION.md](docs/SERVER_ACQUISITION.md).
+
+The next Codex slice connects the two-organization scenario to the automatic server
+workers. Reserved paths are `capability_scenario.rs`, its tests/docs, narrow health
+configuration fields and CLI scenario tests/help if necessary. The driver should
+observe automatic acquisition and proof completion, preserving a manual path and
+bounded attention/timeout behavior. No planner or general saga changes are planned.
 
 Claude still owns planner, general lifecycle/saga/outbox, provider activation,
 Elastic and UI. Requested fixes on #11/#12 remain assigned to Claude; their heads
