@@ -559,6 +559,48 @@ fn reason(code: GapAdoptionCode) -> &'static str {
     }
 }
 
+/// The refusal the planner reads. For a tested rejection or an empty search,
+/// name what this organization decided (exact candidate and its oracle-free
+/// local reason, or why nothing was eligible) so the planner can pick another
+/// path; similarity never appears. Falls back to the fixed sentence when the
+/// decision log can't be read. Bounded to the kernel's 400 characters.
+fn refusal_reason(app: &AppState, r: Option<&GapAdoptionRecord>, code: GapAdoptionCode) -> String {
+    use crate::capability_adoption_outcome::{classify, AdoptionOutcome as O};
+    let fixed = reason(code).to_owned();
+    let Some(r) = r else { return fixed };
+    if !matches!(
+        code,
+        GapAdoptionCode::Rejected | GapAdoptionCode::NoCandidate
+    ) {
+        return fixed;
+    }
+    let Some(rows) = r
+        .adoption_id
+        .as_deref()
+        .and_then(|id| app.store.adoption_candidates(id).ok())
+    else {
+        return fixed;
+    };
+    let view = classify(GapAdoptionState::Refused, Some(code), &rows, false);
+    let text = match (view.outcome, &view.candidate) {
+        (O::NotApplicable, Some(c)) => format!(
+            "Not applicable here: {}@{} from {} was tested locally; {}",
+            c.capability_id, c.version, c.publisher, view.reason
+        ),
+        (O::NoCandidate, _) => format!(
+            "No candidate: {}; synthesis is not allowed for it.",
+            view.reason
+        ),
+        _ => return fixed,
+    };
+    let clipped: String = text.chars().take(400).collect();
+    if clipped.trim().is_empty() {
+        fixed
+    } else {
+        clipped
+    }
+}
+
 /// A definite outcome: refuse the open kernel gap (which wakes the planner)
 /// and close the record in the same transaction, keeping the adoption ID.
 fn refuse(
@@ -578,7 +620,7 @@ fn refuse(
         state,
         &gap.gap_id,
         CapabilityGapStatus::Refused {
-            reason: reason(code).into(),
+            reason: refusal_reason(app, r, code),
             acquisition_id: r.and_then(|r| r.adoption_id.clone()),
         },
         Utc::now(),
