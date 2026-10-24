@@ -11,6 +11,7 @@ from aiohttp import web
 from uagents_core.identity import Identity
 
 from .bridge import Bridge
+from .specialist import MODES
 from .wire import Invalid, decode
 
 
@@ -35,6 +36,11 @@ def main():
         action="store_true",
         help="Enable the synthetic advisory-only specialist",
     )
+    serve.add_argument(
+        "--specialist-mode",
+        choices=MODES,
+        help="Enable an explicit persistent specialist mode; venue_selection evaluates frozen venue facts",
+    )
     serve.add_argument("--max-records", type=int, default=10000)
     serve.add_argument("--max-bytes", type=int, default=64 * 1024 * 1024)
     args = parser.parse_args()
@@ -55,6 +61,7 @@ def main():
             db=args.db,
             peers=peers,
             specialist=args.specialist,
+            specialist_mode=args.specialist_mode,
             max_records=args.max_records,
             max_bytes=args.max_bytes,
         )
