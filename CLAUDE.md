@@ -28,9 +28,14 @@ runtime/CLI and acceptance scoring/verdict (#44/#45/#46/#48) are now merged afte
 independent composition checks. Receiver-bound adoption (#64), retained-file cost
 assessment (#70), exact-parent revision rehearsal (#72) and pre-result generation
 rosters/CLI (#73/#74), independent guards (#75/#79) and generation reservations
-with an optional guard on the existing step (#77/#78) are merged. ACP #3/#5
-are also merged with unchanged migration regressions. The two rehearsals use handwritten fixture sources
-and return Rejected; they establish no actual model generation or recursive benefit.
+with an optional guard on the existing step (#77/#78) are merged.
+Admission-aware trial/cost assessment (#81/#82) is also merged; it
+binds one complete original generation roster to later observations and an
+optional trial without changing reservations or executing work. Independent
+historical-session and CLI-boundary guards are preserved unchanged in #83.
+ACP #3/#5 are also merged with unchanged migration regressions. The two rehearsals
+use handwritten fixture sources and return Rejected; they establish no actual
+model generation or recursive benefit.
 #57/#65 clear their portable findings but remain unmerged because namespace
 lifecycle validation is incomplete; an automated safety filter interrupted that
 review. No Linux validation or failure reproduction is claimed. ACP #3/#5's
@@ -74,9 +79,15 @@ every milestone. All lower checkpoints are historical.
   reserve exact Prepared identities once under request/output caps for one
   trusted journal, durably before Requesting/provider submission. The optional
   existing-step guard never refunds stranded/failed/unknown attempts; legacy
-  ungated calls remain available. Next, connect admitted generation evidence to
-  adaptive-stage trial/cost allocation, scoped in issue #1 before edits. Retain
-  input-token/wall, billing, global enforcement and history limits.
+  ungated calls remain available. Merged #81/#82 join the entire admitted roster
+  to a host-declared trial/cost scope, retaining missing/failed/unknown attempts
+  and separate original-generation and combined grants. This read-only join does
+  not allocate resources before spending or account for a complete adaptive chain.
+  Next, scope pre-generation per-stage resource envelopes and later exact trial
+  binding in issue #1, reusing the existing generation/trial paths. Finite stage
+  ceilings before A begins are also needed for a whole-chain budget; hashes alone
+  prove no timing. These are proposed contracts, not implemented enforcement.
+  Retain input-token/wall, billing, global enforcement and history limits.
   Preserve Henry's runtime files; provider/settings reproducibility, complete
   history, enforcement and end-to-end comparison remain open.
   The provider session retains live reruns and reports; its Apify baseline pass
