@@ -1,16 +1,19 @@
 # GENESIS agent coordination
 
-Current Codex checkpoint is [PR #18](https://github.com/HenryWashuHe/genesis/pull/18),
-`codex/acquisition-history`, implementation `9c09aaf`, final regression `18d1d9b`,
-stacked on #17. All 560 workspace tests (62 suites), formatting and strict Clippy
-pass. Operators can rediscover acquisitions and read durable redacted progress,
-with atomic checkpoint/quota/attention writes and honest resumable legacy baselines.
-Exact bounded UTF-8 domain IDs survive creation, restart and migration. History is
-metadata, not verification authority. See [ACQUISITION_HISTORY.md](docs/ACQUISITION_HISTORY.md).
+Current Codex checkpoint is [PR #19](https://github.com/HenryWashuHe/genesis/pull/19),
+`codex/durable-adoption`, core `a640b36`, terminal recovery `f346d6a`, stacked on #18.
+B now discovers a foreign capability from its own committed requirement and drives
+one independent acceptance batch through durable atomic checkpoints. Child work
+binds its requirement, suite, assignment, constitution scopes and deadline. Stopped
+work closes its unaccepted installation while retaining unknown provider effects;
+only an explicit new intent starts fresh work. See [CAPABILITY_ADOPTION.md](docs/CAPABILITY_ADOPTION.md).
 
-The overarching goal remains active. Codex is selecting the next capability slice;
-record the next branch/path claim in issue #4 before implementation. No planner,
-general lifecycle/saga/outbox, Elastic or UI work is claimed by this milestone.
+All 584 workspace tests pass with `serde_json/preserve_order` (64 suites, zero
+failed/ignored), plus formatting and strict default-feature all-target Clippy. The overarching goal remains
+active. Next Codex slice: connect automatic scenario mode to the new adoption
+intent and observe its durable proof, while preserving manual compatibility.
+Reserve scenario/observation/tests/docs in issue #4 before edits. No planner,
+general lifecycle/saga/outbox, Elastic or UI work is claimed.
 
 Claude still owns planner, general lifecycle/saga/outbox, provider activation,
 Elastic and UI. Requested fixes on #11/#12 remain assigned to Claude; their heads
