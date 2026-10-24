@@ -208,6 +208,9 @@ impl OperationRecord {
             return Err(RuntimeError::Invalid);
         }
         if let Some(ticket) = &self.ticket {
+            if ticket.api_version != self.spec.api_version {
+                return Err(RuntimeError::Invalid);
+            }
             ticket
                 .validate_for_account(&self.spec.request, &self.spec.account_namespace)
                 .map_err(|_| RuntimeError::Invalid)?;
