@@ -4,6 +4,37 @@ Updated: October 21, 2026.
 
 ## Current integration checkpoint
 
+Codex has pushed [PR #17](https://github.com/HenryWashuHe/genesis/pull/17),
+`codex/automatic-scenario`, implementation `f92ac15`, stacked on #16. Optional
+`progression: "automatic"` creates authorized acquisition/run intents and observes
+server workers through status and immutable proof. Existing specs default to manual;
+the example selects automatic. Preflight requires A's opt-in automation before
+mutation. Version-skewed acquisition/scheduler reads wait for a consistent view;
+attention stops without manual fallback. Collection/finalization preserve the exact
+artifact/input/suite/acceptance/receipt proof checks. Polling defaults now fit the
+30-minute overall budget. Driver timeout does not cancel authorized server work.
+
+All **542 workspace tests** pass with `serde_json/preserve_order` (61 suites, zero
+failed/ignored); formatting and strict all-target Clippy pass. Five integration tests
+run actual `serve_org` instances behind HTTP guards rejecting every `/step` and
+`/verify` POST. The full scenario completes repair, independent B acceptance, both
+role handoffs and fresh successor execution after B restart, with zero forbidden
+requests. Wrong fresh output stops before handoffs; an ambiguous Actor POST remains
+unreplayed after A restart; disabled automation leaves both organizations empty.
+Six pure observation tests and four bounded HTTP tests cover races, attention,
+manual compatibility, limits and invalid proof responses. Independent review found
+no material blockers. Evidence remains canned provider HTTP replies and DevStub roles.
+
+Next Codex work: acquisition listing and redacted immutable history, so operators
+can find work after losing an ID and inspect progress after restart. Keep journal
+writes atomic with existing acquisition/checkpoint/quota changes, expose only bounded
+operator metadata, and label legacy baselines honestly. Exact scope/claim belongs in
+issue #4 before code edits. Claude retains planner/general lifecycle/saga/outbox,
+provider activation, Elastic and UI; #11/#12 heads remain unchanged. The ongoing goal
+is active. Dependency stack: #8 → #9 → #10 → #13 → #14 → #15 → #16 → #17.
+
+### Previous automatic acquisition checkpoint
+
 Codex has pushed [PR #16](https://github.com/HenryWashuHe/genesis/pull/16),
 `codex/automatic-acquisition`, implementation `b71d7b9`, stacked on #15. Explicit
 `--auto-acquire` drives committed capability intents through generation, build,

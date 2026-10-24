@@ -1,18 +1,21 @@
 # GENESIS agent coordination
 
-Current Codex checkpoint is [PR #16](https://github.com/HenryWashuHe/genesis/pull/16),
-`codex/automatic-acquisition`, implementation `b71d7b9`, stacked on #15. All 531
-workspace tests, formatting and strict Clippy pass. Automatic acquisition is
-explicitly opt-in and drives committed intents through generation, build, verification
-and one semantic repair; publication/install remain separate gates. Scheduling is
-version-bound and durable, with local-only reconciliation of paused revoked work.
-See [SERVER_ACQUISITION.md](docs/SERVER_ACQUISITION.md).
+Current Codex checkpoint is [PR #17](https://github.com/HenryWashuHe/genesis/pull/17),
+`codex/automatic-scenario`, implementation `f92ac15`, stacked on #16. All 542
+workspace tests, formatting and strict Clippy pass. The scenario now supports
+explicit automatic progression: organization workers drive acquisition, collection
+and invocation finalization while the driver observes immutable proof. The actual
+server fixture forbids every `/step` and `/verify` POST and still completes repair,
+independent adoption, both handoffs and successor execution after restart. Existing
+specs default to manual; the example selects automatic. See
+[INHERITED_MISSION.md](docs/INHERITED_MISSION.md).
 
-The next Codex slice connects the two-organization scenario to the automatic server
-workers. Reserved paths are `capability_scenario.rs`, its tests/docs, narrow health
-configuration fields and CLI scenario tests/help if necessary. The driver should
-observe automatic acquisition and proof completion, preserving a manual path and
-bounded attention/timeout behavior. No planner or general saga changes are planned.
+Next Codex slice: bounded acquisition discovery and redacted durable history so
+operators can recover IDs and inspect generation/build/repair after timeout/restart.
+Reserved scope will be a capability-only history module, narrow transaction hooks
+in acquisition store/scheduler, acquisition read routes, startup registration,
+focused tests and docs. No planner, general saga/outbox, Elastic or UI edits.
+Record the branch/path claim in issue #4 before implementation.
 
 Claude still owns planner, general lifecycle/saga/outbox, provider activation,
 Elastic and UI. Requested fixes on #11/#12 remain assigned to Claude; their heads

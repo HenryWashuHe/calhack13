@@ -4,6 +4,10 @@
 //! A failed/ambiguous request leaves server-owned durable state for inspection;
 //! a rerun refuses the now-nonempty organizations instead of duplicating work.
 
+#[cfg(test)]
+mod driver_tests;
+mod observation;
+
 use crate::capability_acquisition_store::AcquisitionCounters;
 use genesis_core::lifecycle::{InstallationStatus, RoleState};
 use genesis_core::model::{OrgState, Owner, Provider};
@@ -11,6 +15,7 @@ use genesis_forge::{CandidateIdentity, PublicExample, SynthesisRequest};
 use genesis_verification::{
     json_sha256, validate_artifact, ArtifactPin, ExecutionEvidence, SourceSnapshot,
 };
+use observation::{acquisition_observation, ObservationDecision};
 use reqwest::{Client, Method, Url};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -34,8 +39,14 @@ pub enum ScenarioError {
     Response(&'static str),
     #[error("scenario stopped at {0}; inspect server state before continuing")]
     Stopped(&'static str),
-    #[error("scenario exceeded its polling or elapsed-time bound; inspect server state before continuing")]
+    #[error("scenario exceeded its polling or elapsed-time bound; inspect server state before continuing; authorized server workers may still be running")]
     Limit,
+    #[error("scenario observation stopped for {kind} {id}: {reason}; inspect server state; authorized workers may still be running")]
+    Observation {
+        kind: &'static str,
+        id: String,
+        reason: &'static str,
+    },
 }
 
 type Result<T> = std::result::Result<T, ScenarioError>;
@@ -90,11 +101,24 @@ impl Default for ScenarioLimits {
         Self {
             request_timeout: Duration::from_secs(300),
             max_response_bytes: 8 * 1024 * 1024,
-            poll_interval: Duration::from_millis(250),
-            max_polls: 512,
+            // Cheap observation GETs must not exhaust the poll budget before
+            // a bounded model/build operation can finish. The overall 30-minute
+            // deadline still bounds the complete narrative, not each stage.
+            poll_interval: Duration::from_millis(500),
+            max_polls: 4096,
             total_timeout: Duration::from_secs(1800),
         }
     }
+}
+
+/// Whether the scenario advances effects or observes organization workers.
+/// Old specs remain manual; automatic mode never falls back to manual requests.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ScenarioProgression {
+    #[default]
+    Manual,
+    Automatic,
 }
 
 /// Only public generation inputs and a local invocation input cross this API.
@@ -102,6 +126,8 @@ impl Default for ScenarioLimits {
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ScenarioSpec {
+    #[serde(default)]
+    pub progression: ScenarioProgression,
     pub run_id: String,
     pub suite_a_id: String,
     pub suite_b_id: String,
@@ -131,6 +157,8 @@ pub struct ScenarioRoleBinding {
 /// execution outputs, credentials, or provider response bodies.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ScenarioReport {
+    #[serde(default)]
+    pub progression: ScenarioProgression,
     pub org_a_id: String,
     pub org_b_id: String,
     pub mission_a_id: String,
@@ -429,6 +457,13 @@ impl ScenarioDriver {
                 "acquisition must be enabled only for Org A",
             ));
         }
+        if spec.progression == ScenarioProgression::Automatic
+            && ha["automatic_acquisition_enabled"] != true
+        {
+            return Err(ScenarioError::Preflight(
+                "automatic progression requires automatic acquisition on Org A",
+            ));
+        }
         Ok((a.org_id.to_string(), b.org_id.to_string()))
     }
 
@@ -564,7 +599,7 @@ impl ScenarioDriver {
         Ok(())
     }
 
-    async fn acquire(&self, spec: &ScenarioSpec, work: &Work) -> Result<Value> {
+    async fn acquire(&self, spec: &ScenarioSpec, work: &Work, org_id: &str) -> Result<Value> {
         let mut status = self.post(&self.a, "/capability-acquisitions", json!({
             "client_request_id":format!("{}-acquire",spec.run_id),"mission_id":work.mission,
             "requirement_id":work.requirement,"role_id":work.role,"responsibility_id":work.responsibility,
@@ -573,6 +608,46 @@ impl ScenarioDriver {
         }), "create acquisition").await?;
         let id = field_id(&status, "id", "acquisition identity")?;
         for _ in 0..self.limits.max_polls {
+            if status["id"] != id
+                || status["org_id"] != org_id
+                || status["mission_id"] != work.mission
+                || status["requirement_id"] != work.requirement
+                || status["responsibility_id"] != work.responsibility
+                || status["role_id"] != work.role
+            {
+                return Err(ScenarioError::Response("acquisition work binding mismatch"));
+            }
+            if spec.progression == ScenarioProgression::Automatic {
+                let automation = self
+                    .get(
+                        &self.a,
+                        &format!("/capability-acquisitions/{id}/automation"),
+                        "inspect acquisition automation",
+                    )
+                    .await?;
+                match acquisition_observation(&status, &automation, &id)
+                    .map_err(ScenarioError::Response)?
+                {
+                    ObservationDecision::Complete => return Ok(status),
+                    ObservationDecision::Attention(reason) => {
+                        return Err(ScenarioError::Observation {
+                            kind: "acquisition",
+                            id,
+                            reason,
+                        })
+                    }
+                    ObservationDecision::Wait => {}
+                }
+                tokio::time::sleep(self.limits.poll_interval).await;
+                status = self
+                    .get(
+                        &self.a,
+                        &format!("/capability-acquisitions/{id}"),
+                        "observe acquisition",
+                    )
+                    .await?;
+                continue;
+            }
             if status["currently_authorized"] != true {
                 return Err(ScenarioError::Stopped("acquisition authority changed"));
             }
@@ -601,7 +676,15 @@ impl ScenarioDriver {
             }
             tokio::time::sleep(self.limits.poll_interval).await;
         }
-        Err(ScenarioError::Limit)
+        if spec.progression == ScenarioProgression::Automatic {
+            Err(ScenarioError::Observation {
+                kind: "acquisition",
+                id,
+                reason: "observation polling limit reached",
+            })
+        } else {
+            Err(ScenarioError::Limit)
+        }
     }
 
     async fn collect(
@@ -609,6 +692,7 @@ impl ScenarioDriver {
         id: &str,
         artifact: &ArtifactPin,
         acceptance: Option<(&str, &str)>,
+        progression: ScenarioProgression,
     ) -> Result<CollectedBinding> {
         for _ in 0..self.limits.max_polls {
             let status = self
@@ -633,6 +717,13 @@ impl ScenarioDriver {
             } else if status["purpose"]["kind"] != "invocation" {
                 return Err(ScenarioError::Response("invocation purpose mismatch"));
             }
+            if !status["failure"].is_null() {
+                return Err(ScenarioError::Observation {
+                    kind: "capability run",
+                    id: id.into(),
+                    reason: "provider run requires attention",
+                });
+            }
             match status["phase"].as_str() {
                 Some("collected") => {
                     let evidence: ExecutionEvidence =
@@ -651,7 +742,7 @@ impl ScenarioDriver {
                         evidence,
                     });
                 }
-                Some("prepared" | "running") => {
+                Some("prepared" | "running") if progression == ScenarioProgression::Manual => {
                     self.post(
                         &self.b,
                         &format!("/capability-runs/{id}/step"),
@@ -662,12 +753,20 @@ impl ScenarioDriver {
                 }
                 // Another server worker may own the saved intent. Poll it; do
                 // not force recovery or repeat an uncertain provider POST.
-                Some("submitting" | "collecting") => {}
+                Some("prepared" | "running" | "submitting" | "collecting") => {}
                 _ => return Err(ScenarioError::Stopped("capability run did not collect")),
             }
             tokio::time::sleep(self.limits.poll_interval).await;
         }
-        Err(ScenarioError::Limit)
+        if progression == ScenarioProgression::Automatic {
+            Err(ScenarioError::Observation {
+                kind: "capability run",
+                id: id.into(),
+                reason: "observation polling limit reached",
+            })
+        } else {
+            Err(ScenarioError::Limit)
+        }
     }
 
     async fn invoke(
@@ -689,17 +788,23 @@ impl ScenarioDriver {
             )
             .await?;
         let id = field_id(&job, "job_id", "invocation identity")?;
-        let collected = self.collect(&id, context.artifact, None).await?;
-        let proof: InvocationProofResponse = decode(
-            self.post(
-                &self.b,
-                &format!("/capability-runs/{id}/verify"),
-                json!({}),
-                "verify fresh invocation",
-            )
-            .await?,
-            "invocation proof",
-        )?;
+        let collected = self
+            .collect(&id, context.artifact, None, spec.progression)
+            .await?;
+        let proof: InvocationProofResponse = if spec.progression == ScenarioProgression::Automatic {
+            self.observe_invocation(&id).await?
+        } else {
+            decode(
+                self.post(
+                    &self.b,
+                    &format!("/capability-runs/{id}/verify"),
+                    json!({}),
+                    "verify fresh invocation",
+                )
+                .await?,
+                "invocation proof",
+            )?
+        };
         let persisted: InvocationProofResponse = decode(
             self.get(
                 &self.b,
@@ -716,6 +821,51 @@ impl ScenarioDriver {
         }
         validate_invocation_proof(&proof, &id, context, &collected, suite_sha256)?;
         Ok(proof)
+    }
+
+    async fn observe_invocation(&self, id: &str) -> Result<InvocationProofResponse> {
+        for _ in 0..self.limits.max_polls {
+            let status = self
+                .get(
+                    &self.b,
+                    &format!("/capability-runs/{id}/finalization"),
+                    "observe invocation finalization",
+                )
+                .await?;
+            if status["job_id"] != id {
+                return Err(ScenarioError::Response("finalization identity mismatch"));
+            }
+            match status["state"].as_str() {
+                Some("completed") => {
+                    // Queue completion is scheduling metadata, never semantic
+                    // evidence. The same exact proof validation follows both modes.
+                    return decode(
+                        self.get(
+                            &self.b,
+                            &format!("/capability-runs/{id}/verification"),
+                            "read automatic invocation proof",
+                        )
+                        .await?,
+                        "invocation proof",
+                    );
+                }
+                Some("pending" | "running") => {}
+                Some("attention") => {
+                    return Err(ScenarioError::Observation {
+                        kind: "invocation",
+                        id: id.into(),
+                        reason: "local verification requires attention",
+                    })
+                }
+                _ => return Err(ScenarioError::Response("finalization state")),
+            }
+            tokio::time::sleep(self.limits.poll_interval).await;
+        }
+        Err(ScenarioError::Observation {
+            kind: "invocation",
+            id: id.into(),
+            reason: "observation polling limit reached",
+        })
     }
 
     async fn retire(
@@ -776,7 +926,7 @@ impl ScenarioDriver {
     async fn run_inner(&self, spec: &ScenarioSpec) -> Result<ScenarioReport> {
         let (org_a_id, org_b_id) = self.preflight(spec).await?;
         let a = self.seed(&self.a, spec, true).await?;
-        let acquired = self.acquire(spec, &a).await?;
+        let acquired = self.acquire(spec, &a, &org_a_id).await?;
         let acquisition_id = field_id(&acquired, "id", "acquisition identity")?;
         let artifact: ArtifactPin = decode(acquired["artifact"].clone(), "verified artifact")?;
         validate_artifact(&artifact).map_err(|_| ScenarioError::Response("verified artifact"))?;
@@ -865,8 +1015,13 @@ impl ScenarioDriver {
             return Err(ScenarioError::Response("local acceptance job identities"));
         }
         for id in &jobs {
-            self.collect(id, &artifact, Some((&installation, &spec.suite_b_id)))
-                .await?;
+            self.collect(
+                id,
+                &artifact,
+                Some((&installation, &spec.suite_b_id)),
+                spec.progression,
+            )
+            .await?;
         }
         let accepted = self
             .post(
@@ -960,6 +1115,7 @@ impl ScenarioDriver {
             })
             .collect();
         Ok(ScenarioReport {
+            progression: spec.progression,
             org_a_id,
             org_b_id,
             mission_a_id: a.mission,
@@ -1163,6 +1319,7 @@ mod tests {
             "invocation_input":{"source_url":"https://example.com/venues"}
         });
         let spec: ScenarioSpec = serde_json::from_value(value.clone()).unwrap();
+        assert_eq!(spec.progression, ScenarioProgression::Manual);
         assert!(!spec.allow_development_roles);
         assert!(!spec.provider_access_acknowledged);
         assert!(matches!(
@@ -1216,6 +1373,7 @@ mod tests {
         .unwrap();
         assert!(case.is_accepted());
         let spec = ScenarioSpec {
+            progression: ScenarioProgression::Manual,
             run_id: "run".into(),
             suite_a_id: "a".into(),
             suite_b_id: suite.suite_id.clone(),
