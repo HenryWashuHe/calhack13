@@ -25,6 +25,9 @@ use std::path::Path;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
+/// Organization ID of every evaluation org (and of its Elastic planner agent).
+pub const EVAL_ORG_ID: &str = "org_eval";
+
 /// One evaluation case.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -284,7 +287,7 @@ struct Org {
 
 impl Org {
     async fn start() -> anyhow::Result<Org> {
-        let cfg = OrgConfig::dev("org_eval", "Evaluation org");
+        let cfg = OrgConfig::dev(EVAL_ORG_ID, "Evaluation org");
         let app = build_org(&cfg, None)?;
         let addr = spawn_org(app, "127.0.0.1:0").await?;
         Ok(Org {
