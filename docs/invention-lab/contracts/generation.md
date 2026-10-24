@@ -63,6 +63,19 @@ the field stays absent on reserialization and old status output is unchanged.
 The first [live failure](../evidence/live-method-20261024/README.md) therefore
 still has no recoverable rejection detail and must not be replayed.
 
+The [Sonnet 5.5 migration guide](https://platform.claude.com/docs/en/models/sonnet-5-5/migration-guide)
+documents adaptive thinking by default. The single-turn parser now accepts a
+strictly typed prefix of `thinking` / `redacted_thinking` blocks followed by exactly
+one final text block. There are at most 16 blocks; thinking text, opaque signatures
+and encrypted data are each capped at 800 KiB. Empty thinking text is valid;
+signatures and encrypted data must be nonempty strings. Unknown fields/types,
+duplicate JSON keys, tool blocks, absent/multiple text and reasoning after text
+are rejected. Thinking payloads are discarded, never exported or persisted;
+their usage remains included in the provider's total output count. The request,
+model/settings, stop checks and terminal no-retry rules are unchanged.
+This is a documented format compatibility fix, not evidence of what was in an
+unretained failed response, and it does not establish fixed-settings comparison.
+
 There is one attempted POST, a transport deadline and output-token ceiling;
 there is no hard input-token ceiling beyond the prompt's byte bound. A generated
 package can coexist with unknown usage and does not establish budget compliance.
