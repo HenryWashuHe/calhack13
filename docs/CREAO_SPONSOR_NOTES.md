@@ -49,14 +49,15 @@ The specialist, gateway readiness and probe stack (#20/#26/#29) is merged.
 Obsolete combined draft #25 was closed after its unique scenario regression was
 preserved in #68. See the current [review queue](PR_REVIEW_QUEUE.md).
 
-- The current scenario's inherited "monitor" execution calls `/capability-runs`;
-  that route selects Apify. It does not demonstrate CREAO mission execution.
-  See `capability_scenario.rs::invoke` and `routes/capabilities.rs`.
+- The optional scenario `venue_monitoring` path now invokes two persistent
+  CREAO assessments after inheritance and handoff. The earlier mode without
+  that field only invokes `/capability-runs`, which selects Apify and cannot
+  demonstrate CREAO mission execution. See [INHERITED_MISSION.md](INHERITED_MISSION.md).
 - CREAO creation and the gateway probe establish neither core work nor a
   verified mission result. The assessment path now separately verifies native
   result text against frozen venue facts and applies accepted mission effects.
-  Its automated tests use loopback providers and synthetic initial setup. The
-  two-organization scenario still needs to invoke this path with actual providers.
+  Its automated tests use loopback providers. The two-organization scenario
+  still needs execution with actual providers and qualifying share evidence.
 - Capture the qualifying agent's build/save provenance on `agent.creao.ai`.
   If relying solely on API-created agents for eligibility, confirm that reading
   of the sponsor's wording at the booth instead of assuming it.

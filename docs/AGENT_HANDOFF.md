@@ -2,35 +2,80 @@
 
 ## Current implementation and ownership — October 22, 2026
 
-Persistent CREAO mission assessment is implemented in [PR #72](https://github.com/HenryWashuHe/genesis/pull/72),
-runtime source `0dc0986be0248d1f7b5a96ded7a1c5cbe1795089`, based on main `72e9ef1`.
-A continuing specialist receives frozen, backend-verified venue facts and event
-constraints. Its native receipt and five domain checks gate an atomic observation
-and, when needed, one actionable replacement requirement. The same agent handles
-later updates across restart; its responsibility remains open. See
-[the assessment API and evidence limits](VENUE_ASSESSMENTS.md).
+[PR #77](https://github.com/HenryWashuHe/genesis/pull/77) adds opt-in durable venue
+monitor subscriptions; runtime checkpoint `e699659`, based on main `3ea5ec4`.
+One operator registration freezes the existing role/assignment/CREAO binding,
+accepted capability and event policy. The server follows verified invocation
+events, persists each exact child intent before creation, and uses the existing
+assessment verifier for mission effects. Work is bounded by expiry and 1–16
+intents. Unknown work retains its child identity; an accepted Reopen completes
+the subscription with its replacement requirement, without completing the mission.
+See [the API and limits](VENUE_MONITORS.md).
 
-Source `1a340a9` passed **858 Rust tests in 90 nonempty suites** (109 targets
-including empty suites), zero failed/ignored. The final missing-runtime recovery
-fix then passed **50 default-feature tests in six affected suites**, including all
-13 assessment integration tests, plus strict default workspace Clippy and fmt.
-It preserves queued dispatch when a restart lacks CREAO instead of allowing a
-stub acknowledgement to strand the job. These are loopback/provider-fixture
-checks; native sponsor execution and genuine Share-link evidence remain open.
+Validation: **154 source-scoped Rust checks** across four targets: 113 server
+library, 14 CLI, 22 assessment integration (including nine subscription tests),
+and five full scenarios. The original 21 assessment checks passed together; the
+final test-only addition passed with all nine subscription checks. The same
+runtime passed strict default workspace all-target Clippy and formatting.
+The crash regression recovers a committed child after its link write fails,
+including a stopped subscription, without changing the job/deadline/native run.
+A 205-event regression preserves the cursor through restart, skips a different
+event input and processes a job verified after registration. Providers are
+loopback; the subscription tests use trusted synthetic provisioning/publication.
+Native sponsor evidence remains open.
 
-New reviews are held: **#70** at `c1162d1` needs complete frozen gap/pin checks,
-a consistent history read transaction, and its Clippy fix; unchanged test-only
-regressions are on `codex/review-kernel-audit70-refusal` at `c92f9d5`.
-**#71** at `ba4e00ac` needs stale poll suppression and accurate disabled-intake
-wording; preserve `37dae9f` on `codex/review-gap-intake71`. Exact findings and
-source ownership remain in [the queue](PR_REVIEW_QUEUE.md) and
-[issue #4](https://github.com/HenryWashuHe/genesis/issues/4).
+[PR #76](https://github.com/HenryWashuHe/genesis/pull/76) adds the offline monitoring
+setup helper; merged as `3ea5ec4`, reviewed source `1ff0c94`, exact tree
+`fe419e7`. Implementation checkpoint `bfcfe00` was based on main `64d6492`.
+It validates three immutable portal namespaces and atomically emits B's frozen
+baseline/update suite and the complete strict scenario. The explicit policy must
+accept the baseline and reject only the update's capacity. Public aliases and
+non-string identities are refused; template access flags are preserved.
+All **35 portal tests pass without skips**, including the actual Rust verifier
+and scenario CLI. Independent review is clean; the exact documented walkthrough
+also passed with temporary paths and a fake HTTPS origin. See the
+[executable setup](VENUE_PORTAL.md#prepare-continuing-creao-monitoring).
+These checks make no native provider or unforeseen-update claim.
 
-Claude/Eric keep kernel/planner/readiness/UI and those source fixes. Codex next
-connects verified CREAO assessments to the two-organization scenario and its
-report, without duplicating planner or UI work. The ongoing mission goal remains
-active. Use current GitHub heads before integrating; the checkpoints below are
-historical and do not supersede these ownership notes.
+[PR #75](https://github.com/HenryWashuHe/genesis/pull/75) connects persistent CREAO
+assessment to the two-organization scenario. Runtime checkpoint `f5136fe`, based
+on reviewed main `8187430`, adds optional `venue_monitoring`: after independent
+capability adoption and verifier retirement, the same newly created CREAO monitor
+assesses a feasible baseline and a distinct capacity-cut snapshot. Its second
+verified result creates one cited replacement requirement. Both proofs and the
+same agent survive restart without extra native requests. See
+[scenario setup and evidence limits](INHERITED_MISSION.md).
+
+Validation: **145 default-feature Rust checks** across four targets: 113 server
+library tests (including 37 scenario unit/HTTP checks), 14 CLI tests, 13 assessment
+integration tests and all five full scenario tests. Strict default workspace
+all-target Clippy and formatting pass. Independent regressions failed before and
+passed after fixes for bounded local-verification recovery, the final permitted
+poll, and the kernel's valid owner-only handoff with no separate executor.
+
+All providers in these tests are loopback. The full scenario uses the real CREAO
+creation/client/runtime/journal, with an explicitly labeled creation-journal
+readiness fixture; it does not prove a live gateway callback or cloud execution.
+Both B source cases are configured before adoption. Actual sponsor runs, a genuine
+CREAO Share link and the complete autonomous mission remain open. The underlying
+assessment API from merged #72 remains unchanged; see
+[its runtime contract](VENUE_ASSESSMENTS.md).
+
+Reviewed #70, #71, #73, #74 and #75 are merged. Main checkpoint `64d6492`
+includes the persistent scenario and corrected audit. All three original audit
+regressions from `c92f9d5` now pass unchanged: frozen gap binding, acquired pin /
+publication stability, and consistent concurrent history reads. Six latest
+history/regression tests and 37 scenario units pass; the prior composition's
+identical core/CLI files passed 65 core and 14 CLI checks. Strict core/server
+all-target Clippy and formatting pass. See [the review queue](PR_REVIEW_QUEUE.md).
+
+Claude/Eric owns kernel/planner/readiness/UI and the explicitly assigned opt-in
+gap `Acquired → Installed` finalizer. Codex owns the monitor subscription and
+its next scenario integration, along with the completed operator setup helper.
+No audit review hold remains from the previous batch.
+Coordinate through [issue #4](https://github.com/HenryWashuHe/genesis/issues/4).
+The ongoing mission goal remains active; historical notes below do not supersede
+this ownership or current GitHub heads.
 
 ## Previous merge and ownership checkpoint — October 22, 2026
 

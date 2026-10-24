@@ -336,6 +336,15 @@ pub async fn create(
     request: CreateAssessmentRequest,
 ) -> ApiResult<(AssessmentRecord, bool)> {
     let _guard = app.kernel.lock().await;
+    create_locked(app, request)
+}
+
+/// Internal callers retain the kernel lock across their own frozen-authority
+/// check and this preparation. This performs no native provider request.
+pub(crate) fn create_locked(
+    app: &AppState,
+    request: CreateAssessmentRequest,
+) -> ApiResult<(AssessmentRecord, bool)> {
     if request.client_request_id.trim().is_empty() || request.client_request_id.len() > 128 {
         return Err(ApiError::bad_request(
             "client_request_id must contain 1 to 128 bytes",
@@ -454,6 +463,24 @@ pub async fn create(
     })?;
     app.broadcast(&events);
     Ok((read_locked(app, &binding.context.assessment_id)?, true))
+}
+
+/// Recover a prepared child's identity without renewing authority or creating
+/// work. Used after interrupted subscription preparation, including after stop.
+pub(crate) fn lookup_request_locked(
+    app: &AppState,
+    request: &CreateAssessmentRequest,
+) -> ApiResult<Option<AssessmentRecord>> {
+    let Some(id) = app
+        .store
+        .assessment_by_request(&request.client_request_id)?
+    else {
+        return Ok(None);
+    };
+    if app.store.assessment_binding(&id)?.request != *request {
+        return Err(conflict("request key already binds a different assessment"));
+    }
+    Ok(Some(read_locked(app, &id)?))
 }
 
 fn receipt(app: &AppState, binding: &Binding) -> ApiResult<SpecialistExecutionReceipt> {

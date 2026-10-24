@@ -10,10 +10,12 @@
 //! - [`capability`]: manifests, verification evidence, publication rules.
 //! - [`events`]: domain event envelope and kinds.
 //! - [`jobs`]: job records and normalized job lifecycle.
+//! - [`audit`]: structural invariants of a state, checked independently.
 //!
 //! This crate has no I/O. The server crate persists state and talks to
 //! providers.
 
+pub mod audit;
 pub mod capability;
 pub mod change;
 pub mod digest;

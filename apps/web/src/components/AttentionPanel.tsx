@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useContext, useMemo, useState } from "react";
 import { Api, ApiError } from "../lib/api";
 import type { DomainEvent, Job, OrgChangeRecord, OrgState } from "../lib/contracts";
 import {
@@ -9,6 +9,7 @@ import {
   ReconcileTarget,
   validAgentId,
 } from "../lib/attention";
+import { GapIntakeContext, intakeAttention } from "../lib/gapIntake";
 
 const LABEL: Record<AttentionKind, { text: string; tone: string; title: string }> = {
   action: { text: "NEEDS YOU", tone: "bad", title: "Blocked until an operator decides" },
@@ -137,7 +138,14 @@ export function AttentionPanel({
   events: DomainEvent[];
   state: OrgState | null;
 }) {
-  const items = useMemo(() => attention(changes, jobs, events, state), [changes, jobs, events, state]);
+  const intake = useContext(GapIntakeContext);
+  const items = useMemo(() => {
+    const all = attention(changes, jobs, events, state);
+    // Gap intake items are open; keep them with the other open items.
+    const gaps = intakeAttention(state, intake);
+    const open = all.filter(isOpen);
+    return [...open, ...gaps, ...all.filter((i) => !isOpen(i))];
+  }, [changes, jobs, events, state, intake]);
   const [expanded, setExpanded] = useState(false);
   if (items.length === 0) return null;
   const c = counts(items);
