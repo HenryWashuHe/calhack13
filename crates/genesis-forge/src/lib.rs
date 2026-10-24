@@ -27,3 +27,4 @@ pub mod method_admitted_costs;
 pub mod method_revision;
 pub mod method_roster;
 pub mod method_stage;
+pub mod method_chain;
