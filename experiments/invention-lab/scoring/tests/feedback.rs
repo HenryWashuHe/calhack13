@@ -5,7 +5,7 @@ use genesis_core::development_trial::TrialPlan;
 use genesis_lab_exec::session::{finish, RunState, Session};
 use genesis_lab_exec::store::Store;
 use genesis_lab_exec::{example, refs, sandbox::Mode};
-use genesis_lab_score::feedback::{receiver_feedback, SCHEMA};
+use genesis_lab_score::feedback::{receiver_feedback, MAX_FEEDBACK_BYTES, SCHEMA};
 use genesis_lab_score::{score_slot, ScoringError};
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
@@ -32,6 +32,11 @@ fn plan() -> TrialPlan {
 /// One experiment, then a submission, then trusted scoring. Returns the
 /// slot and score directories.
 fn run_and_score(p: &TrialPlan, name: &str) -> (PathBuf, PathBuf) {
+    run_and_score_with(p, name, None)
+}
+
+/// As above, after first sending `extra` as an experiment design.
+fn run_and_score_with(p: &TrialPlan, name: &str, extra: Option<Value>) -> (PathBuf, PathBuf) {
     let dir = std::env::temp_dir().join(format!("lab-feedback-{name}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     let (slot, score) = (dir.join("slot"), dir.join("score"));
@@ -52,6 +57,12 @@ fn run_and_score(p: &TrialPlan, name: &str) -> (PathBuf, PathBuf) {
     };
     let design: Value = serde_json::from_str(REFERENCE).unwrap();
     let instance = p.development_instances[1].id.clone();
+    if let Some(extra) = extra {
+        let r = s
+            .handle(&json!({"op": "experiment", "instance": instance, "design": extra}).to_string())
+            .unwrap();
+        assert_eq!(r["ok"], true, "{r}");
+    }
     let r = s
         .handle(&json!({"op": "experiment", "instance": instance, "design": design}).to_string())
         .unwrap();
@@ -161,4 +172,48 @@ fn an_unscored_slot_has_no_feedback() {
     let (slot, score) = run_and_score(&p, "unscored");
     std::fs::remove_file(score.join("evaluation.json")).unwrap();
     assert!(feedback(&p, &slot, &score).is_err());
+}
+
+#[test]
+fn an_oversized_experiment_design_is_listed_by_digest_and_the_document_fits() {
+    let p = plan();
+    // An unparseable design is still a retained experiment record.
+    let big = json!({"public_note": "x".repeat(MAX_FEEDBACK_BYTES)});
+    let (slot, score) = run_and_score_with(&p, "oversized", Some(big.clone()));
+    let (_, bytes) = receiver_feedback(
+        &p,
+        "candidate",
+        &Store::open(&slot).unwrap(),
+        &Store::open(&score).unwrap(),
+    )
+    .unwrap();
+    assert!(bytes.len() <= MAX_FEEDBACK_BYTES, "{}", bytes.len());
+    let doc: Value = serde_json::from_slice(&bytes).unwrap();
+    let dev = &doc["development"];
+    assert_eq!(dev["experiments_total"], 2);
+    assert_eq!(dev["experiments_listed"], 2);
+    let first = &dev["experiments"][0];
+    assert!(first.get("design").is_none(), "{first}");
+    let digest = refs::sha256_hex(genesis_core::digest::canonical_json(&big).as_bytes());
+    assert_eq!(first["design_omitted"]["sha256"], digest);
+    // The ordinary experiment after it is still listed in full.
+    assert_eq!(dev["experiments"][1]["design"], doc["submitted_design"]);
+}
+
+#[test]
+fn hidden_comparison_plans_never_yield_feedback() {
+    let mut p = plan();
+    let (slot, score) = run_and_score(&p, "hidden-policy");
+    p.scoring_instances = genesis_core::development_trial::ScoringInstances::HiddenCommitment {
+        protocol: refs::content("fixture-commitment/1", "protocol", "1", b"opaque"),
+    };
+    assert!(matches!(
+        receiver_feedback(
+            &p,
+            "candidate",
+            &Store::open(&slot).unwrap(),
+            &Store::open(&score).unwrap(),
+        ),
+        Err(ScoringError::Refused(why)) if why.contains("public development")
+    ));
 }
