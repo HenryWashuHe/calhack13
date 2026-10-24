@@ -12,7 +12,10 @@ use genesis_fetch::{
 };
 use serde_json::{json, Value};
 use std::{
-    sync::{Arc, Mutex},
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc, Mutex,
+    },
     time::Duration,
 };
 
@@ -42,6 +45,7 @@ impl Reply {
 struct ServerState {
     reply: Arc<Mutex<Reply>>,
     identity_reply: Arc<Mutex<Option<Reply>>>,
+    identity_seen: Arc<AtomicBool>,
     requests: Arc<Mutex<Vec<Value>>>,
 }
 struct Server {
@@ -59,6 +63,7 @@ impl Server {
         let state = ServerState {
             reply: Arc::new(Mutex::new(reply)),
             identity_reply: Default::default(),
+            identity_seen: Default::default(),
             requests: Default::default(),
         };
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
@@ -93,6 +98,7 @@ async fn handler(State(state): State<ServerState>, request: Request<Body>) -> Re
         "body": if body.is_empty() { Value::Null } else { serde_json::from_slice::<Value>(&body).unwrap() },
     }));
     let reply = if parts.uri.path() == "/v1/identity" {
+        state.identity_seen.store(true, Ordering::SeqCst);
         state.identity_reply.lock().unwrap().clone()
     } else {
         None
@@ -341,6 +347,42 @@ async fn wrong_bridge_identity_prevents_disclosing_or_enqueuing_message() {
     assert_eq!(server.requests().len(), 1);
     assert_eq!(server.requests()[0]["method"], "GET");
     assert_eq!(server.requests()[0]["body"], Value::Null);
+}
+
+#[tokio::test]
+async fn eligibility_is_rechecked_after_identity_preflight_before_post() {
+    let server = Server::start(Reply::json(identity())).await;
+    // The identity handler models a concurrent release during that awaited
+    // preflight. Eligibility was valid before entering send_guarded.
+    let revoked = server.state.identity_seen.clone();
+    assert!(!revoked.load(Ordering::SeqCst));
+    let error = server
+        .bridge(ClientLimits::default())
+        .send_guarded(&send(), || !revoked.load(Ordering::SeqCst))
+        .await
+        .unwrap_err();
+    assert_eq!(error.kind, ClientErrorKind::NoLongerEligible);
+    assert!(!error.post_may_have_run);
+    assert_eq!(server.requests().len(), 1);
+    assert_eq!(server.requests()[0]["method"], "GET");
+}
+
+#[tokio::test]
+async fn guard_can_reject_work_that_expired_during_preflight() {
+    let server = Server::start(Reply {
+        delay: Duration::from_millis(20),
+        ..Reply::json(identity())
+    })
+    .await;
+    let expires = std::time::Instant::now() + Duration::from_millis(5);
+    let error = server
+        .bridge(ClientLimits::default())
+        .send_guarded(&send(), || std::time::Instant::now() < expires)
+        .await
+        .unwrap_err();
+    assert_eq!(error.kind, ClientErrorKind::NoLongerEligible);
+    assert!(!error.post_may_have_run);
+    assert_eq!(server.requests().len(), 1);
 }
 
 #[tokio::test]
