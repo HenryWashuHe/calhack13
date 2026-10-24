@@ -1,6 +1,14 @@
 # Recursive capability improvement: goal and design
 
-Status: implementation and evaluation roadmap incorporated into the ongoing two-organization mission goal. These are open milestones, not implemented behavior or a completed experiment. The existing continuation schedule references this document; this file does not create a separate app Goal or reassign ownership. Consult [AGENT_HANDOFF.md](AGENT_HANDOFF.md) and current issue #4 claims before implementation. The current implementation boundary is summarized below.
+**Networked recursive capability improvement with fixed model weights** is the
+canonical product and research framing. Status: open implementation and evaluation
+roadmap, not completed behavior or a demonstrated positive result. The user has resumed ongoing work under the [repository goal](ONGOING_GOAL.md)
+and its active hourly continuation. The older app Goal card remains paused until
+it can be replaced through the user-controlled lifecycle; it does not define the
+new product scope. Current [ownership](AGENT_HANDOFF.md#current-ownership-and-next-work)
+supersedes the earlier side-chat proposal. See [implementation status](IMPLEMENTATION_STATUS.md)
+for the evidence boundary and [invention labs](INVENTION_LAB_DEMO.md) for the proposed
+demonstration. Event organization is no longer a product or completion requirement.
 
 ## Goal and completion evidence
 
@@ -8,16 +16,17 @@ Status: implementation and evaluation roadmap incorporated into the ongoing two-
 
 The moonshot is a network whose useful experience compounds across organizations, including experience about how to produce further improvements. Universal infrastructure means admitting different domains and their evaluators; it does not mean every tool helps every task.
 
-The implementation target is complete when the following evidence is reviewable:
+The authoritative current completion contract is [G0–G4 and delivery in the ongoing goal](ONGOING_GOAL.md#completion-gates-and-evidence). The following summarizes its research evidence; it does not add a separate venue or deployed-repair prerequisite:
 
 - [ ] A mission requirement triggers a justified responsibility or role change, with accountable ownership and a recorded handoff or retirement. A separate case retains an existing owner when sufficient; agent count is not the success criterion.
-- [ ] A records a failure against an exact installed version, performs a bounded repair, verifies and publishes a distinct replacement, and resumes its mission. Ambiguous effects enter reconciliation.
-- [ ] B independently discovers, verifies, and adopts that replacement using its own state, grants, and inputs. Its installation remains pinned; publication alone never upgrades it.
+- [ ] A develops an executable method, B independently accepts and improves it, and A independently accepts and executes the frozen revision to develop a later capability on a fresh task in at least one recorded chain. Non-reuse remains valid for controls but cannot substitute for this transfer evidence.
 - [ ] GENESIS creates or improves a development capability through its governed development process, records that derivation, and publishes an executable version with pinned dependencies and provenance. Another organization actually uses it to build or repair a later capability, with execution evidence identifying the inherited method and its outputs. Packaging a hand-authored seed alone is a control, not this recursive-development gate.
 - [ ] Direct reuse, related transfer/composition, and an irrelevant-capability case all have reproducible traces with independently scored task results. The irrelevant capability is not forced into execution.
 - [ ] The controlled evaluation below produces per-family quality, cost, latency, intervention, and regression results, including unsuccessful runs. Provider fixtures and authenticated live runs are labeled separately.
 
-These gates complete the mechanism and evaluation milestone. A **positive recursive-improvement claim** additionally requires the development-workflow treatment to meet quality and cost criteria fixed before the independent evaluation. If it does not, report the result and leave that research claim open. There is no promised improvement after every task.
+Completion is judged against the ongoing goal's gates, with source and evaluation evidence. A **positive recursive-improvement claim** additionally requires the development-workflow treatment to meet quality and cost criteria fixed before the independent evaluation. If it does not, report the result and leave that research claim open. There is no promised improvement after every task.
+
+Cross-organization deployed repair remains a **supporting roadmap milestone**, not a current completion prerequisite: record exact-version failure, perform a bounded verified repair, publish a distinct replacement, then let B independently adopt or decline it. Ambiguous effects enter reconciliation; publication never silently upgrades an installation. Its preserved WIP and unfinished checks remain separate from the development-method milestone.
 
 ## What can transfer
 
@@ -43,7 +52,7 @@ The system can learn at the system level without weight updates. Call these exec
 | Organization changes | Roles, recruitment, delegation, retirement, and capability attachment | Use structural changes when new responsibility warrants them; reuse an existing owner when sufficient |
 | Evaluation | Two-organization inheritance tests and [planner evaluation](PLANNER_EVAL.md) exercise specific mechanisms | Controlled capability-transfer and recursive-improvement evaluation; existing fixtures do not establish this claim |
 
-The current generated capability artifact path is specialized to TypeScript web extraction on Apify. A general math-and-drawing demo needs additional artifact/executor contracts and appropriate evaluators. Describing them in a manifest does not implement those runtimes. The shared registry is the present network mechanism, not a decentralized protocol.
+The current generated capability artifact path is specialized to TypeScript web extraction on Apify. The proposed invention-lab demonstration needs a new simulator, development-method executor contract, and independent evaluator. Describing them in a manifest does not implement those runtimes. The shared registry is the present network mechanism, not a decentralized protocol.
 
 ## Adoption with evidence
 
@@ -63,30 +72,49 @@ Finite tests can miss failures. The enforceable promise is that required evidenc
 ## Implementation sequence
 
 1. **Close the network repair loop.** Persist exact-version failure evidence and repair intent; distinguish semantic failure from transport uncertainty; independently verify a replacement; publish its lineage; let B accept or decline it. Add explicit deprecation/withdrawal and rollback policy without overwriting immutable versions or silently migrating installations. Rollback cannot undo an already executed external effect.
-2. **Package one development capability.** Start with one bounded repair or build workflow using the existing Actor scaffold. Define typed inputs, outputs, exact dependencies, resource limits, evaluator requirements, and derivation evidence. Detect dependency cycles and prevent inherited workflows from expanding grants or replacing trusted acceptance rules. Generated tests supplement independent checks; they cannot self-certify quality.
-3. **Exercise selective transfer and measure the extra benefit.** Add the three cases below and the evaluation arms. Start within the supported web runtime; expand domains only when executors and evaluators exist. Promote a candidate workflow only against predeclared criteria; otherwise retain the previous accepted version and report the failed experiment.
+2. **Package one development capability.** Define one bounded repair, build, or experiment workflow. An Actor-based web workflow can reuse current infrastructure; a physics-development method requires the new executor described in the demo proposal. Define typed inputs, outputs, exact dependencies, resource limits, evaluator requirements, and derivation evidence. Detect dependency cycles and prevent inherited workflows from expanding grants or replacing trusted acceptance rules. Generated tests supplement independent checks; they cannot self-certify quality.
+3. **Exercise selective transfer and measure the extra benefit.** Add the three cases below and the evaluation arms. Use the selected domain only after its executor and evaluator exist; existing web fixtures remain infrastructure evidence, not a restriction on the chosen demonstration. Promote a candidate workflow only against predeclared criteria; otherwise retain the previous accepted version and report the failed experiment.
 
 These steps preserve the four sponsor roles: Fetch recruits independent specialists, Elastic supplies organizational evidence and capability discovery, Apify builds/runs executable web capabilities, and CREAO owns continuing operational work. GENESIS owns authority, identity, lifecycle, verification and adoption. Changing the research framing does not establish live provider evidence or alter sponsor submission requirements.
 
 ### Coordination and order of work
 
-The original two-organization mission, automatic-intake/native-Fetch/full-mission composition, and live sponsor gates remain open prerequisites or parallel tracks. Venue replacement selection is mission recovery; it is not evidence that a deployed capability was repaired. Likewise, retrying a confirmed failed provider run is not a semantic repair or a published replacement.
+Preserve the existing kernel, verification and independent-adoption foundations.
+Cross-organization deployed repair is paused, partially tested work; a provider
+retry or venue replacement is not a repaired executable capability. Its remaining
+validation must be completed before publishing it as implemented. The old venue
+mission is not a prerequisite for the new product demonstration. Authenticated
+sponsor evidence remains a separate obligation for any sponsor claims.
 
-At the integration checkpoint on main `16783da`, no PRs were open. Henry's Claude retains adoption candidate decision logging and the agreed narrow terminal-`RunFailed` retry change. Codex continues automatic-intake/native-Fetch composition, then scopes exact-version failure evidence and bounded repair intent with the acquisition/execution owners. Eric's replay fix is merged; no new exclusive implementation claim is inferred from it. During integration, Claude opened #114 for an ASI:One mission adapter and pitch/submission drafts; review that work before assigning more ACP implementation and preserve this framing when composing README changes. The [current ownership map](AGENT_HANDOFF.md#current-ownership-and-next-work) and newer issue #4 comments take precedence.
+The [handoff](AGENT_HANDOFF.md#current-ownership-and-next-work) and [issue #4](https://github.com/HenryWashuHe/genesis/issues/4)
+record the current task split. Henry's core Claude retains adoption and the narrow
+terminal-run retry work; Eric retains the constitution audit and the next evidence
+UI design; the ACP author retains its regression corrections. Codex owns shared
+development-method/evidence contracts and preserves paused repair work. Ines is
+unassigned at the user's request. Shared runtime changes need an explicit claim;
+a design assignment is not authorization to take another owner's files.
 
-Do not assign the side-chat Claude brief wholesale. Before each next slice, inspect branches and claims, post the bounded files/interfaces in issue #4, and agree any shared contract change. Development-package and evaluation runtime work remain proposed until scoped; the sequence above does not preempt anyone's active implementation.
+## Chosen demonstration and selective transfer
 
-## Smallest convincing transfer demonstration
+The proposed [invention labs](INVENTION_LAB_DEMO.md) replace event management as
+the product demonstration. A creates an executable development method while
+solving a visible design task; B locally evaluates and improves the method on a
+different task; A then evaluates the frozen revision on a fresh return challenge.
+This demonstrates the mechanism only if the method is actually developed and
+executed. Improvement requires the controlled comparison below.
 
-| Case | What to show | What it establishes |
+Retain three distinct cases:
+
+| Case | Demonstration evidence | Boundary |
 | --- | --- | --- |
-| Direct reuse | B uses A's accepted extractor on a new supported input, with its own checks and no synthesis | Cross-organization reuse within the documented scope |
-| Related but different | B uses an inherited repair/build workflow on a held-out portal variation requiring a new extractor | Process transfer; improvement still needs the controlled comparison below |
-| Unrelated requirement | A later task uses other available capabilities, or creates a suitable one, while leaving the extractor unused | Appropriate non-reuse, with successful task completion scored separately |
+| Direct reuse | A previously accepted tool or method works on a new supported input | Reuse alone does not establish recursion |
+| Related development | An inherited method is used to develop a new design or capability | Better development must be measured independently |
+| Appropriate non-reuse | An incompatible method is declined and the task is independently resolved | Declining everything while failing the task is not success |
 
-For an initial demo, the third task can be an unrelated local planning calculation if a tested execution path is available; name that executor and its evidence when implementing the case. Otherwise choose an incompatible requirement within a supported executor and independently score its successful resolution. This is a selection control, not evidence of universal domain coverage. The original web extractor might be useful again much later.
-
-The interface should show the requirement, candidate scope, selection/non-selection reason, exact executed versions, local acceptance, dependency lineage, and outcome/cost. A rising capability counter or a growing organization graph alone is not an improvement metric. Dynamic roles remain tied to accountable work rather than spawning for spectacle.
+Show requirements, method scope, exact executed versions, local acceptance,
+lineage, outcomes and cost. A growing graph or capability counter is not a quality
+metric. Dynamic roles must change accountable work, future dispatch or authority;
+spawning agents for animation does not establish organizational evolution.
 
 ## Controlled evaluation
 

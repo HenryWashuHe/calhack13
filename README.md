@@ -1,14 +1,53 @@
 # GENESIS
 
-**A self-healing operating system for networks of AI agents.**
+Active development: [genesis-history-experiment](https://github.com/HenryWashuHe/genesis-history-experiment).
+Read [coordination issue #1](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1) and the
+[repository migration map](docs/REPOSITORY_MIGRATION.md) before taking work.
 
-GENESIS provides infrastructure for agents to **build, verify, share, inherit, and improve executable capabilities** across independent organizations. A capability developed for one mission can become the starting point for another. A verified repair can become a reusable improvement instead of knowledge trapped in one agent's conversation.
+![tag:innovationlab](https://img.shields.io/badge/innovationlab-3D8BD3)
+![tag:hackathon](https://img.shields.io/badge/hackathon-5F43F1)
 
-The long-term goal is **networked recursive capability improvement, with fixed model weights**. What evolves is the system around the model: tools, workflows, operational knowledge, specialist teams, and eventually the methods agents use to build and repair those capabilities.
+**Networked recursive capability improvement with fixed model weights.**
 
-> Agents can build on the network's applicable experience—including better ways to build, verify, and repair.
+GENESIS is building infrastructure through which independent AI organizations
+create, verify, share, and improve executable capabilities—including the methods
+they use to develop future capabilities. What evolves is the system around the
+model: tools, workflows, memory, specialist roles and development procedures.
+The foundation model's weights stay fixed.
 
-## How the network improves
+Organizations are durable, governed state: responsibilities, roles, authority,
+budgets and contracts. A planner can propose a structural change when a mission
+needs new ownership; the Rust kernel validates it. Capabilities retain exact
+versions, provenance and tested scope. Receiving organizations decide locally
+whether to adopt, adapt, or decline them.
+
+**Implemented foundations are not a demonstrated recursive-improvement system.**
+The current code supports governed organization changes, web-extraction Actor
+acquisition and verification, and independently checked inheritance between two
+organizations. General executable development methods, the proposed invention
+labs, and measured recursive benefit are not implemented. See the
+[evidence-backed implementation status](docs/IMPLEMENTATION_STATUS.md).
+
+## The proposed demonstration: invention labs
+
+**One organization invents a machine. Another improves the way it invents.
+The first inherits that method and tackles a new challenge.**
+
+Lab A develops a cargo-crossing machine in a physics simulation and an executable
+experiment method. Lab B evaluates that method for a different design problem,
+improves the procedure, and publishes a new version. After the method is frozen,
+A receives a fresh challenge and independently checks whether the inherited
+procedure helps it develop a better solution under the same model and budget.
+Moving machines make the result visible; method lineage and independent
+comparisons establish what happened.
+
+This is a **proposed demo, not existing functionality or a promised positive
+result**. Its simulator, development-method executor and evaluation loop still
+need implementation. The [demo design](docs/INVENTION_LAB_DEMO.md) specifies the
+missing pieces and falsifiable gates. The former event-organizer demo is
+superseded; its runtime code remains a historical integration fixture.
+
+## How the capability network develops
 
 1. **Discover:** An agent encounters a requirement and searches for an existing capability that fits it.
 2. **Organize:** If the capability is missing, the organization assigns responsibility and can create or recruit the specialists needed to develop it.
@@ -20,7 +59,7 @@ Organizations are the authority boundary: each owns its missions, roles, budgets
 
 GENESIS supports two connected forms of evolution: **organizational evolution**, changing who is responsible and which specialists participate; and **capability evolution**, changing what those specialists can execute and share.
 
-## What “recursive” means here
+### What “recursive” means here
 
 A growing capability library provides accumulation. Reusing or composing its contents can improve a task. The recursive step is an improvement that makes the system **better at producing its next improvement**, demonstrated on independent evaluation.
 
@@ -28,7 +67,7 @@ For example, one organization publishes an extractor; another develops a regress
 
 This is the intended architecture. **The current implementation establishes important foundations; it does not yet demonstrate a general recursive self-improvement loop.** No model-weight training is required by this design, and there is no claim of autonomous model-weight improvement.
 
-### Universal infrastructure, selective transfer
+#### Universal infrastructure, selective transfer
 
 A universal runtime does not require universal tools. An equation solver may help a later equation or a function plot and contribute nothing to drawing a cartoon cat. A capability can become useful many missions later; consecutive tasks need not share it. These are execution and evaluation tasks, not model-training steps.
 
@@ -54,15 +93,17 @@ A manifest already carries schemas, permissions, provenance, verification eviden
 
 Verification establishes behavior within the tested scope. It does not prove arbitrary generated code is safe, correct on every future input, or suitable for another organization's mission without that organization's checks.
 
-## The demonstration
+## What can be run today
 
-**Current reproducible beat:** organization A requests a missing capability; its workers acquire, verify, publish, and locally accept it. Independent organization B requests the same need, discovers A's version, runs its own checks, and installs it with no B synthesis. The default rehearsal seeds the requests and uses explicitly labeled loopback model/provider responses.
+**Existing reproducible mechanism:** A requests a missing web capability; its
+workers acquire, verify, publish, and locally accept it. Independent B discovers
+that version, runs its own checks, and installs it without synthesizing another
+copy. The default rehearsal seeds requests and uses explicitly labeled loopback
+model/provider responses. Zero B synthesis is not a claim of zero model calls
+through every organization or planner path.
 
-**Next demonstration:** break a previously working capability. A detects the failure, assigns repair responsibility, recruits specialists when needed, publishes a verified replacement, and resumes. B independently checks and adopts the repair. Then show one testing or repair capability developed through GENESIS and inherited by another organization improving the next build on an unseen task, with the same base model and comparable budget. That final step is the evidence needed for the recursive claim.
-
-Include three transfer cases: a new input that justifies direct reuse; a related task that benefits from composition or a development workflow; and an unrelated requirement where the old tool is correctly left unused. Score task outcomes as well as selection: avoiding a tool while failing a solvable task is not success. The current Actor path supports a narrow web workload; broader math or drawing demonstrations require additional executors and domain-specific evaluators.
-
-The venue scenario is the current reference workload: extraction, monitoring, disruption, and replacement selection exercise the infrastructure with observable inputs and outcomes. GENESIS's product is the capability network and evolving organization runtime; additional workloads should use the same mechanisms.
+This fixture demonstrates capability inheritance. It does not execute the
+proposed invention-lab demo or establish measured recursive improvement.
 
 ### Run the local inheritance rehearsal
 
@@ -92,7 +133,9 @@ These checks use loopback provider simulations and the actual Apify SDK with loc
 
 These are proposed implementation priorities, not completed features. Live sponsor validation proceeds alongside them; neither a passing fixture nor a larger capability count alone establishes recursive improvement.
 
-The [documented goal and acceptance criteria](docs/RECURSIVE_CAPABILITY_IMPROVEMENT.md#goal-and-completion-evidence) turn these priorities into a reviewable implementation target. They do not change active workstream ownership.
+The implementation sequence remains subject to the agreed development-method and evaluator contracts; the new demonstration need not use web extraction.
+
+The [documented goal and acceptance criteria](docs/RECURSIVE_CAPABILITY_IMPROVEMENT.md#goal-and-completion-evidence) turn these priorities into a reviewable implementation target. Current assignments and resumption boundaries are recorded in the [handoff](docs/AGENT_HANDOFF.md#current-ownership-and-next-work).
 
 ## Sponsor responsibilities
 
@@ -121,6 +164,7 @@ The Rust kernel remains the authority boundary. Elastic, Apify, and CREAO integr
 
 ## Start here
 
+- [Implementation status](docs/IMPLEMENTATION_STATUS.md) and [proposed invention-lab demo](docs/INVENTION_LAB_DEMO.md): what exists, what is unmerged, and what remains a research target.
 - [Technical specification](docs/TECH_SPEC.md) and [research report](GENESIS-organization-evolution-research.md): architecture, original research, and design rationale. This README states the current product framing; older milestone/status prose in detailed guides should be read against the current handoff.
 - [Capability execution](docs/CAPABILITY_EXECUTION.md), [adopt-before-acquire](docs/CAPABILITY_GAP_ADOPTION.md), and [automatic finalization](docs/CAPABILITY_GAP_FINALIZER.md): publication, independent acceptance, and inheritance.
 - [Source synthesis](docs/CAPABILITY_SYNTHESIS.md), [durable acquisition](docs/CAPABILITY_ACQUISITION.md), [server-managed acquisition](docs/SERVER_ACQUISITION.md), and [forge integration](docs/FORGE_INTEGRATION.md): executable creation and bounded repair.
@@ -130,5 +174,7 @@ The Rust kernel remains the authority boundary. Elastic, Apify, and CREAO integr
 - [Team workstreams](docs/TEAM_WORKSTREAMS.md) and [implementation split](docs/NEXT_IMPLEMENTATION_SPLIT.md): coordination history; consult the current handoff before taking ownership.
 
 ## Working together
+
+The [ongoing goal](docs/ONGOING_GOAL.md) defines completion gates, the milestone ledger, and the recurring check/assign/implement/review cycle. It keeps work tied to the fixed-weight capability network.
 
 Consult the [handoff record](docs/AGENT_HANDOFF.md) before changing an active workstream. Use feature branches and pull requests; keep provider credentials and raw runtime logs out of Git. Commit and push working increments so teammates on other machines can integrate them.

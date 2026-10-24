@@ -1,0 +1,301 @@
+"""ASI:One mission gateway: real loopback backend fixture, no public network or live providers."""
+
+from __future__ import annotations
+
+import asyncio
+import contextlib
+import io
+import json
+import os
+import tempfile
+import unittest
+from datetime import UTC, datetime
+from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock, patch
+from uuid import uuid4
+
+from aiohttp import web
+
+from genesis_fetch_bridge import acp_mission
+from genesis_fetch_bridge.acp_mission import MissionGateway, config_from_bytes, make_protocol
+from genesis_fetch_bridge.wire import Invalid
+
+TOKEN = "agent-secret-DO-NOT-SHOW-IN-CHAT"
+MISSION = "mis_11111111111111111111111111111111"
+COORD = "role_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+LEAD = "role_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+
+
+def config(**extra):
+    value = {"public_demo": True, "evidence_ref": "https://portal.example/venues", "source": "asi-one", "max_reports_per_hour": 3, "follow_seconds": 1}
+    value.update(extra)
+    return value
+
+
+def state(revision=1, with_lead=False):
+    roles = {COORD: {"role_id": COORD, "name": "Mission coordinator", "charter": "Owns the plan", "state": "ACTIVE", "binding": {"provider": "internal", "provider_agent_id": "kernel:coordinator"}}}
+    responsibilities = {"rsp_1": {"responsibility_id": "rsp_1", "purpose": "Coordinate the event plan", "owner": {"kind": "role", "id": COORD}, "status": "OPEN"}}
+    if with_lead:
+        roles[LEAD] = {"role_id": LEAD, "name": "Relocation lead", "charter": "Find a venue", "state": "ACTIVE", "binding": {"provider": "dev_stub", "provider_agent_id": "devstub-elastic-1"}}
+        responsibilities["rsp_2"] = {"responsibility_id": "rsp_2", "purpose": "Relocate the event", "owner": {"kind": "role", "id": LEAD}, "status": "OPEN"}
+    return {
+        "org_id": "org_a", "name": "Org A · Campus Events", "revision": revision,
+        "missions": {MISSION: {"mission_id": MISSION, "goal": "Run the campus hack night for 120 attendees", "status": "ACTIVE"}},
+        "roles": roles, "responsibilities": responsibilities,
+        "capability_gaps": {"gap_1": {"capability_id": "room-matrix-reader", "status": "REQUESTED"}} if with_lead else {},
+    }
+
+
+def event(seq, kind, **payload):
+    return {"seq": seq, "type": kind, "revision": 1, "payload": payload}
+
+
+EVOLUTION = [
+    event(3, "observation_recorded", observation_id="obs_1", source="asi-one", summary="main hall closed"),
+    event(4, "requirement_recorded", requirement_id="req_1", summary="Relocate the event"),
+    event(5, "planner_decision", planner="genesis-planner", model="anthropic/claude-x", observation_id="obs_1", verdict="change_proposed", summary="The closure needs a relocation owner", kernel_errors=[]),
+    event(6, "change_proposed", change_id="chg_1", operations=["CreateRole", "AssignResponsibility"], rationale="No existing role owns relocation"),
+    event(7, "role_created", role_id=LEAD, name="Relocation lead", provider="elastic"),
+    event(8, "role_provisioned", change_id="chg_1", role_key="lead", role_id=LEAD, provider="elastic", provider_agent_id="devstub-elastic-1", dev_stub=True),
+    event(9, "change_status_changed", change_id="chg_1", **{"from": "READY", "to": "COMMITTED"}),
+    event(10, "role_activated", role_id=LEAD),
+    event(11, "responsibility_assigned", responsibility_id="rsp_2", owner=LEAD, epoch=1),
+]
+
+
+class GatewayTests(unittest.IsolatedAsyncioTestCase):
+    async def asyncSetUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.calls = []
+        self.events = []
+        self.state = state()
+        self.observation_status = 201
+        self.hang_post = False
+        app = web.Application()
+        app.router.add_route("*", "/{tail:.*}", self.backend)
+        self.runner = web.AppRunner(app, access_log=None)
+        await self.runner.setup()
+        site = web.TCPSite(self.runner, "127.0.0.1", 0)
+        await site.start()
+        self.url = f"http://127.0.0.1:{self.runner.addresses[0][1]}/api/v1"
+        self.gateway = MissionGateway(config=config(), url=self.url, token=TOKEN, identity="agent1test", db=str(Path(self.temp.name) / "g.sqlite"))
+        self.speed = patch.multiple(acp_mission, POLL_SECONDS=0.05, SETTLE_SECONDS=0.05)
+        self.speed.start()
+
+    async def asyncTearDown(self):
+        self.speed.stop()
+        self.gateway.close()
+        await self.runner.cleanup()
+        self.temp.cleanup()
+
+    async def backend(self, request):
+        raw = await request.read()
+        self.calls.append({"method": request.method, "path": request.path_qs, "auth": request.headers.get("Authorization"), "body": json.loads(raw) if raw else None})
+        if request.path == "/api/v1/organization":
+            return web.json_response(self.state)
+        if request.path == "/api/v1/events/log":
+            after = int(request.query.get("after", "0"))
+            return web.json_response([e for e in self.events if e["seq"] > after][:200])
+        if request.path == f"/api/v1/missions/{MISSION}/observations" and request.method == "POST":
+            if self.hang_post:
+                await asyncio.sleep(30)
+            if self.observation_status != 201:
+                return web.json_response({"error": "forbidden", "message": "private-detail"}, status=self.observation_status)
+            self.events.append(event(len(self.events) + 1, "observation_recorded", observation_id="obs_1", source=request.json and (await request.json())["source"], summary=(await request.json())["summary"]))
+            return web.json_response({"observation_id": "obs_1", "revision": 2}, status=201)
+        return web.json_response({"error": "not_found"}, status=404)
+
+    async def collect(self, text):
+        return [chunk async for chunk in self.gateway.respond(text)]
+
+    def test_config_validation(self):
+        config_from_bytes(json.dumps(config()).encode())
+        for bad in (
+            config(public_demo=False), config(evidence_ref="http://portal.example/x"), config(evidence_ref="javascript:alert(1)"),
+            config(source="ASI One"), config(max_reports_per_hour=0), config(follow_seconds=121), {**config(), "extra": 1},
+        ):
+            with self.assertRaises(Invalid):
+                config_from_bytes(json.dumps(bad).encode())
+        with self.assertRaises(Invalid):
+            MissionGateway(config=config(), url="http://example.com/api/v1", token=TOKEN, identity="a", db=str(Path(self.temp.name) / "x.sqlite"))
+
+    async def test_help_and_unknown_text_never_call_backend(self):
+        for text in ("help", "hello", "", "book me a venue now", "x" * 600):
+            chunks = await self.collect(text)
+            self.assertEqual(len(chunks), 1)
+        self.assertEqual(self.calls, [])
+        self.assertIn("report <what happened>", (await self.collect("help"))[0])
+
+    async def test_org_summary_uses_agent_token_and_labels_stubs(self):
+        self.state = state(with_lead=True)
+        chunks = await self.collect("org")
+        self.assertEqual(len(chunks), 1)
+        text = chunks[0]
+        self.assertIn("Run the campus hack night", text)
+        self.assertIn("Mission coordinator (internal", text)
+        self.assertIn("Relocation lead (dev_stub [dev stub]", text)
+        self.assertIn("room-matrix-reader requested", text)
+        self.assertEqual(self.calls[0]["auth"], "Bearer " + TOKEN)
+        self.assertEqual([c["method"] for c in self.calls], ["GET"])
+
+    async def test_report_records_evidence_and_relays_the_evolution(self):
+        self.gateway.close()
+        self.gateway = MissionGateway(config=config(follow_seconds=4), url=self.url, token=TOKEN, identity="agent1test", db=str(Path(self.temp.name) / "follow.sqlite"))
+        async def planner():
+            await asyncio.sleep(0.1)
+            self.events.extend(EVOLUTION[1:])
+            self.state = state(revision=2, with_lead=True)
+        task = asyncio.create_task(planner())
+        chunks = await self.collect("report: the main hall is closed for maintenance on Nov 14")
+        await task
+        post = next(c for c in self.calls if c["method"] == "POST")
+        self.assertEqual(post["auth"], "Bearer " + TOKEN)
+        self.assertEqual(post["body"], {"source": "asi-one", "summary": "the main hall is closed for maintenance on Nov 14", "evidence_ref": "https://portal.example/venues"})
+        joined = "\n".join(chunks)
+        self.assertIn("Recorded as evidence obs_1", chunks[0])
+        self.assertIn("Planner (anthropic/claude-x) verdict change_proposed", joined)
+        self.assertIn("Change proposed [CreateRole, AssignResponsibility]", joined)
+        self.assertIn("[DEV STUB, not a live provider]", joined)
+        self.assertIn("Change committed", joined)
+        self.assertIn("Role activated: Relocation lead", joined)
+        self.assertIn("Relocation lead is now accountable", joined)
+        self.assertIn("Ask status later", chunks[-1])
+        self.assertTrue(len(chunks) >= 3)
+
+    async def test_status_reads_only_events_after_the_report(self):
+        self.events = [event(1, "role_created", role_id=COORD, name="Mission coordinator", provider="internal")]
+        self.assertIn("No report from this agent yet", (await self.collect("status"))[0])
+        chunks = await self.collect("report main hall closed on Nov 14")
+        self.assertIn("Recorded as evidence", chunks[0])
+        self.events.extend([event(3, "planner_decision", planner="p", model="replay", observation_id="obs_1", verdict="no_change", summary="Not relevant to the mission", kernel_errors=[])])
+        text = (await self.collect("status"))[0]
+        self.assertIn("verdict no_change", text)
+        self.assertNotIn("Mission coordinator", text)
+
+    async def test_rate_limit_and_refusals_never_echo_private_detail(self):
+        self.observation_status = 403
+        text = (await self.collect("report main hall closed on Nov 14"))[0]
+        self.assertIn("refused the report (HTTP 403)", text)
+        self.assertNotIn("private-detail", text)
+        self.assertNotIn(TOKEN, text)
+        self.observation_status = 201
+        for _ in range(3):
+            await self.collect("report main hall closed on Nov 14 again")
+        text = (await self.collect("report yet another closure report"))[0]
+        self.assertIn("limited number of reports per hour", text)
+        self.assertEqual(sum(1 for c in self.calls if c["method"] == "POST"), 4)
+
+    async def test_unconfirmed_post_is_reported_not_repeated(self):
+        self.hang_post = True
+        with patch.object(acp_mission, "HTTP_TIMEOUT", 0.2):
+            chunks = await self.collect("report main hall closed on Nov 14")
+        self.assertIn("did not confirm the report", chunks[0])
+        self.assertEqual(sum(1 for c in self.calls if c["method"] == "POST"), 1)
+
+    async def test_busy_gateway_records_nothing(self):
+        self.gateway.lock = asyncio.Lock()
+        await self.gateway.lock.acquire()
+        try:
+            text = (await self.collect("report main hall closed on Nov 14"))[0]
+        finally:
+            self.gateway.lock.release()
+        self.assertIn("nothing was recorded", text)
+        self.assertEqual(self.calls, [])
+
+    def test_journal_binds_configuration(self):
+        db = str(Path(self.temp.name) / "bound.sqlite")
+        MissionGateway(config=config(), url=self.url, token=TOKEN, identity="agent1test", db=db).close()
+        with self.assertRaises(Invalid):
+            MissionGateway(config=config(source="other"), url=self.url, token=TOKEN, identity="agent1test", db=db)
+
+
+class ProtocolTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        from uagents import Model
+        from uagents_core.contrib.protocols.chat import ChatMessage
+        self.gateway = MagicMock()
+        async def respond(text):
+            yield "first"
+            yield "second"
+            yield "last"
+        self.gateway.respond = respond
+        self.protocol = make_protocol(self.gateway)
+        self.handler = self.protocol.signed_message_handlers[Model.build_schema_digest(ChatMessage)]
+        self.ctx = MagicMock()
+        self.ctx.send = AsyncMock()
+
+    def message(self, content):
+        from uagents_core.contrib.protocols.chat import ChatMessage
+        return ChatMessage(timestamp=datetime.now(UTC), msg_id=uuid4(), content=content)
+
+    async def test_streams_progress_and_ends_session_once(self):
+        from uagents_core.contrib.protocols.chat import ChatAcknowledgement, ChatMessage, EndSessionContent, StartSessionContent, TextContent
+        msg = self.message([StartSessionContent(type="start-session"), TextContent(type="text", text="report hall closed")])
+        await self.handler(self.ctx, "sender", msg)
+        sent = [call.args[1] for call in self.ctx.send.call_args_list]
+        self.assertIsInstance(sent[0], ChatAcknowledgement)
+        self.assertEqual(sent[0].acknowledged_msg_id, msg.msg_id)
+        replies = [m for m in sent[1:] if isinstance(m, ChatMessage)]
+        self.assertEqual([m.content[0].text for m in replies], ["first", "second", "last"])
+        self.assertFalse(any(isinstance(c, EndSessionContent) for m in replies[:-1] for c in m.content))
+        self.assertIsInstance(replies[-1].content[-1], EndSessionContent)
+        self.assertTrue(self.protocol.verify())
+        self.assertEqual(self.protocol.name, "AgentChatProtocol")
+
+    async def test_split_text_and_attachments_never_reach_gateway(self):
+        from uagents_core.contrib.protocols.chat import ResourceContent, TextContent
+        self.gateway.respond = MagicMock(side_effect=AssertionError("must not be called"))
+        await self.handler(self.ctx, "sender", self.message([TextContent(type="text", text="report "), TextContent(type="text", text="x")]))
+        item = ResourceContent(type="resource", resource_id=uuid4(), resource={"uri": "https://example.com", "metadata": {}})
+        await self.handler(self.ctx, "sender", self.message([TextContent(type="text", text="report hall closed"), item]))
+
+    async def test_gateway_failure_is_generic(self):
+        async def failing(_text):
+            raise Invalid("secret agent token value")
+            yield  # pragma: no cover
+        self.gateway.respond = failing
+        from uagents_core.contrib.protocols.chat import TextContent
+        await self.handler(self.ctx, "sender", self.message([TextContent(type="text", text="org")]))
+        last = self.ctx.send.call_args_list[-1].args[1]
+        self.assertNotIn("secret", last.content[0].text)
+
+
+class CliTests(unittest.TestCase):
+    def test_identity_does_not_construct_agent_or_open_database(self):
+        with patch.dict(os.environ, {"GENESIS_ACP_MISSION_SEED": "b" * 32}, clear=True), patch("sys.argv", ["acp", "identity"]), patch("uagents.Agent") as agent, patch("genesis_fetch_bridge.acp_mission.MissionGateway") as gateway, contextlib.redirect_stdout(io.StringIO()) as output:
+            acp_mission.main()
+        self.assertTrue(output.getvalue().strip().startswith("agent1"))
+        agent.assert_not_called()
+        gateway.assert_not_called()
+
+    def test_public_runner_uses_standard_protocol_and_loopback_inspector(self):
+        import uagents.asgi
+        from uagents.registration import AlmanacApiRegistrationPolicy
+        with tempfile.TemporaryDirectory() as root:
+            cfg = Path(root) / "mission.json"
+            readme = Path(root) / "agent.md"
+            cfg.write_text(json.dumps(config()))
+            readme.write_text("GENESIS organization agent; no live proof claimed.")
+            env = {"GENESIS_ACP_MISSION_SEED": "b" * 32, "GENESIS_ACP_BACKEND_URL": "http://127.0.0.1:7101/api/v1", "GENESIS_ACP_AGENT_TOKEN": "org_a-agent-token"}
+            argv = ["acp", "serve-public", "--config", str(cfg), "--readme", str(readme), "--db", str(Path(root) / "g.sqlite")]
+            with patch.dict(os.environ, env, clear=True), patch("sys.argv", argv), patch("uagents.Agent") as factory, patch.object(uagents.asgi, "HOST", "0.0.0.0"):
+                acp_mission.main()
+                self.assertEqual(uagents.asgi.HOST, "127.0.0.1")
+                kwargs = factory.call_args.kwargs
+                self.assertTrue(kwargs["mailbox"])
+                self.assertIsInstance(kwargs["registration_policy"], AlmanacApiRegistrationPolicy)
+                self.assertEqual(kwargs["port"], 8104)
+                protocol = factory.return_value.include.call_args.args[0]
+                self.assertEqual(protocol.version, "0.3.0")
+                factory.return_value.run.assert_called_once()
+
+    def test_invalid_configuration_never_constructs_public_agent(self):
+        with patch.dict(os.environ, {"GENESIS_ACP_MISSION_SEED": "short"}, clear=True), patch("sys.argv", ["acp", "serve-public", "--config", "absent", "--readme", "absent", "--db", "absent"]), patch("uagents.Agent") as agent, contextlib.redirect_stderr(io.StringIO()):
+            with self.assertRaises(SystemExit) as caught:
+                acp_mission.main()
+        self.assertEqual(caught.exception.code, 2)
+        agent.assert_not_called()
+
+
+if __name__ == "__main__":
+    unittest.main()
