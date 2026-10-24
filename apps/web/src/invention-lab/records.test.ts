@@ -36,7 +36,7 @@ describe("first live attempt (retained evidence)", () => {
 describe("decoders", () => {
   it("never copy returned model text from a checkpoint", () => {
     const c = decodeCheckpointOutcome({
-      plan: { operation_id: "op" },
+      plan: { org_id: "org", operation_id: "op" },
       phase: "generated",
       request_sha256: "r",
       completion: { outcome: { kind: "returned", text: "SECRET SOURCE" } },
