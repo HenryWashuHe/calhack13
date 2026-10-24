@@ -136,9 +136,10 @@ pub fn runtime(interpreter_version: &str) -> ExactContentRef {
     )
 }
 
-/// The JSON-line protocol between a method and this executor.
-pub const PROTOCOL: &str = "genesis-lab-exec-lines/1: one JSON object per line on stdin/stdout; \
-ops instances, experiment{instance,design}, submit{design}; replies carry ok and refused";
+/// The JSON-line protocol between a method and this executor: the exact bytes
+/// of PROTOCOL.md, which is also the protocol document a method generator is
+/// given.
+pub const PROTOCOL: &str = include_str!("../PROTOCOL.md");
 
 pub fn protocol() -> ExactContentRef {
     content(
