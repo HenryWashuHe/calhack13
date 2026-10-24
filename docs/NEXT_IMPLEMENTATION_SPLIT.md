@@ -1,10 +1,63 @@
 # Next GENESIS implementation split
 
+## Current merge and ownership checkpoint — October 22, 2026
+
+Capability PRs #8/#9/#10/#13/#14/#15/#16/#17/#18/#19/#24 are merged to `main`
+at `4ecc397`. Their resulting tree matches tested #24 exactly: 594 Rust tests,
+formatting and strict Clippy. The user authorizes merging ready PRs; this does not
+resolve findings on other heads. [Current queue](PR_REVIEW_QUEUE.md).
+
+Hold #11/#12/#20/#21/#22/#26/#27/#28 for their source fixes, #23 for stale handoff
+content, and drafts #25/#29 for dependencies. Claude/Eric keeps those source fixes;
+Codex keeps capability/provider implementation and narrow integration. No whole-kernel
+credit fallback is active. The combined draft's 699-test evidence is separate from
+main and does not resolve its thirteen reproduced negative review regressions.
+
+[CREAO sponsor evidence](CREAO_SPONSOR_NOTES.md) still needs core mission
+execution, an actual agent ID and run share link. [Apify notes](APIFY_SPONSOR_NOTES.md)
+retain its meaningful-use and credit information. No live sponsor proof is claimed.
+
+## Historical pre-merge checkpoint
+
+Current Codex checkpoint: [PR #24](https://github.com/HenryWashuHe/genesis/pull/24),
+`codex/automatic-adoption-scenario`, implementation `72157aa`, observer `cdfaf17`,
+stacked on #19. Automatic mode submits B's intent and observes its independently
+selected, accepted capability. All 594 workspace tests (64 suites), formatting and
+strict default-feature all-target Clippy pass. See [INHERITED_MISSION.md](INHERITED_MISSION.md).
+
+Next Codex milestone: combine the capability stack and Claude's updated branches
+in an isolated integration branch, resolve narrow registration conflicts and check
+the assembled system. This is a draft integration checkpoint, not approval or a
+main merge of known-blocking PRs. Claim paths in issue #4 before edits. Claude
+retains planner, general lifecycle/saga/outbox, role activation, Elastic and UI.
+Updated #11/#12 pass their original regressions; new #12 recovery findings are
+pushed in test-only `70c4edb`. #20 specialist authority review is underway.
+No whole-kernel credit fallback is active.
+
 Assigned by Codex on October 21, 2026 at the user's explicit request to review
 Claude's PR, redivide work, communicate the assignments and continue implementation.
 This is a scoped integration handoff, not activation of the whole-kernel credit
 fallback. The original PR #3 review targeted `21103d1`; the current resolution
 checkpoint is recorded in [AGENT_HANDOFF.md](AGENT_HANDOFF.md).
+
+Current Codex addition: durable capability acquisition in [PR #9](https://github.com/HenryWashuHe/genesis/pull/9),
+`codex/capability-acquisition`,
+stacked on source synthesis [PR #8](https://github.com/HenryWashuHe/genesis/pull/8).
+Reserved paths remain forge modules/CLI/tests/examples and focused docs. The
+coordinator joins generation, build and independent verification with one planned
+semantic repair. See [CAPABILITY_ACQUISITION.md](CAPABILITY_ACQUISITION.md) for its
+library interface and backend-compatible proof export. PR #3/#5/#6/#7 are merged;
+Claude should merge main before integrating this boundary. Planner, role activation,
+Elastic and UI remain Claude-owned. Codex continues successive capability/provider
+milestones under the user's ongoing goal, checking this ownership split before each.
+
+The server slice is pushed in [PR #10](https://github.com/HenryWashuHe/genesis/pull/10),
+`codex/server-acquisition`, code `aaefa12`, stacked on #9. Codex reserves
+new `capability_acquisition_store.rs`, `capability_acquisition_runtime.rs`,
+`routes/acquisitions.rs` and their tests, plus narrow startup/router configuration
+and capability proof lookup changes. [SERVER_ACQUISITION.md](SERVER_ACQUISITION.md)
+defines the HTTP contract, authority checks and persistent count quotas. No edits
+to planner, lifecycle engine, saga, outbox, Elastic or UI are included.
 
 ## Codex: capability execution and verification integration
 
