@@ -282,6 +282,7 @@ export async function creaoGate(ctx) {
   // provider account, so request/write debits and cooldowns carry across runs.
   const quotaDb = join(ctx.out, "creao", "quota.sqlite");
   const spec = JSON.parse(readFileSync(join(ctx.repo, "crates/genesis-creao/examples/create-monitor.json"), "utf8"));
+  if (ctx.env.CREAO_API_VERSION === "v2") spec.api_version = "v2";
   spec.operation_id = `live-gate-${ctx.stamp}`;
   writeFileSync(join(work, "spec.json"), JSON.stringify(spec, null, 2));
   const db = join(work, "creao.sqlite");
