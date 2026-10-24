@@ -66,3 +66,20 @@ pub async fn get_one(
     p.require(&[Principal::Operator, Principal::Agent])?;
     Ok(Json(app.store.get_change(&ChangeId::new(id))?))
 }
+
+/// Look up a change by the `client_request_id` it was submitted with, so a
+/// client whose submission response was lost can reconcile without
+/// resubmitting. 404 when no change used that request ID.
+pub async fn by_request(
+    State(app): State<AppState>,
+    p: Principal,
+    Path(request_id): Path<String>,
+) -> ApiResult<Json<OrgChangeRecord>> {
+    p.require(&[Principal::Operator, Principal::Agent])?;
+    app.store
+        .find_change_by_request(&request_id)?
+        .map(Json)
+        .ok_or_else(|| {
+            crate::error::ApiError::not_found(format!("change for request {request_id}"))
+        })
+}
