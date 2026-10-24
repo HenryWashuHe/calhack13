@@ -158,7 +158,9 @@ revision limit. Henry owns the correction; do not use it as a revision input.
 Eric retains the UI lane: #93 `9733b96` / #94 `9ac13fc` still have the two
 existing findings, with independent regression `78adef37` to preserve. #99–#101
 await those base fixes. His [separate CREAO ticket-reconciliation claim](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6387513389)
-is now open as #104 `5023a48` for review, not completed recovery or hosted readiness; the old unretained
+merged as #104 (`5023a48` → `62a2f009`), with 69 original tests and three
+independent guards retained in #106 (`e8cf6010` → `90a26e00`). This establishes
+local recovery mechanics, not hosted recovery or readiness; the old unretained
 run ID cannot be recovered retroactively. ACP keeps bridge/docs and hosted-gate
 evidence. Ines stays unassigned. See the [current direction checkpoint](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6387556484).
 
