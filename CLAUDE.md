@@ -20,10 +20,20 @@ claims; the last needs independent comparative evidence.
 Event organization is discarded as the product/demo. Preserve existing venue
 code/tests as historical integration fixtures; do not expand that product story
 or use its completion as the new gate. The [invention-lab A → B → A demonstration](docs/INVENTION_LAB_DEMO.md)
-is proposed, not complete. Its simulator primitives (#37–#39) are merged;
-the executor/scoring/verdict stack (#42–#46 and #48) has open review holds. The forge's
-single-attempt method-generation path (#50–#52) is merged, but no live generated
-method, accepted method execution or recursive-benefit result is established.
+is proposed, not complete. Its simulator (#37–#39), executor foundations/session
+(#42/#43) and single-attempt method-generation path (#50–#52) are merged.
+Exact-parent revision preparation and its offline CLI (#66/#68), plus generation
+guards and parallel-fixture corrections (#63/#67), are also merged. Process
+runtime/CLI and acceptance scoring/verdict (#44/#45/#46/#48) are now merged after
+independent composition checks; #57 is held on a still-running descendant during
+hidden scoring. #64's method-adoption
+binding hold and #65's portable-test compile failure remain confirmed. The merged
+#61 rehearsal passes on final main with handwritten fixture source and a Rejected
+verdict; it does not establish actual model generation or benefit. No live
+generated method, independently accepted method execution or recursive-benefit
+result is established.
+Best-effort namespace mounts and trusted-directory storage remain experimental
+boundaries, not proof of safe general untrusted execution.
 
 **Ongoing work is resumed under [the repository goal](docs/ONGOING_GOAL.md).**
 The existing hourly continuation is active. At this checkpoint the older app Goal
@@ -38,17 +48,25 @@ and [issue #1](https://github.com/HenryWashuHe/genesis-history-experiment/issues
 branch/head updates, before editing or assigning work. Check goal alignment at
 every milestone. All lower checkpoints are historical.
 
-- Henry's core Claude owns the acknowledged evaluator/executor/scoring and
-  method-adoption lanes. Preserve independent regressions while correcting
-  #42–#46 and #48; exact heads and corrected findings are in the current handoff and PR
-  reviews. Confirmed failed execution with independently scoreable output is
-  allowed by the adopted contract; unknown execution/accounting remains distinct.
+- Henry's core Claude owns evaluator/executor/scoring, method adoption and the
+  #61-to-retained-cost-CLI rehearsal integration. Preserve original regressions
+  after the merged #44/#48 corrections and continue #57's descendant-stop fix.
+  #64 must bind the selected
+  offer and receiver intent to the candidate and conclusion. Confirmed failed
+  execution with scoreable output remains allowed; unknown execution/accounting
+  prevents a conclusive verdict. Every candidate process, including descendants, must stop before hidden
+  scoring; parent exit or recovery to Unknown alone is not termination evidence. Exact sources,
+  current findings and native-versus-fixture limits are in the handoff.
 - Eric (`EricZhu-31`) owns the separately assigned lab UI design/subtree;
   acknowledgment remains outstanding. Do not transfer it implicitly.
 - ACP Claude owns #3–#5 bridge/journal corrections.
 - Codex owns shared contracts, the merged forge method-generation path and
-  independent integration review. Next, coordinate its existing source-package
-  seam with Henry's executor and close explicit-settings/combined-cost gaps.
+  independent integration review. Core identity checks and declared combined-cost
+  accounting (#56/#58/#59), plus the offline read-only cost-assessment CLI (#60),
+  are merged. Exact-parent source revision preparation/observation and its offline
+  CLI (#66/#68) now supply a G3 prerequisite, not adopted or executed improvement.
+  Preserve Henry's runtime files. Provider/settings reproducibility, complete
+  history, budget enforcement and end-to-end comparison remain open.
   The provider session retains live reruns and reports; its Apify baseline pass
   is operator-reported and uses a handwritten parser; it is not model-generation
   evidence.
