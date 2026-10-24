@@ -1,19 +1,19 @@
-//! Comparison scoring on a committed hidden set, after every arm has finished.
-//! In-process; the methods are hand-written controls, not generated methods.
+//! Comparison scoring on a committed hidden set, after every arm's method
+//! process has ended. Each arm runs as a real child process in explicit mode
+//! `none` (not namespace evidence); the methods only submit a fixed design.
 use genesis_core::development_evaluation::{EvaluationOutcome, RequestStatus};
-use genesis_core::development_experiment::{ExperimentLedger, ExperimentScope};
 use genesis_core::development_method::{
     ExecutionOutcome, ExecutionReceipt, ResourceGrant, ResourceUsage,
 };
+use genesis_core::development_package::{MethodPackage, MethodSourceFile};
 use genesis_core::development_trial::{assess_trials, TrialEvidence, TrialPlan};
 use genesis_lab_eval::commit::Descriptor;
 use genesis_lab_eval::family::Family;
-use genesis_lab_exec::session::{finish, RunState, Session};
+use genesis_lab_exec::run::{self, Termination};
 use genesis_lab_exec::store::Store;
 use genesis_lab_exec::{example, refs, sandbox::Mode};
-use genesis_lab_score::hidden::{comparison_plan, score_hidden};
+use genesis_lab_score::hidden::{comparison_plan, record_termination, score_hidden};
 use genesis_lab_score::ScoringError;
-use serde_json::json;
 use std::path::PathBuf;
 
 const REFERENCE: &str = include_str!("../../evaluator/designs/reference-five-wheel.json");
@@ -23,78 +23,123 @@ fn descriptor(count: u32) -> Descriptor {
     Descriptor::new("lab-comparison-1", SALT, Family::RavineCrossing, count)
 }
 
-fn plan(count: u32) -> TrialPlan {
+fn dir(name: &str) -> PathBuf {
+    std::env::temp_dir().join(format!("lab-hidden-{name}-{}", std::process::id()))
+}
+
+fn config(name: &str) -> run::Config {
+    run::Config {
+        sandbox: Mode::None,
+        interpreter_version: run::interpreter_version("python3"),
+        stage_root: dir(name).join("stage"),
+    }
+}
+
+/// A method that submits `design` (or exits without submitting) and stops.
+fn method(cfg: &run::Config, design: Option<&str>) -> MethodPackage {
+    let source = match design {
+        Some(d) => format!(
+            "import json, sys\nprint(json.dumps({{'op': 'submit', 'design': json.loads({})}}), flush=True)\nassert json.loads(sys.stdin.readline())['ok']\n",
+            serde_json::to_string(d).unwrap()
+        ),
+        None => "pass\n".into(),
+    };
+    MethodPackage::new(
+        "fixed-design".into(),
+        "1".into(),
+        cfg.runtime(),
+        refs::protocol(),
+        "method.py".into(),
+        vec![],
+        vec![MethodSourceFile {
+            path: "method.py".into(),
+            content: source,
+        }],
+    )
+    .unwrap()
+}
+
+struct Arms {
+    name: String,
+    plan: TrialPlan,
+    cand: ExecutionReceipt,
+    ctrl: ExecutionReceipt,
+    ended: Vec<Termination>,
+}
+
+/// Freezes a comparison over two fixed-design methods, runs both arms as
+/// processes and collects the executor's termination evidence.
+fn arms(
+    name: &str,
+    count: u32,
+    cand: Option<&str>,
+    ctrl: Option<&str>,
+    tweak: impl Fn(&mut TrialPlan),
+) -> Arms {
+    let _ = std::fs::remove_dir_all(dir(name));
+    let cfg = config(name);
+    let (pc, pk) = (method(&cfg, cand), method(&cfg, ctrl));
     let methods = example::ExampleMethods {
-        candidate: refs::content("lab-method/1", "cand", "1", b"cand"),
-        control: refs::content("lab-method/1", "ctrl", "1", b"ctrl"),
+        candidate: pc.reference().unwrap(),
+        control: pk.reference().unwrap(),
     };
     let grant = ResourceGrant {
         model_calls: 0,
         input_tokens: 0,
         output_tokens: 0,
-        wall_time_ms: 10_000,
+        wall_time_ms: 20_000,
         simulation_steps: 2400,
     };
-    let base = example::acceptance_plan(&methods, Mode::None, "Python 3", 2, grant);
-    comparison_plan(&base, "t1", &descriptor(count))
+    let base = example::acceptance_plan(&methods, Mode::None, &cfg.interpreter_version, 2, grant);
+    let mut plan = comparison_plan(&base, "t1", &descriptor(count));
+    tweak(&mut plan);
+    let mut receipts = vec![];
+    let mut ended = vec![];
+    for (slot, package) in [("candidate", &pc), ("control", &pk)] {
+        let state = dir(name).join(slot);
+        let bytes = package.artifact_json().unwrap();
+        let done = run::execute(&plan, slot, bytes.as_bytes(), &state, &cfg).unwrap();
+        ended.push(
+            run::termination(slot, &state)
+                .unwrap()
+                .expect("executor saw the end"),
+        );
+        receipts.push(done.receipt);
+    }
+    let ctrl = receipts.pop().unwrap();
+    let cand = receipts.pop().unwrap();
+    Arms {
+        name: name.into(),
+        plan,
+        cand,
+        ctrl,
+        ended,
+    }
 }
 
-fn dir(name: &str) -> PathBuf {
-    std::env::temp_dir().join(format!("lab-hidden-{name}-{}", std::process::id()))
-}
-
-/// Runs one arm in-process, submitting `design` when given.
-fn run_arm(p: &TrialPlan, name: &str, slot: &str, design: Option<&str>) -> ExecutionReceipt {
-    let root = dir(name).join(slot);
-    let _ = std::fs::remove_dir_all(&root);
-    let mut s = Session {
-        plan: p,
-        slot_id: slot,
-        store: Store::open(&root).unwrap(),
-        ledger: ExperimentLedger::new(ExperimentScope {
-            plan: p,
-            slot_id: slot,
-        })
-        .unwrap(),
-        state: RunState {
-            started: true,
-            method: Some(p.expected_binding(slot).unwrap().method),
-            ..Default::default()
-        },
-    };
-    let outcome = match design {
-        Some(d) => {
-            let d: serde_json::Value = serde_json::from_str(d).unwrap();
-            let reply = s
-                .handle(&json!({"op":"submit","design":d}).to_string())
-                .unwrap();
-            assert_eq!(reply["ok"], true, "{reply}");
-            ExecutionOutcome::OutputGenerated
+impl Arms {
+    fn output(&self) -> Vec<u8> {
+        std::fs::read(
+            dir(&self.name)
+                .join("candidate/artifacts")
+                .join(&self.cand.outputs[0].sha256),
+        )
+        .unwrap()
+    }
+    fn closed(&self) -> [(&str, &ExecutionReceipt); 2] {
+        [("candidate", &self.cand), ("control", &self.ctrl)]
+    }
+    /// A fresh scorer store, with the executor's termination evidence recorded.
+    fn store(&self, tag: &str) -> Store {
+        let store = bare_store(&format!("{}-{tag}", self.name));
+        for t in &self.ended {
+            record_termination(&store, t).unwrap();
         }
-        None => ExecutionOutcome::Failed,
-    };
-    finish(
-        &mut s,
-        refs::environment(Mode::None, "Python 3"),
-        false,
-        outcome,
-        ResourceUsage::Measured { value: 5 },
-    )
-    .unwrap()
-    .receipt
+        store
+    }
 }
 
-fn output(name: &str, slot: &str, r: &ExecutionReceipt) -> Vec<u8> {
-    std::fs::read(
-        dir(name)
-            .join(slot)
-            .join("artifacts")
-            .join(&r.outputs[0].sha256),
-    )
-    .unwrap()
-}
-
-fn score_store(name: &str) -> Store {
+fn bare_store(name: &str) -> Store {
     let d = dir(name).join("score");
     let _ = std::fs::remove_dir_all(&d);
     Store::open(&d).unwrap()
@@ -108,7 +153,8 @@ fn nothing_simulated(store: &Store) -> bool {
 
 #[test]
 fn a_closed_comparison_is_scored_on_the_committed_draw_and_validates() {
-    let p = plan(3);
+    let a = arms("ok", 3, Some(REFERENCE), None, |_| {});
+    let p = &a.plan;
     p.validate().unwrap();
     assert!(
         p.development_instances
@@ -116,15 +162,13 @@ fn a_closed_comparison_is_scored_on_the_committed_draw_and_validates() {
             .all(|r| refs::resolve_instance(r).is_some()),
         "development stays on public instances"
     );
-    let cand = run_arm(&p, "ok", "candidate", Some(REFERENCE));
-    let ctrl = run_arm(&p, "ok", "control", None);
-    let store = score_store("ok");
-    let closure = [("candidate", &cand), ("control", &ctrl)];
+    assert_eq!(a.cand.outcome, ExecutionOutcome::OutputGenerated);
+    let store = a.store("scored");
     let receipt = score_hidden(
-        &p,
+        p,
         "candidate",
-        &output("ok", "candidate", &cand),
-        &closure,
+        &a.output(),
+        &a.closed(),
         &descriptor(3),
         SALT,
         &store,
@@ -168,16 +212,16 @@ fn a_closed_comparison_is_scored_on_the_committed_draw_and_validates() {
     }
 
     let rows = assess_trials(
-        &p,
+        p,
         &[
             TrialEvidence {
                 slot_id: "candidate".into(),
-                execution: cand,
+                execution: a.cand.clone(),
                 scoring: Some(receipt),
             },
             TrialEvidence {
                 slot_id: "control".into(),
-                execution: ctrl,
+                execution: a.ctrl.clone(),
                 scoring: None,
             },
         ],
@@ -189,59 +233,120 @@ fn a_closed_comparison_is_scored_on_the_committed_draw_and_validates() {
 
 #[test]
 fn hidden_scoring_refuses_before_simulating_anything() {
-    let p = plan(3);
-    let cand = run_arm(&p, "refuse", "candidate", Some(REFERENCE));
-    let ctrl = run_arm(&p, "refuse", "control", Some(REFERENCE));
-    let bytes = output("refuse", "candidate", &cand);
-    let closed = [("candidate", &cand), ("control", &ctrl)];
-    let refused = |name: &str,
+    let a = arms("refuse", 3, Some(REFERENCE), Some(REFERENCE), |_| {});
+    let p = &a.plan;
+    let bytes = a.output();
+    let closed = a.closed();
+    let (cand, ctrl) = (&a.cand, &a.ctrl);
+    let refused = |tag: &str,
                    p: &TrialPlan,
                    closure: &[(&str, &ExecutionReceipt)],
                    d: &Descriptor,
-                   salt: &str| {
-        let store = score_store(name);
+                   salt: &str,
+                   store: Store| {
         let r = score_hidden(p, "candidate", &bytes, closure, d, salt, &store);
-        assert!(matches!(r, Err(ScoringError::Refused(_))), "{name}: {r:?}");
-        assert!(
-            nothing_simulated(&store),
-            "{name}: simulated after refusing"
-        );
+        assert!(matches!(r, Err(ScoringError::Refused(_))), "{tag}: {r:?}");
+        assert!(nothing_simulated(&store), "{tag}: simulated after refusing");
     };
 
-    refused("salt", &p, &closed, &descriptor(3), "a guessed salt");
+    refused(
+        "salt",
+        p,
+        &closed,
+        &descriptor(3),
+        "a guessed salt",
+        a.store("salt"),
+    );
     // A different descriptor than the plan pinned: another draw size, or the
     // same size under another comparison (which the step grant can't catch).
-    refused("descriptor", &p, &closed, &descriptor(4), SALT);
-    let other = Descriptor::new("another-comparison", SALT, Family::RavineCrossing, 3);
-    refused("comparison", &p, &closed, &other, SALT);
-    // Not closed: the control arm hasn't finished, or appears twice.
-    refused("open", &p, &[("candidate", &cand)], &descriptor(3), SALT);
     refused(
-        "twice",
-        &p,
-        &[("candidate", &cand), ("control", &ctrl), ("control", &ctrl)],
+        "descriptor",
+        p,
+        &closed,
+        &descriptor(4),
+        SALT,
+        a.store("descriptor"),
+    );
+    let other = Descriptor::new("another-comparison", SALT, Family::RavineCrossing, 3);
+    refused(
+        "comparison",
+        p,
+        &closed,
+        &other,
+        SALT,
+        a.store("comparison"),
+    );
+    // Not closed: the control arm is absent, appears twice, or a stranger.
+    refused(
+        "open",
+        p,
+        &[("candidate", cand)],
         &descriptor(3),
         SALT,
+        a.store("open"),
+    );
+    refused(
+        "twice",
+        p,
+        &[("candidate", cand), ("control", ctrl), ("control", ctrl)],
+        &descriptor(3),
+        SALT,
+        a.store("twice"),
     );
     refused(
         "stranger",
-        &p,
-        &[("candidate", &cand), ("control", &ctrl), ("other", &ctrl)],
+        p,
+        &[("candidate", cand), ("control", ctrl), ("other", ctrl)],
         &descriptor(3),
         SALT,
+        a.store("stranger"),
     );
-    // One episode short of the draw.
-    let mut short = p.clone();
-    short.scoring_grant.simulation_steps -= 1;
-    let s_cand = run_arm(&short, "short", "candidate", Some(REFERENCE));
-    let s_ctrl = run_arm(&short, "short", "control", Some(REFERENCE));
-    let store = score_store("short");
+    // Not closed: no termination evidence at all, only one arm's, or
+    // evidence bound to a different receipt.
+    refused(
+        "unattested",
+        p,
+        &closed,
+        &descriptor(3),
+        SALT,
+        bare_store("refuse-unattested"),
+    );
+    let one = bare_store("refuse-one");
+    record_termination(&one, &a.ended[0]).unwrap();
+    refused("one", p, &closed, &descriptor(3), SALT, one);
+    let foreign = bare_store("refuse-foreign");
+    record_termination(&foreign, &a.ended[0]).unwrap();
+    record_termination(
+        &foreign,
+        &Termination {
+            execution_sha256: a.ended[0].execution_sha256.clone(),
+            ..a.ended[1].clone()
+        },
+    )
+    .unwrap();
+    refused("foreign", p, &closed, &descriptor(3), SALT, foreign);
+    // An acceptance plan is never scored on the hidden set.
+    let mut acceptance = p.clone();
+    acceptance.scoring_instances =
+        genesis_core::development_trial::ScoringInstances::Development {};
+    refused(
+        "acceptance",
+        &acceptance,
+        &closed,
+        &descriptor(3),
+        SALT,
+        a.store("acceptance"),
+    );
+    // Substituted output bytes.
+    let store = a.store("bytes");
+    let mut other: serde_json::Value = serde_json::from_str(REFERENCE).unwrap();
+    other["bodies"][0]["w"] = 3.0.into();
     assert!(matches!(
         score_hidden(
-            &short,
+            p,
             "candidate",
-            &output("short", "candidate", &s_cand),
-            &[("candidate", &s_cand), ("control", &s_ctrl)],
+            &serde_json::to_vec(&other).unwrap(),
+            &closed,
             &descriptor(3),
             SALT,
             &store
@@ -249,21 +354,18 @@ fn hidden_scoring_refuses_before_simulating_anything() {
         Err(ScoringError::Refused(_))
     ));
     assert!(nothing_simulated(&store));
-    // An acceptance plan is never scored on the hidden set.
-    let mut acceptance = p.clone();
-    acceptance.scoring_instances =
-        genesis_core::development_trial::ScoringInstances::Development {};
-    refused("acceptance", &acceptance, &closed, &descriptor(3), SALT);
-    // Substituted output bytes.
-    let store = score_store("bytes");
-    let mut other: serde_json::Value = serde_json::from_str(REFERENCE).unwrap();
-    other["bodies"][0]["w"] = 3.0.into();
+
+    // One episode short of the draw.
+    let short = arms("short", 3, Some(REFERENCE), Some(REFERENCE), |p| {
+        p.scoring_grant.simulation_steps -= 1
+    });
+    let store = short.store("short");
     assert!(matches!(
         score_hidden(
-            &p,
+            &short.plan,
             "candidate",
-            &serde_json::to_vec(&other).unwrap(),
-            &closed,
+            &short.output(),
+            &short.closed(),
             &descriptor(3),
             SALT,
             &store
@@ -275,16 +377,15 @@ fn hidden_scoring_refuses_before_simulating_anything() {
 
 #[test]
 fn a_slot_without_output_has_nothing_to_score() {
-    let p = plan(2);
-    let cand = run_arm(&p, "none", "candidate", None);
-    let ctrl = run_arm(&p, "none", "control", Some(REFERENCE));
-    let store = score_store("none");
+    let a = arms("none", 2, None, Some(REFERENCE), |_| {});
+    assert_eq!(a.cand.outcome, ExecutionOutcome::Failed);
+    let store = a.store("none");
     assert!(matches!(
         score_hidden(
-            &p,
+            &a.plan,
             "candidate",
             b"",
-            &[("candidate", &cand), ("control", &ctrl)],
+            &a.closed(),
             &descriptor(2),
             SALT,
             &store

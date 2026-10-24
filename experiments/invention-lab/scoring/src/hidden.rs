@@ -3,8 +3,8 @@
 //! The salt holder publishes a [`Descriptor`] before development; plans pin it
 //! as their `instance_set` and pin [`protocol`] as the hidden-commitment
 //! protocol. Development only ever sees the plan's public instances. After
-//! every slot of the comparison has a finished execution receipt (the
-//! comparison is closed), the salt holder scores each retained output on the
+//! every slot of the comparison has a finished execution whose method process
+//! the executor saw end (the comparison is closed), the salt holder scores each retained output on the
 //! committed draw here, privately. The salt is not revealed by scoring; the
 //! reveal is separate evidence anyone can check with [`Descriptor::opens`] and
 //! then re-run.
@@ -12,7 +12,8 @@
 //! Before anything runs: the plan must be a hidden-commitment plan naming this
 //! protocol, its whole scoring context must be [`context`] for the descriptor,
 //! the salt must open the descriptor, every slot's execution must be present
-//! and bound to the plan, the step grant must cover a full episode per hidden
+//! and bound to the plan with executor-observed termination evidence recorded
+//! by [`record_termination`] (a recovered receipt has none), the step grant must cover a full episode per hidden
 //! instance and the wall grant must be nonzero. Admitted work stops at the
 //! wall grant. The trace (which names hidden seeds) stays in the scorer's
 //! store; the receipt names it only by digest.
@@ -23,6 +24,7 @@ use genesis_core::development_trial::{ScoringInstances, TrialPlan, TrialPurpose}
 use genesis_lab_eval::commit::{Descriptor, PROTOCOL};
 use genesis_lab_eval::score::score_comparison;
 use genesis_lab_exec::refs;
+use genesis_lab_exec::run::{receipt_sha256, Termination};
 use genesis_lab_exec::store::Store;
 use serde_json::json;
 
@@ -79,6 +81,24 @@ pub fn comparison_plan(base: &TrialPlan, trial_id: &str, d: &Descriptor) -> Tria
     p
 }
 
+fn termination_name(slot_id: &str) -> String {
+    format!(
+        "termination-{}.json",
+        &refs::sha256_hex(slot_id.as_bytes())[..16]
+    )
+}
+
+/// Records, in the scorer's store, termination evidence the executor observed
+/// for one slot (from `genesis_lab_exec::run::termination`). Hidden scoring
+/// refuses until every slot of the comparison has a record bound to its exact
+/// receipt.
+pub fn record_termination(store: &Store, t: &Termination) -> std::io::Result<()> {
+    store.write(
+        &termination_name(&t.slot_id),
+        &serde_json::to_vec_pretty(t).expect("termination serializes"),
+    )
+}
+
 /// Scores one closed comparison slot's retained output on the hidden draw.
 /// `closure` holds every slot's finished execution receipt, the scored slot's
 /// included.
@@ -103,15 +123,28 @@ pub fn score_hidden(
     if !descriptor.opens(salt) {
         return refused("the salt does not open the descriptor");
     }
-    // Closed: every slot of the plan has exactly one finished execution bound
-    // to it. Execution receipts are written only after the method process has
-    // stopped, so no arm can still be developing.
+    // Closed: every slot of the plan has exactly one execution bound to it,
+    // and the scorer's store holds executor-observed termination evidence for
+    // that exact receipt. A receipt alone isn't enough: a recovered receipt is
+    // written without anyone seeing the method process end.
     for slot in &plan.slots {
         let mut found = closure.iter().filter(|(id, _)| *id == slot.slot_id);
         let (Some((_, receipt)), None) = (found.next(), found.next()) else {
             return refused("the comparison is not closed: a slot has no single execution");
         };
         plan.evaluation_request(&slot.slot_id, receipt)?;
+        let ended = store
+            .read(&termination_name(&slot.slot_id))
+            .ok()
+            .and_then(|b| serde_json::from_slice::<Termination>(&b).ok());
+        if !ended.is_some_and(|t| {
+            t.slot_id == slot.slot_id && t.execution_sha256 == receipt_sha256(receipt)
+        }) {
+            return Err(ScoringError::Refused(format!(
+                "the comparison is not closed: no termination evidence for slot {}",
+                slot.slot_id
+            )));
+        }
     }
     if closure
         .iter()
