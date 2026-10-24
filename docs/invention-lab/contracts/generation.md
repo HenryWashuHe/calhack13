@@ -47,6 +47,35 @@ ambiguous usage remains `Unknown`, never zero. Duplicate or malformed envelopes
 are rejected and their ambiguous usage is unknown. Token counters describe the
 provider's reported fields, not a bill or independent metering proof.
 
+Protocol failures now optionally retain `diagnostic`: the first rejected check
+(`response_unavailable`, `invalid_json`, `invalid_envelope`, `model_mismatch`,
+`stop_reason`, `stop_sequence`, `output_limit`, `content_shape`, `content_count`,
+`content_type`, `text_limit`, or `citations`) and an allowlisted `stop_reason`.
+Recognized stops are `end_turn`, `max_tokens`, `stop_sequence` and `tool_use`;
+other strings become `other`. Absent/null stops, or envelopes rejected before
+identity validation, retain no stop value. Raw rejected content, headers, error
+bodies and unknown provider strings are not stored by this diagnostic.
+The same optional object appears in read-only `method-generate-status` output.
+It does not change acceptance, uncertainty, usage or retry rules. Reaching the
+token cap alone does not imply truncation: only the observed stop is reported.
+Historical checkpoints without diagnostics retain their serialized identities;
+the field stays absent on reserialization and old status output is unchanged.
+The first [live failure](../evidence/live-method-20261024/README.md) therefore
+still has no recoverable rejection detail and must not be replayed.
+
+The [Sonnet 5.5 migration guide](https://platform.claude.com/docs/en/models/sonnet-5-5/migration-guide)
+documents adaptive thinking by default. The single-turn parser now accepts a
+strictly typed prefix of `thinking` / `redacted_thinking` blocks followed by exactly
+one final text block. There are at most 16 blocks; thinking text, opaque signatures
+and encrypted data are each capped at 800 KiB. Empty thinking text is valid;
+signatures and encrypted data must be nonempty strings. Unknown fields/types,
+duplicate JSON keys, tool blocks, absent/multiple text and reasoning after text
+are rejected. Thinking payloads are discarded, never exported or persisted;
+their usage remains included in the provider's total output count. The request,
+model/settings, stop checks and terminal no-retry rules are unchanged.
+This is a documented format compatibility fix, not evidence of what was in an
+unretained failed response, and it does not establish fixed-settings comparison.
+
 There is one attempted POST, a transport deadline and output-token ceiling;
 there is no hard input-token ceiling beyond the prompt's byte bound. A generated
 package can coexist with unknown usage and does not establish budget compliance.
