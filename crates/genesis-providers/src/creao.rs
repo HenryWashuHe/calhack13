@@ -265,7 +265,7 @@ impl SpecialistRuntime for CreaoSpecialist {
             account_namespace:self.runtime.account_namespace().to_owned(),
             purpose:OperationPurpose::Provision {change_id:request.change_id.to_string(),config_digest:request.config_digest()},
             request:OperationRequest::CreateAgent(CreateAgentRequest {
-                input:format!("Create a persistent operational specialist for GENESIS using this role contract: {}. Provider creation does not grant organization authority. Require an explicit GENESIS job and scoped grant before calling any gateway. Do not claim task success without returned evidence.",serde_json::to_string(request).map_err(runtime_error)?),
+                input:format!("Create a persistent operational specialist for GENESIS using this role contract: {}. Provider creation does not grant organization authority. Configure a GENESIS readiness gateway skill that, when explicitly invoked with a readiness challenge, sends only the supplied challenge-bound readiness receipt to its supplied GENESIS endpoint. This readiness POST is the sole exception to requiring an explicit GENESIS job and scoped grant before calling a gateway; it never grants mission authority. Require an explicit GENESIS job and scoped grant for all mission work. Do not claim the skill is installed or readiness is proven without returned evidence. Do not claim task success without returned evidence.",serde_json::to_string(request).map_err(runtime_error)?),
                 model:None,conversation_id:None,
             }),
         };
@@ -375,6 +375,9 @@ impl SpecialistRuntime for CreaoSpecialist {
         operation_id: &str,
         retry_read: bool,
     ) -> Result<SpecialistProgress, ProviderError> {
+        // Readiness has its own owner. Do not let the general role/job adapter
+        // execute even a prepared readiness POST before rejecting its progress.
+        specialist_purpose(&self.runtime.get(operation_id).map_err(runtime_error)?)?;
         progress(
             self.runtime
                 .step(operation_id, retry_read)
@@ -384,7 +387,17 @@ impl SpecialistRuntime for CreaoSpecialist {
     }
 }
 
+fn specialist_purpose(record: &OperationRecord) -> Result<(), ProviderError> {
+    if matches!(record.spec.purpose, OperationPurpose::Readiness { .. }) {
+        return Err(rejected(
+            "CREAO readiness operations are not role or job progress",
+        ));
+    }
+    Ok(())
+}
+
 fn progress(record: OperationRecord) -> Result<SpecialistProgress, ProviderError> {
+    specialist_purpose(&record)?;
     let operation_id = record.spec.operation_id.clone();
     let run_id = record
         .ticket
@@ -417,6 +430,9 @@ fn progress(record: OperationRecord) -> Result<SpecialistProgress, ProviderError
                     output: observation.result,
                     domain_verified: false,
                 }),
+                OperationPurpose::Readiness { .. } => Err(rejected(
+                    "CREAO readiness operations are not role or job progress",
+                )),
             }
         }
         Phase::Failed => Ok(SpecialistProgress::Failed {
