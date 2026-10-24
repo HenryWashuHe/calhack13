@@ -9,6 +9,7 @@ import type { Api } from "./api";
 import type { AttentionItem, AttentionKind } from "./attention";
 import type { CapabilityGap, OrgState } from "./contracts";
 import { roleName } from "./graph";
+import type { OutcomeView } from "./adoptionDecisions";
 
 export type AdoptionState = "active" | "released" | "installed" | "attention" | "refused";
 export type AdoptionCode =
@@ -34,11 +35,23 @@ export interface GapAdoptionStatus {
   selected: { capability_id: string; version: string } | null;
   installation_id: string | null;
   updated_at: string | null;
+  /** What the adoption concluded (#128); absent from older servers. */
+  outcome?: OutcomeView;
 }
 
 export const ADOPTION_POLL_MS = 3000;
 
 export const GapAdoptionContext = createContext<Record<string, GapAdoptionStatus>>({});
+
+/**
+ * Gaps that left `open`: adopt-first can't change them any more, but their
+ * adoption's conclusion is still worth showing. Fetched once per status.
+ */
+export function settledGaps(state: OrgState | null): CapabilityGap[] {
+  return Object.values(state?.capability_gaps ?? {})
+    .filter((g) => g.status.state === "installed" || g.status.state === "refused")
+    .sort((a, b) => a.opened_in_revision - b.opened_in_revision || a.gap_id.localeCompare(b.gap_id));
+}
 
 /** Open gaps: the only ones adopt-first can still be working on. */
 export function openGaps(state: OrgState | null): CapabilityGap[] {
@@ -119,6 +132,9 @@ export function useGapAdoption(api: Api, state: OrgState | null): Record<string,
   const [statuses, setStatuses] = useState<Record<string, GapAdoptionStatus>>({});
   const ids = useMemo(() => openGaps(state).map((g) => g.gap_id), [state]);
   const key = ids.join(",");
+  // Settled gaps change no more: one read each, keyed by gap and final state.
+  const settled = useMemo(() => settledGaps(state).map((g) => `${g.gap_id}|${g.status.state}`), [state]);
+  const settledKey = settled.join(",");
   const generation = useRef(0);
   const sequence = useRef(0);
   const applied = useRef(new Map<string, number>());
@@ -127,6 +143,27 @@ export function useGapAdoption(api: Api, state: OrgState | null): Record<string,
     applied.current = new Map();
     setStatuses({});
   }, [api]);
+  useEffect(() => {
+    const mine = generation.current;
+    let stopped = false;
+    for (const entry of settled) {
+      const id = entry.slice(0, entry.indexOf("|"));
+      const seq = ++sequence.current;
+      api
+        .get<GapAdoptionStatus>(`/capability-gaps/${encodeURIComponent(id)}/adoption`)
+        .then((s) => {
+          if (stopped || generation.current !== mine || s.gap_id !== id || s.state === null) return;
+          if ((applied.current.get(id) ?? 0) > seq) return;
+          applied.current.set(id, seq);
+          setStatuses((p) => ({ ...p, [id]: s }));
+        })
+        .catch(() => undefined);
+    }
+    return () => {
+      stopped = true;
+    };
+    // `settledKey` stands for `settled`.
+  }, [api, settledKey]);
   useEffect(() => {
     if (ids.length === 0) return;
     const mine = generation.current;
