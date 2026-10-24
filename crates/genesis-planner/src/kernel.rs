@@ -153,6 +153,24 @@ impl KernelClient {
         self.send(self.http.get(self.url("/organization"))).await
     }
 
+    /// Capabilities the server's trusted gap policy can act on, with the
+    /// public sources a request must list. Servers without the route (or
+    /// without a policy) yield an empty list.
+    pub async fn requestable_capabilities(
+        &self,
+    ) -> Result<crate::prompt::RequestPolicy, KernelError> {
+        match self
+            .send::<crate::prompt::RequestPolicy>(
+                self.http.get(self.url("/capability-gaps/requestable")),
+            )
+            .await
+        {
+            Ok(r) => Ok(r),
+            Err(KernelError::Api { status: 404, .. }) => Ok(Default::default()),
+            Err(e) => Err(e),
+        }
+    }
+
     pub async fn events_after(
         &self,
         after: u64,

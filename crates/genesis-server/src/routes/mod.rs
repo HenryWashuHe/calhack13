@@ -71,6 +71,10 @@ pub fn router(state: AppState) -> Router {
         )
         .route("/capability-installations", post(capabilities::install))
         .route(
+            "/capability-gaps/requestable",
+            get(capability_gaps::requestable),
+        )
+        .route(
             "/capability-gaps/{id}/acquisition",
             get(capability_gaps::acquisition),
         )
