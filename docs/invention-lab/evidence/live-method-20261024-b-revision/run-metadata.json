@@ -1,0 +1,12 @@
+{
+  "authority": "operator-observed authenticated API call, not provider-signed independent provenance",
+  "exit_code": 0,
+  "operation_id": "live-b-revision-20261024t182242z-80adc80d",
+  "prepared_source_commit": "163e952696e62a9bcb937e22ef1b96e327427dad",
+  "request_count_maximum": 1,
+  "request_finished_at_utc": "2026-10-24T18:27:11.476646+00:00",
+  "request_started_at_utc": "2026-10-24T18:26:30.844350+00:00",
+  "schema": "genesis-operator-generation-run/1",
+  "source_commit": "0f277d791b59b0bc7957751dc328cf99f5b89936",
+  "source_executed": false
+}
