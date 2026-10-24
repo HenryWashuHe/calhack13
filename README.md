@@ -1,5 +1,8 @@
 # GENESIS
 
+![tag:innovationlab](https://img.shields.io/badge/innovationlab-3D8BD3)
+![tag:hackathon](https://img.shields.io/badge/hackathon-5F43F1)
+
 **A self-healing operating system for networks of AI agents.**
 
 GENESIS provides infrastructure for agents to **build, verify, share, inherit, and improve executable capabilities** across independent organizations. A capability developed for one mission can become the starting point for another. A verified repair can become a reusable improvement instead of knowledge trapped in one agent's conversation.
@@ -7,6 +10,16 @@ GENESIS provides infrastructure for agents to **build, verify, share, inherit, a
 The long-term goal is **networked recursive capability improvement, with fixed model weights**. What evolves is the system around the model: tools, workflows, operational knowledge, specialist teams, and eventually the methods agents use to build and repair those capabilities.
 
 > Agents can build on the network's applicable experience—including better ways to build, verify, and repair.
+
+## See it in 60 seconds
+
+1. A venue closes. Tell the organization in an ASI:One chat (`report the main hall is closed on Nov 14`), or post the observation from the operator script. The organization grows a relocation role that was not in the code, recruits an independent logistics specialist over Fetch.ai, and requests a capability it lacks.
+2. GENESIS writes an Apify Actor for the unfamiliar portal, builds it, and verifies it against pages the model never saw.
+3. A second disruption is handled by the existing CREAO monitor. No new role.
+4. Org B, a separate organization, inherits the capability with zero synthesis calls.
+5. The temporary role retires after handoff, and the audit strip shows every revision still satisfies the kernel invariants.
+
+What is live, fixture or pending at any moment is stated in the [demo runbook's honesty table](docs/DEMO_RUNBOOK.md); fixture runs are labeled on screen and never presented as live. The pitch script is in [docs/PITCH.md](docs/PITCH.md) and the submission text in [docs/DEVPOST.md](docs/DEVPOST.md).
 
 ## How the network improves
 
