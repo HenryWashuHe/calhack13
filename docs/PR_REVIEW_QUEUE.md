@@ -2,11 +2,13 @@
 
 ## Current queue after #110 and #113
 
-Main through #110 is `16783da`; there are no open PRs at this checkpoint. Current GitHub status and [issue #4](https://github.com/HenryWashuHe/genesis/issues/4)
+Main through #110 is `16783da`. The queue was clear, then #114 and this roadmap PR #115 opened. Current GitHub status and [issue #4](https://github.com/HenryWashuHe/genesis/issues/4)
 supersede the historical tables below.
 
 | PR | Disposition / source | Evidence |
 | --- | --- | --- |
+| #114 | Open `3ac1fc6` | Claude's ASI:One mission adapter and pitch/submission drafts; independent review pending. Coordinate overlapping README framing and ACP work before merge. |
+| #115 | Documentation review | Preserves side-chat drafts in `7eeaf9f`, then integrates the expanded roadmap and current ownership. |
 | #86 | Merged `ad622a9`, reviewed `ac50d35` | 35 gap-adoption tests and two-org inheritance pass; retained native receipt failures remain blocked. Strict Clippy/fmt. |
 | #111 | Merged `6194e53`, reviewed `84dd81f` / composition `e1b95ea` | Reproduced full-scenario deadline failure, then five scenarios and 40 scenario units pass. Runtime freshness remains strict; Claude contribution preserved. |
 | #112 | Merged `6e4f1ff`, final reviewed `34a5fe6` | 139 library + 90 assessment tests, then final 12 intake tests; strict Clippy/fmt and independent review. Loopback evidence; counts overlap. |

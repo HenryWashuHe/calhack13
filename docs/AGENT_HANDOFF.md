@@ -4,7 +4,8 @@
 
 This supersedes the historical snapshots below. Main through #110 is `16783da`;
 current GitHub state and newer [issue #4](https://github.com/HenryWashuHe/genesis/issues/4)
-comments remain authoritative. No PRs were open at this checkpoint. The existing
+comments remain authoritative. The queue was clear before the roadmap branch; #114 then opened for an ASI:One
+mission adapter and pitch/submission drafts. Review it alongside this framing. The existing
 two-organization mission goal remains active and now includes the [recursive
 capability roadmap](RECURSIVE_CAPABILITY_IMPROVEMENT.md): cross-organization repair,
 executable development capabilities, then a controlled three-treatment evaluation.
@@ -56,7 +57,8 @@ records #110 merged at `16783da`; both PRs are closed.
 | --- | --- | --- |
 | Henry's Claude | Kernel/planner/readiness/adoption; candidate decision logging in the adoption coordinator/store/routes/tests | Also owns the explicitly agreed narrow terminal `ProviderError::RunFailed` mapping, sanitizer preservation and safe retry gate. Unknown submissions, failed status reads and retained running receipts stay blocked. No general provider/runtime ownership transfer. |
 | Eric's Claude | Provenance/replay UI contribution #113 is merged | No next exclusive implementation claim is recorded. Coordinate UI work with Henry's Claude before claiming overlapping files. |
-| Codex | Fetch, monitor/recovery, provider verification and acquisition/execution verification boundaries | Next: automatic intake composed with the native Fetch process test, then full two-organization/ACP composition. Scope exact-version failure evidence and repair intent in issue #4 before expanding into network capability repair. |
+| Claude, PR #114 | New `acp_mission.py` ASI:One mission adapter, adjacent Python tests/config, pitch and submission drafts | Newly opened during roadmap integration; review pending. Preserve the selective-transfer framing when composing its README changes. Public Agentverse/ASI execution remains unproven. |
+| Codex | Fetch, monitor/recovery, provider verification and acquisition/execution verification boundaries | Next: automatic intake composed with the native Fetch process test; review #114 before further full-mission/ACP changes. Scope exact-version failure evidence and repair intent in issue #4 before expanding into network capability repair. |
 | Proposed, not assigned | Executable development packages and controlled recursive-benefit evaluation | Inspect current branches/claims and agree bounded contracts first. The side-chat Claude brief is a proposal, not an assignment. |
 
 The roadmap adds work to the existing goal; it does not replace the original
@@ -71,7 +73,7 @@ The existing continuation automation reads this roadmap and these ownership
 claims. Complete the mechanism/evaluation gates even if the measured benefit is
 null or negative; a positive recursive-improvement claim stays open unless its
 predeclared criteria pass. Keep the original live sponsor gates separately visible.
-Current ACP only handles frozen recovery cases. Agentverse/ASI use, cloud execution,
+Merged ACP only handles frozen recovery cases; #114 proposes an additional mission adapter. Agentverse/ASI use, cloud execution,
 and genuine CREAO share evidence remain open. The primary-checkout side-chat docs
 are being integrated deliberately; unrelated local changes still must not be staged.
 
