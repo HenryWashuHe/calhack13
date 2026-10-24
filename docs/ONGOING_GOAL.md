@@ -103,14 +103,15 @@ failures or input that is actually required.
 | Milestone | Owner and evidence | Next action |
 | --- | --- | --- |
 | Canonical framing and status separation | Legacy #127/#131 already present in new main `e1f2264` with identical source tree | Maintain claim/evidence distinctions; no event-organizer revival |
-| Repository continuity, delivery prerequisite | New issue #1, PR routing map and active hourly task; all twelve repair WIP files preserved in draft #7 at `110a107` | Work/push in the new repo; reconcile any later old-repo delta by mapped base and complete tree |
-| Method and comparison contract, G0 | Codex owns additive method/receipt/comparison contracts; runtime not implemented | Separate execution purposes and trusted evaluator identities; freeze budgets/expected trial rosters and holdout disclosure timing |
+| Repository continuity, delivery prerequisite | #17 merged at `6d1b7dc`, source `0d9775b`: 140 links/anchors checked; new issue #1 and hourly target; all twelve repair WIP files preserved in draft #7 at `110a107` | Work/push here; reconcile later legacy deltas without overwriting newer destination work |
+| Live-gate tooling prerequisite | #16 merged at `66fc95b8`, source `bd706a2`: 24 offline tests passed, nine baseline regressions reproduced | Escaped-path execution and public evidence redaction fixed; no protocol alias or live workflow result implied |
+| Method and comparison contract, G0 | Draft [#18](https://github.com/HenryWashuHe/genesis-history-experiment/pull/18), source `40e481e`, tested current-main composition `1d84587e`: 93 core tests and strict Clippy passed | Proposed typed identities/bindings/receipts and explicit unknown accounting; obtain adoption/evaluator owner feedback, then add independent evaluation/comparison plan contracts. No executor or G0 completion claim |
 | Selective adoption foundation | Core Claude acknowledged; new #8/#10/#11/#12 stack and #14 adoption proposal | Complete exact-head review; correct bounded-search/version wording; preserve owner wiring |
-| Constitution audit and evidence UI | Eric, new #9; invention-lab UI assignment not yet acknowledged; write access confirmed | Independently validate audit and obtain bounded UI contract feedback; #15 is Henry's existing adoption UI |
-| ACP correctness | ACP session acknowledged; new #3/#5 runtime and #4 contract | Review latest corrections against independent sender/deduplication, effect-ambiguity and response-bound regressions |
+| Constitution audit and evidence UI | Eric’s #9 merged at `f8bffa26`, source `c3fc9e3`: 18 independent scoped tests passed on composition `ddc5140` | Audit complete; invention-lab UI assignment remains unacknowledged. Obtain bounded UI contract feedback; #15 is Henry’s existing adoption UI |
+| ACP correctness | #3 `851ef3b2` / #5 `6e1c0c8`: 145 bridge tests passed; four additional probes still fail | ACP owns sender-bound deduplication, confirmed-effect journaling wording, exact card IDs and bounded methods replies; retain review holds |
 | Simulator/evaluator, G0/G1 | Henry's core Claude assigned requested lane; new #13 proposal | Correct holdout/evidence/budget contract; implement only isolated evaluator subtree after interface agreement; Ines stays unassigned |
 | Deployed repair foundation | Draft #7 preserves work on rewritten forge base; happy path only | Separate supporting claim and full revised target/final checks before readiness |
-| Credential readiness, separate live-provider gate | Apify and CREAO v2 authenticated metadata reads succeeded; no CREAO hosted agent returned | Scope v2 compatibility before execution; retain separate Fetch/Elastic reports and do not count authentication as workflow proof |
+| Credential readiness, separate live-provider gate | Apify and CREAO v2 authenticated metadata reads succeeded; no CREAO hosted agent returned | Scope v2 compatibility before execution; Eric was asked to resolve ACP-reported Elastic index permissions. Do not count metadata reads as workflow proof |
 
 This ledger is a checkpoint, not a substitute for current GitHub state. Record
 subsequent material milestones here with exact evidence; retain historical
