@@ -1,10 +1,29 @@
 # GENESIS implementation handoff
 
-## Current checkpoint: #111 and #112
+## Current checkpoint: native automatic intake and recursive roadmap
 
-This supersedes the historical #108 snapshot. Main through #112 is `6e4f1ff`;
+This supersedes the historical snapshots below. Main through #115 is `841295a`;
 current GitHub state and newer [issue #4](https://github.com/HenryWashuHe/genesis/issues/4)
-comments remain authoritative. The two-organization mission goal is active.
+comments remain authoritative. #115 merged the reviewed recursive roadmap,
+preserving original side-chat drafts in `7eeaf9f`; primary main was updated without
+losing the originals. The existing Goal stays active, and its continuation schedule
+now references the expanded [milestones and evaluation](RECURSIVE_CAPABILITY_IMPROVEMENT.md).
+
+**Native automatic-intake composition:** source `059a796`, composed with #115 at
+`362a5a0`. Both explicitly enabled native checks pass: the original manual entry
+and the new automatic intake path. Two actual signed Python Fetch processes drive
+selection and retirement; prepared intent survives Rust restart and newer source
+evidence, with one exact coordinator and no recovery HTTP POST in the automatic
+variant. Strict assessment-target Clippy and workspace formatting pass. Explicit
+drains do not prove background timer scheduling; Apify/CREAO/provisioning remain
+fixtures. See [the command and evidence](VENUE_RECOVERY_INTAKE.md#inspection-and-evidence).
+
+**#114 review hold at `3ac1fc6`:** all 119 original Python tests pass, but independent
+`091100b` regressions reproduce duplicate observation submission when the same ACP
+message is delivered after restart, and a false no-change response after a confirmed
+POST followed by a failed progress read. Claude owns the production corrections;
+see [the review](https://github.com/HenryWashuHe/genesis/pull/114#issuecomment-6378556404).
+Its new mission adapter is not merged or public-provider evidence.
 
 **Merged #86:** reviewed `ac50d35`, merge `ad622a9`. Confirmed pre-submission or
 otherwise safely settled checks can retry; retained native receipts remain
@@ -41,21 +60,33 @@ checks and strict server Clippy/fmt. #113 merged into #110 as `50cb501`; the
 parent branch was then fast-forwarded to the tested composition without rewriting
 history. Claude/Eric should pull before continuing it. This is jsdom/stub API
 and local backend evidence, not a new browser walkthrough. Current GitHub state
-gives the parent PR's merge status.
+records #110 merged at `16783da`; both PRs are closed.
 
-**Ownership:** Claude/Eric keeps kernel/planner/readiness/adoption/UI. Codex
-explicitly authorized Claude's requested narrow terminal RunFailed provider
-mapping and sanitize contract for the next retry PR; unknown submissions,
-failed status reads and retained running receipts must remain blocked. Claude's
-candidate decision logging uses the existing adoption flow. Codex keeps Fetch,
-monitor/recovery and provider verification. Coordinate shared interfaces in #4.
+### Current ownership and next work
 
-**Next mission work:** compose automatic intake with the existing native Fetch
-process test and the complete two-organization scenario, then extend the ACP
-surface toward the complete primary mission. Current ACP only handles frozen
-recovery cases. Actual Agentverse/ASI use, sponsor credentials, cloud execution,
-and genuine CREAO share evidence remain open. Primary-checkout product-document
-edits are unrelated in-progress work and must not be staged by these branches.
+| Owner | Active scope | Boundary / next handoff |
+| --- | --- | --- |
+| Henry's Claude | Kernel/planner/readiness/adoption; candidate decision logging in the adoption coordinator/store/routes/tests | Also owns the explicitly agreed narrow terminal `ProviderError::RunFailed` mapping, sanitizer preservation and safe retry gate. Unknown submissions, failed status reads and retained running receipts stay blocked. No general provider/runtime ownership transfer. |
+| Eric's Claude | Provenance/replay UI contribution #113 is merged | No next exclusive implementation claim is recorded. Coordinate UI work with Henry's Claude before claiming overlapping files. |
+| Claude, PR #114 | New `acp_mission.py` ASI:One mission adapter, adjacent Python tests/config, pitch and submission drafts | Newly opened during roadmap integration; review pending. Preserve the selective-transfer framing when composing its README changes. Public Agentverse/ASI execution remains unproven. |
+| Codex | Fetch, monitor/recovery, provider verification and acquisition/execution verification boundaries | Native automatic-intake composition now passes. Review #114 before further full-mission/ACP changes; next scope exact-version failure evidence and repair intent in issue #4 before expanding into network capability repair. |
+| Proposed, not assigned | Executable development packages and controlled recursive-benefit evaluation | Inspect current branches/claims and agree bounded contracts first. The side-chat Claude brief is a proposal, not an assignment. |
+
+The roadmap adds work to the existing goal; it does not replace the original
+mission or complete it. A deployed capability replacement must preserve exact
+failure/version lineage, independently verified publication, B's local adoption,
+and pinned installations. Venue selection recovery and a provider retry alone do
+not meet that gate. One justified organizational change and a no-new-role control
+remain required. An inherited development method must itself be created or
+improved through the governed process; generated tests cannot self-certify it.
+
+The existing continuation automation reads this roadmap and these ownership
+claims. Complete the mechanism/evaluation gates even if the measured benefit is
+null or negative; a positive recursive-improvement claim stays open unless its
+predeclared criteria pass. Keep the original live sponsor gates separately visible.
+Merged ACP only handles frozen recovery cases; #114 proposes an additional mission adapter. Agentverse/ASI use, cloud execution,
+and genuine CREAO share evidence remain open. The primary-checkout side-chat docs
+are being integrated deliberately; unrelated local changes still must not be staged.
 
 ## Historical checkpoint after #108 — October 23, 2026
 
