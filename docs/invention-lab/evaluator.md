@@ -118,48 +118,79 @@ method revision win.
 
 ## Interfaces
 
-Two calls, both on the evaluator process. Field names are placeholders until
-#124 fixes the method-side types.
+Two calls, both on the evaluator process. They are expressed in the types of
+the experimental contracts in #18 (`development_method`, execution) and #22
+(`development_evaluation`, scoring); see
+[identity-and-execution.md](contracts/identity-and-execution.md) and
+[evaluation.md](contracts/evaluation.md) on those branches.
 
-- `experiment(design, instance_ref, budget_token) -> ExperimentResult`
-  - For development only. `instance_ref` must be a development instance.
-  - Returns outcome, metrics, trace digest and downsampled trace.
-  - Debits one experiment and the episode's simulated seconds from the budget
-    token; refuses when exhausted. The token is issued by the method executor
-    from the receiving organization's budget policy and can't be enlarged by
-    the method.
-- `score(design, instance_ref, purpose) -> ScoreReceipt`
-  - Callers: an organization's acceptance check, or the comparison runner.
-    Never a method.
-  - `purpose` is `acceptance` (development instances only) or `comparison`
-    (hidden instances, only after the salt is revealed for that comparison).
-  - Returns a receipt (below).
+- `experiment(design, instance_ref, grant) -> ExperimentResult`
+  - Development only, inside one method execution (#18 purpose `ordinary` or
+    `acceptance`). `instance_ref` must be a development instance.
+  - Returns the simulation outcome, metrics, trace digest and downsampled trace.
+    These feed the method's own transcript; they are not score evidence.
+  - Debits the episode's **simulation steps** from the execution's grant
+    (`simulation_steps` in #18's resource grant; fixed timestep, so steps are
+    exact and integer). Refuses when the grant is spent. The method can't
+    enlarge the grant. Usage the evaluator can't measure is reported
+    `unknown`, never zero.
+- `score(request) -> scoring receipt`
+  - Takes a frozen #22 `EvaluationRequest`: the full execution receipt, the
+    exact retained output (the design), the scoring context and a separate
+    scoring grant. Callers: an organization's acceptance check or the
+    comparison runner. Never a method.
+  - Purpose comes from the execution: `acceptance` (development instances
+    only) or `comparison` (hidden instances, only after the salt for that
+    comparison is revealed).
 
-Unknown is a first-class answer: a crashed or timed-out simulation returns
-`unknown`, never `failed`, and is not silently retried by the evaluator.
+### How this evaluator fills #22's scoring context
+
+| #22 field | This evaluator |
+| --- | --- |
+| scoring environment | evaluator id@version with digest over engine version, scoring code and material/motor tables |
+| task generator | family id@version and digest of the family file |
+| instance-set reference | for development: the published seed list; for hidden sets: the salt commitment, with the salt added once revealed |
+| design schema | design language v1 |
+| metric schema | per family: `success` (bool), `progress` (0–1), `cost`, `joints_broken`, `time_to_target` |
+| scoring rule | the family's success rule, versioned with the family |
+
+### Outcomes
+
+Design quality is a **metric**, not a scoring outcome:
+
+| #22 outcome | Here |
+| --- | --- |
+| `Scored` | the simulation ran; metrics include `success: true` or `false` |
+| `Invalid` | the design failed validation (overlap, out of zone, over budget, unknown material, wrong language version); not simulated |
+| `Failed` | the scoring worker failed in a known way (for example the engine refused the world) |
+| `Unknown` | crash, timeout or lost result; not silently retried |
+
+So a design that drops the payload is `Scored` with `success: false`, not
+`Failed`. Earlier drafts of this document used `succeeded`/`failed` as outcomes;
+that conflated design failure with scoring failure.
 
 ## Receipts
 
-`ScoreReceipt` binds:
+The #22 scoring receipt carries the observed scoring context, outcome, metrics
+reference and trace. In addition this evaluator records:
 
-- evaluator id, version and digest (engine version, scoring code, family files)
-- design-language version and design digest
-- family id/version, seed, and for hidden instances the salt commitment
-- outcome: `succeeded`, `failed`, `invalid`, `unknown`
-- metrics and trace digest
-- purpose and caller organization
-- simulated seconds and wall time consumed
+- design-language version and design digest (also the selected output's digest)
+- family id/version and seed; for hidden instances the salt commitment and,
+  after reveal, the salt
+- simulation steps and wall time consumed, measured or `unknown`
 
-Receipts are immutable. The comparison runner and acceptance checks cite them
-by digest. Model identity, method identity and installation id belong in #124's
-execution receipt, which cites the score receipts it led to.
+Model identity, method identity and installation id stay in #18's execution
+receipt, which the scoring request binds in full.
 
 ## Budget and cost accounting
 
-Per development task, the receiving organization's policy sets:
+Per development task, the receiving organization's policy sets the #18 grant:
 
-- maximum experiments and simulated seconds (enforced here),
-- wall-time and model-usage ceilings (enforced by the method executor, #124).
+- simulation steps (metered and enforced by this evaluator),
+- wall time, model calls and tokens (enforced by the method executor, #18).
+
+A separate experiment-count ceiling is not needed: steps bound the work, and
+the transcript records each experiment.
 
 The comparison counts everything: cold method development, failed attempts and
 experiments, not only the final design's run. Equal total budgets across
@@ -167,19 +198,21 @@ treatments are the primary comparison; per-task warm numbers are secondary.
 
 ## What this needs from other contracts
 
-- **#124:** the method I/O types carrying `instance_ref`s and designs, the
-  budget token issued by the executor, and an execution receipt that cites
-  score receipts.
+- **#18/#22 (Codex):** method I/O types carrying `instance_ref`s and designs;
+  the executor passing the grant's `simulation_steps` to the evaluator; the
+  pre-execution trial plan (still pending in #22) listing the instance
+  identities each trial uses, so no-output failures stay in the denominator.
 - **adoption.md:** acceptance suites are lists of development `instance_ref`s
-  plus a criterion over `ScoreReceipt` outcomes; the evaluator requirement a
-  method declares is `evaluator_id@version`.
+  plus a criterion over scoring metrics (for example `success` count versus the
+  control arm); the evaluator requirement a method declares is
+  `evaluator_id@version`.
 - **Evidence UI (#123):** the downsampled trace for animation, score receipts
   for the outcome panel, and the distinction `failed` versus `unknown`.
 
 ## Implementation boundary
 
 Implementation is gated on agreement with #124, adoption and the UI owner, and
-on a named owner for #126 in issue #4. When it starts it lives entirely under
+on the #126 owner (assigned to Henry's core Claude in this repository's issue #1). When it starts it lives entirely under
 `experiments/invention-lab/evaluator/**`: family files, the simulator wrapper,
 the two calls and receipt encoding, with determinism, budget-refusal,
 hidden-instance and `unknown` tests. It touches no provider, shared API,
@@ -193,7 +226,8 @@ manifest, kernel or UI code.
 3. `experiment` refuses hidden instances and refuses once the budget token is
    spent; `score` refuses a method caller and refuses `comparison` before the
    salt is revealed.
-4. A simulator crash or timeout yields `unknown`, with no automatic retry.
+4. A simulator crash or timeout yields `Unknown`, with no automatic retry; a
+   design that fails its task yields `Scored` with `success: false`.
 5. Revealed salts regenerate exactly the committed hidden instances.
 6. A trivially bad design fails every family; a hand-built reference design
    succeeds on some development crossing instances (a sanity check, never used
