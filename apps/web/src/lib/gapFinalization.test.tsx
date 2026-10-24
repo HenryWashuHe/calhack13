@@ -43,7 +43,8 @@ describe("gap finalization helpers", () => {
     const g = gaps.g_ver;
     expect(finalizationDetail(g, undefined)).toBeNull();
     expect(finalizationDetail(g, status({ enabled: false }))).toBeNull();
-    expect(finalizationDetail(g, status({ state: null }))).toMatch(/queued for publication/);
+    // Enabled without a per-gap record is not queued work.
+    expect(finalizationDetail(g, status({ state: null }))).toBeNull();
     expect(finalizationDetail(g, status({}))).toMatch(/publishing this exact version/);
     expect(finalizationDetail(g, status({ publication_ref: "registry:venue-reader@1.0.0" }))).toMatch(/installing here/);
     expect(finalizationDetail(g, status({ publication_ref: "p", installation_id: "inst-1" }))).toMatch(/queuing local acceptance/);
