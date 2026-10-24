@@ -1,7 +1,7 @@
 //! Frozen single-task trial batches. Structural evidence, not enforced execution.
 use crate::development_evaluation::{
-    execution_receipt_hash, EvaluationError, EvaluationReceipt, EvaluationRequest, RequestStatus,
-    ScoringContext,
+    execution_receipt_hash, execution_receipt_identity_hash, EvaluationError, EvaluationReceipt,
+    EvaluationRequest, RequestStatus, ScoringContext,
 };
 use crate::development_method::*;
 use crate::digest::canonical_sha256;
@@ -215,6 +215,35 @@ impl TrialPlan {
     ) -> Result<Option<EvaluationRequest>, EvaluationError> {
         let binding = self.expected_binding(slot_id)?;
         execution.validate_against(&binding)?;
+        self.request_for_execution(
+            slot_id,
+            execution,
+            execution_receipt_hash(execution, &binding)?,
+        )
+    }
+
+    /// Reconstruct the exact scoring identity for accounting, even on overrun.
+    /// This does not authorize a scorer to run or relax evaluation_request.
+    pub fn evaluation_request_for_accounting(
+        &self,
+        slot_id: &str,
+        execution: &ExecutionReceipt,
+    ) -> Result<Option<EvaluationRequest>, EvaluationError> {
+        let binding = self.expected_binding(slot_id)?;
+        self.request_for_execution(
+            slot_id,
+            execution,
+            execution_receipt_identity_hash(execution, &binding)?,
+        )
+    }
+
+    fn request_for_execution(
+        &self,
+        slot_id: &str,
+        execution: &ExecutionReceipt,
+        execution_sha256: String,
+    ) -> Result<Option<EvaluationRequest>, EvaluationError> {
+        let binding = self.expected_binding(slot_id)?;
         if execution.outputs.len() > 1 {
             return Err(invalid("multiple outputs unsupported"));
         }
@@ -224,7 +253,7 @@ impl TrialPlan {
         let slot = self.slots.iter().find(|s| s.slot_id == slot_id).unwrap();
         Ok(Some(EvaluationRequest {
             request_id: slot.scoring_request_id.clone(),
-            execution_sha256: execution_receipt_hash(execution, &binding)?,
+            execution_sha256,
             output: output.clone(),
             context: self.context.clone(),
             purpose: binding.purpose,

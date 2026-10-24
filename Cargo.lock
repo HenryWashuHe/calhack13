@@ -629,11 +629,13 @@ name = "genesis-forge"
 version = "0.1.0"
 dependencies = [
  "genesis-apify",
+ "genesis-core",
  "genesis-verification",
  "reqwest",
  "serde",
  "serde_json",
  "sha2",
+ "thiserror",
  "tokio",
  "url",
 ]
