@@ -1,20 +1,20 @@
 # Next GENESIS implementation split
 
 Latest assembled checkpoint: [draft PR #25](https://github.com/HenryWashuHe/genesis/pull/25),
-`codex/combined-integration`, source merge `ac00764`, cross-stack scenario `9d63cc0`.
-It combines capability #24 and Claude #11/#12/#20/#21/#22/#23 at their recorded heads.
-The assembled baseline passes 666 Rust tests (84 suites), 26 web tests, production
-web build, strict Clippy and formatting; schemas/types regenerate without drift.
-The strengthened five-test scenario suite also passes after that baseline, proving
-actual Elastic-backed B discovery and separate A/B evidence projection across restart.
-These remain local fixtures. See [the complete source and review matrix](COMBINED_INTEGRATION.md).
+`codex/combined-integration`, source merge `dde0682`.
+It combines capability #24 and Claude #11/#12/#20/#21/#22/#23/#26/#27/#28 at their
+recorded heads. The full assembled suite passes 684 Rust tests (86 suites), 33 web
+tests, production web build, strict Clippy and formatting; schemas/types regenerate
+without drift. This includes the Elastic-backed independent-adoption scenario,
+gateway receipt and operator-attachment fixtures. No live sponsor evidence is claimed.
+See [the full integration matrix](COMBINED_INTEGRATION.md) and [the review queue](PR_REVIEW_QUEUE.md).
 
-This branch remains draft: source reviews contain eleven reproduced failing
-regressions across #11/#12/#20, plus source-level UI/Elastic-planner findings on
-#21/#22. Those separate probes are not part of the passing baseline. Keep source
-fixes with Claude and absorb new commits here; no main merge or whole-kernel
-ownership transfer is implied. Codex continues capability implementation and
-integration work under the ongoing objective, with hourly continuation scheduled.
+This branch remains draft: thirteen reproduced failing regressions across
+#11/#12/#20/#26/#27 remain on separate test-only branches, alongside source/UI
+findings on #21/#22/#28. They are not part of the passing baseline. Keep source
+fixes with Claude and absorb tested new commits here. The current priority is
+clearing the review queue. No main merge or whole-kernel ownership transfer is
+implied; the ongoing objective and hourly continuation remain active.
 
 ### Previous capability checkpoint
 

@@ -1,6 +1,6 @@
 # PR review queue — October 22, 2026
 
-This checkpoint reviews all 18 open PRs. It records exact source heads, not a
+This checkpoint reviews all 21 open PRs, including newly arrived #26–#28. It records exact source heads, not a
 blanket approval of later pushes. No PR was merged during this review. The fresh
 capability review inspected each diff against its declared base and the relevant
 test coverage; it did not rerun the already-passing suites or exercise live accounts.
@@ -50,11 +50,19 @@ consume them without duplicating implementation in the integration branch.
 | [#20](https://github.com/HenryWashuHe/genesis/pull/20) / `e8cad2054e1b2961d061bed432c9389b1c45af39` | Apply the managed-job result guard to specialists; reauthorize before a retry after handoff | [Review](https://github.com/HenryWashuHe/genesis/pull/20#pullrequestreview-5614181896), three reproduced failures and a passing control in test-only `faf3d8b` |
 | [#21](https://github.com/HenryWashuHe/genesis/pull/21) / `2c987193892da94e4110179362f2ef2aa052779c` | Bind acceptance runs to installation ID, support adoption acceptance purpose, and refresh changed/failed evidence reads | [Source review](https://github.com/HenryWashuHe/genesis/pull/21#pullrequestreview-5615620684); no new browser reproduction |
 | [#22](https://github.com/HenryWashuHe/genesis/pull/22) / `8a23273ccbf97b611ed73ddfc43646b31dffbcca` | Revalidate effective remote planner configuration; disable redirects in the shared Agent Builder client | [Source review](https://github.com/HenryWashuHe/genesis/pull/22#pullrequestreview-5615620695); no new drift/redirect reproduction |
+| [#26](https://github.com/HenryWashuHe/genesis/pull/26) / `3dc95d6bd9863c09e5775957d5346edbc3d35d2e` | Reconcile a provisional receipt run ID against the trusted dispatch result before treating correlation as verified | [Review](https://github.com/HenryWashuHe/genesis/pull/26#pullrequestreview-5616058167); test-only `8d82c32`, one reproduced failure and a passing late-receipt control |
+| [#27](https://github.com/HenryWashuHe/genesis/pull/27) / `95a33a0edd1b574eef59cbe6a11b0a09915978aa` | Include sibling bindings in the current change when checking whether an attached native agent is already in use | [Review](https://github.com/HenryWashuHe/genesis/pull/27#pullrequestreview-5616058543); test-only `e161aad` reproduces two committed roles sharing the same native agent |
+| [#28](https://github.com/HenryWashuHe/genesis/pull/28) / `de0f5bc03c5728286bfd921b73f892d06eb88b7f` | Keep an Abandon-only action after attachment while readiness is pending | [Review](https://github.com/HenryWashuHe/genesis/pull/28#pullrequestreview-5616058888); actual component rendering loses both actions on transition to awaiting readiness, not an interactive browser test |
 
 Prioritize the shared backend-managed result guard across #11/#20 first, then
 time-sensitive authority/retry checks and planner restart behavior. Put the shared
 Agent Builder transport correction in #11 and absorb it into #22. Finish #21's
 installation/adoption evidence bindings against the current capability contracts.
+The new recovery stack is #20 → #26 → #27 → #28. Fix #27's sibling identity
+collision before relying on operator attachment; fix #26's run correlation without
+losing valid early receipts. #28 should preserve abandonment without exposing
+Attach for an already-bound operation. These findings are additions to the
+earlier source review, not evidence that the earlier blockers were fixed.
 
 ## Documentation and combined checkpoint
 
@@ -64,12 +72,11 @@ installation/adoption evidence bindings against the current capability contracts
   registration exists in #20; a real readiness verifier remains pending. Reconcile
   these docs with the newer handoff already in the integration branch.
 - [Draft #25](https://github.com/HenryWashuHe/genesis/pull/25): keep draft. Reviewed
-  integration snapshot `c5916af6885099a1171225db0ca729a5bf1cbed1` combines the heads
-  above. Its baseline passed 666 Rust tests, 26 web tests, production web build,
-  strict Clippy, formatting and schema/type regeneration without drift. A subsequent
-  test-only Elastic/adoption enhancement passed all five affected scenario tests.
-  The eleven failing source-review probes are separate and are not in that passing
-  baseline. [Full validation scope](COMBINED_INTEGRATION.md).
+  integration snapshot `dde0682` now includes #26–#28 as well as the earlier heads.
+  It passes 684 Rust tests across 86 suites, 33 web tests, production web build,
+  strict Clippy, formatting and schema/type regeneration without drift.
+  The thirteen failing source-review probes are separate and are not in that
+  passing baseline. [Full validation scope](COMBINED_INTEGRATION.md).
 
 Before landing a stack item, confirm its head/base still match this review. Preserve
 the dependency ancestry and retarget the next PR as needed; do not squash/rebase
