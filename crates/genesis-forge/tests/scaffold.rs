@@ -1,7 +1,57 @@
-use genesis_forge::{venue_source, ForgeStateError};
+use genesis_forge::{venue_source, venue_source_for_actor, ForgeStateError};
 use serde_json::Value;
 
 const PARSER: &str = "export function extract() { throw new Error('candidate parser'); }\n";
+
+#[test]
+fn actor_identity_is_bound_before_hashing_without_changing_other_scaffold_files() {
+    let urls = ["https://fixtures.example/table.html".into()];
+    let original = venue_source(PARSER, &urls).unwrap();
+    let bound = venue_source_for_actor(PARSER, &urls, "genesis-custom-actor", "0.2").unwrap();
+    let renamed = venue_source_for_actor(PARSER, &urls, "genesis-another-actor", "0.2").unwrap();
+    let versioned = venue_source_for_actor(PARSER, &urls, "genesis-custom-actor", "0.3").unwrap();
+    assert_ne!(bound.sha256().unwrap(), original.sha256().unwrap());
+    assert_ne!(bound.sha256().unwrap(), renamed.sha256().unwrap());
+    assert_ne!(bound.sha256().unwrap(), versioned.sha256().unwrap());
+    for (before, after) in original.files().iter().zip(bound.files()) {
+        assert_eq!(before.name, after.name);
+        if before.name == ".actor/actor.json" {
+            assert_eq!(
+                before.content,
+                include_str!("../../../actors/venue-extractor-template/.actor/actor.json")
+            );
+            let mut expected: Value = serde_json::from_str(&before.content).unwrap();
+            expected["name"] = "genesis-custom-actor".into();
+            expected["version"] = "0.2".into();
+            assert_eq!(
+                serde_json::from_str::<Value>(&after.content).unwrap(),
+                expected
+            );
+        } else {
+            assert_eq!(before.content, after.content);
+        }
+    }
+}
+
+#[test]
+fn bound_actor_metadata_uses_the_existing_exact_candidate_contract() {
+    let urls = ["https://fixtures.example/table.html".into()];
+    for (name, version) in [
+        ("", "0.1"),
+        ("Bad/Name", "0.1"),
+        ("-actor", "0.1"),
+        ("actor-", "0.1"),
+        ("actor", "latest"),
+        ("actor", "00.1"),
+        ("actor", "1.0.0"),
+    ] {
+        assert_eq!(
+            venue_source_for_actor(PARSER, &urls, name, version).unwrap_err(),
+            ForgeStateError::InvalidCandidate
+        );
+    }
+    assert!(venue_source_for_actor(PARSER, &urls, "actor", "99.99").is_ok());
+}
 
 #[test]
 fn packaged_actor_contains_only_production_files_and_exact_candidate_bytes() {
