@@ -24,15 +24,17 @@ POST**. A conversation can describe a challenge; the organization's planner and
 kernel decide what to do about it. Candidate methods, hidden evaluation cases,
 evaluator versions and authority rules are never reachable from chat.
 
-Identity: the signed ACP sender and message id are journaled before any effect
-(PR [#132](https://github.com/HenryWashuHe/genesis/pull/132)); a redelivered
-message never repeats an effect. Per-sender cursors keep one judge's `status`
-separate from another's.
+Identity: the signed ACP sender plus message id are journaled before any effect
+(open PR #3, was genesis#132; not on main yet); a redelivered message never
+repeats an effect, and two senders reusing an id are two reports. Per-sender
+cursors keep one judge's `status` separate from another's.
 
 ## Messages
 
-Vocabulary is product-neutral: the same words work for a venue organization
-today and an invention lab later. Each row names the existing route it reads,
+Vocabulary is product-neutral: the same words work for any GENESIS organization
+under the owner's canonical direction (networked recursive capability
+improvement with fixed model weights), including the proposed invention labs;
+the venue fixture is only the current regression workload. Each row names the existing route it reads,
 or the contract it waits for. "Exists" means on main with tests; "open PR" means
 in a reviewed but unmerged PR; "requires contract" means no route or wire value
 exists and none is invented here.
@@ -41,10 +43,10 @@ exists and none is invented here.
 | --- | --- | --- | --- |
 | `help` | command list, what chat cannot do | none | exists |
 | `org` (also `lab`, `who`) | mission goal, active and retired roles, what each owns, requested capabilities with their real tagged status | `GET /organization` | exists |
-| `report <what happened>` (also `challenge <…>`) | records one observation with a fixed `source` and `evidence_ref`, then relays this report's own planner decision, proposed and committed changes, roles, provisioning (DEV STUB labeled), recruitment, capability requests and installations, handoffs, retirements; ends with how to follow up | `POST /missions/{active}/observations`, then `GET /events/log` | exists |
-| `status` | everything after your last report, paged from a durable per-sender cursor, bounded per reply | `GET /events/log`, `GET /organization` | exists (#132) |
-| `methods` (also `capabilities`) | installed capabilities and methods by exact `id@version`, their acceptance state and the role holding them; offers one `lineage <id>` button per id | `GET /organization` (`installations`, `roles[].capabilities`) | implemented in open PR (ACP commands) for task capabilities; a **method** artifact kind requires #124 |
-| `lineage <id>` | the chain for one capability or method: who published which version, derived from what, who adopted or declined it and why | `GET /capabilities/{id}/versions/{version}` (manifest, provenance, verification); per-candidate decisions `GET /capability-gaps/{id}/adoption` | manifest, verification and this organization's installation state are implemented in open PR (ACP commands); candidate decision log is open PR #116; `derived_from` / dependency digests **require #124** |
+| `report <what happened>` (`challenge <…>` is a proposed alias, not implemented) | records one observation with a fixed `source` and `evidence_ref`, then relays this report's own planner decision, proposed and committed changes, roles, provisioning (DEV STUB labeled), recruitment, capability requests and installations, handoffs, retirements; ends with how to follow up | `POST /missions/{active}/observations`, then `GET /events/log` | exists |
+| `status` | everything after your last report, paged from a durable per-sender cursor, bounded per reply | `GET /events/log`, `GET /organization` | per-sender paged cursor is in open PR #3 (was genesis#132); on main, status rereads the first page |
+| `methods` (also `capabilities`) | installed capabilities and methods by exact `id@version`, their acceptance state and the role holding them; offers one `lineage <id>` button per id | `GET /organization` (`installations`, `roles[].capabilities`) | open PR #5 (ACP commands), not on main; a **method** artifact kind requires #124 |
+| `lineage <id>` | the chain for one capability or method: who published which version, derived from what, who adopted or declined it and why | `GET /capabilities/{id}/versions/{version}` (manifest, provenance, verification); per-candidate decisions `GET /capability-gaps/{id}/adoption` | open PR #5 renders manifest, verification and this organization's installation state; candidate decision log is open PR (genesis#116, here #15); `derived_from` / dependency digests **require #124** |
 | `outcome <id>` (also `why`) | an adoption's conclusion: `adopted`, `not_applicable`, `insufficient_evidence`, `no_candidate`, `unknown`, `pending`, `stopped`, with the oracle-free reason | `GET /capability-gaps/{id}/adoption` | open PR #128 (vocabulary from [adoption.md](adoption.md)) |
 | `experiment <id>` | one experiment's task, method version, consumed budget, outcome and evidence reference | — | **requires contract** (#124 receipt, #126 evaluator); no route |
 | `compare <id>` | the declared comparison for a return challenge: treatments, budgets, scores, "improved" only when the predeclared criterion holds | — | **requires contract** (#124 comparison protocol); no route |
@@ -87,7 +89,7 @@ id. A button press arrives as a card response whose `selection.command` must
 match the read-only command set exactly (`help`, `org`, `status`, `methods`,
 `lineage <id>`); anything else, including `report …`, is ignored. A message
 carrying both text and a card response is ambiguous and ignored. Implemented in
-the open ACP commands PR; rendering in ASI:One is unverified until routing is.
+open PR #5, not on main; rendering in ASI:One is unverified until routing is.
 
 ## Rehearsal without ASI:One
 
