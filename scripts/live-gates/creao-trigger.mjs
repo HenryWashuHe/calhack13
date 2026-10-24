@@ -7,6 +7,9 @@ import { parseArgs } from "node:util";
 import { fileURLToPath } from "node:url";
 
 const HOST = "https://agent.creao.ai";
+// Cloudflare currently rejects Node's default undici User-Agent on the run
+// status route (403 / error 1010), while accepting a browser User-Agent.
+const USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const TERMINAL = new Set(["completed", "failed", "cancelled"]);
 const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
@@ -123,11 +126,13 @@ export async function runTrigger({ appId, inputs, out, allowCredits = false, key
     try {
       const response = await fetchImpl(`${baseUrl}/api/v1/apps/${appId}/runs/${record.run_id}`, {
         method: "GET", redirect: "manual", signal: AbortSignal.timeout(15000),
-        headers: { Authorization: `Bearer ${key}` },
+        headers: { Authorization: `Bearer ${key}`, "User-Agent": USER_AGENT },
       });
       if (response.status !== 200) throw new Error("get_failed");
       body = await jsonResponse(response);
-      if (body.id !== record.run_id || body.appId !== appId ||
+      // The live GET receipt omits appId, although POST includes it. The
+      // exact run ID and app-scoped URL still bind this read to the journal.
+      if (body.id !== record.run_id || (body.appId !== undefined && body.appId !== appId) ||
         !["pending", "running", "completed", "failed", "cancelled"].includes(body.status)) {
         throw new Error("invalid_get_receipt");
       }
