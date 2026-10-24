@@ -118,6 +118,8 @@ struct World {
     ambiguous_runs: bool,
     /// Native runs remain RUNNING until explicitly changed by the fixture.
     running_runs: bool,
+    /// Simulate revoked read access without changing a native run's status.
+    deny_run_reads: bool,
     /// Next run submissions that are created but finish FAILED (definite).
     failing_runs: usize,
     failed: BTreeSet<usize>,
@@ -168,6 +170,12 @@ impl World {
                 (StatusCode::CREATED, self.run(run))
             }
             ("GET", ["v2", "actor-runs", run]) => {
+                if self.deny_run_reads {
+                    return (
+                        StatusCode::UNAUTHORIZED,
+                        json!({"error":"read access denied"}),
+                    );
+                }
                 let run: usize = run.strip_prefix("b-run-").unwrap().parse().unwrap();
                 let mut reply = self.run(run);
                 if self.failed.contains(&run) {
@@ -268,6 +276,9 @@ impl Providers {
     }
     fn fail_runs(&self, n: usize) {
         self.world.lock().unwrap().failing_runs = n;
+    }
+    fn deny_run_reads(&self, denied: bool) {
+        self.world.lock().unwrap().deny_run_reads = denied;
     }
 }
 fn limits() -> RunLimits {
@@ -2267,4 +2278,109 @@ async fn a_never_submitted_sibling_of_a_failed_check_settles_and_is_never_submit
         );
     }
     assert_eq!(f.providers.runs(), posts);
+}
+
+#[tokio::test]
+async fn review_failed_check_read_does_not_settle_a_still_running_native_effect() {
+    use genesis_server::capability_runtime::CapabilityRunPhase;
+    let f = Fixture::new(Options {
+        running_runs: true,
+        ..Options::default()
+    })
+    .await;
+    assert_eq!(f.drain().await, Some(Step::Frozen));
+    assert_eq!(f.drain().await, Some(Step::Dispatched));
+    f.adoption_step().await;
+    f.adoption_step().await;
+    let first = f.adoptions()[0].clone();
+    assert_eq!(first.phase(), AdoptionPhase::Checking);
+    let old_job = first.job_ids()[0].clone();
+    let submitted = f
+        .app
+        .capability_runtime
+        .step(&old_job, false)
+        .await
+        .unwrap();
+    assert_eq!(submitted.phase, CapabilityRunPhase::Running);
+    assert!(submitted.receipt.is_some());
+    let posts = f.providers.runs();
+    assert_eq!(posts, 1);
+
+    // The provider accepts the run, then refuses a read of that saved ticket.
+    // HTTP 401 does not say whether the already-created native run has ended.
+    f.providers.deny_run_reads(true);
+    let failed = f
+        .app
+        .capability_runtime
+        .step(&old_job, false)
+        .await
+        .unwrap();
+    assert_eq!(failed.phase, CapabilityRunPhase::Failed);
+    assert!(matches!(
+        failed.failure,
+        Some(genesis_providers::ProviderError::Http { status: 401, .. })
+    ));
+    assert_eq!(
+        serde_json::to_value(&failed.receipt).unwrap(),
+        serde_json::to_value(&submitted.receipt).unwrap()
+    );
+    assert_eq!(f.providers.count("GET", "/v2/actor-runs/"), 1);
+    assert_eq!(f.providers.runs(), posts);
+    f.adoption_step().await;
+    assert_eq!(
+        f.drain().await,
+        Some(Step::Attention(GapAdoptionCode::Checks))
+    );
+
+    // Restoring read access does not establish that the original run ended.
+    // A fresh submission still needs evidence of that run's terminal outcome.
+    f.providers.deny_run_reads(false);
+    let (status_code, status_body) = adoption_status(&f, f.gap_id.as_str()).await;
+    assert_eq!(status_code, reqwest::StatusCode::OK, "{status_body}");
+    let (retry_code, retry_body) = retry(&f, "operator").await;
+    if retry_code == reqwest::StatusCode::OK {
+        assert_eq!(f.drain().await, Some(Step::Dispatched));
+        let second_id = f.record().unwrap().adoption_id.unwrap();
+        assert_ne!(second_id, first.id());
+        f.adoption_step().await;
+        f.adoption_step().await;
+        let second = f.app.store.get_adoption(&second_id).unwrap();
+        let new_job = second.job_ids()[0].clone();
+        let replay = f
+            .app
+            .capability_runtime
+            .step(&new_job, false)
+            .await
+            .unwrap();
+        assert_eq!(replay.phase, CapabilityRunPhase::Running);
+    }
+    let native: Value = reqwest::Client::builder()
+        .no_proxy()
+        .build()
+        .unwrap()
+        .get(format!("{}/v2/actor-runs/b-run-0", f.providers.url))
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert_eq!(native["data"]["status"], "RUNNING");
+    assert_eq!(
+        f.providers.runs(),
+        posts,
+        "retry submitted a duplicate after a failed read while the first provider run is still RUNNING; status={status_body}, retry={retry_code}: {retry_body}"
+    );
+    assert_eq!(status_body["retryable"], false, "{status_body}");
+    assert_eq!(retry_code, reqwest::StatusCode::CONFLICT, "{retry_body}");
+    assert_eq!(retry_body["error"], "adoption_checks_unresolved");
+    let record = f.record().unwrap();
+    assert_eq!(record.adoption_id.as_deref(), Some(first.id()));
+    assert_eq!(record.attempt, 0);
+    assert_eq!(record.state, GapAdoptionState::Attention);
+    assert_eq!(f.adoptions().len(), 1);
+    assert_eq!(f.providers.model_calls(), 0);
+    assert!(!f.driver_bound());
 }
