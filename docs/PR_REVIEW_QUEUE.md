@@ -1,6 +1,27 @@
 # PR review queue — October 23, 2026
 
-## Authoritative checkpoint
+## Current queue after #108
+
+Main `74b99c3fabf6d17188b5bf53fba9cd83d828305d`, tree
+`f75934c42770f902e40700079b50d9972806d220`. Newer GitHub heads and issue #4
+supersede this snapshot; preserve the original reproduced tests before merging.
+
+| PR | Current disposition | Evidence |
+| --- | --- | --- |
+| #84 | Merged `d46b03f`, source `c7d2ee9` | Four preflight tests and strict Clippy; docs accurately keep #86 retry unreleased. |
+| #103 | Merged `743c9d1`, source `de98523` | 83 focused tests, strict server/planner Clippy; adoption-only names do not acquire broader policy scope. |
+| #104 | Merged `a0b1ff6`, source `8a39f18` | 86 web tests, typecheck, build. |
+| #105 | Merged `8e046c7`, source `dcc3648` | Explicit native Fetch/coordinator test passed; Apify/CREAO remain fixtures. |
+| #106 | Merged `8f86571`, source `be49d82` | Additive Claude coverage: 66 venue and 77 Python tests; original native gate unchanged. |
+| #107 | Merged `2ad34dd`, source `6676c52` | 104 Python tests before narrow constructor adjustment; final 27 ACP tests pass. No public lifecycle/ASI proof. |
+| #108 | Merged `74b99c3`, source `180d37c` | 135 server-library + 81 assessment tests, strict Clippy/fmt. Baseline two failures plus one provider-absence control; stopped intents only retire after definitive child absence. |
+| #86 | **Hold**, head `c2dc523483b3d474cd52e5978f2ad22dc486f93f` | HTTP401 run-status read → local Failed → retry duplicates a still-RUNNING effect. Test-only `d84eb44`, fresh composition: 33 pass, 1 fail. |
+| #91 | **Hold**, head `6776130365fb04ba0c77b589ba82688c9e553edc` | Frequent events starve replay; absent revisions appear audited. Original `42aab93` regression branch is preserved. |
+
+See [the current handoff](AGENT_HANDOFF.md) for ownership and next automatic
+recovery intake work. Local validation does not establish cloud-provider success.
+
+## Historical queue after #101
 
 Main `0a0c175aa452d2dfcdee617e6f1647a523f5cceb`, tree
 `ec382ccbfabc37487d23e3962e955f49f295493c`, includes #101 and the #83/#85/#87
