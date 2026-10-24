@@ -3,6 +3,7 @@
 //!   lab-exec ref evaluator | environment <namespaces|none> | runtime | protocol
 //!   lab-exec package <source-dir> <id> <version> <entry> <out.json>
 //!   lab-exec example-plan <namespaces|none> <instances> <sim-steps> <wall-ms> <out-dir>
+//!     (writes plan.json, criterion.json and both control packages)
 //!   lab-exec run <plan.json> <slot> <package.json> <state-dir> <namespaces|none>
 //!   lab-exec recover <plan.json> <slot> <state-dir> <namespaces|none>
 //!   lab-exec check <plan.json> <slot> <state-dir> [score-dir]
@@ -146,6 +147,16 @@ fn main() -> ExitCode {
                     grant,
                 );
                 let reference = plan.reference().map_err(|e| format!("plan: {e:?}"))?;
+                let ids: Vec<String> = plan
+                    .development_instances
+                    .iter()
+                    .map(|r| r.id.clone())
+                    .collect();
+                std::fs::write(
+                    out.join("criterion.json"),
+                    example::criterion_bytes(&ids, 1),
+                )
+                .map_err(|e| format!("write criterion: {e}"))?;
                 let path = out.join("plan.json");
                 std::fs::write(&path, serde_json::to_vec_pretty(&plan).unwrap())
                     .map_err(|e| format!("write plan: {e}"))?;
