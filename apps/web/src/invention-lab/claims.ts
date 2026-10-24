@@ -3,6 +3,8 @@
 // There is deliberately no "improved" label: that needs a predeclared
 // comparison record, and no such record type exists yet.
 
+import type { Purpose } from "./records";
+
 export type Tone = "ok" | "warn" | "bad" | "neutral";
 export interface Label {
   text: string;
@@ -71,11 +73,12 @@ export function revisionLabel(sourceChanged: boolean): Label {
     : { text: "source unchanged", tone: "neutral", limit: "renaming or reversioning does not change source" };
 }
 
-export type Tier = "loopback_fixture" | "unobserved" | "operator_observed_cloud" | "unrecognized";
+export type Tier = "loopback_fixture" | "unobserved" | "operator_observed_cloud" | "local_process" | "unrecognized";
 export const TIER_TEXT: Record<Tier, string> = {
   loopback_fixture: "loopback fixture",
   unobserved: "unobserved",
   operator_observed_cloud: "operator-observed cloud (hashes are local consistency, not provider authentication)",
+  local_process: "local process (host-recorded receipt; not proof of isolation)",
   unrecognized: "unrecognized transport",
 };
 /** Tier from the recorded transport field only, never from file location. */
@@ -84,4 +87,37 @@ export function tierOf(transport: string | null): Tier {
   if (transport === "loopback_fixture") return "loopback_fixture";
   if (transport === "anthropic_https") return "operator_observed_cloud";
   return "unrecognized";
+}
+
+const EXECUTION: Record<string, Label> = {
+  output_generated: { text: "output generated", tone: "neutral", limit: "an output exists; not design success, not scored" },
+  failed: { text: "execution failed", tone: "bad", limit: "usage still counts" },
+  interrupted: { text: "execution interrupted", tone: "warn", limit: "usage still counts" },
+  unknown: { text: "execution outcome unknown — do not replay", tone: "warn", limit: "not a failure and not an empty result" },
+};
+export function executionLabel(outcome: string): Label {
+  return EXECUTION[outcome] ?? unrecognized(outcome);
+}
+
+const EVALUATION: Record<string, Label> = {
+  scored: { text: "scored", tone: "neutral", limit: "metrics recorded; acceptance is a separate verdict" },
+  invalid: { text: "output invalid for scoring", tone: "bad", limit: "the trusted scorer rejected the output" },
+  failed: { text: "scoring failed", tone: "bad", limit: "no metrics" },
+  unknown: { text: "scoring unknown", tone: "warn", limit: "not a rejection" },
+};
+export function evaluationLabel(outcome: string): Label {
+  return EVALUATION[outcome] ?? unrecognized(outcome);
+}
+
+export function purposeText(p: Purpose): string {
+  switch (p.kind) {
+    case "ordinary":
+      return "ordinary run";
+    case "acceptance":
+      return `acceptance trial, ${p.role} slot`;
+    case "comparison":
+      return `comparison trial ${p.trial_id}, arm ${p.arm_id}`;
+    case "unrecognized":
+      return `unrecognized purpose: ${p.raw}`;
+  }
 }
