@@ -10,9 +10,11 @@ running Fetch specialist, verifies its selection, and sends the selected source
 to the existing CREAO monitor for a fresh assessment. The original monitor's
 responsibility and assignment remain unchanged.
 
-This is an operator-started workflow. It does not automatically search for venues,
-invoke their Actors, create a new CREAO agent, or start recovery from every Reopen.
-Those inputs and the monitor must already exist. The earlier
+The API below supports operator-started recovery. An explicit server opt-in also
+enables [automatic intake from accepted Reopens](VENUE_RECOVERY_INTAKE.md), using
+fresh verified evidence without a per-recovery operator request. Neither path
+automatically fetches new venue pages, invokes their Actors or creates a new
+CREAO agent. Those inputs and the monitor must already exist. The earlier
 [mission bridge plan](FETCH_MISSION_BRIDGE_PLAN.md) records the design rationale;
 this guide describes the narrower API and current implementation.
 
