@@ -421,6 +421,8 @@ async fn authenticated_but_wrong_selection_cannot_create_an_assessment_or_missio
     assert!(rejected["attention"].is_string(), "{rejected}");
     let native = receipt(&journal, &bridge);
     assert_eq!(native.job_id(), registered["job_id"].as_str().unwrap());
+    assert_eq!(rejected["receipt_sha256"], native.receipt_sha256(),
+        "semantic rejection must retain the authenticated native receipt without claiming a verified selection");
     assert!(rejected["proof_ref"].is_null());
     assert!(rejected["assessment_id"].is_null());
     assert_ne!(
@@ -437,7 +439,10 @@ async fn authenticated_but_wrong_selection_cannot_create_an_assessment_or_missio
     f.restart(false).await;
     bridge.attach(&mut f).await;
     for _ in 0..3 {
-        assert!(step(&f, &path).await["attention"].is_string());
+        let saved = step(&f, &path).await;
+        assert!(saved["attention"].is_string());
+        assert_eq!(saved["receipt_sha256"], native.receipt_sha256());
+        assert!(saved["proof_ref"].is_null());
     }
     assert_eq!(bridge.sends().len(), 3);
     assert_eq!(f.side_effect_counts(), before);
@@ -536,4 +541,88 @@ async fn verified_selection_prepares_creao_child_despite_fetch_inbox_outage() {
 #[tokio::test]
 async fn pending_creao_child_completes_parent_despite_fetch_inbox_outage() {
     followup_without_bridge(false).await;
+}
+
+#[tokio::test]
+async fn corrupt_full_worker_page_is_deferred_without_starving_the_next_genuine_recovery() {
+    let mut f = Fixture::start().await;
+    let bridge = Bridge::start().await;
+    let journal = bridge.attach(&mut f).await;
+    let (source, reopened) = reopened(&f).await;
+    let (path, healthy) = register(&f, recovery_request(&source, &reopened)).await;
+    let before = f.side_effect_counts();
+    let db = sqlite(&f);
+    // Deliberate private-storage corruption fixture: these are NOT valid
+    // recoveries, native receipts or source proofs. Bypass only this connection's
+    // FK checks to model unreadable legacy/copied rows. The healthy seventeenth
+    // record above came entirely from the real public API and verified evidence.
+    db.pragma_update(None, "foreign_keys", false).unwrap();
+    let bad_bytes = "{this is intentionally not a recovery checkpoint}";
+    for index in 0..16 {
+        db.execute("INSERT INTO venue_recoveries
+            (recovery_id,client_request_id,requirement_id,contract_id,job_id,revision,active,next_check_at,data)
+            VALUES (?1,?2,?3,?4,?5,0,1,'2000-01-01T00:00:00Z',?6)",rusqlite::params![
+                format!("corrupt-recovery-{index:02}"),format!("corrupt-request-{index:02}"),
+                format!("corrupt-requirement-{index:02}"),format!("corrupt-contract-{index:02}"),
+                format!("corrupt-job-{index:02}"),bad_bytes]).unwrap();
+    }
+    let first = genesis_server::venue_recovery::drain_once(&f.app).await;
+    assert!(
+        first.is_ok(),
+        "one unreadable row must not abort the batch: {first:?}"
+    );
+    assert_eq!(first.unwrap(), 16, "the pass remains bounded");
+    assert!(
+        bridge.sends().is_empty(),
+        "healthy record is beyond the first full page"
+    );
+    assert_eq!(f.get(&path).await, healthy);
+    for index in 0..16 {
+        let (data,revision,active,due):(String,u64,bool,String)=db.query_row(
+            "SELECT data,revision,active,next_check_at FROM venue_recoveries WHERE recovery_id=?1",
+            [format!("corrupt-recovery-{index:02}")],|row|Ok((row.get(0)?,row.get(1)?,row.get(2)?,row.get(3)?))).unwrap();
+        assert_eq!(
+            data, bad_bytes,
+            "advisory scheduling cannot rewrite corrupt evidence"
+        );
+        assert_eq!(revision, 0);
+        assert!(active);
+        let due = chrono::DateTime::parse_from_rfc3339(&due).unwrap();
+        assert!(
+            due > Utc::now() + ChronoDuration::seconds(30),
+            "unreadable rows must leave the next bounded page"
+        );
+    }
+    let second = genesis_server::venue_recovery::drain_once(&f.app)
+        .await
+        .unwrap();
+    assert_eq!(second, 1);
+    let sends = bridge.sends();
+    assert_eq!(
+        sends.len(),
+        1,
+        "the healthy seventeenth record must enqueue recruitment on the second pass"
+    );
+    assert_eq!(
+        sends[0].message.message_id,
+        healthy["recruit_message_id"].as_str().unwrap()
+    );
+    assert_eq!(
+        sends[0].message.contract_id,
+        healthy["contract_id"].as_str().unwrap()
+    );
+    assert!(
+        journal.pending(Utc::now()).unwrap().is_empty(),
+        "the genuine bridge queue receipt was durably acknowledged"
+    );
+    assert_eq!(
+        assessment_count(&f),
+        1,
+        "no extra CREAO assessment before verified selection"
+    );
+    assert_eq!(f.side_effect_counts(), before);
+    assert!(
+        f.get(&path).await["receipt_sha256"].is_null(),
+        "a queue receipt is not native task completion"
+    );
 }
