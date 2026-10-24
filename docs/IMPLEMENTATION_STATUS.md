@@ -26,7 +26,7 @@ It remains **unmerged and experimental**, with affected-owner agreement pending.
 It does not implement method execution, independent scoring, adoption or comparison.
 ACP #3/#5 remain held: 145 tests pass, but four additional defects reproduce.
 Later merged checkpoint `983f0443` adds adoption candidate evidence (#8,
-`8f26401e`) and terminal-run retry (#10, `1aed609f`). Their merged tree matches
+`8f26401e`) and terminal-run retry (#10, `1aed609f`). Adoption merge `1aed609f` has the same tree as
 independently tested composition `015e4fc5`: 47 adoption and 17 provider-executor
 tests plus strict Clippy. Unknown/live effects remain blocked from retry.
 
