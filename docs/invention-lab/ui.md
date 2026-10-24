@@ -240,7 +240,40 @@ checklist reads:
   (2 rejected), since a rejected update is a valid selective-transfer outcome
   but not an accepted return. No problems are reported.
 
-## Results matrix
+## Results board
+
+The judge-facing board (`ResultsBoard.tsx`) tells the A → B → A pass in six
+steps derived from records (`story.ts`):
+1. A generates;
+2. B tests A's method;
+3. B revises;
+4. B tests its revision;
+5. A tests B's revision;
+6. A decides.
+
+Each step is drawn as a box with its figures and one dot per trial verdict
+(green accepted, red rejected). A step without records is dashed. The same
+steps follow as plain sentences, then the results matrix. Every record behind
+the board sits in a collapsed section. Rows name methods by their recorded
+origin: "*org*'s generated method", "*org*'s revision", or "control: *id*"
+when no origin is supplied.
+
+On the committed evidence the steps read:
+1. A asked the model 3 times, and 1 attempt produced a package (3 calls,
+   12027 / 18315 tokens, failures included).
+2. B tested it in 2 ravine-crossing trials: 1 accepted, 1 rejected.
+3. B revised it (1 call, 20798 / 5741 tokens), and the source changed.
+4. B tested the revision in 3 rough-transport trials: 1 accepted, 2 rejected.
+5. A tested the revision in 2 return-mix trials: 2 rejected.
+6. No adoption decision is recorded, so there is no accepted return yet.
+
+`node apps/web/src/invention-lab/export-board.mjs [--out FILE]` builds one
+self-contained HTML file with the committed evidence embedded, using the web
+app's esbuild. The default output is `apps/web/dist/invention-lab-board.html`,
+which is ignored by Git. The page fetches nothing. In the dev preview,
+choosing A and B shows the board.
+
+
 
 Rows are exact method versions; columns are the task families named by each
 run's binding (`public_task`). A cell lists the success counts of that
