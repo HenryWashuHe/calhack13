@@ -75,3 +75,13 @@ it("has no label that claims improvement", () => {
   ].map((w) => w.text);
   expect(words.join(" ")).not.toMatch(/improv|better|success/i);
 });
+
+it("labels inherited Object member names as unrecognized, not as their prototype values", () => {
+  for (const raw of ["constructor", "toString", "__proto__", "hasOwnProperty", "valueOf"]) {
+    for (const label of [phaseLabel(raw), adoptionLabel(raw)]) {
+      expect(label).toEqual({ text: `unrecognized: ${raw}`, tone: "neutral", limit: "value not in this view's vocabulary; shown verbatim" });
+    }
+  }
+  expect(phaseLabel("failed").text).toBe("generation failed");
+  expect(adoptionLabel("adopted").text).toBe("adopted");
+});
