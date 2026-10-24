@@ -23,8 +23,8 @@ prebuilt artifact must never be presented as freshly generated.
 | Org B independent adoption | real code (loopback-proven) | both orgs + registry | B's own acceptance runs, 0 synthesis calls |
 | Elastic specialists / planner agent | real code | Elastic keys | smoke report, agent IDs |
 | Fetch recruitment | real code; discovery + signed bridge | Agentverse key + bridge | search ID, signed receipts |
-| CREAO persistent role | creation/readiness code; **core mission work still open** (CREAO_SPONSOR_NOTES) | CREAO key | agent ID **and run share link** required by the track |
-| Console | real | always | role cards, evidence tables, attention panel |
+| CREAO persistent role | agent creation/runtime and execution receipts merged; **gateway readiness (#26) and attach (#27) held**, so a CREAO role can't become ready on main; core mission work still open (CREAO_SPONSOR_NOTES) | CREAO key + #26/#27 merged | agent ID **and run share link** required by the track |
+| Console | real; **Attention panel is #28, held behind #26**, not on main | always (panel: once #28 lands) | role cards, evidence tables, gap chips; attention panel only after #28 |
 
 ## T−24 h: live gates first
 
@@ -153,7 +153,7 @@ decoding; `false` gives the acknowledgment error above.
 | Symptom | Say / do |
 | --- | --- |
 | Cold build too slow | Switch to the labeled recording of a full run; keep the live run going in the background |
-| `needs_reconciliation` anywhere | That is the safety property: GENESIS refuses to guess. Show the attention panel |
+| `needs_reconciliation` anywhere | That is the safety property: GENESIS refuses to guess. Show the event log entry (and the Attention panel once #28 is on main) |
 | Tunnel URL changed | Regenerate into a **new** namespace for the new URL; never replace one a run used |
 | Planner rejected | Show the kernel's exact errors fed back and the repaired proposal |
 | A sponsor API is down | Fall back to that sponsor's recorded gate evidence (`data/live-gates`), labeled |
