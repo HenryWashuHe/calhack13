@@ -19,6 +19,17 @@ fn descriptor(schema: &str, id: &str, value: serde_json::Value) -> ExactContentR
     )
 }
 
+/// Exact bytes of a success-count criterion: accept when the candidate's
+/// successes on exactly these instances exceed the control's by `min_margin`.
+pub fn criterion_bytes(instances: &[String], min_margin: u64) -> Vec<u8> {
+    genesis_core::digest::canonical_json(&serde_json::json!({
+        "rule": "success-count-margin",
+        "min_margin": min_margin,
+        "instances": instances,
+    }))
+    .into_bytes()
+}
+
 pub struct ExampleMethods {
     pub candidate: ExactContentRef,
     pub control: ExactContentRef,
@@ -57,10 +68,11 @@ pub fn acceptance_plan(
     TrialPlan {
         id: "example-ravine-acceptance".into(),
         version: "1".into(),
-        criterion: descriptor(
+        criterion: content(
             "lab-criterion/1",
-            "success-count",
-            serde_json::json!({"rule": "candidate success count on the listed instances exceeds the control's", "instances": ids}),
+            "success-count-margin",
+            "1",
+            &criterion_bytes(&ids, 1),
         ),
         development_instances: development_instances.clone(),
         scoring_instances: ScoringInstances::Development {},
