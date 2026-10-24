@@ -39,6 +39,10 @@ pub struct RosterCostReport {
 }
 
 impl GenerationRoster {
+    pub fn total_grant(&self) -> &ResourceGrant {
+        &self.0.total_grant
+    }
+
     pub fn attempts(&self) -> &[GenerationExpectation] {
         &self.0.attempts
     }
