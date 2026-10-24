@@ -8,6 +8,7 @@ import { WhyDrawer } from "./WhyDrawer";
 import { EvolutionView } from "./EvolutionView";
 import { generations, timeline } from "../lib/evolution";
 import { AuditStrip } from "./AuditStrip";
+import { downloadStory } from "../lib/story";
 
 /** Records the "Why?" drawer explains a role from. Absent → no drawer. */
 const Provenance = createContext<{ changes: OrgChangeRecord[]; events: DomainEvent[] } | null>(null);
@@ -265,6 +266,15 @@ export function OrgPanel({
               }}
             >
               {replaying ? "■ Stop" : "▶ Replay"}
+            </button>
+          )}
+          {events && state && (
+            <button
+              className="btn"
+              title="Download a self-contained HTML record of this organization's evolution"
+              onClick={() => downloadStory(state, changes, events)}
+            >
+              Export story
             </button>
           )}
           <label>

@@ -107,3 +107,19 @@ snapshots in `lib/audit.ts`. It is not the enforcement point. A red cell
 means the stored state and the rules disagree, and should be investigated.
 Every revision of both dev-scenario organizations passes (Org A r0–r10, Org B
 r0–r5). Unit tests mutate a consistent snapshot to show that each rule fires.
+
+# Export story
+
+**Export story** in the Organization header downloads a self-contained HTML
+page named `genesis-<org>-r<N>.html`. It holds no scripts and makes no
+network calls. The page contains:
+
+- the evolution timeline, including refusals;
+- the constitution audit of the current snapshot;
+- the "why" chain for every role, including retired roles.
+
+All recorded text is HTML-escaped. If any role was a DevStub, a notice says
+so at the top. Use the page to share what happened without giving someone
+console access.
+
+![Exported story](img/story-export.png)
