@@ -90,11 +90,11 @@ every milestone. All lower checkpoints are historical.
   and one exact trial-binding companion per canonical path. Optional generation
   checks precede recovery/credentials/reservation; cost assessment remains read-only.
   Henry still needs to consume the retained binding before runtime intent.
-  Prioritize a genuine generated-method retained-file handoff into Henry's runner
-  when project credentials are available. Meanwhile, scope finite whole-chain
-  ceilings in issue #1, including trial-only inherited-method, decline and control
-  stages without dummy generation.
-  That whole-chain contract is proposed, not implemented; hashes prove no timing.
+  Project credentials now work; the first [live method attempt](docs/invention-lab/evidence/live-method-20261024/README.md)
+  failed protocol validation with no package or source execution. Its reservation
+  remains spent; do not replay it. Next: bounded, allowlisted stop/rejection
+  diagnostics before separately declaring another attempt. Finite whole-chain
+  ceilings remain proposed behind the genuine method run; hashes prove no timing.
   Retain input-token/wall, billing, global enforcement and history limits.
   Preserve Henry's runtime files; provider/settings reproducibility, complete
   history, enforcement and end-to-end comparison remain open.

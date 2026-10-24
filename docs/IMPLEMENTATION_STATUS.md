@@ -246,15 +246,14 @@ overruns and original generation-grant limits remain visible. Runtime entry chec
 are still Henry's work; copies, rollback, stale snapshots, chronology and whole-chain
 budgets remain outside this cooperating-path mechanism.
 
-A presence-only check of the ignored project `.env` found a declared provider but
-no `GENESIS_LLM_MODEL`, `GENESIS_LLM_API_KEY` or `ANTHROPIC_API_KEY`. No new cloud
-call occurred. Prioritize one genuine generated-method retained-file handoff into
-Henry's existing runner once the project credential is available. Meanwhile,
-Codex's proposed, unstarted contract is finite whole-chain ceilings, allowing
-generation-bearing development/revision and trial-only acceptance, return,
-control or decline stages without dummy generation. Scope it in issue #1 before
-edits; hashes alone establish no timing, and provider-default sampling is still
-not fixed-settings evaluation. No repeated credential request is needed.
+The replacement project credential now works with `anthropic` / `claude-sonnet-5-5`;
+both model-catalog authentication checks returned 200. The [first live attempt](invention-lab/evidence/live-method-20261024/README.md)
+failed protocol validation: no package or source execution, with one reservation
+retained and no replay. Usage was 1 call, 3,971 input / 8,192 output tokens and
+62,131 ms. Reaching the output cap does not prove truncation: the stop reason was
+not retained. Independent retained-file consistency checks are not cloud-source
+authentication. Next: bounded allowlisted stop/rejection diagnostics before a new
+declared attempt. Finite-chain ceilings remain proposed; G0–G4 remain open.
 Earlier delivery/source-specific evidence remains in the handoff; overlapping
 test counts must not be summed. Repair WIP is isolated in draft #7 and its
 original files remain untouched. Follow current
