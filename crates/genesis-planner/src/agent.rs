@@ -11,6 +11,7 @@ use crate::prompt::{self, KnownSpecialist};
 use genesis_core::change::OrgChangeRecord;
 use genesis_core::events::PlannerVerdict;
 use genesis_core::ids::{ObservationId, RequirementId};
+use genesis_core::lifecycle::ChangeStatus;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -105,26 +106,40 @@ impl Planner {
         format!("planner:{obs}:a{attempt}:s{submission}")
     }
 
-    /// A change already accepted for this observation by an earlier,
-    /// interrupted run (its decision was never recorded).
-    async fn existing_change(
-        &self,
-        obs: &ObservationId,
-    ) -> Result<Option<OrgChangeRecord>, KernelError> {
+    /// Idempotency identity for this observation's requirement.
+    fn requirement_key(obs: &ObservationId) -> String {
+        format!("planner:{obs}:requirement")
+    }
+
+    /// What an earlier, interrupted run left for this observation: an accepted
+    /// change (its decision was never recorded), or the model attempts whose
+    /// submissions the kernel already rejected. A rejected attempt's request
+    /// keys are spent: resubmitting under them returns the cached rejection.
+    async fn prior_attempts(&self, obs: &ObservationId) -> Result<Prior, KernelError> {
+        let mut prior = Prior::default();
         for attempt in 1..=self.max_attempts {
+            let mut used = false;
             for submission in 0..3 {
                 if let Some(c) = self
                     .kernel
                     .change_by_request(&Self::request_key(obs, attempt, submission))
                     .await?
                 {
-                    if c.status != genesis_core::lifecycle::ChangeStatus::Rejected {
-                        return Ok(Some(c));
+                    used = true;
+                    if c.status == ChangeStatus::Rejected {
+                        prior.rejections.extend(rejection(&c).reasons());
+                    } else {
+                        prior.accepted = Some(c);
+                        return Ok(prior);
                     }
                 }
             }
+            if !used {
+                break;
+            }
+            prior.spent = attempt;
         }
-        Ok(None)
+        Ok(prior)
     }
 
     /// Prompt the model would receive for this observation. Works without a
@@ -156,7 +171,8 @@ impl Planner {
         let mut requirement: Option<RequirementId> = existing_requirement(&state, &obs);
         // An interrupted run may already have an accepted change: record the
         // decision without asking the model again.
-        if let Some(change) = self.existing_change(observation).await? {
+        let prior = self.prior_attempts(observation).await?;
+        if let Some(change) = prior.accepted {
             self.decide(
                 observation,
                 PlannerVerdict::ChangeProposed,
@@ -179,8 +195,16 @@ impl Planner {
             &obs,
             &self.specialists,
         ))];
+        // Resume after attempts an interrupted run already spent on
+        // rejections, and tell the model what the kernel said about them.
+        if prior.spent > 0 {
+            messages.push(Message::user(format!(
+                "An earlier attempt for this observation was rejected by the kernel:\n- {}\n\nAvoid those errors.",
+                prior.rejections.join("\n- ")
+            )));
+        }
 
-        for attempt in 1..=self.max_attempts {
+        for attempt in (prior.spent + 1)..=self.max_attempts {
             let started = Instant::now();
             let reply = self
                 .llm
@@ -343,11 +367,18 @@ impl Planner {
         attempt: u32,
     ) -> Result<OrgChangeRecord, SubmitError> {
         // Record the requirement once per observation; reuse it on repairs.
+        // The request carries a per-observation idempotency key. After an
+        // ambiguous outcome a read that finds the requirement proves the write
+        // and this pass continues. A read that finds nothing proves nothing:
+        // the pass ends, and the runner's next pass (or a restarted planner)
+        // resends the identical request, which the kernel resolves to the same
+        // requirement even if the original lands later.
         if requirement.is_none() {
             if let Some(draft) = &parsed.requirement {
                 match self
                     .kernel
-                    .record_requirement(
+                    .record_requirement_once(
+                        &Self::requirement_key(&obs.observation_id),
                         &obs.mission_id,
                         &draft.summary,
                         std::slice::from_ref(&obs.observation_id),
@@ -357,7 +388,6 @@ impl Planner {
                 {
                     Ok(id) => *requirement = Some(id),
                     Err(e) if e.is_ambiguous() => {
-                        // It may have been recorded: look before retrying.
                         *requirement = Some(self.reconcile_requirement(obs).await.ok_or(e)?);
                     }
                     Err(e) => return Err(e.into()),
@@ -375,13 +405,15 @@ impl Planner {
                     .map_err(SubmitError::Output)?;
             let request_id = Self::request_key(&obs.observation_id, attempt, submission);
             match self.kernel.submit_change(&request_id, &proposal).await {
-                Ok(c) => return Ok(c),
+                // An idempotent replay returns the stored record, which may be
+                // a rejection: that is a rejection, not an accepted proposal.
+                Ok(c) => return accepted(c),
                 Err(e) if e.code() == Some("revision_conflict") => last = Some(e),
                 Err(e) if e.is_ambiguous() => {
                     // It may have been accepted: reconcile by request ID and
                     // never resubmit an unknown outcome.
                     return match self.reconcile_change(&request_id).await {
-                        Some(c) => Ok(c),
+                        Some(c) => accepted(c),
                         None => Err(e.into()),
                     };
                 }
@@ -391,6 +423,8 @@ impl Planner {
         Err(SubmitError::Kernel(last.expect("loop ran")))
     }
 
+    /// Look for a requirement an ambiguous request may have recorded. `None`
+    /// is not evidence that it was not recorded.
     async fn reconcile_requirement(
         &self,
         obs: &genesis_core::model::Observation,
@@ -429,6 +463,33 @@ fn existing_requirement(
             r.mission_id == obs.mission_id && r.triggering_evidence == [obs.observation_id.clone()]
         })
         .map(|r| r.requirement_id.clone())
+}
+
+#[derive(Default)]
+struct Prior {
+    accepted: Option<OrgChangeRecord>,
+    /// Model attempts already used by submissions the kernel rejected.
+    spent: u32,
+    rejections: Vec<String>,
+}
+
+/// A stored change record, read back after an idempotent replay or
+/// reconciliation, expressed as the rejection it records.
+fn rejection(c: &OrgChangeRecord) -> KernelError {
+    KernelError::Api {
+        status: 422,
+        code: "change_rejected".into(),
+        message: format!("change {} was rejected", c.change_id),
+        details: serde_json::json!({ "errors": c.errors }),
+    }
+}
+
+fn accepted(c: OrgChangeRecord) -> Result<OrgChangeRecord, SubmitError> {
+    if c.status == ChangeStatus::Rejected {
+        Err(SubmitError::Kernel(rejection(&c)))
+    } else {
+        Ok(c)
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
