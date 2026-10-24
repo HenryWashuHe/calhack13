@@ -108,14 +108,22 @@ it("drops an older poll that answers after a newer one, and foreign gaps", async
     return <pre>{JSON.stringify(useGapAdoption(api, state))}</pre>;
   }
   await act(async () => root!.render(<Probe />));
-  expect(calls.map((c) => c.path)).toEqual(["/capability-gaps/g_open/adoption"]);
+  // Henry's Claude: the settled (installed) gap is read once for its outcome;
+  // only the open gap is polled. The stale-response rules below are unchanged.
+  const open = () => calls.filter((c) => c.path === "/capability-gaps/g_open/adoption");
+  const settled = () => calls.filter((c) => c.path === "/capability-gaps/g_done/adoption");
+  expect(open()).toHaveLength(1);
+  expect(settled()).toHaveLength(1);
   await act(async () => { vi.advanceTimersByTime(ADOPTION_POLL_MS); });
-  expect(calls).toHaveLength(2);
-  await act(async () => calls[1]!.resolve(status({ adoption_id: "adopt_new" })));
-  await act(async () => calls[0]!.resolve(status({ state: "attention", code: "registry" })));
+  expect(open()).toHaveLength(2);
+  expect(settled()).toHaveLength(1);
+  await act(async () => open()[1]!.resolve(status({ adoption_id: "adopt_new" })));
+  await act(async () => open()[0]!.resolve(status({ state: "attention", code: "registry" })));
   expect(JSON.parse(container.textContent!).g_open.adoption_id).toBe("adopt_new");
   await act(async () => { vi.advanceTimersByTime(ADOPTION_POLL_MS); });
-  await act(async () => calls[2]!.resolve(status({ gap_id: "other", state: "attention", code: "checks" })));
+  await act(async () => open()[2]!.resolve(status({ gap_id: "other", state: "attention", code: "checks" })));
+  // A settled gap without an adoption record isn't kept.
+  await act(async () => settled()[0]!.resolve(status({ gap_id: "g_done", state: null })));
   expect(Object.keys(JSON.parse(container.textContent!))).toEqual(["g_open"]);
 });
 
