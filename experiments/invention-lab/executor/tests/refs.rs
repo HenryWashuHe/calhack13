@@ -145,3 +145,23 @@ fn the_example_plan_is_a_valid_frozen_acceptance_plan() {
     assert_eq!(binding.evaluator, refs::evaluator());
     assert_eq!(binding.method, methods.candidate);
 }
+
+#[test]
+fn a_slot_store_is_held_by_one_opener_at_a_time() {
+    let dir = std::env::temp_dir().join(format!("lab-store-lock-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    let first = Store::open(&dir).unwrap();
+    let second = Store::open(&dir);
+    assert!(
+        second.as_ref().is_err_and(genesis_lab_exec::store::is_busy),
+        "second opener admitted"
+    );
+    // From another thread too: the lock belongs to the open file, not the thread.
+    let d = dir.clone();
+    let busy = std::thread::spawn(move || Store::open(&d).is_err())
+        .join()
+        .unwrap();
+    assert!(busy);
+    drop(first);
+    Store::open(&dir).unwrap();
+}

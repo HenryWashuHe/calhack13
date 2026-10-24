@@ -1,7 +1,11 @@
 //! Durable files for one slot. Each write goes to a temporary file, is synced,
 //! renamed into place and the directory is synced, so a crash leaves either the
-//! old or the new state. This is a local store: it does not prevent rollback by
-//! someone who can write the directory.
+//! old or the new state. Opening a store takes an exclusive advisory lock on
+//! `slot.lock` for the store's lifetime, so only one process (or open store)
+//! can admit, mutate or finalize a slot at a time; the lock is released when the
+//! store is dropped or the process dies. This is a local store: it does not
+//! prevent rollback by someone who can write the directory, and processes that
+//! ignore the lock aren't stopped by it.
 use genesis_core::development_method::ExactContentRef;
 use std::fs::{self, File, OpenOptions};
 use std::io::Write;
@@ -9,10 +13,17 @@ use std::path::{Path, PathBuf};
 
 pub struct Store {
     dir: PathBuf,
+    _lock: File,
+}
+
+/// Another store holds this slot's lock.
+pub fn is_busy(e: &std::io::Error) -> bool {
+    e.kind() == std::io::ErrorKind::WouldBlock
 }
 
 impl Store {
-    /// Creates the slot directory (mode 0700) if needed.
+    /// Creates the slot directory (mode 0700) if needed and takes its
+    /// exclusive lock without waiting; a held lock is a `WouldBlock` error.
     pub fn open(dir: &Path) -> std::io::Result<Self> {
         fs::create_dir_all(dir.join("artifacts"))?;
         #[cfg(unix)]
@@ -20,7 +31,19 @@ impl Store {
             use std::os::unix::fs::PermissionsExt;
             fs::set_permissions(dir, fs::Permissions::from_mode(0o700))?;
         }
-        Ok(Self { dir: dir.into() })
+        let lock = OpenOptions::new()
+            .create(true)
+            .truncate(false)
+            .write(true)
+            .open(dir.join("slot.lock"))?;
+        lock.try_lock().map_err(|e| match e {
+            fs::TryLockError::WouldBlock => std::io::Error::from(std::io::ErrorKind::WouldBlock),
+            fs::TryLockError::Error(e) => e,
+        })?;
+        Ok(Self {
+            dir: dir.into(),
+            _lock: lock,
+        })
     }
 
     pub fn path(&self, name: &str) -> PathBuf {
