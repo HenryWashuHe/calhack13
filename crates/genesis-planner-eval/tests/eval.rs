@@ -40,7 +40,7 @@ fn failed(r: &RunResult) -> Vec<String> {
 #[tokio::test]
 async fn golden_decisions_pass_on_real_kernels() {
     let scenarios = load_scenarios(&dir()).unwrap();
-    assert!(scenarios.len() >= 8);
+    assert!(scenarios.len() >= 9);
     let factory = replay_factory(dir().join("replay"));
     let mut results = Vec::new();
     for s in &scenarios {
@@ -249,4 +249,46 @@ fn placeholders_round_trip() {
         r#"{"role_id":"role_abc","responsibility_id":"rsp_xyz"}"#
     );
     assert_eq!(ids.abstract_ids(&filled), t);
+}
+
+#[tokio::test]
+async fn re_requesting_or_misattaching_an_installed_capability_fails() {
+    let s = scenario("installed-capability-attach");
+    let src = s.observation.evidence_ref.clone().unwrap();
+    let request = json!({
+        "assessment": "Need a reader.", "verdict": "change",
+        "requirement": {"summary": "Read availability", "acceptance": "read"},
+        "rationale": "Request it.", "budget_limit_cents": 0,
+        "operations": [
+            {"op": "AssignResponsibility", "target": {"kind": "from_requirement", "key": "read", "requirement_id": "$REQUIREMENT",
+              "purpose": "Read availability", "trigger": "x", "termination": "y"},
+             "owner": {"kind": "existing", "role_id": "{{role:Venue operations}}"}},
+            {"op": "RequestCapability", "key": "reader", "requirement_id": "$REQUIREMENT",
+             "role": {"kind": "existing", "role_id": "{{role:Venue operations}}"},
+             "responsibility": {"kind": "new", "key": "read"}, "capability_id": "venue-portal-reader",
+             "purpose": "Read availability", "observed_sources": [src]}
+        ]
+    })
+    .to_string();
+    // The kernel refuses a request for an installed, approved capability on
+    // every attempt; the planner's fallback is not a decision.
+    let r = run_with(&s, vec![request.clone(), request.clone(), request]).await;
+    assert!(!r.passed, "{r:?}");
+    assert_ne!(r.change_status.as_deref(), Some("COMMITTED"));
+
+    let wrong = json!({
+        "assessment": "Attach it.", "verdict": "change",
+        "requirement": {"summary": "Read availability", "acceptance": "attached"},
+        "rationale": "Give it to the program lead.", "budget_limit_cents": 0,
+        "operations": [{"op": "AttachCapability", "role": {"kind": "existing", "role_id": "{{role:Program lead}}"},
+                        "capability": {"capability_id": "venue-portal-reader", "version": "1"}}]
+    })
+    .to_string();
+    let r = run_with(&s, vec![wrong]).await;
+    assert_eq!(
+        r.change_status.as_deref(),
+        Some("COMMITTED"),
+        "valid but wrong"
+    );
+    assert_eq!(failed(&r), ["owner_role"]);
 }

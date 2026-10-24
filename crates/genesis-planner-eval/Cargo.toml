@@ -18,6 +18,7 @@ genesis-core.workspace = true
 genesis-planner = { path = "../genesis-planner" }
 genesis-server = { path = "../genesis-server" }
 anyhow.workspace = true
+chrono.workspace = true
 async-trait.workspace = true
 clap = { version = "4", features = ["derive", "env"] }
 dotenvy = "0.15"

@@ -51,6 +51,7 @@ stage) and p95 latency. The demo-tagged cases (`venue-closure`,
 | `interpreter-specialist` | bounded one-off work goes to the discovered specialist, not a new role |
 | `deposit-over-budget` | the only option breaks the $5,000 constraint, so escalate |
 | `duplicate-closure` | repeated evidence that is already owned: no churn |
+| `installed-capability-attach` | the reader is already installed and approved (the pass after a gap installs): `AttachCapability` to Venue operations, never request it again |
 | `portal-layout-drift` | `RequestCapability` for the existing owner, canonical https sources on the evidence's origin (skipped automatically on a planner prompt without the op) |
 
 Checks per run: `verdict`, `committed`, `require_any_op`, `forbid_ops`,
@@ -63,7 +64,9 @@ as an `escalate` verdict (the planner's own parser). The planner's fallback
 escalation (unusable output or rejections exhausted) fails it, and no reply at
 all is a run error. `owner_role` names the existing role that must receive the
 work: every assignment, reassignment and capability request must target it,
-and a change must assign it something.
+and a change must give it something (an assignment or an attached capability).
+A scenario's `installed` list is seeded as accepted local installations
+directly in the evaluation org (local acceptance is tested elsewhere).
 
 To add a case, drop a JSON file in `evals/planner/` (schema: `Scenario` in
 `crates/genesis-planner-eval/src/lib.rs`) and a golden response list in
