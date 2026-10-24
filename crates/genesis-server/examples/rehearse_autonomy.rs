@@ -17,6 +17,8 @@
 //! built and no portal is read. Never present this as a live run. The point is
 //! to rehearse timing and narration on the real kernel, workers and console.
 //! Set `REHEARSAL_DELAY_MS` (default 700) to pace provider replies.
+//! Set `REHEARSAL_PLANNER=1` to seed only the missions and observations and
+//! let a real `genesis-planner run` (live model) make both requests.
 use axum::{
     body::to_bytes,
     extract::{Request, State},
@@ -245,8 +247,8 @@ fn config(
     config
 }
 
-/// What a planner would commit: a mission whose change requests a capability.
-async fn request(app: &AppState, capability: &str, goal: &str) -> CapabilityGapId {
+/// A mission and the portal observation that starts the beat.
+async fn seed(app: &AppState, goal: &str) -> (MissionId, ObservationId) {
     let spec: MissionBootstrap = serde_json::from_value(json!({
         "goal": goal, "roles":[{"key":"venue","name":"Venue operations","charter":"Owns venue lookup",
             "authority":{"scopes":["capability.acquire",PERMISSION],"budget_cents":10000}}],
@@ -275,6 +277,12 @@ async fn request(app: &AppState, capability: &str, goal: &str) -> CapabilityGapI
         .await
         .unwrap()
         .value;
+    (mission, observation)
+}
+
+/// What a planner would commit: a mission whose change requests a capability.
+async fn request(app: &AppState, capability: &str, goal: &str) -> CapabilityGapId {
+    let (mission, observation) = seed(app, goal).await;
     let requirement = app
         .mutate(EventMeta::default(), |s| {
             engine::record_requirement(
@@ -326,6 +334,26 @@ async fn request(app: &AppState, capability: &str, goal: &str) -> CapabilityGapI
     .await
     .unwrap();
     gap
+}
+
+/// The first gap a planner opens in this organization.
+async fn first_gap(app: &AppState) -> CapabilityGapId {
+    loop {
+        if let Some(gap) = app
+            .current_state()
+            .unwrap()
+            .capability_gaps
+            .values()
+            .min_by_key(|g| g.opened_in_revision)
+        {
+            println!(
+                "planner requested {} for {:?}",
+                gap.capability_id, gap.observed_sources
+            );
+            return gap.gap_id.clone();
+        }
+        tokio::time::sleep(Duration::from_millis(300)).await;
+    }
 }
 
 async fn follow(app: &AppState, gap: &CapabilityGapId, org: &str) {
@@ -458,22 +486,33 @@ async fn main() -> anyhow::Result<()> {
     println!("Starting in 5s; open the console now.");
     tokio::time::sleep(Duration::from_secs(5)).await;
 
-    println!("\nOrg A commits RequestCapability for venue-reader.");
-    let a_gap = request(
-        &a,
-        "venue-reader",
-        "Run the campus hack night for 120 attendees",
-    )
-    .await;
+    // REHEARSAL_PLANNER=1: only the mission and the portal observation are
+    // seeded; a real `genesis-planner run` (with GENESIS_LLM_* set) must
+    // propose the requirement and RequestCapability itself. That checks the
+    // live model picks a name, sources and role the policies accept.
+    let planner = std::env::var("REHEARSAL_PLANNER").is_ok_and(|v| v == "1");
+    let a_goal = "Run the campus hack night for 120 attendees";
+    let b_goal = "Book a venue for the 150-person robotics meetup";
+    let a_gap = if planner {
+        println!("\nOrg A: portal observation recorded. Run in another terminal:");
+        println!("  genesis-planner --org-url http://127.0.0.1:7101 --token org_a-agent run");
+        seed(&a, a_goal).await;
+        first_gap(&a).await
+    } else {
+        println!("\nOrg A commits RequestCapability for venue-reader.");
+        request(&a, "venue-reader", a_goal).await
+    };
     follow(&a, &a_gap, "Org A").await;
 
-    println!("\nOrg B, a different organization, commits its own request as capacity-checker.");
-    let b_gap = request(
-        &b,
-        "capacity-checker",
-        "Book a venue for the 150-person robotics meetup",
-    )
-    .await;
+    let b_gap = if planner {
+        println!("\nOrg B: portal observation recorded. Run in another terminal:");
+        println!("  genesis-planner --org-url http://127.0.0.1:7102 --token org_b-agent run");
+        seed(&b, b_goal).await;
+        first_gap(&b).await
+    } else {
+        println!("\nOrg B, a different organization, commits its own request as capacity-checker.");
+        request(&b, "capacity-checker", b_goal).await
+    };
     follow(&b, &b_gap, "Org B").await;
 
     println!("\nDone. Servers keep running for the console; Ctrl-C to stop.");
