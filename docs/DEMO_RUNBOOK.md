@@ -55,7 +55,7 @@ from the repository root, after the build above.
 cloudflared tunnel --url http://127.0.0.1:7200
 U=https://<random>.trycloudflare.com
 node scripts/venue-portal/generate.mjs --preset baseline --seed a1 --namespace org-a \
-  --suite-id portal-a-v1 --base-url $U --out data/portal
+  --suite-id portal-a-v1 --base-url $U --out data/portal --holdout   # #60: examples not in the suite
 node scripts/venue-portal/generate.mjs --preset baseline --seed b1 --namespace org-b \
   --suite-id portal-b-v1 --attendees 150 --base-url $U --out data/portal
 node scripts/venue-portal/serve.mjs --out data/portal --base-url $U       # :7200, lab :7201
@@ -97,7 +97,7 @@ Targets from the research report §10, with what each beat actually shows today.
 | 0:00–0:20 | Mission, starting org, budget | console org tree | ready |
 | 0:20–0:40 | Judge closes the venue / changes the portal in the lab | lab → new namespace; observation with `evidence_ref` = portal URL | ready |
 | 0:40–1:15 | Planner: new requirement → CreateRole / AssignResponsibility / **RequestCapability**; Elastic specialist; Fetch offer | decision event, gap chip REQUESTED (#54) | planner ready; gap + chip merged (#49, #54); wake-up #57; driver pending |
-| 1:15–1:45 | Acquisition: generated parser, pinned build, oracle checks pass (reproducibility: A's synthesis examples are also cases in A's suite, so don't call this held-out unless you generate separate example and verification seeds) | gap ACQUIRING → VERIFIED → INSTALLED; actor/build/run IDs | needs keys + driver; else `genesis scenario` labeled path |
+| 1:15–1:45 | Acquisition: generated parser, pinned build, oracle checks pass: **held out** only if A was generated with `--holdout` (#60); otherwise call them reproducibility checks, since A's examples would be suite cases | gap ACQUIRING → VERIFIED → INSTALLED; actor/build/run IDs | needs keys + driver; else `genesis scenario` labeled path |
 | 1:45–2:10 | Second disruption (capacity cut) handled by the existing owner, **no new role** | lab `capacity-cut` namespace; planner `no_change` or reassignment | ready (planner); CREAO second run pending |
 | 2:10–2:40 | Org B: own requirement, discovers A's capability, own acceptance, different input | B adoption intent, B's acceptance runs, 0 synthesis calls | ready (loopback-proven) |
 | 2:40–3:00 | Temporary role retires after handoff; capability remains | retirement event, stale epoch fenced | ready |
