@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import type { Generation } from "../lib/evolution";
+import type { Generation, TimelineEntry } from "../lib/evolution";
 import { EvolutionView } from "./EvolutionView";
 
 const gens: Generation[] = [
@@ -21,19 +21,39 @@ const gens: Generation[] = [
   },
 ];
 
+const entries: TimelineEntry[] = [
+  ...gens.map((g) => ({ kind: "generation" as const, ...g })),
+  {
+    kind: "refusal",
+    revision: 4,
+    seq: 99,
+    by: "kernel",
+    title: "Kernel refused the change",
+    rationale: "create Root",
+    reasons: ["authority exceeds constitution: scopes not in constitution: admin"],
+    changeId: "chg_x",
+    submittedBy: "agent",
+    operations: ["CreateRole"],
+  },
+];
+
 describe("EvolutionView", () => {
   it("lists generations with cause, evidence and labeled dev stubs", () => {
-    const html = renderToStaticMarkup(<EvolutionView gens={gens} selected={4} onSelect={() => {}} />);
+    const html = renderToStaticMarkup(<EvolutionView entries={entries} selected={4} onSelect={() => {}} />);
     expect(html).toContain("Founded");
     expect(html).toContain("because</span> Main hall closed");
     expect(html).toContain("DEV STUB · for creao");
     expect(html).toContain("planner claude-x");
     expect(html).toContain("View r4");
     expect(html).toMatch(/evo-gen selected[^>]*>[\s\S]*r4/);
+    expect(html).toContain("2 generations · 1 change that did not happen");
+    expect(html).toContain("Refused");
+    expect(html).toContain("stayed at r4");
+    expect(html).toContain("authority exceeds constitution");
   });
 
   it("has an empty state", () => {
-    expect(renderToStaticMarkup(<EvolutionView gens={[]} selected={null} onSelect={() => {}} />)).toContain(
+    expect(renderToStaticMarkup(<EvolutionView entries={[]} selected={null} onSelect={() => {}} />)).toContain(
       "No structural changes yet",
     );
   });

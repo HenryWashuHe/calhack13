@@ -6,7 +6,7 @@ import { HistoryEntry, historyView } from "../lib/snapshot";
 import { ProviderBadge, StateChip } from "./Chips";
 import { WhyDrawer } from "./WhyDrawer";
 import { EvolutionView } from "./EvolutionView";
-import { generations } from "../lib/evolution";
+import { generations, timeline } from "../lib/evolution";
 import { AuditStrip } from "./AuditStrip";
 
 /** Records the "Why?" drawer explains a role from. Absent → no drawer. */
@@ -177,6 +177,10 @@ export function OrgPanel({
   const [replay, setReplay] = useState<number | null>(null);
   const live = viewRevision === null;
   const gens = useMemo(() => (events ? generations(events, changes, state) : []), [events, changes, state]);
+  const entries = useMemo(
+    () => (events && mode === "evolution" ? timeline(events, changes, state) : []),
+    [events, changes, state, mode],
+  );
   const replaying = replay !== null ? gens[replay] : undefined;
 
   useEffect(() => {
@@ -327,7 +331,7 @@ export function OrgPanel({
         )}
         {mode === "evolution" && (
           <EvolutionView
-            gens={gens}
+            entries={entries}
             selected={viewRevision}
             onSelect={(rev) => {
               stopReplay();

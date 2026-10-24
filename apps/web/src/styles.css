@@ -337,6 +337,14 @@ button { font: inherit; color: inherit; }
 .evo-foot { display: flex; gap: 6px 12px; flex-wrap: wrap; align-items: center; font-size: 12px; color: var(--ink-3); }
 .evo-foot .mono { overflow-wrap: anywhere; }
 .evo-foot .btn { margin-left: auto; }
+.evo-summary { display: flex; gap: 8px 16px; flex-wrap: wrap; align-items: center; justify-content: space-between; font-size: 12px; color: var(--ink-3); }
+.evo-summary label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+.evo-refusal { opacity: 0.92; }
+.evo-refusal .evo-body { border-left: 2px solid var(--bad); padding-left: 10px; }
+.evo-refusal.by-provider .evo-body, .evo-refusal.by-planner .evo-body { border-left-color: var(--warn); }
+.evo-refusal .evo-why { font-style: italic; }
+.evo-reasons { margin: 0; padding-left: 18px; font-size: 13px; color: var(--bad); overflow-wrap: anywhere; }
+.evo-refusal.by-provider .evo-reasons, .evo-refusal.by-planner .evo-reasons { color: var(--warn); }
 @media (max-width: 640px) { .evo-gen { grid-template-columns: minmax(0, 1fr); } }
 /* ---------- constitution audit ---------- */
 .audit { display: grid; gap: 8px; padding: 8px 10px; border: 1px solid var(--rule-strong); border-radius: var(--radius); font-size: 13px; }

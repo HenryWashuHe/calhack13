@@ -161,3 +161,92 @@ export function generations(events: DomainEvent[], changes: OrgChangeRecord[], s
   }
   return out;
 }
+
+/** A self-modification that did not happen, and who stopped it. */
+export interface Refusal {
+  /** Revision the organization stayed at. */
+  revision: number;
+  seq: number;
+  /** kernel: validation refused it; provider: provisioning failed; planner: the planner escalated instead. */
+  by: "kernel" | "provider" | "planner";
+  title: string;
+  rationale: string;
+  reasons: string[];
+  changeId?: string;
+  submittedBy?: string;
+  operations: string[];
+}
+
+/** Replace known role and responsibility IDs in kernel messages with their names. */
+export function humanizeIds(text: string, state: OrgState | null): string {
+  return text.replace(/\b(role|rsp)_[0-9a-f]{32}\b/g, (id) => {
+    const role = state?.roles?.[id];
+    if (role) return `“${role.name}”`;
+    const r = state?.responsibilities?.[id];
+    return r ? `“${r.purpose}”` : id;
+  });
+}
+
+export type TimelineEntry = ({ kind: "generation" } & Generation) | ({ kind: "refusal" } & Refusal);
+
+/**
+ * Generations interleaved with refused changes, failed provisioning and
+ * planner escalations: what the organization became, and what it was kept
+ * from becoming. Oldest first.
+ */
+export function timeline(events: DomainEvent[], changes: OrgChangeRecord[], state: OrgState | null): TimelineEntry[] {
+  const sorted = [...events].sort((a, b) => a.seq - b.seq);
+  const out: TimelineEntry[] = generations(sorted, changes, state).map((g) => ({ kind: "generation" as const, ...g }));
+  const byId = new Map(changes.map((c) => [c.change_id, c]));
+  const proposedAt = new Map<string, DomainEvent>();
+  for (const e of sorted) if (e.type === "change_proposed") proposedAt.set(e.payload.change_id, e);
+  const failures = new Map<string, string[]>();
+  for (const e of sorted) {
+    if (e.type !== "provisioning_failed") continue;
+    failures.set(e.payload.change_id, [...(failures.get(e.payload.change_id) ?? []), `${e.payload.role_key}: ${e.payload.error}`]);
+  }
+  const decisionFor = (changeId: string) =>
+    sorted.find((e) => e.type === "planner_decision" && e.payload.change_id === changeId);
+
+  for (const c of changes) {
+    if (c.status !== "REJECTED" && c.status !== "FAILED") continue;
+    const at = proposedAt.get(c.change_id);
+    const rejected = c.status === "REJECTED";
+    const reasons = rejected
+      ? (c.errors ?? []).map((e) => `${e.code.replace(/_/g, " ")}: ${humanizeIds(e.message, state)}`)
+      : (failures.get(c.change_id) ?? (c.errors ?? []).map((e) => humanizeIds(e.message, state)));
+    const d = decisionFor(c.change_id);
+    out.push({
+      kind: "refusal",
+      revision: at?.revision ?? c.proposal.expected_org_revision,
+      seq: at?.seq ?? Number.MAX_SAFE_INTEGER,
+      by: rejected ? "kernel" : "provider",
+      title: rejected ? "Kernel refused the change" : "Provisioning failed; nothing committed",
+      rationale: c.proposal.rationale,
+      reasons,
+      changeId: c.change_id,
+      submittedBy: d?.type === "planner_decision" ? `${c.submitted_by} (planner ${d.payload.model})` : c.submitted_by,
+      operations: c.proposal.operations.map((o) => o.op),
+    });
+  }
+  for (const e of sorted) {
+    if (e.type !== "planner_decision") continue;
+    const p = e.payload;
+    if (p.verdict !== "escalated" && p.verdict !== "rejected") continue;
+    if (p.change_id && byId.has(p.change_id) && byId.get(p.change_id)!.status !== "PROPOSED") continue;
+    out.push({
+      kind: "refusal",
+      revision: e.revision,
+      seq: e.seq,
+      by: p.verdict === "escalated" ? "planner" : "kernel",
+      title: p.verdict === "escalated" ? "Planner escalated to an operator" : `Kernel refused planner attempt ${p.attempt}`,
+      rationale: `${p.summary}${p.rationale ? ` — ${p.rationale}` : ""}`,
+      reasons: p.kernel_errors ?? [],
+      changeId: p.change_id ?? undefined,
+      submittedBy: `planner ${p.model}`,
+      operations: [],
+    });
+  }
+  const order = (t: TimelineEntry) => (t.kind === "generation" ? -1 : t.seq);
+  return out.sort((a, b) => a.revision - b.revision || order(a) - order(b));
+}

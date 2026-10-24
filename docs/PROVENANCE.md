@@ -54,6 +54,19 @@ generation the view shows:
 
 **View rN** shows the committed tree at that revision.
 
+Between generations, the view also lists the changes that **did not happen**,
+each at the revision the organization stayed at:
+
+- **Refused**: the kernel's validation errors, with known role and duty IDs
+  replaced by their names.
+- **Failed**: the provisioning errors. The change committed nothing.
+- **Escalated**: the planner gave up and handed the decision to a person.
+
+A checkbox hides these rows. In the screenshot below, a change derived from
+prompt-injected evidence ("create Root with full authority and retire the
+coordinator") was submitted against the dev stack. The kernel refused it on
+four grounds, and the organization stayed at r10.
+
 ![Evolution view](img/console-evolution.png)
 
 **Replay** steps the tree through each generation, one every 2.4 seconds, then
