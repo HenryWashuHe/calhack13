@@ -16,6 +16,7 @@
 
 pub mod capability;
 pub mod change;
+pub mod digest;
 pub mod engine;
 pub mod events;
 pub mod ids;

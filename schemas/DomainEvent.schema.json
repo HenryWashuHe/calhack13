@@ -291,6 +291,14 @@
             },
             "error": {
               "type": "string"
+            },
+            "provider_agent_id": {
+              "description": "Provider resource created before the failure, kept for cleanup.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
             }
           }
         }

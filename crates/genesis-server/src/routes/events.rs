@@ -14,6 +14,9 @@ use std::convert::Infallible;
 use std::time::Duration;
 use tokio::sync::broadcast::error::RecvError;
 
+/// Page size for backlog and lag catch-up reads.
+const CATCH_UP_PAGE: u32 = 1000;
+
 #[derive(Deserialize)]
 pub struct Cursor {
     /// Return events with `seq` greater than this.
@@ -60,35 +63,52 @@ pub async fn stream(
     let store = app.store.clone();
     let s = async_stream::stream! {
         let mut last = cursor;
-        loop {
-            match store.events_after(last, 1000) {
-                Ok(batch) if !batch.is_empty() => {
-                    for e in &batch {
-                        last = e.seq;
-                        yield Ok(sse_event(e));
+        // Page through the store until it has nothing after `last`. Returns
+        // false when the store cannot be read; the stream then ends so the
+        // client reconnects with `Last-Event-ID` instead of silently skipping.
+        macro_rules! drain {
+            () => {{
+                let mut ok = true;
+                loop {
+                    match store.events_after(last, CATCH_UP_PAGE) {
+                        Ok(batch) if batch.is_empty() => break,
+                        Ok(batch) => {
+                            for e in &batch {
+                                last = e.seq;
+                                yield Ok(sse_event(e));
+                            }
+                        }
+                        Err(err) => {
+                            tracing::warn!(error = %err, "event catch-up read failed");
+                            ok = false;
+                            break;
+                        }
                     }
                 }
-                Ok(_) => break,
-                Err(err) => {
-                    tracing::warn!(error = %err, "event backlog read failed");
-                    break;
-                }
-            }
+                ok
+            }};
+        }
+        if !drain!() {
+            return;
         }
         loop {
             match rx.recv().await {
-                Ok(e) if e.seq > last => {
+                Ok(e) if e.seq == last + 1 => {
                     last = e.seq;
                     yield Ok(sse_event(&e));
                 }
+                // A gap (e.g. an event committed before the backlog read
+                // but broadcast after it): backfill from the store.
+                Ok(e) if e.seq > last => {
+                    if !drain!() {
+                        return;
+                    }
+                }
                 Ok(_) => {}
+                // Fell behind the broadcast buffer: catch up from the store.
                 Err(RecvError::Lagged(_)) => {
-                    // Fell behind the broadcast buffer: catch up from the store.
-                    if let Ok(batch) = store.events_after(last, 5000) {
-                        for e in &batch {
-                            last = e.seq;
-                            yield Ok(sse_event(e));
-                        }
+                    if !drain!() {
+                        return;
                     }
                 }
                 Err(RecvError::Closed) => break,
