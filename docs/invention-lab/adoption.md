@@ -104,12 +104,12 @@ installations execute" is wrong as a blanket rule. Following main's
 | --- | --- | --- | --- |
 | `invocation` | ordinary mission work | an `accepted` installation and the requesting role's current grant | mission effects and an execution receipt |
 | acceptance (`local_acceptance` / `adoption_acceptance` on main; method variant proposed) | a `checking` installation on the receiver's development instances only | the adoption intent's frozen binding, bounded by its budget | an acceptance or rejection receipt; never mission effects |
-| comparison (proposed, #124/#126) | any frozen version, accepted or declined, on held-out instances revealed for that comparison | the comparison runner's own declared protocol, not a mission grant | score receipts for the comparison only |
+| comparison (#18 purpose, experimental; protocol in #13/#22) | any frozen version, accepted or declined, on the comparison's committed hidden instances, scored privately by the evaluator owner before the reveal | the comparison runner's own declared protocol, not a mission grant | score receipts for the comparison only |
 
 A comparison run never grants mission authority, never installs, and never
 reads a holdout before the salt is revealed. A version A declined can still
 run in a comparison as the alternative arm; that is a measurement, not an
-adoption. #124 carries the execution purpose and the distinct execution,
+adoption. #18 carries the execution purpose and the distinct execution,
 evaluation and adoption receipts.
 
 ### Local acceptance for a method
@@ -140,7 +140,7 @@ small experiment:
 
 A small development set can accept a method that later disappoints. That is
 expected; the acceptance only claims "these checks ran and passed". Measured
-improvement is a separate claim for the comparison runner (issue #124/#126).
+improvement is a separate claim for the comparison runner (#13, #22).
 
 ## Outcome vocabulary
 
@@ -208,7 +208,7 @@ Unchanged from adopt-first for task capabilities, and explicit per rule:
 
 1. **A publishes method v1** after developing it on its ravine tasks. Its
    manifest carries kind, environment, dependency digests, declared budget,
-   evaluator requirement, applicability claims and derivation (issue #124).
+   evaluator requirement, applicability claims and derivation (#18).
 2. **B adopts v1.** B's discovery finds v1 (steps 1–10). B runs its
    acceptance experiment: v1 versus B's current method on B's terrain
    development tasks, B's evaluator, B's budget. If v1 passes, B installs
@@ -232,7 +232,7 @@ exact identities and acceptance receipts; nothing in it is inferred from names.
 ## Required from the method contract
 
 To implement steps 5–8 and the acceptance experiment, adoption needs these from
-issue #124's contract. Names are placeholders until that contract fixes them.
+the #18/#22 contracts. Names are placeholders where those drafts don't fix them yet.
 
 - Artifact kind discriminator, with the existing Actor capability as one kind.
 - Immutable method identity: id, version, content digest, publisher.
