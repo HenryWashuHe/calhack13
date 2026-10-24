@@ -1272,7 +1272,7 @@ async fn a_registry_outage_can_be_retried_once_by_an_operator_and_then_adopts() 
 }
 
 #[tokio::test]
-async fn unknown_check_outcomes_and_exhausted_retries_are_not_retryable() {
+async fn unknown_check_outcomes_need_an_operator_and_retries_are_bounded() {
     let mut f = Fixture::new(Options {
         ambiguous_runs: true,
         ..Options::default()
@@ -1285,11 +1285,24 @@ async fn unknown_check_outcomes_and_exhausted_retries_are_not_retryable() {
     })
     .await;
     f.stop();
+    let first = f.record().unwrap().adoption_id.unwrap();
     let posts = f.providers.runs();
-    let (status, body) = retry(&f, "operator").await;
-    assert_eq!(status, reqwest::StatusCode::CONFLICT, "{body}");
-    assert_eq!(f.record().unwrap().attempt, 0);
+    // Nothing retries on its own.
+    tokio::time::sleep(Duration::from_millis(1200)).await;
     assert_eq!(f.providers.runs(), posts);
+    assert_eq!(f.record().unwrap().attempt, 0);
+    // Agents can't retry; an operator can, as a new attempt that keeps the
+    // stopped adoption (and its unknown run) in history.
+    let (status, _) = retry(&f, "agent").await;
+    assert!(status.is_client_error(), "{status}");
+    let (status, body) = retry(&f, "operator").await;
+    assert_eq!(status, reqwest::StatusCode::OK, "{body}");
+    assert_eq!(body["attempt"], 1);
+    assert_eq!(body["previous_adoption_ids"], json!([first]));
+    // The stopped adoption is never resubmitted or revived.
+    assert_eq!(f.providers.runs(), posts);
+    assert!(!f.driver_bound());
+    assert_eq!(f.providers.model_calls(), 0);
 
     // Registry outages: two retries, then no more.
     let f = Fixture::new(Options {
