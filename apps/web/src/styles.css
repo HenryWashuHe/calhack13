@@ -348,6 +348,9 @@ button { font: inherit; color: inherit; }
 .evo-delta.evo-role_retired .evo-mark { color: var(--bad); }
 .evo-delta.evo-role_retired .evo-text > span:first-child { text-decoration: line-through; text-decoration-thickness: 1px; }
 .evo-delta.evo-duty_moved .evo-mark, .evo-delta.evo-capability .evo-mark { color: var(--accent); }
+.evo-delta.evo-capability_requested .evo-mark, .evo-delta.evo-capability_progress .evo-mark { color: var(--warn); }
+.evo-delta.evo-capability_refused .evo-mark { color: var(--bad); }
+.evo-label.asked { color: var(--warn); background: var(--warn-soft); border-color: transparent; }
 .evo-foot { display: flex; gap: 6px 12px; flex-wrap: wrap; align-items: center; font-size: 12px; color: var(--ink-3); }
 .evo-foot .mono { overflow-wrap: anywhere; }
 .evo-foot .btn { margin-left: auto; }

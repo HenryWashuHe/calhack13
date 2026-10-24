@@ -7,7 +7,16 @@
 
 import type { DomainEvent, OrgChangeRecord, OrgState, Provider } from "./contracts";
 
-export type DeltaKind = "role_added" | "role_retired" | "duty_moved" | "capability" | "contractor" | "reporting";
+export type DeltaKind =
+  | "role_added"
+  | "role_retired"
+  | "duty_moved"
+  | "capability"
+  | "capability_requested"
+  | "capability_progress"
+  | "capability_refused"
+  | "contractor"
+  | "reporting";
 
 export interface Delta {
   kind: DeltaKind;
@@ -20,7 +29,7 @@ export interface Delta {
 
 export interface Generation {
   revision: number;
-  /** Short label: "Founded", "Grew", "Reshaped", "Shrank", "Equipped", "Contracted", "Rewired". */
+  /** Short label: "Founded", "Grew", "Reshaped", "Shrank", "Equipped", "Asked", "Contracted", "Rewired". */
   label: string;
   /** Why the organization changed, from the change rationale or mission goal. */
   cause: string;
@@ -43,6 +52,8 @@ const STRUCTURAL = new Set<DomainEvent["type"]>([
   "capability_attached",
   "contract_state_changed",
   "reporting_edge_changed",
+  "capability_gap_opened",
+  "capability_gap_status_changed",
 ]);
 
 /** Ordered generations, oldest first. */
@@ -74,6 +85,7 @@ export function generations(events: DomainEvent[], changes: OrgChangeRecord[], s
   const observations = new Map<string, string>();
   for (const e of sorted) if (e.type === "observation_recorded") observations.set(e.payload.observation_id, e.payload.summary);
 
+  const gaps = new Map<string, { capability: string; role: string }>();
   const committedAt = new Map<number, OrgChangeRecord>();
   for (const c of changes) if (c.status === "COMMITTED" && c.committed_revision != null) committedAt.set(c.committed_revision, c);
 
@@ -115,6 +127,32 @@ export function generations(events: DomainEvent[], changes: OrgChangeRecord[], s
             text: `${e.payload.capability.capability_id}@${e.payload.capability.version} → ${name(e.payload.role_id)}`,
           });
           break;
+        case "capability_gap_opened":
+          gaps.set(e.payload.gap_id, { capability: e.payload.capability_id, role: e.payload.role_id });
+          deltas.push({
+            kind: "capability_requested",
+            text: `${name(e.payload.role_id)} asked for a capability: ${e.payload.capability_id}`,
+          });
+          break;
+        case "capability_gap_status_changed": {
+          const g = gaps.get(e.payload.gap_id);
+          const what = g ? `${g.capability} for ${name(g.role)}` : e.payload.gap_id;
+          const to = e.payload.to;
+          if (to.state === "installed") {
+            deltas.push({
+              kind: "capability",
+              text: `${what} installed as ${to.capability.capability_id}@${to.capability.version}`,
+            });
+          } else if (to.state === "acquired") {
+            deltas.push({
+              kind: "capability_progress",
+              text: `${what} verified as ${to.capability.capability_id}@${to.capability.version}; not installed yet`,
+            });
+          } else if (to.state === "refused") {
+            deltas.push({ kind: "capability_refused", text: `${what} refused: ${to.reason}` });
+          }
+          break;
+        }
         case "contract_state_changed":
           if (e.payload.to === "ACCEPTED") deltas.push({ kind: "contractor", text: `Contractor engaged: ${contracts.get(e.payload.contract_id) ?? e.payload.contract_id}` });
           break;
@@ -144,9 +182,11 @@ export function generations(events: DomainEvent[], changes: OrgChangeRecord[], s
             ? "Shrank"
             : deltas.every((d) => d.kind === "capability")
               ? "Equipped"
-              : deltas.every((d) => d.kind === "contractor")
-                ? "Contracted"
-                : "Rewired";
+              : deltas.every((d) => d.kind.startsWith("capability_"))
+                ? "Asked"
+                : deltas.every((d) => d.kind === "contractor")
+                  ? "Contracted"
+                  : "Rewired";
     out.push({
       revision: rev,
       label,

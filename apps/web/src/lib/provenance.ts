@@ -197,8 +197,43 @@ export function roleProvenance(
   // What happened since: ownership moves, capabilities, retirement.
   const since: ProvenanceStep[] = [];
   const purpose = (rid: string) => state?.responsibilities?.[rid]?.purpose ?? rid;
+  const myGaps = new Map<string, string>();
   for (const e of events) {
     switch (e.type) {
+      case "capability_gap_opened":
+        if (e.payload.role_id === roleId) {
+          myGaps.set(e.payload.gap_id, e.payload.capability_id);
+          since.push({
+            kind: "capability",
+            title: "Asked for a capability",
+            detail: `${e.payload.capability_id} for ${purpose(e.payload.responsibility_id)}`,
+            refs: [e.payload.gap_id, e.payload.requirement_id],
+          });
+        }
+        break;
+      case "capability_gap_status_changed": {
+        const cap = myGaps.get(e.payload.gap_id);
+        const to = e.payload.to;
+        if (cap === undefined) break;
+        if (to.state === "installed") {
+          since.push({
+            kind: "capability",
+            title: "Requested capability installed",
+            detail: `${cap} as ${to.capability.capability_id}@${to.capability.version}`,
+            refs: [e.payload.gap_id, to.installation_id],
+            tone: "ok",
+          });
+        } else if (to.state === "refused") {
+          since.push({
+            kind: "capability",
+            title: "Requested capability refused",
+            detail: `${cap}: ${to.reason}`,
+            refs: [e.payload.gap_id],
+            tone: "bad",
+          });
+        }
+        break;
+      }
       case "responsibility_transferred":
         if (e.payload.to === roleId) {
           since.push({

@@ -296,3 +296,21 @@ suite("roleProvenance", () => {
     expect(p.cause).toEqual([]);
   });
 });
+
+suite("capability gaps in provenance", () => {
+  it("records a role's capability requests and their outcome", () => {
+    const events = [
+      ev({ type: "capability_gap_opened", payload: { gap_id: "g1", requirement_id: "req_1", role_id: "role_v", responsibility_id: "resp_v", capability_id: "venue-reader" } } as Pick<DomainEvent, "type" | "payload">),
+      ev({ type: "capability_gap_opened", payload: { gap_id: "g2", requirement_id: "req_1", role_id: "role_c", responsibility_id: "resp_c", capability_id: "other" } } as Pick<DomainEvent, "type" | "payload">),
+      ev({
+        type: "capability_gap_status_changed",
+        payload: { gap_id: "g1", from: { state: "acquired", acquisition_id: "a", capability: { capability_id: "venue-reader", version: "1" } }, to: { state: "installed", acquisition_id: "a", installation_id: "inst", capability: { capability_id: "venue-reader", version: "1" } } },
+      } as Pick<DomainEvent, "type" | "payload">),
+    ];
+    const p = roleProvenance("role_v", state, [change()], events);
+    expect(p.since.map((s) => s.title)).toEqual(["Asked for a capability", "Requested capability installed"]);
+    expect(p.since[0]!.detail).toBe("venue-reader for Secure a venue");
+    expect(p.since[1]!.detail).toBe("venue-reader as venue-reader@1");
+    expect(p.since[1]!.tone).toBe("ok");
+  });
+});
