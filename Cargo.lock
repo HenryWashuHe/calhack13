@@ -661,6 +661,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "genesis-planner-eval"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "chrono",
+ "clap",
+ "dotenvy",
+ "genesis-core",
+ "genesis-planner",
+ "genesis-server",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
 name = "genesis-providers"
 version = "0.1.0"
 dependencies = [
