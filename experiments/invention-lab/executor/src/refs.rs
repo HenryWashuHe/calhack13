@@ -1,5 +1,6 @@
 //! Exact content references for lab artifacts. A reference names bytes; it
 //! does not authenticate who made them.
+use genesis_core::development_evaluation::ScoringContext;
 use genesis_core::development_method::ExactContentRef;
 use genesis_lab_eval::family::{instance, instance_digest, Family, Instance, FAMILY_VERSION};
 use genesis_lab_eval::score::{evaluator_digest, EVALUATOR_ID, EVALUATOR_VERSION};
@@ -61,6 +62,64 @@ pub fn resolve_instance(reference: &ExactContentRef) -> Option<Instance> {
         return None;
     }
     (instance_ref(family, seed) == *reference).then(|| instance(family, seed))
+}
+
+/// The scoring adapter this lab's plans name; `genesis-lab-score` implements
+/// exactly this protocol and refuses any other.
+pub const SCORING_ADAPTER: &str = "genesis-lab-score/1";
+
+fn descriptor(schema: &str, id: &str, value: serde_json::Value) -> ExactContentRef {
+    content(
+        schema,
+        id,
+        "1",
+        genesis_core::digest::canonical_json(&value).as_bytes(),
+    )
+}
+
+/// The complete scoring context the lab's acceptance scorer implements for
+/// one task family and an exact, ordered list of public instance ids. The
+/// scorer recomputes this and refuses a plan naming anything else.
+pub fn scoring_context(family: Family, instance_ids: &[String]) -> ScoringContext {
+    let version = FAMILY_VERSION;
+    ScoringContext {
+        public_task: descriptor(
+            "lab-task/1",
+            family.name(),
+            serde_json::json!({"family": family.name(), "version": version}),
+        ),
+        evaluator: evaluator(),
+        environment: descriptor(
+            "lab-scoring-env/1",
+            SCORING_ADAPTER,
+            serde_json::json!({"adapter": SCORING_ADAPTER, "evaluator": evaluator()}),
+        ),
+        generator: descriptor(
+            "lab-generator/1",
+            family.name(),
+            serde_json::json!({"family": family.name(), "version": version}),
+        ),
+        instance_set: descriptor(
+            "lab-instance-set/1",
+            "development",
+            serde_json::json!({"instances": instance_ids}),
+        ),
+        design_schema: descriptor(
+            "lab-design-schema/1",
+            "language-1",
+            serde_json::json!({"language": genesis_lab_eval::design::LANGUAGE_VERSION}),
+        ),
+        metric_schema: descriptor(
+            "lab-metric-schema/1",
+            "v1",
+            serde_json::json!({"metrics": ["success", "progress", "cost", "joints_broken", "steps_to_target"]}),
+        ),
+        scoring_rule: descriptor(
+            "lab-scoring-rule/1",
+            family.name(),
+            serde_json::json!({"rule": "the family's versioned success rule", "family": family.name(), "version": version}),
+        ),
+    }
 }
 
 /// The method runtime this host provides: an interpreter at an exact version.
