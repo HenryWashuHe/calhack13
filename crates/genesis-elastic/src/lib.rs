@@ -17,6 +17,8 @@
 //! `POST /_bulk`, `POST /{index}/_search`) with `Authorization: ApiKey`.
 //! Errors are sanitized: response bodies are never echoed into messages.
 
+#[cfg(feature = "fake")]
+pub mod fake;
 pub mod projection;
 
 use serde::{Deserialize, Serialize};

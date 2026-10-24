@@ -145,7 +145,7 @@ async fn main() -> anyhow::Result<()> {
                     "development stub enabled: provider bindings will be labeled devstub-*"
                 );
             }
-            let app = build_org(&cfg, None)?;
+            let app = genesis_server::attach_elastic_from_env(build_org(&cfg, None)?)?;
             let listener = tokio::net::TcpListener::bind(&bind).await?;
             tracing::info!(org = %cfg.org_id, %bind, "organization listening");
             genesis_server::serve_org(app, listener).await
@@ -197,7 +197,7 @@ async fn main() -> anyhow::Result<()> {
                 cfg.registry_token = Some(format!("{id}-registry"));
                 cfg.stub_delay = Duration::from_millis(stub_delay_ms);
                 let addr = format!("127.0.0.1:{}", base_port + 1 + i as u16);
-                let app = build_org(&cfg, None)?;
+                let app = genesis_server::attach_elastic_from_env(build_org(&cfg, None)?)?;
                 spawn_org(app, &addr).await?;
                 lines.push(format!(
                     "{id}     http://{addr}   operator token: {}",
