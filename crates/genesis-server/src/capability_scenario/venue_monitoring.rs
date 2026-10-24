@@ -599,3 +599,373 @@ pub(super) async fn run(
         updated,
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use genesis_core::model::{
+        Assignment, AuthorityGrant, Constitution, Mission, Observation, Requirement,
+        Responsibility, Role,
+    };
+
+    struct Fixture {
+        state: OrgState,
+        work: Work,
+        source: InvocationProofResponse,
+        policy: VenueAssessmentPolicy,
+        record: Value,
+        now: DateTime<Utc>,
+    }
+    impl Fixture {
+        fn new(verdict: AssessmentVerdict) -> Self {
+            let now: DateTime<Utc> = "2026-10-22T12:00:00Z".parse().unwrap();
+            let policy: VenueAssessmentPolicy = serde_json::from_value(json!({
+                "selected_venue_id":"hall", "attendees":150,"budget":{"minor_units":100000,"currency":"USD"},
+                "window":{"start":"2026-11-01T18:00:00Z","end":"2026-11-01T20:00:00Z"},"step_free_required":true,
+            })).unwrap();
+            let source: InvocationProofResponse = serde_json::from_value(json!({
+                "schema_version":1,"job_id":"source_job","installation_id":"installation","request_sha256":"a".repeat(64),
+                "suite_id":"suite-b","suite_sha256":"b".repeat(64),"acceptance_report_ref":"acceptance:original",
+                "org_revision":7,"verified_at":now,"decision":"verified","proof_ref":format!("invocation:{}","c".repeat(64)),
+                "case_report":{"schema_version":1,"evaluator_version":"v1","purpose":"invocation_case","decision":"accepted",
+                    "suite_id":"suite-b","suite_sha256":"b".repeat(64),"case_id":"portal","input_sha256":"d".repeat(64),
+                    "source":{"url":"https://venue.example/one","sha256":"e".repeat(64)},
+                    "artifact":{"capability_id":"venue","capability_version":"1.0.0","source_sha256":"f".repeat(64),"actor_id":"actor","build_id":"build","build_number":"1"},
+                    "run_id":"apify-run","dataset_id":"dataset","evidence_sha256":"0".repeat(64),"extraction":"supported","issues":[]}
+            })).unwrap();
+            let record = json!({
+                "assessment_id":"assessment_test","job_id":"assessment_job","source_job_id":"source_job","role_id":"monitor",
+                "responsibility_id":"responsibility","status":"SUCCEEDED","policy":policy,"finalization_attempts":1,"attention":null,
+                "proof":{"schema_version":1,"assessment_id":"assessment_test","decision":"accepted",
+                    "output":{"schema_version":1,"assessment_id":"assessment_test","source_job_id":"source_job",
+                        "invocation_proof_ref":source.proof_ref,"policy_sha256":json_sha256(&json!(policy)),"selected_venue_id":"hall",
+                        "evidence":{"source_url":"https://venue.example/one","snapshot_sha256":"e".repeat(64),"locator":"#hall"},
+                        "checks":{"capacity":verdict == AssessmentVerdict::Feasible,"price":true,"window":true,"availability":true,"step_free":true},"verdict":verdict},
+                    "invocation_proof_ref":source.proof_ref,"execution_receipt_sha256":"1".repeat(64),"run_id":"native-run",
+                    "provider_agent_id":"native-agent","org_revision":10,"verified_at":now+chrono::Duration::seconds(1),
+                    "proof_ref":format!("venue-assessment:{}","2".repeat(64)),"observation_id":"observed",
+                    "requirement_id": if verdict == AssessmentVerdict::Reopen {Some("replacement")} else {None}}
+            });
+            let mut state = OrgState::new(
+                "org_b".into(),
+                "B",
+                Constitution {
+                    scopes: ["monitor.venue".into(), "capability.venue_lookup".into()]
+                        .into_iter()
+                        .collect(),
+                    ..Default::default()
+                },
+            );
+            state.revision = 11;
+            state.missions.insert(
+                "mission".into(),
+                Mission {
+                    mission_id: "mission".into(),
+                    goal: "Venue".into(),
+                    constraints: vec![],
+                    deadline: None,
+                    success_checks: vec![],
+                    status: MissionStatus::Active,
+                    created_at: now,
+                },
+            );
+            state.roles.insert(
+                "monitor".into(),
+                Role {
+                    role_id: "monitor".into(),
+                    name: "Monitor".into(),
+                    charter: "Maintain venue".into(),
+                    authority: AuthorityGrant::new(["monitor.venue", "capability.venue_lookup"], 0),
+                    reports_to: None,
+                    state: RoleState::Active,
+                    binding: Some(AgentBinding {
+                        provider: Provider::Creao,
+                        provider_agent_id: "native-agent".into(),
+                        config_digest: "config".into(),
+                        conversation_ref: None,
+                    }),
+                    capabilities: vec![],
+                    created_in_revision: 3,
+                    retired_in_revision: None,
+                },
+            );
+            state.responsibilities.insert(
+                "responsibility".into(),
+                Responsibility {
+                    responsibility_id: "responsibility".into(),
+                    mission_id: "mission".into(),
+                    purpose: "Monitor venue".into(),
+                    requirement_id: None,
+                    owner: Owner::Role("monitor".into()),
+                    executor: Some(Executor::Role("monitor".into())),
+                    trigger: "event".into(),
+                    termination: "explicit".into(),
+                    status: ResponsibilityStatus::Open,
+                    epoch: 2,
+                },
+            );
+            state.assignments.insert(
+                "assignment".into(),
+                Assignment {
+                    assignment_id: "assignment".into(),
+                    role_id: "monitor".into(),
+                    responsibility_id: "responsibility".into(),
+                    epoch: 2,
+                    state: AssignmentState::Active,
+                    lease_expires_at: None,
+                },
+            );
+            state.observations.insert(
+                "observed".into(),
+                Observation {
+                    observation_id: "observed".into(),
+                    mission_id: "mission".into(),
+                    source: "creao-venue-assessment".into(),
+                    summary: "Verified venue assessment".into(),
+                    evidence_ref: Some(format!("venue-assessment:{}", "2".repeat(64))),
+                    observed_at: now + chrono::Duration::seconds(1),
+                },
+            );
+            if verdict == AssessmentVerdict::Reopen {
+                state.requirements.insert(
+                    "replacement".into(),
+                    Requirement {
+                        requirement_id: "replacement".into(),
+                        mission_id: "mission".into(),
+                        summary:
+                            "Find a replacement venue satisfying the verified event constraints."
+                                .into(),
+                        triggering_evidence: vec!["observed".into()],
+                        acceptance: "Verified replacement meets frozen policy".into(),
+                        status: RequirementStatus::Unmet,
+                        owner: Owner::MissionController,
+                    },
+                );
+            }
+            Self {
+                state,
+                work: Work {
+                    mission: "mission".into(),
+                    observation: "initial".into(),
+                    requirement: "original".into(),
+                    role: "old".into(),
+                    responsibility: "responsibility".into(),
+                },
+                source,
+                policy,
+                record,
+                now,
+            }
+        }
+        fn frozen(&self) -> Monitor {
+            monitor(&self.state, &self.work, "monitor", self.now).unwrap()
+        }
+        fn expected<'a>(&'a self, frozen: &'a Monitor, verdict: AssessmentVerdict) -> Expected<'a> {
+            Expected {
+                id: "assessment_test",
+                job_id: "assessment_job",
+                monitor: frozen,
+                policy: &self.policy,
+                source: &self.source,
+                verdict,
+            }
+        }
+        fn response(&self) -> AssessmentResponse {
+            serde_json::from_value(self.record.clone()).unwrap()
+        }
+        fn job(&self) -> Job {
+            serde_json::from_value(json!({
+                "job_id":"assessment_job","org_id":"org_b","mission_id":"mission","role_id":"monitor","responsibility_id":"responsibility",
+                "assignment_id":"assignment","epoch":2,"task":"Assess venue","input":{},"attempt_id":"attempt","attempt_no":1,
+                "correlation_id":"correlation","idempotency_key":"request","deadline":self.now+chrono::Duration::minutes(30),
+                "capability":null,"provider":"creao","status":"SUCCEEDED","provider_refs":{"agent_id":"native-agent","run_id":"native-run"},
+                "raw_status":"CREAO_ASSESSMENT_VERIFIED","result":{"kind":"venue_assessment","proof":self.record["proof"]},
+                "rejection_reason":null,"created_at":self.now,"updated_at":self.now+chrono::Duration::seconds(1),
+            })).unwrap()
+        }
+    }
+
+    #[test]
+    fn exact_backend_cycles_validate_without_importing_a_receipt() {
+        for verdict in [AssessmentVerdict::Feasible, AssessmentVerdict::Reopen] {
+            let f = Fixture::new(verdict);
+            let frozen = f.frozen();
+            let expected = f.expected(&frozen, verdict);
+            let record = f.response();
+            assert!(observe(&record, &expected).unwrap());
+            validate_job(
+                &f.job(),
+                &record,
+                &expected,
+                f.now + chrono::Duration::minutes(30),
+            )
+            .unwrap();
+            validate_effects(&f.state, record.proof.as_ref().unwrap(), &expected).unwrap();
+        }
+    }
+
+    #[test]
+    fn foreign_source_agent_policy_or_claim_cannot_complete_observation() {
+        let f = Fixture::new(AssessmentVerdict::Feasible);
+        let frozen = f.frozen();
+        let expected = f.expected(&frozen, AssessmentVerdict::Feasible);
+        for (pointer, value) in [
+            ("/source_job_id", json!("foreign")),
+            ("/policy/attendees", json!(151)),
+            ("/proof/provider_agent_id", json!("foreign")),
+            ("/proof/execution_receipt_sha256", json!("not-a-digest")),
+            ("/proof/output/policy_sha256", json!("9".repeat(64))),
+            (
+                "/proof/output/evidence/snapshot_sha256",
+                json!("9".repeat(64)),
+            ),
+            ("/proof/output/checks/price", json!(false)),
+            ("/proof/decision", json!("authority_rejected")),
+            ("/proof/requirement_id", json!("unexpected")),
+            ("/proof/verified_at", json!("2026-10-22T11:00:00Z")),
+        ] {
+            let mut bad_record = f.record.clone();
+            *bad_record.pointer_mut(pointer).unwrap() = value;
+            let parsed = serde_json::from_value(bad_record).unwrap();
+            assert!(observe(&parsed, &expected).is_err(), "{pointer}");
+        }
+        let mut unknown = f.record.clone();
+        unknown["proof"]["caller_verified"] = json!(true);
+        assert!(serde_json::from_value::<AssessmentResponse>(unknown).is_err());
+    }
+
+    #[test]
+    fn unknown_and_exhausted_attention_stop_but_transient_local_claim_waits() {
+        let f = Fixture::new(AssessmentVerdict::Feasible);
+        let frozen = f.frozen();
+        let expected = f.expected(&frozen, AssessmentVerdict::Feasible);
+        let mut record = f.response();
+        record.proof = None;
+        record.status = JobStatus::Verifying;
+        record.attention = Some("local_verification_pending".into());
+        assert!(!observe(&record, &expected).unwrap());
+        record.finalization_attempts = 2;
+        assert!(!observe(&record, &expected).unwrap());
+        record.finalization_attempts = 3;
+        assert!(observe(&record, &expected).is_err());
+        record.finalization_attempts = 0;
+        record.attention = None;
+        for status in [
+            JobStatus::Unknown,
+            JobStatus::Failed,
+            JobStatus::ResultRejected,
+            JobStatus::Succeeded,
+        ] {
+            record.status = status;
+            assert!(observe(&record, &expected).is_err());
+        }
+    }
+
+    #[test]
+    fn development_override_cannot_replace_monitor_or_expired_assignment() {
+        let f = Fixture::new(AssessmentVerdict::Feasible);
+        let frozen = f.frozen();
+        let mut state = f.state.clone();
+        state
+            .roles
+            .get_mut(&"monitor".into())
+            .unwrap()
+            .binding
+            .as_mut()
+            .unwrap()
+            .provider = Provider::DevStub;
+        assert!(monitor(&state, &f.work, "monitor", f.now).is_err());
+        let mut state = f.state.clone();
+        state
+            .assignments
+            .get_mut(&"assignment".into())
+            .unwrap()
+            .lease_expires_at = Some(f.now);
+        assert!(frozen.unchanged(&state, &f.work, f.now).is_err());
+        let mut state = f.state.clone();
+        state.missions.get_mut(&"mission".into()).unwrap().status = MissionStatus::Failed;
+        assert!(frozen.unchanged(&state, &f.work, f.now).is_err());
+        let mut state = f.state.clone();
+        state
+            .roles
+            .get_mut(&"monitor".into())
+            .unwrap()
+            .binding
+            .as_mut()
+            .unwrap()
+            .config_digest = "changed".into();
+        assert!(frozen.unchanged(&state, &f.work, f.now).is_err());
+        let mut state = f.state.clone();
+        state
+            .roles
+            .get_mut(&"monitor".into())
+            .unwrap()
+            .authority
+            .scopes
+            .remove("monitor.venue");
+        assert!(frozen.unchanged(&state, &f.work, f.now).is_err());
+    }
+
+    #[test]
+    fn saved_job_must_match_native_run_assignment_and_exact_proof() {
+        let f = Fixture::new(AssessmentVerdict::Feasible);
+        let frozen = f.frozen();
+        let expected = f.expected(&frozen, AssessmentVerdict::Feasible);
+        let record = f.response();
+        let deadline = f.now + chrono::Duration::minutes(30);
+        let mut job = f.job();
+        job.epoch += 1;
+        assert!(validate_job(&job, &record, &expected, deadline).is_err());
+        let mut job = f.job();
+        job.provider_refs.insert("run_id".into(), "foreign".into());
+        assert!(validate_job(&job, &record, &expected, deadline).is_err());
+        let mut job = f.job();
+        job.result.as_mut().unwrap()["proof"]["execution_receipt_sha256"] = json!("9".repeat(64));
+        assert!(validate_job(&job, &record, &expected, deadline).is_err());
+    }
+
+    #[test]
+    fn replacement_effect_requires_exact_trigger_owner_and_committed_revision() {
+        let f = Fixture::new(AssessmentVerdict::Reopen);
+        let frozen = f.frozen();
+        let expected = f.expected(&frozen, AssessmentVerdict::Reopen);
+        let record = f.response();
+        let proof = record.proof.as_ref().unwrap();
+        let mut state = f.state.clone();
+        state
+            .requirements
+            .get_mut(&"replacement".into())
+            .unwrap()
+            .owner = Owner::Role("monitor".into());
+        assert!(validate_effects(&state, proof, &expected).is_err());
+        let mut state = f.state.clone();
+        state
+            .requirements
+            .get_mut(&"replacement".into())
+            .unwrap()
+            .triggering_evidence
+            .push("unrelated".into());
+        assert!(validate_effects(&state, proof, &expected).is_err());
+        let mut state = f.state.clone();
+        state
+            .observations
+            .get_mut(&"observed".into())
+            .unwrap()
+            .evidence_ref = Some("foreign-proof".into());
+        assert!(validate_effects(&state, proof, &expected).is_err());
+        let mut state = f.state.clone();
+        state.revision += 1;
+        assert!(validate_effects(&state, proof, &expected).is_err());
+    }
+
+    #[test]
+    fn feasible_proof_cannot_hide_a_linked_replacement_requirement() {
+        let f = Fixture::new(AssessmentVerdict::Feasible);
+        let reopened = Fixture::new(AssessmentVerdict::Reopen);
+        let frozen = f.frozen();
+        let expected = f.expected(&frozen, AssessmentVerdict::Feasible);
+        let mut state = f.state.clone();
+        state.requirements = reopened.state.requirements;
+        assert!(validate_effects(&state, f.response().proof.as_ref().unwrap(), &expected).is_err());
+    }
+}
