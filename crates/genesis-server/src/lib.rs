@@ -12,7 +12,6 @@ pub mod auth;
 pub mod capability_evidence;
 pub mod capability_runtime;
 pub mod capability_store;
-pub mod creao_config;
 pub mod error;
 pub mod outbox;
 pub mod registry;
@@ -21,6 +20,9 @@ pub mod saga;
 pub mod specialist;
 pub mod specialist_jobs;
 pub mod store;
+
+/// Optional CREAO specialist registration from the backend environment.
+pub mod creao_config;
 
 use app::AppState;
 use auth::Tokens;
