@@ -6,7 +6,7 @@
 import { AttemptLedger } from "./AttemptLedger";
 import { Chip } from "./AttemptCard";
 import { beats, BEATS_LIMIT } from "./beats";
-import { adoptionLabel, evaluationLabel, executionLabel, purposeText, revisionLabel, TIER_TEXT } from "./claims";
+import { adoptionLabel, evaluationLabel, executionLabel, purposeText, revisionLabel, TIER_TEXT, verdictText } from "./claims";
 import type { Edge, Lineage, MethodNode } from "./lineage";
 import type { ExactRef } from "./records";
 
@@ -56,8 +56,8 @@ function MethodCard({ node, lineage }: { node: MethodNode; lineage: Lineage }) {
         )}
         {node.inspections.map((i) => (
           <li key={i.source_sha256}>
-            static inspection of <code>{i.entrypoint}</code>: parse {i.python_ast_parse}; imports{" "}
-            {i.imports.join(", ") || "none"}; execution {i.execution}. <em>{i.claim}</em>
+            static inspection{i.entrypoint && <> of <code>{i.entrypoint}</code></>}: {i.parse}; imports{" "}
+            {i.imports.join(", ") || "none"}; {i.execution}. <em>{i.claim}</em>
           </li>
         ))}
         {decisions.map(edgeItem)}
@@ -113,6 +113,29 @@ export function LineagePanel({ lineage, orgA, orgB }: { lineage: Lineage; orgA?:
         <p>No exact method version is recorded in the supplied files.</p>
       ) : (
         lineage.nodes.map((n) => <MethodCard key={n.key} node={n} lineage={lineage} />)
+      )}
+      {lineage.trials.length > 0 && (
+        <>
+          <h3>Trials</h3>
+          <ul>
+            {lineage.trials.map((t) => (
+              <li key={t.plan.ref.sha256}>
+                <code>{short(t.plan.ref)}</code>: <strong>{verdictText(t.verdict)}</strong>
+                {t.verdict && " (paired by folder; the verdict names no plan)"}
+                <ul>
+                  {t.executions.map((e) => (
+                    <li key={e.receipt.receipt_sha256}>
+                      {purposeText(e.receipt.purpose)}: {e.receipt.actual_method.id} run by {e.receipt.org_id},{" "}
+                      {executionLabel(e.receipt.outcome).text}, {e.evaluations.length} evaluation
+                      {e.evaluations.length === 1 ? "" : "s"}
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            ))}
+          </ul>
+          <p className="lab-limit">A trial verdict is scoring evidence under its frozen criterion, not an adoption decision.</p>
+        </>
       )}
       {lineage.problems.length > 0 && (
         <>
