@@ -30,8 +30,8 @@ describes the integration boundary; live provider evidence is still required.
   same explicit namespace and quota database. API-key hashes are not account IDs.
 - `CreaoSpecialist` derives immutable operations from the full role/job context.
   Separate events reuse a supplied agent binding and get fresh conversations;
-  creation conversations are not silently reused for execution. Created receipts
-  expose `readiness_verified:false`; execution receipts expose
+  creation conversations are not silently reused for execution. Created progress
+  exposes `readiness_verified:false`; collected progress exposes
   `domain_verified:false`. `ProviderSet::specialist` has no development fallback.
 
 The official defaults are 30 account requests/minute and 30 management writes/hour.
@@ -122,6 +122,47 @@ cannot collect interactive approvals, and an agent with `approval_required` or
 This hook is coordinated with Claude's ownership of saga/outbox/lifecycle fixes in
 issue #4. The core client/runtime and provider adapter are Codex-owned. No direct
 patch to Claude's saga or outbox is included in this milestone.
+
+## Bound execution receipts
+
+Domain workflows can call `SpecialistRuntime::execution_receipt(&job, &binding)`
+after a native run completes. This reads the configured backend's own CREAO
+journal. It never creates an intent, submits a request, polls, retries, or changes
+the job. Other specialist implementations reject this operation unless they
+implement their own trusted receipt path.
+
+Supply the job and agent binding frozen by the backend at dispatch. The adapter
+reconstructs the exact execution specification and matches it against the saved
+operation, including organization/account, mission, responsibility, assignment and
+epoch, attempt, task/input, deadline, agent ID and configuration digest. The saved
+ticket and observation must validate and the operation must be `NativeCompleted`.
+Generic job results, provider references and caller-supplied success flags cannot
+substitute for that journal evidence.
+
+The binding's creation `conversation_ref` is deliberately excluded: execution
+starts a fresh conversation. A receipt also does not attest a required scope;
+`Job` does not retain that field. The workflow must freeze and verify its own
+required scope against the kernel grant.
+
+The receipt includes native run/agent identities, an operation fingerprint, a
+checkpoint digest, and the original output with its digest. It is serializable
+for audit storage, but there is no deserialization or public import path that
+turns a supplied receipt into trusted evidence. Read it again from the backend
+journal when reconstructing a domain proof. Debug output hides provider output;
+explicit serialization contains it and belongs only in private backend storage.
+
+A receipt proves the provenance of a completed provider run, not the truth of its
+output or any current authority. Missing output is preserved as missing. A domain
+workflow must independently validate its output contract and check current mission,
+assignment, lease, deadline and grant before applying a result. Historical receipt
+reads remain possible after a job terminates or its deadline expires; they do not
+authorize a new transition. Native IDs also do not establish a sponsor run share
+link or prove a guarded external write occurred.
+
+The venue-continuity workflow will use this boundary to assess verified Apify
+observations through the same persistent CREAO agent. This receipt interface alone
+does not implement that workflow or resolve the specialist worker findings on
+held PR #20.
 
 ## Reconfirmed native contracts
 
