@@ -21,6 +21,8 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
 
+mod method_cli;
+
 #[derive(Parser)]
 #[command(name = "genesis", about = "GENESIS organization kernel")]
 struct Cli {
@@ -30,6 +32,8 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
+    /// Publish, discover or fetch exact development-method source; no execution or adoption.
+    Method(method_cli::MethodArgs),
     /// Serve one organization instance. Set APIFY_TOKEN to enable real Apify execution.
     Org(Box<OrgArgs>),
     /// Demonstrate acquisition and independent inheritance across two fresh organizations.
@@ -247,6 +251,7 @@ fn org_providers(
 async fn main() -> anyhow::Result<()> {
     init_tracing();
     match Cli::parse().command {
+        Command::Method(args) => args.run().await,
         Command::Scenario { spec, org_a, org_b } => {
             let spec: ScenarioSpec = load_trusted_json(&spec)?;
             let token_a = secret_from_env("GENESIS_ORG_A_OPERATOR_TOKEN")?
