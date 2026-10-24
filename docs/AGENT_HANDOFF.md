@@ -2,8 +2,24 @@
 
 ## Current implementation and ownership — October 22, 2026
 
+The optional monitoring scenario now registers one durable subscription and
+observes both accepted assessment cycles (`8741f38`). It preserves the existing
+proof/job/source/authority checks, requires the subscription's final replacement
+requirement to match the second accepted proof, and reports its subscription ID.
+The HTTP fixture rejects direct assessment POSTs and asserts one registration,
+two distinct executions, exact deadlines and unchanged history after restart.
+All **40 scenario unit/HTTP checks and five full scenarios** pass; strict default
+workspace all-target Clippy and formatting pass. Independent review is clean.
+These remain loopback provider tests, not native sponsor evidence.
+
+Claude's [PR #78](https://github.com/HenryWashuHe/genesis/pull/78) adds the assigned
+gap finalizer and is under independent review at `7cb747c`. Its runtime is not
+included in the scenario validation above. Claude retains that implementation;
+Codex is reviewing it while completing the scenario follow-up.
+
 [PR #77](https://github.com/HenryWashuHe/genesis/pull/77) adds opt-in durable venue
-monitor subscriptions; runtime checkpoint `e699659`, based on main `3ea5ec4`.
+monitor subscriptions; **merged** as `1bb3c9f`, reviewed source `c889491`,
+exact tree `3ad4418`. Runtime checkpoint `e699659` was based on main `3ea5ec4`.
 One operator registration freezes the existing role/assignment/CREAO binding,
 accepted capability and event policy. The server follows verified invocation
 events, persists each exact child intent before creation, and uses the existing
@@ -71,7 +87,7 @@ all-target Clippy and formatting pass. See [the review queue](PR_REVIEW_QUEUE.md
 
 Claude/Eric owns kernel/planner/readiness/UI and the explicitly assigned opt-in
 gap `Acquired → Installed` finalizer. Codex owns the monitor subscription and
-its next scenario integration, along with the completed operator setup helper.
+its scenario integration, along with the completed operator setup helper.
 No audit review hold remains from the previous batch.
 Coordinate through [issue #4](https://github.com/HenryWashuHe/genesis/issues/4).
 The ongoing mission goal remains active; historical notes below do not supersede
