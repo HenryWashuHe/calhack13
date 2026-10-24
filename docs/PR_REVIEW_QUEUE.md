@@ -111,7 +111,8 @@ a candidate that introduces a new failure. The current candidate blockers are:
 | [#21](https://github.com/HenryWashuHe/genesis/pull/21) `2c987193892da94e4110179362f2ef2aa052779c` | Bind acceptance runs to installation ID, support adoption acceptance purpose, and refresh changed/failed evidence reads | [Source review](https://github.com/HenryWashuHe/genesis/pull/21#pullrequestreview-5615620684); no new browser reproduction. |
 
 The held parent heads remain #11 `aa94d10` and #26 `3dc95d6`; the candidate fixes
-in the table have not landed. #12 now includes reviewed #38 at `d1a5e1d`, with
+in the table have not landed. Updated #39 head `1bf7304` is under review; its
+previously reviewed `49ca9ac` finding remains recorded above. #12 now includes reviewed #38 at `d1a5e1d`, with
 main integration pending. The earlier `ed0f074` gap failure is historical and is
 resolved at `ae3879b`. #20 is merged and no longer holds #26.
 After a durable readiness correction is reviewed, reconcile the ancestry of

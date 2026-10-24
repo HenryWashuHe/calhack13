@@ -68,8 +68,8 @@ Main's separate #20 evidence is scoped to its source snapshots: 620 Rust tests
 across 69 suites passed at integration `9bac3e1`, before the final guard move;
 53 affected tests across six suites passed at final `5798cb4`, plus formatting,
 strict workspace Clippy, 17 web tests/build and schema/type regeneration without
-drift. The portal separately passes 16 tests with zero skipped and two independently
-fetched A/B pages pass Rust verification. No public tunnel or live provider was used.
+drift. The portal separately passes 16 tests with zero skipped and both suites pass Rust verification against independently
+fetched A/B pages. No public tunnel or live provider was used.
 
 ## Historical validation
 

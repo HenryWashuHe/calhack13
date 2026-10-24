@@ -13,12 +13,12 @@ final provider-guard correction. Final source `5798cb4` passed 53 affected tests
 across six suites, formatting, strict workspace all-target Clippy, 17 web tests
 and the production build, with no schema/type drift. Main's #20 merge tree matches
 that final source. The subsequent portal merge matches the expected combined tree;
-16 portal tests pass with zero skipped, and two separately fetched A/B pages passed
-Rust verification. These checks do not constitute a new full-workspace total for
+16 portal tests pass with zero skipped, and both suites passed Rust verification
+against independently fetched A/B pages. These checks do not constitute a new full-workspace total for
 current main.
 
-Hold #11/#21. Candidate #39 still reproduces the Elastic capability-routing
-failure. Updated #38 (`ae3879b`) passed 28 focused tests, formatting and strict
+Hold #11/#21. The reviewed #39 head `49ca9ac` reproduces the Elastic capability-routing
+failure; updated head `1bf7304` is under review. Updated #38 (`ae3879b`) passed 28 focused tests, formatting and strict
 focused Clippy, and merged into #12 at `d1a5e1d`; no recorded #12 source blocker
 remains, but its main integration at `0cad0c4` is still being tested. #42 (`c2b0f11`)
 passed 16 focused tests and strict Clippy, then merged into #22 at `c6ccee4`; #22's
