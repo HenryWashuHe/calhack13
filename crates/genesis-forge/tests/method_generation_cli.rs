@@ -7,6 +7,7 @@ use std::{
     fs,
     path::PathBuf,
     process::{Command, Output},
+    sync::atomic::{AtomicU64, Ordering},
     time::Duration,
 };
 #[path = "common/text_generation_fixture.rs"]
@@ -16,15 +17,18 @@ mod plan_fixture;
 struct Fixture {
     directory: PathBuf,
 }
+// Parallel tests can observe the same clock tick, even through `as_nanos()`.
+static NEXT_DIRECTORY_ID: AtomicU64 = AtomicU64::new(0);
 impl Fixture {
     fn new() -> Self {
         let directory = std::env::temp_dir().join(format!(
-            "genesis-method-cli-{}-{}",
+            "genesis-method-cli-{}-{}-{}",
             std::process::id(),
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap()
-                .as_nanos()
+                .as_nanos(),
+            NEXT_DIRECTORY_ID.fetch_add(1, Ordering::Relaxed)
         ));
         fs::create_dir(&directory).unwrap();
         fs::write(
