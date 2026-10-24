@@ -23,7 +23,8 @@ and UI. No whole-kernel takeover is active.
 
 Codex's CREAO implementation is in PR #6; [CREAO_RUNTIME.md](CREAO_RUNTIME.md)
 records its durable provider boundary and pending readiness hook. Codex also owns
-Fetch on `codex/fetch-recruitment`: `genesis-fetch`, `services/fetch-bridge` and the
+Fetch in [PR #7](https://github.com/HenryWashuHe/genesis/pull/7),
+branch `codex/fetch-recruitment`: `genesis-fetch`, `services/fetch-bridge` and the
 signed three-process/two-organization proof. [FETCH_RUNTIME.md](FETCH_RUNTIME.md)
 documents exact commands, recovery, release isolation and the next kernel hook.
 All live-account smoke gates remain open. Repository assignments communicate the

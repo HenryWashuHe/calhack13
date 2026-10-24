@@ -82,7 +82,8 @@ provider activation is claimed by PR #6.
 
 ## Fetch discovery and independent recruitment
 
-Codex owns `codex/fetch-recruitment`, based on PR #6 after both provider branches
+Codex owns [PR #7](https://github.com/HenryWashuHe/genesis/pull/7),
+`codex/fetch-recruitment`, based on PR #6 after both provider branches
 absorbed Claude’s `efa3b4f` review-fix checkpoint. Reserved paths are
 `crates/genesis-fetch`, `services/fetch-bridge`, `scripts/demo-fetch-recruitment.py`,
 Fetch tests/docs and required Cargo membership/lockfile changes.
