@@ -11,6 +11,12 @@ export interface Label {
   limit: string;
 }
 
+/** Own-property lookup. Record-controlled strings such as "constructor",
+ * "toString" or "__proto__" must not resolve to inherited Object members. */
+export function own<T>(table: Readonly<Record<string, T>>, key: string): T | undefined {
+  return Object.hasOwn(table, key) ? table[key] : undefined;
+}
+
 function unrecognized(raw: string): Label {
   return { text: `unrecognized: ${raw}`, tone: "neutral", limit: "value not in this view's vocabulary; shown verbatim" };
 }
@@ -24,7 +30,7 @@ const PHASE: Record<string, Label> = {
   needs_reconciliation: { text: "outcome unknown — do not replay", tone: "warn", limit: "operator must inspect retained state" },
 };
 export function phaseLabel(phase: string): Label {
-  return PHASE[phase] ?? unrecognized(phase);
+  return own(PHASE, phase) ?? unrecognized(phase);
 }
 
 const ADOPTION: Record<string, Label> = {
@@ -34,7 +40,7 @@ const ADOPTION: Record<string, Label> = {
   unknown: { text: "unknown — retained, not concluded", tone: "warn", limit: "not a rejection and not an empty result" },
 };
 export function adoptionLabel(outcome: string): Label {
-  return ADOPTION[outcome] ?? unrecognized(outcome);
+  return own(ADOPTION, outcome) ?? unrecognized(outcome);
 }
 
 // The first rejected check named by docs/invention-lab/contracts/generation.md.
