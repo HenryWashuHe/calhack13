@@ -2,40 +2,56 @@
 
 ## Current merge and ownership checkpoint — October 22, 2026
 
-Main is `f51d4d9`, including the capability stack, CREAO execution receipts #32,
-[specialist execution #20](https://github.com/HenryWashuHe/genesis/pull/20) with
-fixes #36/#41, and [venue portal #35](https://github.com/HenryWashuHe/genesis/pull/35)
-with output-path fix #40. #20 is no longer a blocker for the readiness stack.
-[Current queue](PR_REVIEW_QUEUE.md).
+Reviewed main checkpoint: `a313a8e151f2110847d2bb93651d127eab1f34ca`.
+The capability stack, specialist execution #20, portal #35, planner #12,
+Elastic provider #11, Elastic planner #22, capability gaps #49 and capability
+evidence UI #21, gap lifecycle UI #54 and development guide #23 have landed.
+See [the review queue](PR_REVIEW_QUEUE.md)
+for exact reviewed sources, validation scope and remaining holds.
 
-Specialist integration `9bac3e1` passed 620 Rust tests across 69 suites before the
-final provider-guard correction. Final source `5798cb4` passed 53 affected tests
-across six suites, formatting, strict workspace all-target Clippy, 17 web tests
-and the production build, with no schema/type drift. Main's #20 merge tree matches
-that final source. The subsequent portal merge matches the expected combined tree;
-16 portal tests pass with zero skipped, and both suites passed Rust verification
-against independently fetched A/B pages. These checks do not constitute a new full-workspace total for
-current main.
+The #21 merge exactly matches tested integration `84463a1`: 40 web tests,
+clean install, typecheck and build pass; backend/schema source is unchanged from
+#49's main merge. #49's corrected source passed 83 core/planner/server tests,
+21 web tests and schema/type checks; its integration with the Elastic planner
+passed 58 focused tests and strict default workspace Clippy. The clean #54
+integration passed 42 web tests/typecheck/build. No aggregate current-main
+full-workspace total is claimed.
 
-Hold #11/#21. The reviewed #39 head `49ca9ac` reproduces the Elastic capability-routing
-failure; updated head `1bf7304` is under review. Updated #38 (`ae3879b`) passed 28 focused tests, formatting and strict
-focused Clippy, and merged into #12 at `d1a5e1d`; no recorded #12 source blocker
-remains, but its main integration at `0cad0c4` is still being tested. #42 (`c2b0f11`)
-passed 16 focused tests and strict Clippy, then merged into #22 at `c6ccee4`; #22's
-own findings are resolved, with #11/#12 dependencies and integration still pending.
-Readiness fix #37 still has a durable mismatch-reconciliation
-failure; #26 and descendants #27/#28/#29 remain pending. #27/#28's own reported
-findings are resolved.
-Claude/Eric and Henry's Claude retain their scoped source fixes. Codex owns
-capability/provider implementation, review and narrow integration; no whole-kernel
-takeover is active. The combined draft now includes main at `f5e747c` and passes
-71 affected Rust tests across nine suites, formatting and strict workspace
-all-target Clippy. Earlier full combined test counts remain historical and do not apply to current main.
+Readiness #26/#37 remains held: a failed durable reconciliation write can promote
+a mismatched receipt on retry and after restart. Dependent #27/#28/#29 remain
+pending; current #27/#28 changes pass their scoped checks, but readiness ancestry
+and final integration remain blocked. Live-gate runner #47, demo runbook #51 and planner eval #52
+have reproducible findings recorded in the queue. The gap terminal-transition
+planner wakeup #57 is under review. Consult current GitHub heads before acting;
+a newer commit needs its own check.
 
-[CREAO sponsor evidence](CREAO_SPONSOR_NOTES.md) still needs core mission execution,
-an actual agent ID and run share link. [Apify notes](APIFY_SPONSOR_NOTES.md) retain its
-meaningful-use and credit information. The portal has not been exposed through a
-public tunnel, and no live provider or sponsor proof is claimed.
+Combined draft #25 is pushed at `2829025`, integrating main through #22. It passed
+132 affected Rust tests and strict default workspace Clippy. It does not yet
+include main's #49/#21/#54 changes and remains a development draft with held readiness
+code. Its earlier 699-test total is historical.
+
+Codex owns the next server-side gap-to-acquisition driver. Draft #56 (`cf591a3`)
+implements its trusted policy materializer: fixed public examples, exact source
+allowlist, stable organization/gap-specific candidate identities and the gap's
+committed IDs. Ten policy tests and strict server Clippy pass. It has no worker or
+CLI flag yet. Next: freeze the full request/policy before creating exactly one
+intent, recover that intent after lost replies, and retain current authority and
+unknown-outcome protections. Publication/installation/acceptance remain separate.
+Persistent CREAO mission assessment follows this missing autonomy link.
+
+Claude/Eric and Henry's Claude keep their scoped kernel/planner/readiness/UI work.
+Codex handles review, provider/capability implementation and narrow integration;
+no whole-kernel takeover is active. Coordinate in
+[issue #4](https://github.com/HenryWashuHe/genesis/issues/4), push tested increments,
+and leave parent/main merges to the active reviewer during this pass to avoid
+concurrent merge races. Preserve source branches and exact-head evidence.
+
+[CREAO sponsor evidence](CREAO_SPONSOR_NOTES.md) still needs core mission
+work, an actual agent ID and a genuine run share link. The
+[Apify notes](APIFY_SPONSOR_NOTES.md) retain meaningful-use requirements.
+No live sponsor execution, public portal tunnel or independent-account Actor
+access is established by these local tests. The ongoing two-organization mission
+goal remains active.
 
 ## Historical pre-merge checkpoint
 

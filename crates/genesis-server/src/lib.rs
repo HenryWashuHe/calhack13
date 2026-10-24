@@ -19,6 +19,7 @@ pub mod capability_adoption_store;
 pub mod capability_authority;
 pub mod capability_evidence;
 pub mod capability_finalization;
+pub mod capability_gap_policy;
 pub mod capability_gaps;
 pub mod capability_invocation;
 pub mod capability_runtime;
