@@ -334,3 +334,133 @@ fn a_stored_record_that_breaks_its_invariants_is_refused_on_load() {
     }
     assert_eq!(f.store.method_adoption(&adopted.id).unwrap(), adopted);
 }
+
+/// Applies one direct state change as the next revision.
+fn commit(f: &Fixture, change: impl FnOnce(&mut OrgState)) {
+    let mut state = f.store.current_state().unwrap();
+    let base = state.revision;
+    state.revision += 1;
+    change(&mut state);
+    f.store
+        .commit_state(base, &state, vec![], &EventMeta::default(), vec![], |_| {
+            Ok(())
+        })
+        .unwrap();
+}
+
+// Independent review of `db0deec` (three confirmed findings, regression first).
+
+#[test]
+fn a_record_that_no_longer_authorizes_does_not_block_readopting() {
+    // Requirement, mission or authority changes that keep the assignment and
+    // epoch fence the old record; a fresh decision under the still-current
+    // grant must be possible.
+    let f = Fixture::new();
+    let (adopted, _) = f.create(&f.intent).unwrap();
+    let requirement = f.intent.requirement_id.clone();
+    commit(&f, |s| {
+        s.requirements
+            .get_mut(&requirement)
+            .unwrap()
+            .summary
+            .push_str(" v2")
+    });
+    let state = f.store.current_state().unwrap();
+    assert!(adopted.authorize(&state, f.now).is_err());
+    let mut again = f.intent.clone();
+    again.client_request_id = "adopt-after-edit".into();
+    let (readopted, new) = f.create(&again).unwrap();
+    assert!(new);
+    assert!(readopted.authorize(&state, f.now).is_ok());
+    // While a record still authorizes, a second one for the same binding is refused.
+    let mut third = f.intent.clone();
+    third.client_request_id = "adopt-third".into();
+    assert!(matches!(f.create(&third).unwrap_err(), E::AlreadyAdopted));
+}
+
+#[test]
+fn the_pin_names_the_publisher_the_receiver_evaluated() {
+    // The trial records carry no publisher, so identical bytes republished by
+    // another organization must not get an adopted record from this trial.
+    let f = Fixture::new();
+    let mut copycat = f.intent.clone();
+    copycat.client_request_id = "adopt-copycat".into();
+    copycat.publisher = OrgId::new("org_example_c");
+    assert!(matches!(
+        f.create(&copycat).unwrap_err(),
+        E::Acceptance(MethodAcceptanceError::Binding(_))
+    ));
+    assert!(f.create(&f.intent).is_ok());
+}
+
+#[test]
+fn only_the_requirement_owner_adopts() {
+    // A delegated executor runs work for the owner; the adoption decision and
+    // its grant stay with the owner.
+    let f = Fixture::new();
+    let owner = f.intent.role_id.clone();
+    let exec = RoleId::new("executor-role");
+    let responsibility = f.intent.responsibility_id.clone();
+    commit(&f, |s| {
+        let mut role = s.roles[&owner].clone();
+        role.role_id = exec.clone();
+        role.name = "Executor".into();
+        s.roles.insert(exec.clone(), role);
+        s.responsibilities
+            .get_mut(&responsibility)
+            .unwrap()
+            .executor = Some(genesis_core::model::Executor::Role(exec.clone()));
+    });
+    let mut by_executor = f.intent.clone();
+    by_executor.client_request_id = "adopt-by-executor".into();
+    by_executor.role_id = exec;
+    assert!(matches!(
+        f.create(&by_executor).unwrap_err(),
+        E::Authority(_)
+    ));
+    let (adopted, _) = f.create(&f.intent).unwrap();
+    assert!(adopted
+        .authorize(&f.store.current_state().unwrap(), f.now)
+        .is_ok());
+}
+
+#[test]
+fn indexed_binding_columns_must_match_the_stored_record() {
+    let f = Fixture::new();
+    let (adopted, _) = f.create(&f.intent).unwrap();
+    for (column, value) in [
+        ("requirement_id", "other-requirement".to_string()),
+        ("assignment_id", "other-assignment".to_string()),
+        ("epoch", "99".to_string()),
+    ] {
+        let conn = f.store.lock();
+        let original: String = conn
+            .query_row(
+                &format!("SELECT CAST({column} AS TEXT) FROM method_adoptions WHERE id=?1"),
+                [&adopted.id],
+                |r| r.get(0),
+            )
+            .unwrap();
+        conn.execute(
+            &format!("UPDATE method_adoptions SET {column}=?1 WHERE id=?2"),
+            rusqlite::params![value, adopted.id],
+        )
+        .unwrap();
+        drop(conn);
+        assert!(
+            matches!(
+                f.store.method_adoption(&adopted.id).unwrap_err(),
+                E::InvalidRecord
+            ),
+            "{column}"
+        );
+        f.store
+            .lock()
+            .execute(
+                &format!("UPDATE method_adoptions SET {column}=?1 WHERE id=?2"),
+                rusqlite::params![original, adopted.id],
+            )
+            .unwrap();
+    }
+    assert_eq!(f.store.method_adoption(&adopted.id).unwrap(), adopted);
+}
