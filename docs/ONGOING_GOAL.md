@@ -2,10 +2,13 @@
 
 **Networked recursive capability improvement with fixed model weights.**
 
+Active repository: [genesis-history-experiment](https://github.com/HenryWashuHe/genesis-history-experiment). See the
+[migration map](REPOSITORY_MIGRATION.md) for old/new PR numbers and preserved work.
+
 Status: ongoing work resumed by the user on October 23, 2026 (Pacific time).
 The existing hourly continuation is active. This is the durable repository
 objective and completion contract, read alongside current [ownership](AGENT_HANDOFF.md#current-ownership-and-next-work)
-and [issue #4](https://github.com/HenryWashuHe/genesis/issues/4).
+and [coordination issue #1](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1).
 
 The older app Goal is still an unfinished paused record at this checkpoint.
 Its tool cannot replace it until the user clears it; do not falsely complete it.
@@ -31,7 +34,7 @@ Event organization is not the product, demo requirement or completion gate.
 
 | Gate | Required result | Evidence before marking complete | Current state |
 | --- | --- | --- | --- |
-| G0: shared contracts | A versioned method interface, exact artifact/dependency identity, evaluator/task contract, resource accounting and separate execution/evaluation/adoption records | Reviewed contracts and compatibility/unknown-outcome cases agreed by affected owners; selected runtime/evaluator documented | Open: #124, #126; adoption proposal #129 is input |
+| G0: shared contracts | A versioned method interface, exact artifact/dependency identity, evaluator/task contract, resource accounting and separate execution/evaluation/adoption records | Reviewed contracts and compatibility/unknown-outcome cases agreed by affected owners; selected runtime/evaluator documented | Open: Codex method contracts and Henry evaluator lane; new #14 adoption proposal is input |
 | G1: executable development | A develops or improves an executable method through the governed process and uses it to develop a capability/design | Generated/changed method source and derivation, runnable executor, independently scored outputs, enforced limits, receipts and meaningful failure/restart tests; a supplied seed alone is a control | Open; existing extraction Actors are a foundation, not this general executor |
 | G2: independent inheritance | B discovers, locally checks and uses A's exact method on a distinct task, with justified organizational responsibility | Separate state/grants, exact invocation/acceptance evidence, a justified role change and an existing-owner control, appropriate non-reuse with scored task outcome | Open for methods; task-capability inheritance has separate existing fixture evidence |
 | G3: recursive return | B develops an executable revision; in at least one chain A independently accepts and executes that frozen revision to develop a later capability on a fresh return task | Genuine method changes/derivation, pinned versions, local acceptance and execution evidence closing A → B → A; declines remain valid controls but do not close this gate; positive improvement is not required | Open |
@@ -51,7 +54,7 @@ reliability or universal transfer.
 At the start of every resumed cycle, and again before a merge or new assignment:
 
 1. Read this goal, the current handoff, Git status including uncommitted work,
-   remote main, exact open PR heads/reviews, and the latest issue #4/task comments.
+   remote main, exact open PR heads/reviews, and the latest active issue #1/task comments.
    Prefer current evidence over old ownership or status snapshots.
 2. Select a concrete next step that advances a gate or removes its dependency.
    Record the gate, deliverable, owner, files/interfaces, dependency and validation
@@ -99,13 +102,15 @@ failures or input that is actually required.
 
 | Milestone | Owner and evidence | Next action |
 | --- | --- | --- |
-| Canonical framing and status separation | #127 merged at `844f37f`; documentation review, 193 local link/anchor checks | Maintain claim/evidence distinctions as code lands |
-| Method and comparison contract, G0 | Codex #124; runtime not implemented | Draft the contract pack using #129's requirements and review corrections: separate invocation/acceptance/comparison purposes, durable acceptance versus job authority, and merged versus pending fields; obtain affected-owner feedback before wiring |
-| Selective adoption foundation | Core Claude #122 acknowledged; #116 correction `78a18c0`, #128 classifier `546fb65` stacked on #116, #129 adoption proposal `d8fa531` | Review #116 before #128 and their interaction with #121; keep implementation with its owner |
-| Constitution audit and evidence UI | Eric #123; #120 `0cf383b7` open; new UI assignment not yet acknowledged | Review audit; request bounded UI contract feedback without taking Eric's files |
-| ACP correctness | ACP session #125 acknowledged; planned `claude/acp-regressions` not yet pushed; prior seven regressions preserved | Confirm current head, correct/test generic defects, then ACP contract; review #130 as a proposal, not authority to change product scope |
-| Simulator/evaluator, G0/G1 | #126 unassigned; Ines unassigned | Record a named bounded owner before implementation; do not invent one from a collaborator handle |
-| Deployed repair foundation | Pushed forge `1795fb7`, local server/test WIP; happy path only | Preserve until a separately scoped supporting milestone; full revised 12-case target/final checks remain open |
+| Canonical framing and status separation | Legacy #127/#131 already present in new main `e1f2264` with identical source tree | Maintain claim/evidence distinctions; no event-organizer revival |
+| Repository continuity, delivery prerequisite | New issue #1, PR routing map and active hourly task; all twelve repair WIP files preserved in draft #7 at `110a107` | Work/push in the new repo; reconcile any later old-repo delta by mapped base and complete tree |
+| Method and comparison contract, G0 | Codex owns additive method/receipt/comparison contracts; runtime not implemented | Separate execution purposes and trusted evaluator identities; freeze budgets/expected trial rosters and holdout disclosure timing |
+| Selective adoption foundation | Core Claude acknowledged; new #8/#10/#11/#12 stack and #14 adoption proposal | Complete exact-head review; correct bounded-search/version wording; preserve owner wiring |
+| Constitution audit and evidence UI | Eric, new #9; invention-lab UI assignment not yet acknowledged; write access confirmed | Independently validate audit and obtain bounded UI contract feedback; #15 is Henry's existing adoption UI |
+| ACP correctness | ACP session acknowledged; new #3/#5 runtime and #4 contract | Review latest corrections against independent sender/deduplication, effect-ambiguity and response-bound regressions |
+| Simulator/evaluator, G0/G1 | Henry's core Claude assigned requested lane; new #13 proposal | Correct holdout/evidence/budget contract; implement only isolated evaluator subtree after interface agreement; Ines stays unassigned |
+| Deployed repair foundation | Draft #7 preserves work on rewritten forge base; happy path only | Separate supporting claim and full revised target/final checks before readiness |
+| Credential readiness, separate live-provider gate | Apify and CREAO v2 authenticated metadata reads succeeded; no CREAO hosted agent returned | Scope v2 compatibility before execution; retain separate Fetch/Elastic reports and do not count authentication as workflow proof |
 
 This ledger is a checkpoint, not a substitute for current GitHub state. Record
 subsequent material milestones here with exact evidence; retain historical
