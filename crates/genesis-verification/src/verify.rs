@@ -106,7 +106,7 @@ pub fn verify(
                 if text_valid(&run.dataset_id) {
                     result.dataset_id = Some(run.dataset_id.clone());
                 }
-                check_run(case, expected_artifact, run, &mut result);
+                let _ = check_run(case, expected_artifact, run, &mut result);
             }
             Some(_) => issue(&mut result.issues, IssueCode::DuplicateCase, "case"),
         }
@@ -122,12 +122,151 @@ pub fn verify(
     }
 }
 
+/// Check exactly one invocation against its selected case in a complete trusted
+/// suite. This does not establish suite coverage, authenticate an adapter, or
+/// authorize publication, execution, organization changes, or a business result.
+pub fn verify_case(
+    suite: &OracleSuite,
+    expected_artifact: &ArtifactPin,
+    case_id: &str,
+    run: &ExecutionEvidence,
+) -> Result<CaseVerificationOutcome, ConfigurationError> {
+    validate_artifact(expected_artifact)?;
+    // Validate the entire suite before selecting; a valid case must not hide
+    // missing format coverage, duplicate IDs, or a broken unrelated oracle.
+    validate_suite(suite)?;
+    if !text_valid(case_id) {
+        return Err(config("case_id", "requires bounded nonempty text"));
+    }
+    let case = suite
+        .cases
+        .iter()
+        .find(|case| case.case_id == case_id)
+        .ok_or_else(|| config("case_id", "case is absent from the trusted suite"))?;
+    let metadata_valid = text_valid(&run.case_id)
+        && text_valid(&run.run_id)
+        && text_valid(&run.dataset_id)
+        && digest_valid(&run.input_sha256)
+        && validate_artifact(&run.artifact).is_ok()
+        && url_valid(&run.source.url)
+        && digest_valid(&run.source.sha256);
+    // Never serialize/hash arbitrary evidence before its strings and JSON have
+    // passed bounds. Invalid metadata is a candidate rejection, not an oracle error.
+    let evidence_sha256 = if metadata_valid && bounded_json(&run.output) {
+        let value = serde_json::to_value(run)
+            .map_err(|_| config("evidence", "cannot serialize execution evidence"))?;
+        Some(json_sha256(&value))
+    } else {
+        None
+    };
+    let mut checked = CaseReport {
+        case_id: case.case_id.clone(),
+        input_sha256: json_sha256(&case.input),
+        source: case.source.clone(),
+        run_id: text_valid(&run.run_id).then(|| run.run_id.clone()),
+        dataset_id: text_valid(&run.dataset_id).then(|| run.dataset_id.clone()),
+        issues: Vec::new(),
+    };
+    if run.case_id != case_id {
+        issue(&mut checked.issues, IssueCode::UnknownCase, "case_id");
+    }
+    if !metadata_valid {
+        issue(&mut checked.issues, IssueCode::InvalidReceipt, "receipt");
+    }
+    let extraction = check_run(case, expected_artifact, run, &mut checked);
+    let suite_json =
+        serde_json::to_value(suite).map_err(|_| config("suite", "cannot serialize oracle"))?;
+    let issues: Vec<IssueCode> = checked
+        .issues
+        .into_iter()
+        .map(|issue| issue.code)
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect();
+    let accepted = issues.is_empty();
+    let report = SingleCaseReport {
+        schema_version: 1,
+        evaluator_version: env!("CARGO_PKG_VERSION").to_owned(),
+        purpose: CaseVerificationPurpose::InvocationCase,
+        decision: if accepted {
+            Decision::Accepted
+        } else {
+            Decision::Rejected
+        },
+        suite_id: suite.suite_id.clone(),
+        suite_sha256: json_sha256(&suite_json),
+        case_id: checked.case_id,
+        input_sha256: checked.input_sha256,
+        source: checked.source,
+        artifact: expected_artifact.clone(),
+        run_id: checked.run_id,
+        dataset_id: checked.dataset_id,
+        evidence_sha256,
+        extraction,
+        issues,
+    };
+    if accepted {
+        Ok(CaseVerificationOutcome::Accepted(
+            AcceptedCaseVerification { report },
+        ))
+    } else {
+        Ok(CaseVerificationOutcome::Rejected(report))
+    }
+}
+
+impl SingleCaseReport {
+    /// Canonical GENESIS JSON digest with an explicit single-invocation domain.
+    /// The backend must additionally bind this report to its immutable job,
+    /// installation and authority record; a digest is not a signature or grant.
+    pub fn proof_sha256(&self) -> Result<String, ConfigurationError> {
+        if self.schema_version != 1
+            || !text_valid(&self.evaluator_version)
+            || !text_valid(&self.suite_id)
+            || !digest_valid(&self.suite_sha256)
+            || !text_valid(&self.case_id)
+            || !digest_valid(&self.input_sha256)
+            || !url_valid(&self.source.url)
+            || !digest_valid(&self.source.sha256)
+            || validate_artifact(&self.artifact).is_err()
+            || self.run_id.as_ref().is_some_and(|id| !text_valid(id))
+            || self.dataset_id.as_ref().is_some_and(|id| !text_valid(id))
+            || self
+                .evidence_sha256
+                .as_ref()
+                .is_some_and(|digest| !digest_valid(digest))
+            || self.issues.len() > 16
+            || self.issues.windows(2).any(|pair| pair[0] >= pair[1])
+            || match self.decision {
+                Decision::Accepted => {
+                    !self.issues.is_empty()
+                        || self.evidence_sha256.is_none()
+                        || self.run_id.is_none()
+                        || self.dataset_id.is_none()
+                        || self.extraction.is_none()
+                }
+                Decision::Rejected => self.issues.is_empty(),
+            }
+        {
+            return Err(config(
+                "report",
+                "invalid single-case report bounds or shape",
+            ));
+        }
+        let report = serde_json::to_value(self)
+            .map_err(|_| config("report", "cannot serialize single-case report"))?;
+        Ok(json_sha256(&serde_json::json!({
+            "domain": "genesis-invocation-case-v1",
+            "report": report,
+        })))
+    }
+}
+
 fn check_run(
     case: &OracleCase,
     pin: &ArtifactPin,
     run: &ExecutionEvidence,
     result: &mut CaseReport,
-) {
+) -> Option<ExtractionKind> {
     if &run.artifact != pin {
         issue(&mut result.issues, IssueCode::ArtifactMismatch, "artifact");
     }
@@ -142,19 +281,27 @@ fn check_run(
     }
     if !bounded_json(&run.output) {
         issue(&mut result.issues, IssueCode::InvalidOutput, "output");
-        return;
+        return None;
     }
     let actual = match serde_json::from_value::<ExtractionOutcome>(run.output.clone()) {
         Ok(actual) => actual,
         Err(_) => {
             issue(&mut result.issues, IssueCode::MalformedOutput, "output");
-            return;
+            return None;
         }
     };
-    if let Err(error) = validate_output(&actual, &case.source) {
-        issue(&mut result.issues, IssueCode::InvalidOutput, error.path);
-    }
+    let extraction = match validate_output(&actual, &case.source) {
+        Ok(()) => Some(match actual {
+            ExtractionOutcome::Supported { .. } => ExtractionKind::Supported,
+            ExtractionOutcome::Unsupported { .. } => ExtractionKind::Unsupported,
+        }),
+        Err(error) => {
+            issue(&mut result.issues, IssueCode::InvalidOutput, error.path);
+            None
+        }
+    };
     compare_output(&case.expected, &actual, &mut result.issues);
+    extraction
 }
 
 fn compare_output(

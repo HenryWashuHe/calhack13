@@ -73,9 +73,21 @@ impl Write for BoundedWriter {
 }
 
 pub fn encode_json(value: &impl Serialize) -> Result<Vec<u8>, String> {
+    encode(value, false)
+}
+
+pub fn encode_compact_json(value: &impl Serialize) -> Result<Vec<u8>, String> {
+    encode(value, true)
+}
+
+fn encode(value: &impl Serialize, compact: bool) -> Result<Vec<u8>, String> {
     let mut writer = BoundedWriter { bytes: Vec::new() };
-    serde_json::to_writer_pretty(&mut writer, value)
-        .map_err(|_| "cannot encode JSON within 8 MiB output limit".to_string())?;
+    if compact {
+        serde_json::to_writer(&mut writer, value)
+    } else {
+        serde_json::to_writer_pretty(&mut writer, value)
+    }
+    .map_err(|_| "cannot encode JSON within 8 MiB output limit".to_string())?;
     writer
         .write_all(b"\n")
         .map_err(|_| "JSON output exceeds 8 MiB limit".to_string())?;
@@ -131,15 +143,22 @@ impl CheckpointLock {
     }
 
     pub fn create(&self, value: &impl Serialize) -> Result<(), String> {
-        self.save(value, false)
+        self.save(&encode_json(value)?, false)
     }
 
     pub fn replace(&self, value: &impl Serialize) -> Result<(), String> {
-        self.save(value, true)
+        self.save(&encode_json(value)?, true)
     }
 
-    fn save(&self, value: &impl Serialize, replace: bool) -> Result<(), String> {
-        let bytes = encode_json(value)?;
+    pub fn create_compact(&self, value: &impl Serialize) -> Result<(), String> {
+        self.save(&encode_compact_json(value)?, false)
+    }
+
+    pub fn replace_compact(&self, value: &impl Serialize) -> Result<(), String> {
+        self.save(&encode_compact_json(value)?, true)
+    }
+
+    fn save(&self, bytes: &[u8], replace: bool) -> Result<(), String> {
         if replace {
             regular_file(&self.path)?;
         }
@@ -157,7 +176,7 @@ impl CheckpointLock {
         let mut temp = TempFile {
             path: temp_path.clone(),
         };
-        file.write_all(&bytes)
+        file.write_all(bytes)
             .and_then(|()| file.sync_all())
             .map_err(|_| "cannot durably write checkpoint".to_string())?;
         if replace {
@@ -192,6 +211,28 @@ impl CheckpointLock {
         Fut: Future<Output = T>,
     {
         self.replace(value)?;
+        Ok(effect().await)
+    }
+
+    /// Acquisition keeps two linked histories. Reserve 2 MiB of compact JSON
+    /// capacity for a bounded provider completion before sending any request.
+    pub async fn persist_compact_before_effect<T, F, Fut>(
+        &self,
+        value: &impl Serialize,
+        effect: F,
+    ) -> Result<T, String>
+    where
+        F: FnOnce() -> Fut,
+        Fut: Future<Output = T>,
+    {
+        let bytes = encode_compact_json(value)?;
+        if bytes.len() > MAX_JSON_BYTES - 2 * 1024 * 1024 {
+            return Err(
+                "acquisition checkpoint has insufficient completion capacity; no request was sent"
+                    .into(),
+            );
+        }
+        self.save(&bytes, true)?;
         Ok(effect().await)
     }
 }
@@ -317,5 +358,48 @@ mod tests {
         assert!(!called.load(Ordering::SeqCst));
         assert_eq!(guard.load::<Value>().unwrap(), previous);
         assert_eq!(fs::read_dir(&directory.0).unwrap().count(), 2);
+    }
+
+    #[tokio::test]
+    async fn acquisition_reserves_completion_capacity_before_persisting_or_sending() {
+        let directory = Directory::new();
+        let guard = CheckpointLock::acquire(&directory.checkpoint()).unwrap();
+        let previous = json!({"phase": "prepared"});
+        guard.create_compact(&previous).unwrap();
+        let called = AtomicBool::new(false);
+        // This fits the ordinary checkpoint limit but leaves insufficient space
+        // for the bounded provider response after a request has been accepted.
+        let too_full = json!({"pending": "x".repeat(6 * 1024 * 1024)});
+        assert!(guard
+            .persist_compact_before_effect(&too_full, || async {
+                called.store(true, Ordering::SeqCst);
+            })
+            .await
+            .is_err());
+        assert!(!called.load(Ordering::SeqCst));
+        assert_eq!(guard.load::<Value>().unwrap(), previous);
+        assert_eq!(fs::read_dir(&directory.0).unwrap().count(), 2);
+    }
+
+    #[tokio::test]
+    async fn compact_acquisition_intent_is_durable_and_locked_before_effect() {
+        let directory = Directory::new();
+        let path = directory.checkpoint();
+        let guard = CheckpointLock::acquire(&path).unwrap();
+        guard.create_compact(&json!({"pending": null})).unwrap();
+        let pending = json!({"pending": {"provider": "model", "attempt": 1}});
+        guard
+            .persist_compact_before_effect(&pending, || async {
+                assert_eq!(read_json::<Value>(&path).unwrap(), pending);
+                assert!(CheckpointLock::acquire(&path).is_err());
+                assert_eq!(
+                    fs::read(&path).unwrap(),
+                    encode_compact_json(&pending).unwrap()
+                );
+            })
+            .await
+            .unwrap();
+        guard.replace_compact(&json!({"completed": true})).unwrap();
+        assert_eq!(guard.load::<Value>().unwrap(), json!({"completed": true}));
     }
 }

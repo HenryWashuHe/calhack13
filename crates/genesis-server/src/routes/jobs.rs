@@ -34,17 +34,9 @@ pub(crate) fn new_job(
     let resp = &state.responsibilities[&req.responsibility_id];
     let role = &state.roles[&req.role_id];
     let bound = role.binding.as_ref().map(|b| b.provider);
-    // A caller-chosen provider must not route a backend-managed role's job
-    // around its specialist runtime (and so around the managed-result guard).
-    if let (Some(b), Some(asked)) = (bound, req.provider) {
-        if b != asked && crate::specialist_jobs::BACKEND_MANAGED.contains(&b) {
-            return Err(ApiError::new(
-                StatusCode::CONFLICT,
-                "provider_mismatch",
-                format!("role is bound to {b:?}; its jobs cannot be dispatched as {asked:?}"),
-            ));
-        }
-    }
+    // Trusted capability routes select Apify for an installed Actor even when
+    // its owning role is implemented by a CREAO specialist. Caller overrides
+    // are constrained at the generic dispatch endpoint below.
     let provider = req.provider.or(bound).unwrap_or(Provider::Internal);
     let now = Utc::now();
     let job = Job {
@@ -119,6 +111,23 @@ pub async fn dispatch(
         return Ok((StatusCode::OK, Json(stored)));
     }
     let state = app.current_state()?;
+    // A caller-selected provider must not bypass specialist result collection.
+    // Keep this HTTP boundary separate from backend capability preparation,
+    // which validates the installation and chooses the executable provider.
+    let bound = state
+        .roles
+        .get(&req.role_id)
+        .and_then(|role| role.binding.as_ref())
+        .map(|binding| binding.provider);
+    if let (Some(bound), Some(asked)) = (bound, req.provider) {
+        if bound != asked && crate::specialist_jobs::BACKEND_MANAGED.contains(&bound) {
+            return Err(ApiError::new(
+                StatusCode::CONFLICT,
+                "provider_mismatch",
+                format!("role is bound to {bound:?}; its jobs cannot be dispatched as {asked:?}"),
+            ));
+        }
+    }
     let (job, effects, outbox) = new_job(&app, &state, &req)?;
     let meta = EventMeta::mission(job.mission_id.clone()).caused_by(req.client_request_id.clone());
     // Job, request identity, dispatch event and outbox commit together, so a

@@ -150,6 +150,13 @@ impl ForgeSession {
     pub fn spec(&self) -> &CandidateSpec {
         &self.spec
     }
+    /// Local lineage metadata, revalidated by the acquisition coordinator.
+    pub fn repair_count(&self) -> u8 {
+        self.repair_count
+    }
+    pub fn parent_operation_id(&self) -> Option<&str> {
+        self.parent_operation_id.as_deref()
+    }
     pub fn failure(&self) -> Option<&FailureRecord> {
         self.failure.as_ref()
     }

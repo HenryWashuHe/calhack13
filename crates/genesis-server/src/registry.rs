@@ -326,6 +326,8 @@ async fn search(
 }
 
 /// HTTP client an organization uses to reach the shared registry.
+/// Requests target a configured HTTP(S) origin. Redirects and transport retries
+/// are disabled: publication outcomes must be reconciled by the caller.
 #[derive(Clone)]
 pub struct RegistryClient {
     base_url: String,
@@ -333,51 +335,151 @@ pub struct RegistryClient {
     http: reqwest::Client,
 }
 
+const MAX_REGISTRY_RESPONSE_BYTES: usize = 1024 * 1024;
+const MAX_SEARCH_QUERY_BYTES: usize = 4096;
+const MAX_SEARCH_SCOPES: usize = 128;
+const MAX_IDENTIFIER_BYTES: usize = 256;
+
 impl RegistryClient {
+    /// Preserve the infallible constructor; malformed configuration is rejected
+    /// by each operation before making a request, without returning its contents.
     pub fn new(base_url: impl Into<String>, token: impl Into<String>) -> Self {
         Self {
-            base_url: base_url.into().trim_end_matches('/').to_owned(),
+            base_url: base_url.into(),
             token: token.into(),
             http: reqwest::Client::builder()
                 .timeout(std::time::Duration::from_secs(15))
+                .redirect(reqwest::redirect::Policy::none())
+                .retry(reqwest::retry::never())
                 .build()
                 .expect("reqwest client"),
         }
     }
 
-    async fn decode<T: serde::de::DeserializeOwned>(resp: reqwest::Response) -> ApiResult<T> {
-        let status = resp.status();
-        let text = resp
-            .text()
-            .await
-            .map_err(|e| ApiError::internal(e.to_string()))?;
-        if status.is_success() {
-            serde_json::from_str(&text)
-                .map_err(|e| ApiError::internal(format!("registry response: {e}")))
-        } else {
-            let parsed: serde_json::Value = serde_json::from_str(&text).unwrap_or_default();
-            let code = parsed["error"]
-                .as_str()
-                .unwrap_or("registry_error")
-                .to_owned();
-            let message = parsed["message"].as_str().unwrap_or(&text).to_owned();
-            let status = StatusCode::from_u16(status.as_u16()).unwrap_or(StatusCode::BAD_GATEWAY);
-            Err(ApiError::new(status, code, message).with_details(parsed.get("details").cloned()))
-        }
+    fn configuration_error() -> ApiError {
+        ApiError::new(
+            StatusCode::SERVICE_UNAVAILABLE,
+            "registry_configuration",
+            "registry origin or credentials are invalid",
+        )
     }
 
-    fn unreachable(e: reqwest::Error) -> ApiError {
+    fn invalid_request() -> ApiError {
+        ApiError::new(
+            StatusCode::BAD_REQUEST,
+            "registry_invalid_request",
+            "registry request exceeds supported bounds or has an invalid identifier",
+        )
+    }
+
+    fn endpoint(&self, segments: &[&str]) -> ApiResult<reqwest::Url> {
+        let mut url =
+            reqwest::Url::parse(&self.base_url).map_err(|_| Self::configuration_error())?;
+        // Do not silently normalize whitespace or turn a configured path into
+        // an origin. An empty userinfo component is also disallowed.
+        let authority = self
+            .base_url
+            .split_once("://")
+            .map(|(_, rest)| rest.strip_suffix('/').unwrap_or(rest));
+        if self.base_url.trim() != self.base_url
+            || self.base_url.chars().any(char::is_control)
+            || !matches!(url.scheme(), "http" | "https")
+            || url.host_str().is_none()
+            || authority.is_none_or(|authority| authority.contains(['/', '\\', '@']))
+            || !url.username().is_empty()
+            || url.password().is_some()
+            || url.path() != "/"
+            || url.query().is_some()
+            || url.fragment().is_some()
+            || self.token.is_empty()
+            || reqwest::header::HeaderValue::from_str(&format!("Bearer {}", self.token)).is_err()
+        {
+            return Err(Self::configuration_error());
+        }
+        url.path_segments_mut()
+            .map_err(|_| Self::configuration_error())?
+            .clear()
+            .extend(segments);
+        Ok(url)
+    }
+
+    fn response_too_large() -> ApiError {
+        ApiError::new(
+            StatusCode::BAD_GATEWAY,
+            "registry_response_too_large",
+            "registry response exceeds the supported size limit",
+        )
+    }
+
+    async fn decode<T: serde::de::DeserializeOwned>(mut resp: reqwest::Response) -> ApiResult<T> {
+        let status = resp.status();
+        if status.is_redirection() {
+            return Err(ApiError::new(
+                StatusCode::BAD_GATEWAY,
+                "registry_redirect",
+                "registry redirects are not supported",
+            ));
+        }
+        if !status.is_success() {
+            // Never read or reflect remote error bodies, codes, headers or URLs.
+            // Keep the HTTP status useful to callers without trusting its prose.
+            let status = if status.is_client_error() || status.is_server_error() {
+                status
+            } else {
+                StatusCode::BAD_GATEWAY
+            };
+            return Err(ApiError::new(
+                status,
+                "registry_error",
+                "registry request was rejected",
+            ));
+        }
+        if resp
+            .content_length()
+            .is_some_and(|size| size > MAX_REGISTRY_RESPONSE_BYTES as u64)
+        {
+            return Err(Self::response_too_large());
+        }
+        let mut bytes = Vec::new();
+        while let Some(chunk) = resp.chunk().await.map_err(Self::unreachable)? {
+            if chunk.len() > MAX_REGISTRY_RESPONSE_BYTES.saturating_sub(bytes.len()) {
+                return Err(Self::response_too_large());
+            }
+            bytes.extend_from_slice(&chunk);
+        }
+        genesis_verification::decode_json(&bytes).map_err(|_| {
+            ApiError::new(
+                StatusCode::BAD_GATEWAY,
+                "registry_invalid_response",
+                "registry response is invalid or ambiguous",
+            )
+        })
+    }
+
+    fn unreachable(_: reqwest::Error) -> ApiError {
         ApiError::new(
             StatusCode::BAD_GATEWAY,
             "registry_unreachable",
-            e.to_string(),
+            "registry transport failed",
         )
     }
 
     pub async fn search(&self, req: &SearchRequest) -> ApiResult<Vec<SearchCandidate>> {
+        if !(1..=100).contains(&req.limit)
+            || req.query.len() > MAX_SEARCH_QUERY_BYTES
+            || req.available_scopes.as_ref().is_some_and(|scopes| {
+                scopes.len() > MAX_SEARCH_SCOPES
+                    || scopes
+                        .iter()
+                        .any(|scope| scope.is_empty() || scope.len() > MAX_IDENTIFIER_BYTES)
+            })
+        {
+            return Err(Self::invalid_request());
+        }
+        let url = self.endpoint(&["registry", "v1", "search"])?;
         let resp = self
             .http
-            .post(format!("{}/registry/v1/search", self.base_url))
+            .post(url)
             .bearer_auth(&self.token)
             .json(req)
             .send()
@@ -391,12 +493,24 @@ impl RegistryClient {
         id: &CapabilityId,
         version: &str,
     ) -> ApiResult<CapabilityManifest> {
+        // URL segment builders intentionally remove literal dot segments. Refuse
+        // those two names rather than silently selecting a different endpoint.
+        if [id.as_str(), version].into_iter().any(|part| {
+            part.is_empty() || part.len() > MAX_IDENTIFIER_BYTES || matches!(part, "." | "..")
+        }) {
+            return Err(Self::invalid_request());
+        }
+        let url = self.endpoint(&[
+            "registry",
+            "v1",
+            "capabilities",
+            id.as_str(),
+            "versions",
+            version,
+        ])?;
         let resp = self
             .http
-            .get(format!(
-                "{}/registry/v1/capabilities/{}/versions/{}",
-                self.base_url, id, version
-            ))
+            .get(url)
             .bearer_auth(&self.token)
             .send()
             .await
@@ -405,9 +519,10 @@ impl RegistryClient {
     }
 
     pub async fn publish(&self, manifest: &CapabilityManifest) -> ApiResult<CapabilityManifest> {
+        let url = self.endpoint(&["registry", "v1", "manifests"])?;
         let resp = self
             .http
-            .post(format!("{}/registry/v1/manifests", self.base_url))
+            .post(url)
             .bearer_auth(&self.token)
             .json(manifest)
             .send()
