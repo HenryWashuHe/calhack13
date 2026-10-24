@@ -5,6 +5,8 @@ import { buildTree, executedBy, ownedBy, pendingRoles, RoleNode, short } from ".
 import { HistoryEntry, historyView } from "../lib/snapshot";
 import { ProviderBadge, StateChip } from "./Chips";
 import { WhyDrawer } from "./WhyDrawer";
+import { EvolutionView } from "./EvolutionView";
+import { generations } from "../lib/evolution";
 
 /** Records the "Why?" drawer explains a role from. Absent → no drawer. */
 const Provenance = createContext<{ changes: OrgChangeRecord[]; events: DomainEvent[] } | null>(null);
@@ -169,7 +171,32 @@ export function OrgPanel({
   const [showRetired, setShowRetired] = useState(true);
   const [viewRevision, setViewRevision] = useState<number | null>(null);
   const [entry, setEntry] = useState<HistoryEntry | null>(null);
+  const [mode, setMode] = useState<"tree" | "evolution">("tree");
+  /** Index into `gens` while replaying the organization's evolution. */
+  const [replay, setReplay] = useState<number | null>(null);
   const live = viewRevision === null;
+  const gens = useMemo(() => (events ? generations(events, changes, state) : []), [events, changes, state]);
+  const replaying = replay !== null ? gens[replay] : undefined;
+
+  useEffect(() => {
+    if (replay === null) return;
+    const g = gens[replay];
+    if (!g) {
+      setReplay(null);
+      return;
+    }
+    setViewRevision(g.revision);
+    const t = setTimeout(() => {
+      if (replay + 1 < gens.length) setReplay(replay + 1);
+      else {
+        setReplay(null);
+        setViewRevision(null);
+      }
+    }, 2400);
+    return () => clearTimeout(t);
+  }, [replay, gens]);
+
+  const stopReplay = () => setReplay(null);
 
   useEffect(() => {
     // Drop the previous revision's snapshot immediately; it is never shown
@@ -208,6 +235,33 @@ export function OrgPanel({
           r{shown?.revision ?? "–"} · {rolesCount} active roles
         </span>
         <div className="right org-tools">
+          {events && (
+            <div className="seg" role="group" aria-label="Organization view">
+              <button className="btn" aria-pressed={mode === "tree"} onClick={() => setMode("tree")}>
+                Tree
+              </button>
+              <button className="btn" aria-pressed={mode === "evolution"} onClick={() => setMode("evolution")}>
+                Evolution
+              </button>
+            </div>
+          )}
+          {gens.length > 1 && (
+            <button
+              className="btn"
+              aria-pressed={replaying !== undefined}
+              onClick={() => {
+                if (replaying) {
+                  stopReplay();
+                  setViewRevision(null);
+                } else {
+                  setMode("tree");
+                  setReplay(0);
+                }
+              }}
+            >
+              {replaying ? "■ Stop" : "▶ Replay"}
+            </button>
+          )}
           <label>
             <input type="checkbox" checked={showRetired} onChange={(e) => setShowRetired(e.target.checked)} />
             Show retired
@@ -226,6 +280,7 @@ export function OrgPanel({
               max={Math.max(current, 0)}
               value={viewRevision ?? current}
               onChange={(e) => {
+                stopReplay();
                 const v = Number(e.target.value);
                 setViewRevision(v === current ? null : v);
               }}
@@ -233,14 +288,41 @@ export function OrgPanel({
             />
             <span className="mono tabular">r{viewRevision ?? current}</span>
           </div>
-          <button className="btn" aria-pressed={live} onClick={() => setViewRevision(null)}>
+          <button
+            className="btn"
+            aria-pressed={live}
+            onClick={() => {
+              stopReplay();
+              setViewRevision(null);
+            }}
+          >
             Live
           </button>
         </div>
-        {!live && (
+        {!live && replaying && (
+          <div className="history-banner replay" aria-live="polite">
+            <strong>
+              r{replaying.revision} · {replaying.label}
+            </strong>{" "}
+            {replaying.cause}
+            {replaying.triggers.length > 0 && <span className="muted"> — because {replaying.triggers.join("; ")}</span>}
+          </div>
+        )}
+        {!live && !replaying && (
           <div className="history-banner">
             Viewing revision r{viewRevision} as it was committed. In-flight changes are hidden.
           </div>
+        )}
+        {mode === "evolution" && (
+          <EvolutionView
+            gens={gens}
+            selected={viewRevision}
+            onSelect={(rev) => {
+              stopReplay();
+              setViewRevision(rev === current ? null : rev);
+              setMode("tree");
+            }}
+          />
         )}
         {history.kind === "loading" && <p className="empty">Loading revision r{history.revision}…</p>}
         {history.kind === "error" && (
@@ -248,12 +330,12 @@ export function OrgPanel({
             Could not load revision r{history.revision}: {history.message}
           </div>
         )}
-        {shown && tree.length === 0 && <p className="empty">No roles yet.</p>}
-        {shown && (
+        {mode === "tree" && shown && tree.length === 0 && <p className="empty">No roles yet.</p>}
+        {mode === "tree" && shown && (
           <Provenance.Provider value={live && events ? { changes, events } : null}>
             <ul className="tree">
               {tree.map((n) => (
-                <Node key={n.id} node={n} state={shown} freshRevision={current} />
+                <Node key={n.id} node={n} state={shown} freshRevision={viewRevision ?? current} />
               ))}
             </ul>
           </Provenance.Provider>
