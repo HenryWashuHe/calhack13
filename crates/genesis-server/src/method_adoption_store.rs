@@ -384,6 +384,28 @@ impl Store {
         Ok((record, true))
     }
 
+    /// The stored decision for this exact intent, if its key was already used.
+    /// A different intent under the same key is a conflict.
+    pub fn method_adoption_replay(
+        &self,
+        intent: &CreateMethodAdoption,
+    ) -> Result<Option<MethodAdoptionRecord>> {
+        let conn = self.lock();
+        let id: Option<String> = conn
+            .query_row(
+                "SELECT id FROM method_adoptions WHERE client_request_id=?1",
+                params![intent.client_request_id],
+                |row| row.get(0),
+            )
+            .optional()?;
+        let Some(id) = id else { return Ok(None) };
+        let record = load(&conn, &id)?;
+        if record.intent_sha256 != digest(intent)? {
+            return Err(E::IdempotencyConflict);
+        }
+        Ok(Some(record))
+    }
+
     pub fn method_adoption(&self, id: &str) -> Result<MethodAdoptionRecord> {
         load(&self.lock(), id)
     }

@@ -40,6 +40,16 @@ fn error(error: MethodAdoptionError) -> ApiError {
     }
 }
 
+fn configured(app: &AppState) -> ApiResult<std::sync::Arc<crate::method_adoption::MethodReceiver>> {
+    app.method_receiver.clone().ok_or_else(|| {
+        ApiError::new(
+            StatusCode::SERVICE_UNAVAILABLE,
+            "method_adoption_configuration",
+            "method adoption requires a configured receiver",
+        )
+    })
+}
+
 pub async fn create(
     State(app): State<AppState>,
     principal: Principal,
@@ -47,13 +57,11 @@ pub async fn create(
 ) -> ApiResult<(StatusCode, Json<Value>)> {
     principal.require(&[Principal::Operator])?;
     let Json(body) = body.map_err(|_| ApiError::bad_request("invalid method adoption request"))?;
-    let receiver = app.method_receiver.clone().ok_or_else(|| {
-        ApiError::new(
-            StatusCode::SERVICE_UNAVAILABLE,
-            "method_adoption_configuration",
-            "method adoption requires a configured receiver",
-        )
-    })?;
+    let receiver = configured(&app)?;
+    // An identical retry returns its stored decision without new external work.
+    if let Some(record) = app.store.method_adoption_replay(&body).map_err(error)? {
+        return Ok((StatusCode::OK, Json(json!(record))));
+    }
     // Only an adoption needs the selected bytes; a decline records a choice.
     let package_json = match &body.decision {
         MethodDecision::Decline { .. } => String::new(),
@@ -109,6 +117,8 @@ pub async fn authorize(
     principal.require(&[Principal::Operator])?;
     let Json(body) =
         body.map_err(|_| ApiError::bad_request("invalid method invocation request"))?;
+    // A disabled receiver issues no new invocation grants; reads stay available.
+    configured(&app)?;
     let _guard = app.kernel.lock().await;
     let state = app
         .store
