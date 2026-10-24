@@ -11,8 +11,8 @@ weights. Event organization remains superseded. G0–G4 are still open.
 The revised app Goal was activated on October 24, 2026 after the stale record
 was cleared; the existing hourly continuation remains active.
 
-Main through `f335cc6ca7da193ef6e4ae98beb49ddaa6f11810`, tree
-`75d39a7bb965b5c5034b9914e6237bdb82add8eb`, includes the reviewed
+Main through `a3be74d0fd4d067c99a928bb8315d69fd05010ea`, tree
+`7731ec5a4d69c5631d50e827f7acbf9d87254d28`, includes the reviewed
 foundations below. Method generation merged at `d1be8443fee46e1196861926a963563f48407936`,
 whose tree `dc9d6adc19863d8584fd5af1fd11eae7552014eb` exactly matches the independently
 validated generation stack. Counts refer to the named source/composition, not a
@@ -22,7 +22,7 @@ combined main run.
 | --- | --- |
 | Whole-chain cost assembly #127 `f5fad35` → `f335cc6` | Full forge 243 tests/47 targets, zero failed/ignored; strict all-target Clippy/fmt. Includes six author and three independent cases, preserving the independent 207-line file. [Pure original-record aggregation](invention-lab/contracts/chain-allocation.md#whole-chain-observed-costs) retains unknowns/local overruns and rejects duplicate identities. No provider/runtime work, chronology, exhaustive billing or gate closure. |
 | Catalogue audit #124 final `ed573c69` → `2f9cfea9` | Author source `e6940b22`: 142 core tests pass. Independent 11 focused tests pass, including three unchanged `1c2bfd29` cases; scoped strict Clippy/fmt pass. [Post-run full-reference membership](invention-lab/contracts/catalogue.md) retains missing/unknown/failed/overrun evidence. No byte verification, chronology, runtime enforcement or gate closure. |
-| Real-evidence UI #123 `7196d5c` → parent-branch merge `4515f728` | 81 UI tests across 13 files and typecheck pass; original regressions unchanged. Main integration is pending. Folder deduplication, package bytes and inspection identity holds cleared for the reviewed source. Display correctness is separate from organization authority or adoption. |
+| Real-evidence UI #123/#128 | #123 `7196d5c` merged into its parent branch at `4515f728`; #128 final `2f0b6734` integrated identical web bytes into main at `a3be74d0`. Independent 81 UI tests/13 files and typecheck pass on the final composition; original regressions unchanged. Folder deduplication, package bytes and inspection identity holds cleared. Display correctness is separate from organization authority or adoption. |
 | Explicit reasoning policy #120 `a2c4ff15` → `70a00d51` | Independent `f3a74b58`: 42 tests/10 targets; author 37 tests/7 targets overlaps. Final eight focused tests and strict all-target Clippy/fmt pass. Three `80f8544` cases are unchanged; eight historical checkpoints and four roster/admission pairs retain identity. Sonnet 5.5 adaptive effort pins client choices only; no live request, fixed hosted weights or G4 result. |
 | Evidence manifest UI #109 `2cfb4058` → `5ed65deb` | 66 focused tests/11 files and typecheck pass, including all five original `f2ac45e5` cases/70 lines unchanged. Format and full inspection-attribution holds cleared; later real-evidence intake #123 is recorded above. |
 | B receiving #116 `59cbf0ad` → `e091ce0d` and A return #117 `3c1994f` → `8eed5043` | Independently checked retained records: B child 3/6 loses to random 4/6 and parent 6/6, beats fixed cart 2/6. A-return comparisons 0–3, 0–1 and 1–3 all Rejected. Separate cost scopes and read-only review; no accepted return, local adoption, Linux assurance or G0–G4 closure. |
@@ -249,7 +249,8 @@ merged at `95256998`: 52 focused UI checks/typecheck pass, preserving the full
 focused tests/11 files and typecheck with all five original `f2ac45e5` cases
 unchanged. Real-evidence #123 `7196d5c` passed 81 tests across 13 files/typecheck;
 original `0672dcbe` regressions are unchanged and pass. Merge `4515f728` went to
-its parent branch only; main integration is pending.
+its parent branch only; #128 `2f0b6734` subsequently integrated identical web
+bytes into main at `a3be74d0`, with all 81 tests/typecheck independently rerun.
 This clears the earlier folder-dedup, raw-package and inspection-identity holds.
 In the separate `apps/stage` queue, #125 `973aa9c` remains held on organization-timing attribution; stacked
 #126 `b7bdb18` is held on four mocked acknowledgment failures: early-decision
