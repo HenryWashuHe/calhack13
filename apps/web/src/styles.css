@@ -312,6 +312,14 @@ button { font: inherit; color: inherit; }
 .ev-grid > div { display: grid; gap: 4px; align-content: start; min-width: 0; overflow-wrap: anywhere; }
 .ev-grid h4 { margin: 0; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
 .ev-limits { margin: 0; padding-left: 18px; color: var(--ink-3); font-size: 12px; }
+.ev-sub {
+  margin: 8px 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+}
 .ev-runs td.mono:first-child { white-space: nowrap; }
 
 .filters { display: flex; gap: 4px; flex-wrap: wrap; }
@@ -402,12 +410,3 @@ td .sub { display: block; color: var(--ink-3); font-size: 12px; }
 .search-row input { flex: 1; min-width: 0; font: inherit; padding: 6px 8px; border: 1px solid var(--rule-strong); border-radius: 6px; background: var(--panel); color: inherit; }
 .bad-text { color: var(--bad); }
 .answer { display: block; margin-top: 4px; font-size: 12px; color: var(--ink-2); white-space: pre-wrap; max-height: 8em; overflow: auto; }
-
-.ev-sub {
-  margin: 8px 0 4px;
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--ink-3);
-}
