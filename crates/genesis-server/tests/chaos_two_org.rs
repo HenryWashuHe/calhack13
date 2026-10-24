@@ -440,7 +440,7 @@ fn describe(app: &AppState, gap: &CapabilityGapId) -> String {
         .gap_adoption(gap)
         .ok()
         .flatten()
-        .map(|r| format!(" adoption={:?}", r.state))
+        .map(|r| format!(" adoption={:?}/{:?} id={:?}", r.state, r.code, r.adoption_id))
         .unwrap_or_default();
     let finalizer = app
         .store
