@@ -956,6 +956,7 @@ fn can_retry(r: &GapAdoptionRecord) -> bool {
 /// - `Prepared` settles it only once the adoption has left Checking for good,
 ///   since the runtime then refuses to submit it (`authorized_job` requires
 ///   Checking, checked under the kernel lock this route also holds).
+///
 /// Everything else blocks a retry. That includes `Rejected`: it is a local
 /// authority/configuration verdict that can overwrite a submitted or even
 /// still-running native run without polling it (Codex, #86), so it is no
