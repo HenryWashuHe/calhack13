@@ -12,7 +12,8 @@ B=target/debug/lab-exec
 $B example-plan namespaces 6 72000 60000 /var/tmp/lab   # writes plan + two packages
 $B run /var/tmp/lab/plan.json candidate /var/tmp/lab/candidate.package.json /var/tmp/lab/candidate namespaces
 $B run /var/tmp/lab/plan.json control   /var/tmp/lab/control.package.json   /var/tmp/lab/control   namespaces
-$B check /var/tmp/lab/plan.json candidate /var/tmp/lab/candidate
+(cd ../scoring && cargo run -q --bin lab-score -- /var/tmp/lab/plan.json candidate /var/tmp/lab/candidate /var/tmp/lab/candidate-score)
+$B check /var/tmp/lab/plan.json candidate /var/tmp/lab/candidate /var/tmp/lab/candidate-score
 ```
 
 Methods are #36 `development-method-source/1` packages (`lab-exec package`
@@ -64,6 +65,8 @@ is refused by `MethodPackage::load_for`.
 
 `check` runs `validate_execution` and `assess_trials` on the stored records.
 
+Trusted acceptance scoring lives in the separate `../scoring` crate.
+
 ## Isolation, exactly
 
 `namespaces` mode (root only):
@@ -103,8 +106,8 @@ generated or improved methods and say nothing about recursive benefit.
 
 ## Not in v0
 
-- No trusted scoring adapter: `assess_trials` shows scoring as `Missing`.
-- No comparison runner and no hidden-set reveal.
+- No comparison runner, hidden-set scoring or reveal.
+- No criterion evaluation or adoption decision.
 - No model access or dependencies.
 - The store is a local directory: it doesn't stop someone with write access
   from rolling it back, and it doesn't authenticate records.

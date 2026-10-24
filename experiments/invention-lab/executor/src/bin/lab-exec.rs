@@ -8,7 +8,8 @@
 //!     (writes plan.json, criterion.json and both control packages)
 //!   lab-exec run <plan.json> <slot> <package.json> <state-dir> <namespaces|none>
 //!   lab-exec recover <plan.json> <slot> <state-dir> <namespaces|none>
-//!   lab-exec check <plan.json> <slot> <state-dir>
+//!   lab-exec check <plan.json> <slot> <state-dir> [score-dir]
+use genesis_core::development_evaluation::EvaluationReceipt;
 use genesis_core::development_experiment::{ExperimentLedger, ExperimentScope};
 use genesis_core::development_method::{ExactContentRef, ExecutionReceipt, ResourceGrant};
 use genesis_core::development_package::{MethodPackage, MethodSourceFile};
@@ -219,8 +220,12 @@ fn main() -> ExitCode {
                         .map_err(|e| format!("{e:?}"))?,
                 )
             }
-            ["check", plan, slot, dir] => {
+            ["check", plan, slot, dir, rest @ ..] if rest.len() <= 1 => {
                 let plan: TrialPlan = json(plan)?;
+                let scoring: Option<EvaluationReceipt> = match rest.first() {
+                    Some(out) => Some(json(&format!("{out}/evaluation.json"))?),
+                    None => None,
+                };
                 let ledger: ExperimentLedger = json(&format!("{dir}/ledger.json"))?;
                 let receipt: ExecutionReceipt = json(&format!("{dir}/receipt.json"))?;
                 let scope = ExperimentScope {
@@ -235,7 +240,7 @@ fn main() -> ExitCode {
                     &[TrialEvidence {
                         slot_id: slot.to_string(),
                         execution: receipt,
-                        scoring: None,
+                        scoring,
                     }],
                 )
                 .map_err(|e| format!("trial: {e:?}"))?;
