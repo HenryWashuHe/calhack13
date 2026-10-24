@@ -33,6 +33,10 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
+#[path = "venue_recovery_retirement.rs"]
+mod retirement;
+pub use retirement::{ReleaseDelivery, RetirementReason, RetirementRecord};
+
 const SCOPE: &str = "contract.logistics";
 const CAPABILITY: &str = "venue.select";
 const TASK: &str = "GENESIS verified venue replacement v1: select from the frozen candidate facts; return the exact venue_replacement_v1 contract. No booking or mission-completion claim.";
@@ -128,6 +132,9 @@ pub enum RecoveryPhase {
     Selecting,
     Assessing,
     Completed,
+    /// Work expired; its local contract grant has been retired. Remote release
+    /// delivery is reported separately and may still need reconciliation.
+    Retired,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -164,6 +171,8 @@ struct Recovery {
     child_request: Option<CreateAssessmentRequest>,
     child_id: Option<String>,
     child_proof_ref: Option<String>,
+    #[serde(default)]
+    retirement: Option<retirement::Retirement>,
 }
 
 /// Contains public identities and proof references, never the raw message input.
@@ -184,6 +193,7 @@ pub struct RecoveryRecord {
     pub selected_venue_id: Option<String>,
     pub assessment_id: Option<String>,
     pub assessment_proof_ref: Option<String>,
+    pub retirement: Option<RetirementRecord>,
 }
 
 impl Recovery {
@@ -208,6 +218,7 @@ impl Recovery {
                 .map(|s| s.venue_id.clone()),
             assessment_id: self.child_id.clone(),
             assessment_proof_ref: self.child_proof_ref.clone(),
+            retirement: self.retirement.as_ref().map(retirement::Retirement::record),
         }
     }
     fn pause(&mut self, reason: &'static str) {
@@ -236,12 +247,23 @@ fn encode(record: &Recovery) -> ApiResult<String> {
 
 impl Store {
     pub fn init_venue_recoveries(&self) -> StoreResult<()> {
-        self.lock().execute_batch(
+        let conn = self.lock();
+        conn.execute_batch(
             "CREATE TABLE IF NOT EXISTS venue_recoveries (
           recovery_id TEXT PRIMARY KEY, client_request_id TEXT NOT NULL UNIQUE,
           requirement_id TEXT NOT NULL UNIQUE, contract_id TEXT NOT NULL UNIQUE,
           job_id TEXT NOT NULL UNIQUE REFERENCES jobs(job_id), revision INTEGER NOT NULL,
           active INTEGER NOT NULL, next_check_at TEXT NOT NULL, data TEXT NOT NULL);",
+        )?;
+        // Earlier checkpoints stopped scheduling completed/paused records.
+        // They still need local retirement even when no Fetch runtime is loaded.
+        conn.execute(
+            "UPDATE venue_recoveries SET active=1,next_check_at=CASE
+               WHEN json_extract(data,'$.data.phase')='completed' THEN ?1
+               WHEN json_extract(data,'$.data.attention') IS NOT NULL THEN COALESCE(json_extract(data,'$.data.binding.request.deadline'),next_check_at)
+               ELSE next_check_at END
+             WHERE CASE WHEN json_valid(data) THEN json_extract(data,'$.data.retirement') IS NULL ELSE 0 END",
+            [Utc::now().to_rfc3339()],
         )?;
         Ok(())
     }
@@ -286,6 +308,7 @@ impl Store {
             return Err(conflict("venue recovery index changed"));
         }
         validate_binding(b)?;
+        retirement::validate(&record)?;
         if let Some(selection) = &record.selection {
             domain::verify_output(&b.context, &value(selection)?)
                 .map_err(|_| conflict("stored selection is invalid"))?;
@@ -327,7 +350,11 @@ fn persist_tx(
     text: &str,
     expected: u64,
 ) -> StoreResult<()> {
-    let changed = tx.execute("UPDATE venue_recoveries SET revision=?1,active=?2,next_check_at=?3,data=?4 WHERE recovery_id=?5 AND revision=?6", params![record.revision,record.phase != RecoveryPhase::Completed && record.attention.is_none(),record.next_check_at.to_rfc3339(),text,record.binding.recovery_id,expected])?;
+    let active = record
+        .retirement
+        .as_ref()
+        .is_none_or(|retired| retired.delivery == ReleaseDelivery::Pending);
+    let changed = tx.execute("UPDATE venue_recoveries SET revision=?1,active=?2,next_check_at=?3,data=?4 WHERE recovery_id=?5 AND revision=?6", params![record.revision,active,record.next_check_at.to_rfc3339(),text,record.binding.recovery_id,expected])?;
     if changed != 1 {
         return Err(StoreError::RevisionConflict {
             expected,
@@ -339,13 +366,24 @@ fn persist_tx(
 fn save(app: &AppState, record: &mut Recovery) -> ApiResult<()> {
     let expected = record.revision;
     record.revision += 1;
-    record.next_check_at = Utc::now() + Duration::seconds(1);
+    schedule(record);
     let text = encode(record)?;
     let mut conn = app.store.lock();
     let tx = conn.transaction().map_err(StoreError::from)?;
     persist_tx(&tx, record, &text, expected)?;
     tx.commit().map_err(StoreError::from)?;
     Ok(())
+}
+
+fn schedule(record: &mut Recovery) {
+    record.next_check_at = if record.retirement.is_none()
+        && record.phase != RecoveryPhase::Completed
+        && record.attention.is_some()
+    {
+        record.binding.request.deadline
+    } else {
+        Utc::now() + Duration::seconds(1)
+    };
 }
 
 fn job_spec(job: &Job) -> Job {
@@ -457,7 +495,11 @@ fn authorize(
         || runtime.journal.bridge_address() != b.bridge_address
         || runtime.peer != b.peer_address
         || record.attention.is_some()
-        || record.phase == RecoveryPhase::Completed
+        || matches!(
+            record.phase,
+            RecoveryPhase::Completed | RecoveryPhase::Retired
+        )
+        || record.retirement.is_some()
     {
         return Err(conflict("recovery runtime or operational state changed"));
     }
@@ -641,6 +683,7 @@ pub async fn create(
         child_request: None,
         child_id: None,
         child_proof_ref: None,
+        retirement: None,
     };
     // Job does not exist yet; perform the same live grant checks on the frozen job.
     authorize_job(&outcome.state, &record.binding.job, Some(SCOPE), Utc::now())?;
@@ -688,7 +731,7 @@ fn commit_record(
 ) -> ApiResult<()> {
     let expected = record.revision;
     record.revision += 1;
-    record.next_check_at = Utc::now() + Duration::seconds(1);
+    schedule(record);
     let text = encode(record)?;
     let events = app.store.commit_state(
         before,
@@ -924,45 +967,73 @@ fn observe_child(app: &AppState, record: &mut Recovery) -> ApiResult<bool> {
 /// One bounded exchange step. The gate serializes inbox cursors and exact
 /// message attempts; the kernel is never held across transport awaits.
 pub async fn step(app: &AppState, id: &str) -> ApiResult<RecoveryRecord> {
-    let runtime = app
-        .fetch_recovery
-        .as_ref()
-        .ok_or_else(|| conflict("Fetch recovery is not configured; saved work remains pending"))?;
-    let _gate = runtime.gate.lock().await;
-    {
+    let runtime = app.fetch_recovery.as_deref();
+    let _gate = match runtime {
+        Some(runtime) => Some(runtime.gate.lock().await),
+        None => None,
+    };
+    let cleanup = {
         let _kernel = app.kernel.lock().await;
         let mut record = app.store.recovery(id)?;
-        if record.phase == RecoveryPhase::Completed {
-            return Ok(record.record());
-        }
-        if observe_child(app, &mut record)? {
-            save(app, &mut record)?;
-            // A prepared CREAO child owns the remaining work. Its receipt can
-            // complete this record without another Fetch network dependency.
-            return Ok(record.record());
-        }
-        if record.phase == RecoveryPhase::Assessing {
-            if record.attention.is_some() {
+        if record.retirement.is_some() {
+            true
+        } else {
+            // Historical linking is still permitted at the work deadline. A
+            // pending child keeps its identity, but cannot delay grant retirement.
+            let expired = record.binding.request.deadline <= Utc::now();
+            let observed = if record.phase != RecoveryPhase::Completed {
+                match observe_child(app, &mut record) {
+                    Ok(observed) => observed,
+                    // An unavailable child receipt cannot extend an expired grant.
+                    // Its request and known child identity remain frozen.
+                    Err(_) if expired => false,
+                    Err(error) => return Err(error),
+                }
+            } else {
+                false
+            };
+            if record.phase == RecoveryPhase::Completed || expired {
+                retirement::begin(app, &mut record)?;
+                true
+            } else if observed {
+                save(app, &mut record)?;
+                // A prepared CREAO child owns the remaining work. Its receipt can
+                // complete this record without another Fetch network dependency.
                 return Ok(record.record());
-            }
-            if authorize(app, runtime, &app.current_state()?, &record).is_err() {
-                record.pause("recovery authority, source evidence, or configuration changed");
+            } else if record.phase == RecoveryPhase::Assessing {
+                if record.attention.is_some() {
+                    return Ok(record.record());
+                }
+                let runtime = runtime.ok_or_else(|| {
+                    conflict("Fetch recovery is not configured; saved work remains pending")
+                })?;
+                if authorize(app, runtime, &app.current_state()?, &record).is_err() {
+                    record.pause("recovery authority, source evidence, or configuration changed");
+                    save(app, &mut record)?;
+                    return Ok(record.record());
+                }
+                let request = record
+                    .child_request
+                    .clone()
+                    .ok_or_else(|| conflict("missing frozen assessment intent"))?;
+                match venue_assessments::create_locked(app, request) {
+                    Ok((child, _)) => record.child_id = Some(child.assessment_id),
+                    Err(_) => record.pause(
+                        "replacement assessment preparation needs attention; intent retained",
+                    ),
+                }
                 save(app, &mut record)?;
                 return Ok(record.record());
+            } else {
+                false
             }
-            let request = record
-                .child_request
-                .clone()
-                .ok_or_else(|| conflict("missing frozen assessment intent"))?;
-            match venue_assessments::create_locked(app, request) {
-                Ok((child, _)) => record.child_id = Some(child.assessment_id),
-                Err(_) => record
-                    .pause("replacement assessment preparation needs attention; intent retained"),
-            }
-            save(app, &mut record)?;
-            return Ok(record.record());
         }
+    };
+    if cleanup {
+        return retirement::step(app, runtime, id).await;
     }
+    let runtime = runtime
+        .ok_or_else(|| conflict("Fetch recovery is not configured; saved work remains pending"))?;
     let mut record;
     // Read-only polling retains authenticated late replies even when work has
     // since been paused. It never authorizes their application to the mission.
@@ -1127,16 +1198,22 @@ pub async fn read(app: &AppState, id: &str) -> ApiResult<RecoveryRecord> {
 /// Clear an operational hold only; immutable grants, messages and deadlines do
 /// not change. Failed authority remains fenced by the next step.
 pub async fn retry(app: &AppState, id: &str) -> ApiResult<RecoveryRecord> {
-    let runtime = app
-        .fetch_recovery
-        .as_ref()
-        .ok_or_else(|| conflict("Fetch recovery is not configured"))?;
-    let _gate = runtime.gate.lock().await;
+    let runtime = app.fetch_recovery.as_deref();
+    let _gate = match runtime {
+        Some(runtime) => Some(runtime.gate.lock().await),
+        None => None,
+    };
     let _kernel = app.kernel.lock().await;
     let mut record = app.store.recovery(id)?;
-    if record.phase == RecoveryPhase::Completed {
+    if record.retirement.is_some() {
+        retirement::retry(app, &mut record)?;
         return Ok(record.record());
     }
+    if record.phase == RecoveryPhase::Completed || record.binding.request.deadline <= Utc::now() {
+        retirement::begin(app, &mut record)?;
+        return Ok(record.record());
+    }
+    let runtime = runtime.ok_or_else(|| conflict("Fetch recovery is not configured"))?;
     if record
         .selection
         .as_ref()
@@ -1154,9 +1231,6 @@ pub async fn retry(app: &AppState, id: &str) -> ApiResult<RecoveryRecord> {
 }
 
 pub async fn drain_once(app: &AppState) -> ApiResult<usize> {
-    if app.fetch_recovery.is_none() {
-        return Ok(0);
-    }
     let ids: Vec<String> = {
         let conn = app.store.lock();
         let mut stmt = conn.prepare("SELECT recovery_id FROM venue_recoveries WHERE active=1 AND next_check_at<=?1 ORDER BY next_check_at LIMIT 16").map_err(StoreError::from)?;
