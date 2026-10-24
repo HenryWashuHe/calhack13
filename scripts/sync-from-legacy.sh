@@ -25,7 +25,7 @@ git fetch -q --prune legacy
 git fetch -q --prune origin
 if [ ${#branches[@]} -eq 0 ]; then
   # macOS ships bash 3.2 (no mapfile).
-  while IFS= read -r line; do branches+=("$line"); done < <(git for-each-ref --format='%(refname:short)' refs/remotes/legacy | sed 's#^legacy/##' | grep -v '^HEAD$')
+  while IFS= read -r line; do branches+=("$line"); done < <(git for-each-ref --format='%(refname:short)' refs/remotes/legacy | sed 's#^legacy/##' | grep -v '^HEAD$' | grep -vx legacy)
 fi
 start=$(git branch --show-current)
 status=0
