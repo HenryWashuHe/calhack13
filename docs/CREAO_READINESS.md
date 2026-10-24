@@ -91,7 +91,7 @@ or ignored) pass with `serde_json/preserve_order`, along with formatting and
 strict default-feature all-target Clippy. This is the focused branch based on
 #26; the broader combined integration branch has a separate validation record.
 
-The current integration candidate combines main `ec5ec222`, gateway #26 at
+The prior integration candidate combined main `ec5ec222`, gateway #26 at
 `9935bd8`, attach #27 at `29c9853`, and this provider slice at `c1e6ba4`. The original
 draft's gateway correlation and specialist-authority blockers are addressed in
 those dependencies. All 122 focused checks pass with `serde_json/preserve_order`:
@@ -100,6 +100,13 @@ tests (including all eight probe regressions), and two configuration unit tests.
 Formatting and strict default-feature workspace/all-target Clippy also pass.
 Current main handoff documents remain authoritative for merge status; this is a
 candidate validation record, not a claim that the candidate has merged.
+
+After main `e2563ef` added the gap-acquisition driver and attention UI, its merge
+into this candidate was conflict-free. All 40 affected default-feature checks
+pass: 16 gap-driver cases, eight CREAO probe cases, 14 CLI tests and two CREAO
+configuration tests. Formatting and strict default-feature workspace/all-target
+Clippy pass. The previously reviewed CREAO provider/runtime sources are unchanged;
+main's gap startup, policy flags, routes and UI are preserved.
 
 No live CREAO account or installed provider skill was exercised. The candidate
 establishes local protocol and recovery behavior. An actual skill installation,

@@ -365,7 +365,7 @@ impl AcquisitionRuntime {
     }
 }
 
-fn retryable_read(record: &AcquisitionRecord) -> bool {
+pub(crate) fn retryable_read(record: &AcquisitionRecord) -> bool {
     record.session().phase() == AcquisitionPhase::Forging
         && record.session().forge().is_some_and(|forge| {
             forge
