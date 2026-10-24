@@ -194,3 +194,10 @@ still specifies `POST https://agentverse.ai/v1/search/agents`; the
 [v1 reference](https://docs.agentverse.ai/v-1/api-reference/search/agents) is marked
 deprecated. No unverified replacement endpoint is assumed. Reconfirm that API on
 the team's account during the live smoke test.
+
+## ASI:One and Agent Chat Protocol
+
+The separate [ACP recovery entry point](FETCH_SPONSOR_NOTES.md) exposes fixed
+public demo cases through the standard chat protocol. It does not replace the
+private signed specialist protocol or its verification boundaries. Public
+Agentverse registration and an actual ASI:One demonstration remain open gates.
