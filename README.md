@@ -92,7 +92,7 @@ The research goal is measurable improvement on a declared mix of tasks, with fai
 | Cross-organization inheritance | Immutable versioned manifests, shared discovery, adopt-before-acquire, and organization-local acceptance are implemented. A two-organization integration exercises A creating/publishing a capability and B adopting it without B synthesizing another copy. |
 | Persistent specialist work | Fetch supplies independent signed specialist exchanges; CREAO supplies persistent operational agents; Elastic supports organizational evidence, retrieval, and Agent Builder integrations. End-to-end live sponsor evidence remains a separate gate. |
 | Recovery and control | SQLite journals, exact artifact/request identities, authority checks, bounded attempts, and reconciliation states protect the tested workflows. Ambiguous external effects can require operator attention; recovery does not mean every operation can safely be replayed. |
-| Development-method foundations | Exact packages/trial plans/accounting, source generation/revision and a source-free pre-result generation roster/CLI are merged. Local runtime, public scoring and receiver-bound adoption mechanics have fixture evidence; two rehearsals return Rejected. Declared attempts remain visible, but provider budget enforcement, authenticated chronology, complete history and recursive benefit remain open. |
+| Development-method foundations | Exact packages/trial plans/accounting, source generation/revision, pre-result rosters and optional generation reservations are merged. Local runtime, public scoring and receiver-bound adoption mechanics have fixture evidence; two rehearsals return Rejected. Participating generation steps reserve exact attempts once under a trusted journal's request/output caps. Provider billing/input-token/wall enforcement, authenticated chronology, complete history and recursive benefit remain open. |
 | Recursive composition and network healing | Enforced method execution, selective method inheritance, genuine method revision and measured improvement remain open. Shared repair advisories and controlled upgrades are separate future work. |
 
 A manifest already carries schemas, permissions, provenance, verification evidence, and optional role/workflow descriptions. Those descriptions do not yet constitute a general executable workflow package or dependency resolver. The network currently uses a shared registry service; it is not a decentralized peer-to-peer capability protocol.
@@ -117,6 +117,11 @@ Its exact request survives restart, uncertain submissions never replay, and
 source validity is separate from provider accounting. This path has fixture
 evidence only. Provider-default sampling and separate generation costs are
 explicit limitations until the comparison settings and total budget are enforced.
+An [optional admission journal](docs/invention-lab/contracts/generation-admission.md#cli)
+reserves declared requests and requested maximum output before the existing
+generation step. Failed or uncertain attempts retain their reservations; legacy
+steps without the option remain ungated. These cooperative bounds do not measure
+provider billing or enforce input-token/wall limits.
 
 ### Run the local inheritance rehearsal
 
