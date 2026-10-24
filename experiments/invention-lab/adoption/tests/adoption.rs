@@ -297,3 +297,49 @@ fn the_receivers_own_evidence_decides_the_outcome() {
     // Another organization's plan is not this receiver's evidence.
     assert!(conclude(&receiver("org_a"), &p, &criterion, &good, &weak).is_err());
 }
+
+#[test]
+fn a_selected_conclusion_is_bound_to_the_exact_offer() {
+    use genesis_lab_adopt::conclude_selected;
+    let b = receiver("org_example_b");
+    let (p, criterion) = plan(true);
+    let good = slot(
+        &p,
+        "selected",
+        "candidate",
+        Some(REFERENCE),
+        ExecutionOutcome::OutputGenerated,
+    );
+    let weak = slot(
+        &p,
+        "selected",
+        "control",
+        Some(BOX),
+        ExecutionOutcome::OutputGenerated,
+    );
+    let offered = offer(&package("Python 3", vec![]));
+    assert!(matches!(
+        conclude_selected(&b, &offered, &p, &criterion, &good, &weak),
+        Ok(Outcome::Adopted { .. })
+    ));
+    // Another offer than the plan's candidate, though selectable itself.
+    let mut other = package("Python 3", vec![]);
+    other = MethodPackage::new(
+        "another-method".into(),
+        "1.0.0".into(),
+        other.runtime().clone(),
+        other.protocol().clone(),
+        "method.py".into(),
+        vec![],
+        vec![MethodSourceFile {
+            path: "method.py".into(),
+            content: "print('y')\n".into(),
+        }],
+    )
+    .unwrap();
+    assert!(conclude_selected(&b, &offer(&other), &p, &criterion, &good, &weak).is_err());
+    // The plan's own candidate, offered by the receiver itself.
+    let mut own = offered.clone();
+    own.publisher = "org_example_b".into();
+    assert!(conclude_selected(&b, &own, &p, &criterion, &good, &weak).is_err());
+}
