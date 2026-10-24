@@ -54,7 +54,7 @@ pub struct ScoringContext {
 }
 
 impl ScoringContext {
-    fn validate(&self) -> Result<(), EvaluationError> {
+    pub(crate) fn validate(&self) -> Result<(), EvaluationError> {
         for reference in [
             &self.public_task,
             &self.evaluator,
