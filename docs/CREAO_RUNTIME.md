@@ -27,8 +27,12 @@ describes the integration boundary; live provider evidence is still required.
   `/v2` run requests omit the `/v1`-only `should_notify` and `workspace_id`
   fields. Hosted creation polls `GET /v2/agents/{agent_id}/edits/{run_id}`;
   ordinary runs still poll `GET /v2/runs/{run_id}`. If a creation POST returns
-  no agent ID, the client cannot construct the documented edit URL and keeps
-  the attempted write in `needs_reconciliation` instead of submitting again.
+  a run ID but no agent ID, the saved ticket keeps the run ID and the operation
+  enters `needs_reconciliation` without submitting again. An operator may use
+  `genesis-creao reconcile-agent` with a candidate agent ID; only an agent-scoped
+  edit GET returning both exact IDs binds it and resumes ordinary polling.
+  An unreadable or mismatched GET leaves the checkpoint unchanged. A lost or
+  malformed POST response with no saved run ID still needs external handling.
   These endpoints and response shapes follow the [official v2 API reference](https://developer.creao.ai/docs/v2/agents/create).
 - `submit` makes one POST. `poll` makes one GET. Tickets bind account, operation
   kind and exact native request. Identities learned later during polling are pinned
@@ -80,6 +84,7 @@ preparing the operation. A CLI spec must include `"api_version":"v2"`; the
 live-gate script sets this field when the same environment variable is set.
 CLI status and sanitized live-gate evidence identify the saved API version;
 an invalid `CREAO_API_VERSION` stops the gate before it prepares a checkpoint.
+An unset or blank value selects v1 consistently in the server, CLI and gate.
 Do not use a v2 project key with the default v1 protocol. Existing v1 specs,
 tickets and journals keep their original wire identity. The v2 path is covered
 by local protocol tests; it has not yet completed a live hosted-agent run.
@@ -96,6 +101,21 @@ that flag cannot replay a POST. The CLI has no URL, token, blind-retry or force
 success flag. Keep both SQLite files and their journal files in a private backend
 directory. Operation files contain trusted input and are not authentication proofs.
 
+If a v2 creation saved a run ID but no agent ID, `status` reports
+`needs_reconciliation` and the saved `run_id`. After independently locating a
+candidate agent in the same project, verify it with one read-only edit GET:
+
+```sh
+cargo run -p genesis-creao -- reconcile-agent --db data/creao-org-a.sqlite --org org_a \
+  --operation demo-create-monitor-1 --account shared-demo-creao-account \
+  --quota-db data/creao-account-budget.sqlite --agent-id <candidate-agent-uuid>
+```
+
+This command binds the candidate only when the edit response contains the exact
+saved run and candidate agent IDs. A failed or mismatched GET leaves the record
+unchanged; it never creates another agent. A ticket with no saved run ID cannot
+use this path, including the first [reported hosted v2 gate attempt](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6386785969).
+
 After an interrupted process, run startup recovery before accepting new commands:
 
 ```sh
@@ -107,8 +127,8 @@ Recovery makes no provider requests. It preserves known run tickets, marks lost
 POST receipts ambiguous, and never manufactures a new agent. The configured
 credential is still required to construct the runtime. Use one active runtime per
 organization journal. Separate organizations share only the account quota database,
-not their operation journals. There is no operator reconciliation/attach-ticket API
-yet; preserve ambiguous checkpoints and investigate native provider records.
+not their operation journals. Other ambiguous checkpoints still have no generic
+attach-ticket API; preserve them and investigate native provider records.
 
 ## Kernel integration hook for Claude
 
@@ -217,8 +237,13 @@ failed SQLite commits, POST/GET cancellation, disk recovery, identity drift, unk
 statuses, cross-context ticket rejection and repeated events on one agent. CLI tests
 verify offline preparation, strict input, idempotency and credential handling.
 
-No live credentials or paid cloud operations were used. Before a sponsor claim,
-create a real agent, persist/poll its run, inspect effective settings, run two distinct
-events, execute the generic gateway skill, and retain native IDs plus independently
-verified gateway receipts. Agent creation, readiness, execution completion and
-responsibility fulfillment must remain separately visible.
+The first reported live v2 creation sent one POST and created an agent. Its
+checkpoint reached `needs_reconciliation` with no retained run ID; the report
+attributes this to the nullable agent ID path, but did not retain the raw 202
+response. No hosted completion or readiness is claimed.
+This change was validated with local loopback HTTP only. A sponsor completion
+claim still requires a safely bound native run, inspected effective settings,
+two distinct events, execution of the generic gateway skill, and retained
+native IDs plus independently verified gateway receipts. Agent creation,
+readiness, execution completion and responsibility fulfillment must remain
+separately visible.

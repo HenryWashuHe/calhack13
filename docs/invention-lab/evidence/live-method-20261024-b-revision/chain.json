@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "id": "live-b-revision-20261024t182242z-80adc80d-source-chain",
+  "total_grant": {
+    "model_calls": 1,
+    "input_tokens": 32768,
+    "output_tokens": 8192,
+    "wall_time_ms": 120000,
+    "simulation_steps": 0
+  },
+  "stages": [
+    {
+      "org_id": "org_example_b",
+      "limits": {
+        "id": "revise-b-source",
+        "max_trial_slots": 1,
+        "development_grant": {
+          "model_calls": 0,
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "wall_time_ms": 0,
+          "simulation_steps": 0
+        },
+        "scoring_grant": {
+          "model_calls": 0,
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "wall_time_ms": 0,
+          "simulation_steps": 0
+        },
+        "total_grant": {
+          "model_calls": 1,
+          "input_tokens": 32768,
+          "output_tokens": 8192,
+          "wall_time_ms": 120000,
+          "simulation_steps": 0
+        }
+      },
+      "trial_model_settings": {
+        "domain": "genesis-lab",
+        "schema": "lab-trial-settings/1",
+        "id": "b-source-only-no-runtime",
+        "version": "1",
+        "sha256": "6fa9e94ba6c7d50eb65a819c332b4612c9c29ba43194b0c025e45ca32a1891f8"
+      },
+      "work": {
+        "kind": "generation",
+        "settings": {
+          "model": "claude-sonnet-5-5",
+          "max_tokens": 8192,
+          "timeout_ms": 120000,
+          "sampling": "provider_default"
+        },
+        "max_attempts": 1,
+        "grant": {
+          "model_calls": 1,
+          "input_tokens": 32768,
+          "output_tokens": 8192,
+          "wall_time_ms": 120000,
+          "simulation_steps": 0
+        }
+      }
+    }
+  ]
+}

@@ -1,7 +1,8 @@
 //! One durable attempt. Generated source is exported without executing it.
-use crate::{emit, storage, Arguments};
+use crate::{emit, method_chain_commands, storage, Arguments};
 use genesis_forge::{
     method_admission::GenerationAdmission,
+    method_chain::{ChainAllocation, ChainStageBinding},
     method_stage::StageAllocation,
     method_synthesis::{MethodSynthesisPhase, MethodSynthesisPlan, MethodSynthesisSession},
     AnthropicGenerator,
@@ -32,6 +33,17 @@ pub async fn run(args: &Arguments) -> Result<u8, String> {
         allocation
             .validate_admission(journal)
             .map_err(|e| e.to_string())?;
+        if let Some(path) = args.paths.get("--chain") {
+            // Use the allocation's validated stage identity and fixed companion.
+            // Check before loading/recovering the session, credentials or reservation.
+            let chain: ChainAllocation = storage::read_json(path)?;
+            let binding: ChainStageBinding = storage::read_json(
+                &method_chain_commands::companion(path, &allocation.limits().id),
+            )?;
+            binding
+                .validate_generation(&chain, &allocation)
+                .map_err(|e| e.to_string())?;
+        }
     }
     let lock = storage::CheckpointLock::acquire(args.path("--checkpoint")?)?;
     if args.command == "method-generate-prepare" {
@@ -131,14 +143,16 @@ async fn execute_once(
 }
 fn status(session: &MethodSynthesisSession) -> Result<(), String> {
     let completion = session.completion();
-    emit(
-        &serde_json::json!({"operation_id":session.plan().operation_id,"org_id":session.plan().org_id,
+    let mut value = serde_json::json!({"operation_id":session.plan().operation_id,"org_id":session.plan().org_id,
         "phase":session.phase(),"settings":session.plan().settings,"plan_sha256":session.plan().sha256().map_err(|e|e.to_string())?,
         "request_sha256":completion.map(|c|&c.request_sha256),"wire_sha256":completion.map(|c|&c.wire_sha256),
         "transport":completion.map(|c|c.transport),"actual_model":completion.and_then(|c|c.actual_model.as_ref()),"usage":completion.map(|c|&c.usage),
         "package":session.package().ok().and_then(|p|p.reference().ok()),
-        "authority":"none: generated source, not execution, acceptance or improvement; provider-default sampling is not fixed G4 evidence"}),
-    )
+        "authority":"none: generated source, not execution, acceptance or improvement; provider-default sampling is not fixed G4 evidence"});
+    if let Some(diagnostic) = completion.and_then(|c| c.diagnostic) {
+        value["diagnostic"] = serde_json::to_value(diagnostic).map_err(|e| e.to_string())?;
+    }
+    emit(&value)
 }
 
 // A partial project configuration never falls back to another provider/model.

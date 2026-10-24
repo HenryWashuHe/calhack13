@@ -1,0 +1,6 @@
+{
+  "schema": "genesis-generation-roster-snapshots/1",
+  "generation_checkpoints": [
+    "generation.json"
+  ]
+}
