@@ -4,6 +4,16 @@
 evidence and emits one JSON report. No credentials are required. It does not
 execute source, call providers, recover pending requests, lock or rewrite files.
 
+With a retained generation journal, use the optional
+[`--admission` assessment](admitted-costs.md#cli). That mode requires the full
+original Prepared roster and joins later snapshots without changing the journal.
+The exact-snapshot behavior below remains unchanged without the option.
+
+With a retained stage, [`--allocation`](stage-allocation.md#cli-and-retained-files)
+also requires `--admission`, the companion trial binding and its exact trial
+plan. It emits a stage cost report without changing the files; invalid binding
+or evidence never falls back to another assessment mode.
+
 The manifest is a trusted local file; paths are resolved relative to its directory
 (absolute paths are also accepted):
 

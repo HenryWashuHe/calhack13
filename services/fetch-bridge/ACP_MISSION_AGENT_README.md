@@ -16,7 +16,11 @@ validated by the organization's kernel before it takes effect.
   it and proposes the smallest valid change; the kernel decides. This agent
   relays each step as it happens, then tells you how to follow up.
 - `status`: everything the organization has done since your last report.
+- `methods`: installed capabilities by exact version and which role holds each.
+- `lineage <capability id>`: who published each version, how it was verified, and whether this organization adopted it.
 - `help`: this list.
+
+Replies offer the next command as a button. Every button sends one of these read-only commands; none can trigger an operator action.
 
 ## What it cannot do
 
