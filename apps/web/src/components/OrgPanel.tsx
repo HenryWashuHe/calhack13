@@ -19,6 +19,8 @@ import { AdoptionDecisions } from "./AdoptionDecisions";
 
 /** Records the "Why?" drawer explains a role from. Absent → no drawer. */
 const Provenance = createContext<{ changes: OrgChangeRecord[]; events: DomainEvent[] } | null>(null);
+/** Live adoption outcomes describe now, not a past revision; hidden in history. */
+const NO_ADOPTION: Record<string, never> = {};
 /** The live API for on-demand reads under a row; null while viewing history. */
 const LiveApi = createContext<Api | null>(null);
 
@@ -233,6 +235,7 @@ export function OrgPanel({
   /** Index into `gens` while replaying the organization's evolution. */
   const [replay, setReplay] = useState<number | null>(null);
   const live = viewRevision === null;
+  const adoptionNow = useContext(GapAdoptionContext);
   const gens = useMemo(() => (events ? generations(events, changes, state) : []), [events, changes, state]);
   const entries = useMemo(
     () => (events && mode === "evolution" ? timeline(events, changes, state) : []),
@@ -428,6 +431,7 @@ export function OrgPanel({
         {mode === "tree" && shown && tree.length === 0 && <p className="empty">No roles yet.</p>}
         {mode === "tree" && shown && (
           <LiveApi.Provider value={live ? api : null}>
+          <GapAdoptionContext.Provider value={live ? adoptionNow : NO_ADOPTION}>
           <Provenance.Provider value={live && events ? { changes, events } : null}>
             <ul className="tree">
               {tree.map((n) => (
@@ -435,6 +439,7 @@ export function OrgPanel({
               ))}
             </ul>
           </Provenance.Provider>
+          </GapAdoptionContext.Provider>
           </LiveApi.Provider>
         )}
       </div>
