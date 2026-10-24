@@ -69,7 +69,7 @@ impl From<CapabilityRuntimeError> for ApiError {
     }
 }
 
-fn artifact(manifest: &CapabilityManifest) -> ArtifactPin {
+pub(crate) fn artifact(manifest: &CapabilityManifest) -> ArtifactPin {
     ArtifactPin {
         capability_id: manifest.capability_id.to_string(),
         capability_version: manifest.version.clone(),
@@ -471,7 +471,7 @@ pub enum AcceptanceBody {
     Development(DevelopmentAcceptance),
 }
 
-fn local_evidence(
+pub(crate) fn local_evidence(
     app: &AppState,
     installation_id: &InstallationId,
     suite_id: &str,
@@ -758,6 +758,13 @@ pub async fn run(
     }
     let record = CapabilityRunRecord::new(&job, request, body.required_scope)?
         .with_required_permissions(&job, manifest.required_permissions.clone())?;
+    let binding = crate::capability_invocation::prepare_binding(
+        &app,
+        &job,
+        &record,
+        &body.installation_id,
+        &proof,
+    )?;
     effects.push(EventKind::CapabilityRunRequested {
         installation_id: body.installation_id,
         capability: installation.capability.clone(),
@@ -770,7 +777,10 @@ pub async fn run(
         effects,
         &EventMeta::default().caused_by(body.client_request_id.clone()),
         vec![],
-        |tx| capability_runtime::insert_in_tx(tx, &body.client_request_id, &job, &record),
+        |tx| {
+            capability_runtime::insert_in_tx(tx, &body.client_request_id, &job, &record)?;
+            crate::capability_invocation::insert_binding(tx, &binding)
+        },
     )?;
     app.broadcast(&events);
     Ok((StatusCode::ACCEPTED, Json(job)))
@@ -783,6 +793,34 @@ pub async fn get_run(
 ) -> ApiResult<Json<CapabilityRunRecord>> {
     p.require(&[Principal::Operator, Principal::Adapter])?;
     Ok(Json(app.store.get_capability_run(&JobId::new(id))?))
+}
+
+pub async fn verify_run(
+    State(app): State<AppState>,
+    p: Principal,
+    Path(id): Path<String>,
+    Json(body): Json<Value>,
+) -> ApiResult<Json<crate::capability_invocation::InvocationProof>> {
+    p.require(&[Principal::Operator])?;
+    if !body.as_object().is_some_and(|object| object.is_empty()) {
+        return Err(ApiError::bad_request(
+            "verification accepts only an empty object",
+        ));
+    }
+    Ok(Json(
+        crate::capability_invocation::finalize(&app, &JobId::new(id)).await?,
+    ))
+}
+
+pub async fn run_verification(
+    State(app): State<AppState>,
+    p: Principal,
+    Path(id): Path<String>,
+) -> ApiResult<Json<crate::capability_invocation::InvocationProof>> {
+    p.require(&[Principal::Operator])?;
+    Ok(Json(
+        crate::capability_invocation::read(&app, &JobId::new(id)).await?,
+    ))
 }
 
 #[derive(Default, Deserialize)]

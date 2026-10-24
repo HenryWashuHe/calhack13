@@ -4,28 +4,40 @@ Updated: October 21, 2026.
 
 ## Current integration checkpoint
 
-Codex has pushed [PR #13](https://github.com/HenryWashuHe/genesis/pull/13),
-`codex/inherited-mission`, code/tests `6ba8712`, setup documentation `0c339b2`,
-stacked on #10. The Rust `genesis scenario` driver uses public HTTP APIs for a
-requirement-backed specialist, acquisition with optional repair, exact publication,
-B's independent discovery/acceptance, both responsibility handoffs and successor
-execution. Capability-owned authority checks now enforce leases and mission
-state/deadlines while preserving already committed acceptance after verifier
-retirement. See [INHERITED_MISSION.md](INHERITED_MISSION.md).
+Codex has pushed [PR #14](https://github.com/HenryWashuHe/genesis/pull/14),
+`codex/capability-invocation`, implementation `0d7eff2`, stacked on #13. Fresh
+runs now have frozen installation/request/full-suite/acceptance bindings, a distinct
+single-case verifier, and immutable semantic or authority decisions. Operator-only
+`POST /capability-runs/{id}/verify` accepts exactly `{}`; the corresponding
+`GET .../verification` reads the same proof. Finalization is local and atomic with
+job status/events. Proofs preserve historical authority through retirement/restart;
+new successor work still requires a current grant. No booking or ledger entry is
+created. The scenario requires a fresh supported proof before each continuation.
+See [CAPABILITY_EXECUTION.md](CAPABILITY_EXECUTION.md) and
+[INHERITED_MISSION.md](INHERITED_MISSION.md).
 
-All **471 Rust workspace tests** pass with `serde_json/preserve_order`, zero
-failed/ignored; formatting and strict all-target Clippy pass. The new full-chain
-fixture makes two model calls/Actors/builds for one semantic repair, six A
-verification runs and six B runs including successor execution after reopening
-B's SQLite DB. B has no acquisition/model client. Native provider responses are
-canned loopback fixtures; created roles are labeled development stubs. Neither
-ledger is changed, and collected invocations remain `VERIFYING`.
+All **494 Rust workspace tests** pass with `serde_json/preserve_order` (61 suites,
+zero failed/ignored); formatting and strict all-target Clippy pass. The 12 invocation
+HTTP tests cover semantic rejection despite successful transport, truthful unsupported
+results, authority loss, strict caller-claim rejection, historical replay/restart,
+legacy unbound runs, drift and transactional rollback. A review regression showed
+that authority-rejected proofs could miss consistently edited receipt/output data;
+the new private complete-record digest closes it and the regression now passes.
+Single-case proofs cannot become full-suite acceptance. Catalog changes require
+matching versioned configuration; this milestone does not migrate old oracle policy.
 
-The overarching goal remains active. Next Codex core work is scoped semantic
-finalization of fresh invocation outputs: a single-case verifier distinct from
-full-suite acceptance, a backend-frozen installation/suite/acceptance binding and
-an immutable local result proof. This must not reauthorize the retired verifier or
-manufacture a booking. New exact path claims belong in issue #4 before edits.
+The complete repaired scenario still uses two model calls/Actors/builds, six A
+verification runs and six B runs including verified successor execution after SQLite
+restart. B has no acquisition/model client. Native provider replies are canned
+loopback fixtures; created roles are labeled development stubs. Both ledgers remain
+empty. Acceptance jobs remain `VERIFYING`; verified fresh invocations now become
+`SUCCEEDED`. No live sponsor or paid model calls were made.
+
+The overarching goal remains active. Next Codex scope is automatic local semantic
+finalization of collected bound invocations, including restart recovery and durable
+attention on verification configuration errors. It will reuse the same proof gate,
+never repeat external submissions, and leave planner/general lifecycle untouched.
+Claim the concrete branch/files in issue #4 before editing.
 
 Claude has now opened [PR #11](https://github.com/HenryWashuHe/genesis/pull/11)
 (`feat/elastic`, `4d4949c`) and
@@ -42,7 +54,7 @@ production fixes or additional merge-ready PRs. Reviews:
 [Elastic](https://github.com/HenryWashuHe/genesis/pull/11#pullrequestreview-5608329909),
 [planner](https://github.com/HenryWashuHe/genesis/pull/12#pullrequestreview-5608329992).
 Claude retains those fixes. The capability dependency stack
-is #8 → #9 → #10 → #13. Planner/lifecycle/saga, provider activation, Elastic and UI
+is #8 → #9 → #10 → #13 → #14. Planner/lifecycle/saga, provider activation, Elastic and UI
 remain Claude-owned; the whole-kernel credit fallback remains inactive.
 
 ## Prior integration checkpoints
