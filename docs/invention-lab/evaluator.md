@@ -44,7 +44,11 @@ a CAD system.
 - **Encoding:** the design digest is SHA-256 over the evaluator's own
   re-serialization of the parsed design (struct field order, `f32` in shortest
   round-trip form). This is local to the evaluator; it does not change the
-  repository's `canonical_json` or any existing digest. A design that fails
+  repository's `canonical_json` or any existing digest. The executor persists
+  exactly these normalized bytes as the output artifact before the output is
+  frozen, so the design digest and the retained output digest are the same
+  bytes. The method's raw submission is kept separately in the transcript under
+  its own digest. A design that fails
   validation (overlap at start, out of zone, over budget, unknown material) is
   scored `invalid` without simulating.
 
@@ -139,11 +143,20 @@ method revision win.
 - **Hidden instances** come from a secret salt held only by the evaluator
   owner. Their seeds always have the top bit set, so they can't collide with a
   development seed.
-  - Commitment: `sha256("genesis-lab-hidden-v1:" comparison_id ":" salt ":"
-    family ":" family_version ":" count)`.
+  - Fields are encoded unambiguously: each string as its UTF-8 length (u64
+    big-endian) followed by its bytes; integers as u64 big-endian. Write
+    `enc(x, …)` for the concatenation. So `("a:b", "c")` and `("a", "b:c")`
+    can't collide.
+  - Commitment descriptor (immutable once published): protocol
+    `genesis-lab-hidden/2`, comparison id, family, family version, draw count
+    and `commitment = sha256(enc("genesis-lab-hidden/2", comparison_id, salt,
+    family, family_version, count))`. The plan's hidden-set reference is this
+    descriptor and never changes.
+  - Reveal is separate evidence: the salt, checked by recomputing the
+    commitment against the unchanged descriptor.
   - Draw: seed *i* for *i* = 0…count−1 is the first 8 bytes (little-endian) of
-    `sha256("genesis-lab-seed-v1:" comparison_id ":" salt ":" family ":"
-    family_version ":" i)`, with the top bit set. Order is by *i*.
+    `sha256(enc("genesis-lab-seed/2", comparison_id, salt, family,
+    family_version, i))`, with the top bit set. Order is by *i*.
 
 ### Holdout timeline
 
@@ -151,7 +164,7 @@ method revision win.
 2. Reveal the public development inputs (fresh-task development instances).
 3. Run bounded development; every attempt, including no-output ones, goes in
    the plan's ledger.
-4. Freeze the produced designs and transcripts.
+4. Stop every candidate process; freeze the produced designs and transcripts.
 5. The evaluator owner scores them **privately** on the hidden instances.
 6. Close the comparison: no more scoring requests are accepted for it.
 7. Reveal the salt. Anyone can regenerate the hidden seeds and re-run scoring.
@@ -169,8 +182,12 @@ the experimental contracts in #18 (`development_method`, execution) and #22
 [evaluation.md](contracts/evaluation.md) on those branches.
 
 - `experiment(design, instance_ref, grant) -> ExperimentResult`
-  - Development only, inside one method execution (#18 purpose `ordinary` or
-    `acceptance`). `instance_ref` must be a development instance.
+  - Development only, inside one method execution, for every #18 purpose:
+    `ordinary`, `acceptance` and `comparison`. `instance_ref` must be one of
+    the frozen public development instances of that execution's plan; a
+    comparison arm develops on public instances like any other run. Hidden
+    instances are never reachable through this call, whatever the purpose;
+    hidden scoring is the separate trusted `score` operation.
   - Returns the simulation outcome, metrics, trace digest and downsampled trace.
     These feed the method's own transcript; they are not score evidence.
   - Debits the episode's **simulation steps** from the execution's grant
@@ -199,7 +216,7 @@ the experimental contracts in #18 (`development_method`, execution) and #22
 | --- | --- |
 | scoring environment | evaluator id@version with digest over engine version, scoring code and material/motor tables |
 | task generator | family id@version and digest of the family file |
-| instance-set reference | for development: the published seed list; for hidden sets: the salt commitment, with the salt added once revealed |
+| instance-set reference | for development: the published seed list; for hidden sets: the immutable commitment descriptor above (the reveal is stored separately and never edits this reference) |
 | design schema | design language v1 |
 | metric schema | per family: `success` (bool), `progress` (0–1), `cost`, `joints_broken`, `time_to_target` |
 | scoring rule | the family's success rule, versioned with the family |
@@ -225,12 +242,14 @@ The #22 scoring receipt carries the observed scoring context, outcome, metrics
 reference and trace. In addition this evaluator records:
 
 - design-language version and design digest (also the selected output's digest)
-- family id/version and seed; for hidden instances the salt commitment and,
-  after reveal, the salt
+- family id/version and seed; for hidden instances the commitment
+  descriptor (the reveal is a separate record that points to it)
 - simulation steps and wall time consumed, measured or `unknown`
 
-Model identity, method identity and installation id stay in #18's execution
-receipt, which the scoring request binds in full.
+Model settings and method identity stay in #18's execution receipt, which the
+scoring request binds in full. #18 has no installation id; an organization's
+installation of a method is adoption evidence (see adoption.md), not part of
+#18.
 
 ## Budget and cost accounting
 
@@ -287,9 +306,14 @@ manifest, kernel or UI code.
 1. Same design, instance and evaluator version → identical trace digest.
 2. Invalid designs (overlap, out of zone, over budget, unknown material, wrong
    language version) score `invalid` without simulating.
-3. `experiment` refuses hidden instances and refuses once the budget token is
-   spent; `score` refuses a method caller and refuses `comparison` before the
-   salt is revealed.
+3. `experiment` refuses hidden instances for every purpose, accepts
+   comparison-purpose development on public instances, and refuses once the
+   cumulative grant is spent (the grant is owned by the trusted ledger, never
+   by a caller-supplied balance). `score` refuses a method caller; comparison
+   scoring is the salt holder's private step and refuses a salt that doesn't
+   open the unchanged commitment descriptor, and any request after the
+   comparison closes. Disclosure happens only after every candidate process in
+   the comparison has stopped and its outputs and transcripts are frozen.
 4. A simulator crash or timeout yields `Unknown`, with no automatic retry; a
    design that fails its task yields `Scored` with `success: false`.
 5. Revealed salts regenerate exactly the committed hidden instances.
