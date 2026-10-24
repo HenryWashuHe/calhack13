@@ -51,7 +51,7 @@ function Reconcile({ api, target }: { api: Api; target: ReconcileTarget }) {
       className="reconcile"
       onSubmit={(e) => {
         e.preventDefault();
-        if (agentOk && reasonOk) {
+        if (target.attach && agentOk && reasonOk) {
           void send(
             "/attach",
             { provider_agent_id: agentId, reason: reason.trim() },
@@ -61,25 +61,29 @@ function Reconcile({ api, target }: { api: Api; target: ReconcileTarget }) {
       }}
     >
       <div className="reconcile-fields">
-        <label>
-          Agent ID found in {target.provider}
-          <input
-            value={agent}
-            onChange={(e) => setAgent(e.target.value)}
-            placeholder="provider agent ID"
-            spellCheck={false}
-            aria-invalid={agent !== "" && !agentOk}
-          />
-        </label>
+        {target.attach && (
+          <label>
+            Agent ID found in {target.provider}
+            <input
+              value={agent}
+              onChange={(e) => setAgent(e.target.value)}
+              placeholder="provider agent ID"
+              spellCheck={false}
+              aria-invalid={agent !== "" && !agentOk}
+            />
+          </label>
+        )}
         <label>
           Reason (recorded)
           <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. found in CREAO console" />
         </label>
       </div>
       <div className="row">
-        <button className="btn" type="submit" disabled={busy || !agentOk || !reasonOk}>
-          Attach agent
-        </button>
+        {target.attach && (
+          <button className="btn" type="submit" disabled={busy || !agentOk || !reasonOk}>
+            Attach agent
+          </button>
+        )}
         {confirming ? (
           <>
             <button
@@ -107,7 +111,9 @@ function Reconcile({ api, target }: { api: Api; target: ReconcileTarget }) {
         )}
       </div>
       <span className="muted hint">
-        Attaching never re-creates the agent or retries the lost request. Abandoning fails the change.
+        {target.attach
+          ? "Attaching never re-creates the agent or retries the lost request. Abandoning fails the change."
+          : "Readiness is still unproven. Abandoning fails the change; the agent ID is kept for cleanup."}
       </span>
       {message && (
         <span className={message.bad ? "reconcile-error" : "muted"} role="status">
