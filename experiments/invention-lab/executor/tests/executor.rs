@@ -2,8 +2,9 @@
 //! runs only as root. Methods here are tiny test scripts, never real methods.
 use genesis_core::development_experiment::{ExperimentLedger, ExperimentOutcome, ExperimentScope};
 use genesis_core::development_method::{ExecutionOutcome, ResourceGrant, ResourceUsage};
+use genesis_core::development_package::{MethodPackage, MethodSourceFile};
 use genesis_core::development_trial::TrialPlan;
-use genesis_lab_exec::run::{self, Config, Method};
+use genesis_lab_exec::run::{self, Config};
 use genesis_lab_exec::session::RunError;
 use genesis_lab_exec::{example, refs, sandbox::Mode};
 use std::path::{Path, PathBuf};
@@ -27,7 +28,9 @@ def call(req):
 struct Fixture {
     dir: PathBuf,
     plan: TrialPlan,
-    method: Method,
+    /// Exact package artifact bytes the plan names.
+    package: Vec<u8>,
+    method: genesis_core::development_method::ExactContentRef,
     cfg: Config,
 }
 
@@ -39,21 +42,29 @@ fn fixture(name: &str, body: &str, mode: Mode, steps: u64, wall_ms: u64) -> Fixt
     };
     let dir = base.join(format!("lab-exec-{name}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
-    std::fs::create_dir_all(dir.join("method")).unwrap();
+    std::fs::create_dir_all(&dir).unwrap();
     let script = format!("{PRELUDE}\nCART = json.loads('''{CART}''')\n{body}\n");
-    std::fs::write(dir.join("method/m.py"), script).unwrap();
-    std::fs::write(
-        dir.join("method/method.json"),
-        format!(r#"{{"id":"test-{name}","version":"1","label":"control","interpreter":"python3","entry":"m.py"}}"#),
+    let version = run::interpreter_version("python3");
+    let package = MethodPackage::new(
+        format!("test-{name}"),
+        "1".into(),
+        refs::runtime(&version),
+        refs::protocol(),
+        "m.py".into(),
+        vec![],
+        vec![MethodSourceFile {
+            path: "m.py".into(),
+            content: script,
+        }],
     )
     .unwrap();
-    let method = Method::load(&dir.join("method/method.json")).unwrap();
+    let method = package.reference().unwrap();
+    let package = package.artifact_json().unwrap().into_bytes();
     // The control slot only needs a distinct identity; it never runs here.
     let control = refs::content("lab-method/1", "test-control", "1", b"control");
-    let version = run::interpreter_version("python3");
     let plan = example::acceptance_plan(
         &example::ExampleMethods {
-            candidate: method.reference().unwrap(),
+            candidate: method.clone(),
             control,
         },
         mode,
@@ -79,6 +90,7 @@ fn fixture(name: &str, body: &str, mode: Mode, steps: u64, wall_ms: u64) -> Fixt
     Fixture {
         dir,
         plan,
+        package,
         method,
         cfg,
     }
@@ -89,7 +101,7 @@ impl Fixture {
         run::execute(
             &self.plan,
             "candidate",
-            &self.method,
+            &self.package,
             &self.dir.join("slot"),
             &self.cfg,
         )
@@ -114,9 +126,15 @@ fn a_method_whose_digest_differs_from_the_plan_never_runs() {
         7200,
         20_000,
     );
-    f.method
-        .entry_bytes
-        .extend_from_slice(b"\n# edited after the plan froze\n");
+    let original = f.package.clone();
+    // Edited after the plan froze: different bytes, different digest.
+    let text = String::from_utf8(original.clone()).unwrap();
+    f.package = text.replace("CART = ", "CART  = ").into_bytes();
+    assert_ne!(f.package, original);
+    assert!(matches!(f.run(), Err(RunError::Refused(_))));
+    // Same bytes under another host runtime are refused too.
+    f.package = original;
+    f.cfg.interpreter_version = "Python 0.0".into();
     assert!(matches!(f.run(), Err(RunError::Refused(_))));
     assert!(!f.dir.join("slot/ledger.json").exists());
 }
@@ -180,7 +198,7 @@ fn a_restarted_executor_settles_the_pending_call_unknown_and_never_restarts() {
     .unwrap();
     let state = genesis_lab_exec::session::RunState {
         started: true,
-        method: Some(f.method.reference().unwrap()),
+        method: Some(f.method.clone()),
         ..Default::default()
     };
     std::fs::write(slot.join("run.json"), serde_json::to_vec(&state).unwrap()).unwrap();
@@ -288,7 +306,7 @@ fn a_stop_after_sealing_still_recovers_with_the_call_pending() {
     ledger.seal(f.scope()).unwrap();
     let state = genesis_lab_exec::session::RunState {
         started: true,
-        method: Some(f.method.reference().unwrap()),
+        method: Some(f.method.clone()),
         ..Default::default()
     };
     std::fs::write(slot.join("run.json"), serde_json::to_vec(&state).unwrap()).unwrap();
