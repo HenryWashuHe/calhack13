@@ -409,6 +409,28 @@ class CommandTests(FixtureMixin, unittest.IsolatedAsyncioTestCase):
         self.assertEqual(chunks[0].actions, [("Lineage of cap_venue_availability", "lineage cap_venue_availability")])
         self.assertEqual([c["method"] for c in self.calls], ["GET"])
 
+    async def test_methods_keeps_exact_ids_and_bounds_the_reply(self):
+        long_id = "cap_" + "x" * 76
+        value = state(with_lead=True)
+        roles = {}
+        installations = {}
+        for i in range(12):
+            rid = f"role_{i:032d}"
+            caps = [{"capability_id": long_id if i == 0 else f"cap_{i}_{j}", "version": "1.0.0"} for j in range(2)]
+            roles[rid] = {"role_id": rid, "name": f"Role {i}", "charter": "c", "state": "ACTIVE", "binding": {"provider": "internal", "provider_agent_id": "k"}, "capabilities": caps}
+            for cap in caps:
+                installations[f"inst_{cap['capability_id']}"] = {"installation_id": f"inst_{cap['capability_id']}", "capability": cap, "status": "ACCEPTED", "acceptance_report_ref": "r"}
+        value["roles"] = roles; value["installations"] = installations
+        self.state = value
+        chunks = await self.collect("methods")
+        self.assertTrue(all(len(c) <= acp_mission.MAX_REPLY for c in chunks))
+        text = chunks[0]
+        self.assertIn("more installation(s) not shown", text)
+        for label, command in text.actions:
+            self.assertRegex(command, acp_mission.CARD_COMMAND)
+            self.assertNotIn("…", command)
+        self.assertEqual(text.actions[0][1], f"lineage {long_id}")
+
     async def test_methods_without_installations(self):
         text = (await self.collect("methods"))[0]
         self.assertIn("No capabilities are installed", text)
