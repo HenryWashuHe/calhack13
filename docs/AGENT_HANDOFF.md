@@ -35,7 +35,7 @@ The same GitHub account hosts multiple sessions; ownership is by session and
 exact files. Claim interfaces/shared files in issue #1 before overlapping.
 Codex's additive contracts do not replace current Actor manifests, Henry's
 adoption/evaluator implementation or Eric's UI. Assignments are not evidence of
-acknowledged work. The next G0/G1 boundary is a trusted experiment-call ledger:
+acknowledged work. The next G0/G1 boundary is trusted runtime integration of #32:
 exact public-instance/call/transcript identity and cumulative grants shared by
 all calls, with separate scoring authority and frozen outputs before disclosure.
 
