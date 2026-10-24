@@ -46,6 +46,7 @@ pub fn router(state: AppState) -> Router {
         .route("/venue-monitors/{id}", get(venue_monitors::get))
         .route("/venue-monitors/{id}/stop", post(venue_monitors::stop))
         .route("/venue-recoveries", post(venue_recoveries::create))
+        .route("/venue-recovery-intakes", get(venue_recoveries::intakes))
         .route("/venue-recoveries/{id}", get(venue_recoveries::get))
         .route("/venue-recoveries/{id}/step", post(venue_recoveries::step))
         .route(
