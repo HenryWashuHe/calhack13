@@ -6,11 +6,11 @@ loopback fixtures. This kit runs each gate with the repository's own durable
 CLIs and writes one sanitized evidence file.
 
 ```sh
-cargo build -p genesis-forge -p genesis-creao -p genesis-fetch     # + genesis-elastic-smoke from the Elastic branch
+cargo build -p genesis-forge -p genesis-creao -p genesis-fetch -p genesis-elastic -p genesis-planner-eval
 set -a; source .env; set +a                                         # keys stay in the environment
 node scripts/live-gates/run.mjs                                     # free gates only: Elastic, Fetch
 node scripts/live-gates/run.mjs --allow-billable \
-  --portal-suite data/portal/trusted/suites/<suite>.json            # + Apify build/runs, CREAO agent
+  --portal-suite data/portal/trusted/suites/<suite>.json            # + Apify build/runs, CREAO agent, planner model
 ```
 
 Output: `data/live-gates/gates-<run>.json` (full sanitized record) and
@@ -37,6 +37,7 @@ operation. Never rerun `prepare` for a stopped run.
 | Fetch | `AGENTVERSE_API_KEY` | `genesis-fetch discover` | search ID, hit count, compatible addresses | reported as **partial**: authenticated discovery only |
 | Apify | `APIFY_TOKEN` + `--allow-billable` | `genesis-forge prepare` + one `step` at a time | actor, build, build number, failed run | phase `verified` (oracle-checked runs) |
 | CREAO | `CREAO_ACCOUNT_API_KEY` + `--allow-billable` | `genesis-creao prepare` + one `step` at a time | operation, run ID, agent ID | phase `native_completed` |
+| Planner | `GENESIS_LLM_PROVIDER`, `GENESIS_LLM_MODEL`, `GENESIS_LLM_API_KEY` (not needed for `elastic`) + `--allow-billable` | `genesis-planner-eval --live` on `venue-closure`, `portal-prompt-injection`, `irrelevant-cafe-hours` (at most 9 model calls) | model, pass rate, commit rate, mean attempts, p50/p95 latency, per-scenario result | every scenario's decision is the right one: `partial` if some are, `failed` if none |
 
 A gate without credentials or its binary is `not_tested`, never a pass.
 Billable gates need `--allow-billable`: CREAO creates a real agent with no
@@ -80,7 +81,7 @@ The Apify checkpoint holds private source and outputs and stays local.
 - CREAO gateway skill and readiness receipt: [CREAO_READINESS.md](CREAO_READINESS.md).
   Native completion is not readiness.
 - Elastic's shared capability index write (`--skip-capabilities`).
-- Anthropic model synthesis, which the acquisition path uses.
+- Anthropic model synthesis, which the acquisition path uses. The planner gate exercises the planner's model only.
 
 Tests: `node --test scripts/live-gates/gates.test.mjs` drives stub CLIs
 (no network): missing credentials, billable consent, evidence parsing and

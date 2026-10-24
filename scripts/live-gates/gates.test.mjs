@@ -161,3 +161,62 @@ test("resume rendering survives spaces, quotes and shell metacharacters", async 
     assert.equal(r.stdout, arg);
   }
 });
+
+const plannerEnv = {
+  PATH: process.env.PATH,
+  GENESIS_LLM_PROVIDER: "anthropic",
+  GENESIS_LLM_MODEL: "claude-test",
+  GENESIS_LLM_API_KEY: SECRET + "l",
+};
+
+function plannerStub(bin, passes) {
+  return stub(
+    bin,
+    "genesis-planner-eval",
+    `const out = args[args.indexOf("--out") + 1];
+process.stderr.write("live model claude-test: 3 scenarios x 1 runs, at most 9 model calls\\nkey ${SECRET}l\\n");
+const passes = ${JSON.stringify(passes)};
+const by = { "venue-closure": [passes[0], 1], "portal-prompt-injection": [passes[1], 1], "irrelevant-cafe-hours": [passes[2], 1] };
+const ok = passes.reduce((a, b) => a + b, 0);
+fs.writeFileSync(out, JSON.stringify({ summary: { pass_rate: ok / 3, commit_rate: 1, mean_attempts: 1.3, p50_ms: 900, p95_ms: 2100, by_scenario: by }, results: [] }));
+process.exit(0);`,
+  );
+}
+
+test("planner gate: billable, needs a model key, and grades the live decisions", async () => {
+  const bin = mkdtempSync(join(tmpdir(), "bin-"));
+  const out = mkdtempSync(join(tmpdir(), "out-"));
+  plannerStub(bin, [1, 1, 1]);
+  const base = { repo: REPO, binDir: bin, out, gates: ["planner"], stamp: "p1", pollScale: 0 };
+
+  const noKey = await runGates({ ...base, env: { ...plannerEnv, GENESIS_LLM_API_KEY: "" }, allowBillable: true });
+  assert.match(noKey.results.planner.reason, /GENESIS_LLM_API_KEY/);
+  const elastic = await runGates({ ...base, env: { ...plannerEnv, GENESIS_LLM_PROVIDER: "elastic", GENESIS_LLM_API_KEY: "" } });
+  assert.match(elastic.results.planner.reason, /allow-billable/, "the Elastic planner needs no model key, but is still billable");
+  assert.deepEqual(calls(bin, "genesis-planner-eval"), [], "no model call without consent");
+
+  const ok = await runGates({ ...base, env: plannerEnv, allowBillable: true });
+  const p = ok.results.planner;
+  assert.equal(p.status, "passed");
+  assert.equal(p.evidence.model, "claude-test");
+  assert.equal(p.evidence.pass_rate, 1);
+  assert.deepEqual(p.evidence.by_scenario, { "venue-closure": "1/1", "portal-prompt-injection": "1/1", "irrelevant-cafe-hours": "1/1" });
+  const args = calls(bin, "genesis-planner-eval")[0];
+  assert.match(args, /--live/);
+  assert.match(args, /--only venue-closure,portal-prompt-injection,irrelevant-cafe-hours/);
+  const written = readdirSync(out).filter((f) => f.startsWith("gates-p1")).map((f) => readFileSync(join(out, f), "utf8")).join("\n");
+  assert.ok(!written.includes(SECRET), "the model key never reaches the evidence files");
+  assert.match(written, /\| planner \| \*\*passed\*\*/);
+});
+
+test("planner gate: a wrong decision is partial, all wrong is failed", async () => {
+  for (const [passes, status] of [
+    [[1, 0, 1], "partial"],
+    [[0, 0, 0], "failed"],
+  ]) {
+    const bin = mkdtempSync(join(tmpdir(), "bin-"));
+    plannerStub(bin, passes);
+    const r = await runGates({ repo: REPO, binDir: bin, out: mkdtempSync(join(tmpdir(), "out-")), gates: ["planner"], env: plannerEnv, stamp: "p2", allowBillable: true });
+    assert.equal(r.results.planner.status, status, JSON.stringify(passes));
+  }
+});

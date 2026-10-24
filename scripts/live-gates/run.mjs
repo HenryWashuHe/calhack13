@@ -1,11 +1,12 @@
 #!/usr/bin/env node
-// Run the four live sponsor gates (docs/TEAM_WORKSTREAMS.md, "Hours 0–4") with
-// the repository's own durable CLIs, and write sanitized evidence.
+// Run the four live sponsor gates (docs/TEAM_WORKSTREAMS.md, "Hours 0–4"),
+// plus the live planner model gate, with the repository's own durable CLIs,
+// and write sanitized evidence.
 //
-//   node scripts/live-gates/run.mjs [--gates elastic,fetch,apify,creao]
+//   node scripts/live-gates/run.mjs [--gates elastic,fetch,apify,creao,planner]
 //        [--out data/live-gates] [--bin-dir target/debug]
 //        [--portal data/portal --portal-suite <suite.json>]   # reachable pages for Apify
-//        [--allow-billable]                                    # Apify build/run, CREAO agent
+//        [--allow-billable]                                    # Apify build/run, CREAO agent, model calls
 //
 // Each gate reports passed | partial | failed | needs_reconciliation |
 // not_tested, with provider IDs and measured durations. A gate without its
@@ -18,7 +19,7 @@ import { cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node
 import { join, resolve } from "node:path";
 import { parseArgs } from "node:util";
 
-export const GATES = ["elastic", "fetch", "apify", "creao"];
+export const GATES = ["elastic", "fetch", "apify", "creao", "planner"];
 export const SECRET_ENV = [
   "ELASTIC_DATA_API_KEY",
   "ELASTIC_MANAGEMENT_API_KEY",
@@ -27,14 +28,16 @@ export const SECRET_ENV = [
   "APIFY_TOKEN",
   "CREAO_ACCOUNT_API_KEY",
   "ANTHROPIC_API_KEY",
+  "GENESIS_LLM_API_KEY",
 ];
 const REQUIRED = {
   elastic: ["ELASTICSEARCH_URL", "ELASTIC_DATA_API_KEY", "ELASTIC_KIBANA_URL", "ELASTIC_MANAGEMENT_API_KEY"],
   fetch: ["AGENTVERSE_API_KEY"],
   apify: ["APIFY_TOKEN"],
   creao: ["CREAO_ACCOUNT_API_KEY"],
+  planner: ["GENESIS_LLM_PROVIDER", "GENESIS_LLM_MODEL"],
 };
-const BILLABLE = new Set(["apify", "creao"]);
+const BILLABLE = new Set(["apify", "creao", "planner"]);
 
 /** Replace every configured secret value (length >= 6) with a marker. */
 export function scrub(value, env = process.env) {
@@ -47,7 +50,13 @@ export function scrub(value, env = process.env) {
 }
 
 export function missingEnv(gate, env = process.env) {
-  return REQUIRED[gate].filter((n) => !env[n]);
+  const missing = REQUIRED[gate].filter((n) => !env[n]);
+  // A hosted model needs its key; the Elastic Agent Builder planner uses the
+  // Elastic credentials instead.
+  if (gate === "planner" && env.GENESIS_LLM_PROVIDER && env.GENESIS_LLM_PROVIDER.toLowerCase() !== "elastic" && !env.GENESIS_LLM_API_KEY) {
+    missing.push("GENESIS_LLM_API_KEY");
+  }
+  return missing;
 }
 
 const now = () => new Date().toISOString();
@@ -77,7 +86,7 @@ export function runCli(bin, args, { env = process.env, cwd } = {}) {
 
 export async function elasticGate(ctx) {
   const bin = join(ctx.binDir, "genesis-elastic-smoke");
-  if (!existsSync(bin)) return { status: "not_tested", reason: `no ${bin} (built from the Elastic branch, PR #11)` };
+  if (!existsSync(bin)) return { status: "not_tested", reason: `no ${bin} (cargo build -p genesis-elastic)` };
   const report = join(ctx.out, "elastic-smoke.json");
   const org = `genesis-smoke-${ctx.stamp}`;
   const r = runCli(bin, ["--org", org, "--skip-capabilities", "--converse", "--cleanup", "--report", report], ctx);
@@ -117,6 +126,56 @@ export async function fetchGate(ctx) {
       rejected_candidates: r.json.rejected_candidates ?? null,
     },
     note: "Authenticated discovery only. The typed offer/accept/task/result round trip through the bridge is a separate step (scripts/demo-fetch-recruitment.py).",
+  };
+}
+
+/**
+ * The planner on a live model: three fixed decision scenarios on real
+ * in-process kernels (genesis-planner-eval). Measures whether the model's
+ * proposals are the right ones, not only valid: one owner for the venue
+ * closure, nothing from a prompt-injected portal page, no churn on an
+ * irrelevant observation. At most scenarios x max-attempts model calls.
+ */
+export const PLANNER_SCENARIOS = ["venue-closure", "portal-prompt-injection", "irrelevant-cafe-hours"];
+
+export async function plannerGate(ctx) {
+  const bin = join(ctx.binDir, "genesis-planner-eval");
+  if (!existsSync(bin)) return { status: "not_tested", reason: `no ${bin}` };
+  const report = join(ctx.out, `planner-eval-${ctx.stamp}.json`);
+  const r = runCli(
+    bin,
+    [
+      "--live",
+      "--scenarios",
+      join(ctx.repo, "evals/planner"),
+      "--only",
+      PLANNER_SCENARIOS.join(","),
+      "--max-attempts",
+      "3",
+      "--out",
+      report,
+    ],
+    ctx,
+  );
+  if (!existsSync(report)) return { status: "failed", reason: "planner eval wrote no report", exit: r.code, error: r.stderr, duration_ms: r.ms };
+  const rep = JSON.parse(readFileSync(report, "utf8"));
+  const s = rep.summary ?? {};
+  const model = s.model ?? /live model (\S+):/.exec(r.stderr)?.[1] ?? null;
+  const ran = Object.values(s.by_scenario ?? {}).reduce((n, [, total]) => n + total, 0);
+  const status = r.code !== 0 || ran === 0 ? "failed" : s.pass_rate === 1 ? "passed" : s.pass_rate > 0 ? "partial" : "failed";
+  return {
+    status,
+    duration_ms: r.ms,
+    evidence: {
+      model,
+      pass_rate: s.pass_rate ?? null,
+      commit_rate: s.commit_rate ?? null,
+      mean_attempts: s.mean_attempts ?? null,
+      p50_ms: s.p50_ms ?? null,
+      p95_ms: s.p95_ms ?? null,
+      by_scenario: Object.fromEntries(Object.entries(s.by_scenario ?? {}).map(([k, [ok, n]]) => [k, `${ok}/${n}`])),
+    },
+    note: "Live model on in-process kernels with dev-stub providers: it measures the planner's decisions, not provider execution. One run per scenario; use genesis-planner-eval --repeat for variance.",
   };
 }
 
@@ -294,7 +353,7 @@ export async function creaoGate(ctx) {
   };
 }
 
-const RUN = { elastic: elasticGate, fetch: fetchGate, apify: apifyGate, creao: creaoGate };
+const RUN = { elastic: elasticGate, fetch: fetchGate, apify: apifyGate, creao: creaoGate, planner: plannerGate };
 
 export async function runGates(opts) {
   const ctx = {
@@ -333,7 +392,7 @@ export async function runGates(opts) {
 export function summary(report) {
   const rows = Object.values(report.results).map((r) => {
     const ids = Object.entries(r.evidence ?? {})
-      .filter(([k, v]) => v !== null && v !== undefined && !["steps", "checkpoint", "readiness_verified", "resume"].includes(k) && !Array.isArray(v))
+      .filter(([k, v]) => v !== null && v !== undefined && typeof v !== "object" && !["steps", "checkpoint", "readiness_verified", "resume"].includes(k))
       .map(([k, v]) => `${k}=\`${v}\``)
       .join(", ");
     const secs = r.duration_ms !== undefined ? `${(r.duration_ms / 1000).toFixed(1)} s` : "—";
