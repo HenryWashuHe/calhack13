@@ -181,6 +181,7 @@ impl OperationPhase {
 pub enum RuntimeFailure {
     Provider(Error),
     InterruptedSubmission,
+    MissingCreationAgent,
     UnknownStatus,
     NativeFailed,
     NativeCancelled,
@@ -295,6 +296,15 @@ impl OperationRecord {
                         Some(RuntimeFailure::Provider(error)) => {
                             error.post_may_have_run
                                 && self.ticket.is_none()
+                                && self.observation.is_none()
+                        }
+                        Some(RuntimeFailure::MissingCreationAgent) => {
+                            self.spec.api_version == ApiVersion::V2
+                                && matches!(&self.spec.request, OperationRequest::CreateAgent(_))
+                                && self
+                                    .ticket
+                                    .as_ref()
+                                    .is_some_and(|ticket| ticket.agent_id().is_none())
                                 && self.observation.is_none()
                         }
                         Some(RuntimeFailure::UnknownStatus) => self
@@ -603,6 +613,65 @@ impl Runtime {
         self.step_locked(operation_id, false, None).await
     }
 
+    /// Reconcile a v2 creation whose 202 response retained a run ID but no
+    /// agent ID. The candidate is bound only after the agent-scoped edit GET
+    /// returns the exact saved run and candidate IDs. This never sends a POST.
+    pub async fn reconcile_creation_agent(
+        &self,
+        operation_id: &str,
+        candidate_agent_id: &str,
+    ) -> Result<OperationRecord, RuntimeError> {
+        let _gate = self.store.gate.lock().await;
+        let record = self.get(operation_id)?;
+        if record.phase != OperationPhase::NeedsReconciliation
+            || !matches!(&record.failure, Some(RuntimeFailure::MissingCreationAgent))
+        {
+            return Err(RuntimeError::NeedsReconciliation);
+        }
+        let mut candidate_ticket = record.ticket.clone().ok_or(RuntimeError::Invalid)?;
+        candidate_ticket.agent_id = Some(candidate_agent_id.to_owned());
+        candidate_ticket
+            .validate_for_account(&record.spec.request, self.account_namespace())
+            .map_err(|_| RuntimeError::Invalid)?;
+        let observation = self
+            .client
+            .poll(&record.spec.request, &candidate_ticket)
+            .await
+            .map_err(|_| RuntimeError::NeedsReconciliation)?;
+        observation
+            .validate_for(&record.spec.request, &candidate_ticket)
+            .map_err(|_| RuntimeError::NeedsReconciliation)?;
+        let mut resolved = record.clone();
+        resolved.ticket = Some(
+            candidate_ticket
+                .refine(&record.spec.request, &observation)
+                .map_err(|_| RuntimeError::NeedsReconciliation)?,
+        );
+        resolved.observation = Some(observation.clone());
+        resolved.failure = None;
+        resolved.updated_at = Utc::now().max(record.updated_at);
+        match observation.status {
+            NativeRunStatus::Pending | NativeRunStatus::Running => {
+                resolved.phase = OperationPhase::Waiting;
+                resolved.next_poll_at = Some(after(resolved.updated_at, self.poll_interval)?);
+            }
+            NativeRunStatus::Completed => resolved.phase = OperationPhase::NativeCompleted,
+            NativeRunStatus::Failed => {
+                resolved.phase = OperationPhase::Failed;
+                resolved.failure = Some(RuntimeFailure::NativeFailed);
+            }
+            NativeRunStatus::Cancelled => {
+                resolved.phase = OperationPhase::Failed;
+                resolved.failure = Some(RuntimeFailure::NativeCancelled);
+            }
+            NativeRunStatus::Unknown(_) => {
+                resolved.phase = OperationPhase::NeedsReconciliation;
+                resolved.failure = Some(RuntimeFailure::UnknownStatus);
+            }
+        }
+        self.store.save(&record, resolved)
+    }
+
     async fn step_locked(
         &self,
         operation_id: &str,
@@ -723,8 +792,16 @@ impl Runtime {
                     ticket
                         .validate_for_account(&claimed.spec.request, self.account_namespace())
                         .map_err(|_| RuntimeError::Invalid)?;
+                    let missing_agent = claimed.spec.api_version == ApiVersion::V2
+                        && matches!(&claimed.spec.request, OperationRequest::CreateAgent(_))
+                        && ticket.agent_id().is_none();
                     completed.ticket = Some(ticket);
-                    completed.phase = OperationPhase::Waiting;
+                    if missing_agent {
+                        completed.phase = OperationPhase::NeedsReconciliation;
+                        completed.failure = Some(RuntimeFailure::MissingCreationAgent);
+                    } else {
+                        completed.phase = OperationPhase::Waiting;
+                    }
                 }
                 Err(error) => {
                     completed.phase = if error.post_may_have_run {
