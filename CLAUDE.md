@@ -1,5 +1,13 @@
 # GENESIS agent coordination
 
+> **Working repository: [genesis-history-experiment](https://github.com/HenryWashuHe/genesis-history-experiment).**
+> Push and open PRs here; coordinate in [issue #1](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1).
+> The owner moved active work here on October 23, 2026 (Pacific). Histories have
+> different commit identities; preserve this repository’s ancestry and verify
+> mapped-base tree deltas. See the [migration map](docs/REPOSITORY_MIGRATION.md)
+> for legacy PR numbers and preserved work. The proposed sync script is held;
+> do not assume it is ready. Historical checkpoints below retain old links.
+
 ## Current direction and coordination
 
 **Networked recursive capability improvement with fixed model weights** is the
@@ -24,7 +32,7 @@ venue objective. Preserve local deployed-repair WIP until separately scoped.
 
 Read the [goal's working cycle](docs/ONGOING_GOAL.md#working-cycle),
 [current ownership map](docs/AGENT_HANDOFF.md#current-ownership-and-next-work)
-and [issue #4](https://github.com/HenryWashuHe/genesis/issues/4), including newer
+and [issue #1](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1), including newer
 branch/head updates, before editing or assigning work. Check goal alignment at
 every milestone. All lower checkpoints are historical.
 
@@ -38,8 +46,14 @@ every milestone. All lower checkpoints are historical.
   merged #114's outstanding regressions, then product-neutral command design.
 - Codex: [#124](https://github.com/HenryWashuHe/genesis/issues/124), shared method,
   identity, receipt and comparison contracts. Preserve paused repair WIP separately.
-- Evaluator/simulator: [#126](https://github.com/HenryWashuHe/genesis/issues/126),
-  unassigned. Ines stays unassigned by user instruction; do not infer her identity.
+- Evaluator/simulator: Henry’s core Claude is assigned the requested legacy
+  [#126](https://github.com/HenryWashuHe/genesis/issues/126) lane: current proposal
+  [#13](https://github.com/HenryWashuHe/genesis-history-experiment/pull/13), then
+  only `experiments/invention-lab/evaluator/**` after interface agreement.
+  Ines stays unassigned by user instruction; do not infer her identity.
+
+The task/PR numbers in the preceding legacy lane descriptions refer to the old
+repository unless explicitly linked here. Use the migration map for current PRs.
 
 New method/adoption/UI implementation depends on agreed method and evaluator
 contracts. Claim shared wiring explicitly; do not take another session's files.

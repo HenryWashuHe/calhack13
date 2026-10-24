@@ -1,5 +1,9 @@
 # GENESIS
 
+Active development: [genesis-history-experiment](https://github.com/HenryWashuHe/genesis-history-experiment).
+Read [coordination issue #1](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1) and the
+[repository migration map](docs/REPOSITORY_MIGRATION.md) before taking work.
+
 ![tag:innovationlab](https://img.shields.io/badge/innovationlab-3D8BD3)
 ![tag:hackathon](https://img.shields.io/badge/hackathon-5F43F1)
 
