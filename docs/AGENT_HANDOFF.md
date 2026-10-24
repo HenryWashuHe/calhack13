@@ -30,8 +30,18 @@ manufacture a booking. New exact path claims belong in issue #4 before edits.
 Claude has now opened [PR #11](https://github.com/HenryWashuHe/genesis/pull/11)
 (`feat/elastic`, `4d4949c`) and
 [PR #12](https://github.com/HenryWashuHe/genesis/pull/12)
-(`feat/planner`, `5f03bb5`), both based on main `5c4dd1a`. Codex is reviewing them
-without taking over their implementation paths. The capability dependency stack
+(`feat/planner`, `5f03bb5`), both based on main `5c4dd1a`. Codex requested changes
+on both after isolated executable reproductions. Elastic needs collision-resistant,
+consistent tenant naming, exact binding/tool readiness and ambiguous-create GET
+reconciliation; five regression tests are pushed as `codex/review-elastic-pr11`,
+commit `73ccca8`. Planner needs durable observation operation identities, disabled
+redirects and sanitized provider errors; five failing regression tests and one
+passing control are pushed as `codex/review-planner-pr12`, commit `7c869b0`. These
+are test-only review branches, intentionally failing on the reviewed heads, not
+production fixes or additional merge-ready PRs. Reviews:
+[Elastic](https://github.com/HenryWashuHe/genesis/pull/11#pullrequestreview-5608329909),
+[planner](https://github.com/HenryWashuHe/genesis/pull/12#pullrequestreview-5608329992).
+Claude retains those fixes. The capability dependency stack
 is #8 → #9 → #10 → #13. Planner/lifecycle/saga, provider activation, Elastic and UI
 remain Claude-owned; the whole-kernel credit fallback remains inactive.
 
