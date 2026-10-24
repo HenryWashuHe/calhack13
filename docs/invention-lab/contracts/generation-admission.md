@@ -13,6 +13,9 @@ session without a reservation has no retroactive admission. `summary()` binds
 the current journal and roster digests, reserved identities, count and output
 caps. These caps are not observed usage; actual and unknown costs still belong
 in the existing roster/cost assessments.
+The [admission-aware cost assessment](admitted-costs.md) binds this journal and
+its full original roster to later observations and one optional trial, without
+reserving, refunding or rewriting evidence.
 
 This API performs no IO. An integrating host must exclusively lock the journal
 and session, persist the reservation durably, then persist Requesting intent
@@ -61,8 +64,10 @@ do not copy, hard-link, roll back or recreate the journal to continue an
 experiment. A stale lock requires the existing manual process-termination and
 checkpoint inspection procedure. This CLI never removes a stale lock for you.
 
-`--admission` is optional only on `method-generate-step`; legacy calls preserve
-their previous behavior and are outside these cooperative journal bounds.
+The generation guard's `--admission` is optional on `method-generate-step`;
+legacy calls preserve their previous behavior and are outside these cooperative
+journal bounds. Separately, [`method-cost-assess --admission`](admitted-costs.md#cli)
+is a read-only evidence join, not another generation admission path.
 Neither this option nor the journal changes provider usage into trusted billing
 or enforces input-token/aggregate wall limits. Loopback tests establish write
 ordering and failure handling; they are not authenticated cloud evidence.
