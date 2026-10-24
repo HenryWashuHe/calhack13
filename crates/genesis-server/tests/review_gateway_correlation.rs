@@ -292,3 +292,62 @@ async fn failed_retirement_must_not_promote_the_mismatched_receipt_on_retry() {
         "a failed mismatch-retirement save must remain fail-closed, got {retried:?}"
     );
 }
+
+// The original retry regression above is unchanged; this covers a real database reopen.
+#[tokio::test]
+async fn failed_retirement_must_not_promote_the_mismatched_receipt_after_restart() {
+    let directory = tempfile::tempdir().unwrap();
+    let db = directory.path().join("retirement.sqlite");
+    let mut config = OrgConfig::dev("org_a", "Org A");
+    config.db = Some(db.clone());
+    let app = build_org(&config, None).unwrap();
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let base = format!("http://{}", listener.local_addr().unwrap());
+    let router = app.clone().router();
+    let server = tokio::spawn(async move { axum::serve(listener, router).await.unwrap() });
+    let probe = Arc::new(RetirementSaveFailureProbe {
+        db: db.clone(),
+        seen: Mutex::new(None),
+    });
+    let verifier = GatewayReadiness::new(
+        app.store.clone(),
+        app.org_id.clone(),
+        Provider::Creao,
+        probe.clone(),
+        GatewayConfig::from_public_url(&base).unwrap(),
+    )
+    .unwrap();
+    let (role, binding) = subject();
+    assert!(verifier.verify(&role, &binding).await.is_err());
+    let request = probe.seen.lock().unwrap().clone().unwrap();
+    let persisted = get_challenge(&app.store, &request.challenge_id)
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        persisted.status,
+        genesis_server::gateway_readiness::ChallengeStatus::Received
+    );
+    assert_eq!(persisted.probe_ref.as_deref(), Some(WRONG_RUN));
+    rusqlite::Connection::open(&db)
+        .unwrap()
+        .execute_batch("DROP TRIGGER fail_early_receipt_retirement")
+        .unwrap();
+    server.abort();
+    let _ = server.await;
+    drop(verifier);
+    drop(app);
+    let reopened = build_org(&config, None).unwrap();
+    let restored = GatewayReadiness::new(
+        reopened.store.clone(),
+        reopened.org_id.clone(),
+        Provider::Creao,
+        probe,
+        GatewayConfig::from_public_url(&base).unwrap(),
+    )
+    .unwrap();
+    let retried = restored.verify(&role, &binding).await.unwrap();
+    assert!(
+        !matches!(retried, Readiness::Ready { .. }),
+        "a failed mismatch-retirement save must remain fail-closed, got {retried:?}"
+    );
+}
