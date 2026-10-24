@@ -9,6 +9,7 @@ mod changes;
 mod events;
 mod gateway;
 pub(crate) mod jobs;
+mod method_adoptions;
 mod org;
 mod search;
 mod venue_assessments;
@@ -122,6 +123,12 @@ pub fn router(state: AppState) -> Router {
             get(adoptions::candidates),
         )
         .route("/capability-adoptions/{id}/step", post(adoptions::step))
+        .route("/method-adoptions", post(method_adoptions::create))
+        .route("/method-adoptions/{id}", get(method_adoptions::status))
+        .route(
+            "/method-invocations/authorize",
+            post(method_adoptions::authorize),
+        )
         .route(
             "/capability-installations/{id}/acceptance",
             post(capabilities::acceptance),
