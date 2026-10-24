@@ -17,6 +17,14 @@ Claude should merge main before integrating this boundary. Planner, role activat
 Elastic and UI remain Claude-owned. Codex continues successive capability/provider
 milestones under the user's ongoing goal, checking this ownership split before each.
 
+The server slice is pushed in [PR #10](https://github.com/HenryWashuHe/genesis/pull/10),
+`codex/server-acquisition`, code `aaefa12`, stacked on #9. Codex reserves
+new `capability_acquisition_store.rs`, `capability_acquisition_runtime.rs`,
+`routes/acquisitions.rs` and their tests, plus narrow startup/router configuration
+and capability proof lookup changes. [SERVER_ACQUISITION.md](SERVER_ACQUISITION.md)
+defines the HTTP contract, authority checks and persistent count quotas. No edits
+to planner, lifecycle engine, saga, outbox, Elastic or UI are included.
+
 ## Codex: capability execution and verification integration
 
 Branch: `codex/capability-kernel-integration`, based on PR #3 plus merged main.
