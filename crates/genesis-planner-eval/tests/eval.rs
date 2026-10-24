@@ -202,11 +202,11 @@ fn capability_sources_must_share_the_evidence_origin() {
         responses: vec![],
     };
     let op = |src: &str| vec![json!({"op": "RequestCapability", "observed_sources": [src]})];
-    let same = score(&s, &r, &op("http://127.0.0.1:8088/other/page.html"));
+    let same = score(&s, &r, &op("https://portal.example/other/page.html"));
     assert!(same.iter().all(|c| c.ok), "{same:?}");
     for off in [
         "http://evil.example/venues/main-hall.html",
-        "http://127.0.0.1:9999/layout-drift/venues/main-hall.html",
+        "https://portal.example:8443/layout-drift/venues/main-hall.html",
         "file:///etc/passwd",
     ] {
         let c = score(&s, &r, &op(off));
