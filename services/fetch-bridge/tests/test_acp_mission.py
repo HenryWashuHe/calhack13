@@ -172,6 +172,31 @@ class GatewayTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("verdict no_change", text)
         self.assertNotIn("Mission coordinator", text)
 
+    async def test_same_message_id_from_different_senders_are_distinct_reports(self):
+        from uagents import Model
+        from uagents_core.contrib.protocols.chat import ChatMessage, TextContent
+        self.gateway.close()
+        self.gateway = MissionGateway(config=config(follow_seconds=0), url=self.url, token=TOKEN, identity="agent1test", db=str(Path(self.temp.name) / "senders.sqlite"))
+        shared_id = uuid4()
+        handler = make_protocol(self.gateway).signed_message_handlers[Model.build_schema_digest(ChatMessage)]
+        ctx = MagicMock(); ctx.send = AsyncMock()
+        for sender in ("agent1alice", "agent1bob"):
+            message = ChatMessage(timestamp=datetime.now(UTC), msg_id=shared_id, content=[TextContent(type="text", text="report the main hall is closed on Nov 14")])
+            await handler(ctx, sender, message)
+        self.assertEqual(sum(c["method"] == "POST" for c in self.calls), 2, "identity is sender plus message id")
+        await handler(ctx, "agent1alice", ChatMessage(timestamp=datetime.now(UTC), msg_id=shared_id, content=[TextContent(type="text", text="report the main hall is closed on Nov 14")]))
+        self.assertEqual(sum(c["method"] == "POST" for c in self.calls), 2, "the same sender redelivering is still suppressed")
+
+    async def test_journal_failure_after_confirmed_post_keeps_effect_visible(self):
+        import sqlite3
+        with patch.object(self.gateway, "_set_observation", side_effect=sqlite3.OperationalError("disk I/O error")):
+            chunks = await self.collect("report the main hall is closed on Nov 14")
+        self.assertEqual(sum(c["method"] == "POST" for c in self.calls), 1)
+        joined = "\n".join(chunks)
+        self.assertIn("Recorded as evidence obs_1", joined)
+        self.assertIn("could not journal", joined)
+        self.assertNotIn("Nothing was changed", joined)
+
     async def test_rate_limit_and_refusals_never_echo_private_detail(self):
         self.observation_status = 403
         text = (await self.collect("report main hall closed on Nov 14"))[0]
