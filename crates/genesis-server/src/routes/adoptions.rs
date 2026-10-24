@@ -54,6 +54,23 @@ pub async fn status(
         .status())))
 }
 
+/// Why each registry candidate was or wasn't used by this adoption, in
+/// registry rank order. Rank and score are ordering only; the decision and
+/// its reason are this organization's own.
+pub async fn candidates(
+    State(app): State<AppState>,
+    principal: Principal,
+    Path(id): Path<String>,
+) -> ApiResult<Json<Value>> {
+    principal.require(&[Principal::Operator])?;
+    app.store.get_adoption(&id).map_err(error)?;
+    let items = app
+        .store
+        .adoption_candidates(&id)
+        .map_err(|_| ApiError::internal("adoption candidate decisions could not be read"))?;
+    Ok(Json(json!({ "adoption_id": id, "items": items })))
+}
+
 pub async fn step(
     State(app): State<AppState>,
     principal: Principal,

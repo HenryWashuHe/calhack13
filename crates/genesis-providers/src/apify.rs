@@ -91,6 +91,8 @@ pub(crate) fn map_error(error: Error) -> ProviderError {
             body: message,
         },
         ErrorKind::DeadlineExceeded => ProviderError::Timeout,
+        // Produced only from a provenance-checked terminal run status.
+        ErrorKind::RunFailed => ProviderError::RunFailed(message),
         _ => ProviderError::Rejected(message),
     }
 }
