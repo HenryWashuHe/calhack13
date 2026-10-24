@@ -12,10 +12,12 @@
 // credentials or binary is "not_tested", never a pass. The kit only drives
 // the CLIs one step at a time: it never edits checkpoints, never replays a
 // POST, and stops at any unknown outcome. Output keeps only parsed fields;
-// credential values are scrubbed from everything written.
+// configured credentials are scrubbed from public evidence reports. Private
+// resumable checkpoints remain owned by their CLIs and must not be shared.
 import { spawnSync } from "node:child_process";
-import { cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 
 export const GATES = ["elastic", "fetch", "apify", "creao"];
@@ -26,6 +28,10 @@ export const SECRET_ENV = [
   "GENESIS_FETCH_BRIDGE_TOKEN",
   "APIFY_TOKEN",
   "CREAO_ACCOUNT_API_KEY",
+  "CREAO_V2_API_KEY",
+  "ASI_ONE_API_KEY",
+  "GENESIS_LLM_API_KEY",
+  "GENESIS_AGENT_TOKEN",
   "ANTHROPIC_API_KEY",
 ];
 const REQUIRED = {
@@ -36,14 +42,40 @@ const REQUIRED = {
 };
 const BILLABLE = new Set(["apify", "creao"]);
 
-/** Replace every configured secret value (length >= 6) with a marker. */
+/** Scrub configured credentials from strings, preserving JSON scalar types. */
 export function scrub(value, env = process.env) {
-  let text = typeof value === "string" ? value : JSON.stringify(value);
-  for (const name of SECRET_ENV) {
+  const names = new Set([
+    ...SECRET_ENV,
+    ...Object.keys(env).filter((name) => /(?:^|_)(?:API_KEY|TOKEN|SECRET|PASSWORD|SEED)$/i.test(name)),
+  ]);
+  const replacements = new Map();
+  for (const name of names) {
     const secret = env[name];
-    if (secret && secret.length >= 6) text = text.split(secret).join(`<${name}>`);
+    if (typeof secret !== "string" || !secret.length) continue;
+    // Diagnostics can contain raw, JSON-escaped or URL-encoded credentials.
+    const variants = [secret, JSON.stringify(secret).slice(1, -1)];
+    try { variants.push(encodeURIComponent(secret)); } catch { /* unpaired surrogate */ }
+    for (const variant of variants) {
+      if (!replacements.has(variant)) replacements.set(variant, `<${name}>`);
+    }
   }
-  return typeof value === "string" ? text : JSON.parse(text);
+  const alternatives = [...replacements.keys()].sort((a, b) => b.length - a.length);
+  const pattern = alternatives.length
+    ? new RegExp(alternatives.map((secret) => secret.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|"), "g")
+    : null;
+  // One replacement pass keeps prefix-overlapping secrets and marker text safe.
+  const redact = (text) => pattern ? text.replace(pattern, (secret) => replacements.get(secret)) : text;
+  const visit = (item) => {
+    if (typeof item === "string") return redact(item);
+    if (Array.isArray(item)) return item.map(visit);
+    if (item && typeof item === "object") {
+      return Object.fromEntries(Object.entries(item).map(([key, child]) => [redact(key), visit(child)]));
+    }
+    return item;
+  };
+  if (typeof value === "string") return redact(value);
+  const serialized = JSON.stringify(value);
+  return serialized === undefined ? undefined : visit(JSON.parse(serialized));
 }
 
 export function missingEnv(gate, env = process.env) {
@@ -68,7 +100,7 @@ export function runCli(bin, args, { env = process.env, cwd } = {}) {
     json,
     stdout: r.stdout ?? "",
     // Keep only a short, scrubbed error tail for diagnosis.
-    stderr: scrub((r.stderr ?? "").slice(-600), env),
+    stderr: scrub(r.stderr ?? "", env).slice(-600),
     ms: Date.now() - started,
   };
 }
@@ -82,7 +114,17 @@ export async function elasticGate(ctx) {
   const org = `genesis-smoke-${ctx.stamp}`;
   const r = runCli(bin, ["--org", org, "--skip-capabilities", "--converse", "--cleanup", "--report", report], ctx);
   if (!existsSync(report)) return { status: "failed", reason: "smoke wrote no report", exit: r.code, error: r.stderr, duration_ms: r.ms };
-  const rep = JSON.parse(readFileSync(report, "utf8"));
+  const rawReport = readFileSync(report, "utf8");
+  let rep;
+  try {
+    rep = JSON.parse(rawReport);
+  } catch {
+    writeFileSync(report, scrub(rawReport, ctx.env));
+    throw new Error("Elastic smoke report was not valid JSON");
+  }
+  // The smoke CLI's detailed report is public evidence too, including details
+  // that are not selected for the summary. Do not rewrite private checkpoints.
+  writeFileSync(report, `${JSON.stringify(scrub(rep, ctx.env), null, 2)}\n`);
   const step = (name) => rep.steps?.find((s) => s.step === name);
   const okDetail = (name) => step(name)?.detail?.Ok ?? null;
   return {
@@ -363,7 +405,7 @@ async function main() {
     process.exit(2);
   }
   const report = await runGates({
-    repo: resolve(new URL("../..", import.meta.url).pathname),
+    repo: fileURLToPath(new URL("../..", import.meta.url)),
     binDir: values["bin-dir"],
     out: values.out,
     gates,
@@ -376,4 +418,5 @@ async function main() {
   process.exit(bad ? 1 : 0);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) main();
+if (process.argv[1] && existsSync(process.argv[1])
+  && fileURLToPath(import.meta.url) === realpathSync(process.argv[1])) main();
