@@ -10,7 +10,7 @@ use genesis_core::lifecycle::{MissionStatus, RequirementStatus, ResponsibilitySt
 use genesis_core::model::{OrgState, Owner};
 use genesis_forge::{
     AcquisitionPhase, AcquisitionPlan, AcquisitionSession, ActionKind, CandidateIdentity,
-    ModelConfig, PublicExample, RepairIdentity, SynthesisPhase, SynthesisRequest,
+    ModelConfig, PublicExample, RepairFeedback, RepairIdentity, SynthesisPhase, SynthesisRequest,
 };
 use genesis_verification::{decode_json, json_sha256, OracleSuite};
 use rusqlite::{params, Connection, OptionalExtension, Transaction, TransactionBehavior};
@@ -249,7 +249,9 @@ impl AcquisitionRecord {
             && self.suite_sha256 == suite_sha256)
     }
     pub fn with_session(&self, session: AcquisitionSession) -> Result<Self> {
-        if session.plan() != self.session.plan() {
+        if session.plan() != self.session.plan()
+            || origin_digest(&session)? != origin_digest(&self.session)?
+        {
             return Err(AcquisitionStoreError::InvalidRecord);
         }
         let mut next = self.clone();
@@ -352,7 +354,9 @@ impl AcquisitionRecord {
         }
     }
     fn immutable_digest(&self) -> Result<String> {
-        hash(&(
+        // Preserve the digest of every legacy acquisition. New external repair
+        // origins are immutable independently of mutable generation/forge state.
+        let legacy = hash(&(
             &self.id,
             &self.client_request_id,
             &self.intent_sha256,
@@ -362,7 +366,11 @@ impl AcquisitionRecord {
             &self.model,
             self.session.plan(),
             self.created_at,
-        ))
+        ))?;
+        match origin_digest(&self.session)? {
+            Some(origin) => hash(&("genesis-server-deployed-repair-v1", legacy, origin)),
+            None => Ok(legacy),
+        }
     }
     fn digest(&self) -> Result<String> {
         hash(&(
@@ -606,6 +614,42 @@ pub(crate) fn create_acquisition_in_tx(
     suite: &OracleSuite,
     now: DateTime<Utc>,
 ) -> Result<(AcquisitionRecord, bool)> {
+    create_seeded_acquisition_in_tx(tx, intent, policy, suite, now, None)
+}
+
+/// An authenticated installed-version failure, resolved by the repair service.
+/// This is never deserialized from an API request.
+pub(crate) struct RepairSeed<'a> {
+    pub parent: &'a AcquisitionSession,
+    pub failure_ref: &'a str,
+    pub feedback: &'a [RepairFeedback],
+}
+
+pub(crate) fn create_repair_acquisition_in_tx(
+    tx: &Transaction<'_>,
+    intent: &CreateAcquisition,
+    policy: &AcquisitionPolicy,
+    suite: &OracleSuite,
+    now: DateTime<Utc>,
+    seed: &RepairSeed<'_>,
+) -> Result<(AcquisitionRecord, bool)> {
+    create_seeded_acquisition_in_tx(tx, intent, policy, suite, now, Some(seed))
+}
+
+fn origin_digest(session: &AcquisitionSession) -> Result<Option<String>> {
+    session
+        .deployed_repair_origin_sha256()
+        .map_err(|_| AcquisitionStoreError::InvalidRecord)
+}
+
+fn create_seeded_acquisition_in_tx(
+    tx: &Transaction<'_>,
+    intent: &CreateAcquisition,
+    policy: &AcquisitionPolicy,
+    suite: &OracleSuite,
+    now: DateTime<Utc>,
+    seed: Option<&RepairSeed<'_>>,
+) -> Result<(AcquisitionRecord, bool)> {
     policy.validate()?;
     if !label(&intent.client_request_id, 128)
         || !label(&intent.suite_id, 256)
@@ -613,7 +657,16 @@ pub(crate) fn create_acquisition_in_tx(
     {
         return Err(AcquisitionStoreError::InvalidInput);
     }
-    let intent_sha256 = hash(intent)?;
+    let intent_sha256 = match seed {
+        Some(seed) => hash(&(
+            "genesis-deployed-repair-intent-v1",
+            intent,
+            seed.parent,
+            seed.failure_ref,
+            seed.feedback,
+        ))?,
+        None => hash(intent)?,
+    };
     let limits = limits(tx)?;
     if policy.quotas != limits {
         return Err(AcquisitionStoreError::PolicyChanged);
@@ -686,8 +739,17 @@ pub(crate) fn create_acquisition_in_tx(
             candidate,
         }),
     };
-    let session =
-        AcquisitionSession::new(plan, suite).map_err(|_| AcquisitionStoreError::InvalidInput)?;
+    let session = match seed {
+        Some(seed) => AcquisitionSession::new_deployed_repair(
+            plan,
+            suite,
+            seed.parent,
+            seed.failure_ref.to_owned(),
+            seed.feedback.to_vec(),
+        ),
+        None => AcquisitionSession::new(plan, suite),
+    }
+    .map_err(|_| AcquisitionStoreError::InvalidInput)?;
     let mut record = AcquisitionRecord {
         schema_version: 1,
         id,
