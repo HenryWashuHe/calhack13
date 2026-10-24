@@ -34,6 +34,7 @@ pub mod capability_scenario;
 pub mod capability_store;
 pub mod elastic_jobs;
 pub mod error;
+pub mod method_adoption;
 pub mod outbox;
 pub mod projection;
 pub mod registry;
