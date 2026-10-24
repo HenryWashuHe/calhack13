@@ -192,27 +192,66 @@ impl Mode {
             // No first process yet means `unshare` hasn't forked, or the
             // namespace is already ending and `unshare` is about to exit.
             for _ in 0..200 {
-                let inits = std::fs::read_to_string(format!("/proc/{id}/task/{id}/children"))
-                    .unwrap_or_default();
-                let mut found = false;
-                for pid in inits
-                    .split_whitespace()
-                    .filter(|p| p.parse::<u32>().is_ok())
-                {
-                    found = true;
-                    let _ = Command::new("kill")
-                        .args(["-KILL", pid])
-                        .stdin(Stdio::null())
-                        .stdout(Stdio::null())
-                        .stderr(Stdio::null())
-                        .status();
+                let mut signalled = false;
+                for pid in namespace_inits(id) {
+                    // Signal directly: spawning a `kill` program can fail (no
+                    // processes or descriptors left, a stripped PATH), and a
+                    // failed stop would leave the caller waiting forever.
+                    signalled |= sigkill(pid);
                 }
-                if found || !matches!(child.try_wait(), Ok(None)) {
+                if signalled || !matches!(child.try_wait(), Ok(None)) {
                     return;
                 }
                 std::thread::sleep(std::time::Duration::from_millis(5));
             }
+            // Nothing could be signalled: stop `unshare` itself so the caller's
+            // wait is bounded. The namespace may then outlive it (see above).
         }
         let _ = child.kill();
+    }
+}
+
+/// `unshare`'s children: the namespace's first process. Falls back to a /proc
+/// scan where the kernel lacks `/proc/<pid>/task/<pid>/children`.
+fn namespace_inits(id: u32) -> Vec<i32> {
+    let parse = |text: &str| -> Vec<i32> {
+        text.split_whitespace()
+            .filter_map(|p| p.parse::<i32>().ok())
+            .filter(|p| *p > 0)
+            .collect()
+    };
+    if let Ok(text) = std::fs::read_to_string(format!("/proc/{id}/task/{id}/children")) {
+        return parse(&text);
+    }
+    let mut found = vec![];
+    for entry in std::fs::read_dir("/proc").into_iter().flatten().flatten() {
+        let Ok(pid) = entry.file_name().to_string_lossy().parse::<i32>() else {
+            continue;
+        };
+        let status = std::fs::read_to_string(entry.path().join("status")).unwrap_or_default();
+        let ppid = status
+            .lines()
+            .find_map(|l| l.strip_prefix("PPid:"))
+            .and_then(|v| v.trim().parse::<u32>().ok());
+        if ppid == Some(id) && pid > 0 {
+            found.push(pid);
+        }
+    }
+    found
+}
+
+/// SIGKILL `pid`; true if it was delivered or the process is already gone.
+fn sigkill(pid: i32) -> bool {
+    // SAFETY: kill(2) takes plain integers and has no memory effects.
+    let rc = unsafe { libc::kill(pid, libc::SIGKILL) };
+    rc == 0 || std::io::Error::last_os_error().raw_os_error() == Some(libc::ESRCH)
+}
+
+#[cfg(test)]
+mod stop_tests {
+    #[test]
+    fn signalling_a_missing_process_counts_as_stopped() {
+        // pid_max is far below i32::MAX - 1, so this pid can't exist.
+        assert!(super::sigkill(i32::MAX - 1));
     }
 }
