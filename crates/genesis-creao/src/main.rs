@@ -94,6 +94,7 @@ fn runtime(db: &Path, org: &str, account: &str, quota_db: &Path) -> Result<Runti
     let limiter = AccountLimiter::open(quota_db, account, QuotaLimits::default())?;
     let version = match std::env::var("CREAO_API_VERSION") {
         Err(std::env::VarError::NotPresent) => ApiVersion::V1,
+        Ok(value) if value.trim().is_empty() => ApiVersion::V1,
         Ok(value) if value == "v1" => ApiVersion::V1,
         Ok(value) if value == "v2" => ApiVersion::V2,
         _ => anyhow::bail!("CREAO_API_VERSION must be v1 or v2"),
