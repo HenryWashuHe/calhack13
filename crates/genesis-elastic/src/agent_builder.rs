@@ -141,8 +141,12 @@ impl AgentBuilder {
                 "ELASTIC_KIBANA_URL must be an http(s) URL".into(),
             ));
         }
+        // No redirects: a 307/308 would resend the JSON body (mission context,
+        // job input) to wherever the Location header points. Stripping the
+        // Authorization header on cross-origin hops does not protect the body.
         let http = reqwest::Client::builder()
             .timeout(cfg.timeout)
+            .redirect(reqwest::redirect::Policy::none())
             .build()
             .map_err(|_| ProviderError::Rejected("cannot build HTTP client".into()))?;
         Ok(Self { cfg, http })
