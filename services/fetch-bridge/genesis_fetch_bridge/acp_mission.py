@@ -30,6 +30,7 @@ from .wire import Invalid, canonical, decode, exact
 MAX_TEXT = 512
 MAX_REPLY = 3500
 MAX_EVENTS_PER_READ = 200
+STATUS_PAGES_PER_CALL = 5
 EVENT_LOG_CAP = 512 * 1024
 STATE_CAP = 2 * 1024 * 1024
 HTTP_TIMEOUT = 10
@@ -89,6 +90,19 @@ def clean(value: object, limit: int = 240) -> str:
         return "?"
     text = _CONTROL.sub(" ", value).strip()
     return text if len(text) <= limit else text[: limit - 1] + "…"
+
+
+def gap_state(value: object) -> str:
+    """`CapabilityGapStatus` is serde-tagged (`{"state": "installed", ...}`); older fixtures used a string."""
+    if isinstance(value, dict):
+        state = clean(value.get("state"), 40).lower()
+        cap = value.get("capability")
+        if isinstance(cap, dict) and isinstance(cap.get("version"), str):
+            return f"{state} ({clean(cap.get('capability_id'), 60)}@{clean(cap.get('version'), 20)})"
+        return state or "?"
+    if isinstance(value, str):
+        return clean(value, 40).lower()
+    return "?"
 
 
 class RoleNames:
@@ -153,7 +167,7 @@ def describe(event: dict, names: RoleNames) -> str | None:
         case "capability_gap_opened":
             return f"Capability requested: {clean(p.get('capability_id'), 60)} for {names(p.get('role_id'))}"
         case "capability_gap_status_changed":
-            return f"Requested capability now {clean(p.get('to'), 40).lower()}"
+            return f"Requested capability now {gap_state(p.get('to'))}"
         case "capability_attached":
             cap = p.get("capability") if isinstance(p.get("capability"), dict) else {}
             return f"Capability {clean(cap.get('capability_id'), 60)}@{clean(cap.get('version'), 20)} attached to {names(p.get('role_id'))}"
@@ -203,7 +217,7 @@ def summarize_org(state: dict) -> str:
         lines.append(f"- {clean(role.get('name'), 60)} ({provider}{stub}, {clean(role.get('state'), 14).lower()}): {duties}")
     open_gaps = [g for g in gaps.values() if isinstance(g, dict)]
     if open_gaps:
-        lines.append("Requested capabilities: " + "; ".join(f"{clean(g.get('capability_id'), 50)} {clean(g.get('status'), 30).lower()}" for g in open_gaps[:6]))
+        lines.append("Requested capabilities: " + "; ".join(f"{clean(g.get('capability_id'), 50)} {gap_state(g.get('status'))}" for g in open_gaps[:6]))
     return "\n".join(lines)
 
 
@@ -230,13 +244,35 @@ class MissionGateway:
         os.close(fd)
         os.chmod(target, 0o600)
         self.db = sqlite3.connect(target, isolation_level=None, timeout=5)
+        self.db.row_factory = sqlite3.Row
         try:
             self.db.execute("PRAGMA synchronous=FULL")
             self.db.execute("PRAGMA journal_mode=DELETE")
             self.db.executescript("""
                 CREATE TABLE IF NOT EXISTS gateway_binding(id INTEGER PRIMARY KEY CHECK(id=1), value TEXT NOT NULL);
-                CREATE TABLE IF NOT EXISTS reports(id INTEGER PRIMARY KEY AUTOINCREMENT, observation_id TEXT, after_seq INTEGER NOT NULL, created_at TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS reports(
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    observation_id TEXT,
+                    after_seq INTEGER NOT NULL,
+                    created_at TEXT NOT NULL,
+                    sender TEXT NOT NULL DEFAULT '',
+                    message_id TEXT,
+                    summary TEXT NOT NULL DEFAULT '',
+                    visible_seq INTEGER NOT NULL DEFAULT 0
+                );
             """)
+            columns = {row[1] for row in self.db.execute("PRAGMA table_info(reports)")}
+            for name, decl in (("sender", "TEXT NOT NULL DEFAULT ''"), ("message_id", "TEXT"), ("summary", "TEXT NOT NULL DEFAULT ''"), ("visible_seq", "INTEGER NOT NULL DEFAULT 0")):
+                if name not in columns:
+                    self.db.execute(f"ALTER TABLE reports ADD COLUMN {name} {decl}")
+                    if name == "visible_seq":
+                        # A row written before the cursor existed starts where its report did, like a new row;
+                        # otherwise status would replay events from before that report.
+                        self.db.execute("UPDATE reports SET visible_seq = after_seq")
+            # Identity is the authenticated sender plus its message id: two senders may reuse a UUID.
+            self._drop_message_only_unique()
+            self.db.execute("DROP INDEX IF EXISTS reports_message")
+            self.db.execute("CREATE UNIQUE INDEX IF NOT EXISTS reports_sender_message ON reports(sender, message_id)")
             binding = canonical({"identity": identity, "url": self.url, "config": self.config})
             self.db.execute("BEGIN IMMEDIATE")
             self.db.execute("INSERT OR IGNORE INTO gateway_binding VALUES(1,?)", (binding,))
@@ -247,6 +283,56 @@ class MissionGateway:
             if self.db.in_transaction:
                 self.db.execute("ROLLBACK")
             self.db.close()
+            raise
+
+    def _drop_message_only_unique(self):
+        """Journals from before sender-scoped identity declared `message_id TEXT UNIQUE`, an
+        inline constraint that no DROP INDEX removes. Rebuild such a table in one transaction,
+        keeping every row (ids, observations, cursors, pending intents) and the id sequence."""
+        def message_only_unique():
+            for index in self.db.execute("PRAGMA index_list(reports)").fetchall():
+                if index["unique"] and index["name"] != "reports_sender_message":
+                    cols = [c["name"] for c in self.db.execute(f"PRAGMA index_info(\"{index['name']}\")")]
+                    if cols == ["message_id"] and index["origin"] == "u":
+                        return True
+            return False
+
+        if not message_only_unique():
+            return
+        self.db.execute("BEGIN IMMEDIATE")
+        try:
+            if message_only_unique():
+                row = self.db.execute("SELECT seq FROM sqlite_sequence WHERE name='reports'").fetchone()
+                sequence = row[0] if row else 0
+                # Both old guards go inside the transaction too: a journal from the intermediate
+                # schema already carries reports_sender_message on the old table, and the new
+                # index must take that name on the rebuilt table. A failure rolls all of it back.
+                self.db.execute("DROP INDEX IF EXISTS reports_message")
+                self.db.execute("DROP INDEX IF EXISTS reports_sender_message")
+                self.db.execute("""
+                    CREATE TABLE reports_migrated(
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        observation_id TEXT,
+                        after_seq INTEGER NOT NULL,
+                        created_at TEXT NOT NULL,
+                        sender TEXT NOT NULL DEFAULT '',
+                        message_id TEXT,
+                        summary TEXT NOT NULL DEFAULT '',
+                        visible_seq INTEGER NOT NULL DEFAULT 0
+                    )""")
+                columns = "id, observation_id, after_seq, created_at, sender, message_id, summary, visible_seq"
+                self.db.execute(f"INSERT INTO reports_migrated({columns}) SELECT {columns} FROM reports")
+                # The replacement guard is part of the same transaction: a failure here rolls the
+                # whole rebuild back and the old inline constraint keeps protecting the table.
+                self.db.execute("CREATE UNIQUE INDEX reports_sender_message ON reports_migrated(sender, message_id)")
+                self.db.execute("DROP TABLE reports")
+                self.db.execute("ALTER TABLE reports_migrated RENAME TO reports")
+                self.db.execute(
+                    "UPDATE sqlite_sequence SET seq = MAX(seq, ?) WHERE name='reports'", (sequence,))
+            self.db.execute("COMMIT")
+        except BaseException:
+            if self.db.in_transaction:
+                self.db.execute("ROLLBACK")
             raise
 
     def close(self):
@@ -309,47 +395,126 @@ class MissionGateway:
         since = (datetime.now(UTC) - timedelta(hours=1)).isoformat()
         return int(self.db.execute("SELECT COUNT(*) FROM reports WHERE created_at > ?", (since,)).fetchone()[0])
 
-    def _last_report(self) -> tuple[str | None, int] | None:
-        row = self.db.execute("SELECT observation_id, after_seq FROM reports ORDER BY id DESC LIMIT 1").fetchone()
-        return (row[0], int(row[1])) if row else None
+    def _find_report(self, sender: str, message_id: str) -> sqlite3.Row | None:
+        return self.db.execute("SELECT * FROM reports WHERE sender=? AND message_id=?", (sender, message_id)).fetchone()
+
+    def _last_report(self, sender: str) -> sqlite3.Row | None:
+        return self.db.execute("SELECT * FROM reports WHERE sender=? ORDER BY id DESC LIMIT 1", (sender,)).fetchone()
+
+    def _insert_report(self, *, sender: str, message_id: str, after_seq: int, summary: str) -> int:
+        # Intent is durable before the observation POST: a redelivered or
+        # replayed message finds this row and never submits a second effect.
+        cursor = self.db.execute(
+            "INSERT INTO reports(observation_id, after_seq, created_at, sender, message_id, summary, visible_seq) VALUES(NULL,?,?,?,?,?,?)",
+            (after_seq, datetime.now(UTC).isoformat(), sender, message_id, summary, after_seq),
+        )
+        return int(cursor.lastrowid)
+
+    def _set_observation(self, row_id: int, observation_id: str) -> None:
+        self.db.execute("UPDATE reports SET observation_id=? WHERE id=?", (observation_id, row_id))
+
+    def _set_visible(self, row_id: int, seq: int) -> None:
+        self.db.execute("UPDATE reports SET visible_seq=MAX(visible_seq, ?) WHERE id=?", (int(seq), row_id))
+
+    @staticmethod
+    def _lines(events: list[dict], names: RoleNames, observation_id: str | None = None) -> list[tuple[int, str]]:
+        out = []
+        for e in events:
+            p = e.get("payload") if isinstance(e.get("payload"), dict) else {}
+            if observation_id is not None and e.get("type") == "planner_decision" and p.get("observation_id") != observation_id:
+                continue  # another observation's decision is not this report's progress
+            line = describe(e, names)
+            if line:
+                out.append((e["seq"], line))
+        return out
 
     def _render(self, events: list[dict], names: RoleNames) -> list[str]:
-        lines = [line for line in (describe(e, names) for e in events) if line]
-        return lines
+        return [line for _, line in self._lines(events, names)]
 
-    async def _follow(self, after_seq: int, seconds: int) -> AsyncIterator[str]:
-        """Relay what the organization does after a report, in bounded time, as it happens."""
+    async def _status_reply(self, row: sqlite3.Row) -> str:
+        """Read forward from this report's durable visible cursor. Bounded in pages and in reply size; the
+        cursor advances only past events that were shown (or that render nothing), so a later outcome is
+        always reachable by asking again."""
+        row_id, seq = int(row["id"]), int(row["visible_seq"])
+        names: RoleNames | None = None
+        chosen: list[str] = []
+        size = 0
+        pages = 0
+        more = False
+        while pages < STATUS_PAGES_PER_CALL:
+            pages += 1
+            batch = await self._events_after(seq)
+            if not batch:
+                break
+            if names is None:
+                names = RoleNames(await self._state())
+            lines = self._lines(batch, names)
+            if not lines:
+                seq = max(e["seq"] for e in batch)
+                self._set_visible(row_id, seq)
+                continue
+            for line_seq, line in lines:
+                if chosen and size + len(line) + 1 > MAX_REPLY - 120:
+                    more = True
+                    break
+                chosen.append(line[:MAX_REPLY - 120])
+                size += len(chosen[-1]) + 1
+                seq = line_seq
+            if more:
+                break
+            seq = max(e["seq"] for e in batch)
+            self._set_visible(row_id, seq)
+        if not chosen:
+            return "Nothing new since your report. The planner may still be reading the evidence; ask again shortly."
+        self._set_visible(row_id, seq)
+        text = "\n".join(chosen)
+        if more:
+            text += "\nThere is more. Ask status again to continue from here."
+        return text
+
+    async def _follow(self, after_seq: int, seconds: int, observation_id: str) -> AsyncIterator[str]:
+        """Relay what the organization does after a report, in bounded time, as it happens. Ends early only on
+        this report's own planner decision (and, when it proposed a change, that change's terminal status)."""
         deadline = asyncio.get_running_loop().time() + seconds
         seq = after_seq
         names: RoleNames | None = None
-        quiet = 0
+        own_change: str | None = None
         while asyncio.get_running_loop().time() < deadline:
             await asyncio.sleep(POLL_SECONDS)
             batch = await self._events_after(seq)
             if not batch:
-                quiet += 1
                 continue
             seq = max(e["seq"] for e in batch)
             if names is None or any(e.get("type") in {"role_created", "role_activated"} for e in batch):
                 names = RoleNames(await self._state())
-            lines = self._render(batch, names)
+            lines = [line for _, line in self._lines(batch, names, observation_id)]
             if lines:
-                quiet = 0
                 yield "\n".join(lines)
-            decided = any(e.get("type") == "planner_decision" and e.get("payload", {}).get("verdict") in {"no_change", "escalated"} for e in batch)
-            committed = any(e.get("type") == "change_status_changed" and e.get("payload", {}).get("to") in {"COMMITTED", "REJECTED", "FAILED"} for e in batch)
-            if decided or committed:
-                # Give trailing activation/dispatch events a moment, then stop.
+            done = False
+            for e in batch:
+                p = e.get("payload") if isinstance(e.get("payload"), dict) else {}
+                if e.get("type") == "planner_decision" and p.get("observation_id") == observation_id:
+                    if p.get("verdict") in {"no_change", "escalated"}:
+                        done = True
+                    elif isinstance(p.get("change_id"), str):
+                        own_change = p["change_id"]
+                if e.get("type") == "change_status_changed" and own_change is not None and p.get("change_id") == own_change and p.get("to") in {"COMMITTED", "REJECTED", "FAILED"}:
+                    done = True
+            if done:
                 await asyncio.sleep(SETTLE_SECONDS)
                 tail = await self._events_after(seq)
                 if tail:
                     seq = max(e["seq"] for e in tail)
-                    lines = self._render(tail, names)
+                    lines = [line for _, line in self._lines(tail, names, observation_id)]
                     if lines:
                         yield "\n".join(lines)
                 return
 
-    async def respond(self, text: str) -> AsyncIterator[str]:
+    async def respond(self, text: str, *, sender: str | None = None, message_id: str | None = None) -> AsyncIterator[str]:
+        """`sender`/`message_id` are the authenticated ACP identities of the incoming message. A redelivered
+        message (same id) never records a second observation; a missing id is a genuinely new report."""
+        sender = sender if isinstance(sender, str) else ""
+        message_id = message_id if isinstance(message_id, str) and message_id else str(uuid4())
         try:
             if not isinstance(text, str) or len(text.encode()) > MAX_TEXT:
                 yield "Keep messages under 512 bytes. Use help, org, report <what happened>, or status."
@@ -371,21 +536,30 @@ class MissionGateway:
                     yield summarize_org(await self._state())
                     return
                 if lowered in STATUS_WORDS:
-                    last = self._last_report()
+                    last = self._last_report(sender)
                     if last is None:
                         yield "No report from this agent yet. Use report <what happened> first, or org to see the current organization."
                         return
-                    events = await self._events_after(last[1])
-                    lines = self._render(events[:MAX_EVENTS_PER_READ], RoleNames(await self._state()))
-                    if not lines:
-                        yield "Nothing new since your report. The planner may still be reading the evidence; ask again shortly."
-                        return
-                    yield "\n".join(lines)[:MAX_REPLY]
+                    yield await self._status_reply(last)
                     return
                 if words[0].lower().rstrip(":") in REPORT_VERBS and len(words) >= 2:
                     summary = clean(" ".join(words[1:]), 400)
                     if len(summary) < 8:
                         yield "Describe what happened in a sentence, for example: report the main hall is closed on Nov 14."
+                        return
+                    known = self._find_report(sender, message_id)
+                    if known is not None:
+                        # Redelivery of a message already acted on: report, never repeat the effect.
+                        if known["observation_id"]:
+                            yield (
+                                f"This message was already recorded as evidence {known['observation_id'][:17]}. "
+                                "Nothing new was submitted. Ask status for what the organization did with it."
+                            )
+                        else:
+                            yield (
+                                "This message was already submitted once and the organization never confirmed it. "
+                                "It was not submitted again; ask status to check, or send a new report."
+                            )
                         return
                     if self._reports_last_hour() >= self.config["max_reports_per_hour"]:
                         yield "This public demo accepts a limited number of reports per hour. Try again later; nothing was recorded."
@@ -399,25 +573,40 @@ class MissionGateway:
                     if not isinstance(mission_id, str) or not re.fullmatch(r"[A-Za-z0-9_.:-]{1,128}", mission_id):
                         raise Invalid("invalid mission identity")
                     cursor = await self._latest_seq()
+                    row_id = self._insert_report(sender=sender, message_id=message_id, after_seq=cursor, summary=summary)
                     body = {"source": self.config["source"], "summary": summary, "evidence_ref": self.config["evidence_ref"]}
-                    created_at = datetime.now(UTC).isoformat()
                     try:
                         status, record = await self._http("POST", f"/missions/{mission_id}/observations", body=body, cap=65536)
                     except (aiohttp.ClientError, TimeoutError, Invalid):
-                        self.db.execute("INSERT INTO reports(observation_id, after_seq, created_at) VALUES(NULL,?,?)", (cursor, created_at))
                         yield "The organization did not confirm the report. It may still have been recorded; use status to check before repeating it."
                         return
                     if status != 201 or not isinstance(record, dict) or not isinstance(record.get("observation_id"), str):
                         yield f"The organization refused the report (HTTP {status}). Nothing to relay."
                         return
                     observation_id = record["observation_id"]
-                    self.db.execute("INSERT INTO reports(observation_id, after_seq, created_at) VALUES(?,?,?)", (observation_id, cursor, created_at))
+                    try:
+                        self._set_observation(row_id, observation_id)
+                    except sqlite3.Error:
+                        # The observation exists; only this gateway's journal failed to note its id.
+                        yield (
+                            f"Recorded as evidence {observation_id[:17]}, but this gateway could not journal it. "
+                            "Do not repeat the report; ask status later for what the organization did with it."
+                        )
+                        return
                     yield (
                         f"Recorded as evidence {observation_id[:17]} for the mission \"{clean(missions[0].get('goal'), 100)}\". "
                         "The organization's planner is reading it now; I will relay each step."
                     )
-                    async for chunk in self._follow(cursor, self.config["follow_seconds"]):
-                        yield chunk[:MAX_REPLY]
+                    try:
+                        async for chunk in self._follow(cursor, self.config["follow_seconds"], observation_id):
+                            yield chunk[:MAX_REPLY]
+                    except (aiohttp.ClientError, TimeoutError, Invalid, sqlite3.Error):
+                        # The observation exists; only our view of what followed is unavailable.
+                        yield (
+                            f"Your report is recorded as evidence {observation_id[:17]}, but progress is unavailable right now. "
+                            "Ask status later to see what the organization did with it."
+                        )
+                        return
                     yield "That is what the organization did so far. Ask status later for anything that follows, or org for the current shape."
                     return
                 yield self.help()
@@ -450,7 +639,7 @@ def make_protocol(gateway: MissionGateway):
             return
         pending: str | None = None
         try:
-            async for chunk in gateway.respond(texts[0]):
+            async for chunk in gateway.respond(texts[0], sender=sender, message_id=str(msg.msg_id)):
                 if pending is not None:
                     await send_text(ctx, sender, pending, end=False)
                 pending = chunk
