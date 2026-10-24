@@ -32,7 +32,7 @@ pub async fn readiness_receipt(
         Err(ReceiptRejection::Expired) => Err(ApiError::new(
             StatusCode::GONE,
             "challenge_expired",
-            "readiness challenge expired; a new challenge will be issued",
+            "readiness challenge expired",
         )),
     }
 }

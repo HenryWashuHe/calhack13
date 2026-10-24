@@ -73,6 +73,9 @@ enum Answer {
 struct Probe {
     answers: Mutex<VecDeque<Answer>>,
     seen: Mutex<Vec<ProbeRequest>>,
+    /// Post the receipt from inside `dispatch`, before answering: the agent
+    /// ran before the provider's response reached the kernel.
+    echo: bool,
 }
 
 impl Probe {
@@ -80,6 +83,14 @@ impl Probe {
         Arc::new(Self {
             answers: Mutex::new(answers.iter().copied().collect()),
             seen: Mutex::new(vec![]),
+            echo: false,
+        })
+    }
+    fn echoing(answer: Answer) -> Arc<Self> {
+        Arc::new(Self {
+            answers: Mutex::new([answer].into()),
+            seen: Mutex::new(vec![]),
+            echo: true,
         })
     }
     fn count(&self) -> usize {
@@ -94,6 +105,16 @@ impl Probe {
 impl ReadinessProbe for Probe {
     async fn dispatch(&self, req: &ProbeRequest) -> Result<ProbeDispatch, ProviderError> {
         self.seen.lock().unwrap().push(req.clone());
+        if self.echo {
+            let status = reqwest::Client::new()
+                .post(&req.receipt_url)
+                .json(&req.expected_receipt())
+                .send()
+                .await
+                .unwrap()
+                .status();
+            assert_eq!(status.as_u16(), 200, "receipt accepted during dispatch");
+        }
         let answer = {
             let mut a = self.answers.lock().unwrap();
             if a.len() > 1 {
@@ -247,6 +268,15 @@ async fn drive(app: &AppState, id: &ChangeId) -> OrgChangeRecord {
     saga::run(app, id).await.unwrap()
 }
 
+fn progress_events(app: &AppState) -> usize {
+    app.store
+        .events_after(0, 10_000)
+        .unwrap()
+        .iter()
+        .filter(|e| e.kind.type_name() == "provisioning_progress")
+        .count()
+}
+
 fn monitor_bound(app: &AppState) -> bool {
     app.current_state()
         .unwrap()
@@ -398,7 +428,7 @@ async fn expired_challenges_are_reissued_then_readiness_fails() {
     let r = drive(&h.app, &id).await;
     assert_eq!(r.status, ChangeStatus::Failed);
     let events = serde_json::to_string(&h.app.store.events_after(0, 1000).unwrap()).unwrap();
-    assert!(events.contains("no gateway readiness receipt after 2 attempt(s)"));
+    assert!(events.contains("no gateway readiness receipt after 2 challenge(s)"));
     assert_eq!(
         r.provisioned["monitor"].provider_agent_id, AGENT,
         "created ID kept"
@@ -414,18 +444,38 @@ async fn unknown_dispatch_keeps_the_challenge_live() {
     let id = submit(&h.app).await;
     let r = drive(&h.app, &id).await;
     assert_eq!(r.status, ChangeStatus::Provisioning);
-    assert!(r.operations["monitor"]
-        .attention
-        .as_deref()
-        .unwrap_or_default()
-        .contains("readiness check"));
     let req = probe.last();
+    let attention = r.operations["monitor"]
+        .attention
+        .clone()
+        .unwrap_or_default();
+    assert!(
+        attention.contains("readiness probe outcome unknown"),
+        "{attention}"
+    );
+    assert!(attention.contains(&req.challenge_id), "{attention}");
+    assert!(
+        !attention.contains("connection dropped"),
+        "no provider text: {attention}"
+    );
     let c = h.challenge(&req.challenge_id).await;
     assert_eq!(c["status"], "dispatching");
 
-    let r = drive(&h.app, &id).await; // not re-dispatched while live
-    assert_eq!(r.status, ChangeStatus::Provisioning);
+    let events_before = progress_events(&h.app);
+    for _ in 0..3 {
+        let r = drive(&h.app, &id).await; // not re-dispatched while live
+        assert_eq!(r.status, ChangeStatus::Provisioning);
+        assert_eq!(
+            r.operations["monitor"].attention.as_deref(),
+            Some(attention.as_str())
+        );
+    }
     assert_eq!(probe.count(), 1);
+    assert_eq!(
+        progress_events(&h.app),
+        events_before,
+        "a stable note emits no new events"
+    );
 
     // The run did reach the agent after all; its receipt counts.
     assert_eq!(
@@ -443,7 +493,7 @@ async fn definite_dispatch_failure_retries_with_a_new_challenge() {
     let probe = Probe::new(&[Answer::Reject, Answer::Accept]);
     let h = harness(
         probe.clone(),
-        |c| c.retry_after = Duration::from_millis(500),
+        |c| c.retry_after = Duration::from_millis(1000),
         None,
     )
     .await;
@@ -464,7 +514,7 @@ async fn definite_dispatch_failure_retries_with_a_new_challenge() {
 
     drive(&h.app, &id).await; // backing off: no new attempt yet
     assert_eq!(probe.count(), 1);
-    tokio::time::sleep(Duration::from_millis(600)).await;
+    tokio::time::sleep(Duration::from_millis(1100)).await;
     drive(&h.app, &id).await;
     assert_eq!(probe.count(), 2);
     let second = probe.last();
@@ -505,4 +555,90 @@ async fn receipts_survive_a_restart() {
         Some(format!("gateway-receipt:{}", req.challenge_id).as_str())
     );
     assert_eq!(probe2.count(), 0, "no new challenge after restart");
+}
+
+/// The agent may answer before the provider's response to the probe arrives.
+/// Whatever the probe then reports, the accepted receipt stands.
+#[tokio::test]
+async fn a_receipt_during_dispatch_is_never_overwritten() {
+    for answer in [Answer::Accept, Answer::Unknown, Answer::Reject] {
+        let probe = Probe::echoing(answer);
+        let h = harness(probe.clone(), |_| {}, None).await;
+        let id = submit(&h.app).await;
+        let r = drive(&h.app, &id).await;
+        assert_eq!(
+            r.status,
+            ChangeStatus::Committed,
+            "probe answer did not erase the receipt"
+        );
+        let req = probe.last();
+        assert_eq!(h.challenge(&req.challenge_id).await["status"], "received");
+        assert_eq!(probe.count(), 1);
+    }
+}
+
+#[tokio::test]
+async fn dispatch_failures_do_not_use_up_receipt_attempts() {
+    let probe = Probe::new(&[Answer::Reject, Answer::Reject, Answer::Accept]);
+    let h = harness(
+        probe.clone(),
+        |c| {
+            c.max_attempts = 1;
+            c.retry_after = Duration::from_millis(20);
+        },
+        None,
+    )
+    .await;
+    let id = submit(&h.app).await;
+    for _ in 0..20 {
+        drive(&h.app, &id).await;
+        if probe.count() == 3 {
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(30)).await;
+    }
+    assert_eq!(
+        probe.count(),
+        3,
+        "two failed dispatches, then one that reached the agent"
+    );
+    let req = probe.last();
+    assert_eq!(
+        h.post_receipt(&req.receipt_url, req.expected_receipt())
+            .await
+            .0,
+        200
+    );
+    assert_eq!(drive(&h.app, &id).await.status, ChangeStatus::Committed);
+}
+
+#[tokio::test]
+async fn persistent_dispatch_failures_fail_readiness_with_their_cause() {
+    let probe = Probe::new(&[Answer::Reject]);
+    let h = harness(
+        probe.clone(),
+        |c| {
+            c.max_dispatch_failures = 2;
+            c.retry_after = Duration::from_millis(20);
+        },
+        None,
+    )
+    .await;
+    let id = submit(&h.app).await;
+    let mut status = ChangeStatus::Provisioning;
+    for _ in 0..20 {
+        status = drive(&h.app, &id).await.status;
+        if status != ChangeStatus::Provisioning {
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(60)).await;
+    }
+    assert_eq!(status, ChangeStatus::Failed);
+    assert_eq!(probe.count(), 2);
+    let events = serde_json::to_string(&h.app.store.events_after(0, 1000).unwrap()).unwrap();
+    assert!(events.contains("readiness probe could not be dispatched after 2 attempt(s)"));
+    assert!(
+        !events.contains("quota exhausted"),
+        "provider text is not published"
+    );
 }
