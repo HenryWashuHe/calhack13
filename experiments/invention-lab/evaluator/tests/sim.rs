@@ -83,3 +83,68 @@ fn hidden_draws_are_bound_to_an_immutable_descriptor() {
     extra["salt"] = "secret-salt".into();
     assert!(serde_json::from_value::<Descriptor>(extra).is_err());
 }
+
+#[test]
+fn a_loaded_motor_is_held_to_the_torque_ceiling() {
+    use genesis_lab_eval::design::MAX_MOTOR_TORQUE;
+    use genesis_lab_eval::sim::motor_joint;
+    use rapier2d::prelude::*;
+    // A heavy disc on a fixed axle, driven toward 10 rad/s.
+    let mut bodies = RigidBodySet::new();
+    let mut colliders = ColliderSet::new();
+    let axle = bodies.insert(RigidBodyBuilder::fixed());
+    let disc = bodies.insert(RigidBodyBuilder::dynamic());
+    let (radius, mass) = (0.6_f32, 8800.0_f32);
+    colliders.insert_with_parent(ColliderBuilder::ball(radius).mass(mass), disc, &mut bodies);
+    let mut joints = ImpulseJointSet::new();
+    joints.insert(
+        axle,
+        disc,
+        motor_joint(point![0.0, 0.0], point![0.0, 0.0], 10.0),
+        true,
+    );
+    let params = IntegrationParameters {
+        dt: 1.0 / 120.0,
+        ..Default::default()
+    };
+    let (mut pipeline, mut islands, mut broad, mut narrow) = (
+        PhysicsPipeline::new(),
+        IslandManager::new(),
+        DefaultBroadPhase::new(),
+        NarrowPhase::new(),
+    );
+    let (mut multibody, mut ccd, mut query) = (
+        MultibodyJointSet::new(),
+        CCDSolver::new(),
+        QueryPipeline::new(),
+    );
+    for _ in 0..120 {
+        pipeline.step(
+            &vector![0.0, 0.0],
+            &params,
+            &mut islands,
+            &mut broad,
+            &mut narrow,
+            &mut bodies,
+            &mut colliders,
+            &mut joints,
+            &mut multibody,
+            &mut ccd,
+            Some(&mut query),
+            &(),
+            &(),
+        );
+    }
+    let inertia = 0.5 * mass * radius * radius;
+    let bound = MAX_MOTOR_TORQUE / inertia * 1.0; // one second of full torque
+    let spin = bodies[disc].angvel().abs();
+    assert!(spin > 0.1, "the motor drives the disc ({spin})");
+    assert!(
+        spin <= bound * 1.05,
+        "spin {spin} exceeds the torque ceiling's {bound}"
+    );
+    assert!(
+        spin < 10.0,
+        "the uncapped motor would reach its target speed at once"
+    );
+}
