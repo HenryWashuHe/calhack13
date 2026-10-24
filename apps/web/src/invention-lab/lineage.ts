@@ -12,6 +12,7 @@ import {
   type ExactRef,
   type ExecutionReceipt,
   type GenerationStatus,
+  type MetricsArtifact,
   type PackageFile,
   type RevisionObservation,
   type StaticInspection,
@@ -37,6 +38,8 @@ export interface LabRecords {
   packages?: PackageFile[];
   inspections?: StaticInspection[];
   trials?: TrialInput[];
+  /** Scoring metrics artifacts, matched to scored evaluations by exact hash. */
+  metrics?: MetricsArtifact[];
 }
 
 export interface TrialInput {
@@ -95,6 +98,8 @@ export interface Lineage {
   edges: Edge[];
   executions: Execution[];
   trials: Trial[];
+  /** Metrics artifacts by their byte hash. */
+  metrics: Map<string, MetricsArtifact>;
   problems: string[];
 }
 
@@ -261,5 +266,6 @@ export function buildLineage(records: LabRecords): Lineage {
     ),
   }));
 
-  return { attempts, nodes: [...nodes.values()], edges, executions, trials, problems };
+  const metrics = new Map((records.metrics ?? []).map((m) => [m.sha256, m]));
+  return { attempts, nodes: [...nodes.values()], edges, executions, trials, metrics, problems };
 }

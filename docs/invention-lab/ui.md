@@ -240,6 +240,30 @@ checklist reads:
   (2 rejected), since a rejected update is a valid selective-transfer outcome
   but not an accepted return. No problems are reported.
 
+## Results matrix
+
+Rows are exact method versions; columns are the task families named by each
+run's binding (`public_task`). A cell lists the success counts of that
+method's runs in that family. Each count is taken from the scoring metrics
+artifact (`lab-scoring-metrics/1`) that the run's evaluation names by SHA-256.
+The artifact's identity is the hash of its bytes, so an altered file is not
+matched. Only each instance row's recorded boolean `success` is counted. Runs
+whose counts differ are shown side by side (`1/6 · 2/6`). A run without
+supplied metrics reads "metrics not supplied" or "not scored", never zero.
+Each run keeps its trial, role, organization and the trial's verdict.
+
+On the committed evidence the matrix reproduces the retained scoreboard:
+
+| Method | ravine-crossing | rough-transport | return-mix |
+| --- | --- | --- | --- |
+| A's generated method | 1/6 | 6/6 | 1/6 |
+| B's revision | – | 3/6 | 0/6 |
+| random search | 2/6 | 4/6 | 3/6 |
+| fixed cart | 0/6 | 2/6 | – |
+
+These are single exploratory runs on six public development instances per
+family. They are not a ranking, a G4 comparison or a benefit claim.
+
 ## Attempt ledger
 
 Status records may carry the optional enum-only `diagnostic` from
