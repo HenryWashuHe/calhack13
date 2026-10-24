@@ -92,8 +92,11 @@ every milestone. All lower checkpoints are historical.
   Henry still needs to consume the retained binding before runtime intent.
   Project credentials now work; the first [live method attempt](docs/invention-lab/evidence/live-method-20261024/README.md)
   failed protocol validation with no package or source execution. Its reservation
-  remains spent; do not replay it. Next: bounded, allowlisted stop/rejection
-  diagnostics before separately declaring another attempt. Finite whole-chain
+  remains spent; do not replay it. [Closed stop/rejection diagnostics](docs/invention-lab/contracts/generation.md)
+  are implemented and locally validated at `f4fa271e603d3b38be1b8d9caeb2215bda2f04fd`;
+  they establish no new live result or cause for the old failure. Next: separately
+  declare a fresh bounded attempt, then hand a valid package to Henry if produced.
+  Finite whole-chain
   ceilings remain proposed behind the genuine method run; hashes prove no timing.
   Retain input-token/wall, billing, global enforcement and history limits.
   Preserve Henry's runtime files; provider/settings reproducibility, complete

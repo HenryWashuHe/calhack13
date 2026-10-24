@@ -120,6 +120,52 @@ pub enum TextFailure {
     Interrupted,
 }
 
+/// The first protocol check that rejected a response, never provider prose.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TextRejection {
+    ResponseUnavailable,
+    InvalidJson,
+    InvalidEnvelope,
+    ModelMismatch,
+    StopReason,
+    StopSequence,
+    OutputLimit,
+    ContentShape,
+    ContentCount,
+    ContentType,
+    TextLimit,
+    Citations,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TextStopReason {
+    EndTurn,
+    MaxTokens,
+    StopSequence,
+    ToolUse,
+    Other,
+}
+impl TextStopReason {
+    fn observed(value: &str) -> Self {
+        match value {
+            "end_turn" => Self::EndTurn,
+            "max_tokens" => Self::MaxTokens,
+            "stop_sequence" => Self::StopSequence,
+            "tool_use" => Self::ToolUse,
+            _ => Self::Other,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TextProtocolDiagnostic {
+    pub rejection: TextRejection,
+    pub stop_reason: Option<TextStopReason>,
+}
+
 /// Observed endpoint class, not a signature or independently authenticated proof.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -141,6 +187,9 @@ pub struct TextCompletion {
     pub actual_model: Option<String>,
     pub usage: GenerationUsage,
     pub outcome: TextOutcome,
+    /// Absent in historical records: omitting None preserves their exact hashes.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub diagnostic: Option<TextProtocolDiagnostic>,
 }
 impl TextCompletion {
     /// Host recovery observation for a persisted intent with no recorded outcome.
@@ -170,7 +219,15 @@ impl TextCompletion {
                 wall_time_ms: unknown(),
             },
             outcome,
+            diagnostic: None,
         })
+    }
+    fn rejected(mut self, rejection: TextRejection, stop_reason: Option<TextStopReason>) -> Self {
+        self.diagnostic = Some(TextProtocolDiagnostic {
+            rejection,
+            stop_reason,
+        });
+        self
     }
     pub(crate) fn validate_for(
         &self,
@@ -178,6 +235,11 @@ impl TextCompletion {
     ) -> Result<(), SynthesisError> {
         if self.request_sha256 != request.sha256()?
             || self.wire_sha256 != hash(&request.wire_bytes()?)
+            || (self.diagnostic.is_some()
+                && self.outcome
+                    != (TextOutcome::Failed {
+                        reason: TextFailure::Protocol,
+                    }))
         {
             return Err(SynthesisError::Protocol);
         }
@@ -297,14 +359,14 @@ impl AnthropicGenerator {
                 };
                 return Ok(completion);
             }
-            Ok(Err(_)) => return Ok(completion),
+            Ok(Err(_)) => return Ok(completion.rejected(TextRejection::ResponseUnavailable, None)),
         };
         completion.response_sha256 = Some(hash(&bytes));
         let Ok(value) = genesis_verification::decode_json(&bytes) else {
-            return Ok(completion);
+            return Ok(completion.rejected(TextRejection::InvalidJson, None));
         };
         let Ok(response) = serde_json::from_value::<Response>(value) else {
-            return Ok(completion);
+            return Ok(completion.rejected(TextRejection::InvalidEnvelope, None));
         };
         if response.kind != "message"
             || response.role != "assistant"
@@ -312,8 +374,12 @@ impl AnthropicGenerator {
             || !identifier(&response.id, 256)
             || !identifier(&response.model, 128)
         {
-            return Ok(completion);
+            return Ok(completion.rejected(TextRejection::InvalidEnvelope, None));
         }
+        let stop = response
+            .stop_reason
+            .as_deref()
+            .map(TextStopReason::observed);
         completion.message_id = Some(response.id);
         completion.actual_model = Some(response.model.clone());
         completion.usage.model_calls = ResourceUsage::Measured { value: 1 };
@@ -321,25 +387,34 @@ impl AnthropicGenerator {
             completion.usage.input_tokens = reported(usage.input_tokens);
             completion.usage.output_tokens = reported(usage.output_tokens);
         }
-        if response.model != request.settings.model
-            || response.stop_reason.as_deref() != Some("end_turn")
-            || response.stop_sequence.is_some()
-            || matches!(completion.usage.output_tokens, ResourceUsage::Measured {value} if value>u64::from(request.settings.max_tokens))
+        if response.model != request.settings.model {
+            return Ok(completion.rejected(TextRejection::ModelMismatch, stop));
+        }
+        if response.stop_reason.as_deref() != Some("end_turn") {
+            return Ok(completion.rejected(TextRejection::StopReason, stop));
+        }
+        if response.stop_sequence.is_some() {
+            return Ok(completion.rejected(TextRejection::StopSequence, stop));
+        }
+        if matches!(completion.usage.output_tokens, ResourceUsage::Measured {value} if value>u64::from(request.settings.max_tokens))
         {
-            return Ok(completion);
+            return Ok(completion.rejected(TextRejection::OutputLimit, stop));
         }
         let Ok(mut blocks) = serde_json::from_value::<Vec<Block>>(response.content) else {
-            return Ok(completion);
+            return Ok(completion.rejected(TextRejection::ContentShape, stop));
         };
         if blocks.len() != 1 {
-            return Ok(completion);
+            return Ok(completion.rejected(TextRejection::ContentCount, stop));
         }
         let block = blocks.remove(0);
-        if block.kind != "text"
-            || block.text.len() > MAX_TEXT_BYTES
-            || block.citations.is_some_and(|v| !v.is_empty())
-        {
-            return Ok(completion);
+        if block.kind != "text" {
+            return Ok(completion.rejected(TextRejection::ContentType, stop));
+        }
+        if block.text.len() > MAX_TEXT_BYTES {
+            return Ok(completion.rejected(TextRejection::TextLimit, stop));
+        }
+        if block.citations.is_some_and(|v| !v.is_empty()) {
+            return Ok(completion.rejected(TextRejection::Citations, stop));
         }
         completion.outcome = TextOutcome::Returned { text: block.text };
         completion.validate_for(request)?;

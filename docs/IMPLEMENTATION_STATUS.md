@@ -252,8 +252,12 @@ failed protocol validation: no package or source execution, with one reservation
 retained and no replay. Usage was 1 call, 3,971 input / 8,192 output tokens and
 62,131 ms. Reaching the output cap does not prove truncation: the stop reason was
 not retained. Independent retained-file consistency checks are not cloud-source
-authentication. Next: bounded allowlisted stop/rejection diagnostics before a new
-declared attempt. Finite-chain ceilings remain proposed; G0–G4 remain open.
+authentication. [Closed diagnostics](invention-lab/contracts/generation.md) are now
+implemented at source `f4fa271e603d3b38be1b8d9caeb2215bda2f04fd`: 206 forge tests
+across 38 targets pass, zero failed/ignored; strict all-target Clippy/fmt/diff pass.
+These local/loopback checks preserve #89 unchanged and establish no new live result.
+Next: a fresh separately declared bounded attempt, then a valid-package handoff to
+Henry if produced. Finite-chain ceilings remain proposed; G0–G4 remain open.
 Earlier delivery/source-specific evidence remains in the handoff; overlapping
 test counts must not be summed. Repair WIP is isolated in draft #7 and its
 original files remain untouched. Follow current
