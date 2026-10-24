@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "operation_id": "demo-create-monitor-1",
+  "org_id": "org_a",
+  "role_id": "role_venue_monitor",
+  "account_namespace": "shared-demo-creao-account",
+  "purpose": {
+    "kind": "provision",
+    "change_id": "demo-change-1",
+    "config_digest": "11e1bec98fd568888b489b9d4fcc13445e9a9b1869a478aea877b5e70868317a"
+  },
+  "request": {
+    "operation": "create_agent",
+    "request": {
+      "input": "Create a persistent venue-monitor specialist with this role contract: {\"name\":\"Venue monitor\",\"charter\":\"On each GENESIS event, report changes in the provided public venue fixture. Use only an explicit scoped GENESIS gateway grant. Never reserve a venue or send notifications without an authorized job.\",\"scopes\":[\"monitor.venue\"]}"
+    }
+  }
+}
