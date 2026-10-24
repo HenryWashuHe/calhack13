@@ -2,29 +2,40 @@
 
 ## Current merge and ownership checkpoint — October 22, 2026
 
-Main is `f03ce9b`: the eleven capability PRs through #24, handoff #30, and
-[CREAO execution receipts #32](https://github.com/HenryWashuHe/genesis/pull/32).
-The receipt source `050b099` matches its main merge tree exactly and passes
-598 Rust tests across 65 suites, formatting and strict all-target Clippy.
+Main is `f51d4d9`, including the capability stack, CREAO execution receipts #32,
+[specialist execution #20](https://github.com/HenryWashuHe/genesis/pull/20) with
+fixes #36/#41, and [venue portal #35](https://github.com/HenryWashuHe/genesis/pull/35)
+with output-path fix #40. #20 is no longer a blocker for the readiness stack.
 [Current queue](PR_REVIEW_QUEUE.md).
 
-[UI fix #31](https://github.com/HenryWashuHe/genesis/pull/31) is merged into #28
-at `17b6b02`, preserving an Abandon-only action while readiness is pending.
-Its 28 web tests, typecheck and build pass. [Sibling-agent fix #33](https://github.com/HenryWashuHe/genesis/pull/33)
-is merged into #27 at `5952987`; its unchanged original regression and 18 related
-tests pass, with formatting and strict focused Clippy. #27/#28 now remain held by
-#26/#20 dependencies; their own reported findings are resolved.
+Specialist integration `9bac3e1` passed 620 Rust tests across 69 suites before the
+final provider-guard correction. Final source `5798cb4` passed 53 affected tests
+across six suites, formatting, strict workspace all-target Clippy, 17 web tests
+and the production build, with no schema/type drift. Main's #20 merge tree matches
+that final source. The subsequent portal merge matches the expected combined tree;
+16 portal tests pass with zero skipped, and both suites passed Rust verification
+against independently fetched A/B pages. These checks do not constitute a new full-workspace total for
+current main.
 
-Hold #11/#12/#20/#21/#22/#26 for their source fixes, #23 for stale handoff content,
-and drafts #25/#29 for dependencies. Henry's Claude supplied the scoped #27/#28
-fixes; Claude/Eric retains the other source fixes. Codex keeps capability/provider
-implementation and narrow integration. No whole-kernel credit fallback is active.
-The combined draft's earlier 699-test evidence is separate from main. Twelve
-negative Rust review regressions remain unresolved; #33 resolves the thirteenth.
+Hold #11/#21. The reviewed #39 head `49ca9ac` reproduces the Elastic capability-routing
+failure; updated head `1bf7304` is under review. Updated #38 (`ae3879b`) passed 28 focused tests, formatting and strict
+focused Clippy, and merged into #12 at `d1a5e1d`; no recorded #12 source blocker
+remains, but its main integration at `0cad0c4` is still being tested. #42 (`c2b0f11`)
+passed 16 focused tests and strict Clippy, then merged into #22 at `c6ccee4`; #22's
+own findings are resolved, with #11/#12 dependencies and integration still pending.
+Readiness fix #37 still has a durable mismatch-reconciliation
+failure; #26 and descendants #27/#28/#29 remain pending. #27/#28's own reported
+findings are resolved.
+Claude/Eric and Henry's Claude retain their scoped source fixes. Codex owns
+capability/provider implementation, review and narrow integration; no whole-kernel
+takeover is active. The combined draft now includes main at `f5e747c` and passes
+71 affected Rust tests across nine suites, formatting and strict workspace
+all-target Clippy. Earlier full combined test counts remain historical and do not apply to current main.
 
-[CREAO sponsor evidence](CREAO_SPONSOR_NOTES.md) still needs core mission
-execution, an actual agent ID and run share link. [Apify notes](APIFY_SPONSOR_NOTES.md)
-retain its meaningful-use and credit information. No live sponsor proof is claimed.
+[CREAO sponsor evidence](CREAO_SPONSOR_NOTES.md) still needs core mission execution,
+an actual agent ID and run share link. [Apify notes](APIFY_SPONSOR_NOTES.md) retain its
+meaningful-use and credit information. The portal has not been exposed through a
+public tunnel, and no live provider or sponsor proof is claimed.
 
 ## Combined draft checkpoint
 
