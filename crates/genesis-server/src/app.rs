@@ -65,6 +65,10 @@ pub struct AppState {
     pub readiness: crate::specialist::ReadinessRegistry,
     pub evidence_policy: Arc<crate::capability_evidence::EvidencePolicy>,
     pub capability_runtime: Arc<crate::capability_runtime::CapabilityRuntime>,
+    pub acquisition_policy: Option<Arc<crate::capability_acquisition_store::AcquisitionPolicy>>,
+    pub automatic_acquisition: bool,
+    pub acquisition_runtime: Arc<crate::capability_acquisition_runtime::AcquisitionRuntime>,
+    pub(crate) adoption_gate: Arc<Mutex<()>>,
 }
 
 /// Result of a kernel mutation.
