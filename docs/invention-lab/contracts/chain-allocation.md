@@ -87,6 +87,31 @@ binding matches this snapshot, not runtime permission, completed work or a verdi
 Before a generated-stage trial, include its `trial` paths in the check manifest.
 The host must keep inputs immutable and use canonical chain/allocation paths:
 copies, alternate paths with other companions, rollback, races with external
-writers and skipped checks remain outside this cooperative guarantee. Existing
-generation admission and runtime behavior are unchanged. A declined, unexecuted
-stage can remain unbound while its full ceiling stays reserved.
+writers and skipped checks remain outside this cooperative guarantee. A declined,
+unexecuted stage can remain unbound while its full ceiling stays reserved.
+
+## Optional generation-step guard
+
+```sh
+genesis-forge method-generate-step --checkpoint generation.json \
+  --admission admission.json --allocation stage.json --chain chain.json
+```
+
+On `method-generate-step`, `--chain` requires `--allocation`, which requires
+`--admission`. After validating the allocation against that admission journal,
+the command reads the chain and its fixed
+`chain.json.stage-<allocation.limits.id>.json` companion. The retained binding
+must match the exact chain and generation allocation. There is no separate
+stage selector or caller-chosen binding path.
+
+These checks precede session recovery, credentials, reservation and provider
+effects. A missing, invalid or substituted chain/binding leaves the generation
+checkpoint and admission journal unchanged, including a pending attempt. With
+valid records, existing recovery converts an interrupted request to unknown
+without replay or refund. Prepared attempts retain the existing durable
+reservation and write-before-effect ordering.
+
+The option is intentionally optional; generation steps without it keep their
+existing behavior and do not establish a chain guard. It adds no controller,
+trial-runtime gate, source execution, automatic retry or proof of chronology.
+Canonical paths and immutable retained inputs remain host responsibilities.
