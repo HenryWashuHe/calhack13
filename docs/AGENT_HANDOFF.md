@@ -1430,3 +1430,10 @@ The [kernel integration checkpoint](KERNEL_CAPABILITY_HANDOFF.md) records a pass
 temporary combined workspace (181 tests plus one documentation example), required
 executor/report wiring, and two optional JSON feature-unification findings for
 Claude. This is not a kernel ownership transfer.
+
+## Direction update, October 24, 2026 (evening)
+
+See the dated section at the end of [ONGOING_GOAL.md](ONGOING_GOAL.md#direction-update-october-24-2026-evening-pacific):
+governance-and-measurement framing, `apps/stage` as the demo surface, the optimizer
+research direction (#144 proposal, #160 analysis, strategy/adapter split next), tonight's
+division of work, and each sponsor's role and status. Lanes and gates are unchanged.
