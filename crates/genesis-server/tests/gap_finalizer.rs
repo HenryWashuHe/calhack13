@@ -2087,3 +2087,25 @@ async fn guard_status_of_an_unknown_gap_is_not_found() {
         .unwrap();
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
 }
+
+#[tokio::test]
+async fn guard_install_requires_the_frozen_contract_not_just_the_pin() {
+    let mut f = Fixture::new(&["capability.acquire", PERMISSION]).await;
+    f.acquire().await;
+    guard_steps(&f, &[Step::Frozen, Step::Published]).await;
+    let frozen = guard_record(&f).manifest;
+    assert!(!frozen.required_permissions.is_empty());
+    // Same pin and publisher, but the registry now serves a different
+    // contract: no required permissions and another intent.
+    let (_registry, _) = guard_serve_changed_manifest(&mut f, |m| {
+        m.required_permissions.clear();
+        m.intent = "Something the requirement never asked for".into();
+    })
+    .await;
+    assert_eq!(
+        f.finalize_step().await,
+        Step::Attention(FinalizerCode::Installation)
+    );
+    assert!(f.app.current_state().unwrap().installations.is_empty());
+    assert!(guard_record(&f).installation_id.is_none());
+}
