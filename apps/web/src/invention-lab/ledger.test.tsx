@@ -82,3 +82,20 @@ describe("ledger", () => {
     expect(renderToStaticMarkup(<AttemptLedger attempts={[]} />)).toContain("No generation attempts recorded");
   });
 });
+
+describe("record-controlled names", () => {
+  it("label inherited Object member names as unrecognized rejections and count them as plain phases", () => {
+    for (const raw of ["constructor", "toString", "__proto__"]) expect(diagnosticLabel(raw, "end_turn").text).toBe(`unrecognized: ${raw}`);
+    const odd = ["constructor", "__proto__", "toString"].map((phase, i) => ({
+      status: decodeGenerationStatus({ ...structuredClone(secondStatus), operation_id: `op-${i}`, phase }),
+    }));
+    const l = buildLedger(buildLineage({ generations: [...odd, ...odd.slice(0, 1).map((g) => ({ status: { ...g.status, operation_id: "op-3" } }))] }).attempts);
+    expect(Object.entries(l.byPhase)).toEqual([
+      ["constructor", 2],
+      ["__proto__", 1],
+      ["toString", 1],
+    ]);
+    const text = renderToStaticMarkup(<AttemptLedger attempts={buildLineage({ generations: odd }).attempts} />);
+    expect(text).toContain("1 unrecognized: constructor · 1 unrecognized: __proto__ · 1 unrecognized: toString");
+  });
+});
