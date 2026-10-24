@@ -3,6 +3,8 @@
 //! sender boundary; it does not claim SDK signatures, cloud execution, native
 //! provisioning, live source freshness or a venue booking.
 use super::*;
+#[path = "recovery/native.rs"]
+mod native;
 use genesis_fetch::{
     client::{BridgeClient, ClientLimits},
     protocol::{Body as FetchBody, InboxItem, Message, SendRequest, PROTOCOL_DIGEST},
