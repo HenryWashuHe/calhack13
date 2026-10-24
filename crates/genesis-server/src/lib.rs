@@ -17,6 +17,7 @@ pub mod capability_acquisition_runtime;
 pub mod capability_acquisition_store;
 pub mod capability_adoption;
 pub mod capability_adoption_candidates;
+pub mod capability_adoption_outcome;
 pub mod capability_adoption_store;
 pub mod capability_authority;
 pub mod capability_evidence;
