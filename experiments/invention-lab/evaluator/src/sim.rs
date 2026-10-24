@@ -1,5 +1,5 @@
 //! Deterministic 2D rigid-body episode for one design on one instance.
-use crate::design::{Body, Design, JointKind};
+use crate::design::{Body, Design, JointKind, MAX_MOTOR_TORQUE};
 use crate::family::{Family, Instance};
 use rapier2d::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -49,6 +49,19 @@ fn ground(
 
 /// Runs one episode. Never panics on a validated design; a non-finite state
 /// ends the episode with `diverged`.
+/// A motorized hinge: open-loop target speed, torque capped at
+/// [`MAX_MOTOR_TORQUE`]. (`motor_velocity`'s second argument is a response
+/// factor in Rapier 0.22, not a force limit.)
+pub fn motor_joint(pa: Point<Real>, pb: Point<Real>, speed: f32) -> GenericJoint {
+    RevoluteJointBuilder::new()
+        .local_anchor1(pa)
+        .local_anchor2(pb)
+        .contacts_enabled(false)
+        .motor_velocity(speed, 800.0)
+        .motor_max_force(MAX_MOTOR_TORQUE)
+        .into()
+}
+
 pub fn run(design: &Design, inst: &Instance) -> Episode {
     let mut bodies = RigidBodySet::new();
     let mut colliders = ColliderSet::new();
@@ -157,22 +170,22 @@ pub fn run(design: &Design, inst: &Instance) -> Episode {
             .position()
             .inverse_transform_point(&point![j.x, j.y]);
         let joint: GenericJoint = match (j.kind, j.motor_speed) {
-            (JointKind::Weld, _) => FixedJointBuilder::new()
-                .local_anchor1(pa)
-                .local_anchor2(pb)
-                .contacts_enabled(false)
-                .into(),
+            // Both frames sit at the anchor with world orientation, so the
+            // weld holds the bodies' initial relative pose, rotation included.
+            (JointKind::Weld, _) => {
+                let anchor = Isometry::translation(j.x, j.y);
+                FixedJointBuilder::new()
+                    .local_frame1(bodies[ha].position().inverse() * anchor)
+                    .local_frame2(bodies[hb].position().inverse() * anchor)
+                    .contacts_enabled(false)
+                    .into()
+            }
             (JointKind::Hinge, None) => RevoluteJointBuilder::new()
                 .local_anchor1(pa)
                 .local_anchor2(pb)
                 .contacts_enabled(false)
                 .into(),
-            (JointKind::Hinge, Some(v)) => RevoluteJointBuilder::new()
-                .local_anchor1(pa)
-                .local_anchor2(pb)
-                .contacts_enabled(false)
-                .motor_velocity(v, 800.0)
-                .into(),
+            (JointKind::Hinge, Some(v)) => motor_joint(pa, pb, v),
         };
         let ma = design
             .bodies
