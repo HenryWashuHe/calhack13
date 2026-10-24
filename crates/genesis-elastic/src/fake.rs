@@ -237,6 +237,10 @@ pub struct FakeKibanaState {
     /// Delay before answering converse, to exercise authority changes
     /// during a turn.
     pub converse_delay_ms: u64,
+    /// Fixed reply text for converse (default: echo the input).
+    pub converse_reply: Option<String>,
+    /// Inputs received by converse, in order.
+    pub converse_inputs: Vec<String>,
 }
 
 pub type KibanaShared = Arc<Mutex<FakeKibanaState>>;
@@ -313,6 +317,12 @@ async fn kibana_post(
             );
         }
         let tool = a["configuration"]["tools"][0]["tool_ids"][0].clone();
+        let input = body["input"].as_str().unwrap_or("").to_owned();
+        let reply = f
+            .converse_reply
+            .clone()
+            .unwrap_or_else(|| format!("answer to: {input}"));
+        f.converse_inputs.push(input);
         let conv = body["conversation_id"]
             .as_str()
             .unwrap_or("conv-1")
@@ -323,7 +333,7 @@ async fn kibana_post(
                 "conversation_id": conv, "round_id": "round-1", "status": "completed",
                 "steps": [{"type": "reasoning", "reasoning": "search"},
                           {"type": "tool_call", "tool_id": tool, "params": {}, "results": []}],
-                "response": {"message": format!("answer to: {}", body["input"].as_str().unwrap_or(""))}
+                "response": {"message": reply}
             })),
         );
     }
