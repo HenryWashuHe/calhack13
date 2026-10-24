@@ -2,6 +2,8 @@
 //! loopback HTTP. Initial publication and monitor provisioning are explicitly
 //! trusted synthetic fixtures; no live provider, agent creation, readiness,
 //! source fetch, conversation memory, booking or sponsor evidence is claimed.
+#[path = "venue_assessments/recovery.rs"]
+mod recovery;
 #[path = "venue_assessments/subscriptions.rs"]
 mod subscriptions;
 
@@ -63,6 +65,13 @@ fn suite() -> OracleSuite {
     update.source.sha256 = "b".repeat(64);
     update.input["source_url"] = json!(update.source.url);
     if let ExtractionOutcome::Supported { venues } = &mut update.expected {
+        // A third fixed fact in this snapshot supplies an actual replacement
+        // for recovery tests. It is frozen before publication/local acceptance.
+        let mut replacement = venues[0].clone();
+        replacement.venue_id = "replacement-hall".into();
+        replacement.price.minor_units = 70000;
+        replacement.evidence.locator = "#replacement-hall".into();
+        venues.push(replacement);
         for venue in venues {
             venue.evidence.source_url = update.source.url.clone();
             venue.evidence.snapshot_sha256 = update.source.sha256.clone();
@@ -294,6 +303,10 @@ fn structured_output(context: &Value, mode: ResponseMode, first: &Option<Value>)
     }
     // These are fixed responses for two declared fixture inputs, not a second
     // implementation of the production policy evaluator.
+    assert!(matches!(
+        context["venue"]["venue_id"].as_str(),
+        Some("grand-hall" | "replacement-hall")
+    ));
     let capacity = context["venue"]["capacity"] == 180;
     assert!(capacity || context["venue"]["capacity"] == 100);
     let capacity = if matches!(mode, ResponseMode::WrongCapacity) {
@@ -303,7 +316,7 @@ fn structured_output(context: &Value, mode: ResponseMode, first: &Option<Value>)
     };
     json!({"schema_version":1,"assessment_id":context["assessment_id"],"source_job_id":context["source_job_id"],
         "invocation_proof_ref":context["invocation_proof_ref"],"policy_sha256":context["policy_sha256"],
-        "selected_venue_id":"grand-hall","evidence":context["venue"]["evidence"],
+        "selected_venue_id":context["venue"]["venue_id"],"evidence":context["venue"]["evidence"],
         "checks":{"capacity":capacity,"price":true,"window":true,"availability":true,"step_free":true},
         "verdict":if capacity {"feasible"} else {"reopen"}})
 }
