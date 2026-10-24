@@ -9,6 +9,8 @@ pub const LANGUAGE_VERSION: u32 = 1;
 pub const MAX_BODIES: usize = 32;
 pub const MAX_JOINTS: usize = 64;
 pub const MAX_MOTOR_SPEED: f32 = 10.0;
+/// Torque ceiling (N·m) of every hinge motor. Part of the evaluator identity.
+pub const MAX_MOTOR_TORQUE: f32 = 2000.0;
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(rename_all = "snake_case")]
