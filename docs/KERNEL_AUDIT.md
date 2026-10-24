@@ -44,6 +44,7 @@ server can stay up and the report still describes one consistent history.
 | `lifecycle_reachable` | every lifecycle moves only along its transition table; a gap never moves back, keeps its verified capability version through installation, sets a publication reference at most once, and never changes its final outcome |
 | `epoch_monotonic` | responsibility epochs never decrease; an assignment is never rebound |
 | `gap_binding_stable` | a gap keeps its whole frozen binding: ID, mission, requirement and digest, triggering evidence, role, responsibility, capability, purpose, sources, opening revision and claimed acquisition |
+| `constitution_unchanged` | the constitution (scopes, budget, role and contract limits) never changes; the state checks compare against the stored constitution, so a rewritten one would otherwise let a tampered snapshot pass |
 
 **Storage** (`genesis audit` only): each snapshot row holds its own revision
 and organization, revisions are contiguous, and every event names this
