@@ -9,8 +9,11 @@ Use the [migration map](REPOSITORY_MIGRATION.md) for legacy PRs. The
 development-method loop and honest controlled evaluation with fixed model
 weights. Event organization remains superseded. G0–G4 are still open.
 
-At main `48858e6620d31a472b7f855c170de60195741e85`, these reviewed foundations
-are merged. Counts refer to the named source/composition, not a combined main run.
+Main through `761eb2bce0a93728ccd54078e992d191475499e6` includes the reviewed
+foundations below. Method generation merged at `d1be8443fee46e1196861926a963563f48407936`,
+whose tree `dc9d6adc19863d8584fd5af1fd11eae7552014eb` exactly matches the independently
+validated generation stack. Counts refer to the named source/composition, not a
+combined main run.
 
 | Work | Validation and evidence boundary |
 | --- | --- |
@@ -20,8 +23,10 @@ are merged. Counts refer to the named source/composition, not a combined main ru
 | Simulator #37/#38/#39 (`dc574135` / `3da2d4f` / `965ffb34`; sources `858ca41` / `7a16825` / `5f1e151`) | Composition `949eb569440da6b4a81b5d1b2ca3fc7cc1774839`, tree `2596db96354f10ad0bc5df857c9303105a200bae`: 22 tests, strict all-target Clippy and fmt pass on ARM64 debug. Preserved geometry/weld regressions are unchanged and pass; full-shape bounds and the torque ceiling are checked. Local simulation primitives, not real engineering or cross-platform proof. |
 | Evaluator/adoption proposals #13/#14 (`728d42c` / `407b692`; #14 source `505312ad7efcee57439efc6bf2f054c8899e0c73`) | Corrected holdout protocol, exact evaluator identity, required candidate/control acceptance and receipt boundaries. Reviewed proposals do not close runtime integration or G0. |
 | Adoption outcomes/refusals #11/#12 (`eefde296` / `7010866`) and decision UI #15 (`b94af6d`, source `fd60f1a2a6de33daf30afc87f80544c1833681a9`) | #11/#12: 70 focused tests and strict Clippy. #15: 13 focused tests and typecheck, preserving `ae6ba16` unchanged. Local refusal wording and historical/asynchronous evidence-display regressions are corrected. |
+| Method generation #50/#51/#52 (`3da52d2` / `1533e2b` / `d1be844`; sources `e5eadd4` / `bc8eca2` / `d6c331c`) | Exact merged tree above: 125 forge tests, strict all-target Clippy/fmt independently pass. Frozen complete request, durable intent before one POST, retained measured/unknown completion usage and exact package export. Legacy parser contracts stay unchanged; no live model call or method execution. |
+| Core guard coverage #53 (`761eb2b`, source `c614bb13d03c2f9d8550358f86b1ba79683156e8`) | Henry's 173-line `eacfe0f` test file is preserved exactly with authorship (blob `c537e1e9755284ad9b51a79058e19f2ee469a197`). Reviewed composition passes 130 core tests and strict Clippy/fmt; five new cases independently pass separately. Mutation results are author-reported, not independently rerun. Test-only change. |
 | Stage #20 (`7023077`, source `bfe10d9`) | Composition `7508c5b`: 15 VM tests, preserving independent files. Neutral startup, explicit fixture replay, ordered live updates and exact manifests; no browser/cloud proof. |
-| Apify metadata-lag reads #47 (`48858e6`, source `86a9894bd06ecf1b00ef7ce999a985d24ab8c7cc`) | Baseline lag regression fails `InvalidDataset`; prior full run has 14 forge, 34 HTTP and 37 overlapping review cases plus doc-test. Six focused lag cases including two new transitions and strict Clippy pass. Existing sixteen-read window, deadline and effect/identity fences remain; live resolution unproven. |
+| Apify metadata-lag reads #47 (`48858e6`, source `86a9894bd06ecf1b00ef7ce999a985d24ab8c7cc`) | Baseline lag regression fails `InvalidDataset`; prior full run has 14 forge, 34 HTTP and 37 overlapping review cases plus doc-test. Six focused lag cases including two new transitions and strict Clippy pass. Existing sixteen-read window, deadline and effect/identity fences remain. A later live pass is operator-reported below; its primary evidence was not independently inspected. |
 | CREAO v2 #25 (`0d6d96d`) and protocol evidence #30 (`67340ba`) | 20 independent #25 tests; five CLI and nine Node #30 tests; scoped strict Clippy. Protocol-fenced routing/hash and saved evidence labels; no hosted v2 agent/run established. |
 
 The simulator is now on main. It includes exact-shape validation, seeded families,
@@ -34,41 +39,52 @@ process isolation, wall/model limits or reveal timing on their own.
 Henry's acknowledged executor #42–#45 remains unmerged. Independent `b73b62d`
 reproduces two #43 durability/lifecycle failures: a receipt can be retained before
 the sealed ledger is durable, and submission is allowed after finish. #44 probe
-`3784da9` remains blocked after three seconds despite a 500 ms grant, with no
-receipt; that reviewed `run.rs` was unchanged at `c12d7db`. Exclusive admission
-has a separate source-review race concern. Latest observed heads are #42
-`67e1aa3`, #43 `3dc44be`, #44 `fcc9b56` and #45 `0d21ff7`. The reviewed runtime
-files are unchanged from `c12d7db` through `fcc9b56`: the holds still apply by
-source equality, not a fresh rerun. Other new deltas await independent review.
+`3784da9` blocks beyond three seconds despite a 500 ms grant, with no receipt.
+Exclusive admission has a separate source-review race concern. Latest observed
+heads are #42 `56e3af3`, #43 `07468e2`, #44 `3d36488` and #45 `ccde1a4`.
+The reviewed runtime is unchanged: the holds apply by source comparison,
+not a fresh rerun on these heads. Other new deltas await independent review.
 
-Henry [acknowledged acceptance-scoring ownership](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6381994879)
-in `experiments/invention-lab/scoring/**`. At #46 `7854f82`, two original tests
-pass but two independent `bdf474f` probes fail: unsupported scoring context is
-certified and a zero wall grant is rejected only after simulation/artifact writes.
-The scoring subtree matches tested `f9a5c5b` exactly. Primitive `Failed` falling
-through to `Scored` is a separate source finding. #46 remains held.
-Author-reported executor runs use handwritten controls. No actual
-method generation, independently accepted method execution, A → B → A return or
-controlled recursive benefit is established. Eric's separate invention-lab UI
-assignment remains unacknowledged; Ines stays unassigned.
+Henry [acknowledged the #42–#46 and #48 corrections](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6382233916)
+and retains `experiments/invention-lab/scoring/**`. #46 `732313a` retains the
+scoring context/wall-budget holds from independent `bdf474f`: unsupported context
+is certified and a zero wall grant is rejected only after simulation/artifact
+writes. Scoring-worker failure handling remains a separate source concern.
+Verdict #48 `1397a25` has unchanged verdict source; corrected probes `639c043`
+cover unknown executor outcome, unknown development accounting and malformed
+extra metric rows. The objection to a **confirmed failed execution with an
+independently scoreable partial output is withdrawn**: the adopted contract
+allows it. It must not be confused with unknown execution/accounting or a failed
+scoring worker. The [latest handoff](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6382322624)
+records that correction.
+
+Author-reported executor runs use handwritten controls. No live generated
+method, independently accepted method execution, A → B → A return or controlled
+recursive benefit is established. Eric's separate invention-lab UI assignment
+remains unacknowledged; Ines stays unassigned.
 
 ACP #3 `3ad7685` retains the upgraded-journal hold: 138 existing tests pass, but
 independent `bb5a841` fails on inline message-only uniqueness. #5 `fc956a8` clears
 its own bounds/fixture findings and still depends on #3. #4 routing/status needs
 correction. #6 was withdrawn; venue fallback #2 is closed unmerged as superseded.
 
-The [latest live Apify observation](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6381696741)
-reports a successful run with one body item while pagination count and total
-remain zero for roughly six seconds. The gate still failed; #34's empty-page
-retry did not cover that nonempty response. Merged #47 addresses this narrow lag
-with local tests only. Operator rerun is pending; later data presence does not
-retroactively verify the failed gate. Private cloud checkpoints were not
-independently inspected here. CREAO hosted execution, Fetch public use and
-Elastic permissions retain their separate [live gates](LIVE_GATES.md).
+The [latest Apify operator report](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6382245294)
+records a passed live gate on main `2a070af`: three oracle-checked cases with the
+handwritten baseline parser, Actor `n8kB1hNqgzkddvWKp`, build `D5hU7kSdSc20L08g3`.
+Sanitized evidence files and the private checkpoint were unavailable for
+independent inspection here, so this remains **operator-reported live evidence**.
+It is a new operation after #47, not a retroactive pass of the earlier failed
+checkpoint. It establishes no model generation or development-method result.
+CREAO hosted execution, Fetch public use and Elastic permissions retain their
+separate [live gates](LIVE_GATES.md).
 
-Codex has started the [scoped method-synthesis path](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6382090022)
-in the forge: one checkpointed request exporting a host-bound source package.
-It is active implementation, not merged or live-generation evidence.
+Codex's merged [method-generation path](invention-lab/contracts/generation.md)
+is available for scoped integration with Henry's runtime. It saves the complete
+historical request, reconciles an interrupted request before reading credentials
+and never automatically resubmits an uncertain attempt. Its current
+`provider_default` sampling policy is not a fixed-settings G4 result. Generation
+costs remain separate from execution and scoring grants; explicit sampling and
+combined cost accounting are still required for controlled comparisons.
 
 Local `.env` configuration is pending: the required model selection/key
 are absent and user input has been requested. Continue offline core work; do not
