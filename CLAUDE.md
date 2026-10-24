@@ -75,10 +75,12 @@ every milestone. All lower checkpoints are historical.
   Eight focused tests and strict Clippy/fmt independently pass; the original
   `8ad9d645` regressions are unchanged. This supplies feedback, not adoption.
   Retain B's explicit selection/local acceptance decision and intended responsibility;
-  the [next requested product milestone](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388567745)
-  connects selected method/receiver acceptance to the requirement, responsibility
-  and current role grant, with pinned invocation, local decline/revocation and an
-  existing-owner control. This request is not yet acknowledged; Henry keeps the lane.
+  [Henry's acknowledged product milestone](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388913830)
+  connects selected method/receiver acceptance to requirement/responsibility/current
+  owner grant, pinned invocation, decline/revocation and an existing-owner control.
+  The [pure core verdict move is approved](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388954682)
+  as a prerequisite; the server connection, execution under its grant and justified
+  specialist creation remain future work in Henry's lane.
   #116 B-task records are now checked; local adoption and an accepted fresh
   A return remain unestablished. Receiving wrapper #118 `68bc82d0` merged at
   `ec23efb5`: frozen package/spec bytes and atomic failure summaries clear all
@@ -178,15 +180,25 @@ every milestone. All lower checkpoints are historical.
   [Read-only chain-cost CLI #130](docs/invention-lab/contracts/chain-allocation.md#read-only-chain-cost-cli)
   is merged at `fc16ba14`, source `04e22315`: 21 focused tests/6 targets and scoped
   strict Clippy/fmt/diff pass. No provider/runtime calls or gate closure.
-  Codex is [implementing method publication/discovery](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388691194)
-  in the existing registry, with authenticated publication, bounded metadata
-  search and full-reference fetch. It is not merged; Henry retains acceptance,
-  role/grant and invocation authority. The fixed-pool
+  [Method registry API #132](https://github.com/HenryWashuHe/genesis-history-experiment/pull/132)
+  is merged at `26b6cc87`: authenticated immutable publication, bounded keyword
+  metadata search and exact-source fetch reuse the existing registry process.
+  Source `2039c5a4`: 14 author checks/3 targets plus three independent transport
+  cases pass; these are scoped runs, not a full suite or live transfer result.
+  Typed client #133 is merged at `995a7d70`, final source `1f94f312`: 19 author
+  focused checks and six final client checks (overlapping), strict all-target
+  server Clippy/fmt. Selected metadata and canonical source are bound exactly;
+  the loopback transfer stops at B revision `Prepared`, with no new model run.
+  Henry's acknowledged authority slice has an approved pure verdict move as its
+  prerequisite; none of the server adoption/invocation connection is merged.
+  Eric's [MethodOffer UI intake increment](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388858370)
+  is requested, not acknowledged. The fixed-pool
   policy experiment remains a separate proposed mechanism diagnostic, not a restriction
   on the moonshot. Henry is preparing a K=3 workflow-versus-fresh protocol with
-  public fresh-task assessment; the corrected protocol awaits freezing and no
-  additional model request is declared. #121 `7200921` remains held because
-  reserved seeds at or above 2^63 produce unusable public plans. A new seed range
+  public fresh-task assessment. [Protocol #135 is held](https://github.com/HenryWashuHe/genesis-history-experiment/pull/135#issuecomment-6388962594)
+  on adaptive preparation, selection, missing pairs and canonical random reference;
+  no model request is declared. Public-range #121/#136 is merged, clearing the
+  reserved-seed finding with metadata/preflight and mocked checks only. A new range
   is public to the method, not a hidden holdout. G2/G3 still need separately
   evidenced organizational authority, local selection and adoption.
   The W/F process pilot alone cannot close organizational evolution.
