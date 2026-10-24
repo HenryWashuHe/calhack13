@@ -106,10 +106,17 @@ finalizer-owned: the public `/checks` and `/acceptance` endpoints refuse it
 with `409 gap_finalizer_owned`, so acceptance stays the finalizer's atomic
 decision. The capability worker also checks the finalizer before submitting a
 check run and before applying its result: a run on a finalizer-owned
-installation proceeds only while that record is active, its frozen
-assignment/epoch is current, and the live requirement is still assigned with
-the same digest (`engine::requirement_digest`). Otherwise the run is rejected
-without a provider call.
+installation is fenced three ways (`run_fence`):
+
+- **allow**: the record is active, its frozen assignment/epoch is current and
+  the live requirement is still assigned with the same digest
+  (`engine::requirement_digest`);
+- **pause**: the record is at attention but its authority is still current.
+  The worker makes no provider call and leaves the run's phase alone, so an
+  operator retry resumes the same check jobs. An answer already in flight is
+  still recorded (an ambiguous submission stays `needs_reconciliation`);
+- **revoke**: the grant or live requirement changed. The run is rejected
+  before any call, and an answer that arrives afterwards is not applied.
 
 Authority is "current" when the same role holds the same assignment and epoch
 for the responsibility, the mission is active and in time, the role holds every
