@@ -1,10 +1,12 @@
 # Invention lab: evaluator and task contract
 
-**Status: contract proposal for issue #126 by Henry's core Claude. Not
-implemented.** It defines the simulated world, the task families, how instances
+**Status: contract proposal for genesis#126, owned by Henry's core Claude
+(assigned in this repository's issue #1). Not merged; a prepared
+implementation is on `henry-claude/evaluator-impl`.** It defines the simulated world, the task families, how instances
 are drawn and hidden, how designs are scored, what a development experiment
 costs and how all of that is identified. The development-method artifact and
-its execution receipts are Codex's #124 contract; local adoption is
+its execution and scoring receipts are Codex's experimental contracts (#18,
+#22; lane genesis#124); local adoption is
 [adoption.md](adoption.md). This document only references their types.
 
 Nothing here is a result. Simulated success says nothing about a physical
@@ -15,9 +17,9 @@ machine.
 | Party | May | May not |
 | --- | --- | --- |
 | Evaluator (this contract) | define families, draw instances, run the simulator, score, issue receipts | be changed, configured or called for scoring by a candidate |
-| Development method (#124) | read development instances, request bounded simulation experiments, return candidate designs and a trace | read hidden instances or seeds, call `score`, change budgets, set its own success criterion |
+| Development method (#18) | read development instances, request bounded simulation experiments, return candidate designs and a trace | read hidden instances or seeds, call `score`, change budgets, set its own success criterion |
 | Receiving organization (adoption.md) | choose a suite of development instances and a frozen acceptance criterion, ask the evaluator to score | supply the evaluator to the method or reuse hidden instances for acceptance |
-| Comparison runner (#124/#126) | draw held-out instances after methods are frozen, score every treatment with the same evaluator version | rerun against an exposed holdout until a favorable result appears |
+| Comparison runner (evaluator owner, plan from #22) | score every treatment privately on the committed hidden instances with the same evaluator version, then close the comparison and reveal | rerun against an exposed holdout until a favorable result appears |
 
 The evaluator runs in its own process. A method talks to it only through the
 experiment interface below, and every call is metered there, not by the method.
@@ -39,8 +41,10 @@ a CAD system.
   the episode.
 - **Build zone and budget:** every body starts inside the task's build zone;
   the design's total cost must not exceed the task's part budget.
-- **Encoding:** canonical JSON with sorted keys and fixed decimal precision.
-  The design digest is the SHA-256 of that encoding. A design that fails
+- **Encoding:** the design digest is SHA-256 over the evaluator's own
+  re-serialization of the parsed design (struct field order, `f32` in shortest
+  round-trip form). This is local to the evaluator; it does not change the
+  repository's `canonical_json` or any existing digest. A design that fails
   validation (overlap at start, out of zone, over budget, unknown material) is
   scored `invalid` without simulating.
 
@@ -55,8 +59,14 @@ The language has a version. A method declares which version it emits
   of the evaluator identity.
 - Fixed timestep, fixed solver iterations, episode length set by the task.
 - **Determinism:** the same evaluator version, design, instance and seed give
-  the same trace digest on the supported platform. This covers simulation only.
-  Model calls inside a method are not replayable; their receipts are #124's.
+  the same trace digest on a **supported build and platform**, provided bodies,
+  colliders and joints are inserted in the same order (design order, then the
+  payload). The engine flag alone is not enough
+  ([Rapier determinism notes](https://rapier.rs/docs/user_guides/templates_injected/determinism/)).
+  The supported set is recorded with each evaluator version; so far only one
+  x86_64 build pair (debug and release) has been checked. This covers simulation
+  only; model calls inside a method are not replayable and their receipts
+  belong to #18.
 - Output per run: outcome, metrics, a downsampled trace (body poses at a fixed
   rate) for display, and the trace digest.
 
@@ -67,38 +77,56 @@ A family is a parameterized generator plus a fixed success rule. An instance is
 payload and disturbances. Families are versioned; changing a range or rule is a
 new version.
 
+Common to every family (version 1): build zone x ∈ [−6, 0] m, y ∈ [0, 3] m;
+gravity 9.81 m/s²; fixed step 1/120 s. The **payload** is a 0.4 × 0.4 m box of
+the instance's mass, friction 1.0, placed centered above the `payload_on`
+body's top edge with a 0.01 m gap. Instance parameters are drawn from a
+splitmix64 stream seeded by `seed` XOR a per-family constant and rounded to
+millimetres; the exact generator is the family file of that evaluator version.
+Progress is the payload's furthest x advance over the distance from its start
+to the target line, clamped to [0, 1].
+
 ### `ravine-crossing` (A's visible task)
 
-- **World:** two flat banks separated by a gap. Parameters: gap width, bank
-  height difference, payload mass and size, part budget, ground friction.
-- **Success:** the payload's center ends on the far bank past the target line,
-  stays there for one simulated second, and never falls below the gap floor.
-- **Metrics:** success, furthest payload progress as a fraction of the
-  crossing, design cost, joints broken, time to target.
+- **World:** near bank top at y = 0 for x ≤ 0; far bank top at y = step for
+  x ≥ gap. gap ∈ [1.0, 2.5] m, step ∈ [−0.2, 0.2] m, payload ∈ [5, 30] kg,
+  budget ∈ [4, 10], friction ∈ [0.5, 1.0]. Target line x = gap + 1.
+- **Success:** the payload center stays past the target line and above
+  y = step − 0.5 for 120 consecutive steps.
+- **Termination:** success, or payload center below y = −1.5 (fell into the
+  gap: failure), or 2400 steps.
 
 ### `rough-transport` (B's related task)
 
-- **World:** a heightfield track with bumps, plus lateral disturbance impulses
-  at seeded times. Parameters: bump height/spacing, impulse magnitude and
-  count, payload mass, friction, part budget.
-- **Success:** the payload travels the track distance without touching the
-  ground, within the episode.
-- Related to crossing (same parts, same payload physics), different failure
-  modes (interacting disturbances). A crossing method may help, may not.
+- **World:** flat ground at y = 0 with 0.2 m-wide fixed bumps from x = 0.5 m,
+  height ∈ [0.10, 0.35] m, spacing ∈ [0.6, 1.5] m; target x = 8 m.
+  1–4 impulses on the payload at seeded steps in [120, 1800],
+  dx ∈ [−8, 8], dy ∈ [0, 5] N·s. Payload ∈ [5, 30] kg, budget ∈ [4, 10],
+  friction ∈ [0.5, 1.0].
+- **Success:** payload center reaches x = 8 m before its bottom touches the
+  ground (within 0.02 m).
+- **Termination:** success, ground touch (failure), or 2400 steps.
 
 ### `return-mix` (A's fresh return challenge)
 
-- **World:** crossing geometry combined with disturbances and changed friction
-  or payload support, drawn from a range predeclared before B's revision is
-  frozen. Instances are hidden until the comparison runs.
+- **World:** `ravine-crossing` geometry with friction ∈ [0.3, 0.8] and 1–3
+  impulses as in `rough-transport`. Success and termination as for ravine.
+- Scored only on hidden instances in a declared comparison.
 
-### `projectile-target` (the non-reuse control)
+### `projectile-target` (a different-task control)
 
-- **World:** launch a payload from a fixed base to land in a target zone.
-- Shares the design language but rewards a different structure. A crossing or
-  transport method should usually be declined or fail its acceptance here;
-  that decision is scored separately from task success (an organization that
-  declines and then fails the task has not succeeded).
+- **World:** flat ground at y = 0 and a fixed 1 m-high wall at x = 1.5 m that
+  the launcher can't pass; target zone center ∈ [4, 9] m, half-width 0.5 m.
+  Payload ∈ [1, 5] kg, budget ∈ [4, 10], friction ∈ [0.5, 1.0].
+- **Success:** at the end of 1200 steps the payload center is inside the zone
+  and below y = 1.
+- **Not a proof of inapplicability.** A different family label doesn't make a
+  method inapplicable: a generic experiment-search method could legitimately
+  transfer. Here, transfer is an **empirical result**, scored like any other
+  (an organization that declines and then fails the task has not succeeded).
+  Inapplicability is established only by an independent precondition, for
+  example a method whose declared environment needs design language 2 or a
+  sensor this language doesn't have.
 
 These are proposals for the first families. Exact ranges are fixed in the
 family files before any comparison, and no family is tuned to make a planned
@@ -106,15 +134,31 @@ method revision win.
 
 ## Development versus hidden instances
 
-- **Development instances** are seeds the evaluator publishes per family,
-  with full parameters. Methods and acceptance suites use only these.
-- **Hidden instances** come from a secret salt held by the evaluator owner.
-  Before a comparison, the evaluator publishes `sha256(salt || family ||
-  version)`; after methods are frozen it reveals the salt, and anyone can
-  regenerate and check the instances. A method or organization never receives
-  hidden parameters before scoring.
-- A hidden set is used once per declared comparison. Re-tuning after seeing it
-  needs a new salt and a new comparison.
+- **Development instances** are published seeds below 2³², with full
+  parameters. Methods and acceptance suites use only these.
+- **Hidden instances** come from a secret salt held only by the evaluator
+  owner. Their seeds always have the top bit set, so they can't collide with a
+  development seed.
+  - Commitment: `sha256("genesis-lab-hidden-v1:" comparison_id ":" salt ":"
+    family ":" family_version ":" count)`.
+  - Draw: seed *i* for *i* = 0…count−1 is the first 8 bytes (little-endian) of
+    `sha256("genesis-lab-seed-v1:" comparison_id ":" salt ":" family ":"
+    family_version ":" i)`, with the top bit set. Order is by *i*.
+
+### Holdout timeline
+
+1. Publish the comparison identity, count and commitment. Freeze each method.
+2. Reveal the public development inputs (fresh-task development instances).
+3. Run bounded development; every attempt, including no-output ones, goes in
+   the plan's ledger.
+4. Freeze the produced designs and transcripts.
+5. The evaluator owner scores them **privately** on the hidden instances.
+6. Close the comparison: no more scoring requests are accepted for it.
+7. Reveal the salt. Anyone can regenerate the hidden seeds and re-run scoring.
+
+Hidden instances never reach a method or organization before step 7, and are
+used for exactly one comparison. Development inputs (step 2) are separate from
+the hidden scoring perturbations.
 
 ## Interfaces
 
@@ -135,13 +179,19 @@ the experimental contracts in #18 (`development_method`, execution) and #22
     enlarge the grant. Usage the evaluator can't measure is reported
     `unknown`, never zero.
 - `score(request) -> scoring receipt`
-  - Takes a frozen #22 `EvaluationRequest`: the full execution receipt, the
-    exact retained output (the design), the scoring context and a separate
-    scoring grant. Callers: an organization's acceptance check or the
-    comparison runner. Never a method.
+  - Takes a frozen #22 `EvaluationRequest`: the full execution receipt (and
+    with it run, attempt, method, task and grant), the exact retained output
+    (the design), the scoring context and a separate scoring grant. Callers:
+    an organization's acceptance check or the evaluator owner's comparison
+    runner. Never a method.
   - Purpose comes from the execution: `acceptance` (development instances
-    only) or `comparison` (hidden instances, only after the salt for that
-    comparison is revealed).
+    only) or `comparison` (hidden instances; scored privately by the salt
+    holder during step 5, before the reveal).
+  - The receipt binds what #22 binds plus the acceptance or comparison plan,
+    trial and arm. Which requests must exist comes from the plan's declared
+    roster (pending in #22), so a replay or a favorable re-run can't silently
+    change a comparison. A content digest identifies the evaluator; it does
+    not authenticate it.
 
 ### How this evaluator fills #22's scoring context
 
@@ -184,13 +234,26 @@ receipt, which the scoring request binds in full.
 
 ## Budget and cost accounting
 
-Per development task, the receiving organization's policy sets the #18 grant:
+All units are integers. Per development task, the receiving organization's
+policy sets the #18 grant: simulation steps (metered and enforced here) and
+wall time, model calls and tokens (enforced by the method executor). Scoring
+has its own grant (#22).
 
-- simulation steps (metered and enforced by this evaluator),
-- wall time, model calls and tokens (enforced by the method executor, #18).
+Every `experiment` and `score` call carries a request identity (execution run
+and attempt plus a per-execution sequence number, or the #22 request id).
 
-A separate experiment-count ceiling is not needed: steps bound the work, and
-the transcript records each experiment.
+| Case | Charge |
+| --- | --- |
+| Before running | reserve the family's full episode steps against the grant; refuse if they don't fit (charged 0) |
+| Hidden instance on `experiment`, closed comparison, wrong purpose | refused, charged 0 |
+| Invalid design | 0 steps measured; the attempt still appears in the transcript |
+| Ran to termination | measured steps charged; the rest of the reservation released |
+| Simulation diverged (`Failed`) | measured steps up to divergence |
+| Crash or timeout (`Unknown`) | usage `unknown`; the full reservation stays consumed, never refunded as zero |
+| Replay of an already answered request id | the stored result, charged nothing more; a different payload under the same id is refused |
+
+Replay storage is a runtime responsibility; this evaluator is stateless per
+call. A separate experiment-count ceiling isn't needed: steps bound the work.
 
 The comparison counts everything: cold method development, failed attempts and
 experiments, not only the final design's run. Equal total budgets across
@@ -211,8 +274,8 @@ treatments are the primary comparison; per-task warm numbers are secondary.
 
 ## Implementation boundary
 
-Implementation is gated on agreement with #124, adoption and the UI owner, and
-on the #126 owner (assigned to Henry's core Claude in this repository's issue #1). When it starts it lives entirely under
+Implementation is gated on interface agreement with #18/#22, adoption (#14)
+and the UI owner. It lives entirely under
 `experiments/invention-lab/evaluator/**`: family files, the simulator wrapper,
 the two calls and receipt encoding, with determinism, budget-refusal,
 hidden-instance and `unknown` tests. It touches no provider, shared API,
