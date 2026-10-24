@@ -23,20 +23,21 @@ a shared registry, and the actual Rust generation and Apify HTTP clients pointed
 loopback providers. Canned model and provider replies make the evidence repeatable;
 they do not execute a cloud build or prove model-generated parser quality. The
 scenario has no direct database access and cannot insert verification receipts.
-The existing manual fixture exercises one repair, B's independent acceptance checks,
-initial and successor invocations, then reopens B from its SQLite database and
-invokes again with the successor. B's runs share the repaired artifact and consume
-no model or Actor-create calls. Both commitment ledgers remain empty.
-Acceptance jobs remain `VERIFYING`, while
-fresh invocation jobs become `SUCCEEDED` only after backend semantic verification.
-A negative fixture returns incorrect fresh data after valid acceptance and confirms
-the scenario stops before retirement despite successful provider transport.
+The fixture runs both organizations through the actual `serve_org` workers, behind
+recording HTTP proxies that reject every `/step` and `/verify` POST. The full scenario
+completes with zero such requests: one semantic repair (two model calls, Actors and
+builds; six A verification runs), three B acceptance checks, initial and successor
+invocations, then a new successor invocation after reopening B's SQLite database.
+Its six B runs share the repaired artifact and consume no model or Actor-create
+calls. Both commitment ledgers remain empty. Acceptance jobs remain `VERIFYING`,
+while fresh invocation jobs become `SUCCEEDED` only after backend semantic verification.
 
-Automatic-mode validation must run the actual `serve_org` workers for acquisition,
-provider execution and semantic finalization. A router-only fixture driven through
-explicit step or verify requests does not establish automatic progression. The
-command above is the validation entry point; no live-provider or cloud-execution
-claim follows from a passing loopback test.
+Negative fixtures confirm incorrect fresh data stops the scenario before handoffs,
+an ambiguous Actor creation remains unreplayed after restarting A, and disabled
+automation is refused before mission creation. The report is checked for private
+source, oracle and credential leakage. These tests establish automatic progression
+through the real Rust server workers with canned HTTP provider replies; they do not
+establish live-provider execution or native sponsor role activation.
 
 ## Run against configured organization servers
 
@@ -103,7 +104,8 @@ cargo run --locked -p genesis-server -- scenario \
   --org-b http://127.0.0.1:7102
 ```
 
-The successful JSON report contains the acquisition ID and counters, exact
+The successful JSON report records the selected progression mode, acquisition ID
+and counters, exact
 source/Actor/build pin, B's independently collected acceptance job IDs and reference,
 initial and successor invocation IDs and proof references, responsibility owners and
 actual provider bindings. B's zero-synthesis result is scoped to this scenario and
@@ -133,7 +135,10 @@ The report omits generated source, HTML, oracle answers, execution outputs and t
 7. Confirm acceptance and the artifact pin survived retirement, and A incurred no
    additional acquisition effects during B's inheritance.
 
-Every request, response and polling loop is bounded. Redirects and automatic POST
+Every request, response and polling loop is bounded. Defaults allow up to 4,096
+polls at 500 ms intervals and impose a 30-minute deadline on the entire scenario;
+cheap observation GETs do not inherit the old 128-second effective polling window.
+Redirects and automatic POST
 retries are disabled. A driver timeout or disconnect does **not** cancel authorized
 server work: the acquisition, execution and finalization workers may continue while
 their grants, deadlines and quotas permit. Inspect durable organization, acquisition,

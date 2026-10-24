@@ -4,6 +4,8 @@
 //! A failed/ambiguous request leaves server-owned durable state for inspection;
 //! a rerun refuses the now-nonempty organizations instead of duplicating work.
 
+#[cfg(test)]
+mod driver_tests;
 mod observation;
 
 use crate::capability_acquisition_store::AcquisitionCounters;
