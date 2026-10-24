@@ -377,7 +377,7 @@ export function decodePackageFile(bytes: Uint8Array): PackageFile {
  * Two retained shapes use this schema name: one names `method_package_sha256`,
  * `entrypoint`, `python_ast_parse`, `execution` and `claim`; the other names a
  * `package` ref, `ast_parse`, `source_executed` and `authority`. Both are kept
- * verbatim as "key: value" phrases rather than translated into one vocabulary. */
+ * verbatim as "key value" phrases rather than translated into one vocabulary. */
 export interface StaticInspection {
   method_package_sha256: string;
   /** Null when the record does not name its entrypoint. */
@@ -391,7 +391,7 @@ export interface StaticInspection {
 export const INSPECTION_SCHEMA = "genesis-static-source-inspection/1";
 function flag(o: Obj, k: string, at: string): string {
   if (typeof o[k] !== "boolean") throw new DecodeError(`${at}.${k}: expected boolean`);
-  return `${k}: ${String(o[k])}`;
+  return `${k} ${String(o[k])}`;
 }
 export function decodeStaticInspection(v: unknown): StaticInspection {
   const at = "inspection";
@@ -405,9 +405,9 @@ export function decodeStaticInspection(v: unknown): StaticInspection {
       method_package_sha256: str(o, "method_package_sha256", at),
       entrypoint: str(o, "entrypoint", at),
       source_sha256: str(o, "source_sha256", at),
-      parse: `python_ast_parse: ${str(o, "python_ast_parse", at)}`,
+      parse: `python_ast_parse ${str(o, "python_ast_parse", at)}`,
       imports,
-      execution: `execution: ${str(o, "execution", at)}`,
+      execution: `execution ${str(o, "execution", at)}`,
       claim: str(o, "claim", at),
     };
   return {
