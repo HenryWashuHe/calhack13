@@ -4,6 +4,8 @@
 // unexpected value is shown as unrecognized rather than guessed. Decoders never
 // read generated text, prompts or request bodies.
 
+import { canonicalSha256 } from "./digest";
+
 export class DecodeError extends Error {}
 
 type Obj = Record<string, unknown>;
@@ -136,6 +138,7 @@ export function decodeGenerationStatus(v: unknown): GenerationStatus {
 
 /** Only the enum outcome of a generation checkpoint; returned text is skipped. */
 export interface CheckpointOutcome {
+  org_id: string;
   operation_id: string;
   phase: string;
   request_sha256: string;
@@ -153,6 +156,7 @@ export function decodeCheckpointOutcome(v: unknown): CheckpointOutcome {
     outcome = { kind, reason: kind === "returned" ? null : optStr(c, "reason", `${at}.completion.outcome`) };
   }
   return {
+    org_id: str(plan, "org_id", `${at}.plan`),
     operation_id: str(plan, "operation_id", `${at}.plan`),
     phase: str(o, "phase", at),
     request_sha256: str(o, "request_sha256", at),
@@ -267,12 +271,17 @@ export interface ExecutionReceipt {
   outcome: string;
   outputs: ExactRef[];
   usage: Record<UsageDimension, Usage>;
+  /** genesis-core `execution_receipt_identity_hash`: canonical SHA-256 of the
+   * whole retained receipt under its domain. Evaluations name this value. */
+  receipt_sha256: string;
 }
+export const EXECUTION_RECEIPT_DOMAIN = "genesis.development_execution_receipt";
 export function decodeExecutionReceipt(v: unknown): ExecutionReceipt {
   const at = "execution";
   const o = obj(v, at);
   const b = obj(o.binding, `${at}.binding`);
   return {
+    receipt_sha256: canonicalSha256({ domain: EXECUTION_RECEIPT_DOMAIN, version: 1, record: o }),
     org_id: str(b, "org_id", `${at}.binding`),
     run_id: str(b, "run_id", `${at}.binding`),
     attempt_id: str(b, "attempt_id", `${at}.binding`),
