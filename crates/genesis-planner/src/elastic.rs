@@ -32,8 +32,8 @@ fn map_error(e: ProviderError) -> LlmError {
 pub struct ElasticAgentLlm {
     builder: AgentBuilder,
     org_id: String,
-    /// Agent ID per instruction set, created on first use.
-    agent: Mutex<Option<(String, String)>>,
+    /// Serializes reconciliation so concurrent turns cannot race creation.
+    reconcile: Mutex<()>,
 }
 
 impl ElasticAgentLlm {
@@ -41,7 +41,7 @@ impl ElasticAgentLlm {
         Self {
             builder,
             org_id: org_id.into(),
-            agent: Mutex::new(None),
+            reconcile: Mutex::new(()),
         }
     }
 
@@ -57,20 +57,17 @@ impl ElasticAgentLlm {
         Ok(Self::new(builder, org_id))
     }
 
+    /// Reconcile the planner agent and its evidence tool before **every**
+    /// conversation: the remote instructions, tools or index pattern can
+    /// change after creation, and the mission context must never be sent to
+    /// an agent whose effective configuration differs from what we would
+    /// create. Costs two reads per turn; creation happens only once.
     async fn agent_for(&self, instructions: &str) -> Result<String, LlmError> {
-        let mut cached = self.agent.lock().await;
-        if let Some((text, id)) = cached.as_ref() {
-            if text == instructions {
-                return Ok(id.clone());
-            }
-        }
-        let id = self
-            .builder
+        let _one = self.reconcile.lock().await;
+        self.builder
             .ensure_planner_agent(&self.org_id, instructions)
             .await
-            .map_err(map_error)?;
-        *cached = Some((instructions.to_owned(), id.clone()));
-        Ok(id)
+            .map_err(map_error)
     }
 }
 
