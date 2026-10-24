@@ -73,6 +73,7 @@ fn mutate(app: &AppState, change: impl FnOnce(&mut OrgState)) {
 struct Org {
     role: RoleId,
     responsibility: ResponsibilityId,
+    requirement: RequirementId,
 }
 
 /// Two roles, each owning one responsibility with its own assigned requirement.
@@ -123,10 +124,11 @@ fn bootstrap(app: &AppState) -> (genesis_core::ids::MissionId, [Org; 2]) {
                 owner: Owner::Role(role.clone()),
             },
         );
-        state.responsibilities.get_mut(&id).unwrap().requirement_id = Some(requirement);
+        state.responsibilities.get_mut(&id).unwrap().requirement_id = Some(requirement.clone());
         orgs.push(Org {
             role,
             responsibility: id,
+            requirement,
         });
     }
     let base = initial.revision;
@@ -230,18 +232,17 @@ async fn adoption_authorizes_only_the_owner_for_the_exact_version_under_current_
     let served = app.clone();
     tokio::spawn(async move { serve_org(served, unconfigured).await.unwrap() });
     let token = config.tokens.operator.clone();
-    let intent =
-        |key: &str, org: &Org, requirement: &str, reference: &ExactContentRef, decision: Value| {
-            json!({"client_request_id":key,"mission_id":mission,"requirement_id":requirement,
+    let intent = |key: &str, org: &Org, reference: &ExactContentRef, decision: Value| {
+        json!({"client_request_id":key,"mission_id":mission,"requirement_id":org.requirement,
             "role_id":org.role,"responsibility_id":org.responsibility,
             "publisher":"org_example_a","reference":reference,"decision":decision})
-        };
+    };
     let adopt = json!({"decision":"adopt","trial":"b-fixed-cart"});
     // Without a configured receiver nothing is decided.
     let (status, _) = call(
         &format!("{base}/method-adoptions"),
         &token,
-        intent("k0", &owner, "method-0", &v1, adopt.clone()),
+        intent("k0", &owner, &v1, adopt.clone()),
     )
     .await;
     assert_eq!(status, 503);
@@ -268,16 +269,12 @@ async fn adoption_authorizes_only_the_owner_for_the_exact_version_under_current_
     };
 
     // A request can't smuggle receipts or a verdict.
-    let mut smuggled = intent("k1", &owner, "method-0", &v1, adopt.clone());
+    let mut smuggled = intent("k1", &owner, &v1, adopt.clone());
     smuggled["verdict"] = json!({"verdict":"accepted","candidate":6,"control":0,"of":6});
     assert_eq!(call(&adoptions, &token, smuggled).await.0, 400);
 
-    let (status, adopted) = call(
-        &adoptions,
-        &token,
-        intent("k1", &owner, "method-0", &v1, adopt.clone()),
-    )
-    .await;
+    let (status, adopted) =
+        call(&adoptions, &token, intent("k1", &owner, &v1, adopt.clone())).await;
     assert_eq!(status, 201, "{adopted}");
     assert_eq!(adopted["outcome"]["outcome"], "adopted");
     assert_eq!(
@@ -292,12 +289,7 @@ async fn adoption_authorizes_only_the_owner_for_the_exact_version_under_current_
     // Existing-owner control: the other role has a valid grant of its own and
     // explicitly declined, so it is not authorized.
     let decline = json!({"decision":"decline","reason":"keep our own method"});
-    let (status, declined) = call(
-        &adoptions,
-        &token,
-        intent("k2", &other, "method-1", &v1, decline),
-    )
-    .await;
+    let (status, declined) = call(&adoptions, &token, intent("k2", &other, &v1, decline)).await;
     assert_eq!(
         (status, declined["outcome"]["outcome"].clone()),
         (201, json!("declined"))
