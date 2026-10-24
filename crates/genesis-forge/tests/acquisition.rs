@@ -6,7 +6,7 @@ use genesis_forge::synthesis::{ModelConfig, SynthesisPrompt};
 use genesis_forge::synthesis_http::AnthropicGenerator;
 use genesis_forge::{
     generated_candidate, AcquisitionPhase, AcquisitionPlan, AcquisitionSession, ActionKind,
-    CandidateSpec, Phase,
+    CandidateSpec, ForgeSession, Phase, SourcePackage,
 };
 use genesis_verification::{decode_json, json_sha256, Decision, ExecutionEvidence, OracleSuite};
 use serde_json::{json, Value};
@@ -227,7 +227,38 @@ async fn prepared(repair: bool) -> (AcquisitionSession, OracleSuite, String) {
     let request = generation(&mut session, &suite, INITIAL_PARSER, "msg_initial").await;
     advance_local(&mut session, &suite);
     assert_eq!(session.phase(), AcquisitionPhase::Forging);
+    assert_current_packaging(session.forge().unwrap().spec());
     (session, suite, request)
+}
+
+fn assert_current_packaging(spec: &CandidateSpec) {
+    let contents = |name: &str| {
+        &spec
+            .source
+            .files()
+            .iter()
+            .find(|file| file.name == name)
+            .unwrap()
+            .content
+    };
+    let config: Value = serde_json::from_str(contents(".actor/actor.json")).unwrap();
+    assert_eq!(config["name"], spec.actor_name);
+    assert_eq!(config["version"], spec.source_version);
+    let provenance: Value = serde_json::from_str(contents("genesis-synthesis.json")).unwrap();
+    assert_eq!(provenance["format"], "genesis-synthesis-v2");
+    let scaffold = SourcePackage::new(
+        spec.source
+            .files()
+            .iter()
+            .filter(|file| file.name != "genesis-synthesis.json")
+            .cloned()
+            .collect(),
+    )
+    .unwrap();
+    assert_eq!(
+        provenance["scaffold_source_sha256"],
+        scaffold.sha256().unwrap()
+    );
 }
 
 fn snapshot(spec: &CandidateSpec) -> Value {
@@ -334,6 +365,147 @@ fn assert_fresh_pipeline(requests: &[String], attempt: &str, total_cases: usize)
 }
 
 #[tokio::test]
+async fn exact_legacy_package_restores_without_repackaging_or_replaying_pending_post() {
+    let (session, suite, _) = prepared(false).await;
+    let mut spec = session.forge().unwrap().spec().clone();
+    let mut files = spec.source.files().to_vec();
+    files
+        .iter_mut()
+        .find(|file| file.name == ".actor/actor.json")
+        .unwrap()
+        .content =
+        include_str!("../../../actors/venue-extractor-template/.actor/actor.json").into();
+    let scaffold = SourcePackage::new(
+        files
+            .iter()
+            .filter(|file| file.name != "genesis-synthesis.json")
+            .cloned()
+            .collect(),
+    )
+    .unwrap();
+    let provenance = files
+        .iter_mut()
+        .find(|file| file.name == "genesis-synthesis.json")
+        .unwrap();
+    let mut value: Value = serde_json::from_str(&provenance.content).unwrap();
+    value["format"] = json!("genesis-synthesis-v1");
+    value["scaffold_source_sha256"] = json!(scaffold.sha256().unwrap());
+    provenance.content = serde_json::to_string_pretty(&value).unwrap();
+    spec.source = SourcePackage::new(files).unwrap();
+    let legacy_source = serde_json::to_vec(&spec.source).unwrap();
+    let mut forge = ForgeSession::new(spec, &suite).unwrap();
+    assert_eq!(
+        forge.prepare_next(&suite).unwrap().unwrap().kind(),
+        ActionKind::CreateActor
+    );
+    let mut wire = serde_json::to_value(&session).unwrap();
+    wire["forge"] = serde_json::to_value(forge).unwrap();
+    wire["checkpoint_sha256"] = json!(json_sha256(&json!([
+        "genesis-acquisition-v1",
+        wire["schema_version"],
+        wire["plan_sha256"],
+        wire["suite_sha256"],
+        wire["generation"],
+        wire["forge"],
+        wire["original"],
+        wire["unchanged_repair"],
+        wire["phase"]
+    ])));
+    let mut restored: AcquisitionSession = serde_json::from_value(wire.clone()).unwrap();
+    let before_validation = serde_json::to_vec(&restored).unwrap();
+    restored.validate(&suite).unwrap();
+    assert_eq!(
+        serde_json::to_vec(&restore(&restored, &suite)).unwrap(),
+        before_validation
+    );
+    assert!(restored.recover_interrupted(&suite).unwrap());
+    assert_eq!(restored.phase(), AcquisitionPhase::NeedsReconciliation);
+    assert!(restored.prepare_forge(&suite).is_err());
+    assert_eq!(
+        serde_json::to_vec(&restored.forge().unwrap().spec().source).unwrap(),
+        legacy_source
+    );
+    let reconciled = serde_json::to_vec(&restored).unwrap();
+    let mut restarted = restore(&restored, &suite);
+    assert!(!restarted.recover_interrupted(&suite).unwrap());
+    assert_eq!(serde_json::to_vec(&restarted).unwrap(), reconciled);
+
+    // Old and new formats still reject a valid but foreign candidate identity,
+    // even if a trusted-storage writer recomputes the outer checksum.
+    for original in [
+        wire["forge"].clone(),
+        serde_json::to_value(session.forge().unwrap()).unwrap(),
+    ] {
+        let original: ForgeSession = serde_json::from_value(original).unwrap();
+        for field in ["actor_name", "source_version"] {
+            let mut spec = original.spec().clone();
+            if field == "actor_name" {
+                spec.actor_name = "substituted-actor".into();
+            } else {
+                spec.source_version = "0.9".into();
+            }
+            wire["forge"] = serde_json::to_value(ForgeSession::new(spec, &suite).unwrap()).unwrap();
+            wire["checkpoint_sha256"] = json!(json_sha256(&json!([
+                "genesis-acquisition-v1",
+                wire["schema_version"],
+                wire["plan_sha256"],
+                wire["suite_sha256"],
+                wire["generation"],
+                wire["forge"],
+                wire["original"],
+                wire["unchanged_repair"],
+                wire["phase"]
+            ])));
+            let foreign: AcquisitionSession = serde_json::from_value(wire.clone()).unwrap();
+            assert!(foreign.validate(&suite).is_err(), "{field}");
+        }
+    }
+}
+
+#[tokio::test]
+async fn provider_actor_config_normalization_is_identity_neutral_only_for_correct_packages() {
+    for substitute_parser in [false, true] {
+        let (mut session, suite, _) = prepared(false).await;
+        let spec = session.forge().unwrap().spec();
+        let mut response = actor(spec, "initial").body;
+        let files = response["data"]["versions"][0]["sourceFiles"]
+            .as_array_mut()
+            .unwrap();
+        for file in files {
+            if file["name"] == ".actor/actor.json" {
+                let mut config: Value =
+                    serde_json::from_str(file["content"].as_str().unwrap()).unwrap();
+                if config["name"] != spec.actor_name || config["version"] != spec.source_version {
+                    config["name"] = json!(spec.actor_name);
+                    config["version"] = json!(spec.source_version);
+                    file["content"] = json!(serde_json::to_string_pretty(&config).unwrap());
+                }
+            }
+            if substitute_parser && file["name"] == "src/extractor.ts" {
+                file["content"] = json!("export const changed_by_provider = true;");
+            }
+        }
+        let mock = Mock::serve(vec![Reply::json(response)]).await;
+        forge_step(&mut session, &suite, &mock.client()).await;
+        assert_eq!(
+            session.phase(),
+            if substitute_parser {
+                AcquisitionPhase::NeedsReconciliation
+            } else {
+                AcquisitionPhase::Forging
+            }
+        );
+        if substitute_parser {
+            assert!(session.prepare_forge(&suite).is_err());
+            assert!(session.verified(&suite).is_err());
+        }
+        let requests = mock.finish().await;
+        assert_eq!(requests.len(), 1);
+        assert!(requests[0].starts_with("POST /v2/actors "));
+    }
+}
+
+#[tokio::test]
 async fn requirement_to_verified_candidate_survives_every_serialization_boundary() {
     let (mut session, suite, model_request) = prepared(true).await;
     assert_eq!(session.attempt(), 0);
@@ -416,6 +588,7 @@ async fn semantic_rejection_repairs_once_with_coarse_feedback_and_all_fresh_evid
         session.forge().unwrap().spec().source.sha256().unwrap(),
         first_source
     );
+    assert_current_packaging(session.forge().unwrap().spec());
     assert_eq!(session.forge().unwrap().completed_cases(), 0);
     assert!(session.forge().unwrap().artifact().is_none());
     let second_requests = finish_forge(&mut session, &suite, "repair", outputs()).await;

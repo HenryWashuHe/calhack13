@@ -115,6 +115,29 @@ fn assert_error(output: &Output, message: &str) {
 }
 
 #[test]
+fn fresh_prepare_binds_actor_configuration_before_checkpoint_identity() {
+    let fixture = Fixture::new();
+    let mut metadata: Value =
+        serde_json::from_slice(&fs::read(fixture.path("candidate.json")).unwrap()).unwrap();
+    metadata["source_version"] = json!("0.3");
+    fixture.write("candidate.json", serde_json::to_vec(&metadata).unwrap());
+    fixture.prepare();
+    let saved = fs::read(fixture.path("session.json")).unwrap();
+    let session = fixture.session();
+    let config = session["spec"]["source"]["files"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|file| file["name"] == ".actor/actor.json")
+        .unwrap();
+    let config: Value = serde_json::from_str(config["content"].as_str().unwrap()).unwrap();
+    assert_eq!(config["name"], metadata["actor_name"]);
+    assert_eq!(config["version"], metadata["source_version"]);
+    assert_success(&fixture.run("status"));
+    assert_eq!(fs::read(fixture.path("session.json")).unwrap(), saved);
+}
+
+#[test]
 fn prepares_offline_and_status_revalidates_without_exposing_source_or_oracle() {
     let fixture = Fixture::new();
     let mut suite: Value =
