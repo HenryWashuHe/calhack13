@@ -214,8 +214,23 @@ async fn api_version_is_frozen_before_submission_and_on_reopen() {
 }
 
 #[tokio::test]
-async fn hosted_v2_creation_without_agent_id_stays_ambiguous_across_restart() {
-    let mock = Mock::start(vec![Reply::accepted(RUN_A, None)]).await;
+async fn hosted_v2_creation_without_agent_id_retains_run_and_requires_exact_get() {
+    let mock = Mock::start(vec![
+        Reply::accepted(RUN_A, None),
+        Reply::new(
+            200,
+            json!({"run_id":RUN_A,"agent_id":AGENT,"status":"succeeded"}),
+        ),
+        Reply::new(
+            200,
+            json!({"run_id":RUN_B,"agent_id":AGENT,"status":"succeeded"}),
+        ),
+        Reply::new(
+            200,
+            json!({"run_id":RUN_A,"agent_id":AGENT,"status":"succeeded"}),
+        ),
+    ])
+    .await;
     let private = tempfile::tempdir().unwrap();
     let path = private.path().join("v2-creation.sqlite");
     let runtime = Runtime::new(
@@ -229,11 +244,12 @@ async fn hosted_v2_creation_without_agent_id_stays_ambiguous_across_restart() {
     runtime.prepare(spec.clone()).unwrap();
     let unknown = runtime.step(&spec.operation_id, false).await.unwrap();
     assert_eq!(unknown.phase, OperationPhase::NeedsReconciliation);
-    assert!(unknown.ticket.is_none());
-    assert!(
-        matches!(&unknown.failure, Some(RuntimeFailure::Provider(error))
-        if error.kind == ErrorKind::MalformedResponse && error.post_may_have_run)
-    );
+    assert_eq!(unknown.ticket.as_ref().unwrap().run_id(), RUN_A);
+    assert_eq!(unknown.ticket.as_ref().unwrap().agent_id(), None);
+    assert!(matches!(
+        unknown.failure,
+        Some(RuntimeFailure::MissingCreationAgent)
+    ));
     assert_eq!(mock.requests().len(), 1);
     drop(runtime);
 
@@ -249,6 +265,45 @@ async fn hosted_v2_creation_without_agent_id_stays_ambiguous_across_restart() {
         Err(RuntimeError::NeedsReconciliation)
     ));
     assert_eq!(mock.requests().len(), 1);
+    assert!(matches!(
+        reopened
+            .reconcile_creation_agent(&spec.operation_id, "invalid")
+            .await,
+        Err(RuntimeError::Invalid)
+    ));
+    assert_eq!(mock.requests().len(), 1);
+    assert!(matches!(
+        reopened
+            .reconcile_creation_agent(&spec.operation_id, RUN_B)
+            .await,
+        Err(RuntimeError::NeedsReconciliation)
+    ));
+    assert_eq!(reopened.get(&spec.operation_id).unwrap(), unknown);
+    assert!(matches!(
+        reopened
+            .reconcile_creation_agent(&spec.operation_id, AGENT)
+            .await,
+        Err(RuntimeError::NeedsReconciliation)
+    ));
+    assert_eq!(reopened.get(&spec.operation_id).unwrap(), unknown);
+    let completed = reopened
+        .reconcile_creation_agent(&spec.operation_id, AGENT)
+        .await
+        .unwrap();
+    assert_eq!(completed.phase, OperationPhase::NativeCompleted);
+    assert_eq!(completed.ticket.as_ref().unwrap().run_id(), RUN_A);
+    assert_eq!(completed.ticket.as_ref().unwrap().agent_id(), Some(AGENT));
+    assert_eq!(mock.requests().len(), 4);
+    assert_eq!(mock.requests()[0].0, "POST");
+    assert!(mock.requests()[1]
+        .1
+        .ends_with(&format!("/agents/{RUN_B}/edits/{RUN_A}")));
+    assert!(mock.requests()[2]
+        .1
+        .ends_with(&format!("/agents/{AGENT}/edits/{RUN_A}")));
+    assert!(mock.requests()[3]
+        .1
+        .ends_with(&format!("/agents/{AGENT}/edits/{RUN_A}")));
 }
 
 #[tokio::test]
