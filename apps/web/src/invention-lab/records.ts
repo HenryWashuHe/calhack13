@@ -340,6 +340,9 @@ export function decodePackageFile(bytes: Uint8Array): PackageFile {
   const at = "package";
   const o = obj(JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes)), at);
   if (o.domain !== PACKAGE_DOMAIN) throw new DecodeError(`${at}.domain: expected ${PACKAGE_DOMAIN}`);
+  // Only the envelope version this view understands; anything else is not
+  // labelled as a checked package.
+  if (o.version !== 1) throw new DecodeError(`${at}.version: expected 1`);
   const p = obj(o.package, `${at}.package`);
   if (!Array.isArray(p.files)) throw new DecodeError(`${at}.package.files: expected array`);
   const enc = new TextEncoder();
