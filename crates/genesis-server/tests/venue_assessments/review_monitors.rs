@@ -186,7 +186,13 @@ async fn review_superseded_update_verified_first_creates_replacement_work() {
     assert!(older_created < newer_created);
 
     let done = drive(&f, &path, |v| {
-        v["status"] != "active" || (v["assessment_count"] == 3 && idle_baseline(v))
+        // Correct coalescing spends only baseline + newest source. Keep the
+        // original superseded-source assertion below; do not wait for a third
+        // intent that the fix must never create.
+        v["status"] != "active"
+            || (v["assessment_count"] == 2
+                && idle_baseline(v)
+                && v["pending_source_job_id"].is_null())
     })
     .await;
     let last = f
@@ -200,6 +206,8 @@ async fn review_superseded_update_verified_first_creates_replacement_work() {
         "monitor assessed the superseded snapshot (created {older_created}) although a newer verified snapshot (created {newer_created}) existed; monitor={done} requirements={}",
         f.side_effect_counts().1
     );
+    assert_eq!(last["source_job_id"], newer);
+    assert_eq!(done["assessment_count"], 2);
 }
 
 /// An idle subscription (no pending child, no candidate events) re-checks the
