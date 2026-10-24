@@ -245,6 +245,21 @@ try:
     open('/var/lib/lab-exec-probe/escape', 'w').write('x'); problems.append('wrote the root filesystem')
 except OSError: pass
 open('/var/tmp/lab-exec-escape', 'w').write('private tmpfs only')
+# Resource limits: 2 GiB can't be allocated, and forking stops well before 200.
+try:
+    blob = bytearray(2 << 30); problems.append('allocated 2 GiB')
+except MemoryError: pass
+children = []
+try:
+    for _ in range(200):
+        pid = os.fork()
+        if pid == 0:
+            import time; time.sleep(30); os._exit(0)
+        children.append(pid)
+    problems.append('forked 200')
+except OSError: pass
+for pid in children:
+    os.kill(pid, 9)
 if problems: sys.exit(1)
 call({'op':'submit','design':CART})
 "#;
