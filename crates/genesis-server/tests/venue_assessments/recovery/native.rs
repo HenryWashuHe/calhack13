@@ -6,11 +6,15 @@
 //! `uv sync --project services/fetch-bridge --frozen --python 3.12`
 //! Run after the normal Rust test build:
 //! `GENESIS_FETCH_TEST_PYTHON="$PWD/services/fetch-bridge/.venv/bin/python" cargo test -p genesis-server --test venue_assessments recovery::native::signed_specialist_selection_completes_real_recovery_and_retires -- --ignored --exact`
+//! The automatic-intake variant is
+//! `recovery::native::automatic_intake_completes_signed_recovery_and_retires`.
+//! It explicitly drains the real intake worker; it does not test timer scheduling.
 //! The interpreter must be absolute. Missing setup fails an explicit run; the
 //! ordinary Cargo suite ignores this test. PYTHONPATH pins the source checkout,
 //! even when an installed editable package points at a different worktree.
 
 use super::*;
+use genesis_server::venue_recovery_intake;
 use rusqlite::{Connection, OpenFlags, OptionalExtension};
 use std::{
     fs::File,
@@ -387,19 +391,157 @@ fn assert_native_exchange(
     receipt
 }
 
-async fn run_native_recovery() {
+enum RecoveryEntry {
+    Manual(Value),
+    Automatic(Value),
+}
+
+async fn step_recovery(fixture: &Fixture, path: &str, entry: &RecoveryEntry) -> Value {
+    match entry {
+        RecoveryEntry::Manual(_) => step(fixture, path).await,
+        RecoveryEntry::Automatic(linked) => {
+            // Advance the same coordinator used by its worker, without an
+            // operator HTTP POST. Scheduling remains explicit in this test.
+            let record = genesis_server::venue_recovery::step(
+                &fixture.app,
+                linked["recovery_id"].as_str().unwrap(),
+            )
+            .await
+            .unwrap();
+            serde_json::to_value(record).unwrap()
+        }
+    }
+}
+
+fn recovery_count(fixture: &Fixture) -> u64 {
+    sqlite(fixture)
+        .query_row("SELECT COUNT(*) FROM venue_recoveries", [], |row| {
+            row.get(0)
+        })
+        .unwrap()
+}
+
+async fn intake_record(fixture: &Fixture, assessment_id: &Value) -> Option<Value> {
+    fixture
+        .get("/venue-recovery-intakes")
+        .await
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|record| &record["assessment_id"] == assessment_id)
+        .cloned()
+}
+
+async fn until_intake(fixture: &Fixture, assessment_id: &Value, phase: &str) -> Value {
+    let mut last = None;
+    for _ in 0..256 {
+        venue_recovery_intake::drain_once(&fixture.app)
+            .await
+            .unwrap();
+        last = intake_record(fixture, assessment_id).await;
+        if let Some(record) = &last {
+            if record["phase"] == phase {
+                return record.clone();
+            }
+        }
+    }
+    panic!("native intake did not reach {phase}: {last:?}");
+}
+
+async fn assert_entry_replay(
+    fixture: &Fixture,
+    path: &str,
+    expected: &Value,
+    entry: &RecoveryEntry,
+) {
+    match entry {
+        RecoveryEntry::Manual(body) => {
+            assert_eq!(
+                fixture.post("/venue-recoveries", body.clone()).await,
+                (StatusCode::OK, expected.clone())
+            );
+        }
+        RecoveryEntry::Automatic(linked) => {
+            // The automatic path never issues a recovery POST.
+            // Repeated intake drains must preserve its original coordinator.
+            for _ in 0..16 {
+                venue_recovery_intake::drain_once(&fixture.app)
+                    .await
+                    .unwrap();
+            }
+            assert_eq!(
+                intake_record(fixture, &linked["assessment_id"]).await,
+                Some(linked.clone())
+            );
+            assert_eq!(recovery_count(fixture), 1);
+            assert_eq!(fixture.get(path).await, *expected);
+        }
+    }
+}
+
+async fn run_native_recovery(automatic_intake: bool) {
     let mut pair = NativePair::start().await;
     let mut fixture = Fixture::start().await;
-    let journal = pair.attach(&mut fixture).await;
+    let mut journal = pair.attach(&mut fixture).await;
     let (source, reopened) = reopened(&fixture).await;
     fixture
         .mutate(|state| state.constitution.max_active_contracts = 1)
         .await;
-    let body = recovery_request(&source, &reopened);
-    let (path, registered) = register(&fixture, body.clone()).await;
+    let (path, registered, entry) = if automatic_intake {
+        fixture.app.automatic_venue_recovery = true;
+        let prepared = until_intake(&fixture, &reopened["assessment_id"], "prepared").await;
+        assert_eq!(prepared["candidate_job_id"], source);
+        assert!(prepared["client_request_id"]
+            .as_str()
+            .unwrap()
+            .starts_with("venue-recovery-auto:"));
+        assert!(prepared["deadline"].is_string());
+        assert!(prepared["recovery_id"].is_null());
+        assert_eq!(recovery_count(&fixture), 0);
+        assert_eq!(fixture.app.current_state().unwrap().active_contracts(), 0);
+        let outgoing: u64 = pair
+            .org
+            .db()
+            .query_row("SELECT count(*) FROM outbox", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(outgoing, 0, "prepared intake has not recruited a peer");
+
+        // Restart at the durable intent boundary, before the first recovery
+        // exists. Re-enable the explicit opt-in and restore the same bridge.
+        fixture.restart(false).await;
+        assert!(!fixture.app.automatic_venue_recovery);
+        assert!(fixture.app.fetch_recovery.is_none());
+        fixture.app.automatic_venue_recovery = true;
+        journal = pair.attach(&mut fixture).await;
+        assert_eq!(
+            intake_record(&fixture, &reopened["assessment_id"]).await,
+            Some(prepared.clone())
+        );
+        let newer = fixture.source("native-intake-after-preparation", 3).await;
+        assert_ne!(newer, source);
+        let linked = until_intake(&fixture, &reopened["assessment_id"], "linked").await;
+        for field in ["client_request_id", "candidate_job_id", "deadline"] {
+            assert_eq!(linked[field], prepared[field]);
+        }
+        assert_eq!(linked["externally_managed"], false);
+        assert!(linked["attention"].is_null());
+        assert_eq!(recovery_count(&fixture), 1);
+        let path = format!(
+            "/venue-recoveries/{}",
+            linked["recovery_id"].as_str().unwrap()
+        );
+        let registered = fixture.get(&path).await;
+        (path, registered, RecoveryEntry::Automatic(linked))
+    } else {
+        let body = recovery_request(&source, &reopened);
+        let (path, registered) = register(&fixture, body.clone()).await;
+        (path, registered, RecoveryEntry::Manual(body))
+    };
+    assert_eq!(fixture.app.current_state().unwrap().active_contracts(), 1);
+    assert_entry_replay(&fixture, &path, &registered, &entry).await;
     let limit = Instant::now() + Duration::from_secs(45);
     let selected = loop {
-        let record = step(&fixture, &path).await;
+        let record = step_recovery(&fixture, &path, &entry).await;
         assert!(record["attention"].is_null(), "{record}");
         if record["phase"] == "assessing" {
             break record;
@@ -422,6 +564,12 @@ async fn run_native_recovery() {
     assert_eq!(original_receipt.attempt_id(), job.attempt_id.as_str());
     assert_eq!(original_receipt.assignment_id(), job.assignment_id.as_str());
     assert_eq!(original_receipt.epoch(), job.epoch);
+    if let RecoveryEntry::Automatic(linked) = &entry {
+        assert_eq!(
+            job.deadline,
+            Some(serde_json::from_value(linked["deadline"].clone()).unwrap())
+        );
+    }
 
     // Restart both signed transports and the Rust organization/private journal
     // at the durable selection boundary, before creating its CREAO child.
@@ -429,6 +577,7 @@ async fn run_native_recovery() {
     pair.org.stop();
     pair.specialist.stop();
     fixture.restart(false).await;
+    fixture.app.automatic_venue_recovery = automatic_intake;
     pair.org.start().await;
     pair.specialist.start().await;
     let journal = pair.attach(&mut fixture).await;
@@ -437,10 +586,8 @@ async fn run_native_recovery() {
         assert_native_exchange(&pair, &journal, &selected),
         original_receipt
     );
-    let (status, replay) = fixture.post("/venue-recoveries", body.clone()).await;
-    assert_eq!(status, StatusCode::OK);
-    assert_eq!(replay, selected);
-    let prepared = step(&fixture, &path).await;
+    assert_entry_replay(&fixture, &path, &selected, &entry).await;
+    let prepared = step_recovery(&fixture, &path, &entry).await;
     assert!(prepared["attention"].is_null(), "{prepared}");
     let child_path = format!(
         "/venue-assessments/{}",
@@ -460,7 +607,7 @@ async fn run_native_recovery() {
     // Deliberately stop the peer: queue ACK and local retirement must not be
     // mislabeled as proof that the independent specialist has released work.
     pair.specialist.stop();
-    let completed = step(&fixture, &path).await;
+    let completed = step_recovery(&fixture, &path, &entry).await;
     assert_eq!(completed["phase"], "completed");
     assert_eq!(completed["retirement"]["local_contract_state"], "RELEASED");
     assert_eq!(completed["retirement"]["delivery"], "bridge_queued");
@@ -510,11 +657,8 @@ async fn run_native_recovery() {
         );
         tokio::time::sleep(Duration::from_millis(100)).await;
     }
-    assert_eq!(step(&fixture, &path).await, completed);
-    assert_eq!(
-        fixture.post("/venue-recoveries", body).await,
-        (StatusCode::OK, completed.clone())
-    );
+    assert_eq!(step_recovery(&fixture, &path, &entry).await, completed);
+    assert_entry_replay(&fixture, &path, &completed, &entry).await;
     assert_eq!(
         assert_native_exchange(&pair, &journal, &completed),
         original_receipt
@@ -535,7 +679,15 @@ async fn run_native_recovery() {
 #[tokio::test]
 #[ignore = "requires GENESIS_FETCH_TEST_PYTHON with uv --frozen dependencies; launches two native signed loopback processes"]
 async fn signed_specialist_selection_completes_real_recovery_and_retires() {
-    tokio::time::timeout(Duration::from_secs(90), run_native_recovery())
+    tokio::time::timeout(Duration::from_secs(90), run_native_recovery(false))
         .await
         .expect("native recovery integration exceeded its total time bound");
+}
+
+#[tokio::test]
+#[ignore = "requires GENESIS_FETCH_TEST_PYTHON with uv --frozen dependencies; launches two native signed loopback processes"]
+async fn automatic_intake_completes_signed_recovery_and_retires() {
+    tokio::time::timeout(Duration::from_secs(90), run_native_recovery(true))
+        .await
+        .expect("native automatic intake integration exceeded its total time bound");
 }
