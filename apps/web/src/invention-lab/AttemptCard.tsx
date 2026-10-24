@@ -2,11 +2,11 @@
 // Presentational only and not yet wired into the console. Shows cost for every
 // attempt, including failed ones, and the record's own authority sentence.
 
-import { phaseLabel, TIER_TEXT, type Label } from "./claims";
+import { diagnosticLabel, phaseLabel, TIER_TEXT, type Label } from "./claims";
 import type { Attempt } from "./lineage";
 import { USAGE_DIMENSIONS, type Usage } from "./records";
 
-function Chip({ label }: { label: Label }) {
+export function Chip({ label }: { label: Label }) {
   return (
     <span className={`chip ${label.tone}`} title={label.limit}>
       {label.text}
@@ -47,6 +47,15 @@ export function AttemptCard({ attempt }: { attempt: Attempt }) {
             </>
           )}
         </p>
+      )}
+      {status.diagnostic && (
+        <p className="lab-diagnostic">
+          <Chip label={diagnosticLabel(status.diagnostic.rejection, status.diagnostic.stop_reason)} />{" "}
+          {diagnosticLabel(status.diagnostic.rejection, status.diagnostic.stop_reason).limit}
+        </p>
+      )}
+      {status.unrecognized_fields.length > 0 && (
+        <p>unrecognized fields (not interpreted): {status.unrecognized_fields.join(", ")}</p>
       )}
       <p>evidence: {TIER_TEXT[attempt.tier]}</p>
       <p>

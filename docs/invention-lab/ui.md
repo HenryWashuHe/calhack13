@@ -115,6 +115,27 @@ A:v1 → B:v2 → A:local decision follows once execution receipts and a genuine
 generated package exist. Until then, a lineage with one failed attempt and no
 nodes is the honest picture.
 
+## Attempt ledger
+
+Status records may carry the optional enum-only `diagnostic` from
+[generation](contracts/generation.md): the first rejected check and an
+allowlisted stop reason. The card shows it as "rejected at *check*" with the
+stop reason, and states that raw content was not retained, so the diagnostic
+locates the rejection without explaining it. Values outside the contract's
+lists render as unrecognized. Top-level status fields the decoder does not know
+are listed as "unrecognized fields" instead of being dropped, so a later
+contract addition is visible before this view interprets it.
+
+The ledger lists every attempt and sums each usage dimension over measured
+values. A total is exact only when every attempt measured that dimension;
+otherwise it reads "≥ *sum* (*n* of *m* not measured)", and a dimension no
+attempt measured reads "not recorded". Failed, rejected and unknown attempts
+are included. For the two retained live attempts this reproduces the evidence
+README's arithmetic total: 2 calls, 7999 input, 13084 output tokens and 98921 ms
+request wall time, 0 packages. The ledger states that this is an arithmetic
+total across separately declared attempts: not a predeclared combined budget,
+a cost per success or a comparison.
+
 ## Non-goals and limits
 
 - No writes, provider calls, replays or retries. No "run again" control.

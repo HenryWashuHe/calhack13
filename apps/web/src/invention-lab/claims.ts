@@ -37,6 +37,34 @@ export function adoptionLabel(outcome: string): Label {
   return ADOPTION[outcome] ?? unrecognized(outcome);
 }
 
+// The first rejected check named by docs/invention-lab/contracts/generation.md.
+const REJECTION: Record<string, string> = {
+  response_unavailable: "no response body was available",
+  invalid_json: "response was not valid JSON",
+  invalid_envelope: "response envelope was malformed",
+  model_mismatch: "responding model differed from the requested one",
+  stop_reason: "stop reason was not accepted",
+  stop_sequence: "a stop sequence ended the response",
+  output_limit: "output exceeded the declared limit",
+  content_shape: "response content shape was not accepted",
+  content_count: "unexpected number of content blocks",
+  content_type: "unexpected content block type",
+  text_limit: "text exceeded the declared limit",
+  citations: "response carried citations",
+};
+const STOP = new Set(["end_turn", "max_tokens", "stop_sequence", "tool_use", "other"]);
+export function diagnosticLabel(rejection: string, stopReason: string | null): Label {
+  const what = REJECTION[rejection];
+  if (!what) return unrecognized(rejection);
+  const stop =
+    stopReason === null ? "no stop reason retained" : STOP.has(stopReason) ? `stop reason ${stopReason}` : `unrecognized stop: ${stopReason}`;
+  return {
+    text: `rejected at ${rejection}: ${what} (${stop})`,
+    tone: "bad",
+    limit: "first failed check only; raw content was not retained, so the cause is not reconstructable",
+  };
+}
+
 export function revisionLabel(sourceChanged: boolean): Label {
   return sourceChanged
     ? { text: "source changed (bytes)", tone: "neutral", limit: "different bytes only; behavior may be identical" }
