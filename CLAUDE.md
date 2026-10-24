@@ -15,11 +15,18 @@ or use its completion as the new gate. The [invention-lab A → B → A demonstr
 is proposed, not implemented. Its simulator, executable development-method runtime
 and recursive-benefit experiment remain open work.
 
-**Codex's old implementation Goal and recurring automation are paused.** This
-bounded documentation/coordination task does not resume them. Existing colleague
-claims remain scoped; follow the [current ownership map](docs/AGENT_HANDOFF.md#current-ownership-and-next-work)
+**Ongoing work is resumed under [the repository goal](docs/ONGOING_GOAL.md).**
+The existing hourly continuation is active. At this checkpoint the older app Goal
+card remains paused because the goal tool cannot replace an unfinished record;
+never falsely complete it to work around that limitation. The user's renewed
+instruction authorizes scoped work under the revised goal, not the discarded
+venue objective. Preserve local deployed-repair WIP until separately scoped.
+
+Read the [goal's working cycle](docs/ONGOING_GOAL.md#working-cycle),
+[current ownership map](docs/AGENT_HANDOFF.md#current-ownership-and-next-work)
 and [issue #4](https://github.com/HenryWashuHe/genesis/issues/4), including newer
-branch/head updates, before editing. All lower checkpoints are historical.
+branch/head updates, before editing or assigning work. Check goal alignment at
+every milestone. All lower checkpoints are historical.
 
 - Henry's core Claude: [#122](https://github.com/HenryWashuHe/genesis/issues/122),
   #116 corrections/new outcome classifier and #121 terminal-run retry; then
