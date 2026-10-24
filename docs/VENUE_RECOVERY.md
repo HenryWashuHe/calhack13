@@ -267,9 +267,10 @@ The integrated implementation passed 42 venue-assessment tests (including eight
 recovery cases), 135 server-library tests, 78 Fetch tests, scoped strict all-target
 Clippy and formatting. The Python bridge passed 34 tests, including real
 separate-process SDK-signature exchanges and the shared Rust/Python selection
-fixture. The coordinator integration tests use a synthetic authenticated bridge
-boundary and loopback Apify/CREAO responses; they do not run that whole path
-through the separate Python processes.
+fixture. The default coordinator tests use a synthetic authenticated bridge
+boundary and loopback Apify/CREAO responses. The opt-in signed-process check below
+also composes the Rust coordinator with two actual Python Fetch processes;
+Apify, CREAO and initial provisioning remain the same explicit fixtures.
 
 Recovery cases cover exact receipt and child identity across restart, incorrect
 semantics without mission effects, foreign-event/ACL refusal, CREAO progress
@@ -277,3 +278,36 @@ during a Fetch inbox outage, corrupt-row scheduling fairness, actual contract-sl
 reuse, expiry without a configured runtime, and bounded exact cleanup retries.
 These checks establish the tested local behaviors. They do not establish cloud
 registration/discovery, live web facts, a genuine CREAO Share link, or booking.
+
+### Composed signed Fetch process check
+
+Install the frozen Python dependencies and explicitly run the ignored integration:
+
+```sh
+uv sync --project services/fetch-bridge --frozen --python 3.12
+GENESIS_FETCH_TEST_PYTHON="$PWD/services/fetch-bridge/.venv/bin/python" \
+  cargo test -p genesis-server --test venue_assessments \
+  recovery::native::signed_specialist_selection_completes_real_recovery_and_retires \
+  -- --ignored --exact
+```
+
+This check passed locally. It starts a native organization bridge and independent
+venue-selection specialist with temporary identities, private tokens and journals.
+It compares the exact outgoing and authenticated incoming messages with the Rust
+receipt, verifies the specialist's actual selection, and restarts both processes
+and the Rust organization at the persisted selection boundary. One existing
+CREAO fixture agent performs the follow-up assessment; the native task and child
+identities remain unchanged.
+
+The test stops the specialist before retirement: the local contract is released
+and the bridge queues cleanup while the peer contract is still active. After
+restart, it observes the separate authenticated peer release reply. The public
+coordinator continues to report only its documented queue acknowledgment.
+
+The default Cargo suite ignores this external-runtime check. An explicit run
+fails if its interpreter/setup is missing, rather than silently passing. It has
+a 90-second total bound and kills/reaps its owned processes on failure. No cloud
+keys are needed. Native envelopes are verified at ingestion; the bridge stores
+canonical messages and authenticated senders, not original signed envelopes for
+independent public signature verification. This test establishes neither cloud
+registration nor a live Apify/CREAO outcome.
