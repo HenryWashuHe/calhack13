@@ -8,7 +8,7 @@ use genesis_forge::{CandidateSpec, ForgeSession, SourcePackage};
 use genesis_providers::{ApifyCapabilityExecutor, DevStub, ProviderSet};
 use genesis_server::registry::{self, RegistryState};
 use genesis_server::{build_org, parse_publishers, serve_org, OrgConfig};
-use genesis_verification::{decode_json, ArtifactPin, ExecutionEvidence, OracleSuite};
+use genesis_verification::{decode_json, json_sha256, ArtifactPin, ExecutionEvidence, OracleSuite};
 use reqwest::StatusCode;
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
@@ -565,6 +565,85 @@ struct Installed {
 }
 
 #[tokio::test]
+async fn elastic_bound_role_can_use_backend_apify_checks_and_invocation() {
+    let registry = registry().await;
+    let mock = ApifyMock::start().await;
+    let mut config = OrgConfig::dev("org_a", "org_a");
+    config.registry_url = Some(registry.url.clone());
+    config.registry_token = Some("org_a-registry".into());
+    config.oracle_suites = vec![suite()];
+    config.forge_checkpoints = vec![checkpoint()];
+    let app = build_org(&config, Some(mock.providers())).unwrap();
+    let org = Org {
+        server: Server::start(app.clone().router()).await,
+        id: "org_a".into(),
+        http: reqwest::Client::new(),
+    };
+    org.publish().await;
+    let installed = org.seed_and_install().await;
+    {
+        // Trusted fixture state models an active Elastic specialist; this test
+        // makes no native Elastic provisioning or converse claim. Actual Actor
+        // requests use the real Apify adapter against the loopback fixture.
+        let _guard = app.kernel.lock().await;
+        let mut state = app.current_state().unwrap();
+        let revision = state.revision;
+        let role = state
+            .roles
+            .get_mut(&genesis_core::ids::RoleId::new(&installed.role))
+            .unwrap();
+        role.binding = Some(genesis_core::model::AgentBinding {
+            provider: genesis_core::model::Provider::Elastic,
+            provider_agent_id: "genesis-review-agent".into(),
+            config_digest: "c".repeat(64),
+            conversation_ref: None,
+        });
+        state.revision += 1;
+        app.store
+            .commit_state(
+                revision,
+                &state,
+                vec![],
+                &Default::default(),
+                vec![],
+                |_| Ok(()),
+            )
+            .unwrap();
+    }
+    let (status, rejected) = org
+        .post(
+            "/jobs",
+            json!({"client_request_id":"generic-apify-override","role_id":installed.role,
+                "responsibility_id":installed.responsibility,"task":"Read venue data",
+                "input":{},"provider":"apify"}),
+        )
+        .await;
+    assert_eq!(status, StatusCode::CONFLICT, "{rejected}");
+    assert_eq!(rejected["error"], "provider_mismatch");
+    assert_eq!(mock.submissions(), 0);
+
+    let checks = org.checks(&installed).await;
+    org.collect(&checks).await;
+    org.accept(&installed, &checks).await;
+    org.attach(&installed).await;
+    let (status, job) = org
+        .post(
+            "/capability-runs",
+            json!({"client_request_id":"elastic-role-actor-run","installation_id":installed.id,
+                "role_id":installed.role,"responsibility_id":installed.responsibility,
+                "suite_id":suite().suite_id,"input":suite().cases[0].input}),
+        )
+        .await;
+    assert_eq!(status, StatusCode::ACCEPTED, "{job}");
+    assert_eq!(job["provider"], "apify");
+    org.collect(&[job["job_id"].as_str().unwrap().to_owned()])
+        .await;
+    assert_eq!(mock.submissions(), suite().cases.len() + 1);
+    assert!(org.get("/ledger").await.as_array().unwrap().is_empty());
+    mock.assert_no_oracle_or_synthesis_requests();
+}
+
+#[tokio::test]
 async fn production_publication_requires_known_backend_proof_and_exact_pin() {
     let registry = registry().await;
     let mock = ApifyMock::start().await;
@@ -734,6 +813,11 @@ async fn automatic_worker_and_accepted_installation_survive_sqlite_restart() {
         let record = restarted.get(&format!("/capability-runs/{id}")).await;
         assert_eq!(record["phase"], "collected");
         assert_eq!(
+            restarted.get(&format!("/jobs/{id}")).await["status"],
+            "VERIFYING",
+            "automatic invocation verification must not finalize local acceptance jobs"
+        );
+        assert_eq!(
             record["request"]["artifact"],
             json!(checkpoint().artifact().unwrap())
         );
@@ -755,10 +839,59 @@ async fn automatic_worker_and_accepted_installation_survive_sqlite_restart() {
     restarted
         .wait_for_worker(std::slice::from_ref(&job_id))
         .await;
+    // Collection and semantic finalization are separate durable transitions.
+    // No /verify POST: the real worker must perform the latter automatically.
+    tokio::time::timeout(Duration::from_secs(8), async {
+        loop {
+            let job = restarted.get(&format!("/jobs/{job_id}")).await;
+            if job["status"] == "SUCCEEDED" {
+                break;
+            }
+            assert_eq!(
+                job["status"], "VERIFYING",
+                "unexpected automatic finalization: {job}"
+            );
+            tokio::time::sleep(Duration::from_millis(25)).await;
+        }
+    })
+    .await
+    .expect("automatic worker did not verify the fresh invocation within 8 seconds");
+    let proof_path = format!("/capability-runs/{job_id}/verification");
+    let proof = restarted.get(&proof_path).await;
+    let collected = restarted.get(&format!("/capability-runs/{job_id}")).await;
+    assert_eq!(proof["job_id"], job_id);
+    assert_eq!(proof["installation_id"], installed.id);
+    assert_eq!(proof["request_sha256"], collected["request_sha256"]);
+    assert_eq!(proof["acceptance_report_ref"], accepted_reference);
+    assert_eq!(proof["decision"], "verified");
+    assert!(proof["proof_ref"]
+        .as_str()
+        .unwrap()
+        .starts_with("invocation:"));
+    assert_eq!(proof["suite_id"], suite().suite_id);
     assert_eq!(
-        restarted.get(&format!("/jobs/{job_id}")).await["status"],
-        "VERIFYING"
+        proof["suite_sha256"],
+        json_sha256(&serde_json::to_value(suite()).unwrap())
     );
+    assert_eq!(proof["case_report"]["decision"], "accepted");
+    assert_eq!(proof["case_report"]["extraction"], "supported");
+    assert_eq!(
+        proof["case_report"]["artifact"],
+        collected["request"]["artifact"]
+    );
+    assert_eq!(
+        proof["case_report"]["input_sha256"],
+        json_sha256(&suite().cases[0].input)
+    );
+    assert_eq!(
+        proof["case_report"]["run_id"],
+        collected["evidence"]["run_id"]
+    );
+    assert_eq!(
+        proof["case_report"]["evidence_sha256"],
+        json_sha256(&collected["evidence"])
+    );
+    assert!(!proof.to_string().contains(ORACLE_CANARY));
     assert_eq!(mock.submissions(), 4);
     assert!(restarted
         .get("/ledger")
@@ -768,4 +901,16 @@ async fn automatic_worker_and_accepted_installation_survive_sqlite_restart() {
         .is_empty());
     mock.assert_no_oracle_or_synthesis_requests();
     restarted.server.stop().await;
+
+    // Finalization survives another process replacement without a new provider
+    // request, repeated acceptance, or a client-supplied verification action.
+    let restored = Org::start_with_worker(&config, &mock).await;
+    assert_eq!(restored.get(&proof_path).await, proof);
+    assert_eq!(
+        restored.get(&format!("/jobs/{job_id}")).await["status"],
+        "SUCCEEDED"
+    );
+    assert_eq!(mock.submissions(), 4);
+    assert!(restored.get("/ledger").await.as_array().unwrap().is_empty());
+    restored.server.stop().await;
 }

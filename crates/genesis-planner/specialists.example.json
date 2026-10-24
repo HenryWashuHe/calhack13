@@ -1,0 +1,7 @@
+[
+  {
+    "address": "agent1q_example_replace_with_discovered_address",
+    "protocol": "genesis-contract/1",
+    "description": "Example only. Replace with specialists returned by Agentverse discovery."
+  }
+]
