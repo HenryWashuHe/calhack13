@@ -28,12 +28,14 @@ status or an incoming passed flag must not establish semantic acceptance.
 Continue on `feat/kernel-ui`; merge main to receive the forge work. Keep ownership
 of `genesis-core` engine/change/jobs/model/lifecycle, server saga/store/outbox/general
 job routes, `apps/web`, and their tests. Address reproduced review defects in those
-areas first. Review findings and reproduction instructions will be posted on PR #3.
+areas first. Review findings and reproduction instructions are posted on PR #3 and
+in [the full review](reviews/PR-3.md).
 
-Then implement Elastic specialist provisioning and organizational evidence/capability
+Then integrate the pending/readiness saga hook described in the CREAO checkpoint
+below, implement Elastic specialist provisioning and organizational evidence/capability
 retrieval behind a new provider module, and show the actual verification/build/run
-evidence in the UI. Preserve the Fetch/CREAO ownership boundaries from the team
-workstreams; their live integrations still need explicit owners and account smoke tests.
+evidence in the UI. Codex owns the CREAO client/runtime and adapter; Fetch remains
+unassigned. Each live sponsor path still needs its authenticated account smoke test.
 
 Do not duplicate Codex's Apify execution/evidence path or edit the reserved capability
 routes while that branch is active. Shared `genesis-server/src/lib.rs`, `app.rs`,
@@ -61,16 +63,20 @@ fixing general dispatch atomicity. Shared changes are registrations/dependencies
 `Store::lock` visibility, CLI configuration and child-worker cancellation.
 
 
-## Next Codex goal: persistent CREAO specialists
+## Pushed CREAO checkpoint
 
-The capability milestone is pushed through `130fd88` in PR #5. Codex continues on
-`codex/creao-runtime`, reserving the new `crates/genesis-creao` client/runtime,
+The capability milestone is pushed through `130fd88` in PR #5. Codex has pushed
+[PR #6](https://github.com/HenryWashuHe/genesis/pull/6) on `codex/creao-runtime`,
+stacked on PR #5. Codex retains the new `crates/genesis-creao` client/runtime,
 `genesis-providers/src/creao.rs`, related tests/docs and narrow registrations.
-CREAO operations will retain creation/run IDs, share a durable account limiter,
+CREAO operations retain creation/run IDs, share a durable account limiter,
 and recover known runs with GETs without treating native completion as authority.
 Claude retains all issue #4 fixes and Elastic/UI. Fetch remains unassigned.
 
 The current generic provisioning saga cannot represent a pending CREAO creation
-without failing it. Codex will expose typed progress and durable operations at the
-provider boundary; the pending/readiness integration hook must be coordinated with
-Claude rather than hiding an asynchronous create inside an unrecoverable call.
+without failing it. PR #6 exposes typed progress and durable operations at the
+provider boundary. Claude owns the pending/readiness saga hook next, after the
+PR #3 lifecycle/recovery fixes; follow [CREAO_RUNTIME.md](CREAO_RUNTIME.md) for the
+contract. Preserve created native IDs, independently prove readiness, and check
+live assignment authority before every advance/result. No saga hook or live
+provider activation is claimed by PR #6.
