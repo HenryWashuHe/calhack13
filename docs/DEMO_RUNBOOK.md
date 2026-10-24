@@ -136,8 +136,8 @@ Two honesty points. The adoption policy is B's provider-access
 acknowledgement: write it only after B's own Apify credentials can run A's
 Actor (same rule as `provider_access_acknowledged` below). And order matters:
 B's need must be committed after A's publication, or B's search is empty;
-with `synthesis_fallback: false` B then stops at `attention: no_candidate`
-(status at `GET /api/v1/capability-gaps/{id}/adoption`).
+with `synthesis_fallback: false` B's gap is then refused (`no_candidate`;
+status at `GET /api/v1/capability-gaps/{id}/adoption`).
 
 Evidence: `tests/two_org_inheritance.rs` runs exactly this with real
 `serve_org` on both sides against loopback providers. No live run yet.
