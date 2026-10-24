@@ -1,5 +1,14 @@
 # GENESIS agent coordination
 
+Current Codex continuation: `codex/inherited-mission`, stacked on PR #10.
+The reserved slice is `capability_scenario.rs`, its HTTP integration tests,
+`capability_authority.rs`, focused capability runtime/route regressions, narrow
+CLI/health/module registrations and [INHERITED_MISSION.md](docs/INHERITED_MISSION.md).
+It joins acquisition to independent adoption and retirement/handoff, and closes
+capability lease/mission authority gaps. It does not take over planner, lifecycle,
+provider readiness, Elastic or UI. The path claim is recorded in
+[issue #4](https://github.com/HenryWashuHe/genesis/issues/4#issuecomment-6330336722).
+
 **Current next-work split:** see [NEXT_IMPLEMENTATION_SPLIT.md](docs/NEXT_IMPLEMENTATION_SPLIT.md).
 At the user's request, Codex is taking capability execution/evidence integration
 inside the kernel boundary. Claude keeps lifecycle/recovery, Elastic and UI work;
