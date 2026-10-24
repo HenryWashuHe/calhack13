@@ -115,3 +115,47 @@ The option is intentionally optional; generation steps without it keep their
 existing behavior and do not establish a chain guard. It adds no controller,
 trial-runtime gate, source execution, automatic retry or proof of chronology.
 Canonical paths and immutable retained inputs remain host responsibilities.
+
+## Whole-chain observed costs
+
+`method_chain_costs::assess_chain_costs(chain, evidence)` recomputes costs from
+original admitted generation snapshots and bound trial evidence. It accepts no
+caller-authored totals. `ChainStageEvidence::Generation` supplies the retained
+chain binding, allocation, admission, original scope and current snapshots, plus
+an optional exact stage/trial binding and evidence. `TrialOnly` supplies its
+chain binding, trial, scope and evidence without inventing a generation.
+
+Every declared stage appears in declaration order, even if inputs arrive in a
+different order or a stage is omitted. Each retains its full reserved ceiling,
+binding, nested observations and original individual budget assessments. The
+chain totals sum the recomputed combined costs once, without adding the nested
+generation report again. Later use of an already generated method belongs in a
+TrialOnly stage. Distinct attempts producing identical packages still cost money;
+package identity is never used to deduplicate spending.
+
+Duplicate stage inputs, generation operations/requests/prepared identities,
+logical trial identities (including changed bodies under the same name/version),
+organization-scoped run IDs or attempt IDs, or receipt identities across stages are
+errors. The caller must give each effect one cost owner; shared comparison
+references do not authorize charging it twice. Foreign chain/allocation/trial
+bindings fail before aggregation. Existing accounting still rejects substituted
+or malformed evidence and preserves known overruns and unsuccessful attempts.
+The run/attempt rule extends TrialPlan's existing uniqueness policy across the
+chain; changing one label cannot reuse the other within the same organization.
+It rejects ambiguous retained identities, not proof of duplicate physical work.
+
+A generation-only observation is useful before its trial exists: known generation
+costs are included, while `unresolved_trial` keeps the reserved future work unknown.
+An omitted or declined-without-evidence stage is also unknown, never zero spend.
+A bound trial still reports missing execution/scoring evidence through the existing
+cost rows. Known lower bounds, unknown flags, saturating overflow and chain-limit
+excess are separate; nested generation and individual limits remain visible even
+when a larger chain ceiling is not exceeded. Summed request/run wall times are
+not elapsed study duration.
+
+This is a read-only library over trusted retained records, not a CLI, runtime
+guard, global enforcement, exhaustive provider billing, chronological proof or
+acceptance/improvement verdict. It neither authenticates organizations nor proves
+that omitted work did not happen. Adaptive later rounds must prepare their exact
+requests only once feedback exists, within previously retained chain ceilings;
+no future prompt hash is fabricated before those inputs are available.
