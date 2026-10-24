@@ -101,7 +101,10 @@ pub(super) fn validate(record: &Recovery) -> ApiResult<()> {
             retired.local_contract_state,
             ContractState::Declined | ContractState::Released
         )
-        || retired.retired_at.timestamp_subsec_nanos() % 1000 != 0
+        || !retired
+            .retired_at
+            .timestamp_subsec_nanos()
+            .is_multiple_of(1000)
         || retired.send_attempts > MAX_SEND_ATTEMPTS
         || release.validate().is_err()
         || release.org_id != b.job.org_id.as_str()

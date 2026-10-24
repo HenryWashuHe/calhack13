@@ -549,7 +549,10 @@ pub async fn create(
         return Ok((saved.record(), false));
     }
     if !protocol::identifier(&request.client_request_id)
-        || request.deadline.timestamp_subsec_nanos() % 1000 != 0
+        || !request
+            .deadline
+            .timestamp_subsec_nanos()
+            .is_multiple_of(1000)
     {
         return Err(ApiError::bad_request(
             "recovery needs an ASCII request key and a microsecond-precision deadline",
