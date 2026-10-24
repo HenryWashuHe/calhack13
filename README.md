@@ -131,7 +131,7 @@ These are proposed implementation priorities, not completed features. Live spons
 
 The implementation sequence remains subject to the agreed development-method and evaluator contracts; the new demonstration need not use web extraction.
 
-The [documented goal and acceptance criteria](docs/RECURSIVE_CAPABILITY_IMPROVEMENT.md#goal-and-completion-evidence) turn these priorities into a reviewable implementation target. Current assignments and implementation pause boundaries are recorded in the [handoff](docs/AGENT_HANDOFF.md#current-ownership-and-next-work).
+The [documented goal and acceptance criteria](docs/RECURSIVE_CAPABILITY_IMPROVEMENT.md#goal-and-completion-evidence) turn these priorities into a reviewable implementation target. Current assignments and resumption boundaries are recorded in the [handoff](docs/AGENT_HANDOFF.md#current-ownership-and-next-work).
 
 ## Sponsor responsibilities
 
@@ -170,5 +170,7 @@ The Rust kernel remains the authority boundary. Elastic, Apify, and CREAO integr
 - [Team workstreams](docs/TEAM_WORKSTREAMS.md) and [implementation split](docs/NEXT_IMPLEMENTATION_SPLIT.md): coordination history; consult the current handoff before taking ownership.
 
 ## Working together
+
+The [ongoing goal](docs/ONGOING_GOAL.md) defines completion gates, the milestone ledger, and the recurring check/assign/implement/review cycle. It keeps work tied to the fixed-weight capability network.
 
 Consult the [handoff record](docs/AGENT_HANDOFF.md) before changing an active workstream. Use feature branches and pull requests; keep provider credentials and raw runtime logs out of Git. Commit and push working increments so teammates on other machines can integrate them.
