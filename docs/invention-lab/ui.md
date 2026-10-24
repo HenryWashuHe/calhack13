@@ -36,9 +36,12 @@ record type, hash domain or authority.
 | Adoption `Outcome` | `experiments/invention-lab/adoption` ([adoption](adoption.md)) | `adopted` / `not_applicable` / `insufficient_evidence` / `unknown` edge from a receiver org to an exact method ref |
 | Scoring `Verdict` | `experiments/invention-lab/scoring` | Counts inside an adoption: candidate vs control successes of N, or the recorded reason |
 
-Later inputs (execution receipts, roster/admission cost assessments, a
-predeclared comparison report) extend the same model when their owners settle
-them. Until a comparison record exists, the view has no path to "improved".
+| `ExecutionReceipt` | Lab executor (genesis-core `development_method`) | A run of an exact method: binding org/run/attempt, bound vs actually-run method, purpose, outcome, outputs, usage |
+| `EvaluationReceipt` | Trusted scorer (genesis-core `development_evaluation`) | Scoring of one exact output: purpose, outcome, metrics ref or reason, usage |
+
+Later inputs (roster/admission cost assessments, a predeclared comparison
+report) extend the same model when their owners settle them. Until a comparison
+record exists, the view has no path to "improved".
 
 ## Model
 
@@ -99,7 +102,7 @@ location or prose:
 | loopback fixture | transport `loopback_fixture` |
 | unobserved | transport `unobserved` or no completion |
 | operator-observed cloud | transport `anthropic_https`; hashes are local consistency, not provider authentication |
-| local process | execution receipts (future input) |
+| local process | execution and evaluation receipts; host-recorded, not proof of isolation |
 | independent comparison | a predeclared comparison report (future input; none exists) |
 
 Tiers never merge upward: a local-process result next to a cloud generation is
@@ -114,6 +117,24 @@ row with each dimension; package ref or "no package"; the record's own
 A:v1 → B:v2 → A:local decision follows once execution receipts and a genuine
 generated package exist. Until then, a lineage with one failed attempt and no
 nodes is the honest picture.
+
+## Execution and scoring receipts
+
+A run is filed under the method the executor reports it **actually ran**. If
+that differs from the method its frozen binding named, the run is still shown
+there and the mismatch is reported. An evaluation attaches to the single run
+whose outputs include its exact output ref and whose purpose (ordinary,
+acceptance role, or comparison trial/arm) is identical. The view does not
+recompute `execution_sha256`, so the attachment says "matched by output and
+purpose". Zero or several matches leave the evaluation unattached and reported.
+
+Execution outcomes read "output generated", "execution failed",
+"execution interrupted" or "unknown — do not replay". "Output generated" is not
+design success. Evaluation outcomes read "scored", "output invalid for
+scoring", "scoring failed" or "scoring unknown"; "scored" means metrics exist,
+while acceptance remains the adoption verdict. Until a model-generated method
+is executed, these paths are exercised only by synthetic receipts shaped like
+the Rust serializers.
 
 ## Attempt ledger
 

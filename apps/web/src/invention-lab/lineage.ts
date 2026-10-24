@@ -5,9 +5,12 @@
 import { tierOf, type Tier } from "./claims";
 import {
   refKey,
+  samePurpose,
   type AdoptionOutcome,
   type CheckpointOutcome,
+  type EvaluationReceipt,
   type ExactRef,
+  type ExecutionReceipt,
   type GenerationStatus,
   type RevisionObservation,
 } from "./records";
@@ -24,6 +27,17 @@ export interface LabRecords {
   generations: { status: GenerationStatus; checkpoint?: CheckpointOutcome }[];
   revisions?: RevisionObservation[];
   adoptions?: AdoptionInput[];
+  executions?: ExecutionReceipt[];
+  evaluations?: EvaluationReceipt[];
+}
+
+export interface Execution {
+  receipt: ExecutionReceipt;
+  /** Node key of the method the executor reports it ran. */
+  method: string;
+  /** Evaluations whose scored output is one of this run's outputs, with the same purpose.
+   * Matched by exact output ref; `execution_sha256` is not recomputed here. */
+  evaluations: EvaluationReceipt[];
 }
 
 export interface Attempt {
@@ -57,6 +71,7 @@ export interface Lineage {
   attempts: Attempt[];
   nodes: MethodNode[];
   edges: Edge[];
+  executions: Execution[];
   problems: string[];
 }
 
@@ -122,5 +137,27 @@ export function buildLineage(records: LabRecords): Lineage {
     }
   }
 
-  return { attempts, nodes: [...nodes.values()], edges, problems };
+  const executions: Execution[] = [];
+  const runs = new Set<string>();
+  for (const receipt of records.executions ?? []) {
+    const run = `${receipt.org_id}/${receipt.run_id}/${receipt.attempt_id}`;
+    if (runs.has(run)) problems.push(`execution ${run} appears more than once`);
+    runs.add(run);
+    if (refKey(receipt.bound_method) !== refKey(receipt.actual_method))
+      problems.push(`execution ${run} ran a different method than its binding named; shown under the method it ran`);
+    executions.push({ receipt, method: node(receipt.actual_method), evaluations: [] });
+  }
+  for (const ev of records.evaluations ?? []) {
+    const out = refKey(ev.output);
+    const matches = executions.filter(
+      (e) => e.receipt.outputs.some((o) => refKey(o) === out) && samePurpose(e.receipt.purpose, ev.purpose),
+    );
+    if (matches.length === 1) matches[0]!.evaluations.push(ev);
+    else
+      problems.push(
+        `evaluation ${ev.request_id} matches ${matches.length} executions by output and purpose; not attached`,
+      );
+  }
+
+  return { attempts, nodes: [...nodes.values()], edges, executions, problems };
 }
