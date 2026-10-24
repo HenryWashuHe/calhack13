@@ -157,12 +157,60 @@ fn attention(
     record: &AdoptionRecord,
     code: AdoptionAttention,
 ) -> ApiResult<AdoptionRecord> {
-    save(
+    stop(
         app,
         state,
         record,
         record.attention(code, Utc::now()).map_err(error)?,
     )
+}
+
+/// Terminal work must not strand an unaccepted installation in Checking. This
+/// records an operational stop, not a semantic verdict about the parser. The
+/// old child tickets remain available; a later explicit intent is separate work.
+fn stop(
+    app: &AppState,
+    state: &OrgState,
+    previous: &AdoptionRecord,
+    next: AdoptionRecord,
+) -> ApiResult<AdoptionRecord> {
+    let Some(id) = previous.installation_id() else {
+        return save(app, state, previous, next);
+    };
+    let installation = state.installations.get(id).ok_or_else(internal)?;
+    let manifest = previous.selection().ok_or_else(internal)?;
+    if installation.capability != manifest.reference()
+        || installation.source_digest != manifest.source_digest
+        || !app.store.adoption_owns_installation(id).map_err(error)?
+        || app.store.capability_manifest(id).map_err(|_| internal())? != *manifest
+    {
+        return Err(internal());
+    }
+    if installation.status != InstallationStatus::Checking {
+        return save(app, state, previous, next);
+    }
+    let reference = format!("adoption-stopped:{}:{}", previous.id(), next.version());
+    let outcome = engine::finish_installation(
+        state,
+        id,
+        false,
+        &reference,
+        vec!["Verification stopped without an acceptance decision; retained provider effects may still exist".to_owned()],
+    ).map_err(|_| internal())?;
+    let next = next.for_revision(outcome.state.revision).map_err(error)?;
+    let events = app
+        .store
+        .commit_state(
+            state.revision,
+            &outcome.state,
+            outcome.effects,
+            &EventMeta::default(),
+            vec![],
+            |tx| storage::save_in_tx(tx, previous, &next),
+        )
+        .map_err(|_| internal())?;
+    app.broadcast(&events);
+    Ok(next)
 }
 
 /// Returns a fenced or paused record, or None when current work is authorized.
@@ -182,7 +230,7 @@ fn reconcile(
     }
     if let Err(failure) = record.authorize(state, Utc::now()) {
         return match failure {
-            AdoptionError::Authority(reason) => Ok(Some(save(
+            AdoptionError::Authority(reason) => Ok(Some(stop(
                 app,
                 state,
                 record,
