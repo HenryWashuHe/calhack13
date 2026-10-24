@@ -550,6 +550,102 @@ impl Fixture {
             .filter(|o| o.source == CAPABILITY_GAP_SOURCE)
             .count()
     }
+    /// Store commit seam: a delegation rotated the grant (same assignment,
+    /// next epoch), as a transfer would.
+    fn rotate_epoch(&self) {
+        let state = self.state();
+        let gap = state.capability_gaps[&self.gap_id].clone();
+        let mut next = state.clone();
+        let assignment = state
+            .active_assignment(&gap.responsibility_id)
+            .unwrap()
+            .assignment_id
+            .clone();
+        next.responsibilities
+            .get_mut(&gap.responsibility_id)
+            .unwrap()
+            .epoch += 1;
+        next.assignments.get_mut(&assignment).unwrap().epoch += 1;
+        next.revision += 1;
+        self.app
+            .store
+            .commit_state(
+                state.revision,
+                &next,
+                vec![],
+                &EventMeta::default(),
+                vec![],
+                |_| Ok(()),
+            )
+            .unwrap();
+    }
+    /// Another writer closes the gap through the ordinary kernel transition
+    /// (e.g. a second process whose gap driver runs without the adoption
+    /// policy and bound or refused it in the meantime).
+    async fn close_gap(&self, to: CapabilityGapStatus) {
+        let gap = self.gap_id.clone();
+        self.app
+            .mutate(EventMeta::default(), move |state| {
+                engine::update_capability_gap_at(state, &gap, to, Utc::now())
+                    .map(|outcome| (outcome, ()))
+                    .map_err(|e| validation_error(vec![e]))
+            })
+            .await
+            .unwrap();
+    }
+    /// A second SQLite connection to the organization's database, for
+    /// storage-level injections the public API cannot express.
+    fn db(&self) -> rusqlite::Connection {
+        let conn = rusqlite::Connection::open(self.config.db.as_ref().unwrap()).unwrap();
+        conn.busy_timeout(Duration::from_secs(5)).unwrap();
+        conn
+    }
+    /// Rewrite this gap's stored record text (keeping it valid JSON).
+    fn tamper_record(&self, from: &str, to: &str, adoption_id: Option<&str>) {
+        let changed = self
+            .db()
+            .execute(
+                "UPDATE capability_gap_adoptions SET record_json=replace(record_json, ?2, ?3), adoption_id=?4 WHERE gap_id=?1",
+                rusqlite::params![self.gap_id.as_str(), from, to, adoption_id],
+            )
+            .unwrap();
+        assert_eq!(changed, 1);
+    }
+    /// Run one adoption through discovery, its checks and finalization.
+    async fn run_adoption(&self, id: &str) -> Result<(), genesis_server::error::ApiError> {
+        capability_adoption::step(&self.app, id).await?; // select + install
+        capability_adoption::step(&self.app, id).await?; // queue checks
+        self.collect_checks(id).await;
+        capability_adoption::step(&self.app, id).await.map(|_| ()) // finalize
+    }
+    async fn collect_checks(&self, id: &str) {
+        for job in self.app.store.get_adoption(id).unwrap().job_ids() {
+            for _ in 0..10 {
+                let run = self.app.store.get_capability_run(job).unwrap();
+                if run.phase == genesis_server::capability_runtime::CapabilityRunPhase::Collected {
+                    break;
+                }
+                self.app.capability_runtime.step(job, false).await.unwrap();
+            }
+        }
+    }
+    fn operator_intent(
+        &self,
+        key: &str,
+    ) -> genesis_server::capability_adoption_store::CreateAdoption {
+        let state = self.state();
+        let gap = &state.capability_gaps[&self.gap_id];
+        genesis_server::capability_adoption_store::CreateAdoption {
+            client_request_id: key.into(),
+            mission_id: gap.mission_id.clone(),
+            requirement_id: gap.requirement_id.clone(),
+            role_id: gap.role_id.clone(),
+            responsibility_id: gap.responsibility_id.clone(),
+            suite_id: b_suite().suite_id,
+            provider_access_acknowledged: true,
+            deadline: None,
+        }
+    }
 }
 
 async fn seed(app: &AppState, sibling: bool) -> (CapabilityGapId, RequirementId) {
@@ -1330,4 +1426,403 @@ async fn unknown_check_outcomes_need_an_operator_and_retries_are_bounded() {
     assert_eq!(f.adoptions().len(), 3);
     assert!(!f.driver_bound());
     assert_eq!(f.gap_status(), CapabilityGapStatus::Open);
+}
+
+async fn adoption_status(f: &Fixture, gap: &str) -> (reqwest::StatusCode, Value) {
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let url = format!("http://{}", listener.local_addr().unwrap());
+    let router = f.app.clone().router();
+    let server = tokio::spawn(async move { axum::serve(listener, router).await.unwrap() });
+    let response = reqwest::Client::builder()
+        .no_proxy()
+        .build()
+        .unwrap()
+        .get(format!("{url}/api/v1/capability-gaps/{gap}/adoption"))
+        .bearer_auth(format!("{ORG}-operator"))
+        .send()
+        .await
+        .unwrap();
+    let status = response.status();
+    let body = response.json().await.unwrap_or(Value::Null);
+    server.abort();
+    (status, body)
+}
+
+#[tokio::test]
+async fn a_link_whose_record_changed_underneath_fails_the_whole_acceptance() {
+    // Compare-and-swap: the acceptance transaction links from the record it
+    // read. If another writer changes that record before the link is saved,
+    // the stale link must conflict and fail the acceptance whole; it must not
+    // commit the gap installed while the record write silently matched no row.
+    let f = Fixture::new(Options::default()).await;
+    assert_eq!(f.drain().await, Some(Step::Frozen));
+    assert_eq!(f.drain().await, Some(Step::Dispatched));
+    let id = f.record().unwrap().adoption_id.unwrap();
+    capability_adoption::step(&f.app, &id).await.unwrap(); // select + install
+    capability_adoption::step(&f.app, &id).await.unwrap(); // queue checks
+    f.collect_checks(&id).await;
+    let before = f.record().unwrap();
+    // Inject a concurrent writer between the link's read and its save: the
+    // adoption's own phase write in the acceptance transaction (which runs
+    // just before the link is saved) also rewrites the gap record.
+    f.db()
+        .execute_batch(
+            "CREATE TRIGGER concurrent_gap_writer AFTER UPDATE OF phase ON capability_adoptions
+             WHEN NEW.phase <> OLD.phase
+             BEGIN
+               UPDATE capability_gap_adoptions
+                  SET record_json = replace(record_json, '\"code\":null', '\"code\":\"conflict\"');
+             END;",
+        )
+        .unwrap();
+    assert!(capability_adoption::step(&f.app, &id).await.is_err());
+    assert_eq!(
+        f.app.store.get_adoption(&id).unwrap().phase(),
+        AdoptionPhase::Checking
+    );
+    assert_eq!(f.gap_status(), CapabilityGapStatus::Open);
+    assert_eq!(
+        f.record().unwrap(),
+        before,
+        "the whole transaction rolled back"
+    );
+    assert_eq!(f.gap_notes(), 0);
+
+    // Once the conflict clears, the retried acceptance links atomically.
+    f.db()
+        .execute_batch("DROP TRIGGER concurrent_gap_writer;")
+        .unwrap();
+    capability_adoption::step(&f.app, &id).await.unwrap();
+    assert_eq!(
+        f.app.store.get_adoption(&id).unwrap().phase(),
+        AdoptionPhase::Accepted
+    );
+    assert_eq!(installed(&f.gap_status()).unwrap().0, id);
+    assert_eq!(f.record().unwrap().state, GapAdoptionState::Installed);
+}
+
+#[tokio::test]
+async fn lost_authority_is_refused_before_the_adoption_fences_itself() {
+    // The coordinator mirrors the adoption's own fence early: the very next
+    // pass refuses the gap, even before the adoption has stepped again.
+    let f = Fixture::new(Options::default()).await;
+    f.drain().await;
+    assert_eq!(f.drain().await, Some(Step::Dispatched));
+    let id = f.record().unwrap().adoption_id.unwrap();
+    f.change_requirement();
+    assert_eq!(
+        f.drain().await,
+        Some(Step::Refused(GapAdoptionCode::Authority))
+    );
+    assert_eq!(
+        f.app.store.get_adoption(&id).unwrap().phase(),
+        AdoptionPhase::Discovering,
+        "refused before the adoption fenced itself"
+    );
+    assert!(matches!(
+        f.gap_status(),
+        CapabilityGapStatus::Refused { acquisition_id: Some(ref link), .. } if *link == id
+    ));
+    assert_eq!(f.record().unwrap().state, GapAdoptionState::Refused);
+    assert_eq!(f.searches(), 0);
+    assert_eq!(f.gap_notes(), 1);
+}
+
+#[tokio::test]
+async fn a_changed_suite_stops_dispatch_at_configuration() {
+    // The suite frozen with the intent changed (same ID, different cases)
+    // before dispatch: no adoption is created under the new suite.
+    let mut f = Fixture::new(Options::default()).await;
+    assert_eq!(f.drain().await, Some(Step::Frozen));
+    let mut suite = b_suite();
+    suite.cases[0].input["attendees"] =
+        json!(suite.cases[0].input["attendees"].as_u64().unwrap() + 1);
+    f.config.oracle_suites = vec![suite];
+    f.reopen();
+    assert_eq!(
+        f.drain().await,
+        Some(Step::Attention(GapAdoptionCode::Configuration))
+    );
+    assert!(f.adoptions().is_empty());
+    assert!(f.record().unwrap().adoption_id.is_none());
+    assert_eq!(f.gap_status(), CapabilityGapStatus::Open);
+    assert_eq!(f.searches(), 0);
+}
+
+#[tokio::test]
+async fn an_adoption_under_the_key_from_an_earlier_grant_is_not_adopted() {
+    // The adoption store replays an identical intent by key regardless of the
+    // grant it was created under. An adoption squatting the coordinator's key
+    // from before a delegation rotated the epoch replays to the coordinator,
+    // which must not record it as its own.
+    let f = Fixture::new(Options::default()).await;
+    let squatter = f.operator_intent(&format!("gap-adopt:{}", f.gap_id));
+    let (squatted, _) = f
+        .app
+        .store
+        .create_adoption(&squatter, &b_suite(), Utc::now())
+        .unwrap();
+    let old_epoch = squatted.binding().grant.epoch;
+    f.rotate_epoch();
+    assert_eq!(f.drain().await, Some(Step::Frozen));
+    assert_eq!(f.record().unwrap().epoch, old_epoch + 1);
+    assert_eq!(
+        f.drain().await,
+        Some(Step::Attention(GapAdoptionCode::InvalidRecord))
+    );
+    let record = f.record().unwrap();
+    assert!(record.adoption_id.is_none());
+    assert_eq!(f.adoptions().len(), 1);
+    assert_eq!(f.gap_status(), CapabilityGapStatus::Open);
+    capability_gap_driver::drain_once(&f.app).await.unwrap();
+    assert!(!f.driver_bound());
+}
+
+#[tokio::test]
+async fn a_record_rewritten_to_name_another_adoption_is_invalid() {
+    // Storage-level tamper: the stored ID names an operator's adoption for the
+    // same requirement. Its progress must not drive the gap.
+    let f = Fixture::new(Options::default()).await;
+    assert_eq!(f.drain().await, Some(Step::Frozen));
+    let (operator, _) = f
+        .app
+        .store
+        .create_adoption(
+            &f.operator_intent("operator-adoption"),
+            &b_suite(),
+            Utc::now(),
+        )
+        .unwrap();
+    // The operator's adoption holds the requirement slot.
+    assert_eq!(f.drain().await, Some(Step::Waiting));
+    f.tamper_record(
+        "\"adoption_id\":null",
+        &format!("\"adoption_id\":\"{}\"", operator.id()),
+        Some(operator.id()),
+    );
+    assert_eq!(
+        f.drain().await,
+        Some(Step::Attention(GapAdoptionCode::InvalidRecord))
+    );
+    assert_eq!(f.gap_status(), CapabilityGapStatus::Open);
+    assert_eq!(
+        f.app.store.get_adoption(operator.id()).unwrap().phase(),
+        AdoptionPhase::Discovering
+    );
+}
+
+#[tokio::test]
+async fn a_stopped_record_is_not_stepped_again() {
+    let f = Fixture::new(Options {
+        registry_up: false,
+        ..Options::default()
+    })
+    .await;
+    f.drain().await;
+    f.drain().await;
+    f.adoption_step().await;
+    assert_eq!(
+        f.drain().await,
+        Some(Step::Attention(GapAdoptionCode::Registry))
+    );
+    let stopped = f.record().unwrap();
+    for _ in 0..2 {
+        assert_eq!(f.drain().await, Some(Step::Idle));
+    }
+    assert_eq!(f.record().unwrap(), stopped, "not rewritten");
+
+    // A released record, too, is left alone while its gap is still open.
+    let f = Fixture::new(Options {
+        foreign: false,
+        ..Options::default()
+    })
+    .await;
+    f.drain().await;
+    f.drain().await;
+    f.adoption_step().await;
+    assert_eq!(f.drain().await, Some(Step::Released));
+    let released = f.record().unwrap();
+    assert_eq!(f.drain().await, Some(Step::Idle));
+    assert_eq!(f.record().unwrap(), released);
+}
+
+#[tokio::test]
+async fn a_gap_closed_by_another_writer_is_never_frozen_or_deferred() {
+    let f = Fixture::new(Options::default()).await;
+    f.close_gap(CapabilityGapStatus::Refused {
+        reason: "closed elsewhere".into(),
+        acquisition_id: None,
+    })
+    .await;
+    let gap = f.state().capability_gaps[&f.gap_id].clone();
+    assert!(!capability_gap_adoption::defers_driver(&f.app, &gap));
+    assert_eq!(f.drain().await, None, "only open gaps are listed");
+    assert_eq!(
+        capability_gap_adoption::step(&f.app, &f.gap_id)
+            .await
+            .unwrap(),
+        Step::Idle
+    );
+    assert!(f.record().is_none());
+}
+
+#[tokio::test]
+async fn a_frozen_gap_bound_elsewhere_before_dispatch_creates_no_adoption() {
+    // A driver in another process bound the gap between freeze and dispatch.
+    let f = Fixture::new(Options::default()).await;
+    assert_eq!(f.drain().await, Some(Step::Frozen));
+    f.close_gap(CapabilityGapStatus::Acquiring {
+        acquisition_id: "acquisition-elsewhere".into(),
+    })
+    .await;
+    let gap = f.state().capability_gaps[&f.gap_id].clone();
+    // The driver must keep progressing the gap it bound.
+    assert!(!capability_gap_adoption::defers_driver(&f.app, &gap));
+    assert_eq!(
+        f.drain().await,
+        Some(Step::Attention(GapAdoptionCode::InvalidRecord))
+    );
+    assert!(f.adoptions().is_empty());
+    assert_eq!(f.searches(), 0);
+    assert!(matches!(
+        f.gap_status(),
+        CapabilityGapStatus::Acquiring { .. }
+    ));
+}
+
+#[tokio::test]
+async fn a_definite_outcome_for_a_gap_closed_elsewhere_stops_at_attention() {
+    let f = Fixture::new(Options {
+        foreign: false,
+        fallback: false,
+        ..Options::default()
+    })
+    .await;
+    f.drain().await;
+    f.drain().await;
+    f.adoption_step().await;
+    let closed = CapabilityGapStatus::Refused {
+        reason: "closed elsewhere".into(),
+        acquisition_id: None,
+    };
+    f.close_gap(closed.clone()).await;
+    let notes = f.gap_notes();
+    assert_eq!(
+        f.drain().await,
+        Some(Step::Attention(GapAdoptionCode::NoCandidate))
+    );
+    let record = f.record().unwrap();
+    assert_eq!(record.state, GapAdoptionState::Attention);
+    assert!(record.adoption_id.is_some());
+    // The other writer's decision stands; no second refusal or note.
+    assert_eq!(f.gap_status(), closed);
+    assert_eq!(f.gap_notes(), notes);
+}
+
+#[tokio::test]
+async fn a_retry_is_refused_once_the_gap_is_closed() {
+    let f = Fixture::new(Options {
+        failed_searches: 1,
+        ..Options::default()
+    })
+    .await;
+    f.drain().await;
+    f.drain().await;
+    f.adoption_step().await;
+    assert_eq!(
+        f.drain().await,
+        Some(Step::Attention(GapAdoptionCode::Registry))
+    );
+    f.close_gap(CapabilityGapStatus::Refused {
+        reason: "closed elsewhere".into(),
+        acquisition_id: None,
+    })
+    .await;
+    let stopped = f.record().unwrap();
+    let (status, body) = retry(&f, "operator").await;
+    assert_eq!(status, reqwest::StatusCode::CONFLICT, "{body}");
+    assert_eq!(f.record().unwrap(), stopped);
+    assert_eq!(f.drain().await, None);
+    assert_eq!(f.adoptions().len(), 1);
+    assert_eq!(f.searches(), 1);
+
+    // Status of an unknown gap is not found, not an empty record.
+    let (status, _) = adoption_status(&f, "no-such-gap").await;
+    assert_eq!(status, reqwest::StatusCode::NOT_FOUND);
+    let (status, body) = adoption_status(&f, f.gap_id.as_str()).await;
+    assert_eq!(status, reqwest::StatusCode::OK);
+    assert_eq!(body["code"], "registry");
+}
+
+#[tokio::test]
+async fn a_database_without_the_adoption_table_has_no_records() {
+    // Adopt-first off. Without a policy the pass returns nothing (it does not
+    // even take the kernel lock), and a database whose adoption table is
+    // missing reads as having no records everywhere, including inside an
+    // ordinary adoption's acceptance transaction.
+    let f = Fixture::new(Options {
+        adopt_first: false,
+        ..Options::default()
+    })
+    .await;
+    assert!(capability_gap_adoption::drain_once(&f.app)
+        .await
+        .unwrap()
+        .is_empty());
+    let (adoption, _) = f
+        .app
+        .store
+        .create_adoption(
+            &f.operator_intent("operator-adoption"),
+            &b_suite(),
+            Utc::now(),
+        )
+        .unwrap();
+    f.db()
+        .execute_batch("DROP TABLE capability_gap_adoptions;")
+        .unwrap();
+    assert!(f.record().is_none());
+    assert!(capability_gap_adoption::drain_once(&f.app)
+        .await
+        .unwrap()
+        .is_empty());
+    let (status, body) = adoption_status(&f, f.gap_id.as_str()).await;
+    assert_eq!(status, reqwest::StatusCode::OK, "{body}");
+    assert_eq!(body["state"], Value::Null);
+    f.run_adoption(adoption.id()).await.unwrap();
+    assert_eq!(
+        f.app.store.get_adoption(adoption.id()).unwrap().phase(),
+        AdoptionPhase::Accepted
+    );
+    assert_eq!(f.gap_status(), CapabilityGapStatus::Open);
+}
+
+#[tokio::test]
+async fn stored_records_that_disagree_with_their_row_or_gap_are_not_trusted() {
+    // A record stored under this gap's row naming another gap is unreadable,
+    // and the driver defers it rather than binding.
+    let f = Fixture::new(Options::default()).await;
+    assert_eq!(f.drain().await, Some(Step::Frozen));
+    f.tamper_record(
+        &format!("\"gap_id\":\"{}\"", f.gap_id),
+        "\"gap_id\":\"some-other-gap\"",
+        None,
+    );
+    assert!(f.app.store.gap_adoption(&f.gap_id).is_err());
+    capability_gap_driver::drain_once(&f.app).await.unwrap();
+    assert!(!f.driver_bound());
+
+    // A linked gap whose record was rewritten back to active stays linked:
+    // the pass recognizes its own installation and does nothing.
+    let f = Fixture::new(Options::default()).await;
+    f.drain().await;
+    f.drain().await;
+    let id = f.record().unwrap().adoption_id.unwrap();
+    f.run_adoption(&id).await.unwrap();
+    assert_eq!(installed(&f.gap_status()).unwrap().0, id);
+    f.tamper_record("\"state\":\"installed\"", "\"state\":\"active\"", Some(&id));
+    let rewritten = f.record().unwrap();
+    assert_eq!(f.drain().await, Some(Step::Idle));
+    assert_eq!(f.record().unwrap(), rewritten);
+    assert_eq!(installed(&f.gap_status()).unwrap().0, id);
 }
