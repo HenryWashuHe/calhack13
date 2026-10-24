@@ -11,11 +11,12 @@ use axum::{
 use chrono::Utc;
 use genesis_apify::{ApifyClient, RunLimits};
 use genesis_core::{
+    capability::CapabilityManifest,
     change::{KeyAllocation, OrgChangeProposal},
     engine::{self, MissionBootstrap},
     ids::*,
     lifecycle::InstallationStatus,
-    model::{CapabilityGap, CapabilityGapStatus},
+    model::{CapabilityGap, CapabilityGapStatus, OrgState},
 };
 use genesis_forge::{AcquisitionPhase, AnthropicGenerator, ModelConfig, PublicExample};
 use genesis_providers::{ApifyCapabilityExecutor, ProviderSet};
@@ -1421,4 +1422,668 @@ async fn review_sibling_attention_preserves_an_inflight_unknown_submission() {
         result.failure,
         Some(genesis_providers::ProviderError::Unknown(_))
     ));
+}
+
+// ---------------------------------------------------------------------------
+// Guard pins. Each test below observes one finalizer fence directly: the
+// returned step, provider/registry effects, and record/gap/installation state.
+// Kernel edits use the same commit seam as the review tests above; gap
+// refusals go through the kernel's own transition validation.
+// ---------------------------------------------------------------------------
+
+/// Refuse the gap through the kernel's transition rules. Caller holds the
+/// kernel lock.
+fn guard_refuse_gap_locked(app: &AppState, gap_id: &CapabilityGapId) {
+    let before = app.current_state().unwrap();
+    let gap = before.capability_gaps[gap_id].clone();
+    let outcome = engine::update_capability_gap_at(
+        &before,
+        gap_id,
+        CapabilityGapStatus::Refused {
+            reason: "Closed by the organization while finalization was pending".into(),
+            acquisition_id: gap.status.acquisition_id().map(str::to_owned),
+        },
+        Utc::now(),
+    )
+    .unwrap();
+    app.store
+        .commit_state(
+            before.revision,
+            &outcome.state,
+            outcome.effects,
+            &EventMeta::mission(gap.mission_id),
+            vec![],
+            |_| Ok(()),
+        )
+        .unwrap();
+    assert!(matches!(
+        app.current_state().unwrap().capability_gaps[gap_id].status,
+        CapabilityGapStatus::Refused { .. }
+    ));
+}
+
+async fn guard_refuse_gap(f: &Fixture) {
+    let _guard = f.app.kernel.lock().await;
+    guard_refuse_gap_locked(&f.app, &f.gap_id);
+}
+
+/// Commit an arbitrary state edit through the store seam.
+async fn guard_edit_state(f: &Fixture, change: impl FnOnce(&mut OrgState)) {
+    let _guard = f.app.kernel.lock().await;
+    let before = f.app.current_state().unwrap();
+    let mut after = before.clone();
+    change(&mut after);
+    after.revision += 1;
+    f.app
+        .store
+        .commit_state(
+            before.revision,
+            &after,
+            vec![],
+            &EventMeta::default(),
+            vec![],
+            |_| Ok(()),
+        )
+        .unwrap();
+}
+
+async fn guard_steps(f: &Fixture, expected: &[Step]) {
+    for step in expected {
+        assert_eq!(&f.finalize_step().await, step);
+    }
+}
+
+fn guard_record(f: &Fixture) -> capability_gap_finalizer::FinalizationRecord {
+    f.app.store.gap_finalization(&f.gap_id).unwrap().unwrap()
+}
+
+/// A registry endpoint that answers every version read with `manifest`:
+/// stored registry content that no longer matches what was confirmed.
+struct GuardRegistry {
+    task: tokio::task::JoinHandle<()>,
+}
+impl Drop for GuardRegistry {
+    fn drop(&mut self) {
+        self.task.abort();
+    }
+}
+
+/// Point the organization at a registry serving the confirmed manifest after
+/// `change`. Returns the real registry URL so the caller can switch back.
+async fn guard_serve_changed_manifest(
+    f: &mut Fixture,
+    change: impl FnOnce(&mut CapabilityManifest),
+) -> (GuardRegistry, Option<String>) {
+    let record = guard_record(f);
+    let mut manifest = f
+        .app
+        .registry
+        .as_ref()
+        .unwrap()
+        .manifest(&record.capability.capability_id, &record.capability.version)
+        .await
+        .unwrap();
+    change(&mut manifest);
+    let served = serde_json::to_value(&manifest).unwrap();
+    let router = Router::new().fallback(move |request: Request| {
+        let served = served.clone();
+        async move {
+            if request.method() == "GET"
+                && request
+                    .uri()
+                    .path()
+                    .starts_with("/registry/v1/capabilities/")
+            {
+                (StatusCode::OK, Json(served))
+            } else {
+                (StatusCode::NOT_FOUND, Json(json!({"error":"not served"})))
+            }
+        }
+    });
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let url = format!("http://{}", listener.local_addr().unwrap());
+    let task = tokio::spawn(async move { axum::serve(listener, router).await.unwrap() });
+    let real = f.config.registry_url.replace(url);
+    f.reopen();
+    (GuardRegistry { task }, real)
+}
+
+fn guard_restore_registry(f: &mut Fixture, real: Option<String>) {
+    f.config.registry_url = real;
+    f.reopen();
+}
+
+/// Install, check and accept the published version through the public API
+/// with the given role/responsibility, before the finalizer selects one.
+async fn guard_public_acceptance(
+    f: &Fixture,
+    role: &RoleId,
+    responsibility: &ResponsibilityId,
+    accept: bool,
+) -> InstallationId {
+    let record = guard_record(f);
+    let base = serve_url(f).await;
+    let http = reqwest::Client::new();
+    let response = http
+        .post(format!("{base}/api/v1/capability-installations"))
+        .bearer_auth(format!("{ORG}-operator"))
+        .json(&json!({"capability_id":record.capability.capability_id,
+            "version":record.capability.version,"configuration":{}}))
+        .send()
+        .await
+        .unwrap();
+    let status = response.status();
+    let body: Value = response.json().await.unwrap();
+    assert_eq!(status.as_u16(), 201, "{body}");
+    let id = InstallationId::new(body["installation_id"].as_str().unwrap());
+    if !accept {
+        return id;
+    }
+    let response = http
+        .post(format!(
+            "{base}/api/v1/capability-installations/{id}/checks"
+        ))
+        .bearer_auth(format!("{ORG}-operator"))
+        .json(&json!({"client_request_id":"guard-public-acceptance",
+            "role_id":role,"responsibility_id":responsibility,"suite_id":record.suite_id}))
+        .send()
+        .await
+        .unwrap();
+    let status = response.status();
+    let checks: Value = response.json().await.unwrap();
+    assert_eq!(status.as_u16(), 202, "{checks}");
+    let jobs: Vec<JobId> = serde_json::from_value(checks["job_ids"].clone()).unwrap();
+    for job in &jobs {
+        for _ in 0..10 {
+            if f.app.store.get_capability_run(job).unwrap().phase
+                == genesis_server::capability_runtime::CapabilityRunPhase::Collected
+            {
+                break;
+            }
+            f.app.capability_runtime.step(job, false).await.unwrap();
+        }
+    }
+    let response = http
+        .post(format!(
+            "{base}/api/v1/capability-installations/{id}/acceptance"
+        ))
+        .bearer_auth(format!("{ORG}-operator"))
+        .json(&json!({"suite_id":record.suite_id,"job_ids":jobs}))
+        .send()
+        .await
+        .unwrap();
+    let status = response.status();
+    let accepted: Value = response.json().await.unwrap();
+    assert_eq!(status.as_u16(), 200, "{accepted}");
+    assert_eq!(accepted["installation"]["status"], "ACCEPTED");
+    id
+}
+
+fn guard_not_installed(f: &Fixture) {
+    assert!(
+        matches!(f.gap().status, CapabilityGapStatus::Acquired { .. }),
+        "{:?}",
+        f.gap().status
+    );
+}
+
+// --- Freeze ----------------------------------------------------------------
+
+#[tokio::test]
+async fn guard_freeze_rereads_the_gap_under_the_kernel_lock() {
+    let f = Fixture::new(&["capability.acquire", PERMISSION]).await;
+    f.acquire().await;
+    // Freeze reads the gap, then verifies the acquisition without holding the
+    // kernel lock. A refusal committed in that window must be seen.
+    let guard = f.app.kernel.lock().await;
+    let (app, gap) = (f.app.clone(), f.gap_id.clone());
+    let step = tokio::spawn(async move { capability_gap_finalizer::step(&app, &gap).await });
+    for _ in 0..20 {
+        tokio::task::yield_now().await;
+    }
+    guard_refuse_gap_locked(&f.app, &f.gap_id);
+    drop(guard);
+    assert_eq!(step.await.unwrap().unwrap(), Step::Idle);
+    assert!(
+        f.app.store.gap_finalization(&f.gap_id).unwrap().is_none(),
+        "no record is frozen for a gap that is no longer acquired"
+    );
+}
+
+// --- Gap still names the acquisition at every stage ------------------------
+
+#[tokio::test]
+async fn guard_publish_stops_before_the_registry_when_the_gap_moved_on() {
+    let f = Fixture::new(&["capability.acquire", PERMISSION]).await;
+    f.acquire().await;
+    guard_steps(&f, &[Step::Frozen]).await;
+    guard_refuse_gap(&f).await;
+    assert_eq!(
+        f.finalize_step().await,
+        Step::Attention(FinalizerCode::Acquisition)
+    );
+    let record = guard_record(&f);
+    assert!(record.publication_ref.is_none());
+    assert!(
+        f.app
+            .registry
+            .as_ref()
+            .unwrap()
+            .manifest(&record.capability.capability_id, &record.capability.version)
+            .await
+            .is_err(),
+        "nothing was published for a gap that no longer names the acquisition"
+    );
+}
+
+#[tokio::test]
+async fn guard_install_stops_when_the_gap_moved_on() {
+    let f = Fixture::new(&["capability.acquire", PERMISSION]).await;
+    f.acquire().await;
+    guard_steps(&f, &[Step::Frozen, Step::Published]).await;
+    guard_refuse_gap(&f).await;
+    assert_eq!(
+        f.finalize_step().await,
+        Step::Attention(FinalizerCode::Acquisition)
+    );
+    assert!(f.app.current_state().unwrap().installations.is_empty());
+    assert!(guard_record(&f).installation_id.is_none());
+}
+
+#[tokio::test]
+async fn guard_checks_are_not_queued_when_the_gap_moved_on() {
+    let f = Fixture::new(&["capability.acquire", PERMISSION]).await;
+    f.acquire().await;
+    guard_steps(&f, &[Step::Frozen, Step::Published, Step::Installing]).await;
+    guard_refuse_gap(&f).await;
+    let posts = f.providers.count("POST", "/runs");
+    assert_eq!(
+        f.finalize_step().await,
+        Step::Attention(FinalizerCode::Acquisition)
+    );
+    let record = guard_record(&f);
+    assert!(record.job_ids.is_empty(), "no check batch was queued");
+    assert!(f
+        .app
+        .store
+        .capability_check_batch(&record.client_request_id())
+        .unwrap()
+        .is_none());
+    assert_eq!(f.providers.count("POST", "/runs"), posts);
+}
+
+#[tokio::test]
+async fn guard_acceptance_stops_when_the_gap_moved_on() {
+    let f = Fixture::new(&["capability.acquire", PERMISSION]).await;
+    f.acquire().await;
+    guard_steps(
+        &f,
+        &[
+            Step::Frozen,
+            Step::Published,
+            Step::Installing,
+            Step::Checking,
+        ],
+    )
+    .await;
+    f.run_checks().await;
+    guard_refuse_gap(&f).await;
+    assert_eq!(
+        f.finalize_step().await,
+        Step::Attention(FinalizerCode::Acquisition)
+    );
+    let record = guard_record(&f);
+    assert_eq!(
+        f.app.current_state().unwrap().installations[record.installation_id.as_ref().unwrap()]
+            .status,
+        InstallationStatus::Checking,
+        "the installation is neither accepted nor closed by the finalizer"
+    );
+    assert!(f
+        .app
+        .store
+        .capability_acceptance(record.installation_id.as_ref().unwrap())
+        .unwrap()
+        .is_none());
+}
+
+// --- Authority -------------------------------------------------------------
+
+#[tokio::test]
+async fn guard_lost_authority_refuses_while_checks_are_still_pending() {
+    let f = Fixture::new(&["capability.acquire", PERMISSION]).await;
+    f.acquire().await;
+    guard_steps(
+        &f,
+        &[
+            Step::Frozen,
+            Step::Published,
+            Step::Installing,
+            Step::Checking,
+        ],
+    )
+    .await;
+    // No run has been collected yet; the live requirement is satisfied.
+    review_commit_requirement(&f, |requirement| {
+        requirement.status = genesis_core::lifecycle::RequirementStatus::Satisfied;
+    })
+    .await;
+    let posts = f.providers.count("POST", "/runs");
+    assert_eq!(f.finalize_step().await, Step::Refused);
+    let record = guard_record(&f);
+    assert_eq!(record.state, FinalizerState::Refused);
+    assert_eq!(record.code, Some(FinalizerCode::Authority));
+    let CapabilityGapStatus::Refused { reason, .. } = f.gap().status else {
+        panic!("{:?}", f.gap().status)
+    };
+    assert!(reason.contains("authority"), "{reason}");
+    assert_eq!(
+        f.app.current_state().unwrap().installations[record.installation_id.as_ref().unwrap()]
+            .status,
+        InstallationStatus::Rejected
+    );
+    assert_eq!(f.providers.count("POST", "/runs"), posts);
+}
+
+#[tokio::test]
+async fn guard_accepted_installation_checked_under_another_responsibility_is_not_reused() {
+    let f = Fixture::new(&["capability.acquire", PERMISSION]).await;
+    f.acquire().await;
+    guard_steps(&f, &[Step::Frozen, Step::Published]).await;
+    let record = guard_record(&f);
+    let state = f.app.current_state().unwrap();
+    // The same role's other responsibility, which it legitimately holds.
+    let other = state
+        .responsibilities
+        .values()
+        .find(|r| r.responsibility_id != record.responsibility_id && r.purpose == "Coordinate")
+        .unwrap()
+        .responsibility_id
+        .clone();
+    let installation = guard_public_acceptance(&f, &record.role_id, &other, true).await;
+    let posts = f.providers.count("POST", "/runs");
+    assert_eq!(
+        f.finalize_step().await,
+        Step::Attention(FinalizerCode::Installation)
+    );
+    assert!(guard_record(&f).installation_id.is_none());
+    guard_not_installed(&f);
+    assert_eq!(
+        f.app.current_state().unwrap().installations[&installation].status,
+        InstallationStatus::Accepted
+    );
+    assert_eq!(f.providers.count("POST", "/runs"), posts);
+}
+
+#[tokio::test]
+async fn guard_accepted_installation_with_unauthorized_proof_jobs_is_not_reused() {
+    let mut f = Fixture::new(&["capability.acquire", PERMISSION]).await;
+    f.acquire().await;
+    guard_steps(&f, &[Step::Frozen, Step::Published]).await;
+    let record = guard_record(&f);
+    // An installation of the same pin whose proof jobs needed one more scope.
+    let (registry, real) = guard_serve_changed_manifest(&mut f, |m| {
+        m.required_permissions.insert("capability.acquire".into());
+    })
+    .await;
+    let installation =
+        guard_public_acceptance(&f, &record.role_id, &record.responsibility_id, true).await;
+    drop(registry);
+    guard_restore_registry(&mut f, real);
+    // The role keeps every scope the frozen manifest needs, but not that one.
+    let role = record.role_id.clone();
+    guard_edit_state(&f, |state| {
+        state
+            .roles
+            .get_mut(&role)
+            .unwrap()
+            .authority
+            .scopes
+            .remove("capability.acquire");
+    })
+    .await;
+    let step = f.finalize_step().await;
+    assert!(
+        matches!(
+            step,
+            Step::Attention(FinalizerCode::Authority | FinalizerCode::Installation)
+        ),
+        "{step:?}"
+    );
+    assert!(guard_record(&f).installation_id.is_none());
+    guard_not_installed(&f);
+    assert_eq!(
+        f.app.current_state().unwrap().installations[&installation].status,
+        InstallationStatus::Accepted
+    );
+}
+
+#[tokio::test]
+async fn guard_acceptance_rechecks_each_check_job_grant() {
+    let mut f = Fixture::new(&["capability.acquire", PERMISSION]).await;
+    f.acquire().await;
+    guard_steps(&f, &[Step::Frozen, Step::Published]).await;
+    let record = guard_record(&f);
+    // A still-checking installation of the same pin whose check jobs need one
+    // more scope than the frozen manifest.
+    let (registry, real) = guard_serve_changed_manifest(&mut f, |m| {
+        m.required_permissions.insert("capability.acquire".into());
+    })
+    .await;
+    guard_public_acceptance(&f, &record.role_id, &record.responsibility_id, false).await;
+    drop(registry);
+    guard_restore_registry(&mut f, real);
+    let mut step = f.finalize_step().await;
+    if step == Step::Installing {
+        step = f.finalize_step().await;
+    }
+    if step == Step::Checking {
+        f.run_checks().await;
+        let role = record.role_id.clone();
+        guard_edit_state(&f, |state| {
+            state
+                .roles
+                .get_mut(&role)
+                .unwrap()
+                .authority
+                .scopes
+                .remove("capability.acquire");
+        })
+        .await;
+        step = f.finalize_step().await;
+    }
+    assert!(
+        matches!(step, Step::Refused | Step::Attention(_)),
+        "a check job that is no longer authorized must not be accepted: {step:?}"
+    );
+    guard_not_installed_or_refused(&f);
+    assert!(f
+        .app
+        .current_state()
+        .unwrap()
+        .installations
+        .values()
+        .all(|i| i.status != InstallationStatus::Accepted));
+}
+
+fn guard_not_installed_or_refused(f: &Fixture) {
+    assert!(
+        !matches!(f.gap().status, CapabilityGapStatus::Installed { .. }),
+        "{:?}",
+        f.gap().status
+    );
+}
+
+// --- Installation integrity ------------------------------------------------
+
+#[tokio::test]
+async fn guard_install_requires_the_frozen_pin_and_this_publisher() {
+    let mut f = Fixture::new(&["capability.acquire", PERMISSION]).await;
+    f.acquire().await;
+    guard_steps(&f, &[Step::Frozen, Step::Published]).await;
+    // The registry now serves a different build at the confirmed version.
+    let (registry, real) = guard_serve_changed_manifest(&mut f, |m| {
+        m.artifact.build_id = "build-substituted".into();
+    })
+    .await;
+    assert_eq!(
+        f.finalize_step().await,
+        Step::Attention(FinalizerCode::Installation)
+    );
+    assert!(f.app.current_state().unwrap().installations.is_empty());
+    drop(registry);
+    guard_restore_registry(&mut f, real);
+
+    // After an operator retry, the same pin from another publisher also stops.
+    let (_registry, _) = guard_serve_changed_manifest(&mut f, |m| {
+        m.publisher = OrgId::new("org-elsewhere");
+    })
+    .await;
+    let response = reqwest::Client::new()
+        .post(format!(
+            "{}/api/v1/capability-gaps/{}/finalization/retry",
+            serve_url(&f).await,
+            f.gap_id
+        ))
+        .bearer_auth(format!("{ORG}-operator"))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(
+        f.finalize_step().await,
+        Step::Attention(FinalizerCode::Installation)
+    );
+    assert!(f.app.current_state().unwrap().installations.is_empty());
+    assert!(guard_record(&f).installation_id.is_none());
+}
+
+#[tokio::test]
+async fn guard_install_rechecks_the_registry_manifest_is_installable() {
+    let mut f = Fixture::new(&["capability.acquire", PERMISSION]).await;
+    f.acquire().await;
+    guard_steps(&f, &[Step::Frozen, Step::Published]).await;
+    // Same pin and publisher, but its report now records a failed case.
+    let (_registry, _) = guard_serve_changed_manifest(&mut f, |m| {
+        assert!(!m.verification.cases.is_empty());
+        m.verification.cases[0].passed = false;
+    })
+    .await;
+    assert_eq!(
+        f.finalize_step().await,
+        Step::Attention(FinalizerCode::Installation)
+    );
+    assert!(f.app.current_state().unwrap().installations.is_empty());
+}
+
+#[tokio::test]
+async fn guard_an_existing_installation_of_another_build_is_not_reused() {
+    let mut f = Fixture::new(&["capability.acquire", PERMISSION]).await;
+    f.acquire().await;
+    guard_steps(&f, &[Step::Frozen, Step::Published]).await;
+    let record = guard_record(&f);
+    // Someone installed the same capability version from a different build.
+    let (registry, real) = guard_serve_changed_manifest(&mut f, |m| {
+        m.artifact.build_id = "build-substituted".into();
+    })
+    .await;
+    let foreign =
+        guard_public_acceptance(&f, &record.role_id, &record.responsibility_id, false).await;
+    drop(registry);
+    guard_restore_registry(&mut f, real);
+    assert_eq!(
+        f.finalize_step().await,
+        Step::Attention(FinalizerCode::Installation)
+    );
+    assert!(guard_record(&f).installation_id.is_none());
+    let state = f.app.current_state().unwrap();
+    assert_eq!(state.installations.len(), 1);
+    assert_eq!(
+        state.installations[&foreign].status,
+        InstallationStatus::Checking
+    );
+}
+
+// --- Record compare-and-swap -----------------------------------------------
+
+#[tokio::test]
+async fn guard_a_stale_record_writer_conflicts_and_commits_nothing() {
+    let f = Fixture::new(&["capability.acquire", PERMISSION]).await;
+    f.acquire().await;
+    guard_steps(&f, &[Step::Frozen, Step::Published, Step::Installing]).await;
+    let before = f.app.current_state().unwrap();
+    // Writer A reads the active record, then waits for the kernel lock.
+    let guard = f.app.kernel.lock().await;
+    let (app, gap) = (f.app.clone(), f.gap_id.clone());
+    let stale = tokio::spawn(async move { capability_gap_finalizer::step(&app, &gap).await });
+    for _ in 0..20 {
+        tokio::task::yield_now().await;
+    }
+    // Writer B (another process on the same database, with a changed rule)
+    // moves the record to attention meanwhile.
+    let mut changed = f.config.clone();
+    changed.gap_finalization_policy.as_mut().unwrap().rules[0].intent =
+        "A concurrently changed promise".into();
+    let other = build_org(&changed, Some(provider_set(&f.providers))).unwrap();
+    assert_eq!(
+        capability_gap_finalizer::step(&other, &f.gap_id)
+            .await
+            .unwrap(),
+        Step::Attention(FinalizerCode::Configuration)
+    );
+    drop(guard);
+    let result = stale.await.unwrap();
+    assert!(
+        matches!(&result, Err(e) if e.to_string().contains("revision conflict")),
+        "{result:?}"
+    );
+    // Nothing from A's transaction was committed.
+    let record = guard_record(&f);
+    assert_eq!(record.state, FinalizerState::Attention);
+    assert_eq!(record.code, Some(FinalizerCode::Configuration));
+    assert!(record.job_ids.is_empty());
+    assert!(f
+        .app
+        .store
+        .capability_check_batch(&record.client_request_id())
+        .unwrap()
+        .is_none());
+    assert_eq!(f.app.current_state().unwrap().revision, before.revision);
+}
+
+// --- Low priority ----------------------------------------------------------
+
+#[tokio::test]
+async fn guard_a_record_stored_under_another_gap_key_is_rejected() {
+    let f = Fixture::new(&["capability.acquire", PERMISSION]).await;
+    f.acquire().await;
+    guard_steps(&f, &[Step::Frozen]).await;
+    let record = guard_record(&f);
+    let db = rusqlite::Connection::open(f.config.db.as_ref().unwrap()).unwrap();
+    db.execute(
+        "INSERT INTO capability_gap_finalizations(gap_id, record_json) VALUES (?1, ?2)",
+        rusqlite::params!["gap-misfiled-copy", serde_json::to_string(&record).unwrap()],
+    )
+    .unwrap();
+    assert!(f
+        .app
+        .store
+        .gap_finalization(&CapabilityGapId::new("gap-misfiled-copy"))
+        .is_err());
+    assert_eq!(guard_record(&f), record);
+}
+
+#[tokio::test]
+async fn guard_status_of_an_unknown_gap_is_not_found() {
+    let f = Fixture::new(&["capability.acquire", PERMISSION]).await;
+    let response = reqwest::Client::new()
+        .get(format!(
+            "{}/api/v1/capability-gaps/gap-that-does-not-exist/finalization",
+            serve_url(&f).await
+        ))
+        .bearer_auth(format!("{ORG}-operator"))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
 }
