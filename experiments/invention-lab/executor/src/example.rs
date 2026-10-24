@@ -44,15 +44,35 @@ pub fn acceptance_plan(
     instances: u64,
     grant: ResourceGrant,
 ) -> TrialPlan {
-    let family = Family::RavineCrossing;
+    acceptance_plan_for(
+        Family::RavineCrossing,
+        methods,
+        sandbox,
+        interpreter_version,
+        instances,
+        grant,
+    )
+}
+
+/// The same plan on any task family's development seeds `0..instances`, for
+/// example a receiving organization checking another organization's method on
+/// its own, different task.
+pub fn acceptance_plan_for(
+    family: Family,
+    methods: &ExampleMethods,
+    sandbox: Mode,
+    interpreter_version: &str,
+    instances: u64,
+    grant: ResourceGrant,
+) -> TrialPlan {
     let development_instances: Vec<_> = (0..instances)
         .map(|s| refs::instance_ref(family, s))
         .collect();
     let ids: Vec<_> = development_instances.iter().map(|r| r.id.clone()).collect();
     let task = descriptor(
         "lab-task/1",
-        "ravine-crossing",
-        serde_json::json!({"family": family.name(), "goal": "carry the payload across the gap"}),
+        family.name(),
+        serde_json::json!({"family": family.name(), "version": genesis_lab_eval::family::FAMILY_VERSION}),
     );
     let org = OrgId::new("org_example_b");
     let slot = |id: &str, method: &ExactContentRef, role| TrialSlot {
@@ -66,7 +86,7 @@ pub fn acceptance_plan(
         purpose: TrialPurpose::Acceptance { role },
     };
     TrialPlan {
-        id: "example-ravine-acceptance".into(),
+        id: format!("example-{}-acceptance", family.name()),
         version: "1".into(),
         criterion: content(
             "lab-criterion/1",
