@@ -65,7 +65,9 @@ tests plus strict Clippy. #11 `7438308` now avoids invented discovery cardinalit
 but still labels local pre-submission refusal as a confirmed provider failure.
 All 56 existing gap-adoption and eight capability-adoption tests pass; new
 independent `d11a8ba` fails with zero provider GETs/POSTs. #11 remains held;
-#12/#15 are unmerged dependents. Method-adoption wiring remains separate.
+#12 `a047f59` clears its own wording holds: three refusal tests and one planner
+test independently pass on composition `77143c3`, with the #11 regression retained
+as `6e8dc9e`. #12/#15 stay unmerged dependents; method-adoption wiring is separate.
 
 ACP #3 `3ad7685` fixes fresh-journal sender identity and confirmed-POST wording;
 138 existing tests pass in composition `c099fdd`. Existing journals still retain
@@ -75,22 +77,28 @@ test was independently rerun successfully. It still depends on #3's migration.
 #4 needs current routing/status language. #6 was withdrawn and closed as
 superseded by #17; its unsafe migration script was not approved.
 
-Stage #20 `b91b9a4` now labels its storyboard and pages beyond the first 1,000
-events. Six author tests pass; independent `d7e06e7` preserves two passes and
-four failures: delayed replay callbacks overwrite live mode, out-of-order polls
-regress state/duplicate events, inherited source digests are not matched, and
-the same organization can be presented as independent inheritance. Its primary
-event-organizer story is also superseded. ACP retains `apps/stage/**`; Eric's
-separate invention-lab UI assignment remains unacknowledged. Ines is unassigned.
+Stage #20 `9a6234a` now has neutral opt-in startup, correct replay/poll ordering,
+distinct organizations and matching installation digests. All six author and
+six original independent tests pass on composition `853c5fe8`. New test-only
+`10d1edd` adds one actual opt-in replay-callback pass and two failing cases:
+missing manifest digest and mismatched manifest ID/version still show adoption.
+ACP retains that final evidence hold and the stale README default wording.
+Historical events stay secondary; Eric's separate invention-lab UI assignment
+remains unacknowledged. Ines is unassigned.
 
 [Issue #1's live Apify report](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6380843098)
 records a successful Actor build and `SUCCEEDED` run. A later exact dataset GET
 held one item whose venue fields matched expected values in a direct offline
 comparison excluding per-venue evidence. Forge credited 0/3 cases after immediate
 collection returned `InvalidDataset`; the gate is **failed**. That private cloud
-checkpoint was not independently inspected here. The merged reread is an
-offline-tested mitigation; no live rerun confirms the cause or verifies a
-capability. CREAO v2 metadata authenticated but returned no hosted agent; no
+checkpoint was not independently inspected here. A [later rerun](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6381127464)
+after #26 again failed collection; its report places the final read about 1.3 s
+after run completion, with the item readable later. #34 (`0425f8f`, merged
+`0b4c18b`) now allows sixteen reads one second apart within the original deadline.
+The new sixth-read regression fails on the old code and passes after correction;
+187 Apify/forge test executions pass (including repeated harness cases), with
+strict Clippy and formatting. This remains offline mitigation, not a confirmed
+live resolution or verified capability. CREAO v2 metadata authenticated but returned no hosted agent; no
 v2 agent/run has completed through the merged adapter. Fetch discovery has
 partial authenticated evidence; Elastic index permissions remain unresolved.
 See [live gates](LIVE_GATES.md) for these separate evidence categories.
