@@ -63,7 +63,9 @@ EVOLUTION = [
 ]
 
 
-class GatewayTests(unittest.IsolatedAsyncioTestCase):
+class FixtureMixin:
+    """Loopback backend fixture shared by the gateway test classes below."""
+
     async def asyncSetUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.calls = []
@@ -71,6 +73,7 @@ class GatewayTests(unittest.IsolatedAsyncioTestCase):
         self.state = state()
         self.observation_status = 201
         self.hang_post = False
+        self.manifests = {}
         app = web.Application()
         app.router.add_route("*", "/{tail:.*}", self.backend)
         self.runner = web.AppRunner(app, access_log=None)
@@ -93,6 +96,12 @@ class GatewayTests(unittest.IsolatedAsyncioTestCase):
         self.calls.append({"method": request.method, "path": request.path_qs, "auth": request.headers.get("Authorization"), "body": json.loads(raw) if raw else None})
         if request.path == "/api/v1/organization":
             return web.json_response(self.state)
+        if request.path.startswith("/api/v1/capabilities/") and "/versions/" in request.path:
+            _, _, _, _, cid, _, version = request.path.split("/")
+            manifest = self.manifests.get((cid, version))
+            if manifest is None:
+                return web.json_response({"error": "not_found", "message": "private-registry-detail"}, status=404)
+            return web.json_response(manifest)
         if request.path == "/api/v1/events/log":
             after = int(request.query.get("after", "0"))
             return web.json_response([e for e in self.events if e["seq"] > after][:200])
@@ -108,6 +117,8 @@ class GatewayTests(unittest.IsolatedAsyncioTestCase):
     async def collect(self, text):
         return [chunk async for chunk in self.gateway.respond(text)]
 
+
+class GatewayTests(FixtureMixin, unittest.IsolatedAsyncioTestCase):
     def test_config_validation(self):
         config_from_bytes(json.dumps(config()).encode())
         for bad in (
@@ -172,6 +183,31 @@ class GatewayTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("verdict no_change", text)
         self.assertNotIn("Mission coordinator", text)
 
+    async def test_same_message_id_from_different_senders_are_distinct_reports(self):
+        from uagents import Model
+        from uagents_core.contrib.protocols.chat import ChatMessage, TextContent
+        self.gateway.close()
+        self.gateway = MissionGateway(config=config(follow_seconds=0), url=self.url, token=TOKEN, identity="agent1test", db=str(Path(self.temp.name) / "senders.sqlite"))
+        shared_id = uuid4()
+        handler = make_protocol(self.gateway).signed_message_handlers[Model.build_schema_digest(ChatMessage)]
+        ctx = MagicMock(); ctx.send = AsyncMock()
+        for sender in ("agent1alice", "agent1bob"):
+            message = ChatMessage(timestamp=datetime.now(UTC), msg_id=shared_id, content=[TextContent(type="text", text="report the main hall is closed on Nov 14")])
+            await handler(ctx, sender, message)
+        self.assertEqual(sum(c["method"] == "POST" for c in self.calls), 2, "identity is sender plus message id")
+        await handler(ctx, "agent1alice", ChatMessage(timestamp=datetime.now(UTC), msg_id=shared_id, content=[TextContent(type="text", text="report the main hall is closed on Nov 14")]))
+        self.assertEqual(sum(c["method"] == "POST" for c in self.calls), 2, "the same sender redelivering is still suppressed")
+
+    async def test_journal_failure_after_confirmed_post_keeps_effect_visible(self):
+        import sqlite3
+        with patch.object(self.gateway, "_set_observation", side_effect=sqlite3.OperationalError("disk I/O error")):
+            chunks = await self.collect("report the main hall is closed on Nov 14")
+        self.assertEqual(sum(c["method"] == "POST" for c in self.calls), 1)
+        joined = "\n".join(chunks)
+        self.assertIn("Recorded as evidence obs_1", joined)
+        self.assertIn("could not journal", joined)
+        self.assertNotIn("Nothing was changed", joined)
+
     async def test_rate_limit_and_refusals_never_echo_private_detail(self):
         self.observation_status = 403
         text = (await self.collect("report main hall closed on Nov 14"))[0]
@@ -179,11 +215,12 @@ class GatewayTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("private-detail", text)
         self.assertNotIn(TOKEN, text)
         self.observation_status = 201
-        for _ in range(3):
+        # The refused attempt counts: intent is journaled before every submission.
+        for _ in range(2):
             await self.collect("report main hall closed on Nov 14 again")
         text = (await self.collect("report yet another closure report"))[0]
         self.assertIn("limited number of reports per hour", text)
-        self.assertEqual(sum(1 for c in self.calls if c["method"] == "POST"), 4)
+        self.assertEqual(sum(1 for c in self.calls if c["method"] == "POST"), 3)
 
     async def test_unconfirmed_post_is_reported_not_repeated(self):
         self.hang_post = True
@@ -209,12 +246,290 @@ class GatewayTests(unittest.IsolatedAsyncioTestCase):
             MissionGateway(config=config(source="other"), url=self.url, token=TOKEN, identity="agent1test", db=db)
 
 
+    async def test_confirmed_report_follow_failure_keeps_effect_visible(self):
+        original_http = self.gateway._http
+        async def failed_follow(method, path, **kwargs):
+            if method == "GET" and path.startswith("/events/log") and any(c["method"] == "POST" for c in self.calls):
+                raise Invalid("fixture follow read failed")
+            return await original_http(method, path, **kwargs)
+        with patch.object(self.gateway, "_http", side_effect=failed_follow):
+            chunks = await self.collect("report the main hall is closed on Nov 14")
+        self.assertEqual(sum(c["method"] == "POST" for c in self.calls), 1)
+        self.assertIn("Recorded as evidence", chunks[0])
+        self.assertNotIn("Nothing was changed by this message", "\n".join(chunks))
+
+    async def test_same_acp_message_after_restart_records_one_observation(self):
+        from uagents import Model
+        from uagents_core.contrib.protocols.chat import ChatMessage, TextContent
+        self.gateway.close()
+        args = dict(config=config(follow_seconds=0), url=self.url, token=TOKEN,
+                    identity="agent1test", db=str(Path(self.temp.name) / "replay.sqlite"))
+        self.gateway = MissionGateway(**args)
+        message = ChatMessage(timestamp=datetime.now(UTC), msg_id=uuid4(),
+                              content=[TextContent(type="text", text="report the main hall is closed on Nov 14")])
+        ctx = MagicMock()
+        ctx.send = AsyncMock()
+        digest = Model.build_schema_digest(ChatMessage)
+        await make_protocol(self.gateway).signed_message_handlers[digest](ctx, "agent1sender", message)
+        self.gateway.close()
+        self.gateway = MissionGateway(**args)
+        await make_protocol(self.gateway).signed_message_handlers[digest](ctx, "agent1sender", message)
+        self.assertEqual(sum(c["method"] == "POST" for c in self.calls), 1,
+                         "re-delivery of the same signed ACP message must not submit another observation")
+
+
+    async def test_org_renders_native_tagged_capability_gap_status(self):
+        # genesis-core::CapabilityGapStatus uses serde(tag = "state"), not a
+        # string status. This is the public /organization wire representation.
+        self.state = state(with_lead=True)
+        self.state["capability_gaps"]["gap_1"]["status"] = {
+            "state": "installed", "acquisition_id": "acq_1",
+            "capability": {"capability_id": "room-matrix-reader", "version": "1.0.0"},
+            "installation_id": "ins_1",
+        }
+        text = "\n".join(await self.collect("org"))
+        self.assertIn("room-matrix-reader installed", text)
+
+    def test_event_relay_renders_native_tagged_capability_gap_status(self):
+        # EventKind::CapabilityGapStatusChanged embeds the same tagged enum.
+        changed = event(7, "capability_gap_status_changed", gap_id="gap_1", **{
+            "from": {"state": "open"},
+            "to": {"state": "acquiring", "acquisition_id": "acq_1"},
+        })
+        text = acp_mission.describe(changed, acp_mission.RoleNames(state()))
+        self.assertIn("acquiring", text)
+
+    async def test_status_event_pagination_preserves_later_outcome(self):
+        self.gateway.close()
+        self.gateway = MissionGateway(
+            config=config(follow_seconds=0), url=self.url, token=TOKEN,
+            identity="agent1test", db=str(Path(self.temp.name) / "pages.sqlite"),
+        )
+        await self.collect("report the main hall is closed on Nov 14")
+        # These are legitimate, unrendered intermediate job events, so the
+        # first page stays below MAX_REPLY: this isolates the page boundary.
+        self.events.extend(event(i, "job_status_changed", job_id=f"job_{i}", **{
+            "from": "SUBMITTING", "to": "RUNNING",
+        }) for i in range(2, 202))
+        self.events.append(event(202, "installation_accepted", installation_id="ins_1", report_ref="proof:accepted"))
+        replies = []
+        for _ in range(5):
+            replies.extend(await self.collect("status"))
+        self.assertIn("Local acceptance checks passed", "\n".join(replies),
+                      "bounded status reads must eventually expose outcomes beyond the first event page")
+
+    async def test_status_reply_bound_does_not_permanently_discard_outcome(self):
+        self.gateway.close()
+        self.gateway = MissionGateway(
+            config=config(follow_seconds=0), url=self.url, token=TOKEN,
+            identity="agent1test", db=str(Path(self.temp.name) / "chunks.sqlite"),
+        )
+        await self.collect("report the main hall is closed on Nov 14")
+        # Fewer than 200 events, but more than one chat reply of readable text.
+        self.events.extend(event(i, "job_dispatched", job_id=f"job_{i}", role_id=COORD,
+                                 responsibility_id="rsp_1", epoch=1,
+                                 task=f"Review candidate {i}: " + "venue facts " * 12)
+                           for i in range(2, 32))
+        self.events.append(event(32, "installation_accepted", installation_id="ins_1", report_ref="proof:accepted"))
+        replies = []
+        for _ in range(5):
+            replies.extend(await self.collect("status"))
+        self.assertTrue(all(len(reply) <= acp_mission.MAX_REPLY for reply in replies))
+        self.assertIn("Local acceptance checks passed", "\n".join(replies),
+                      "reply truncation must leave later outcomes reachable in this or a subsequent status response")
+
+    async def test_unrelated_planner_decision_does_not_end_current_report_follow(self):
+        # The runner may still be processing an older observation when this
+        # report arrives. Native decisions identify the observation explicitly.
+        self.events = [event(1, "observation_recorded", observation_id="obs_old",
+                             source="monitor", summary="An earlier venue update")]
+        original_http = self.gateway._http
+        follow_reads = 0
+
+        async def interleaved_planner(method, path, **kwargs):
+            nonlocal follow_reads
+            response = await original_http(method, path, **kwargs)
+            if method == "POST":
+                older = event(3, "planner_decision", planner="p", model="fixture",
+                              observation_id="obs_old", verdict="no_change",
+                              summary="Earlier observation needs no change", kernel_errors=[])
+                older.update(mission_id=MISSION, causation_id="obs_old")
+                self.events.append(older)
+            elif path.startswith("/events/log") and any(c["method"] == "POST" for c in self.calls):
+                follow_reads += 1
+                if follow_reads == 2:
+                    # The current decision arrives just after an empty read,
+                    # within follow_seconds. No wall-clock scheduling race.
+                    current = event(4, "planner_decision", planner="p", model="fixture",
+                                    observation_id="obs_1", verdict="no_change",
+                                    summary="Current report independently evaluated", kernel_errors=[])
+                    current.update(mission_id=MISSION, causation_id="obs_1")
+                    self.events.append(current)
+            return response
+
+        with patch.object(self.gateway, "_http", side_effect=interleaved_planner):
+            replies = await self.collect("report the main hall is closed on Nov 14")
+        self.assertIn("Current report independently evaluated", "\n".join(replies),
+                      "an older observation's decision must not terminate the current report's follow window")
+
+
+def installed_state():
+    value = state(with_lead=True)
+    value["roles"][LEAD]["capabilities"] = [{"capability_id": "cap_venue_availability", "version": "1.0.0"}]
+    value["installations"] = {"inst_1": {
+        "installation_id": "inst_1", "capability": {"capability_id": "cap_venue_availability", "version": "1.0.0"},
+        "status": "ACCEPTED", "acceptance_report_ref": "genesis:development-assertion:local://org_a/acceptance/1",
+        "source_digest": "9f2c" + "0" * 60,
+    }}
+    return value
+
+
+def manifest(**extra):
+    value = {
+        "capability_id": "cap_venue_availability", "version": "1.0.0", "publisher": "org_a",
+        "intent": "Read venue availability", "known_limitations": ["DEV FIXTURE: not built on Apify yet"],
+        "artifact": {"actor_id": "devstub-actor-venue", "build_id": "devstub-build", "build_number": "0.0.0-dev"},
+        "verification": {"passed": True, "tested_environment": "dev-scenario fixture (not a live Apify build)",
+                         "cases": [{"name": "a", "passed": True}, {"name": "b", "passed": True}, {"name": "c", "passed": False}]},
+        "provenance": ["org_a dev scenario"], "state": "PUBLISHED",
+    }
+    value.update(extra)
+    return value
+
+
+class CommandTests(FixtureMixin, unittest.IsolatedAsyncioTestCase):
+    """methods, lineage, interactive cards and the local chat stand-in. Same loopback fixture."""
+
+    async def test_methods_lists_exact_versions_holders_and_offers_lineage(self):
+        self.state = installed_state()
+        chunks = await self.collect("methods")
+        text = chunks[0]
+        self.assertIn("cap_venue_availability@1.0.0: installation accepted; held by Relocation lead", text)
+        self.assertIn("not an artifact kind yet", text)
+        self.assertEqual(chunks[0].actions, [("Lineage of cap_venue_availability", "lineage cap_venue_availability")])
+        self.assertEqual([c["method"] for c in self.calls], ["GET"])
+
+    async def test_methods_keeps_exact_ids_and_bounds_the_reply(self):
+        long_id = "cap_" + "x" * 76
+        value = state(with_lead=True)
+        roles = {}
+        installations = {}
+        for i in range(20):
+            rid = f"role_{i:032d}"
+            caps = [{"capability_id": long_id if (i == 0 and j == 0) else f"cap_{i}_{j}_" + "y" * 60, "version": "1.0.0"} for j in range(3)]
+            roles[rid] = {"role_id": rid, "name": f"Role {i}", "charter": "c", "state": "ACTIVE", "binding": {"provider": "internal", "provider_agent_id": "k"}, "capabilities": caps}
+            for cap in caps:
+                installations[f"inst_{cap['capability_id']}"] = {"installation_id": f"inst_{cap['capability_id']}", "capability": cap, "status": "ACCEPTED", "acceptance_report_ref": "r"}
+        value["roles"] = roles; value["installations"] = installations
+        self.state = value
+        chunks = await self.collect("methods")
+        self.assertTrue(all(len(c) <= acp_mission.MAX_REPLY for c in chunks))
+        text = chunks[0]
+        self.assertIn("more installation(s) not shown", text)
+        for label, command in text.actions:
+            self.assertRegex(command, acp_mission.CARD_COMMAND)
+            self.assertNotIn("…", command)
+        self.assertEqual(text.actions[0][1], f"lineage {long_id}")
+
+    async def test_methods_without_installations(self):
+        text = (await self.collect("methods"))[0]
+        self.assertIn("No capabilities are installed", text)
+        self.assertEqual(text.actions, [])
+
+    async def test_lineage_renders_manifest_and_local_acceptance(self):
+        self.state = installed_state()
+        self.manifests[("cap_venue_availability", "1.0.0")] = manifest()
+        text = (await self.collect("lineage cap_venue_availability"))[0]
+        self.assertIn("cap_venue_availability@1.0.0: published by org_a, verification passed (2/3 cases, dev-scenario fixture", text)
+        self.assertIn("DEV FIXTURE: not built on Apify yet", text)
+        self.assertIn("This organization: installation accepted", text)
+        self.assertIn('"Improved" is never shown here', text)
+        self.assertEqual([c["path"] for c in self.calls if "capabilities" in c["path"]], ["/api/v1/capabilities/cap_venue_availability/versions/1.0.0"])
+        self.assertEqual(self.calls[-1]["auth"], "Bearer " + TOKEN)
+
+    async def test_lineage_without_manifest_or_installation_never_echoes_registry_detail(self):
+        self.state = installed_state()
+        text = (await self.collect("lineage cap_venue_availability"))[0]
+        self.assertIn("manifest is not readable", text)
+        self.assertNotIn("private-registry-detail", text)
+        text = (await self.collect("lineage other-capability"))[0]
+        self.assertIn("not installed or attached", text)
+        text = (await self.collect("lineage not valid id"))[0]
+        self.assertIn("Use lineage <capability id>", text)
+        self.assertNotIn("Bearer", text)
+
+    async def test_help_and_report_carry_read_only_actions(self):
+        self.assertEqual((await self.collect("help"))[0].actions[0], ("Who is in the organization?", "org"))
+        chunks = await self.collect("report the main hall is closed on Nov 14")
+        self.assertEqual(chunks[-1].actions, [("What happened since?", "status"), ("Who is in the organization now?", "org")])
+        for chunk in chunks:
+            for _, command in getattr(chunk, "actions", []):
+                self.assertRegex(command, acp_mission.CARD_COMMAND)
+
+    async def test_chat_loop_is_a_labeled_local_stand_in(self):
+        self.state = installed_state()
+        lines = iter(["org", "methods", "quit"])
+        out = []
+        await acp_mission.chat_loop(self.gateway, read=lambda _prompt: next(lines), write=out.append)
+        joined = "\n".join(out)
+        self.assertIn("LOCAL STAND-IN, not ASI:One", out[0])
+        self.assertIn("org> Org A", joined)
+        self.assertIn("[Lineage of cap_venue_availability -> lineage cap_venue_availability]", joined)
+        self.assertEqual(sum(c["method"] == "POST" for c in self.calls), 0)
+
+
+class CardProtocolTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        from uagents import Model
+        from uagents_core.contrib.protocols.chat import ChatMessage
+        self.gateway = MagicMock()
+        self.seen = []
+        async def respond(text, **_identity):
+            self.seen.append(text)
+            yield acp_mission.Reply("summary", [("What happened?", "status")])
+        self.gateway.respond = respond
+        self.protocol = make_protocol(self.gateway)
+        self.handler = self.protocol.signed_message_handlers[Model.build_schema_digest(ChatMessage)]
+        self.ctx = MagicMock()
+        self.ctx.send = AsyncMock()
+
+    def message(self, content):
+        from uagents_core.contrib.protocols.chat import ChatMessage
+        return ChatMessage(timestamp=datetime.now(UTC), msg_id=uuid4(), content=content)
+
+    async def test_reply_with_actions_attaches_a_card_whose_buttons_are_commands(self):
+        from uagents_core.contrib.protocols.chat import MetadataContent, TextContent
+        from uagents_core.contrib.protocols.chat.cards import extract_card
+        await self.handler(self.ctx, "sender", self.message([TextContent(type="text", text="org")]))
+        reply = self.ctx.send.call_args_list[-1].args[1]
+        cards = [extract_card(c) for c in reply.content if isinstance(c, MetadataContent)]
+        self.assertEqual(len(cards), 1)
+        self.assertTrue(cards[0].is_terminal)
+        self.assertEqual([c.selection for c in cards[0].payload.ctas], [{"command": "status"}])
+        self.assertTrue(self.protocol.verify())
+
+    async def test_card_response_selection_is_a_command_only_from_the_allowed_set(self):
+        from uagents_core.contrib.protocols.chat.cards import create_card_response_content
+        await self.handler(self.ctx, "sender", self.message([create_card_response_content(selection={"command": "status"})]))
+        self.assertEqual(self.seen, ["status"])
+        await self.handler(self.ctx, "sender", self.message([create_card_response_content(selection={"command": "report hall closed"})]))
+        await self.handler(self.ctx, "sender", self.message([create_card_response_content(selection={"command": "retry"})]))
+        await self.handler(self.ctx, "sender", self.message([create_card_response_content(cancelled=True)]))
+        self.assertEqual(self.seen, ["status"], "only read-only commands may arrive through a button")
+
+    async def test_text_plus_card_response_is_ambiguous_and_ignored(self):
+        from uagents_core.contrib.protocols.chat import TextContent
+        from uagents_core.contrib.protocols.chat.cards import create_card_response_content
+        await self.handler(self.ctx, "sender", self.message([TextContent(type="text", text="org"), create_card_response_content(selection={"command": "status"})]))
+        self.assertEqual(self.seen, [])
+
+
 class ProtocolTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         from uagents import Model
         from uagents_core.contrib.protocols.chat import ChatMessage
         self.gateway = MagicMock()
-        async def respond(text):
+        async def respond(text, **_identity):
             yield "first"
             yield "second"
             yield "last"
@@ -250,7 +565,7 @@ class ProtocolTests(unittest.IsolatedAsyncioTestCase):
         await self.handler(self.ctx, "sender", self.message([TextContent(type="text", text="report hall closed"), item]))
 
     async def test_gateway_failure_is_generic(self):
-        async def failing(_text):
+        async def failing(_text, **_identity):
             raise Invalid("secret agent token value")
             yield  # pragma: no cover
         self.gateway.respond = failing
