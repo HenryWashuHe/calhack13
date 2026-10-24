@@ -104,6 +104,10 @@ struct OrgArgs {
     /// Contains fixed public examples; requires automatic acquisition and its quota policy.
     #[arg(long, value_name = "FILE", requires_all = ["auto_acquire", "acquisition_policy"])]
     gap_acquisition_policy: Option<PathBuf>,
+    /// Trusted JSON rules (publication text, acceptance suite) letting verified
+    /// gap acquisitions be published, installed and locally accepted here.
+    #[arg(long, value_name = "FILE", requires = "gap_acquisition_policy")]
+    gap_finalization_policy: Option<PathBuf>,
     #[arg(long, env = "GENESIS_REGISTRY_URL")]
     registry_url: Option<String>,
     #[arg(long, env = "GENESIS_REGISTRY_TOKEN")]
@@ -256,6 +260,7 @@ async fn main() -> anyhow::Result<()> {
                 acquisition_policy,
                 auto_acquire,
                 gap_acquisition_policy,
+                gap_finalization_policy,
                 registry_url,
                 registry_token,
                 operator_token,
@@ -284,6 +289,14 @@ async fn main() -> anyhow::Result<()> {
                 .as_deref()
                 .map(load_gap_policy)
                 .transpose()?;
+            let gap_finalization_policy = gap_finalization_policy
+                .as_deref()
+                .map(
+                    load_trusted_json::<
+                        genesis_server::capability_gap_finalizer::GapFinalizationPolicy,
+                    >,
+                )
+                .transpose()?;
             let tokens = Tokens {
                 operator: token_or_dev(operator_token, &org_id, "operator", dev_stub)?,
                 agent: token_or_dev(agent_token, &org_id, "agent", dev_stub)?,
@@ -304,6 +317,7 @@ async fn main() -> anyhow::Result<()> {
                 forge_checkpoints,
                 acquisition,
                 gap_acquisition_policy,
+                gap_finalization_policy,
             };
             if dev_stub {
                 tracing::warn!(
@@ -651,6 +665,28 @@ mod cli_tests {
         assert!(
             Cli::try_parse_from(["genesis", "dev", "--gap-acquisition-policy", "gaps.json"])
                 .is_err()
+        );
+    }
+
+    #[test]
+    fn gap_finalization_requires_gap_acquisition() {
+        let base = ["genesis", "org", "--org-id", "test-org", "--name", "Test"];
+        let mut alone = base.to_vec();
+        alone.extend(["--gap-finalization-policy", "finalize.json"]);
+        assert!(Cli::try_parse_from(alone).is_err());
+        let mut args = base.to_vec();
+        args.extend([
+            "--gap-acquisition-policy",
+            "gaps.json",
+            "--auto-acquire",
+            "--acquisition-policy",
+            "acquisition.json",
+            "--gap-finalization-policy",
+            "finalize.json",
+        ]);
+        assert!(
+            matches!(Cli::try_parse_from(args).unwrap().command, Command::Org(args)
+            if args.gap_finalization_policy.as_deref() == Some(Path::new("finalize.json")))
         );
     }
 
