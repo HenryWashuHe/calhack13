@@ -9,8 +9,8 @@ Use the [migration map](REPOSITORY_MIGRATION.md) for legacy PRs. The
 development-method loop and honest controlled evaluation with fixed model
 weights. Event organization remains superseded. G0–G4 are still open.
 
-Main through `666cf77f22b674e5114cff4c60258b22dee7caa1`, tree
-`00495b59f41a248b617e0f96e568a7458e50083c`, includes the reviewed
+Main through `613bdca69eed5b502c7ccd358a85890d12e78574`, tree
+`6239b458c1edd852782baa5e1d429961290127d2`, includes the reviewed
 foundations below. Method generation merged at `d1be8443fee46e1196861926a963563f48407936`,
 whose tree `dc9d6adc19863d8584fd5af1fd11eae7552014eb` exactly matches the independently
 validated generation stack. Counts refer to the named source/composition, not a
@@ -37,6 +37,9 @@ combined main run.
 | Generation reservation library #77 source `197cb17dbfca5c47d38c1f03e950979e9b6b2564`, merge `fd83c3cf208de2db2565a8932ee598d0e0f651cf` | 12 focused cases independently pass with strict Clippy/fmt. A source-free journal reserves each exact declared Prepared identity once, retaining the full reservation after failure, rejection, uncertainty or unused capacity. Request count and requested maximum output are bounded per trusted journal; this library performs no IO. [Contract](invention-lab/contracts/generation-admission.md). |
 | Optional generation-step guard #78 source `0f89d25a8d0589f5dcb9c63f8d0dde264c4a67c3`, merge `80ae988c58580160d2e2c81e89eb662e37a506a8` | Merged tree `91205ae7e6e4b9a8ff3dba6530f1d4984f66370a` matches independently reviewed composition `ea1ee023`. Author full default-parallel forge: 179 passed, zero failed/ignored across 28 targets; strict Clippy/fmt. Independent reviewer reran 27 focused cases successfully. `--admission` persists the reservation before Requesting/provider submission through the existing step; legacy ungated calls remain available. [CLI contract](invention-lab/contracts/generation-admission.md#cli). |
 | Independent admission guard #79 source `d2b5c0fce04bad08e383dac8f99dc1bfd80b094d`, merge `666cf77f22b674e5114cff4c60258b22dee7caa1` | One 155-line test preserved unchanged and independently rerun: occupied session lock, missing journal and path aliases fail without modifying inputs or reserving capacity. Formatting passes. Final forge subtree `7aceb366734317ad1ec416fa626e8f12f50665dc` matches the reviewed source. The full 179-test result belongs to #78; no full 180-test main run is claimed. |
+| Admitted trial/cost join #81 source `3d66d78606e6d1b26ba5846acb45993fddd7d594`, merge `0cfa80b626229c6340a17c4da539a14084f40d62` | Reviewed/merged tree `186aad7ffe3b7be3c2c75ceac8764433a53565b0`: 25 focused cases independently pass. Full original roster, historical identities and advanced-attempt reservations are checked before the existing cost assessment; generation and combined grants remain separate. [Contract](invention-lab/contracts/admitted-costs.md). No pre-spend trial allocation or full adaptive accounting. |
+| Admission-aware cost CLI #82 source `132b99a295a50d8fa692f09219044b97570e5476`, merge `95a0ce6c9dff52cde40bb7306697ebfa20457e17` | Tree `40df89a27e10863c1d65e12a39a65f1ed81f5f0f` matches the reviewed source. Author full default-parallel forge: 188 passed, zero failed/ignored across 31 targets. Independently: 15 focused CLI/compatibility cases and strict all-target Clippy/fmt pass. Optional [`--admission`](invention-lab/contracts/admitted-costs.md#cli) fails invalid evidence without fallback or writes; legacy behavior remains unchanged. No provider calls or source execution. |
+| Independent admitted-cost guards #83 source `9a47daf0da39eeecf70ccc12e141c6128ba5c203`, merge `613bdca69eed5b502c7ccd358a85890d12e78574` | Two files remain byte-identical to independent sources `e3e8bdb62e46905610749084f3ac5a4c82af61cb` and `bc0288879477fe9d581200dc1dec9b47f9e92b03`: historical Failed-session identity and CLI malformed/oversized/symlink/path/immutability boundaries. Both cases independently rerun and pass; fmt/diff clean. Final forge subtree `88326cba69b0ec61958e56fdcd01a4ffc49d6daa` matches the tested source. Full 188 belongs to #82; these two separate checks are not a full 190-test main run. |
 | Core guard coverage #53 (`761eb2b`, source `c614bb13d03c2f9d8550358f86b1ba79683156e8`) | Henry's 173-line `eacfe0f` test file is preserved exactly with authorship (blob `c537e1e9755284ad9b51a79058e19f2ee469a197`). Reviewed composition passes 130 core tests and strict Clippy/fmt; five new cases independently pass separately. Mutation results are author-reported, not independently rerun. Test-only change. |
 | Accounting identity #56 (`2b69c25`, source `245cbadef63cc3051ef71bc24554234534275f8e`) | Author-validated 134 core tests and strict Clippy/fmt; four new regressions independently pass. Identity-only checks permit retaining overruns without relaxing existing acceptance/budget validators or changing valid hashes; malformed usage cannot hide behind an early overrun. This is not total-cost integration. |
 | Declared combined cost #58 (`04029c56`, source `b27ae8a1f504d53effef42d3c12b1141d3299577`) | Author full forge suite: 128 tests and strict Clippy/fmt. Three new accounting cases and source independently reviewed. Exact generation/checkpoint/trial links, unsuccessful or unused generation and combined known/unknown/overflow/overrun costs; trusted declared roster, not proof of exhaustive history. |
@@ -212,13 +215,30 @@ is refused. Offline prepare refuses overwrite; status is read-only. Legacy steps
 without the option remain outside these bounds. Validation uses offline/loopback
 fixtures, not live provider enforcement.
 
+The merged [admission-aware cost join](invention-lab/contracts/admitted-costs.md)
+requires the entire original roster in its declared order and checks each later
+snapshot against its historical Prepared identity. Advanced attempts need a
+reservation; only validated current checkpoint hashes are projected into the
+existing trial/cost assessor. The report binds the original and projected scopes,
+journal and roster while retaining separate generation and combined grants.
+Missing, reserved-but-Prepared, failed, rejected, unused and unknown attempts
+cannot disappear. Known lower bounds, overflow and overruns remain visible.
+One roster joins one optional trial; an exact method can be reused across slots
+without counting its generation twice. This does not establish exhaustive
+accounting across separate adaptive stages or a scope allocated before spending.
+The optional `method-cost-assess --admission` is read-only and fails malformed,
+missing or substituted named inputs without falling back to the legacy report.
+It does not lock, recover, reserve, refund or execute work. Retain immutable
+snapshots: reading mutable files does not provide an atomic multi-writer view.
 
 The last ignored local `.env` check lacked a nonempty model/API key. No new
 live-model run is claimed and no repeated credential request is needed. Continue
 offline core work and coordinate live runs with the provider owner; credentials
-remain local. Codex's next milestone connects admitted generation evidence with
-trial/cost allocation across adaptive stages. Scope exact shared interfaces in
-issue #1 before edits and reuse the existing generation/roster/cost path.
+remain local. Codex's next proposed milestone is a pre-generation per-stage
+resource envelope, followed by exact trial/cost binding before execution through
+the existing paths. A whole-chain budget also needs finite stage ceilings
+declared before A begins; hashes alone establish no timing. Scope exact shared
+interfaces in issue #1 before edits. Neither contract is implemented here.
 Earlier delivery/source-specific evidence remains in the handoff; overlapping
 test counts must not be summed. Repair WIP is isolated in draft #7 and its
 original files remain untouched. Follow current

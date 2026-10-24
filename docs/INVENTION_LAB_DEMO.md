@@ -37,6 +37,14 @@ journal's request-count/requested-output caps, durably before provider submissio
 Stranded, failed and unknown attempts never refund; actual usage remains
 separately assessed. Legacy ungated calls, input-token/wall limits, billing and
 global enforcement remain outside this cooperative mechanism.
+Merged [admission-aware cost assessment](invention-lab/contracts/admitted-costs.md)
+(#81/#82) binds the entire original generation roster and its reservations to
+later observations and one optional trial. Original generation and combined
+grants remain separate, with unsuccessful, missing and unknown rows retained.
+The join is read-only and its scope can be declared after generation; it does
+not establish pre-spend trial allocation or full adaptive-chain accounting.
+Pre-generation stage envelopes, later exact trial binding and finite whole-chain
+stage ceilings are the next proposed contract work, not implemented guarantees.
 Provider-default sampling,
 complete operation history, budget enforcement and the controlled comparison
 remain open for G4. Experimental namespace and storage foundations are not a
