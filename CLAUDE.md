@@ -47,11 +47,11 @@ migration atomicity and intermediate-schema index-name holds are cleared;
 mounts and trusted-directory storage remain experimental boundaries.
 
 **Ongoing work is resumed under [the repository goal](docs/ONGOING_GOAL.md).**
-The existing hourly continuation is active. At this checkpoint the older app Goal
-card remains paused because the goal tool cannot replace an unfinished record;
-never falsely complete it to work around that limitation. The user's renewed
-instruction authorizes scoped work under the revised goal, not the discarded
-venue objective. Preserve local deployed-repair WIP until separately scoped.
+The revised app Goal and existing hourly continuation are active. The stale Goal
+was cleared and replaced on October 24, 2026. The owner delegated direction while
+sleeping and reaffirmed the full moonshot. Preserve the G0–G4 completion contract,
+including selective transfer and honest null results. Preserve local repair WIP.
+
 
 Read the [goal's working cycle](docs/ONGOING_GOAL.md#working-cycle),
 [current ownership map](docs/AGENT_HANDOFF.md#current-ownership-and-next-work)
