@@ -258,9 +258,11 @@ across 38 targets pass, zero failed/ignored; strict all-target Clippy/fmt/diff p
 Those local checks preserve #89 unchanged. The [separate second cloud attempt](invention-lab/evidence/live-method-20261024-diagnostic/README.md)
 on `7d6119d` failed with `content_shape` / `end_turn`: 1 call, 4,028 input / 4,892
 output tokens, 36,790 ms; no package/execution and no reservation refund.
-Codex's strict reasoning-prefix/one-text parser fix is active, not yet merged or
-validated here. Its proposed cause remains inference; any later attempt needs a
-fresh declaration. Henry's package handoff and G0–G4 remain open; chain ceilings proposed.
+The [strict thinking-prefix parser](invention-lab/contracts/generation.md) is implemented
+at `054b10508713095ee3bbac97eb1d9d953956596b`: full forge 211 tests/40 targets, zero
+failed/ignored; strict all-target Clippy/fmt/diff and five independent focused tests pass.
+This is local compatibility evidence; neither old failure is reinterpreted. Next is
+one separately declared bounded attempt and a valid-package handoff if produced. Henry's package handoff and G0–G4 remain open; chain ceilings proposed.
 Earlier delivery/source-specific evidence remains in the handoff; overlapping
 test counts must not be summed. Repair WIP is isolated in draft #7 and its
 original files remain untouched. Follow current

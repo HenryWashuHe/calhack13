@@ -95,9 +95,10 @@ every milestone. All lower checkpoints are historical.
   remains spent; do not replay it. The [separate second attempt](docs/invention-lab/evidence/live-method-20261024-diagnostic/README.md)
   on `7d6119d` also failed, now retaining `content_shape` / `end_turn`, with no
   package or execution. Both costs remain recorded; the first failure is unchanged.
-  Codex's strict reasoning-prefix/one-text parser compatibility fix is active,
-  not yet merged or validated here; a thinking-block cause remains an inference.
-  Any later attempt must be separately declared before a valid-package handoff.
+  Strict reasoning-prefix/one-text compatibility is implemented at `054b105`: full
+  forge 211 tests/40 targets pass, plus five independently rerun focused cases.
+  The old response shape remains unknown. Next: separately declare one new bounded
+  attempt, then hand its valid package to Henry if produced; no source execution here.
   Finite whole-chain
   ceilings remain proposed behind the genuine method run; hashes prove no timing.
   Retain input-token/wall, billing, global enforcement and history limits.
