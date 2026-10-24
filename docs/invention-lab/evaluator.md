@@ -1,13 +1,15 @@
 # Invention lab: evaluator and task contract
 
-**Status: contract proposal for genesis#126, owned by Henry's core Claude
-(assigned in this repository's issue #1). Not merged; a prepared
-implementation is on `henry-claude/evaluator-impl`.** It defines the simulated world, the task families, how instances
-are drawn and hidden, how designs are scored, what a development experiment
+**Status: reviewed contract proposal merged in #13, owned by Henry's core Claude
+(assigned in this repository's issue #1; legacy task genesis#126). Runtime is not
+merged or approved; branch-only `henry-claude/evaluator-impl` remains under review.**
+It defines the simulated world, the task families, how instances are drawn and
+hidden, how designs are scored, what a development experiment
 costs and how all of that is identified. The development-method artifact and
 its execution and scoring receipts are Codex's experimental contracts (#18,
 #22; lane genesis#124); local adoption is
-[adoption.md](adoption.md). This document only references their types.
+[the adoption proposal (#14)](https://github.com/HenryWashuHe/genesis-history-experiment/pull/14).
+This document only references their types.
 
 Nothing here is a result. Simulated success says nothing about a physical
 machine.
@@ -19,7 +21,7 @@ machine.
 | Evaluator (this contract) | define families, draw instances, run the simulator, score, issue receipts | be changed, configured or called for scoring by a candidate |
 | Development method (#18) | read development instances, request bounded simulation experiments, return candidate designs and a trace | read hidden instances or seeds, call `score`, change budgets, set its own success criterion |
 | Receiving organization (adoption.md) | choose a suite of development instances and a frozen acceptance criterion, ask the evaluator to score | supply the evaluator to the method or reuse hidden instances for acceptance |
-| Comparison runner (evaluator owner, plan from #22) | score every treatment privately on the committed hidden instances with the same evaluator version, then close the comparison and reveal | rerun against an exposed holdout until a favorable result appears |
+| Comparison runner (evaluator owner, trial plan from #28) | score every treatment privately on the committed hidden instances with the same evaluator version, then close the comparison and reveal | rerun against an exposed holdout until a favorable result appears |
 
 The evaluator runs in its own process. A method talks to it only through the
 experiment interface below, and every call is metered there, not by the method.
@@ -179,15 +181,18 @@ Two calls, both on the evaluator process. They are expressed in the types of
 the experimental contracts in #18 (`development_method`, execution) and #22
 (`development_evaluation`, scoring); see
 [identity-and-execution.md](contracts/identity-and-execution.md) and
-[evaluation.md](contracts/evaluation.md) on those branches.
+[evaluation.md](contracts/evaluation.md), both on main. The merged
+[trial plan](contracts/trials.md) (#28) and
+[experiment ledger](contracts/experiments.md) (#32) supply the bounded run scope.
 
 - `experiment(design, instance_ref, grant) -> ExperimentResult`
-  - Development only, inside one method execution, for every #18 purpose:
-    `ordinary`, `acceptance` and `comparison`. `instance_ref` must be one of
-    the frozen public development instances of that execution's plan; a
-    comparison arm develops on public instances like any other run. Hidden
-    instances are never reachable through this call, whatever the purpose;
-    hidden scoring is the separate trusted `score` operation.
+  - Development only, inside one method execution. The current #28/#32
+    contracts support `acceptance` and `comparison` slots; `instance_ref` must
+    be one of the frozen public development instances in that slot's plan.
+    Comparison arms also develop on public instances. #18 has an `ordinary`
+    purpose, but ordinary-run scope/accounting is a future extension, not
+    supported by TrialPlan v1. Hidden instances are never reachable through
+    this call; hidden scoring is the separate trusted `score` operation.
   - Returns the simulation outcome, metrics, trace digest and downsampled trace.
     These feed the method's own transcript; they are not score evidence.
   - Debits the episode's **simulation steps** from the execution's grant
@@ -206,9 +211,10 @@ the experimental contracts in #18 (`development_method`, execution) and #22
     holder during step 5, before the reveal).
   - The receipt binds what #22 binds plus the acceptance or comparison plan,
     trial and arm. Which requests must exist comes from the plan's declared
-    roster (pending in #22), so a replay or a favorable re-run can't silently
-    change a comparison. A content digest identifies the evaluator; it does
-    not authenticate it.
+    roster in #28; #32 binds cumulative public calls and their transcript.
+    Trusted runtime integration must ensure a replay or favorable re-run cannot
+    silently change a comparison. A content digest identifies the evaluator;
+    it does not authenticate it.
 
 ### How this evaluator fills #22's scoring context
 
@@ -282,8 +288,10 @@ treatments are the primary comparison; per-task warm numbers are secondary.
 
 - **#18/#22 (Codex):** method I/O types carrying `instance_ref`s and designs;
   the executor passing the grant's `simulation_steps` to the evaluator; the
-  pre-execution trial plan (still pending in #22) listing the instance
-  identities each trial uses, so no-output failures stay in the denominator.
+  merged #28 pre-execution trial plan listing the instance identities each
+  trial uses, so no-output failures stay in the denominator; and #32
+  reserve/settle/seal accounting and exact execution-transcript validation.
+  These libraries do not provide the trusted runtime integration themselves.
 - **adoption.md:** acceptance suites are lists of development `instance_ref`s
   plus a criterion over scoring metrics (for example `success` count versus the
   control arm); the evaluator requirement is `evaluator_id@version` **plus its content
