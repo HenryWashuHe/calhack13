@@ -22,5 +22,6 @@ pub mod method_synthesis;
 pub mod text_generation;
 
 pub mod method_accounting;
+pub mod method_admission;
 pub mod method_revision;
 pub mod method_roster;
