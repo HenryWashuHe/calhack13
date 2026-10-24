@@ -137,3 +137,11 @@ describe("executions in the lineage", () => {
     expect(buildLineage({ generations: [], executions: [e, e] }).problems[0]).toMatch(/appears more than once/);
   });
 });
+
+it("labels inherited Object member names as unrecognized execution and evaluation outcomes", () => {
+  for (const raw of ["constructor", "toString", "__proto__"]) {
+    expect(executionLabel(raw).text).toBe(`unrecognized: ${raw}`);
+    expect(evaluationLabel(raw).text).toBe(`unrecognized: ${raw}`);
+  }
+  expect([executionLabel("failed").text, evaluationLabel("scored").text]).toEqual(["execution failed", "scored"]);
+});
