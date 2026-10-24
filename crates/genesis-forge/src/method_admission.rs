@@ -41,6 +41,10 @@ pub struct AdmissionSummary {
 }
 
 impl GenerationAdmission {
+    pub fn roster(&self) -> &GenerationRoster {
+        &self.0.roster
+    }
+
     pub fn new(roster: GenerationRoster) -> Result<Self, AccountingError> {
         let admission = Self(Record {
             schema_version: 1,
