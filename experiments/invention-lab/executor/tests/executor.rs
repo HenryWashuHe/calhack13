@@ -263,3 +263,50 @@ fn unsafe_euid() -> u32 {
         .and_then(|v| v.parse().ok())
         .unwrap_or(u32::MAX)
 }
+
+#[test]
+fn a_stop_after_sealing_still_recovers_with_the_call_pending() {
+    let f = fixture(
+        "sealed",
+        "call({'op':'submit','design':CART})",
+        Mode::None,
+        7200,
+        20_000,
+    );
+    let slot = f.dir.join("slot");
+    std::fs::create_dir_all(&slot).unwrap();
+    let mut ledger = ExperimentLedger::new(f.scope()).unwrap();
+    let design = refs::content("lab-design/1", "submission", "1", CART.as_bytes());
+    ledger
+        .reserve(
+            f.scope(),
+            f.plan.development_instances[0].clone(),
+            design,
+            2400,
+        )
+        .unwrap();
+    ledger.seal(f.scope()).unwrap();
+    let state = genesis_lab_exec::session::RunState {
+        started: true,
+        method: Some(f.method.reference().unwrap()),
+        ..Default::default()
+    };
+    std::fs::write(slot.join("run.json"), serde_json::to_vec(&state).unwrap()).unwrap();
+    std::fs::write(
+        slot.join("ledger.json"),
+        serde_json::to_vec(&ledger).unwrap(),
+    )
+    .unwrap();
+    let done = run::recover(&f.plan, "candidate", &slot, &f.cfg).unwrap();
+    assert_eq!(done.receipt.outcome, ExecutionOutcome::Unknown);
+    let ledger = f.ledger();
+    assert!(
+        ledger.records()[0].settlement.is_none(),
+        "kept pending, not invented"
+    );
+    assert!(matches!(
+        done.receipt.usage.simulation_steps,
+        ResourceUsage::Unknown { .. }
+    ));
+    ledger.validate_execution(f.scope(), &done.receipt).unwrap();
+}
