@@ -1,6 +1,7 @@
 # Combined integration checkpoint
 
-Branch: `codex/combined-integration`. This is an assembled development checkpoint
+Branch: `codex/combined-integration`, [draft PR #25](https://github.com/HenryWashuHe/genesis/pull/25).
+This is an assembled development checkpoint
 for both machines. It is draft because the source reviews below still have open
 findings. Passing the existing suite does not resolve those findings.
 
@@ -26,12 +27,17 @@ review probes or claim their defects are fixed.
 
 The assembled source baseline passes **666 Rust tests across 84 suites** with
 `serde_json/preserve_order`, strict default-feature all-target Clippy and formatting.
-The console passes **26 tests** and its TypeScript/Vite production build. Generated
-schema/type drift is checked separately at the final integration checkpoint.
+The console passes **26 tests** and its TypeScript/Vite production build. The Rust-exported schemas and generated TypeScript types regenerate without drift.
 
-An additional scenario integration check is being added to exercise B's automatic
-adoption through the Elastic-backed canonical registry while both organizations
-project their own evidence. Its result will be recorded before the next handoff.
+The strengthened scenario fixture (`9d63cc0`) passes all five scoped scenario tests
+and strict Clippy. A recording proxy proves B's actual automatic adoption sends
+its committed requirement query through the real Rust Elastic client and receives
+the repaired capability identity/source digest. The full native artifact pin is
+checked against the canonical registry. Both organizations project/search their
+own evidence, cross-mission searches return no foreign hits, and B retains that
+configuration after restart. Fresh invocation proofs and both role handoffs remain
+required. The full baseline ran before this test-only enhancement; the affected
+five-test suite was then rerun successfully.
 
 These are local fixtures: canned model/Apify responses, loopback Elastic APIs and
 explicit development role bindings. CREAO's registered runtime still lacks a real
