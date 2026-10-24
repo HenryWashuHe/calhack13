@@ -1,6 +1,22 @@
 # PR review queue — October 23, 2026
 
-## Current queue after #108
+## Current queue after the scenario repair
+
+Main through #111 is `6194e53`. Current GitHub status and [issue #4](https://github.com/HenryWashuHe/genesis/issues/4)
+supersede the historical tables below.
+
+| PR | Disposition / source | Evidence |
+| --- | --- | --- |
+| #86 | Merged `ad622a9`, reviewed `ac50d35` | 35 gap-adoption tests and two-org inheritance pass; retained native receipt failures remain blocked. Strict Clippy/fmt. |
+| #111 | Merged `6194e53`, reviewed `84dd81f` / composition `e1b95ea` | Reproduced full-scenario deadline failure, then five scenarios and 40 scenario units pass. Runtime freshness remains strict; Claude contribution preserved. |
+| #112 | Implemented `1b2610c` + tests `bbe1872`; current merge status on GitHub | 139 library + 90 assessment tests, then final 12 intake tests; strict Clippy/fmt and independent review. Loopback evidence; counts overlap. |
+| #110 | **Hold** at `91b0169`; supersedes #91 | Structural updates every second still starve replay. Test-only `b677414`: one reproduced failure plus three unchanged passing original controls. |
+
+Claude owns #110's production fix and the separately agreed terminal-outcome
+retry follow-up. Codex owns automatic recovery intake and its native/scenario
+composition. Public Agentverse/ASI and live provider gates remain unproven.
+
+## Historical queue after #108
 
 Main `74b99c3fabf6d17188b5bf53fba9cd83d828305d`, tree
 `f75934c42770f902e40700079b50d9972806d220`. Newer GitHub heads and issue #4

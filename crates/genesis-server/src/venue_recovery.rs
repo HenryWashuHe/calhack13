@@ -278,6 +278,17 @@ impl Store {
             .optional()
             .map_err(StoreError::from)?)
     }
+    fn recovery_by_requirement(&self, requirement: &RequirementId) -> ApiResult<Option<String>> {
+        Ok(self
+            .lock()
+            .query_row(
+                "SELECT recovery_id FROM venue_recoveries WHERE requirement_id=?1",
+                [requirement.as_str()],
+                |row| row.get(0),
+            )
+            .optional()
+            .map_err(StoreError::from)?)
+    }
     fn recovery(&self, id: &str) -> ApiResult<Recovery> {
         let row: Option<(String, u64, String, String, String, String)> = self.lock().query_row(
             "SELECT data,revision,client_request_id,requirement_id,contract_id,job_id FROM venue_recoveries WHERE recovery_id=?1 AND length(CAST(data AS BLOB))<=?2",
@@ -541,12 +552,107 @@ pub async fn create(
     request: CreateRecoveryRequest,
 ) -> ApiResult<(RecoveryRecord, bool)> {
     let _kernel = app.kernel.lock().await;
-    if let Some(id) = app.store.recovery_by_request(&request.client_request_id)? {
-        let saved = app.store.recovery(&id)?;
-        if saved.binding.request != request {
-            return Err(conflict("request key already binds another recovery"));
-        }
-        return Ok((saved.record(), false));
+    create_locked(app, request)
+}
+
+/// Reconcile an exact saved intent before checking freshness or live authority.
+/// The caller holds the organization's kernel lock. This lookup is read-only.
+pub(crate) fn lookup_request_locked(
+    app: &AppState,
+    request: &CreateRecoveryRequest,
+) -> ApiResult<Option<RecoveryRecord>> {
+    let Some(id) = app.store.recovery_by_request(&request.client_request_id)? else {
+        return Ok(None);
+    };
+    let saved = app.store.recovery(&id)?;
+    if saved.binding.request != *request {
+        return Err(conflict("request key already binds another recovery"));
+    }
+    Ok(Some(saved.record()))
+}
+
+/// Find an existing recovery, including one created manually, for this exact
+/// accepted Reopen. Restore and validate its stored binding without requiring
+/// fresh evidence or current authority. The caller holds the kernel lock.
+pub(crate) fn lookup_reopen_locked(
+    app: &AppState,
+    assessment_id: &str,
+    proof_ref: &str,
+    requirement_id: &RequirementId,
+) -> ApiResult<Option<RecoveryRecord>> {
+    let Some(id) = app.store.recovery_by_requirement(requirement_id)? else {
+        return Ok(None);
+    };
+    let saved = app.store.recovery(&id)?;
+    let binding = &saved.binding;
+    if binding.request.reopened_assessment_id != assessment_id
+        || binding.source.reopened_assessment_id != assessment_id
+        || binding.source.reopened_proof_ref != proof_ref
+        || binding.requirement.requirement_id != *requirement_id
+        || binding.source.replacement_requirement_id != *requirement_id
+        || binding.source.org_id != app.org_id
+    {
+        return Err(conflict(
+            "requirement already binds a different reopened assessment",
+        ));
+    }
+    Ok(Some(saved.record()))
+}
+
+/// Reconcile a historical coordinator before an intake has authenticated its
+/// anchor. The sealed coordinator already binds the accepted Reopen identity.
+pub(crate) fn lookup_assessment_locked(
+    app: &AppState,
+    assessment_id: &str,
+) -> ApiResult<Option<RecoveryRecord>> {
+    let ids: Vec<String> = {
+        let conn = app.store.lock();
+        let mut statement = conn.prepare("SELECT recovery_id FROM venue_recoveries WHERE CASE WHEN json_valid(data) THEN json_extract(data,'$.data.binding.request.reopened_assessment_id')=?1 ELSE 0 END LIMIT 2").map_err(StoreError::from)?;
+        let ids = statement
+            .query_map([assessment_id], |r| r.get(0))
+            .map_err(StoreError::from)?
+            .collect::<Result<_, _>>()
+            .map_err(StoreError::from)?;
+        ids
+    };
+    if ids.len() > 1 {
+        return Err(conflict("assessment binds multiple recoveries"));
+    }
+    let Some(id) = ids.first() else {
+        return Ok(None);
+    };
+    let saved = app.store.recovery(id)?;
+    if saved.binding.request.reopened_assessment_id != assessment_id
+        || saved.binding.source.reopened_assessment_id != assessment_id
+        || saved.binding.source.org_id != app.org_id
+    {
+        return Err(conflict("recovery assessment binding changed"));
+    }
+    Ok(Some(saved.record()))
+}
+
+/// Create or reconcile a recovery while the caller holds the kernel lock.
+pub(crate) fn create_locked(
+    app: &AppState,
+    request: CreateRecoveryRequest,
+) -> ApiResult<(RecoveryRecord, bool)> {
+    create_or_validate_locked(app, request, true)
+}
+
+/// Exercise the same source, authority, quota, proposal and message checks as
+/// creation, without committing state or sending messages. Intake calls this
+/// before freezing a request so a blocked organization can discover newer facts.
+pub(crate) fn preflight_locked(app: &AppState, request: CreateRecoveryRequest) -> ApiResult<()> {
+    create_or_validate_locked(app, request, false).map(|_| ())
+}
+
+fn create_or_validate_locked(
+    app: &AppState,
+    request: CreateRecoveryRequest,
+    persist: bool,
+) -> ApiResult<(RecoveryRecord, bool)> {
+    if let Some(saved) = lookup_request_locked(app, &request)? {
+        return Ok((saved, false));
     }
     if !protocol::identifier(&request.client_request_id)
         || !request
@@ -697,6 +803,9 @@ pub async fn create(
         Utc::now(),
     )?;
     let text = encode(&record)?;
+    if !persist {
+        return Ok((record.record(), false));
+    }
     let b = &record.binding;
     let events = app.store.commit_state(
         state.revision,
