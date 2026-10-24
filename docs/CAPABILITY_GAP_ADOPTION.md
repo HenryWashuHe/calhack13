@@ -101,11 +101,13 @@ adoption for a gap stopped at `registry`, `candidate`, `configuration`,
 `previous_adoption_ids`, the record returns to `active` with `attempt` + 1,
 and the coordinator dispatches under the key `gap-adopt:<gap>:<attempt>`
 after rechecking the requirement and grant. At most two retries per gap.
-For `checks` (a failed or unknown check run, e.g. a restart mid-run) the
-operator is the reconciler: nothing is replayed, the stopped adoption can
-only be fenced from then on and keeps its run IDs in history, and the retry
-starts new checks under the new key, so the worst case is one duplicate
-check run. Automatic paths never retry. `invalid_record` is never
+Whatever the code, a retry also needs every native check run of the stopped
+adoption to have a definite outcome (collected, failed or rejected) or never
+to have been submitted. A run with an unknown outcome (`needs_reconciliation`,
+e.g. a restart mid-POST) or still in flight answers 409
+`adoption_checks_unresolved` and leaves the record untouched, so no check is
+ever submitted twice; there is no automatic reconciliation of unknown runs
+yet, so such a gap stays at attention. Automatic paths never retry. `invalid_record` is never
 retryable. A retry never releases the gap to
 synthesis; only a definitive empty search does. Status shows `attempt`,
 `previous_adoption_ids` and whether a retry is allowed now (`retryable`).
