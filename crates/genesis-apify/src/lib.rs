@@ -20,6 +20,8 @@ use std::fmt;
 use std::time::Duration;
 use tokio::time::{sleep, timeout_at, Instant};
 
+const MAX_DATASET_VISIBILITY_READS: usize = 5;
+
 #[derive(Clone, Debug)]
 pub struct RunLimits {
     pub request_timeout: Duration,
@@ -414,26 +416,48 @@ impl ApifyClient {
             .append_pair("limit", "2")
             .append_pair("offset", "0")
             .append_pair("clean", "false");
-        let response = self
-            .request(Method::GET, url, None, Stage::Dataset, deadline)
-            .await?;
-        let mut items: Vec<Value> = decode(&response.bytes, Stage::Dataset)?;
-        if items.len() != 1 || !items[0].is_object() {
-            return Err(error(ErrorKind::InvalidDataset, Stage::Dataset));
-        }
-        // Headers are documented but optional in intermediated local responses.
-        // If provided, they must agree and cannot hide additional records.
-        for (name, expected) in [
-            ("x-apify-pagination-total", 1),
-            ("x-apify-pagination-count", 1),
-            ("x-apify-pagination-offset", 0),
-        ] {
-            if let Some(value) = response.headers.get(name) {
-                if value.to_str().ok().and_then(|v| v.parse::<usize>().ok()) != Some(expected) {
-                    return Err(error(ErrorKind::InvalidDataset, Stage::Dataset));
+        let mut reads = 0;
+        let mut items = loop {
+            reads += 1;
+            let response = self
+                .request(Method::GET, url.clone(), None, Stage::Dataset, deadline)
+                .await?;
+            let items: Vec<Value> = decode(&response.bytes, Stage::Dataset)?;
+            if items.len() > 1 || items.first().is_some_and(|item| !item.is_object()) {
+                return Err(error(ErrorKind::InvalidDataset, Stage::Dataset));
+            }
+            // Headers are optional in intermediated local responses. An empty
+            // page can be transient, but its headers cannot indicate overflow.
+            for (name, expected) in [
+                ("x-apify-pagination-total", items.len()),
+                ("x-apify-pagination-count", items.len()),
+                ("x-apify-pagination-offset", 0),
+            ] {
+                if let Some(value) = response.headers.get(name) {
+                    let parsed = value.to_str().ok().and_then(|v| v.parse::<usize>().ok());
+                    let valid = if name == "x-apify-pagination-total" && items.is_empty() {
+                        parsed.is_some_and(|total| total <= 1)
+                    } else {
+                        parsed == Some(expected)
+                    };
+                    if !valid {
+                        return Err(error(ErrorKind::InvalidDataset, Stage::Dataset));
+                    }
                 }
             }
-        }
+            if !items.is_empty() {
+                break items;
+            }
+            if reads == MAX_DATASET_VISIBILITY_READS {
+                return Err(error(ErrorKind::InvalidDataset, Stage::Dataset));
+            }
+            timeout_at(
+                deadline,
+                sleep(self.limits.poll_interval.min(Duration::from_secs(1))),
+            )
+            .await
+            .map_err(|_| error(ErrorKind::DeadlineExceeded, Stage::Dataset))?;
+        };
         let evidence = ExecutionEvidence {
             case_id: request.case_id.clone(),
             artifact: request.artifact.clone(),
