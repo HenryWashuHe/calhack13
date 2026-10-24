@@ -3,7 +3,7 @@
 // This reports presence of records only. It never marks a G0–G4 gate complete
 // and never infers improvement; the operator names which org is A and which is B.
 
-import { adoptionLabel, executionLabel, revisionLabel } from "./claims";
+import { adoptionLabel, executionLabel, revisionLabel, verdictText } from "./claims";
 import type { Lineage } from "./lineage";
 
 export interface Fact {
@@ -23,6 +23,22 @@ function runsText(l: Lineage, org: string, methods: Set<string>): Fact {
   if (runs.length === 0) return { text: `${org} runs: none recorded`, recorded: false };
   const outcomes = runs.map((r) => `${executionLabel(r.receipt.outcome).text} (${r.evaluations.length} evaluation${r.evaluations.length === 1 ? "" : "s"})`);
   return { text: `${org} runs: ${outcomes.join("; ")}`, recorded: true };
+}
+
+/** Trials in which `org` ran one of `methods` as the candidate: their verdicts,
+ * verbatim. A trial verdict is scoring evidence, not an adoption decision. */
+function trialsText(l: Lineage, org: string, methods: Set<string>, owner: string): Fact {
+  const found = l.trials.filter((t) =>
+    t.executions.some(
+      (e) =>
+        e.receipt.org_id === org &&
+        methods.has(e.method) &&
+        (e.receipt.purpose.kind === "comparison" || (e.receipt.purpose.kind === "acceptance" && e.receipt.purpose.role === "candidate")),
+    ),
+  );
+  if (found.length === 0) return { text: `${org} trials of ${owner}'s methods: none recorded`, recorded: false };
+  const list = found.map((t) => `${t.plan.ref.id}: ${verdictText(t.verdict)}`).join("; ");
+  return { text: `${org} trials of ${owner}'s methods: ${list} (trial verdicts, not adoption decisions)`, recorded: true };
 }
 
 export function beats(l: Lineage, a: string, b: string): Beat[] {
@@ -62,6 +78,7 @@ export function beats(l: Lineage, a: string, b: string): Beat[] {
           ? { text: `${b} decisions on ${a}'s methods: ${decisionText(bDecisions)}`, recorded: true }
           : { text: `${b} decisions on ${a}'s methods: none recorded`, recorded: false },
         runsText(l, b, aMethods),
+        trialsText(l, b, aMethods, a),
       ],
     },
     {
@@ -80,6 +97,7 @@ export function beats(l: Lineage, a: string, b: string): Beat[] {
           ? { text: `${a} decisions on ${b}'s revisions: ${decisionText(aDecisions)}`, recorded: true }
           : { text: `${a} decisions on ${b}'s revisions: none recorded`, recorded: false },
         runsText(l, a, bRevisions),
+        trialsText(l, a, bRevisions, b),
       ],
     },
     {
