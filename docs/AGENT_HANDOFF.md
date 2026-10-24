@@ -4,6 +4,27 @@ Updated: October 21, 2026.
 
 ## Current integration checkpoint
 
+Codex has pushed [PR #9](https://github.com/HenryWashuHe/genesis/pull/9),
+`codex/capability-acquisition`, code checkpoint `6853f16`, stacked on PR #8. One
+`AcquisitionSession` now carries generation, Actor packaging/build and independent
+verification, with one preplanned semantic repair. The CLI exports a reverified
+backend-compatible ForgeSession proof. The normalized Apify receipt bound closes
+JSON expansion beyond checkpoint headroom. See
+[CAPABILITY_ACQUISITION.md](CAPABILITY_ACQUISITION.md) for commands and contracts.
+All **426 Rust tests** pass with `serde_json/preserve_order`, zero failed/ignored;
+workspace formatting and strict all-target Clippy pass. No live provider calls
+were made. Use the same embedded scaffold/binary through each acquisition.
+
+The user has requested ongoing autonomous implementation across milestones.
+Codex's next scoped slice is mission-bound server acquisition: durable SQLite
+intent/step/status, current assignment/lease/deadline checks, persistent count
+quotas and trusted publication-proof lookup. New capability modules/routes and
+narrow app registrations/evidence lookup are Codex-owned; Claude keeps planner,
+core lifecycle/saga, asynchronous provider activation, Elastic and UI. Allocation
+budgets are not a provider-spend ledger; the next slice must not claim dollar
+billing enforcement. Ownership and exact integration checkpoints are also recorded
+in [issue #4](https://github.com/HenryWashuHe/genesis/issues/4).
+
 PR #3/#5/#6/#7 are merged on main at `5c4dd1a`. Codex has pushed source
 synthesis in [PR #8](https://github.com/HenryWashuHe/genesis/pull/8), branch
 `codex/capability-synthesis`, code checkpoint `f91d6ef`, in the forge modules/CLI/tests, with
