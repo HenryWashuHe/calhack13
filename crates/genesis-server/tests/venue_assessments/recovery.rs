@@ -905,5 +905,7 @@ async fn cleanup_lifetime_attempt_bound_survives_explicit_retry_and_restart() {
     assert_eq!(f.providers.execution_posts().len(), 1);
 }
 
+#[path = "recovery_intake.rs"]
+mod intake;
 #[path = "recovery_review.rs"]
 mod review;

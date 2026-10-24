@@ -318,6 +318,113 @@ fn validate_timestamp(
     Ok(())
 }
 
+fn maximum_deadline(
+    timestamps: impl IntoIterator<Item = DateTime<Utc>>,
+    now: DateTime<Utc>,
+) -> ApiResult<DateTime<Utc>> {
+    let mut deadline = now
+        .checked_add_signed(Duration::minutes(30))
+        .ok_or_else(|| invalid("recovery freshness window cannot be represented"))?;
+    for timestamp in timestamps {
+        if timestamp > now {
+            return Err(invalid("recovery source timestamp is from the future"));
+        }
+        let limit = timestamp
+            .checked_add_signed(Duration::minutes(30))
+            .ok_or_else(|| invalid("source freshness window cannot be represented"))?;
+        deadline = deadline.min(limit);
+    }
+    // Fetch wire messages retain microseconds. Round down so normalization can
+    // never extend a source's exact freshness bound, even by a nanosecond.
+    let deadline = DateTime::from_timestamp_micros(deadline.timestamp_micros())
+        .ok_or_else(|| invalid("recovery deadline cannot be represented"))?;
+    if deadline <= now {
+        return Err(invalid("recovery source freshness window has expired"));
+    }
+    Ok(deadline)
+}
+
+/// Authenticate one potential source before intake freezes its exact request.
+/// None means authenticated fresh evidence is unrelated to this event or has
+/// no feasible alternative to the failed venue. Unavailable, stale or
+/// inconsistent evidence remains an error, never permission to discard
+/// uncertainty or choose a different prepared request.
+/// The caller holds the kernel lock and checks current work authority separately.
+pub(crate) fn prepare_candidate(
+    app: &AppState,
+    reopened_assessment_id: &str,
+    job_id: &JobId,
+    now: DateTime<Utc>,
+) -> ApiResult<Option<(SourceBinding, DateTime<Utc>)>> {
+    // Discovery can encounter genuine invocations for another event, or a
+    // supported invocation with no replacement facts. Authenticate both sides
+    // before classifying those as absent candidates; a missing proof or receipt
+    // must remain retryable uncertainty instead of permitting an older winner.
+    let assessment = venue_assessments::read_locked(app, reopened_assessment_id)
+        .map_err(|_| invalid("reopened assessment cannot be reconstructed"))?;
+    let proof = assessment
+        .proof
+        .as_ref()
+        .ok_or_else(|| invalid("assessment has no verified decision"))?;
+    if assessment.status != JobStatus::Succeeded
+        || proof.decision != AssessmentDecision::Accepted
+        || proof
+            .output
+            .as_ref()
+            .is_none_or(|output| output.verdict != AssessmentVerdict::Reopen)
+    {
+        return Err(invalid("recovery requires an accepted reopen assessment"));
+    }
+    if proof.verified_at > now {
+        return Err(invalid("reopened assessment decision is from the future"));
+    }
+    let original = read_source(app, &assessment.source_job_id)?;
+    let candidate = read_source(app, job_id)?;
+    maximum_deadline(
+        [&original.summary, &candidate.summary]
+            .into_iter()
+            .flat_map(|source| [source.created_at, source.verified_at]),
+        now,
+    )?;
+    if !same_origin(&original, &candidate)
+        || !matches!(&candidate.summary.extraction,
+            ExtractionOutcome::Supported { venues } if !venues.is_empty())
+    {
+        return Ok(None);
+    }
+    // Keep the manual reconstruction and all exact source/domain checks intact.
+    // These repeated historical reads remain fallible under the same lock.
+    let resolved = reconstruct(app, reopened_assessment_id, std::slice::from_ref(job_id))?;
+    if resolved
+        .assessment
+        .proof
+        .as_ref()
+        .is_none_or(|proof| proof.verified_at > now)
+    {
+        return Err(invalid("reopened assessment decision is from the future"));
+    }
+    let deadline = maximum_deadline(
+        std::iter::once(&resolved.binding.original)
+            .chain(resolved.binding.candidates.iter())
+            .flat_map(|source| [source.created_at, source.verified_at]),
+        now,
+    )?;
+    validate_freshness(&resolved.binding, deadline, now)?;
+    let context = RecoveryContext {
+        // Match the real UUID recovery ID's wire length when enforcing bounds.
+        recovery_id: "recovery_00000000-0000-0000-0000-000000000000".into(),
+        policy_sha256: json_sha256(&serde_json::json!(resolved.binding.policy)),
+        policy: resolved.binding.policy.clone(),
+        candidates: resolved.candidates,
+    };
+    if !domain::has_feasible_alternative(&context)
+        .map_err(|_| invalid("candidate facts do not form a bounded recovery context"))?
+    {
+        return Ok(None);
+    }
+    Ok(Some((resolved.binding, deadline)))
+}
+
 /// Freeze independently authenticated sources while all can still be used by
 /// the existing assessment API. Current role/requirement/contract authority is
 /// checked separately by the recovery coordinator under this same kernel lock.
@@ -453,5 +560,58 @@ mod tests {
         // Reversing which timestamp is older cannot silently choose a newer
         // deadline: creation and verification each constrain the same bound.
         assert!(validate_timestamp(verified - Duration::minutes(11), deadline, now).is_err());
+    }
+
+    #[test]
+    fn prepared_deadline_respects_every_source_timestamp_and_never_rounds_up() {
+        let now: DateTime<Utc> = "2030-01-01T10:00:00.123456789Z".parse().unwrap();
+        let full_window: DateTime<Utc> = "2030-01-01T10:30:00.123456Z".parse().unwrap();
+        assert_eq!(maximum_deadline([now; 4], now).unwrap(), full_window);
+        // Original creation/proof and candidate creation/proof must each cap
+        // the request, independently of which timestamp happens to be oldest.
+        for position in 0..4 {
+            let mut timestamps = [now; 4];
+            timestamps[position] = now - Duration::minutes(20);
+            let deadline = maximum_deadline(timestamps, now).unwrap();
+            let expected: DateTime<Utc> = "2030-01-01T10:10:00.123456Z".parse().unwrap();
+            assert_eq!(deadline, expected);
+            assert_eq!(deadline.timestamp_subsec_nanos() % 1000, 0);
+            for timestamp in timestamps {
+                validate_timestamp(timestamp, deadline, now).unwrap();
+            }
+            assert!(validate_timestamp(
+                timestamps[position],
+                deadline + Duration::microseconds(1),
+                now
+            )
+            .is_err());
+        }
+    }
+
+    #[test]
+    fn candidate_deadline_rejects_future_expired_and_unrepresentable_windows() {
+        let now: DateTime<Utc> = "2030-01-01T10:00:00Z".parse().unwrap();
+        for position in 0..4 {
+            let mut timestamps = [now - Duration::minutes(20); 4];
+            timestamps[position] = now + Duration::nanoseconds(1);
+            assert!(maximum_deadline(timestamps, now).is_err());
+            timestamps[position] = now - Duration::minutes(30);
+            assert!(maximum_deadline(timestamps, now).is_err());
+            timestamps[position] = now - Duration::minutes(31);
+            assert!(maximum_deadline(timestamps, now).is_err());
+        }
+        assert!(maximum_deadline([DateTime::<Utc>::MAX_UTC], DateTime::<Utc>::MAX_UTC).is_err());
+    }
+
+    #[test]
+    fn submicrosecond_remaining_freshness_cannot_prepare_an_expired_request() {
+        let now: DateTime<Utc> = "2030-01-01T10:00:00.123456400Z".parse().unwrap();
+        let nearly_expired = now - Duration::minutes(30) + Duration::nanoseconds(500);
+        assert!(nearly_expired + Duration::minutes(30) > now);
+        assert!(maximum_deadline([nearly_expired, now, now, now], now).is_err());
+        let enough_time = now - Duration::minutes(30) + Duration::microseconds(1);
+        let deadline = maximum_deadline([enough_time, now, now, now], now).unwrap();
+        assert_eq!(deadline.to_rfc3339(), "2030-01-01T10:00:00.123457+00:00");
+        assert!(deadline > now);
     }
 }
