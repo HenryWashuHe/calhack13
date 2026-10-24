@@ -29,3 +29,40 @@ cooperative admission; hashes do not authenticate a writer or establish complete
 history or chronology. Foundation weights and provider-default sampling are
 not frozen by this mechanism. It grants no execution/adoption authority and
 does not establish a completed comparison or recursive benefit.
+
+## CLI
+
+Create one journal from the original saved roster before stepping its attempts:
+
+```sh
+cargo run -p genesis-forge -- method-admission-prepare \
+  --roster roster.json --admission admission.json
+cargo run -p genesis-forge -- method-generate-step \
+  --checkpoint generation.json --admission admission.json
+cargo run -p genesis-forge -- method-admission-status --admission admission.json
+```
+
+Preparation is offline and refuses overwrite. Status is offline/read-only and
+does not acquire locks or reconcile state. The step holds the admission lock
+before the generation lock until the final session save completes. Exact
+membership and reservation status are checked before credentials; invalid model
+configuration consumes no reservation. After preflight, it durably saves the
+reservation before Requesting and the existing single provider call.
+
+A stranded Prepared reservation returns an error without a provider request.
+A reserved Requesting session uses existing reconciliation, with no replay or
+refund. An advanced session lacking a reservation is refused. Failed, rejected
+and uncertain attempts retain the full reserved caps. Actual reported usage is
+still assessed separately; a reservation alone is not proof a request was sent.
+
+Use one retained canonical journal pathname for every participating step. Locks
+are cooperative file-path locks, not a database-wide or inode-based authority;
+do not copy, hard-link, roll back or recreate the journal to continue an
+experiment. A stale lock requires the existing manual process-termination and
+checkpoint inspection procedure. This CLI never removes a stale lock for you.
+
+`--admission` is optional only on `method-generate-step`; legacy calls preserve
+their previous behavior and are outside these cooperative journal bounds.
+Neither this option nor the journal changes provider usage into trusted billing
+or enforces input-token/aggregate wall limits. Loopback tests establish write
+ordering and failure handling; they are not authenticated cloud evidence.
