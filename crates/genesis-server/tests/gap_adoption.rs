@@ -3030,3 +3030,30 @@ async fn outcome_is_stable_across_restart() {
     f.drain().await;
     assert_eq!(outcome(&f), before);
 }
+
+#[tokio::test]
+async fn outcome_without_recorded_decisions_does_not_invent_search_cardinality() {
+    // Henry's Claude, for Codex's #11 review: an adoption with no decision
+    // rows (an empty answer, or one from before the log) must not be described
+    // as "the registry answered with no candidates".
+    use genesis_server::capability_adoption_outcome::classify;
+    use genesis_server::capability_gap_adoption::{GapAdoptionCode, GapAdoptionState};
+    let o = classify(
+        GapAdoptionState::Refused,
+        Some(GapAdoptionCode::NoCandidate),
+        &[],
+        false,
+    );
+    assert_eq!(o.outcome.as_str(), "no_candidate");
+    assert_eq!(o.considered, 0);
+    assert!(
+        o.reason.contains("no eligible candidate was found"),
+        "{}",
+        o.reason
+    );
+    assert!(
+        !o.reason.contains("answered with no candidates"),
+        "{}",
+        o.reason
+    );
+}

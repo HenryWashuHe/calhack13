@@ -111,7 +111,7 @@ changes no fallback and grants nothing.
 | `adopted` | installed after this organization's own suite accepted it | exact id, version, publisher, `acceptance_ref` |
 | `not_applicable` | the suite rejected the selection (`refused: rejected`); `reason` is the oracle-free failed-case summary | the rejected candidate and its rejection reference |
 | `insufficient_evidence` | a candidate was offered but couldn't reach a verdict: invalid/unusable manifest or score (`attention: candidate`), or checks that all definitely ended without evidence (`attention: checks` with settled runs) | the candidate, if one was reached |
-| `no_candidate` | the search answered and nothing was eligible, or it was empty (`released` or `refused: no_candidate`); `reason` counts own publications and missing permissions | none |
+| `no_candidate` | the bounded search found nothing eligible (`released` or `refused: no_candidate`); `reason` counts own publications and missing permissions when decisions were recorded, and otherwise says only that no eligible candidate was found | none |
 | `unknown` | the registry or a manifest couldn't be read, or a check's provider outcome is unresolved | the selected candidate, still `selected` |
 | `stopped` | authority, configuration, conflict or an inconsistent record | the candidate, if one was reached; never a verdict |
 
