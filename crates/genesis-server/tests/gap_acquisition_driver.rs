@@ -994,3 +994,49 @@ async fn paused_quota_and_configuration_schedules_are_visible_without_new_effect
         assert!(providers.state.lock().unwrap().requests.is_empty());
     }
 }
+
+/// Henry's Claude: an ambiguous POST must stay attention even after the
+/// authority changes (the driver checks NeedsReconciliation before current
+/// authority). Refusing here would wake the planner, which can request the
+/// same capability again: a replay of the unknown effect through a new gap.
+#[tokio::test]
+async fn review_unknown_outcome_is_not_refused_after_authority_changes() {
+    let providers = Providers::start(true).await;
+    let f = Fixture::new("gap-unknown-reassigned", Some(&providers)).await;
+    drain_once(&f.app).await.unwrap();
+    assert_eq!(f.finish().await, AcquisitionPhase::NeedsReconciliation);
+    let id = f.record().id().to_owned();
+    f.change(|state, gap| {
+        let old = state
+            .active_assignment(&gap.responsibility_id)
+            .unwrap()
+            .clone();
+        state.assignments.get_mut(&old.assignment_id).unwrap().state = AssignmentState::Fenced;
+        let mut replacement = old;
+        replacement.assignment_id = AssignmentId::generate();
+        replacement.epoch += 1;
+        state
+            .responsibilities
+            .get_mut(&gap.responsibility_id)
+            .unwrap()
+            .epoch = replacement.epoch;
+        state
+            .assignments
+            .insert(replacement.assignment_id.clone(), replacement);
+    })
+    .await;
+    for _ in 0..3 {
+        drain_once(&f.app).await.unwrap();
+    }
+    assert_eq!(
+        f.gap().status,
+        CapabilityGapStatus::Acquiring { acquisition_id: id },
+        "an unknown outcome must not be turned into a refusal"
+    );
+    let status = genesis_server::capability_gap_driver::status(&f.app, &f.gap_id).unwrap();
+    assert_eq!(
+        status.code,
+        Some(genesis_server::capability_gap_driver::GapDriverCode::UnknownOutcome)
+    );
+    assert_eq!(providers.count("POST", "/actors"), 1);
+}
