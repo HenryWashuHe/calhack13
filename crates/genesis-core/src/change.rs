@@ -206,6 +206,38 @@ impl KeyAllocation {
     }
 }
 
+/// Where an asynchronous provider operation for a role stands. Native
+/// completion (`Created`) is not readiness; only `Ready` lets the role activate.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum ProviderOperationState {
+    /// Saved locally or running at the provider.
+    Pending,
+    /// The provider reports the agent created; readiness not yet proven.
+    AwaitingReadiness,
+    /// Readiness proven by a backend-observed check.
+    Ready,
+    /// The provider outcome is unknown (e.g. a lost POST response). No
+    /// automatic retry; an operator must reconcile.
+    NeedsReconciliation,
+    Failed,
+}
+
+/// One asynchronous provider operation behind a role being created.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub struct ProviderOperation {
+    pub provider: Provider,
+    pub operation_id: String,
+    pub state: ProviderOperationState,
+    pub run_id: Option<String>,
+    pub native_status: Option<String>,
+    /// Sanitized reason the operation is not advancing, if any.
+    pub attention: Option<String>,
+    /// Reference to the readiness evidence once `Ready`.
+    pub readiness_evidence: Option<String>,
+    pub updated_at: DateTime<Utc>,
+}
+
 /// A stored organization change with its lifecycle.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct OrgChangeRecord {
@@ -220,6 +252,10 @@ pub struct OrgChangeRecord {
     /// binding without readiness is kept for reconciliation and cleanup.
     #[serde(default)]
     pub ready: std::collections::BTreeSet<String>,
+    /// Asynchronous provider operations (e.g. CREAO agent creation), keyed by
+    /// role key. Visible while pending; kept after completion as evidence.
+    #[serde(default)]
+    pub operations: std::collections::BTreeMap<String, ProviderOperation>,
     #[serde(default)]
     pub errors: Vec<crate::engine::ValidationError>,
     pub committed_revision: Option<u64>,
