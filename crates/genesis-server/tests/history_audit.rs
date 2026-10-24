@@ -125,6 +125,50 @@ fn a_stored_history_passes_and_rewrites_are_named() {
     }
 }
 
+/// Eric's Claude: a stored snapshot that rewrites the constitution to cover a
+/// widened role is named at its revision. The state checks compare against the
+/// snapshot's own constitution, so only the step from the previous revision
+/// can tell.
+#[test]
+fn a_rewritten_constitution_is_named() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("org_a.db");
+    let store = Store::open(&path, OrgId::new("org_a")).unwrap();
+    let states = history(&store);
+
+    let mut rewritten = states[3].clone();
+    rewritten.constitution.budget_cents = 10_000;
+    rewritten.constitution.scopes.insert("payments.send".into());
+    let lead = rewritten.roles.values_mut().next().unwrap();
+    lead.authority.budget_cents = 5_000;
+    lead.authority.scopes.insert("payments.send".into());
+    // On its own the rewritten state is well formed.
+    assert!(genesis_core::audit::audit(&rewritten).is_empty());
+    rusqlite::Connection::open(&path)
+        .unwrap()
+        .execute(
+            "UPDATE org_snapshots SET state_json = ?1 WHERE revision = 3",
+            params![serde_json::to_string(&rewritten).unwrap()],
+        )
+        .unwrap();
+
+    let report = audit_database(&path, &OrgId::new("org_a")).unwrap();
+    let found: Vec<_> = report
+        .violations
+        .iter()
+        .map(|v| (v.revision, v.invariant))
+        .collect();
+    assert_eq!(
+        found,
+        [(3, "constitution_unchanged")],
+        "{:#?}",
+        report.violations
+    );
+    let detail = &report.violations[0].detail;
+    assert!(detail.contains("budget_cents 100 -> 10000"), "{detail}");
+    assert!(detail.contains("scopes added: payments.send"), "{detail}");
+}
+
 #[test]
 fn a_gap_in_snapshot_history_is_named() {
     let dir = tempfile::tempdir().unwrap();
