@@ -95,10 +95,32 @@ Phases: `observing`, `discovering`, `prepared`, `linked`, `ignored`, `expired`.
 Other verification/authority failures retain the row with attention for later
 inspection. Expired work does not start a new request automatically.
 
-The integration suite covers genuine local invocation/assessment receipts,
+The default integration suite covers genuine local invocation/assessment receipts,
 durable preparation, restarts, duplicate drains, manual recovery, lost-link
 reconciliation, waiting for a later feasible source, irrelevant event backlog,
 and intake through Fetch selection, CREAO acceptance and contract retirement.
-Providers and transport responses are loopback fixtures. This does not establish
+Providers and transport responses in that suite are loopback fixtures.
+
+The separately enabled native integration now composes automatic intake with two
+actual signed Python Fetch processes. It restarts Rust at `prepared`, adds newer
+source evidence, and proves that the original candidate, key and deadline remain
+frozen. Explicit intake drains create one coordinator without a recovery HTTP
+POST. The real coordinator then reaches signed selection, independent CREAO
+fixture acceptance and retirement, including native-process/Rust restart and
+separate peer-release evidence. Repeated drains preserve the same coordinator.
+
+After installing the frozen Python dependencies as described in [venue
+recovery](VENUE_RECOVERY.md#composed-signed-fetch-process-check), run:
+
+```sh
+GENESIS_FETCH_TEST_PYTHON="$PWD/services/fetch-bridge/.venv/bin/python" \
+  cargo test -p genesis-server --test venue_assessments \
+  recovery::native::automatic_intake_completes_signed_recovery_and_retires \
+  -- --ignored --exact
+```
+
+Both the original manual-entry and new automatic-entry native checks passed.
+Worker scheduling is explicit in the test; it does not validate the background
+timer. Apify, CREAO and provisioning remain fixtures. This does not establish
 Agentverse registration, ASI:One routing, cloud execution, a venue booking,
 requirement closure, or completion of the wider autonomous mission.

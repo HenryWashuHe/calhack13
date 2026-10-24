@@ -306,6 +306,13 @@ and the bridge queues cleanup while the peer contract is still active. After
 restart, it observes the separate authenticated peer release reply. The public
 coordinator continues to report only its documented queue acknowledgment.
 
+The additional `recovery::native::automatic_intake_completes_signed_recovery_and_retires`
+check preserves the same native exchange/retirement assertions while replacing
+manual recovery registration with the opt-in intake worker. It also restarts at
+the prepared-intent boundary before recruitment and verifies frozen sources and
+duplicate drains. See [the intake command and evidence boundary](VENUE_RECOVERY_INTAKE.md#inspection-and-evidence).
+Both native checks passed; neither claims background-timer scheduling.
+
 The default Cargo suite ignores this external-runtime check. An explicit run
 fails if its interpreter/setup is missing, rather than silently passing. It has
 a 90-second total bound and kills/reaps its owned processes on failure. No cloud
