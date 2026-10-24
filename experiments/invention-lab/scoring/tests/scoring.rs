@@ -165,3 +165,76 @@ fn scoring_refuses_substituted_bytes_a_short_grant_and_missing_output() {
         Err(ScoringError::NoOutput)
     ));
 }
+
+#[test]
+fn failed_or_unknown_worker_runs_are_never_aggregated_as_scored() {
+    use genesis_lab_eval::score::{Outcome, Receipt};
+    use genesis_lab_score::aggregate;
+    let design: genesis_lab_eval::design::Design = serde_json::from_str(REFERENCE).unwrap();
+    let base = genesis_lab_eval::score::score_acceptance(
+        &design,
+        genesis_lab_eval::family::Family::RavineCrossing,
+        0,
+    )
+    .unwrap();
+    let with = |outcome: Outcome, metrics: bool| -> Receipt {
+        let mut r = base.clone();
+        r.outcome = outcome;
+        r.reason = Some(format!("{outcome:?} here"));
+        if !metrics {
+            r.metrics = None;
+        }
+        r
+    };
+    let scored = ("a".to_string(), with(Outcome::Scored, true));
+    assert_eq!(aggregate(std::slice::from_ref(&scored)), None);
+    let failed = ("b".to_string(), with(Outcome::Failed, false));
+    let unknown = ("c".to_string(), with(Outcome::Unknown, false));
+    let invalid = ("d".to_string(), with(Outcome::Invalid, false));
+    assert!(
+        matches!(aggregate(&[scored.clone(), failed.clone()]), Some(EvaluationOutcome::Failed { reason }) if reason.starts_with("b:"))
+    );
+    assert!(matches!(
+        aggregate(&[failed.clone(), unknown.clone()]),
+        Some(EvaluationOutcome::Unknown { .. })
+    ));
+    assert!(matches!(
+        aggregate(&[invalid.clone(), failed]),
+        Some(EvaluationOutcome::Failed { .. })
+    ));
+    assert!(matches!(
+        aggregate(&[scored.clone(), invalid]),
+        Some(EvaluationOutcome::Invalid { .. })
+    ));
+    let no_metrics = ("e".to_string(), with(Outcome::Scored, false));
+    assert!(matches!(
+        aggregate(&[scored, no_metrics]),
+        Some(EvaluationOutcome::Failed { .. })
+    ));
+}
+
+#[test]
+fn a_wall_grant_that_runs_out_mid_scoring_is_retained_as_failed() {
+    let mut p = plan(4 * 2400);
+    p.scoring_grant.wall_time_ms = 1;
+    let design: serde_json::Value = serde_json::from_str(REFERENCE).unwrap();
+    let (execution, store) = executed(&p, "wall-out", Some(design));
+    let result = score_slot(
+        &p,
+        "candidate",
+        &execution,
+        &output_bytes(&execution, "wall-out"),
+        &store,
+    );
+    // Measured wall time exceeds a 1 ms grant, so validation reports it, but
+    // the evaluation record with its accounting is already durable.
+    assert!(result.is_err());
+    let kept: genesis_core::development_evaluation::EvaluationReceipt =
+        serde_json::from_slice(&store.read("evaluation.json").unwrap()).unwrap();
+    assert!(
+        matches!(kept.outcome, EvaluationOutcome::Failed { ref reason } if reason.contains("wall grant")),
+        "{:?}",
+        kept.outcome
+    );
+    assert!(kept.observed_context.is_none());
+}
