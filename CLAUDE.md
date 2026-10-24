@@ -189,10 +189,19 @@ every milestone. All lower checkpoints are historical.
   focused checks and six final client checks (overlapping), strict all-target
   server Clippy/fmt. Selected metadata and canonical source are bound exactly;
   the loopback transfer stops at B revision `Prepared`, with no new model run.
+  [Operator exchange CLI #141](docs/invention-lab/contracts/method-registry.md#operator-cli)
+  is merged at `ec28434b`: final 20 scoped tests pass; four independent CLI checks
+  and strict Clippy overlap. Explicit publish/search/selected fetch only, no
+  automatic `.env` loading or journal; any publication error may follow a write.
+  #142 adds three passing boundary cases, preserving its 144-line file unchanged.
   Henry's acknowledged authority slice has an approved pure verdict move as its
   prerequisite; none of the server adoption/invocation connection is merged.
   Eric's [MethodOffer UI intake increment](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388858370)
-  is requested, not acknowledged. The fixed-pool
+  is requested, not acknowledged. CREAO Trigger #137 is separately held on
+  durability, bounded response reads and concurrent reconciliation; no live run.
+  ACP's [iteration proposal](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6389024893)
+  awaits existing-contract interface agreement, not an alternate orchestrator.
+  The fixed-pool
   policy experiment remains a separate proposed mechanism diagnostic, not a restriction
   on the moonshot. Henry is preparing a K=3 workflow-versus-fresh protocol with
   public fresh-task assessment. [Protocol #135 is held](https://github.com/HenryWashuHe/genesis-history-experiment/pull/135#issuecomment-6388962594)

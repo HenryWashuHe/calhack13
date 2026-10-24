@@ -11,8 +11,8 @@ issue #4/task numbers below are historical. Preserve rewritten ancestry.
 
 The [ongoing goal](ONGOING_GOAL.md), revised app Goal and hourly continuation are
 active. The stale app record was cleared and replaced on October 24, 2026. Main
-through `03c16cb3b9e6067eae7ca52fb8688ee6224cddce`, tree
-`102873ad9e4e0188b6857cadb1c710f95bfbe8ca`, includes the experimental core
+through `f2b33d50610c19ee19a31965ad195fd54010bd9a`, tree
+`45bd7f6667d519d5175904558b00e6d8fe39e605`, includes the experimental core
 contracts, source loader, corrected adoption proposal/UI, simulator primitives,
 #50–#52 method-source generation, #42/#43 executor foundations/session and #56
 accounting identity checks plus #58/#59 declared combined-cost assessment and
@@ -50,13 +50,13 @@ Apify baseline do not close those gates. Event organizing remains superseded.
 
 | Owner/session | Active lane and acknowledgment | Scope / next deliverable |
 | --- | --- | --- |
-| Henry's core Claude | [Method-adoption/authority milestone acknowledged](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388913830) | [Pure core verdict move approved](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388954682) as a prerequisite; new method adoption/store/routes would recompute receiver acceptance and bind current requirement/responsibility/owner grant, then gate exact pinned invocation with decline/stale/revoked controls. No server connection implemented yet. Missing qualified owner fails; specialist creation and execution under the grant remain later work. Henry retains the lane. |
+| Henry's core Claude | [Method-adoption/authority milestone acknowledged](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388913830) | [Pure core verdict move approved](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388954682) as a prerequisite; new method adoption/store/routes would recompute receiver acceptance and bind current requirement/responsibility/owner grant, then gate exact pinned invocation with decline/stale/revoked controls. Adoption docs #138 are reconciled; no server connection implemented yet. Missing qualified owner fails; specialist creation and execution under the grant remain later work. Henry retains the lane. |
 | Henry's core Claude | Evaluator/executor active; simulator and #42–#45 executor stack merged | Own evaluator/executor. #57/#65 portable fixes clear their prior findings; namespace lifecycle assurance remains unverified after interrupted review. Preserve exact evidence limits and avoid claiming Linux enforcement. |
 | Henry's core Claude | #46/#48/#64/#70/#72 merged; #98 `cb29a95` receiving records merged after independent checks; #102 `c8bf7a0` checked public feedback merged at `7accefd3` | Own execution/scoring/adoption and receiving-side record plumbing. Retain B's explicit selection/local acceptance decision and intended responsibility, including the rejected random-search comparison. #116 retains checked rough-transport trials of frozen child `4f455dc6`, rejected against parent/random control. Local acceptance remains unestablished; #117 checked A-return records are Rejected in every comparison. Retain prior declarations and all negative results; do not edit forge. #57/#65 are separate unmerged assurance work. |
 | Eric / Eric's Claude | #93/#94/#99/#100/#101/#109 merged; real-evidence #123 integrated through #128 | `docs/invention-lab/ui.md` and `apps/web/src/invention-lab/**`, no shared routes. #123 `7196d5c` → parent merge `4515f728`; #128 `2f0b6734` → main `a3be74d0`, identical web bytes. Independent 81 tests/13 files and typecheck pass, original regressions unchanged. Preserve `78adef37`, `59c3e1c`, `f2ac45e5` and `0672dcbe`. The separate `apps/stage` queue does not transfer this lane. [MethodOffer/MethodSearchResults intake](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388858370) is requested next, awaiting acknowledgment/exact files: publisher-qualified identity and canonical bytes, no inferred authentication or adoption. |
-| ACP Claude session | #3/#5 and stage #20 merged; [Stage lane explicitly claimed](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388347592) | Own bridge and `apps/stage/**`; #125/#126 remain held as below. Reconcile held #4 routing/status/demo docs with merged #3/#5, local executor/scorer and issue #1. Preserve the superseded event-organizer boundary. Eric [withdrew only his separate Stage claim](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388539814), leaving his lab UI lane intact. |
-| Codex main chat | #120/#124/#127/#130 and method registry API/client #132/#133 merged | The [existing-registry path](invention-lab/contracts/method-registry.md) now supports authenticated publication, bounded discovery and selected-candidate exact fetch into revision preparation. Maintain shared contracts/generation integration and review; source transport grants no acceptance/authority. Henry retains adoption/roles/grants. Corrected W/F protocol awaits freezing; no new request declared. |
-| EricZhu-31 / Codex provider session | #104 nullable-ticket correction merged; [separate CREAO Trigger smoke slice claimed](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388887582), #137 under review | Own `scripts/live-gates/creao-trigger.mjs`, focused offline test, trigger guide and narrow live-gate docs link. Keep team `capi_`/app-ID Trigger separate from existing Developer API adapters/gate. Offline infrastructure only, no hosted run or G0–G4 result; ACP retains hosted-gate evidence. This provider claim does not acknowledge the lab UI request. |
+| ACP Claude session | #3/#5 and stage #20 merged; [Stage lane explicitly claimed](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388347592) | Own bridge and `apps/stage/**`; #125/#126 remain held as below. [New iteration files](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6389024893) remain proposed/exploratory pending existing-contract interface agreement, not a second default orchestrator. Reconcile held #4 routing/status/demo docs with merged #3/#5, local executor/scorer and issue #1. Preserve the superseded event-organizer boundary. Eric [withdrew only his separate Stage claim](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388539814), leaving his lab UI lane intact. |
+| Codex main chat | #120/#124/#127/#130 and method registry API/client/CLI #132/#133/#141 merged | The [existing-registry path](invention-lab/contracts/method-registry.md) now supports authenticated publication, bounded discovery and selected-candidate exact fetch into revision preparation, now exposed through the operator CLI. Maintain shared contracts/generation integration and review; source transport grants no acceptance/authority. Henry retains adoption/roles/grants. Corrected W/F protocol awaits freezing; no new request declared. |
+| EricZhu-31 / Codex provider session | #104 nullable-ticket correction merged; [separate CREAO Trigger smoke slice claimed](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388887582), #137 held at `08a68e3` | Own `scripts/live-gates/creao-trigger.mjs`, focused offline test, trigger guide and narrow live-gate docs link. Keep team `capi_`/app-ID Trigger separate from existing Developer API adapters/gate. Offline infrastructure only, no hosted run or G0–G4 result; ACP retains hosted-gate evidence. [Review](https://github.com/HenryWashuHe/genesis-history-experiment/pull/137#issuecomment-6389011299): 32 original offline cases pass; three new regressions fail for directory durability, stream bounds and stale concurrent polling. Preserve 102-line `f8f9ea3` unchanged. This provider claim does not acknowledge the lab UI request. |
 | Ines | Unassigned by explicit user instruction | Do not infer identity from another collaborator handle. |
 
 Receiving wrapper [#118](https://github.com/HenryWashuHe/genesis-history-experiment/pull/118#issuecomment-6388306630)
@@ -274,6 +274,26 @@ server Clippy/fmt pass on unchanged production. The fixture binds publication �
 discovery → exact source → B revision `Prepared`; no model/source execution,
 acceptance, role change or gate closure. The shared candidate validator rejects
 duplicate logical dependencies before any fetch, including conflicting hashes.
+
+Method exchange CLI #141 final `e938db0ab339653043188fc3f636baf8f782a04f`, tree
+`b427b635b55656e280764bd90be363ea4c31cb73`, merged at
+`ec28434bcaea0454e60958f124cffdb1595a38d7`. Behavior `be639af` is unchanged;
+final four CLI/16 binary tests pass, and four independent CLI checks plus scoped
+strict Clippy/fmt overlap. Commands use the existing client once, require explicit
+selection, and create no journal or automatic `.env` load. Publication errors can
+follow a committed write. Local HTTP fixtures, not provider/source execution.
+#142 `59faaaf05a4a36beb78a0f7b98743464af91441d` merged at
+`f2b33d50610c19ee19a31965ad195fd54010bd9a`: three independent boundary cases
+pass with scoped strict Clippy/fmt, original 144 lines unchanged; mutation campaign
+is author-reported. Adoption-document reconciliation #138 `7975780d` merged at
+`1af21d2c`; Henry's acknowledged authority connection remains unimplemented.
+Optional flood-watch [#143 is held at `bc993197`](https://github.com/HenryWashuHe/genesis-history-experiment/pull/143#issuecomment-6389070775):
+unknown readings clear an active response; repeated episode IDs and lost pending
+transitions break recovery; downstream attachment is development-only, not verified
+inheritance. Preserve the 44-line `bac2427` file unchanged: two unknown-state
+regressions fail, one normal control and all seven original tests pass. It is not
+a replacement goal or a new Ines assignment. ACP iteration #144 `50e4405` remains
+under review pending existing-contract interface agreement.
 
 #126 `b7bdb18` remains held on an early-decision race, poll-failure evidence loss,
 cross-organization acknowledgment and malformed success. Its four mocked failures
