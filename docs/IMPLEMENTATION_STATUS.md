@@ -2,70 +2,115 @@
 
 ## Active repository checkpoint
 
-Work and reviews now belong in [genesis-history-experiment](https://github.com/HenryWashuHe/genesis-history-experiment)
+Work and reviews belong in [genesis-history-experiment](https://github.com/HenryWashuHe/genesis-history-experiment)
 and [issue #1](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1).
-The [migration map](REPOSITORY_MIGRATION.md) maps all current PRs and preserved WIP.
-Initial new main `e1f2264` matches old main `8794e25` by complete tree; migration
-is not implementation or fresh validation. Adopted method execution, simulator
-and comparative benefit remain open under [the ongoing goal](ONGOING_GOAL.md).
+Use the [migration map](REPOSITORY_MIGRATION.md) for legacy PRs. Initial main
+`e1f2264` matches old `8794e25` by complete tree; rewritten commit identities
+are preserved. The [ongoing goal](ONGOING_GOAL.md) remains open: a bounded
+A → B → A executable development-method loop and honest controlled evaluation
+with fixed model weights. Event organization remains superseded.
 
-Repair WIP now exists as isolated draft #7 (`110a107`), with the original twelve
-files preserved byte for byte and full validation still incomplete. New #13/#14
-are evaluator/adoption proposals. New #3/#5 ACP heads are advancing after review;
-check current heads rather than reusing earlier passing counts as new evidence.
-Apify and CREAO v2 metadata reads authenticated, but no hosted CREAO agent was
-returned and the current v1 adapter needs a separately scoped compatibility path.
-This is not full live-provider execution. See current ownership in the handoff.
+At main `67340ba`, the following new contracts and provider corrections are merged:
 
-Earlier merged checkpoint `f8bffa26` includes the new routing docs (#17),
-live-gate path/redaction fixes (#16, 24 offline tests) and constitution transition
-audit (#9, 18 independent scoped tests). Draft [#18](https://github.com/HenryWashuHe/genesis-history-experiment/pull/18)
-contains proposed pure method identity/run-binding/receipt validators, source
-`40e481e` and tested composition `1d84587e` (93 core tests; strict Clippy).
-It remains **unmerged and experimental**, with affected-owner agreement pending.
-It does not implement method execution, independent scoring, adoption or comparison.
-ACP review advanced: #3 `3ad7685` clears fresh-journal sender identity and
-post-201 wording; its existing suite passes 138/138 in composition `c099fdd`.
-Upgraded journals still retain the old inline `UNIQUE(message_id)` constraint;
-independent test-only `bb5a841` is pushed for the author. #5 `15d4cad` clears the
-exact-command-ID and reply-size defects, but its new overflow test fails because
-its fixture fits without omission. Composition `fce5c04` passes 149/151 tests;
-the other failure is the inherited journal migration case. All seven original
-regressions and both mutation files remain unchanged. Both PRs remain unmerged.
+| Work | Validation and evidence boundary |
+| --- | --- |
+| Method execution records #18, merge `07961f1`; independent scoring records #22, merge `7510b86` | Tested composition `785a22c` / `4d64fe6` passed 102 core tests and strict Clippy; merged tree matches `6742948e`. Pure experimental records, with affected-owner feedback; no executor or evaluator runtime. |
+| Opt-in CREAO v2 #25, merge `0d6d96d`, source `d3434e5` | Saved protocol version controls routing, durable fencing and specialist request hashing. Independent composition `e977ab4` passed 20 focused tests and strict package Clippy; original regression file `affdaf4` is preserved byte-for-byte. Offline loopback evidence only. |
+| Apify bounded empty-page reread #26, merge `f153f58`, source `46ada41` | At most five GETs after a pinned successful run, within the operation deadline; no extra Actor POST. Independent composition `601e381` passed 44 package tests plus three extra visibility cases, strict Clippy and formatting. |
+| Independent Apify regressions #29, merge `b69f2ba`, source `041d478`, composition `d81d618` | Three new tests pass on the composition with main `0d6d96d`: fifth-read success, immediate failure for seven invalid-page variants, and no dataset collection for four substituted run-identity fields. These do not prove live resolution. |
+| CREAO protocol evidence #30, merge `67340ba`, source `0311f62` | Saved protocol appears in CLI/gate summaries; invalid version is rejected before checkpoint preparation. Five CLI and nine Node gate tests plus scoped strict Clippy pass independently. Offline evidence only. |
 
-PR #6 is closed as superseded by #17: its unsafe migration script was withdrawn,
-not fixed or tested, and main already contains fuller routing guidance. #4's
-latest command proposal still needs current routing and precise implemented vs
-pending-report semantics.
-Later merged checkpoint `983f0443` adds adoption candidate evidence (#8,
-`8f26401e`) and terminal-run retry (#10, `1aed609f`). Adoption merge `1aed609f` has the same tree as
-independently tested composition `015e4fc5`: 47 adoption and 17 provider-executor
-tests plus strict Clippy. Unknown/live effects remain blocked from retry.
+Draft [#28](https://github.com/HenryWashuHe/genesis-history-experiment/pull/28)
+at `f52f182` adds a frozen pre-execution trial plan and assessment retaining
+no-output, failed, interrupted, missing and unknown attempts. It pins criterion,
+public instances, hidden commitment/protocol, exact methods, stable comparison
+arms, local candidate/control acceptance and equal grants. 109 core tests pass;
+seven new cases were independently rerun, and strict Clippy/formatting pass.
+Affected-owner interface feedback is pending. This does not enforce prior
+freezing, process isolation, cumulative experiment budgets, reveal timing or
+authentication. Trusted runtime integration for the executor, experiment transcript
+and evaluator remains necessary; no G0 completion or comparative result is claimed.
 
-Fresh Actor packaging (#21, source `d20cb5e`, reviewed head `7cc59ee`) now binds
-Actor name/version before source hashing. Generated provenance v2 coexists with
-exact read-only validation of saved v1 packages. Strict returned-source checks
-and unresolved-effect recovery are unchanged. Three previous regressions were
-reproduced; 149 author tests and 58 independent focused reruns passed. Main's tree
-matches reviewed `be312625`. ACP reported a real Actor creation followed by name
-normalization/source mismatch; this fix has no new live build/run evidence and
-does not rewrite or resubmit that old checkpoint.
+Draft [#32](https://github.com/HenryWashuHe/genesis-history-experiment/pull/32)
+`0fa3773`, stacked on #28, now implements the library experiment-call ledger.
+It admits exact public-instance/design calls under one cumulative simulation
+grant, checks an independently supplied expected slot, retains charged failures,
+unknowns and overruns, and seals exact transcript bytes for receipt validation.
+116 core tests and strict Clippy pass; two independent probes check coordinated
+slot substitution and preservation after invalid/duplicate settlement. Runtime
+exclusive persistence, anti-rollback, actual metering, sandboxing and wall/model
+limits are still absent from this module. Both drafts await affected-owner
+feedback; no executor, authenticated execution or improvement result follows.
 
-Draft [#22](https://github.com/HenryWashuHe/genesis-history-experiment/pull/22)
-(`0871df6`, stacked on #18) adds pure independent scoring requests/receipts bound
-to the entire execution, exact output and trusted scoring context. Its request
-roster retains missing/invalid/failed/unknown outcomes and separate development
-and scoring accounting. 102 core tests and strict Clippy passed; independent
-review reran all nine new tests. This is **unmerged and experimental**. A roster
-created after output selection cannot prove complete predeclared development
-trials, and no evaluator, holdout isolation or comparative result is implemented.
+Henry's core Claude acknowledged the evaluator lane and pushed an isolated
+implementation spike. Reviewed `b065a70` passes seven existing tests independently;
+newer `d65cf3e` is reported but not independently reviewed. Neither is on main.
+The reviewed spike hashes version labels instead of complete
+evaluator content, accepts a fresh caller-supplied remaining budget on each call,
+and lacks the merged scoring contract's trusted adapter. Two CLI experiments
+each accepted the same 1,200-step allowance; this reproduces missing cumulative
+enforcement, not a method improvement. Revised proposal #13 `f3b6a12` fixes the
+main holdout timeline and content-identity requirement but retains contradictory
+reveal/experiment clauses and ambiguous commitment encoding. #14 `9cd04e1`
+fixes evaluator identity/routing but still blurs development with hidden scoring
+and overstates unrelated-task non-use. Both remain proposals under review.
+Henry's proposed narrow executor subtree is now explicitly assigned in
+[issue #1](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6381016259),
+awaiting acknowledgment; its handwritten seed will be labeled a control. Codex
+retains the shared call/transcript contract. Assignment does not imply execution.
 
-The new #20 stage at `b468313` is unmerged. Exact-head source review and VM probes found replay/live mixing, overclaimed
-installation inheritance and incomplete event paging; its default event-organizer
-story is superseded. It must not replace the invention-lab direction or become
-live-provider or method-improvement evidence.
+Adoption foundations #8 and #10 are merged (`8f26401e`, `1aed609f`), with the
+same tree as tested composition `015e4fc5`: 47 adoption and 17 provider-executor
+tests plus strict Clippy. #11 `7438308` now avoids invented discovery cardinality,
+but still labels local pre-submission refusal as a confirmed provider failure.
+All 56 existing gap-adoption and eight capability-adoption tests pass; new
+independent `d11a8ba` fails with zero provider GETs/POSTs. #11 remains held;
+#12 `a047f59` clears its own wording holds: three refusal tests and one planner
+test independently pass on composition `77143c3`, with the #11 regression retained
+as `6e8dc9e`. #12/#15 stay unmerged dependents; method-adoption wiring is separate.
 
-The [goal ledger](ONGOING_GOAL.md#current-milestone-ledger) records next steps.
+ACP #3 `3ad7685` fixes fresh-journal sender identity and confirmed-POST wording;
+138 existing tests pass in composition `c099fdd`. Existing journals still retain
+inline `UNIQUE(message_id)`; independent `bb5a841` is preserved and fails.
+#5 `fc956a8` fixes exact IDs/size and the overflow fixture; its focused overflow
+test was independently rerun successfully. It still depends on #3's migration.
+#4 needs current routing/status language. #6 was withdrawn and closed as
+superseded by #17; its unsafe migration script was not approved.
+
+Stage #20 `9a6234a` now has neutral opt-in startup, correct replay/poll ordering,
+distinct organizations and matching installation digests. All six author and
+six original independent tests pass on composition `853c5fe8`. New test-only
+`10d1edd` adds one actual opt-in replay-callback pass and two failing cases:
+missing manifest digest and mismatched manifest ID/version still show adoption.
+ACP retains that final evidence hold and the stale README default wording.
+Historical events stay secondary; Eric's separate invention-lab UI assignment
+remains unacknowledged. Ines is unassigned.
+
+[Issue #1's live Apify report](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6380843098)
+records a successful Actor build and `SUCCEEDED` run. A later exact dataset GET
+held one item whose venue fields matched expected values in a direct offline
+comparison excluding per-venue evidence. Forge credited 0/3 cases after immediate
+collection returned `InvalidDataset`; the gate is **failed**. That private cloud
+checkpoint was not independently inspected here. A [later rerun](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6381127464)
+after #26 again failed collection; its report places the final read about 1.3 s
+after run completion, with the item readable later. #34 (`0425f8f`, merged
+`0b4c18b`) now allows sixteen reads one second apart within the original deadline.
+The new sixth-read regression fails on the old code and passes after correction;
+187 Apify/forge test executions pass (including repeated harness cases), with
+strict Clippy and formatting. This remains offline mitigation, not a confirmed
+live resolution or verified capability. CREAO v2 metadata authenticated but returned no hosted agent; no
+v2 agent/run has completed through the merged adapter. Fetch discovery has
+partial authenticated evidence; Elastic index permissions remain unresolved.
+See [live gates](LIVE_GATES.md) for these separate evidence categories.
+
+Earlier delivery foundations remain: #16 path/redaction tooling (24 offline
+tests), #17 routing (140 link/anchor checks), #9 constitution audit (18 scoped
+independent tests), and #21 Actor metadata packaging (149 author tests and 58
+independent focused tests; merged tree matches reviewed `be312625`). These
+source-specific counts overlap and must not be summed into a test run of main.
+Repair WIP is isolated in draft #7; its original files remain untouched.
+Current [ownership and next work](AGENT_HANDOFF.md#current-ownership-and-next-work)
+and the [goal ledger](ONGOING_GOAL.md#current-milestone-ledger) guide the next step.
 
 ## Historical source checkpoint before migration
 

@@ -12,6 +12,7 @@ fn command() -> Command {
 fn spec() -> OperationSpec {
     OperationSpec {
         schema_version: 1,
+        api_version: genesis_creao::ApiVersion::V1,
         operation_id: "cli-create".into(),
         org_id: "org_a".into(),
         role_id: "role_monitor".into(),
@@ -55,6 +56,7 @@ fn prepare_and_status_are_offline_idempotent_and_do_not_disclose_inputs() {
     let second = output(prepare(&db, &input));
     assert_eq!(first, second);
     assert_eq!(first["phase"], "prepared");
+    assert_eq!(first["api_version"], "v1");
     assert_eq!(first["readiness_verified"], false);
     assert_eq!(first["domain_verified"], false);
     assert!(first.get("request").is_none());
@@ -72,6 +74,25 @@ fn prepare_and_status_are_offline_idempotent_and_do_not_disclose_inputs() {
     }
     std::fs::write(&input, serde_json::to_vec(&changed).unwrap()).unwrap();
     assert!(!prepare(&db, &input).status.success());
+}
+#[test]
+fn v2_prepared_and_status_summaries_identify_the_saved_protocol() {
+    let dir = tempfile::tempdir().unwrap();
+    let db = dir.path().join("org.sqlite");
+    let input = dir.path().join("spec.json");
+    let mut hosted = spec();
+    hosted.api_version = genesis_creao::ApiVersion::V2;
+    std::fs::write(&input, serde_json::to_vec(&hosted).unwrap()).unwrap();
+    assert_eq!(output(prepare(&db, &input))["api_version"], "v2");
+    let status = output(
+        command()
+            .args(["status", "--db"])
+            .arg(&db)
+            .args(["--org", "org_a", "--operation", "cli-create"])
+            .output()
+            .unwrap(),
+    );
+    assert_eq!(status["api_version"], "v2");
 }
 #[test]
 fn malformed_or_duplicate_spec_fails_before_creating_database() {
