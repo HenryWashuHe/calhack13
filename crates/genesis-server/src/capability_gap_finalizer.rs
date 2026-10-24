@@ -422,14 +422,28 @@ pub fn owns_installation(store: &Store, installation: &InstallationId) -> bool {
     owner_of(store, installation).map_or(true, |r| r.is_some())
 }
 
-/// Fence for the capability worker: a local-acceptance run on a
-/// finalizer-owned installation may run, or have its result applied, only
-/// while that finalizer's frozen grant and live requirement are current.
-pub fn run_allowed(store: &Store, state: &OrgState, installation: &InstallationId) -> bool {
+/// What the capability worker may do with a local-acceptance run.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RunFence {
+    /// No finalizer owns the installation, or its record is active and current.
+    Allow,
+    /// The owning record is stopped at attention (or unreadable) with its grant
+    /// still current: make no provider call, but keep the run resumable and
+    /// keep any outcome that already came back.
+    Pause,
+    /// The frozen grant or live requirement changed: the run is not authorized.
+    Revoke,
+}
+
+/// Fence for the capability worker on a finalizer-owned installation. Only a
+/// real authority change revokes; operational attention pauses, so an explicit
+/// retry can resume the same check jobs.
+pub fn run_fence(store: &Store, state: &OrgState, installation: &InstallationId) -> RunFence {
     match owner_of(store, installation) {
-        Ok(None) => true,
-        Ok(Some(r)) => r.state == FinalizerState::Active && authorized(state, &r),
-        Err(_) => false,
+        Ok(None) => RunFence::Allow,
+        Ok(Some(r)) if !authorized(state, &r) => RunFence::Revoke,
+        Ok(Some(r)) if r.state == FinalizerState::Active => RunFence::Allow,
+        Ok(Some(_)) | Err(_) => RunFence::Pause,
     }
 }
 
