@@ -553,3 +553,68 @@ fn proposals_without_the_new_field_still_deserialize() {
     let back: OrgState = serde_json::from_value(v).unwrap();
     assert!(back.capability_gaps.is_empty());
 }
+
+#[test]
+fn review_gap_must_reference_the_responsibility_for_its_requirement() {
+    let d = demo(Some(PORTAL));
+    let unrelated = d.state.responsibilities.keys().next().unwrap().clone();
+    assert!(d.state.responsibilities[&unrelated]
+        .requirement_id
+        .is_none());
+    let mut gap = request(&d, &[PORTAL]);
+    let OrgOp::RequestCapability { responsibility, .. } = &mut gap else {
+        unreachable!()
+    };
+    *responsibility = ResponsibilityRef::Existing {
+        responsibility_id: unrelated,
+    };
+    // The same change legitimately assigns the requirement, but the gap names
+    // the pre-existing bootstrap responsibility rather than that assignment.
+    let result = run(&d, vec![assign(&d), gap], &StaticCatalog::default());
+    assert!(
+        result.is_err(),
+        "a gap for an unrelated responsibility can never pass acquisition authority"
+    );
+}
+
+#[test]
+fn review_verified_gap_can_record_later_publication_without_rebinding() {
+    let d = demo(Some(PORTAL));
+    let state = run(
+        &d,
+        vec![assign(&d), request(&d, &[PORTAL])],
+        &StaticCatalog::default(),
+    )
+    .unwrap()
+    .state;
+    let id = state.capability_gaps.keys().next().unwrap().clone();
+    let state = update_capability_gap(
+        &state,
+        &id,
+        CapabilityGapStatus::Acquiring {
+            acquisition_id: "acq-1".into(),
+        },
+    )
+    .unwrap()
+    .state;
+    let acquired = |publication_ref| CapabilityGapStatus::Acquired {
+        acquisition_id: "acq-1".into(),
+        capability: CapabilityRef {
+            capability_id: CapabilityId::new("venue-availability"),
+            version: "1".into(),
+        },
+        publication_ref,
+    };
+    let state = update_capability_gap(&state, &id, acquired(None))
+        .unwrap()
+        .state;
+    assert!(
+        update_capability_gap(
+            &state,
+            &id,
+            acquired(Some("registry:venue-availability@1".into())),
+        )
+        .is_ok(),
+        "verification precedes publication; a later confirmed reference must be recordable"
+    );
+}
