@@ -33,6 +33,9 @@ Admission-aware trial/cost assessment (#81/#82) is also merged; it
 binds one complete original generation roster to later observations and an
 optional trial without changing reservations or executing work. Independent
 historical-session and CLI-boundary guards are preserved unchanged in #83.
+Structural stage allocation and retained trial-binding commands (#85/#86), with
+independent overflow/recovery guards (#87), are merged. Optional allocation
+checks reuse generation and cost assessment; runtime entry checks remain open.
 ACP #3/#5 are also merged with unchanged migration regressions. The two rehearsals
 use handwritten fixture sources and return Rejected; they establish no actual
 model generation or recursive benefit.
@@ -83,10 +86,15 @@ every milestone. All lower checkpoints are historical.
   to a host-declared trial/cost scope, retaining missing/failed/unknown attempts
   and separate original-generation and combined grants. This read-only join does
   not allocate resources before spending or account for a complete adaptive chain.
-  Next, scope pre-generation per-stage resource envelopes and later exact trial
-  binding in issue #1, reusing the existing generation/trial paths. Finite stage
-  ceilings before A begins are also needed for a whole-chain budget; hashes alone
-  prove no timing. These are proposed contracts, not implemented enforcement.
+  Merged #85/#86 add structural stage envelopes, create-only retained allocations
+  and one exact trial-binding companion per canonical path. Optional generation
+  checks precede recovery/credentials/reservation; cost assessment remains read-only.
+  Henry still needs to consume the retained binding before runtime intent.
+  Prioritize a genuine generated-method retained-file handoff into Henry's runner
+  when project credentials are available. Meanwhile, scope finite whole-chain
+  ceilings in issue #1, including trial-only inherited-method, decline and control
+  stages without dummy generation.
+  That whole-chain contract is proposed, not implemented; hashes prove no timing.
   Retain input-token/wall, billing, global enforcement and history limits.
   Preserve Henry's runtime files; provider/settings reproducibility, complete
   history, enforcement and end-to-end comparison remain open.
