@@ -31,6 +31,12 @@ usage. The offline assessment CLI (#60) and source-free pre-result generation
 roster/CLI (#73/#74) are also merged. Every declared unsuccessful/missing attempt
 remains visible; provider budget enforcement and authenticated chronology or
 completeness are not established. Independent guard tests are preserved in #75.
+Merged [generation reservations and the optional step guard](invention-lab/contracts/generation-admission.md#cli)
+(#77/#78) reserve each exact declared Prepared attempt once under one trusted
+journal's request-count/requested-output caps, durably before provider submission.
+Stranded, failed and unknown attempts never refund; actual usage remains
+separately assessed. Legacy ungated calls, input-token/wall limits, billing and
+global enforcement remain outside this cooperative mechanism.
 Provider-default sampling,
 complete operation history, budget enforcement and the controlled comparison
 remain open for G4. Experimental namespace and storage foundations are not a
