@@ -38,8 +38,9 @@ attachment remain separate. The next Codex core implementation is persistent
 CREAO mission assessment backed by verified capability output and native execution
 receipts. Readiness alone does not satisfy that work.
 
-Combined draft #25 was closed without merging after all 17 unique commits were
-audited. No pending runtime was unique to it. Its Elastic recording-proxy scenario
+Combined draft #25 was closed without merging after all 17 combined-only merge
+commits and remaining unique content were audited. No pending runtime was unique
+to it. Its Elastic recording-proxy scenario
 test was preserved in merged #68 (`2adaff4`): the targeted repaired A→B scenario
 passed with real Rust Elastic retrieval/projection against loopback fixtures.
 The old branch remains available; its 699-test total is historical. Merged #67

@@ -2,8 +2,9 @@
 
 [PR #25](https://github.com/HenryWashuHe/genesis/pull/25) is closed without merging.
 Its branch `codex/combined-integration` remains at
-`2829025802c405f01339d93956408f9e477babbb` for historical reference. The audit of all
-17 unique commits found no pending runtime absent from the reviewed main path.
+`2829025802c405f01339d93956408f9e477babbb` for historical reference. All 17
+combined-only merge commits and remaining unique content were audited; no pending
+runtime was absent from the reviewed main path.
 Its useful Elastic recording-proxy scenario was preserved in
 [#68](https://github.com/HenryWashuHe/genesis/pull/68), merged at `2adaff4`.
 Use current main, not this historical assembled checkpoint, for ongoing work.
