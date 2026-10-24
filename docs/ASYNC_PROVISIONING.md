@@ -75,10 +75,11 @@ Tests: `crates/genesis-server/tests/specialist_jobs.rs`.
 - **The readiness verifier's kernel side is done**: `GatewayReadiness` issues a
   one-time challenge and accepts the agent's receipt at
   `POST /api/v1/gateway/readiness-receipts` (see
-  [GATEWAY_READINESS.md](GATEWAY_READINESS.md)). Still needed: the CREAO
-  `ReadinessProbe` that runs the created agent's gateway skill with the
-  challenge (a readiness run purpose in the CREAO runtime), its registration
-  with `GENESIS_PUBLIC_URL`, and a live skill install.
+  [GATEWAY_READINESS.md](GATEWAY_READINESS.md)). The CREAO provider probe and its
+  distinct durable readiness purpose are implemented. Set `GENESIS_PUBLIC_URL`
+  along with the complete CREAO configuration to register it. Actual skill
+  installation and a live-account receipt remain unverified; see
+  [CREAO_READINESS.md](CREAO_READINESS.md).
 - **Reconciling a lost creation is done.** For a `needs_reconciliation`
   operation an operator (operator token) can either:
   - **attach** the native agent found in the provider account:
@@ -93,9 +94,9 @@ Tests: `crates/genesis-server/tests/specialist_jobs.rs`.
     re-created. Refused with `409 operation_not_reconcilable` unless the
     outcome is unknown and no agent is bound yet, and with
     `409 agent_already_bound` if the ID is bound to any role or to another
-    change. Readiness shows that the agent can run its gateway skill and reach
-    GENESIS; the kernel does not check that the agent's configuration matches
-    the role. That stays the operator's assertion, recorded with the reason.
+    change. A receipt proves a holder of the run's challenge reached GENESIS
+    and named that agent. It does not prove the installed skill or effective
+    configuration matches the role. That stays the operator's assertion, recorded with the reason.
   - **abandon** it:
     `POST /api/v1/org-changes/{id}/operations/{role_key}/abandon` with
     `{"reason": "..."}` marks the operation failed and ends the change FAILED,

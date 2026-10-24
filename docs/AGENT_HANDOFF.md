@@ -20,6 +20,17 @@ fixes with Claude and absorb tested new commits here. The current priority is
 clearing the review queue. No main merge or whole-kernel ownership transfer is
 implied; the ongoing objective and hourly continuation remain active.
 
+### CREAO provider readiness addition
+
+[Draft #29](https://github.com/HenryWashuHe/genesis/pull/29), source `c1e6ba4`,
+adds the challenge-bound durable CREAO run, submission-only runtime path,
+purpose isolation, redacted Debug output, and `GENESIS_PUBLIC_URL` registration.
+The focused branch passed 407 Rust tests, formatting and strict Clippy. See
+[CREAO_READINESS.md](CREAO_READINESS.md) for configuration and evidence limits.
+The prior combined validation above predates this addition; integration checks
+are pending. No live account or installed skill was exercised. Existing source
+review findings and ownership remain unchanged.
+
 ### Previous capability checkpoint
 
 Updated: October 22, 2026.
