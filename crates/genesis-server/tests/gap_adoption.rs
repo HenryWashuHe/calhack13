@@ -42,7 +42,7 @@ use genesis_server::{
 use genesis_verification::{decode_json, ArtifactPin, ExecutionEvidence, OracleSuite};
 use serde_json::{json, Value};
 use std::{
-    collections::BTreeMap,
+    collections::{BTreeMap, BTreeSet},
     sync::{Arc, Mutex},
     time::Duration,
 };
@@ -116,13 +116,19 @@ fn manifest(capability: &str, publisher: &str) -> Value {
 #[derive(Default)]
 struct World {
     ambiguous_runs: bool,
+    /// Native runs remain RUNNING until explicitly changed by the fixture.
+    running_runs: bool,
+    /// Next run submissions that are created but finish FAILED (definite).
+    failing_runs: usize,
+    failed: BTreeSet<usize>,
     requests: Vec<(String, String)>,
     runs: BTreeMap<usize, usize>,
 }
 impl World {
-    fn run(run: usize) -> Value {
+    fn run(&self, run: usize) -> Value {
         json!({"data":{"id":format!("b-run-{run}"),"actId":pin().actor_id,"buildId":pin().build_id,
-            "status":"SUCCEEDED","defaultDatasetId":format!("b-dataset-{run}")}})
+            "status":if self.running_runs { "RUNNING" } else { "SUCCEEDED" },
+            "defaultDatasetId":format!("b-dataset-{run}")}})
     }
     fn reply(&mut self, method: &str, path: &str, body: Value) -> (StatusCode, Value) {
         self.requests.push((method.into(), path.into()));
@@ -149,17 +155,25 @@ impl World {
                     .expect("only B's own suite inputs may execute");
                 let run = self.runs.len();
                 self.runs.insert(run, case);
+                if self.failing_runs > 0 {
+                    self.failing_runs -= 1;
+                    self.failed.insert(run);
+                }
                 if self.ambiguous_runs {
                     return (
                         StatusCode::SERVICE_UNAVAILABLE,
                         json!({"error":"PRIVATE_AMBIGUOUS_RUN"}),
                     );
                 }
-                (StatusCode::CREATED, Self::run(run))
+                (StatusCode::CREATED, self.run(run))
             }
             ("GET", ["v2", "actor-runs", run]) => {
                 let run: usize = run.strip_prefix("b-run-").unwrap().parse().unwrap();
-                (StatusCode::OK, Self::run(run))
+                let mut reply = self.run(run);
+                if self.failed.contains(&run) {
+                    reply["data"]["status"] = json!("FAILED");
+                }
+                (StatusCode::OK, reply)
             }
             ("GET", ["v2", "datasets", dataset, "items"]) => {
                 let run: usize = dataset.strip_prefix("b-dataset-").unwrap().parse().unwrap();
@@ -189,9 +203,10 @@ impl Drop for Providers {
     }
 }
 impl Providers {
-    async fn start(ambiguous_runs: bool) -> Self {
+    async fn start(ambiguous_runs: bool, running_runs: bool) -> Self {
         let world = Arc::new(Mutex::new(World {
             ambiguous_runs,
+            running_runs,
             ..World::default()
         }));
         let router = Router::new()
@@ -251,6 +266,9 @@ impl Providers {
     fn runs(&self) -> usize {
         self.count("POST", &format!("/v2/actors/{}/runs", pin().actor_id))
     }
+    fn fail_runs(&self, n: usize) {
+        self.world.lock().unwrap().failing_runs = n;
+    }
 }
 fn limits() -> RunLimits {
     RunLimits {
@@ -271,9 +289,12 @@ struct Options {
     foreign: bool,
     registry_up: bool,
     ambiguous_runs: bool,
+    running_runs: bool,
     fallback: bool,
     adopt_first: bool,
     sibling: bool,
+    /// Searches that fail before the registry answers.
+    failed_searches: usize,
 }
 impl Default for Options {
     fn default() -> Self {
@@ -281,9 +302,11 @@ impl Default for Options {
             foreign: true,
             registry_up: true,
             ambiguous_runs: false,
+            running_runs: false,
             fallback: true,
             adopt_first: true,
             sibling: false,
+            failed_searches: 0,
         }
     }
 }
@@ -323,7 +346,7 @@ impl Drop for Fixture {
     }
 }
 
-async fn registry(foreign: bool, searches: Arc<Mutex<usize>>) -> String {
+async fn registry(foreign: bool, searches: Arc<Mutex<usize>>, fail_first: usize) -> String {
     let state = RegistryState::open_in_memory(
         parse_publishers("org-a:a-registry,org-b:b-registry"),
         vec![],
@@ -355,7 +378,16 @@ async fn registry(foreign: bool, searches: Arc<Mutex<usize>>) -> String {
             let method = request.method().clone();
             let path = request.uri().path().to_owned();
             if path.ends_with("/search") {
-                *searches.lock().unwrap() += 1;
+                let mut n = searches.lock().unwrap();
+                *n += 1;
+                // The first `fail_first` searches hit an outage.
+                if *n <= fail_first {
+                    return (
+                        StatusCode::SERVICE_UNAVAILABLE,
+                        [("content-type", "application/json")],
+                        b"{\"error\":\"outage\"}".to_vec(),
+                    );
+                }
             }
             let auth = request.headers().get("authorization").cloned();
             let bytes = to_bytes(request.into_body(), 1024 * 1024).await.unwrap();
@@ -387,10 +419,10 @@ async fn registry(foreign: bool, searches: Arc<Mutex<usize>>) -> String {
 
 impl Fixture {
     async fn new(o: Options) -> Self {
-        let providers = Arc::new(Providers::start(o.ambiguous_runs).await);
+        let providers = Arc::new(Providers::start(o.ambiguous_runs, o.running_runs).await);
         let registry_searches = Arc::new(Mutex::new(0));
         let registry_url = if o.registry_up {
-            registry(o.foreign, registry_searches.clone()).await
+            registry(o.foreign, registry_searches.clone(), o.failed_searches).await
         } else {
             // Nothing listens here: every registry call fails.
             let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
@@ -537,6 +569,102 @@ impl Fixture {
             .values()
             .filter(|o| o.source == CAPABILITY_GAP_SOURCE)
             .count()
+    }
+    /// Store commit seam: a delegation rotated the grant (same assignment,
+    /// next epoch), as a transfer would.
+    fn rotate_epoch(&self) {
+        let state = self.state();
+        let gap = state.capability_gaps[&self.gap_id].clone();
+        let mut next = state.clone();
+        let assignment = state
+            .active_assignment(&gap.responsibility_id)
+            .unwrap()
+            .assignment_id
+            .clone();
+        next.responsibilities
+            .get_mut(&gap.responsibility_id)
+            .unwrap()
+            .epoch += 1;
+        next.assignments.get_mut(&assignment).unwrap().epoch += 1;
+        next.revision += 1;
+        self.app
+            .store
+            .commit_state(
+                state.revision,
+                &next,
+                vec![],
+                &EventMeta::default(),
+                vec![],
+                |_| Ok(()),
+            )
+            .unwrap();
+    }
+    /// Another writer closes the gap through the ordinary kernel transition
+    /// (e.g. a second process whose gap driver runs without the adoption
+    /// policy and bound or refused it in the meantime).
+    async fn close_gap(&self, to: CapabilityGapStatus) {
+        let gap = self.gap_id.clone();
+        self.app
+            .mutate(EventMeta::default(), move |state| {
+                engine::update_capability_gap_at(state, &gap, to, Utc::now())
+                    .map(|outcome| (outcome, ()))
+                    .map_err(|e| validation_error(vec![e]))
+            })
+            .await
+            .unwrap();
+    }
+    /// A second SQLite connection to the organization's database, for
+    /// storage-level injections the public API cannot express.
+    fn db(&self) -> rusqlite::Connection {
+        let conn = rusqlite::Connection::open(self.config.db.as_ref().unwrap()).unwrap();
+        conn.busy_timeout(Duration::from_secs(5)).unwrap();
+        conn
+    }
+    /// Rewrite this gap's stored record text (keeping it valid JSON).
+    fn tamper_record(&self, from: &str, to: &str, adoption_id: Option<&str>) {
+        let changed = self
+            .db()
+            .execute(
+                "UPDATE capability_gap_adoptions SET record_json=replace(record_json, ?2, ?3), adoption_id=?4 WHERE gap_id=?1",
+                rusqlite::params![self.gap_id.as_str(), from, to, adoption_id],
+            )
+            .unwrap();
+        assert_eq!(changed, 1);
+    }
+    /// Run one adoption through discovery, its checks and finalization.
+    async fn run_adoption(&self, id: &str) -> Result<(), genesis_server::error::ApiError> {
+        capability_adoption::step(&self.app, id).await?; // select + install
+        capability_adoption::step(&self.app, id).await?; // queue checks
+        self.collect_checks(id).await;
+        capability_adoption::step(&self.app, id).await.map(|_| ()) // finalize
+    }
+    async fn collect_checks(&self, id: &str) {
+        for job in self.app.store.get_adoption(id).unwrap().job_ids() {
+            for _ in 0..10 {
+                let run = self.app.store.get_capability_run(job).unwrap();
+                if run.phase == genesis_server::capability_runtime::CapabilityRunPhase::Collected {
+                    break;
+                }
+                self.app.capability_runtime.step(job, false).await.unwrap();
+            }
+        }
+    }
+    fn operator_intent(
+        &self,
+        key: &str,
+    ) -> genesis_server::capability_adoption_store::CreateAdoption {
+        let state = self.state();
+        let gap = &state.capability_gaps[&self.gap_id];
+        genesis_server::capability_adoption_store::CreateAdoption {
+            client_request_id: key.into(),
+            mission_id: gap.mission_id.clone(),
+            requirement_id: gap.requirement_id.clone(),
+            role_id: gap.role_id.clone(),
+            responsibility_id: gap.responsibility_id.clone(),
+            suite_id: b_suite().suite_id,
+            provider_access_acknowledged: true,
+            deadline: None,
+        }
     }
 }
 
@@ -1197,6 +1325,559 @@ async fn an_acceptance_before_the_adoption_id_is_saved_still_links_the_gap() {
     assert_eq!(f.drain().await, None);
 }
 
+async fn retry(f: &Fixture, principal: &str) -> (reqwest::StatusCode, Value) {
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let url = format!("http://{}", listener.local_addr().unwrap());
+    let router = f.app.clone().router();
+    let server = tokio::spawn(async move { axum::serve(listener, router).await.unwrap() });
+    let response = reqwest::Client::builder()
+        .no_proxy()
+        .build()
+        .unwrap()
+        .post(format!(
+            "{url}/api/v1/capability-gaps/{}/adoption/retry",
+            f.gap_id
+        ))
+        .bearer_auth(format!("{ORG}-{principal}"))
+        .send()
+        .await
+        .unwrap();
+    let status = response.status();
+    let body = response.json().await.unwrap_or(Value::Null);
+    server.abort();
+    (status, body)
+}
+
+#[tokio::test]
+async fn a_registry_outage_can_be_retried_once_by_an_operator_and_then_adopts() {
+    let mut f = Fixture::new(Options {
+        failed_searches: 1,
+        ..Options::default()
+    })
+    .await;
+    f.drain().await;
+    f.drain().await;
+    let first = f.record().unwrap().adoption_id.unwrap();
+    f.adoption_step().await;
+    assert_eq!(
+        f.drain().await,
+        Some(Step::Attention(GapAdoptionCode::Registry))
+    );
+    // Only operators may retry.
+    let (status, _) = retry(&f, "agent").await;
+    assert!(status.is_client_error(), "{status}");
+    let (status, body) = retry(&f, "operator").await;
+    assert_eq!(status, reqwest::StatusCode::OK, "{body}");
+    assert_eq!(body["attempt"], 1);
+    assert_eq!(body["previous_adoption_ids"], json!([first]));
+    assert_eq!(body["state"], "active");
+    // A second retry while active is refused; nothing was synthesized.
+    let (status, _) = retry(&f, "operator").await;
+    assert_eq!(status, reqwest::StatusCode::CONFLICT);
+    assert!(!f.driver_bound());
+    f.serve().await;
+    f.wait_for("installed after retry", |f| {
+        installed(&f.gap_status()).is_some()
+    })
+    .await;
+    let record = f.record().unwrap();
+    assert_ne!(record.adoption_id.as_deref(), Some(first.as_str()));
+    assert_eq!(f.adoptions().len(), 2);
+    assert_eq!(f.searches(), 2);
+    assert_eq!(f.providers.model_calls(), 0);
+}
+
+#[tokio::test]
+async fn unknown_check_outcomes_block_retry_definite_ones_allow_it_and_retries_are_bounded() {
+    let mut f = Fixture::new(Options {
+        ambiguous_runs: true,
+        ..Options::default()
+    })
+    .await;
+    f.serve().await;
+    f.wait_for("checks attention", |f| {
+        f.record()
+            .is_some_and(|r| r.state == GapAdoptionState::Attention)
+    })
+    .await;
+    f.stop();
+    let first = f.record().unwrap().adoption_id.unwrap();
+    let posts = f.providers.runs();
+    // Nothing retries on its own.
+    tokio::time::sleep(Duration::from_millis(1200)).await;
+    assert_eq!(f.providers.runs(), posts);
+    assert_eq!(f.record().unwrap().attempt, 0);
+    // Agents can't retry. Nor can an operator while a native check has an
+    // unknown outcome: a fresh adoption would submit it again (Codex, #86).
+    let (status, _) = retry(&f, "agent").await;
+    assert!(status.is_client_error(), "{status}");
+    let (status, body) = retry(&f, "operator").await;
+    assert_eq!(status, reqwest::StatusCode::CONFLICT, "{body}");
+    assert_eq!(body["error"], "adoption_checks_unresolved", "{body}");
+    let (_, status_body) = adoption_status(&f, f.gap_id.as_str()).await;
+    assert_eq!(status_body["retryable"], false, "{status_body}");
+    let record = f.record().unwrap();
+    assert_eq!(record.attempt, 0);
+    assert_eq!(record.adoption_id.as_deref(), Some(first.as_str()));
+    assert_eq!(record.state, GapAdoptionState::Attention);
+    // The stopped adoption is never resubmitted or revived.
+    assert_eq!(f.providers.runs(), posts);
+    assert!(!f.driver_bound());
+    assert_eq!(f.providers.model_calls(), 0);
+
+    // A definite failure (the provider reports the run FAILED) is settled:
+    // the operator may retry, and the fresh adoption's checks run and install.
+    let mut f = Fixture::new(Options::default()).await;
+    f.providers.fail_runs(usize::MAX);
+    f.serve().await;
+    f.wait_for("checks attention", |f| {
+        f.record()
+            .is_some_and(|r| r.state == GapAdoptionState::Attention)
+    })
+    .await;
+    f.stop();
+    assert_eq!(f.record().unwrap().code, Some(GapAdoptionCode::Checks));
+    let first = f.record().unwrap().adoption_id.unwrap();
+    f.providers.fail_runs(0);
+    let (status, body) = retry(&f, "operator").await;
+    assert_eq!(status, reqwest::StatusCode::OK, "{body}");
+    assert_eq!(body["attempt"], 1);
+    assert_eq!(body["previous_adoption_ids"], json!([first]));
+    f.serve().await;
+    f.wait_for("installed after retry", |f| {
+        installed(&f.gap_status()).is_some()
+    })
+    .await;
+    assert_eq!(f.adoptions().len(), 2);
+    assert_eq!(f.providers.model_calls(), 0);
+
+    // Registry outages: two retries, then no more.
+    let f = Fixture::new(Options {
+        failed_searches: 3,
+        ..Options::default()
+    })
+    .await;
+    f.drain().await;
+    for attempt in 0..=genesis_server::capability_gap_adoption::MAX_RETRIES {
+        f.drain().await;
+        f.adoption_step().await;
+        assert_eq!(
+            f.drain().await,
+            Some(Step::Attention(GapAdoptionCode::Registry)),
+            "attempt {attempt}"
+        );
+        let (status, _) = retry(&f, "operator").await;
+        let expected = if attempt < genesis_server::capability_gap_adoption::MAX_RETRIES {
+            reqwest::StatusCode::OK
+        } else {
+            reqwest::StatusCode::CONFLICT
+        };
+        assert_eq!(status, expected, "attempt {attempt}");
+    }
+    assert_eq!(f.adoptions().len(), 3);
+    assert!(!f.driver_bound());
+    assert_eq!(f.gap_status(), CapabilityGapStatus::Open);
+}
+
+async fn adoption_status(f: &Fixture, gap: &str) -> (reqwest::StatusCode, Value) {
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let url = format!("http://{}", listener.local_addr().unwrap());
+    let router = f.app.clone().router();
+    let server = tokio::spawn(async move { axum::serve(listener, router).await.unwrap() });
+    let response = reqwest::Client::builder()
+        .no_proxy()
+        .build()
+        .unwrap()
+        .get(format!("{url}/api/v1/capability-gaps/{gap}/adoption"))
+        .bearer_auth(format!("{ORG}-operator"))
+        .send()
+        .await
+        .unwrap();
+    let status = response.status();
+    let body = response.json().await.unwrap_or(Value::Null);
+    server.abort();
+    (status, body)
+}
+
+#[tokio::test]
+async fn a_link_whose_record_changed_underneath_fails_the_whole_acceptance() {
+    // Compare-and-swap: the acceptance transaction links from the record it
+    // read. If another writer changes that record before the link is saved,
+    // the stale link must conflict and fail the acceptance whole; it must not
+    // commit the gap installed while the record write silently matched no row.
+    let f = Fixture::new(Options::default()).await;
+    assert_eq!(f.drain().await, Some(Step::Frozen));
+    assert_eq!(f.drain().await, Some(Step::Dispatched));
+    let id = f.record().unwrap().adoption_id.unwrap();
+    capability_adoption::step(&f.app, &id).await.unwrap(); // select + install
+    capability_adoption::step(&f.app, &id).await.unwrap(); // queue checks
+    f.collect_checks(&id).await;
+    let before = f.record().unwrap();
+    // Inject a concurrent writer between the link's read and its save: the
+    // adoption's own phase write in the acceptance transaction (which runs
+    // just before the link is saved) also rewrites the gap record.
+    f.db()
+        .execute_batch(
+            "CREATE TRIGGER concurrent_gap_writer AFTER UPDATE OF phase ON capability_adoptions
+             WHEN NEW.phase <> OLD.phase
+             BEGIN
+               UPDATE capability_gap_adoptions
+                  SET record_json = replace(record_json, '\"code\":null', '\"code\":\"conflict\"');
+             END;",
+        )
+        .unwrap();
+    assert!(capability_adoption::step(&f.app, &id).await.is_err());
+    assert_eq!(
+        f.app.store.get_adoption(&id).unwrap().phase(),
+        AdoptionPhase::Checking
+    );
+    assert_eq!(f.gap_status(), CapabilityGapStatus::Open);
+    assert_eq!(
+        f.record().unwrap(),
+        before,
+        "the whole transaction rolled back"
+    );
+    assert_eq!(f.gap_notes(), 0);
+
+    // Once the conflict clears, the retried acceptance links atomically.
+    f.db()
+        .execute_batch("DROP TRIGGER concurrent_gap_writer;")
+        .unwrap();
+    capability_adoption::step(&f.app, &id).await.unwrap();
+    assert_eq!(
+        f.app.store.get_adoption(&id).unwrap().phase(),
+        AdoptionPhase::Accepted
+    );
+    assert_eq!(installed(&f.gap_status()).unwrap().0, id);
+    assert_eq!(f.record().unwrap().state, GapAdoptionState::Installed);
+}
+
+#[tokio::test]
+async fn lost_authority_is_refused_before_the_adoption_fences_itself() {
+    // The coordinator mirrors the adoption's own fence early: the very next
+    // pass refuses the gap, even before the adoption has stepped again.
+    let f = Fixture::new(Options::default()).await;
+    f.drain().await;
+    assert_eq!(f.drain().await, Some(Step::Dispatched));
+    let id = f.record().unwrap().adoption_id.unwrap();
+    f.change_requirement();
+    assert_eq!(
+        f.drain().await,
+        Some(Step::Refused(GapAdoptionCode::Authority))
+    );
+    assert_eq!(
+        f.app.store.get_adoption(&id).unwrap().phase(),
+        AdoptionPhase::Discovering,
+        "refused before the adoption fenced itself"
+    );
+    assert!(matches!(
+        f.gap_status(),
+        CapabilityGapStatus::Refused { acquisition_id: Some(ref link), .. } if *link == id
+    ));
+    assert_eq!(f.record().unwrap().state, GapAdoptionState::Refused);
+    assert_eq!(f.searches(), 0);
+    assert_eq!(f.gap_notes(), 1);
+}
+
+#[tokio::test]
+async fn a_changed_suite_stops_dispatch_at_configuration() {
+    // The suite frozen with the intent changed (same ID, different cases)
+    // before dispatch: no adoption is created under the new suite.
+    let mut f = Fixture::new(Options::default()).await;
+    assert_eq!(f.drain().await, Some(Step::Frozen));
+    let mut suite = b_suite();
+    suite.cases[0].input["attendees"] =
+        json!(suite.cases[0].input["attendees"].as_u64().unwrap() + 1);
+    f.config.oracle_suites = vec![suite];
+    f.reopen();
+    assert_eq!(
+        f.drain().await,
+        Some(Step::Attention(GapAdoptionCode::Configuration))
+    );
+    assert!(f.adoptions().is_empty());
+    assert!(f.record().unwrap().adoption_id.is_none());
+    assert_eq!(f.gap_status(), CapabilityGapStatus::Open);
+    assert_eq!(f.searches(), 0);
+}
+
+#[tokio::test]
+async fn an_adoption_under_the_key_from_an_earlier_grant_is_not_adopted() {
+    // The adoption store replays an identical intent by key regardless of the
+    // grant it was created under. An adoption squatting the coordinator's key
+    // from before a delegation rotated the epoch replays to the coordinator,
+    // which must not record it as its own.
+    let f = Fixture::new(Options::default()).await;
+    let squatter = f.operator_intent(&format!("gap-adopt:{}", f.gap_id));
+    let (squatted, _) = f
+        .app
+        .store
+        .create_adoption(&squatter, &b_suite(), Utc::now())
+        .unwrap();
+    let old_epoch = squatted.binding().grant.epoch;
+    f.rotate_epoch();
+    assert_eq!(f.drain().await, Some(Step::Frozen));
+    assert_eq!(f.record().unwrap().epoch, old_epoch + 1);
+    assert_eq!(
+        f.drain().await,
+        Some(Step::Attention(GapAdoptionCode::InvalidRecord))
+    );
+    let record = f.record().unwrap();
+    assert!(record.adoption_id.is_none());
+    assert_eq!(f.adoptions().len(), 1);
+    assert_eq!(f.gap_status(), CapabilityGapStatus::Open);
+    capability_gap_driver::drain_once(&f.app).await.unwrap();
+    assert!(!f.driver_bound());
+}
+
+#[tokio::test]
+async fn a_record_rewritten_to_name_another_adoption_is_invalid() {
+    // Storage-level tamper: the stored ID names an operator's adoption for the
+    // same requirement. Its progress must not drive the gap.
+    let f = Fixture::new(Options::default()).await;
+    assert_eq!(f.drain().await, Some(Step::Frozen));
+    let (operator, _) = f
+        .app
+        .store
+        .create_adoption(
+            &f.operator_intent("operator-adoption"),
+            &b_suite(),
+            Utc::now(),
+        )
+        .unwrap();
+    // The operator's adoption holds the requirement slot.
+    assert_eq!(f.drain().await, Some(Step::Waiting));
+    f.tamper_record(
+        "\"adoption_id\":null",
+        &format!("\"adoption_id\":\"{}\"", operator.id()),
+        Some(operator.id()),
+    );
+    assert_eq!(
+        f.drain().await,
+        Some(Step::Attention(GapAdoptionCode::InvalidRecord))
+    );
+    assert_eq!(f.gap_status(), CapabilityGapStatus::Open);
+    assert_eq!(
+        f.app.store.get_adoption(operator.id()).unwrap().phase(),
+        AdoptionPhase::Discovering
+    );
+}
+
+#[tokio::test]
+async fn a_stopped_record_is_not_stepped_again() {
+    let f = Fixture::new(Options {
+        registry_up: false,
+        ..Options::default()
+    })
+    .await;
+    f.drain().await;
+    f.drain().await;
+    f.adoption_step().await;
+    assert_eq!(
+        f.drain().await,
+        Some(Step::Attention(GapAdoptionCode::Registry))
+    );
+    let stopped = f.record().unwrap();
+    for _ in 0..2 {
+        assert_eq!(f.drain().await, Some(Step::Idle));
+    }
+    assert_eq!(f.record().unwrap(), stopped, "not rewritten");
+
+    // A released record, too, is left alone while its gap is still open.
+    let f = Fixture::new(Options {
+        foreign: false,
+        ..Options::default()
+    })
+    .await;
+    f.drain().await;
+    f.drain().await;
+    f.adoption_step().await;
+    assert_eq!(f.drain().await, Some(Step::Released));
+    let released = f.record().unwrap();
+    assert_eq!(f.drain().await, Some(Step::Idle));
+    assert_eq!(f.record().unwrap(), released);
+}
+
+#[tokio::test]
+async fn a_gap_closed_by_another_writer_is_never_frozen_or_deferred() {
+    let f = Fixture::new(Options::default()).await;
+    f.close_gap(CapabilityGapStatus::Refused {
+        reason: "closed elsewhere".into(),
+        acquisition_id: None,
+    })
+    .await;
+    let gap = f.state().capability_gaps[&f.gap_id].clone();
+    assert!(!capability_gap_adoption::defers_driver(&f.app, &gap));
+    assert_eq!(f.drain().await, None, "only open gaps are listed");
+    assert_eq!(
+        capability_gap_adoption::step(&f.app, &f.gap_id)
+            .await
+            .unwrap(),
+        Step::Idle
+    );
+    assert!(f.record().is_none());
+}
+
+#[tokio::test]
+async fn a_frozen_gap_bound_elsewhere_before_dispatch_creates_no_adoption() {
+    // A driver in another process bound the gap between freeze and dispatch.
+    let f = Fixture::new(Options::default()).await;
+    assert_eq!(f.drain().await, Some(Step::Frozen));
+    f.close_gap(CapabilityGapStatus::Acquiring {
+        acquisition_id: "acquisition-elsewhere".into(),
+    })
+    .await;
+    let gap = f.state().capability_gaps[&f.gap_id].clone();
+    // The driver must keep progressing the gap it bound.
+    assert!(!capability_gap_adoption::defers_driver(&f.app, &gap));
+    assert_eq!(
+        f.drain().await,
+        Some(Step::Attention(GapAdoptionCode::InvalidRecord))
+    );
+    assert!(f.adoptions().is_empty());
+    assert_eq!(f.searches(), 0);
+    assert!(matches!(
+        f.gap_status(),
+        CapabilityGapStatus::Acquiring { .. }
+    ));
+}
+
+#[tokio::test]
+async fn a_definite_outcome_for_a_gap_closed_elsewhere_stops_at_attention() {
+    let f = Fixture::new(Options {
+        foreign: false,
+        fallback: false,
+        ..Options::default()
+    })
+    .await;
+    f.drain().await;
+    f.drain().await;
+    f.adoption_step().await;
+    let closed = CapabilityGapStatus::Refused {
+        reason: "closed elsewhere".into(),
+        acquisition_id: None,
+    };
+    f.close_gap(closed.clone()).await;
+    let notes = f.gap_notes();
+    assert_eq!(
+        f.drain().await,
+        Some(Step::Attention(GapAdoptionCode::NoCandidate))
+    );
+    let record = f.record().unwrap();
+    assert_eq!(record.state, GapAdoptionState::Attention);
+    assert!(record.adoption_id.is_some());
+    // The other writer's decision stands; no second refusal or note.
+    assert_eq!(f.gap_status(), closed);
+    assert_eq!(f.gap_notes(), notes);
+}
+
+#[tokio::test]
+async fn a_retry_is_refused_once_the_gap_is_closed() {
+    let f = Fixture::new(Options {
+        failed_searches: 1,
+        ..Options::default()
+    })
+    .await;
+    f.drain().await;
+    f.drain().await;
+    f.adoption_step().await;
+    assert_eq!(
+        f.drain().await,
+        Some(Step::Attention(GapAdoptionCode::Registry))
+    );
+    f.close_gap(CapabilityGapStatus::Refused {
+        reason: "closed elsewhere".into(),
+        acquisition_id: None,
+    })
+    .await;
+    let stopped = f.record().unwrap();
+    let (status, body) = retry(&f, "operator").await;
+    assert_eq!(status, reqwest::StatusCode::CONFLICT, "{body}");
+    assert_eq!(f.record().unwrap(), stopped);
+    assert_eq!(f.drain().await, None);
+    assert_eq!(f.adoptions().len(), 1);
+    assert_eq!(f.searches(), 1);
+
+    // Status of an unknown gap is not found, not an empty record.
+    let (status, _) = adoption_status(&f, "no-such-gap").await;
+    assert_eq!(status, reqwest::StatusCode::NOT_FOUND);
+    let (status, body) = adoption_status(&f, f.gap_id.as_str()).await;
+    assert_eq!(status, reqwest::StatusCode::OK);
+    assert_eq!(body["code"], "registry");
+}
+
+#[tokio::test]
+async fn a_database_without_the_adoption_table_has_no_records() {
+    // Adopt-first off. Without a policy the pass returns nothing (it does not
+    // even take the kernel lock), and a database whose adoption table is
+    // missing reads as having no records everywhere, including inside an
+    // ordinary adoption's acceptance transaction.
+    let f = Fixture::new(Options {
+        adopt_first: false,
+        ..Options::default()
+    })
+    .await;
+    assert!(capability_gap_adoption::drain_once(&f.app)
+        .await
+        .unwrap()
+        .is_empty());
+    let (adoption, _) = f
+        .app
+        .store
+        .create_adoption(
+            &f.operator_intent("operator-adoption"),
+            &b_suite(),
+            Utc::now(),
+        )
+        .unwrap();
+    f.db()
+        .execute_batch("DROP TABLE capability_gap_adoptions;")
+        .unwrap();
+    assert!(f.record().is_none());
+    assert!(capability_gap_adoption::drain_once(&f.app)
+        .await
+        .unwrap()
+        .is_empty());
+    let (status, body) = adoption_status(&f, f.gap_id.as_str()).await;
+    assert_eq!(status, reqwest::StatusCode::OK, "{body}");
+    assert_eq!(body["state"], Value::Null);
+    f.run_adoption(adoption.id()).await.unwrap();
+    assert_eq!(
+        f.app.store.get_adoption(adoption.id()).unwrap().phase(),
+        AdoptionPhase::Accepted
+    );
+    assert_eq!(f.gap_status(), CapabilityGapStatus::Open);
+}
+
+#[tokio::test]
+async fn stored_records_that_disagree_with_their_row_or_gap_are_not_trusted() {
+    // A record stored under this gap's row naming another gap is unreadable,
+    // and the driver defers it rather than binding.
+    let f = Fixture::new(Options::default()).await;
+    assert_eq!(f.drain().await, Some(Step::Frozen));
+    f.tamper_record(
+        &format!("\"gap_id\":\"{}\"", f.gap_id),
+        "\"gap_id\":\"some-other-gap\"",
+        None,
+    );
+    assert!(f.app.store.gap_adoption(&f.gap_id).is_err());
+    capability_gap_driver::drain_once(&f.app).await.unwrap();
+    assert!(!f.driver_bound());
+
+    // A linked gap whose record was rewritten back to active stays linked:
+    // the pass recognizes its own installation and does nothing.
+    let f = Fixture::new(Options::default()).await;
+    f.drain().await;
+    f.drain().await;
+    let id = f.record().unwrap().adoption_id.unwrap();
+    f.run_adoption(&id).await.unwrap();
+    assert_eq!(installed(&f.gap_status()).unwrap().0, id);
+    f.tamper_record("\"state\":\"installed\"", "\"state\":\"active\"", Some(&id));
+    let rewritten = f.record().unwrap();
+    assert_eq!(f.drain().await, Some(Step::Idle));
+    assert_eq!(f.record().unwrap(), rewritten);
+    assert_eq!(installed(&f.gap_status()).unwrap().0, id);
+}
+
 #[tokio::test]
 async fn review_empty_search_cannot_release_a_gap_after_public_same_owner_delegation() {
     let f = Fixture::new(Options {
@@ -1259,4 +1940,331 @@ async fn review_empty_search_cannot_release_a_gap_after_public_same_owner_delega
     assert_eq!(outcome, Some(Step::Refused(GapAdoptionCode::Authority)));
     assert_eq!(f.providers.model_calls(), 0);
     assert_eq!(f.adoptions().len(), 1);
+}
+
+#[tokio::test]
+async fn review_unknown_native_check_cannot_be_replayed_through_a_fresh_adoption() {
+    use genesis_server::capability_runtime::CapabilityRunPhase;
+    let f = Fixture::new(Options {
+        ambiguous_runs: true,
+        ..Options::default()
+    })
+    .await;
+    assert_eq!(f.drain().await, Some(Step::Frozen));
+    assert_eq!(f.drain().await, Some(Step::Dispatched));
+    f.adoption_step().await;
+    f.adoption_step().await;
+    let first = f.adoptions()[0].clone();
+    assert_eq!(first.phase(), AdoptionPhase::Checking);
+    let old_job = first.job_ids()[0].clone();
+    // The provider creates a real loopback run but responds 503; the native
+    // POST therefore has an unknown outcome, retained for reconciliation.
+    for _ in 0..10 {
+        let _ = f.app.capability_runtime.step(&old_job, false).await;
+        if f.app.store.get_capability_run(&old_job).unwrap().phase
+            == CapabilityRunPhase::NeedsReconciliation
+        {
+            break;
+        }
+    }
+    assert_eq!(
+        f.app.store.get_capability_run(&old_job).unwrap().phase,
+        CapabilityRunPhase::NeedsReconciliation
+    );
+    let posts = f.providers.runs();
+    assert_eq!(posts, 1);
+    f.adoption_step().await;
+    assert_eq!(
+        f.drain().await,
+        Some(Step::Attention(GapAdoptionCode::Checks))
+    );
+    let (status, body) = retry(&f, "operator").await;
+    if status == reqwest::StatusCode::CONFLICT {
+        assert_eq!(f.record().unwrap().adoption_id.as_deref(), Some(first.id()));
+        assert_eq!(f.adoptions().len(), 1);
+        assert_eq!(f.providers.runs(), posts);
+        return;
+    }
+    assert_eq!(status, reqwest::StatusCode::OK, "{body}");
+    assert_eq!(f.drain().await, Some(Step::Dispatched));
+    let second_id = f.record().unwrap().adoption_id.unwrap();
+    assert_ne!(second_id, first.id());
+    f.adoption_step().await;
+    f.adoption_step().await;
+    let second = f.app.store.get_adoption(&second_id).unwrap();
+    assert_eq!(second.phase(), AdoptionPhase::Checking);
+    let new_job = second.job_ids()[0].clone();
+    assert_ne!(new_job, old_job);
+    for _ in 0..10 {
+        let _ = f.app.capability_runtime.step(&new_job, false).await;
+        if f.app.store.get_capability_run(&new_job).unwrap().phase
+            == CapabilityRunPhase::NeedsReconciliation
+        {
+            break;
+        }
+    }
+    assert_eq!(
+        f.app.store.get_capability_run(&old_job).unwrap().phase,
+        CapabilityRunPhase::NeedsReconciliation,
+        "the original native effect is still unresolved"
+    );
+    assert_eq!(
+        f.providers.runs(),
+        posts,
+        "new adoption {second_id} submitted the same native check again while {} still has an unknown outcome",
+        first.id()
+    );
+}
+
+#[tokio::test]
+async fn review_configuration_retry_cannot_replay_an_unknown_native_check() {
+    use genesis_server::capability_runtime::CapabilityRunPhase;
+    let mut f = Fixture::new(Options {
+        ambiguous_runs: true,
+        ..Options::default()
+    })
+    .await;
+    assert_eq!(f.drain().await, Some(Step::Frozen));
+    assert_eq!(f.drain().await, Some(Step::Dispatched));
+    f.adoption_step().await;
+    f.adoption_step().await;
+    let first = f.adoptions()[0].clone();
+    assert_eq!(first.phase(), AdoptionPhase::Checking);
+    let old_job = first.job_ids()[0].clone();
+    // The provider creates a real loopback run but responds 503; the native
+    // POST therefore has an unknown outcome, retained for reconciliation.
+    for _ in 0..10 {
+        let _ = f.app.capability_runtime.step(&old_job, false).await;
+        if f.app.store.get_capability_run(&old_job).unwrap().phase
+            == CapabilityRunPhase::NeedsReconciliation
+        {
+            break;
+        }
+    }
+    assert_eq!(
+        f.app.store.get_capability_run(&old_job).unwrap().phase,
+        CapabilityRunPhase::NeedsReconciliation
+    );
+    let posts = f.providers.runs();
+    assert_eq!(posts, 1);
+    // Ordinary restart configuration drift is observed before the adoption
+    // inspects its child run. Restoring configuration cannot erase that run.
+    let mut suite = b_suite();
+    suite.cases[0].input["attendees"] =
+        json!(suite.cases[0].input["attendees"].as_u64().unwrap() + 1);
+    f.config.oracle_suites = vec![suite];
+    f.reopen();
+    f.adoption_step().await;
+    assert_eq!(
+        f.drain().await,
+        Some(Step::Attention(GapAdoptionCode::Configuration))
+    );
+    f.config.oracle_suites = vec![b_suite()];
+    f.reopen();
+    let (status, body) = retry(&f, "operator").await;
+    if status == reqwest::StatusCode::CONFLICT {
+        assert_eq!(f.record().unwrap().adoption_id.as_deref(), Some(first.id()));
+        assert_eq!(f.adoptions().len(), 1);
+        assert_eq!(f.providers.runs(), posts);
+        return;
+    }
+    assert_eq!(status, reqwest::StatusCode::OK, "{body}");
+    assert_eq!(f.drain().await, Some(Step::Dispatched));
+    let second_id = f.record().unwrap().adoption_id.unwrap();
+    assert_ne!(second_id, first.id());
+    f.adoption_step().await;
+    f.adoption_step().await;
+    let second = f.app.store.get_adoption(&second_id).unwrap();
+    assert_eq!(second.phase(), AdoptionPhase::Checking);
+    let new_job = second.job_ids()[0].clone();
+    assert_ne!(new_job, old_job);
+    for _ in 0..10 {
+        let _ = f.app.capability_runtime.step(&new_job, false).await;
+        if f.app.store.get_capability_run(&new_job).unwrap().phase
+            == CapabilityRunPhase::NeedsReconciliation
+        {
+            break;
+        }
+    }
+    assert_eq!(
+        f.app.store.get_capability_run(&old_job).unwrap().phase,
+        CapabilityRunPhase::NeedsReconciliation,
+        "the original native effect is still unresolved"
+    );
+    assert_eq!(
+        f.providers.runs(),
+        posts,
+        "new adoption {second_id} submitted the same native check again while {} still has an unknown outcome",
+        first.id()
+    );
+}
+
+#[tokio::test]
+async fn review_rejected_local_check_does_not_settle_a_still_running_native_effect() {
+    use genesis_server::capability_runtime::CapabilityRunPhase;
+    let mut f = Fixture::new(Options {
+        running_runs: true,
+        ..Options::default()
+    })
+    .await;
+    assert_eq!(f.drain().await, Some(Step::Frozen));
+    assert_eq!(f.drain().await, Some(Step::Dispatched));
+    f.adoption_step().await;
+    f.adoption_step().await;
+    let first = f.adoptions()[0].clone();
+    assert_eq!(first.phase(), AdoptionPhase::Checking);
+    let old_job = first.job_ids()[0].clone();
+    let submitted = f
+        .app
+        .capability_runtime
+        .step(&old_job, false)
+        .await
+        .unwrap();
+    assert_eq!(submitted.phase, CapabilityRunPhase::Running);
+    assert!(submitted.receipt.is_some());
+    let posts = f.providers.runs();
+    assert_eq!(posts, 1);
+
+    // An ordinary restart with suite drift stops the adoption while the
+    // provider's accepted run is still executing. Other checks are Prepared.
+    let mut suite = b_suite();
+    suite.cases[0].input["attendees"] =
+        json!(suite.cases[0].input["attendees"].as_u64().unwrap() + 1);
+    f.config.oracle_suites = vec![suite];
+    f.reopen();
+    f.adoption_step().await;
+    assert_eq!(
+        f.drain().await,
+        Some(Step::Attention(GapAdoptionCode::Configuration))
+    );
+    let (_, before) = adoption_status(&f, f.gap_id.as_str()).await;
+    assert_eq!(before["retryable"], false, "{before}");
+
+    // The normal capability worker also steps Running records. Since their
+    // parent has stopped, this rejects the local result without canceling or
+    // collecting the native run. Rejection therefore is not reconciliation.
+    let rejected = f
+        .app
+        .capability_runtime
+        .step(&old_job, false)
+        .await
+        .unwrap();
+    assert_eq!(rejected.phase, CapabilityRunPhase::Rejected);
+    assert_eq!(
+        serde_json::to_value(&rejected.receipt).unwrap(),
+        serde_json::to_value(&submitted.receipt).unwrap()
+    );
+    assert_eq!(f.providers.count("GET", "/v2/actor-runs/"), 0);
+    assert_eq!(f.providers.runs(), posts);
+
+    f.config.oracle_suites = vec![b_suite()];
+    f.reopen();
+    let (status_code, status_body) = adoption_status(&f, f.gap_id.as_str()).await;
+    assert_eq!(status_code, reqwest::StatusCode::OK, "{status_body}");
+    let (retry_code, retry_body) = retry(&f, "operator").await;
+    if retry_code == reqwest::StatusCode::OK {
+        // Exercise an incorrectly allowed retry so the regression measures
+        // the duplicate native POST, not only an optimistic status flag.
+        assert_eq!(f.drain().await, Some(Step::Dispatched));
+        let second_id = f.record().unwrap().adoption_id.unwrap();
+        assert_ne!(second_id, first.id());
+        f.adoption_step().await;
+        f.adoption_step().await;
+        let second = f.app.store.get_adoption(&second_id).unwrap();
+        let new_job = second.job_ids()[0].clone();
+        let replay = f
+            .app
+            .capability_runtime
+            .step(&new_job, false)
+            .await
+            .unwrap();
+        assert_eq!(replay.phase, CapabilityRunPhase::Running);
+    }
+
+    // The original native effect really remains RUNNING, independently of
+    // the terminal label on its local checkpoint.
+    let native: Value = reqwest::Client::builder()
+        .no_proxy()
+        .build()
+        .unwrap()
+        .get(format!("{}/v2/actor-runs/b-run-0", f.providers.url))
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert_eq!(native["data"]["status"], "RUNNING");
+    assert_eq!(
+        f.providers.runs(),
+        posts,
+        "retry submitted a duplicate while the first provider run is still RUNNING; status={status_body}, retry={retry_code}: {retry_body}"
+    );
+    assert_eq!(status_body["retryable"], false, "{status_body}");
+    assert_eq!(retry_code, reqwest::StatusCode::CONFLICT, "{retry_body}");
+    assert_eq!(retry_body["error"], "adoption_checks_unresolved");
+    let record = f.record().unwrap();
+    assert_eq!(record.adoption_id.as_deref(), Some(first.id()));
+    assert_eq!(record.attempt, 0);
+    assert_eq!(record.state, GapAdoptionState::Attention);
+    assert_eq!(f.adoptions().len(), 1);
+    assert_eq!(f.providers.model_calls(), 0);
+    assert!(!f.driver_bound());
+}
+
+#[tokio::test]
+async fn a_never_submitted_sibling_of_a_failed_check_settles_and_is_never_submitted_later() {
+    // Henry's Claude: one check run FAILED at the provider; its siblings were
+    // prepared but never submitted. The stopped adoption can no longer
+    // authorize them, so they settle the retry, and stepping them afterwards
+    // rejects them locally with no POST.
+    use genesis_server::capability_runtime::CapabilityRunPhase;
+    let f = Fixture::new(Options::default()).await;
+    assert_eq!(f.drain().await, Some(Step::Frozen));
+    assert_eq!(f.drain().await, Some(Step::Dispatched));
+    f.adoption_step().await;
+    f.adoption_step().await;
+    let first = f.adoptions()[0].clone();
+    assert_eq!(first.phase(), AdoptionPhase::Checking);
+    let jobs = first.job_ids().to_vec();
+    assert!(jobs.len() > 1, "need siblings: {jobs:?}");
+    f.providers.fail_runs(1);
+    for _ in 0..10 {
+        let _ = f.app.capability_runtime.step(&jobs[0], false).await;
+        if f.app.store.get_capability_run(&jobs[0]).unwrap().phase == CapabilityRunPhase::Failed {
+            break;
+        }
+    }
+    assert_eq!(
+        f.app.store.get_capability_run(&jobs[0]).unwrap().phase,
+        CapabilityRunPhase::Failed
+    );
+    for job in &jobs[1..] {
+        assert_eq!(
+            f.app.store.get_capability_run(job).unwrap().phase,
+            CapabilityRunPhase::Prepared
+        );
+    }
+    let posts = f.providers.runs();
+    assert_eq!(posts, 1);
+    f.adoption_step().await;
+    assert_eq!(
+        f.drain().await,
+        Some(Step::Attention(GapAdoptionCode::Checks))
+    );
+    let (_, status) = adoption_status(&f, f.gap_id.as_str()).await;
+    assert_eq!(status["retryable"], true, "{status}");
+    let (code, body) = retry(&f, "operator").await;
+    assert_eq!(code, reqwest::StatusCode::OK, "{body}");
+    // The stopped adoption's prepared siblings are never submitted.
+    for job in &jobs[1..] {
+        let _ = f.app.capability_runtime.step(job, false).await;
+        assert_eq!(
+            f.app.store.get_capability_run(job).unwrap().phase,
+            CapabilityRunPhase::Rejected
+        );
+    }
+    assert_eq!(f.providers.runs(), posts);
 }

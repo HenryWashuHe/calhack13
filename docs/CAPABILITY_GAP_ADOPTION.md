@@ -93,6 +93,30 @@ Uncertain outcomes stop at attention with the adoption ID kept and never fall
 back to synthesis: an unknown result is not an empty result. The gap stays
 `open`.
 
+## Retrying a stop
+
+`POST /api/v1/capability-gaps/{id}/adoption/retry` (operator) starts one fresh
+adoption for a gap stopped at `registry`, `candidate`, `configuration`,
+`conflict` or `checks`, while the gap is still open: the stopped adoption moves to
+`previous_adoption_ids`, the record returns to `active` with `attempt` + 1,
+and the coordinator dispatches under the key `gap-adopt:<gap>:<attempt>`
+after rechecking the requirement and grant. At most two retries per gap.
+Whatever the code, a retry also needs every native check run of the stopped
+adoption to carry terminal provider evidence (`collected`, or `failed` from a
+definite refusal or terminal provider failure) or never to have been
+submitted (`prepared` under an adoption that left checking). Anything else
+answers 409 `adoption_checks_unresolved` and leaves the record untouched:
+an unknown outcome (`needs_reconciliation`, e.g. a restart mid-POST), a run
+in flight, and also `rejected`, because that local verdict can overwrite a
+submitted or still-running provider run without polling it. There is no
+reconciliation of such runs yet, so the gap stays at attention. In practice
+retry recovers registry, candidate and conflict stops (no checks yet) and
+checks whose runs finished; it does not recover a stop that interrupted a
+check. Automatic paths never retry. `invalid_record` is never
+retryable. A retry never releases the gap to
+synthesis; only a definitive empty search does. Status shows `attempt`,
+`previous_adoption_ids` and whether a retry is allowed now (`retryable`).
+
 ## Ownership
 
 The gap driver defers a gap while adoption owns it: the gap's capability has a

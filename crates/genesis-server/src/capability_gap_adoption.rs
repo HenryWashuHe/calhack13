@@ -170,11 +170,39 @@ pub struct GapAdoptionRecord {
     pub state: GapAdoptionState,
     pub code: Option<GapAdoptionCode>,
     pub updated_at: DateTime<Utc>,
+    /// Operator retries so far; each gets a fresh adoption key.
+    #[serde(default)]
+    pub attempt: u32,
+    /// Adoptions of earlier attempts, oldest first (kept for history).
+    #[serde(default)]
+    pub previous_adoption_ids: Vec<String>,
+}
+
+/// Operator retries allowed per gap after the first adoption.
+pub const MAX_RETRIES: u32 = 2;
+
+impl GapAdoptionCode {
+    /// Stops a fresh adoption may resolve: a registry blip, a bad candidate
+    /// that may have been replaced, changed configuration, an installation
+    /// conflict, or failed checks. Whatever the code, a retry also requires
+    /// every native check run of the stopped adoption to have a definite
+    /// outcome (`checks_settled`): an unknown or still-moving run keeps its
+    /// identity and blocks the retry, so no check is ever submitted twice.
+    /// Inconsistent records are never retried.
+    pub fn retryable(self) -> bool {
+        matches!(
+            self,
+            Self::Registry | Self::Candidate | Self::Configuration | Self::Conflict | Self::Checks
+        )
+    }
 }
 
 impl GapAdoptionRecord {
     pub fn client_request_id(&self) -> String {
-        format!("gap-adopt:{}", self.gap_id)
+        match self.attempt {
+            0 => format!("gap-adopt:{}", self.gap_id),
+            n => format!("gap-adopt:{}:{n}", self.gap_id),
+        }
     }
 
     fn intent(&self) -> CreateAdoption {
@@ -741,6 +769,8 @@ fn freeze(app: &AppState, state: &OrgState, gap: &CapabilityGap) -> StoreResult<
         state: GapAdoptionState::Active,
         code: None,
         updated_at: now,
+        attempt: 0,
+        previous_adoption_ids: vec![],
     };
     if !authorized(state, &record) {
         return Ok(Step::Idle);
@@ -871,6 +901,10 @@ pub struct GapAdoptionStatus {
     pub selected: Option<CapabilityRef>,
     pub installation_id: Option<InstallationId>,
     pub updated_at: Option<DateTime<Utc>>,
+    pub attempt: Option<u32>,
+    pub previous_adoption_ids: Vec<String>,
+    /// Whether `POST .../adoption/retry` would start a fresh adoption now.
+    pub retryable: bool,
 }
 
 pub async fn status_route(
@@ -893,6 +927,125 @@ pub async fn status_route(
         synthesis_fallback: r.as_ref().map(|r| r.synthesis_fallback),
         selected: r.as_ref().and_then(|r| r.selected.clone()),
         installation_id: r.as_ref().and_then(|r| r.installation_id.clone()),
-        updated_at: r.map(|r| r.updated_at),
+        updated_at: r.as_ref().map(|r| r.updated_at),
+        attempt: r.as_ref().map(|r| r.attempt),
+        previous_adoption_ids: r
+            .as_ref()
+            .map(|r| r.previous_adoption_ids.clone())
+            .unwrap_or_default(),
+        retryable: match r.as_ref() {
+            Some(r) => retryable_now(&app, r)?,
+            None => false,
+        },
     }))
+}
+
+fn can_retry(r: &GapAdoptionRecord) -> bool {
+    r.state == GapAdoptionState::Attention
+        && r.code.is_some_and(GapAdoptionCode::retryable)
+        && r.adoption_id.is_some()
+        && r.attempt < MAX_RETRIES
+}
+
+/// Every native check run of the stopped adoption has terminal provider
+/// evidence or was never submitted:
+/// - `Collected` (the provider reported success) or `Failed` (a definite
+///   refusal or terminal failure; ambiguous submissions become
+///   `NeedsReconciliation`, and a run that lost authority becomes `Rejected`
+///   instead) settle it;
+/// - `Prepared` settles it only once the adoption has left Checking for good,
+///   since the runtime then refuses to submit it (`authorized_job` requires
+///   Checking, checked under the kernel lock this route also holds).
+///
+/// Everything else blocks a retry. That includes `Rejected`: it is a local
+/// authority/configuration verdict that can overwrite a submitted or even
+/// still-running native run without polling it (Codex, #86), so it is no
+/// evidence that the provider effect ended. Unreadable records count as
+/// unsettled; only storage errors propagate.
+fn checks_settled(app: &AppState, r: &GapAdoptionRecord) -> StoreResult<bool> {
+    use crate::capability_adoption_store::AdoptionError;
+    use crate::capability_runtime::{CapabilityRunPhase as P, CapabilityRuntimeError as E};
+    let Some(id) = r.adoption_id.as_deref() else {
+        return Ok(true);
+    };
+    let adoption = match app.store.get_adoption(id) {
+        Ok(a) => a,
+        Err(AdoptionError::Db(e)) => return Err(StoreError::Db(e)),
+        Err(_) => return Ok(false),
+    };
+    let stopped = !matches!(
+        adoption.phase(),
+        AdoptionPhase::Discovering | AdoptionPhase::Selected | AdoptionPhase::Checking
+    );
+    for job in adoption.job_ids() {
+        match app.store.get_capability_run(job) {
+            Ok(run) if matches!(run.phase, P::Collected | P::Failed) => {}
+            Ok(run) if stopped && run.phase == P::Prepared => {}
+            Ok(_) => return Ok(false),
+            // No run recorded for the job: nothing was ever submitted.
+            Err(E::Store(StoreError::NotFound(_))) => {}
+            Err(E::Store(e)) => return Err(e),
+            Err(_) => return Ok(false),
+        }
+    }
+    Ok(true)
+}
+
+fn retryable_now(app: &AppState, r: &GapAdoptionRecord) -> StoreResult<bool> {
+    Ok(can_retry(r) && checks_settled(app, r)?)
+}
+
+/// Operator recovery for a retryable stop: keep the stopped adoption in
+/// history and let the coordinator dispatch one fresh adoption under a new
+/// key, rechecking the requirement and grant first. Bounded per gap.
+/// Synthesis fallback is unchanged: only a definitive empty search can
+/// release the gap.
+pub async fn retry_route(
+    State(app): State<AppState>,
+    p: Principal,
+    Path(id): Path<String>,
+) -> ApiResult<Json<GapAdoptionStatus>> {
+    p.require(&[Principal::Operator])?;
+    let gap = CapabilityGapId::new(id.clone());
+    {
+        let _kernel = app.kernel.lock().await;
+        let r = app
+            .store
+            .gap_adoption(&gap)?
+            .ok_or_else(|| ApiError::not_found("gap adoption"))?;
+        if !can_retry(&r) {
+            return Err(ApiError::new(
+                axum::http::StatusCode::CONFLICT,
+                "adoption_not_retryable",
+                "this gap adoption is not stopped for a retryable reason, or its retries are used up",
+            ));
+        }
+        if !checks_settled(&app, &r)? {
+            return Err(ApiError::new(
+                axum::http::StatusCode::CONFLICT,
+                "adoption_checks_unresolved",
+                "a check run of the stopped adoption has no definite outcome yet; retrying could submit it twice",
+            ));
+        }
+        let open = app
+            .current_state()?
+            .capability_gaps
+            .get(&gap)
+            .is_some_and(|g| g.status == CapabilityGapStatus::Open);
+        if !open {
+            return Err(ApiError::new(
+                axum::http::StatusCode::CONFLICT,
+                "adoption_not_retryable",
+                "the gap is no longer open",
+            ));
+        }
+        let mut next = r.clone();
+        next.previous_adoption_ids.extend(next.adoption_id.take());
+        next.attempt += 1;
+        next.state = GapAdoptionState::Active;
+        next.code = None;
+        next.updated_at = Utc::now();
+        save(&app, Some(&r), &next)?;
+    }
+    status_route(State(app), p, Path(id)).await
 }
