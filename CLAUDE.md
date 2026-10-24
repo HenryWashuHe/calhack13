@@ -1,6 +1,69 @@
 # GENESIS agent coordination
 
-## Current implementation and ownership — October 22, 2026
+## Authoritative checkpoint — October 23, 2026
+
+Source basis: main `72cd0145400aae6a72a54cf36f2b9ecf0e662adc`, tree
+`5e5cf47702a08f462cb520a7cd7d6ce0d0919d03`, after #99. This checkpoint
+supersedes the historical status and ownership notes below; exact newer GitHub
+heads and the scoped handoffs in [issue #4](https://github.com/HenryWashuHe/genesis/issues/4)
+take precedence. The ongoing two-organization mission goal remains active.
+
+**Merged:** #78 finalizer, #80 finalizer UI, #88 settled-check display,
+#89 planner policy names/sources/scopes, #97 console guard tests, and
+#90/#92/#93/#94/#95/#96 saga, audit and planner changes. The six-PR Rust
+composition at `97d75eb` (tree `f305ca60`) passed **608 tests across 68 targets**,
+scoped strict Clippy and formatting. These are source-specific results, not a
+new aggregate count for every later main commit.
+
+- **#98 Fetch float identity:** merged `9f9a87d`, source `11703e2`.
+  Canonical JSON float identity survives journal/receipt reconstruction;
+  stale changed intents cannot block release or unrelated healthy work.
+  **133 Fetch/verification tests**, including ten float cases, pass. Three
+  baseline defects and two release regressions were reproduced before fixes.
+- **#99 monitor intake:** merged `72cd014`, source `05d55e2`, exact tree above.
+  Persisted scans choose the newest eligible source within their captured
+  backlog, including across pages/restart. Manual consumption and temporary
+  CREAO absence no longer permanently halt valid intake; exact child recovery,
+  stop/expiry and authority fences remain. **34 assessment + 117 server-library
+  tests**, scoped strict Clippy and formatting pass. Baseline evidence was four
+  failing regressions plus four passing controls. See [monitor semantics](docs/VENUE_MONITORS.md).
+
+**Open review queue:** #82 `ae00fa9` is being validated after its fallback fix;
+not merged at this checkpoint. #86's old `0ec6606` has two reproduced
+unknown-child retry failures; new head `83998b0` awaits review, so the hold is
+not cleared. #91 `6776130` remains held on replay starvation under frequent
+nonstructural events and missing revisions displayed as audited success.
+Draft #84 `e986a4e` remains held on preflight policy validation and overstated
+planner/restart coverage; test-only `4ed8c08` is preserved but not yet executed.
+#83 `7c1900d`, #85 `c2abcf9` and #87 `88d9174` have clean scoped source reviews,
+pending #82 and dependent execution; they do not inherently require #86.
+See [the exact queue](docs/PR_REVIEW_QUEUE.md).
+
+**Ownership:** Claude/Eric retains kernel, planner, readiness, adoption and UI,
+including #82/#86/#91 fixes. Codex's monitor and Fetch float fixes are merged.
+Codex continues the Fetch venue-recovery implementation at `299ee0c` on
+`codex/fetch-venue-recovery`, with runtime/retirement integration tests still
+pending; this is work in progress, not a merged mission result. Coordinate
+before overlapping files. Preserve review evidence and push tested increments;
+the active root reviewer sequences merges.
+
+**Evidence and credentials:** no native sponsor run is established. Loopback
+fixtures and local signed-process checks do not prove cloud execution or a
+completed autonomous mission. The user has not supplied the required credentials:
+`APIFY_TOKEN`, `CREAO_ACCOUNT_API_KEY`, `ELASTICSEARCH_URL`,
+`ELASTIC_DATA_API_KEY`, `ELASTIC_KIBANA_URL`, `ELASTIC_MANAGEMENT_API_KEY`, and
+`AGENTVERSE_API_KEY`. Setup also needs each provider's configured runtime and,
+for synthesis/planning, the relevant model credentials. Follow
+[LIVE_GATES.md](docs/LIVE_GATES.md); preserve actual agent/run evidence and a
+genuine CREAO Share link separately. Never put credentials in handoff files.
+
+## Historical checkpoints
+
+Everything below preserves earlier source-specific results and assignments.
+Statements such as “current,” “next” or “hold” below describe their original
+checkpoint, not the authoritative status above.
+
+## Historical implementation and ownership — October 22, 2026
 
 Immutable Fetch receipts are implemented at `afbe0bf` (reviewed original
 `6424bfb`). Exact frozen recruitment/consent/task messages are checked against
