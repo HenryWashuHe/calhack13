@@ -3,7 +3,7 @@
 use crate::refs;
 use crate::sandbox::Mode;
 use crate::session::{finish, Finished, RunError, RunState, Session};
-use crate::store::Store;
+use crate::store::{SlotClaim, Store};
 use genesis_core::development_evaluation::EvaluationError;
 use genesis_core::development_experiment::{
     ExperimentLedger, ExperimentOutcome, ExperimentScope, ExperimentSettlement,
@@ -21,6 +21,9 @@ pub const MAX_LINE: usize = 1 << 20;
 /// The method is killed this long before its wall-time grant ends, so the
 /// measured time stays inside the grant in the ordinary case.
 pub const KILL_MARGIN_MS: u64 = 250;
+/// Replies waiting for a method that isn't reading them; past this the run
+/// fails instead of blocking.
+pub const MAX_QUEUED_REPLIES: usize = 64;
 
 /// `<interpreter> --version`, pinned in the environment reference.
 pub fn interpreter_version(interpreter: &str) -> String {
@@ -60,6 +63,7 @@ pub fn recover(
     dir: &Path,
     cfg: &Config,
 ) -> Result<Finished, RunError> {
+    let _claim = claim(dir)?;
     let store = Store::open(dir)?;
     if store.exists("receipt.json") {
         return Err(RunError::AlreadyStarted);
@@ -121,6 +125,18 @@ pub fn recover(
     )
 }
 
+/// Exclusive ownership of the slot; another runner holding it means the slot
+/// is already started.
+fn claim(dir: &Path) -> Result<SlotClaim, RunError> {
+    SlotClaim::acquire(dir).map_err(|e| {
+        if crate::store::is_busy(&e) {
+            RunError::AlreadyStarted
+        } else {
+            RunError::Store(e)
+        }
+    })
+}
+
 /// Runs the slot once from the exact package bytes the plan names. Identity
 /// checks happen before anything is spawned.
 pub fn execute(
@@ -152,6 +168,9 @@ pub fn execute(
             "executor v0 provides no dependencies".into(),
         ));
     }
+    // Held until this function returns: admission, every transition and
+    // finalization belong to one runner.
+    let _claim = claim(dir)?;
     let store = Store::open(dir)?;
     if store.exists("ledger.json") || store.exists("run.json") {
         return Err(RunError::AlreadyStarted);
@@ -214,7 +233,7 @@ pub fn execute(
             );
         }
     };
-    let mut stdin = child.stdin.take().expect("piped stdin");
+    let stdin = child.stdin.take().expect("piped stdin");
     let stdout = child.stdout.take().expect("piped stdout");
     let (tx, rx) = mpsc::channel::<Option<String>>();
     std::thread::spawn(move || {
@@ -241,33 +260,63 @@ pub fn execute(
             }
         }
     });
+    // Replies go through a bounded queue to a writer thread, so a method that
+    // never reads can't block this loop past its deadline.
+    let (reply_tx, reply_rx) = mpsc::sync_channel::<Vec<u8>>(MAX_QUEUED_REPLIES);
+    std::thread::spawn(move || {
+        let mut stdin = stdin;
+        for out in reply_rx {
+            if stdin.write_all(&out).and_then(|_| stdin.flush()).is_err() {
+                break;
+            }
+        }
+    });
 
     let mut outcome = None;
+    let mut fatal = None;
     loop {
-        let left = deadline.saturating_sub(started.elapsed());
+        // Checked before every message: queued requests never extend the run.
+        let Some(left) = deadline.checked_sub(started.elapsed()) else {
+            outcome = Some(ExecutionOutcome::Interrupted);
+            break;
+        };
         match rx.recv_timeout(left) {
             Ok(Some(line)) => {
-                let reply = slot.handle(line.trim_end())?;
+                let reply = match slot.handle(line.trim_end()) {
+                    Ok(reply) => reply,
+                    Err(e) => {
+                        fatal = Some(e);
+                        break;
+                    }
+                };
                 let mut out = serde_json::to_vec(&reply).expect("reply serializes");
                 out.push(b'\n');
-                if stdin.write_all(&out).and_then(|_| stdin.flush()).is_err() {
-                    // The method closed its input; wait for it to exit.
+                match reply_tx.try_send(out) {
+                    Ok(()) | Err(mpsc::TrySendError::Disconnected(_)) => {}
+                    Err(mpsc::TrySendError::Full(_)) => {
+                        // The method keeps sending without reading replies.
+                        outcome = Some(ExecutionOutcome::Failed);
+                        break;
+                    }
                 }
             }
             Ok(None) => {
                 outcome = Some(ExecutionOutcome::Failed);
-                let _ = child.kill();
                 break;
             }
             Err(mpsc::RecvTimeoutError::Timeout) => {
                 outcome = Some(ExecutionOutcome::Interrupted);
-                let _ = child.kill();
                 break;
             }
             Err(mpsc::RecvTimeoutError::Disconnected) => break,
         }
     }
-    drop(stdin);
+    drop(reply_tx);
+    // Unconditional cleanup: the child is stopped before any evidence is
+    // finalized, on every path out of the loop.
+    if outcome.is_some() || fatal.is_some() {
+        let _ = child.kill();
+    }
     let status = loop {
         if let Some(status) = child.try_wait()? {
             break status;
@@ -279,6 +328,12 @@ pub fn execute(
         }
         std::thread::sleep(Duration::from_millis(5));
     };
+    if let Some(e) = fatal {
+        // The store or ledger failed mid-run; leave the slot to `recover`
+        // (which settles any pending call as unknown) rather than guess.
+        let _ = std::fs::remove_dir_all(&stage);
+        return Err(e);
+    }
     let wall = started.elapsed().as_millis() as u64;
     let _ = std::fs::remove_dir_all(&stage);
     let outcome = outcome.unwrap_or(if status.success() && slot.state.submission.is_some() {

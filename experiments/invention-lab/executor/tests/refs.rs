@@ -145,3 +145,23 @@ fn the_example_plan_is_a_valid_frozen_acceptance_plan() {
     assert_eq!(binding.evaluator, refs::evaluator());
     assert_eq!(binding.method, methods.candidate);
 }
+
+#[test]
+fn a_slot_claim_is_held_by_one_owner_at_a_time() {
+    use genesis_lab_exec::store::{is_busy, SlotClaim};
+    let dir = std::env::temp_dir().join(format!("lab-slot-claim-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    let first = SlotClaim::acquire(&dir).unwrap();
+    assert!(
+        SlotClaim::acquire(&dir).as_ref().is_err_and(is_busy),
+        "second owner admitted"
+    );
+    // From another thread too: the lock belongs to the open file, not the thread.
+    let d = dir.clone();
+    let busy = std::thread::spawn(move || SlotClaim::acquire(&d).as_ref().is_err_and(is_busy))
+        .join()
+        .unwrap();
+    assert!(busy);
+    drop(first);
+    SlotClaim::acquire(&dir).unwrap();
+}
