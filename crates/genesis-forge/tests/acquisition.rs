@@ -974,3 +974,58 @@ async fn changed_oracle_and_foreign_linked_generation_or_forge_are_rejected() {
         assert!(restored.verified(&suite).is_err());
     }
 }
+
+// Henry's Claude: independent checks for the deployed-repair origin, found by
+// mutation testing 1795fb7. Test-only.
+#[tokio::test]
+async fn review_deployed_repair_accepts_a_failure_reference_at_the_256_byte_bound() {
+    let (parent, suite) = verified_parent(false).await;
+    assert!(AcquisitionSession::new_deployed_repair(
+        deployed_plan(&parent, "bound"),
+        &suite,
+        &parent,
+        "x".repeat(256),
+        vec![RepairFeedback::ValueMismatch]
+    )
+    .is_ok());
+}
+
+#[tokio::test]
+async fn review_restore_refuses_a_parent_whose_candidate_no_longer_matches_its_verified_forge() {
+    let (parent, suite) = verified_parent(false).await;
+    let replacement = deployed_repair(&parent, &suite, "fingerprint");
+    let mut value = serde_json::to_value(&replacement).unwrap();
+    // Same parser text (so the repair context still matches), different
+    // candidate identity: only the parent's own fingerprint binding can tell.
+    value["deployed_repair_origin"]["parent"]["generation"]["request"]["candidate"]["actor_name"] =
+        json!("genesis-substituted-parent");
+    reseal_deployed(&mut value);
+    let verdict = serde_json::from_value::<AcquisitionSession>(value)
+        .map_err(|e| e.to_string())
+        .and_then(|s| s.validate(&suite).map_err(|e| format!("{e:?}")));
+    assert!(
+        verdict.is_err(),
+        "a re-labelled parent must not pass as the verified one"
+    );
+}
+
+#[tokio::test]
+async fn review_restore_refuses_an_unchanged_replacement_relabelled_with_the_parents_forge() {
+    let (parent, suite) = verified_parent(false).await;
+    let mut unchanged = deployed_repair(&parent, &suite, "relabel");
+    generation(&mut unchanged, &suite, INITIAL_PARSER, "msg_relabel").await;
+    advance_local(&mut unchanged, &suite);
+    assert!(unchanged.unchanged_repair());
+    let mut value = serde_json::to_value(&unchanged).unwrap();
+    value["unchanged_repair"] = json!(false);
+    value["forge"] = value["deployed_repair_origin"]["parent"]["forge"].clone();
+    value["phase"] = json!("verified");
+    reseal_deployed(&mut value);
+    let verdict = serde_json::from_value::<AcquisitionSession>(value)
+        .map_err(|e| e.to_string())
+        .and_then(|s| s.validate(&suite).map_err(|e| format!("{e:?}")));
+    assert!(
+        verdict.is_err(),
+        "the parent's verification can't certify an unchanged replacement"
+    );
+}
