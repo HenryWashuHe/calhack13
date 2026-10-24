@@ -40,6 +40,10 @@ fn retained_adoption(registry_url: Option<String>) -> Fixture {
         evaluators: vec![plan.context.evaluator.clone()],
         allowed_dependencies: vec![],
         records_root: records,
+        acceptance_plans: vec![genesis_server::method_adoption::AcceptancePin {
+            requirement_id: owner.requirement.clone(),
+            plan: plan.reference().unwrap(),
+        }],
     });
     let reference = &plan.slots[0].method;
     let intent = json!({"client_request_id":"review-existing", "mission_id":mission,
