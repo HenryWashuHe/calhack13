@@ -5,7 +5,7 @@
 //! `/root`, `/tmp`, `/var/tmp`, `/dev/shm` and `/run`, so the evaluator, its
 //! sources, the slot state, the staged script and other runs aren't visible and
 //! nothing written survives the run; the method runs as `nobody` with
-//! `no_new_privs` and gets a copy of its entry script in `/tmp/work`. Killing the
+//! `no_new_privs` and gets a copy of its package's source files in `/tmp/work`. Killing the
 //! namespace's first process ends every process in it.
 //!
 //! Not enforced: read access to the rest of the (read-only) system (`/usr`,
@@ -35,11 +35,11 @@ mount -t tmpfs -o size=256m,mode=1777 none /tmp
 mount -t tmpfs -o size=16m,mode=1777 none /var/tmp
 mount -t tmpfs -o size=16m,mode=1777 none /dev/shm
 mkdir -p /tmp/work
-cp "$LAB_STAGE/entry" /tmp/work/entry
-chmod 755 /tmp/work && chmod 644 /tmp/work/entry
+cp -R "$LAB_STAGE/files/." /tmp/work/
+chmod -R a+rX /tmp/work
 mount -t tmpfs -o size=1m,mode=755 none /run
 cd /tmp/work
-exec setpriv --reuid 65534 --regid 65534 --clear-groups --no-new-privs -- "$LAB_INTERPRETER" /tmp/work/entry
+exec setpriv --reuid 65534 --regid 65534 --clear-groups --no-new-privs -- "$LAB_INTERPRETER" "/tmp/work/$LAB_ENTRY"
 "#;
 
 impl Mode {
@@ -72,9 +72,9 @@ impl Mode {
         self == Self::Namespaces
     }
 
-    /// `stage` holds the entry script as `entry`, readable by `nobody`, outside
-    /// the directories the sandbox hides.
-    pub fn command(self, interpreter: &str, stage: &Path, work: &Path) -> Command {
+    /// `stage/files` holds the package's source files, outside the directories
+    /// the sandbox hides; `entry` is the package's validated relative entrypoint.
+    pub fn command(self, interpreter: &str, entry: &str, stage: &Path) -> Command {
         let mut c = match self {
             Self::Namespaces => {
                 let mut c = Command::new("unshare");
@@ -95,13 +95,14 @@ impl Mode {
                 .env_clear()
                 .env("PATH", "/usr/local/bin:/usr/bin:/bin")
                 .env("LAB_STAGE", stage)
+                .env("LAB_ENTRY", entry)
                 .env("LAB_INTERPRETER", interpreter);
                 c
             }
             Self::None => {
                 let mut c = Command::new(interpreter);
-                c.arg(stage.join("entry"))
-                    .current_dir(work)
+                c.arg(stage.join("files").join(entry))
+                    .current_dir(stage.join("files"))
                     .env_clear()
                     .env("PATH", "/usr/local/bin:/usr/bin:/bin");
                 c
