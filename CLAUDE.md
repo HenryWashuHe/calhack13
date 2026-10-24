@@ -25,15 +25,15 @@ is proposed, not complete. Its simulator (#37–#39), executor foundations/sessi
 Exact-parent revision preparation and its offline CLI (#66/#68), plus generation
 guards and parallel-fixture corrections (#63/#67), are also merged. Process
 runtime/CLI and acceptance scoring/verdict (#44/#45/#46/#48) are now merged after
-independent composition checks; #57 is held on a still-running descendant during
-hidden scoring. #64's method-adoption
-binding hold and #65's portable-test compile failure remain confirmed. The merged
-#61 rehearsal passes on final main with handwritten fixture source and a Rejected
-verdict; it does not establish actual model generation or benefit. No live
-generated method, independently accepted method execution or recursive-benefit
-result is established.
-Best-effort namespace mounts and trusted-directory storage remain experimental
-boundaries, not proof of safe general untrusted execution.
+independent composition checks. Receiver-bound adoption (#64), retained-file cost
+assessment (#70), exact-parent revision rehearsal (#72) and pre-result generation
+rosters/CLI (#73/#74) plus independent guards (#75) are also merged. The two rehearsals use handwritten fixture sources
+and return Rejected; they establish no actual model generation or recursive benefit.
+#57/#65 clear their portable findings but remain unmerged because namespace
+lifecycle validation is incomplete; an automated safety filter interrupted that
+review. No Linux validation or failure reproduction is claimed. ACP #3/#5 remain
+held on #71's new replacement-index atomicity regression. Best-effort namespace
+mounts and trusted-directory storage remain experimental boundaries.
 
 **Ongoing work is resumed under [the repository goal](docs/ONGOING_GOAL.md).**
 The existing hourly continuation is active. At this checkpoint the older app Goal
@@ -48,25 +48,29 @@ and [issue #1](https://github.com/HenryWashuHe/genesis-history-experiment/issues
 branch/head updates, before editing or assigning work. Check goal alignment at
 every milestone. All lower checkpoints are historical.
 
-- Henry's core Claude owns evaluator/executor/scoring, method adoption and the
-  #61-to-retained-cost-CLI rehearsal integration. Preserve original regressions
-  after the merged #44/#48 corrections and continue #57's descendant-stop fix.
-  #64 must bind the selected
-  offer and receiver intent to the candidate and conclusion. Confirmed failed
-  execution with scoreable output remains allowed; unknown execution/accounting
-  prevents a conclusive verdict. Every candidate process, including descendants, must stop before hidden
-  scoring; parent exit or recovery to Unknown alone is not termination evidence. Exact sources,
-  current findings and native-versus-fixture limits are in the handoff.
+- Henry's core Claude owns evaluator/executor/scoring and method adoption.
+  #64/#70/#72 are merged with preserved receiver/offer and rehearsal evidence.
+  #57/#65 still need scoped namespace-lifecycle assurance; portable recovery and
+  compilation checks do not establish whole-tree stopping. Existing receipts
+  and installation records do not authenticate an organization's identity or
+  replace independently retained acceptance evidence.
 - Eric (`EricZhu-31`) owns the separately assigned lab UI design/subtree;
   acknowledgment remains outstanding. Do not transfer it implicitly.
-- ACP Claude owns #3–#5 bridge/journal corrections.
+- ACP Claude owns #3–#5 bridge/journal corrections. Henry's #71 was accepted
+  into its branch; preserve the new `0705ecd` replacement-index atomicity
+  regression and repair that transaction without transferring the lane.
 - Codex owns shared contracts, the merged forge method-generation path and
   independent integration review. Core identity checks and declared combined-cost
   accounting (#56/#58/#59), plus the offline read-only cost-assessment CLI (#60),
   are merged. Exact-parent source revision preparation/observation and its offline
   CLI (#66/#68) now supply a G3 prerequisite, not adopted or executed improvement.
-  Preserve Henry's runtime files. Provider/settings reproducibility, complete
-  history, budget enforcement and end-to-end comparison remain open.
+  The merged generation roster/CLI (#73/#74) freezes Prepared identities,
+  settings and grants, retaining declared unsuccessful/missing attempts. It does
+  not enforce provider spend or prove chronology/completeness. The next Codex
+  milestone is bounded generation admission/accounting, scoped in issue #1 before
+  shared edits; use the existing commands rather than a parallel provider path.
+  Preserve Henry's runtime files; provider/settings reproducibility, complete
+  history, enforcement and end-to-end comparison remain open.
   The provider session retains live reruns and reports; its Apify baseline pass
   is operator-reported and uses a handwritten parser; it is not model-generation
   evidence.
