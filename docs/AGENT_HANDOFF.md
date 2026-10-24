@@ -9,8 +9,8 @@ and coordinate in [issue #1](https://github.com/HenryWashuHe/genesis-history-exp
 The [migration map](REPOSITORY_MIGRATION.md) preserves old/new routing; legacy
 issue #4/task numbers below are historical. Preserve rewritten ancestry.
 
-The [ongoing goal](ONGOING_GOAL.md) and hourly continuation are active; the stale
-app Goal remains paused and must not be falsely completed. Main
+The [ongoing goal](ONGOING_GOAL.md), revised app Goal and hourly continuation are
+active. The stale app record was cleared and replaced on October 24, 2026. Main
 through `a90ad14e7495be1ef5066234f84bddba1ac431b9` includes the experimental core
 contracts, source loader, corrected adoption proposal/UI, simulator primitives,
 #50–#52 method-source generation, #42/#43 executor foundations/session and #56

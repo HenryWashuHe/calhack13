@@ -10,10 +10,12 @@ The existing hourly continuation is active. This is the durable repository
 objective and completion contract, read alongside current [ownership](AGENT_HANDOFF.md#current-ownership-and-next-work)
 and [coordination issue #1](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1).
 
-The older app Goal is still an unfinished paused record at this checkpoint.
-Its tool cannot replace it until the user clears it; do not falsely complete it.
-That app-state limitation does not revoke the user's new authorization or the
-active recurring task. If the user clears that record, create the revised app Goal from the objective below under their existing request, with no invented token budget. Record the replacement accurately when it occurs.
+The stale app Goal was cleared. On October 24, 2026 the revised G0–G4 objective
+was created as an active app Goal under the user's standing request, with no
+invented token budget. The existing hourly continuation remains active and uses
+this completion contract. The user delegated ongoing direction while sleeping
+and explicitly reaffirmed the full moonshot; implementation milestones do not
+narrow the long-term objective or complete unproved gates.
 
 ## Objective
 
