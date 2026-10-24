@@ -47,7 +47,7 @@ superseded.
 | Henry's core Claude | #46/#48/#64/#70/#72 merged | Own scoring and adoption. Retained-file CLI cost assessment and exact-parent revision rehearsals are integrated; continue the scoped method loop and #57 closure assurance without relabeling fixture source as model development. |
 | Eric / Eric's Claude | Audit #9 merged; separate invention-lab UI assignment still unacknowledged | `docs/invention-lab/ui.md`, then `apps/web/src/invention-lab/**` after receipts settle. `EricZhu-31` has write access; do not silently transfer this lane. |
 | ACP Claude session | #3 `f64e131` / #5 `e95a286` merged; stage #20 merged | Migration holds cleared with all eight independent cases unchanged. Reconcile held #4 routing/status/demo docs with merged #3/#5, local executor/scorer and issue #1; preserve the superseded event-organizer boundary. Bridge ownership remains with ACP. |
-| Codex main chat | Shared foundations merged; first live attempt failed; closed diagnostics locally implemented/tested at `f4fa271` | Next: separately declare a fresh bounded live attempt; hand its valid package to Henry if produced. Keep #89 unchanged and never replay its spent reservation. Finite whole-chain ceilings remain proposed behind that run, including trial-only inherited/control/decline stages without dummy generation. Preserve Henry's runtime and ACP ownership. |
+| Codex main chat | Shared foundations/diagnostics merged; two separate live attempts failed without a package; second on `7d6119d` retained `content_shape` / `end_turn` | Strict reasoning-prefix/one-text parser compatibility fix active, not yet merged/validated here. Any later attempt requires a fresh declaration; neither spent operation may replay. Valid-package handoff to Henry remains next; finite chain ceilings stay proposed, allowing trial-only inherited/control/decline stages without dummy generation. Preserve Henry's runtime and ACP ownership. |
 | EricZhu-31 / Codex provider session | Existing provider lane; reports the post-#47 Apify baseline gate passed three cases | Preserve/share sanitized exact evidence for independent inspection; no duplicate cloud run here. This handwritten parser run does not establish model synthesis. Elastic permissions remain with key owner. |
 | Ines | Unassigned by explicit user instruction | Do not infer identity from another collaborator handle. |
 
@@ -300,7 +300,10 @@ no stop reason was retained, so truncation is unproved. Independently checked fi
 consistency is not cloud-source authentication; credentials stay local and ignored.
 The [diagnostic extension](invention-lab/contracts/generation.md) at `f4fa271`
 passes 206 forge tests/38 targets and strict all-target Clippy/fmt/diff locally.
-It preserves #89 and does not supply a new live result or recover its missing reason.
+It preserves #89 without recovering its missing reason. The [second live attempt](invention-lab/evidence/live-method-20261024-diagnostic/README.md)
+on `7d6119d` separately retained `content_shape` / `end_turn`: 1 call, 4,028 input /
+4,892 output tokens, 36,790 ms; no package or execution. Its raw response is absent,
+so a thinking-block cause is inference. Both attempts remain in cost accounting; no replay.
 
 Repair WIP remains draft #7 `110a107` on matching forge base `f488eef`; all twelve
 files were compared byte-for-byte and original uncommitted files remain untouched.
