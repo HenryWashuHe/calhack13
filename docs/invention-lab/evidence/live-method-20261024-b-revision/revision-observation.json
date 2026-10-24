@@ -1,0 +1,32 @@
+{
+  "schema": "genesis-method-revision-observation/1",
+  "revision_spec_sha256": "0211e9ea4fdce3e0cc998366ae59fb9db5b8e4db096997084e17f875a3457b3c",
+  "parent": {
+    "domain": "genesis",
+    "schema": "development-method-source/1",
+    "id": "generated-method",
+    "version": "0.1.0",
+    "sha256": "8215c3679a06724069759bcbdaa576b64ec0ef1251c5238a797c0cb34962b944"
+  },
+  "child": {
+    "domain": "genesis",
+    "schema": "development-method-source/1",
+    "id": "receiver-revised-method",
+    "version": "0.1.0",
+    "sha256": "4f455dc6e625bdaf554d567bdd7f0bc0c7b601a1ea6332d4e7a13e02005db14d"
+  },
+  "org_id": "org_example_b",
+  "operation_id": "live-b-revision-20261024t182242z-80adc80d",
+  "request_sha256": "6f6225669059fd7dd512c194cec783787f37fffa77d87e2684311fc4f0ab80ef",
+  "checkpoint_sha256": "38382a7b7f016c38afc0022c5f685b9610f732d39a5ffce670b5f7ae3104fae5",
+  "settings": {
+    "model": "claude-sonnet-5-5",
+    "max_tokens": 8192,
+    "timeout_ms": 120000,
+    "sampling": "provider_default"
+  },
+  "transport": "anthropic_https",
+  "parent_source_sha256": "68e990eaebff8a4c69e152aa98743a1f50fd318d031f57b83b78170707b1ab31",
+  "child_source_sha256": "4adde0d840bcb733166c3db7f587fd295f1f986369433ea3db58e40be1d76de5",
+  "source_changed": true
+}
