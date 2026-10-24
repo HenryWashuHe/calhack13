@@ -27,12 +27,15 @@ guards and parallel-fixture corrections (#63/#67), are also merged. Process
 runtime/CLI and acceptance scoring/verdict (#44/#45/#46/#48) are now merged after
 independent composition checks. Receiver-bound adoption (#64), retained-file cost
 assessment (#70), exact-parent revision rehearsal (#72) and pre-result generation
-rosters/CLI (#73/#74) plus independent guards (#75) are also merged. The two rehearsals use handwritten fixture sources
+rosters/CLI (#73/#74), independent guards (#75/#79) and generation reservations
+with an optional guard on the existing step (#77/#78) are merged. ACP #3/#5
+are also merged with unchanged migration regressions. The two rehearsals use handwritten fixture sources
 and return Rejected; they establish no actual model generation or recursive benefit.
 #57/#65 clear their portable findings but remain unmerged because namespace
 lifecycle validation is incomplete; an automated safety filter interrupted that
-review. No Linux validation or failure reproduction is claimed. ACP #3/#5 remain
-held on #71's new replacement-index atomicity regression. Best-effort namespace
+review. No Linux validation or failure reproduction is claimed. ACP #3/#5's
+migration atomicity and intermediate-schema index-name holds are cleared;
+#4's stale routing/status/demo documentation remains held. Best-effort namespace
 mounts and trusted-directory storage remain experimental boundaries.
 
 **Ongoing work is resumed under [the repository goal](docs/ONGOING_GOAL.md).**
@@ -56,9 +59,10 @@ every milestone. All lower checkpoints are historical.
   replace independently retained acceptance evidence.
 - Eric (`EricZhu-31`) owns the separately assigned lab UI design/subtree;
   acknowledgment remains outstanding. Do not transfer it implicitly.
-- ACP Claude owns #3–#5 bridge/journal corrections. Henry's #71 was accepted
-  into its branch; preserve the new `0705ecd` replacement-index atomicity
-  regression and repair that transaction without transferring the lane.
+- ACP Claude owns the bridge and held #4 documentation proposal. #3 `f64e131`
+  and #5 `e95a286` are merged; all eight `bb5a841`/`0705ecd`/`b60a755` cases
+  remain unchanged and pass. Reconcile #4 with those merges, the local
+  executor/scorer and issue #1 without reviving the event-organizer example.
 - Codex owns shared contracts, the merged forge method-generation path and
   independent integration review. Core identity checks and declared combined-cost
   accounting (#56/#58/#59), plus the offline read-only cost-assessment CLI (#60),
@@ -66,9 +70,13 @@ every milestone. All lower checkpoints are historical.
   CLI (#66/#68) now supply a G3 prerequisite, not adopted or executed improvement.
   The merged generation roster/CLI (#73/#74) freezes Prepared identities,
   settings and grants, retaining declared unsuccessful/missing attempts. It does
-  not enforce provider spend or prove chronology/completeness. The next Codex
-  milestone is bounded generation admission/accounting, scoped in issue #1 before
-  shared edits; use the existing commands rather than a parallel provider path.
+  not enforce provider spend or prove chronology/completeness. Merged #77/#78
+  reserve exact Prepared identities once under request/output caps for one
+  trusted journal, durably before Requesting/provider submission. The optional
+  existing-step guard never refunds stranded/failed/unknown attempts; legacy
+  ungated calls remain available. Next, connect admitted generation evidence to
+  adaptive-stage trial/cost allocation, scoped in issue #1 before edits. Retain
+  input-token/wall, billing, global enforcement and history limits.
   Preserve Henry's runtime files; provider/settings reproducibility, complete
   history, enforcement and end-to-end comparison remain open.
   The provider session retains live reruns and reports; its Apify baseline pass
