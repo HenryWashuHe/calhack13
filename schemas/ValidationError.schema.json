@@ -54,7 +54,8 @@
         "new_role_without_responsibility",
         "not_provisioned",
         "invalid_transition",
-        "invalid_input"
+        "invalid_input",
+        "capability_gap_limit_exceeded"
       ]
     }
   }
