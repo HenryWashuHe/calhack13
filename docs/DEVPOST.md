@@ -2,8 +2,7 @@
 
 **Networked recursive capability improvement with fixed model weights.**
 
-Status: working draft, not ready to submit. Codex's previous implementation Goal and recurring work remain
-paused; colleagues' existing scoped claims continue. Confirm every accomplishment against [implementation status](IMPLEMENTATION_STATUS.md),
+Status: working draft, not ready to submit. Ongoing work is governed by [the repository goal](ONGOING_GOAL.md). Confirm every accomplishment against [implementation status](IMPLEMENTATION_STATUS.md),
 and replace each `TODO-LIVE:` with actual evidence before claiming a sponsor
 integration. The [invention-lab demonstration](INVENTION_LAB_DEMO.md) is
 proposed; its outcomes must not be described as completed work.

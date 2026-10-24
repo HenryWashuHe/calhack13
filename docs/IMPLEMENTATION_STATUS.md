@@ -89,8 +89,9 @@ new method-adoption contracts with this owner rather than duplicating that work.
 
 The [recursive roadmap](RECURSIVE_CAPABILITY_IMPROVEMENT.md) and
 [invention-lab proposal](INVENTION_LAB_DEMO.md) describe intended next work.
-Codex's implementation goal and recurring work remain paused until explicitly
-resumed; this documentation update does not resume them. That pause does not
-cancel colleagues' existing bounded claims. Ines is explicitly unassigned.
+Ongoing work is resumed under the [repository goal](ONGOING_GOAL.md) and active
+hourly continuation. The old app Goal card still needs lifecycle replacement;
+that does not revive the venue objective or transfer colleague files. Local
+deployed-repair WIP remains separately preserved. Ines is explicitly unassigned.
 Consult the [current handoff](AGENT_HANDOFF.md) before taking any files, including
 new contracts or simulator paths.
