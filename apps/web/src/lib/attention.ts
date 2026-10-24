@@ -19,6 +19,13 @@ export interface ReconcileTarget {
   provider: string;
   operation_id: string;
   run_id?: string | null;
+  /**
+   * Attach is offered only for a lost creation outcome. Abandon is offered
+   * whenever the kernel accepts it, including while readiness is pending
+   * (an incorrect attached agent or a missing readiness verifier would
+   * otherwise leave the change PROVISIONING with no way out).
+   */
+  attach: boolean;
 }
 
 export interface AttentionItem {
@@ -66,6 +73,7 @@ export function attention(
             provider: op.provider,
             operation_id: op.operation_id,
             run_id: op.run_id,
+            attach: true,
           },
         });
       } else if (op.state === "awaiting_readiness") {
@@ -78,6 +86,14 @@ export function attention(
             : "Agent created; role inactive until readiness is proven",
           detail: where + (op.attention ? ` — ${op.attention}` : ""),
           refs: [c.change_id],
+          reconcile: {
+            change_id: c.change_id,
+            role_key: roleKey,
+            provider: op.provider,
+            operation_id: op.operation_id,
+            run_id: op.run_id,
+            attach: false,
+          },
         });
       } else if (op.state === "pending" && op.attention) {
         open.push({
