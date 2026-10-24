@@ -193,3 +193,106 @@ async fn elastic_outage_never_blocks_kernel_commits() {
     assert_eq!(s, StatusCode::BAD_GATEWAY);
     assert!(!body.to_string().contains("supersecret"));
 }
+
+/// A kernel-approved Elastic role becomes an Agent Builder specialist through
+/// the provisioning saga; the committed role carries that binding.
+#[tokio::test]
+async fn elastic_role_is_provisioned_as_agent_builder_specialist() {
+    use genesis_providers::{DevStub, ProviderSet};
+    use std::sync::Arc;
+    let (kibana, kib) = genesis_elastic::fake::start_kibana().await;
+    let builder = genesis_elastic::AgentBuilder::new(genesis_elastic::AgentBuilderConfig {
+        kibana_url: kibana,
+        api_key: "bWdtdA==".into(),
+        space: None,
+        index_prefix: "genesis".into(),
+        timeout: Duration::from_secs(5),
+    })
+    .unwrap();
+    let providers = ProviderSet::new()
+        .with_dev_stub(DevStub::default())
+        .with_provisioner(genesis_core::model::Provider::Elastic, Arc::new(builder));
+    let cfg = OrgConfig::dev("org_a", "Org A");
+    let app = build_org(&cfg, Some(providers)).unwrap();
+    let addr = spawn_org(app, "127.0.0.1:0").await.unwrap();
+    let o = Org {
+        base: format!("http://{addr}"),
+        cfg,
+        http: reqwest::Client::new(),
+    };
+
+    let mission = seed(&o).await;
+    let (_, state) = o.get(&o.cfg.tokens.operator, "/organization").await;
+    let observation = state["observations"]
+        .as_object()
+        .unwrap()
+        .keys()
+        .next()
+        .unwrap()
+        .clone();
+    let (s, req) = o
+        .post(
+            &format!("/missions/{mission}/requirements"),
+            json!({"summary": "Relocate the event", "evidence": [observation], "acceptance": "new venue reserved"}),
+        )
+        .await;
+    assert_eq!(s, StatusCode::CREATED, "{req}");
+    let (_, state) = o.get(&o.cfg.tokens.operator, "/organization").await;
+    let (s, rec) = o
+        .call(
+            reqwest::Method::POST,
+            &o.cfg.tokens.agent,
+            "/org-changes",
+            Some(json!({
+                "client_request_id": "elastic-role",
+                "proposal": {
+                    "expected_org_revision": state["revision"],
+                    "trigger_evidence_ids": [observation],
+                    "rationale": "Relocation is continuing work with its own owner",
+                    "budget_limit_cents": 0,
+                    "operations": [
+                        {"op": "CreateRole", "key": "relocation", "name": "Relocation lead",
+                         "charter": "Secure a replacement venue", "reports_to": null,
+                         "authority": {"scopes": ["mission.coordinate"], "budget_cents": 0},
+                         "provider": "elastic", "justification": "independent_ownership"},
+                        {"op": "AssignResponsibility",
+                         "target": {"kind": "from_requirement", "key": "relocate", "requirement_id": req["requirement_id"],
+                                    "purpose": "Relocate the event", "trigger": "venue changes", "termination": "event held"},
+                         "owner": {"kind": "new", "key": "relocation"}}
+                    ]
+                }
+            })),
+        )
+        .await;
+    assert_eq!(s, StatusCode::ACCEPTED, "{rec}");
+    let id = rec["change_id"].as_str().unwrap().to_owned();
+    let mut done = Value::Null;
+    for _ in 0..100 {
+        done = o
+            .get(&o.cfg.tokens.operator, &format!("/org-changes/{id}"))
+            .await
+            .1;
+        if done["status"] == "COMMITTED" || done["status"] == "FAILED" {
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(30)).await;
+    }
+    assert_eq!(done["status"], "COMMITTED", "{done}");
+    let agent_id = done["provisioned"]["relocation"]["provider_agent_id"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    assert!(agent_id.starts_with("genesis-org_a-relocation-"));
+    assert_eq!(done["provisioned"]["relocation"]["provider"], "elastic");
+
+    let (_, state) = o.get(&o.cfg.tokens.operator, "/organization").await;
+    let role = state["roles"]
+        .as_object()
+        .unwrap()
+        .values()
+        .find(|r| r["name"] == "Relocation lead")
+        .unwrap();
+    assert_eq!(role["state"], "ACTIVE");
+    assert_eq!(role["binding"]["provider_agent_id"], agent_id.as_str());
+    assert!(kib.lock().unwrap().agents.contains_key(&agent_id));
+}
