@@ -4,7 +4,7 @@
 //!   lab-exec package <source-dir> <id> <version> <entry> <out.json>
 //!   lab-exec synthesis-plan <family> <model> <operation-id> <out.json>
 //!     (a genesis-forge MethodSynthesisPlan for this host's runtime and protocol)
-//!   lab-exec example-plan <namespaces|none> <instances> <sim-steps> <wall-ms> <out-dir> [family [candidate.package.json]]
+//!   lab-exec example-plan <namespaces|none> <instances> <sim-steps> <wall-ms> <out-dir> [family [candidate.package.json [first-seed]]]
 //!     (writes plan.json, criterion.json and both control packages)
 //!   lab-exec run <plan.json> <slot> <package.json> <state-dir> <namespaces|none>
 //!   lab-exec recover <plan.json> <slot> <state-dir> <namespaces|none>
@@ -119,7 +119,16 @@ fn main() -> ExitCode {
                     .map_err(|e| format!("write {out}: {e}"))?;
                 serde_json::json!({"plan": out, "runtime": refs::runtime(&interpreter_version()), "protocol": refs::protocol()})
             }
-            ["example-plan", m, n, steps, wall, out, rest @ ..] if rest.len() <= 2 => {
+            ["example-plan", m, n, steps, wall, out, rest @ ..] if rest.len() <= 3 => {
+                // Instances are seeds first-seed..first-seed+n (default 0).
+                let first_seed: u64 = match rest.get(2) {
+                    Some(s) => num(s)?,
+                    None => 0,
+                };
+                let count: u64 = num(n)?;
+                if first_seed.checked_add(count).is_none() {
+                    return Err("first-seed + instances overflows".into());
+                }
                 let family = match rest.first() {
                     Some(f) => genesis_lab_eval::family::Family::parse(f)
                         .ok_or_else(|| format!("unknown family {f}"))?,
@@ -181,12 +190,13 @@ fn main() -> ExitCode {
                     wall_time_ms: num(wall)?,
                     simulation_steps: num(steps)?,
                 };
-                let plan = example::acceptance_plan_for(
+                let plan = example::acceptance_plan_from(
                     family,
                     &methods,
                     mode(m)?,
                     &interpreter_version(),
-                    num(n)?,
+                    first_seed,
+                    count,
                     grant,
                 );
                 let reference = plan.reference().map_err(|e| format!("plan: {e:?}"))?;
