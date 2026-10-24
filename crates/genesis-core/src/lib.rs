@@ -18,6 +18,7 @@
 pub mod audit;
 pub mod capability;
 pub mod change;
+pub mod development_method;
 pub mod digest;
 pub mod engine;
 pub mod events;
