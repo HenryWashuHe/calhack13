@@ -1,0 +1,58 @@
+# Asynchronous role provisioning (pending/readiness hook)
+
+Implements the kernel side of the hook described in
+[CREAO_RUNTIME.md](CREAO_RUNTIME.md) (steps 1–4). Code:
+`crates/genesis-server/src/specialist.rs`, called from `saga::run`.
+
+## Behavior
+
+For a role whose provider is registered with `ProviderSet::with_specialist`
+(a durable `SpecialistRuntime`, e.g. `CreaoSpecialist`), the saga:
+
+1. **Prepares or finds** the role's operation (`prepare_role`, idempotent for
+   the same organization/change/role) and records it on the change as
+   `OrgChangeRecord.operations[role_key]`.
+2. **Advances at most once per pass**, outside the kernel lock, bounded by the
+   provisioning timeout. A failed read is retried once with `retry_read`; the
+   runtime never replays a POST. The observed state is persisted:
+   - `pending`: the change stays `PROVISIONING`; the organization, including
+     existing responsibility ownership, is unchanged.
+   - `needs_reconciliation`: kept visible with an attention message; **no
+     automatic retry**. An operator must reconcile the saved operation.
+   - `failed`: the change fails; the operation and run IDs are kept in events.
+3. On native completion, **persists the created agent binding** (and a
+   `role_provisioned` event) before anything else, then moves to
+   `awaiting_readiness`.
+4. Asks the provider's **`ReadinessVerifier`** for backend-observed evidence
+   (e.g. a bridge/gateway receipt). Only `Ready { evidence_ref }` lets the role
+   activate; the reference is stored on the operation. `NotReady` fails the
+   change and keeps the agent ID. **Without a registered verifier, a created
+   agent stays in `awaiting_readiness` and the role never activates.** Provider
+   completion and model text are not readiness.
+
+Every state change emits a `provisioning_progress` event (state, operation ID,
+run ID, sanitized attention). A background poller (`specialist::spawn`, every
+500 ms, only when a specialist is configured) re-runs changes with pending
+operations; the runtime honors its own poll due times. Restarts resume from the
+saved operation without preparing a new one. The per-change saga gate
+serializes drivers.
+
+The console shows the operation state, run ID and attention on hatched pending
+roles, and describes `provisioning_progress` events in the evidence log.
+
+## Still needed before a live CREAO role
+
+- **Registration** (provider side): construct `CreaoSpecialist` from the CREAO
+  runtime configuration and call `ProviderSet::with_specialist` in `main.rs`.
+  The server does not do this yet.
+- **A readiness verifier** for CREAO: a saved bridge-readiness run whose
+  gateway receipt the backend observes, registered with
+  `AppState::with_readiness_verifier(Provider::Creao, …)`.
+- **Operator reconciliation** for `needs_reconciliation` operations (no API yet).
+- **Job execution** through `prepare_job`/`advance` with live authority checks
+  before each advance and before applying results (CREAO_RUNTIME.md steps 5–6).
+
+Tests: `crates/genesis-server/tests/specialist_readiness.rs` (scripted runtime
+and verifier: pending → created → ready, no verifier, ambiguous creation,
+failed operation, failed readiness, transient read errors, restart, and the
+server poller).
