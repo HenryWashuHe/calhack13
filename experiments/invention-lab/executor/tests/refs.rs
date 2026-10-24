@@ -39,16 +39,55 @@ fn instance_references_resolve_only_to_the_exact_public_world() {
 }
 
 #[test]
-fn method_identity_covers_manifest_and_entry_without_boundary_ambiguity() {
-    let manifest =
-        br#"{"id":"m","version":"1","label":"control","interpreter":"python3","entry":"m.py"}"#;
-    let a = refs::method_ref(manifest, b"print(1)").unwrap();
-    assert_eq!((a.id.as_str(), a.version.as_str()), ("m", "1"));
-    assert_ne!(a, refs::method_ref(manifest, b"print(2)").unwrap());
-    let other =
-        br#"{"id":"m","version":"1","label":"control","interpreter":"python3","entry":"n.py"}"#;
-    assert_ne!(a, refs::method_ref(other, b"print(1)").unwrap());
-    assert!(refs::method_ref(b"{}", b"").is_err());
+fn method_packages_load_only_against_the_hosts_runtime_and_protocol() {
+    use genesis_core::development_package::{MethodPackage, MethodSourceFile};
+    let package = |runtime: genesis_core::development_method::ExactContentRef| {
+        MethodPackage::new(
+            "m".into(),
+            "1".into(),
+            runtime,
+            refs::protocol(),
+            "m.py".into(),
+            vec![],
+            vec![MethodSourceFile {
+                path: "m.py".into(),
+                content: "print(1)\n".into(),
+            }],
+        )
+        .unwrap()
+    };
+    let good = package(refs::runtime("Python 3"));
+    let methods = example::ExampleMethods {
+        candidate: good.reference().unwrap(),
+        control: refs::content("lab-method/1", "b", "1", b"b"),
+    };
+    let plan = example::acceptance_plan(&methods, Mode::None, "Python 3", 2, grant());
+    let binding = plan.expected_binding("candidate").unwrap();
+    let bytes = good.artifact_json().unwrap();
+    let loaded = MethodPackage::load_for(
+        bytes.as_bytes(),
+        &binding,
+        &refs::runtime("Python 3"),
+        &refs::protocol(),
+    )
+    .unwrap();
+    assert_eq!(loaded.entrypoint(), "m.py");
+    // The host's runtime choice decides; a package can't substitute its own.
+    assert!(MethodPackage::load_for(
+        bytes.as_bytes(),
+        &binding,
+        &refs::runtime("Python 4"),
+        &refs::protocol()
+    )
+    .is_err());
+    let other = package(refs::runtime("Python 4")).artifact_json().unwrap();
+    assert!(MethodPackage::load_for(
+        other.as_bytes(),
+        &binding,
+        &refs::runtime("Python 4"),
+        &refs::protocol()
+    )
+    .is_err());
 }
 
 #[test]
