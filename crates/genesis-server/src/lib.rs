@@ -39,6 +39,9 @@ pub mod store;
 /// Optional CREAO specialist registration from the backend environment.
 pub mod creao_config;
 
+/// Durable CREAO dispatch for gateway readiness challenges.
+pub mod creao_readiness;
+
 /// Readiness proven by backend-observed gateway receipts.
 pub mod gateway_readiness;
 

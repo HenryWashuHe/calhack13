@@ -4,7 +4,7 @@ An asynchronously created agent (CREAO) is **not ready** because its creation
 run completed, or because the agent says so. GENESIS treats a role as ready
 only when the backend itself observes the created agent calling back through
 the GENESIS gateway. This document covers the kernel side, which is
-implemented, and the provider-side probe, which is not.
+implemented, and its [CREAO provider probe](CREAO_READINESS.md).
 
 Code: `crates/genesis-server/src/gateway_readiness.rs`, routes in
 `crates/genesis-server/src/routes/gateway.rs`. It plugs into the
@@ -29,7 +29,8 @@ next saga pass
 
 1. **Challenge.** For the exact created agent (organization, role, provider
    agent ID, configuration digest) the kernel saves a challenge with a random
-   nonce (two UUIDv4s, 244 random bits). Only the nonce's SHA-256 is stored.
+   nonce (two UUIDv4s, 244 random bits). The gateway table stores only its SHA-256;
+   the private CREAO operation journal retains the exact nonce-bearing run input.
 2. **Probe.** A provider-specific `ReadinessProbe` asks that agent to run its
    gateway skill with the challenge. It is called **at most once per
    challenge**.
@@ -108,7 +109,7 @@ credential. Operators can inspect a challenge (never the nonce or its hash):
 GET /api/v1/gateway/readiness-challenges/{challenge_id}     (operator token)
 ```
 
-## Provider-side probe (not implemented; CREAO side)
+## Provider-side probe
 
 The kernel calls:
 
@@ -122,20 +123,20 @@ pub trait ReadinessProbe: Send + Sync {
 `ProbeRequest` carries `challenge_id`, `nonce` (secret; its `Debug` output is
 redacted), `receipt_url`, `provider_agent_id`, `config_digest`, role IDs and
 `expires_at`. `request.expected_receipt()` is the exact JSON the skill must
-post. For CREAO, a probe would:
+post. The implemented CREAO probe:
 
-1. Prepare a durable run on the created agent (`request.provider_agent_id`).
-   This needs a readiness purpose in the CREAO runtime (today it only has
-   `Provision` and `Execution`), with an operation ID derived from the
-   organization and `challenge_id`.
-2. Put the receipt URL and `expected_receipt()` in the run input and instruct
+1. Prepares a durable run on the created agent (`request.provider_agent_id`),
+   using the distinct `Readiness` purpose in the CREAO runtime and an operation
+   ID derived from the organization and `challenge_id`.
+2. Puts the receipt URL and `expected_receipt()` in the run input and instructs
    the agent's generic gateway skill to POST it and report the HTTP status.
-3. Submit once (one runtime step) and return `ProbeDispatch { probe_ref:
-   Some(run_id) }`. Map a POST that may have run to `ProviderError::Unknown`.
-4. Not decide readiness from the run's completion or text. The kernel decides
-   from the receipt alone.
+3. Submits only a still-prepared, unexpired operation and returns `ProbeDispatch { probe_ref:
+   Some(run_id) }`. A POST that may have run maps to `ProviderError::Unknown`.
+4. Leaves the readiness decision to the kernel's receipt check. Run completion
+   or text cannot establish readiness.
 
-Registration, once a probe exists (for example in `creao_config`):
+Registration in `creao_config` uses the complete runtime settings and an explicit
+`GENESIS_PUBLIC_URL`; the underlying hook is:
 
 ```rust
 let cfg = GatewayConfig::from_public_url(&std::env::var("GENESIS_PUBLIC_URL")?)?;
@@ -150,8 +151,9 @@ for loopback, for tests) and carry no credentials, query or fragment.
 
 - It proves that, within the challenge lifetime, something holding that run's
   input reached this kernel's gateway and named the created agent. In the
-  intended path that is the agent's own skill, which shows the skill is
-  installed, runs, and can reach GENESIS over the network.
+  intended path that is the agent's gateway skill. The receipt alone does not
+  distinguish that skill from another HTTP-capable tool holding the same input;
+  skill installation must be checked separately.
 - The nonce is visible in the provider run input (account-wide in CREAO). It
   is single-use, short-lived and bound to one agent ID, so a replay can at
   most confirm that same challenge.
@@ -180,4 +182,6 @@ listener and a scripted probe:
 - a stable waiting note emits no repeated progress events;
 - a stored receipt survives a restart.
 
-No live provider was contacted; the probe in the tests is scripted.
+No live provider was contacted. These kernel tests use a scripted probe; the
+additional [CREAO probe tests](CREAO_READINESS.md) use the real client/runtime
+against a loopback provider and this gateway route.

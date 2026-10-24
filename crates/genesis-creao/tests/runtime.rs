@@ -196,6 +196,21 @@ fn execution(id: &str, event: u64) -> OperationSpec {
         }),
     }
 }
+const READINESS_NONCE: &str = "READINESS_NONCE_MUST_NOT_APPEAR_IN_DEBUG";
+
+fn readiness(id: &str, expires_at: chrono::DateTime<chrono::Utc>) -> OperationSpec {
+    let mut spec = execution(id, 1);
+    spec.purpose = OperationPurpose::Readiness {
+        challenge_id: "rc-readiness-test".into(),
+        config_digest: "b".repeat(64),
+        expires_at,
+    };
+    if let OperationRequest::CreateRun(request) = &mut spec.request {
+        request.input = json!({"challenge_id":"rc-readiness-test", "nonce":READINESS_NONCE});
+    }
+    spec
+}
+
 async fn due(record: &OperationRecord) {
     if let Some(at) = record.next_poll_at {
         let wait = (at - chrono::Utc::now()).to_std().unwrap_or_default();
@@ -689,4 +704,240 @@ async fn learned_conversation_and_model_cannot_drift_between_polls() {
         );
         assert_eq!(mock.requests().len(), 3);
     }
+}
+
+#[tokio::test]
+async fn readiness_binding_is_immutable_and_expired_history_remains_readable() {
+    let mock = Mock::start(vec![]).await;
+    let temp = tempfile::tempdir().unwrap();
+    let path = temp.path().join("readiness.sqlite");
+    let runtime = mock.runtime(RuntimeStore::open(&path, ORG).unwrap());
+    let spec = readiness(
+        "ready-expired",
+        chrono::Utc::now() - chrono::Duration::seconds(1),
+    );
+    let original = runtime.prepare(spec.clone()).unwrap();
+    let error = runtime
+        .submit_prepared(&spec.operation_id)
+        .await
+        .unwrap_err();
+    assert!(matches!(error, RuntimeError::Expired));
+    assert!(!format!("{error:?} {error}").contains(READINESS_NONCE));
+    assert!(matches!(
+        runtime.step(&spec.operation_id, false).await,
+        Err(RuntimeError::Expired)
+    ));
+    assert_eq!(runtime.get(&spec.operation_id).unwrap(), original);
+    for field in ["challenge", "config", "expiry", "nonce"] {
+        let mut changed = spec.clone();
+        match (&mut changed.purpose, field) {
+            (OperationPurpose::Readiness { challenge_id, .. }, "challenge") => {
+                *challenge_id = "other-challenge".into()
+            }
+            (OperationPurpose::Readiness { config_digest, .. }, "config") => {
+                *config_digest = "c".repeat(64)
+            }
+            (OperationPurpose::Readiness { expires_at, .. }, "expiry") => {
+                *expires_at += chrono::Duration::seconds(1)
+            }
+            (_, "nonce") => {
+                if let OperationRequest::CreateRun(r) = &mut changed.request {
+                    r.input["nonce"] = json!("changed");
+                }
+            }
+            _ => unreachable!(),
+        }
+        assert!(
+            matches!(runtime.prepare(changed), Err(RuntimeError::Conflict)),
+            "{field}"
+        );
+    }
+    for field in ["challenge", "config", "request_kind"] {
+        let mut invalid = spec.clone();
+        invalid.operation_id = format!("invalid-{field}");
+        match (&mut invalid.purpose, field) {
+            (OperationPurpose::Readiness { challenge_id, .. }, "challenge") => {
+                *challenge_id = "\n".into()
+            }
+            (OperationPurpose::Readiness { config_digest, .. }, "config") => {
+                *config_digest = "not-a-sha256".into()
+            }
+            (_, "request_kind") => invalid.request = creation("unused").request,
+            _ => unreachable!(),
+        }
+        assert!(
+            matches!(runtime.prepare(invalid), Err(RuntimeError::Invalid)),
+            "{field}"
+        );
+    }
+    drop(runtime);
+    let reopened = mock.runtime(RuntimeStore::open(&path, ORG).unwrap());
+    assert_eq!(reopened.recover_interrupted().await.unwrap(), 0);
+    assert_eq!(reopened.get(&spec.operation_id).unwrap(), original);
+    assert_eq!(reopened.prepare(spec).unwrap(), original);
+    assert!(mock.requests().is_empty());
+}
+
+#[tokio::test]
+async fn readiness_submit_only_is_atomic_and_redacted_without_changing_persisted_input() {
+    let hold = Arc::new(Semaphore::new(0));
+    let mut complete = Reply::observed(RUN_A, "completed", Some(AGENT));
+    complete.body["result"] = json!({"echo": READINESS_NONCE});
+    complete.body["extra_provider_content"] = json!(READINESS_NONCE);
+    let mock = Mock::start(vec![
+        Reply::accepted(RUN_A, Some(AGENT)).held(&hold),
+        complete,
+    ])
+    .await;
+    let temp = tempfile::tempdir().unwrap();
+    let path = temp.path().join("readiness.sqlite");
+    let runtime = mock.runtime(RuntimeStore::open(&path, ORG).unwrap());
+    let spec = readiness(
+        "ready-once",
+        chrono::Utc::now() + chrono::Duration::minutes(1),
+    );
+    let prepared = runtime.prepare(spec.clone()).unwrap();
+    let wire = serde_json::to_vec(&prepared).unwrap();
+    for output in [
+        format!("{:?}", spec.request),
+        format!("{spec:?}"),
+        format!("{prepared:?}"),
+    ] {
+        assert!(!output.contains(READINESS_NONCE));
+    }
+    assert_eq!(serde_json::to_vec(&prepared).unwrap(), wire);
+    assert!(String::from_utf8(wire).unwrap().contains(READINESS_NONCE));
+    let first = tokio::spawn({
+        let runtime = runtime.clone();
+        async move { runtime.submit_prepared("ready-once").await }
+    });
+    mock.wait_requests(1).await;
+    assert_eq!(
+        runtime.get("ready-once").unwrap().phase,
+        OperationPhase::Submitting
+    );
+    let second = tokio::spawn({
+        let runtime = runtime.clone();
+        async move { runtime.submit_prepared("ready-once").await }
+    });
+    tokio::task::yield_now().await;
+    hold.add_permits(1);
+    let submitted = first.await.unwrap().unwrap();
+    assert_eq!(submitted.phase, OperationPhase::Waiting);
+    assert_eq!(second.await.unwrap().unwrap(), submitted);
+    assert_eq!(mock.requests().len(), 1, "submit-only must not poll");
+    assert_eq!(mock.requests()[0].0, "POST");
+    assert_eq!(mock.requests()[0].1, "/v1/runs");
+    assert_eq!(mock.requests()[0].2["input"]["nonce"], READINESS_NONCE);
+    drop(runtime);
+    let runtime = mock.runtime(RuntimeStore::open(&path, ORG).unwrap());
+    assert_eq!(runtime.recover_interrupted().await.unwrap(), 0);
+    assert_eq!(
+        runtime.submit_prepared("ready-once").await.unwrap(),
+        submitted
+    );
+    due(&submitted).await;
+    let completed = runtime.step("ready-once", false).await.unwrap();
+    assert_eq!(completed.phase, OperationPhase::NativeCompleted);
+    let observation = completed.observation.as_ref().unwrap();
+    assert_eq!(
+        observation.result.as_ref().unwrap()["echo"],
+        READINESS_NONCE
+    );
+    assert!(!format!("{observation:?}").contains(READINESS_NONCE));
+    assert!(!format!("{completed:?}").contains(READINESS_NONCE));
+    let serialized = serde_json::to_vec(&completed).unwrap();
+    let restored: OperationRecord = serde_json::from_slice(&serialized).unwrap();
+    restored.validate().unwrap();
+    assert_eq!(restored, completed);
+    assert_eq!(
+        runtime.submit_prepared("ready-once").await.unwrap(),
+        completed
+    );
+    assert_eq!(mock.requests().len(), 2);
+}
+
+#[tokio::test]
+async fn provider_model_echo_is_redacted_in_ticket_and_record_without_changing_receipts() {
+    let nonce = "0123456789abcdef".repeat(4);
+    let mut accepted = Reply::accepted(RUN_A, Some(AGENT));
+    accepted.body["model"] = json!(nonce);
+    let mut complete = Reply::observed(RUN_A, "completed", Some(AGENT));
+    complete.body["model"] = json!(nonce);
+    let mock = Mock::start(vec![accepted, complete]).await;
+    let runtime = mock.runtime(RuntimeStore::in_memory(ORG).unwrap());
+    let mut spec = readiness(
+        "ready-model-echo",
+        chrono::Utc::now() + chrono::Duration::minutes(1),
+    );
+    let OperationRequest::CreateRun(request) = &mut spec.request else {
+        unreachable!()
+    };
+    assert!(request.model.is_none());
+    request.input["nonce"] = json!(nonce);
+    runtime.prepare(spec).unwrap();
+    let submitted = runtime.submit_prepared("ready-model-echo").await.unwrap();
+    assert_eq!(submitted.phase, OperationPhase::Waiting);
+    due(&submitted).await;
+    let completed = runtime.step("ready-model-echo", false).await.unwrap();
+    assert_eq!(completed.phase, OperationPhase::NativeCompleted);
+    for record in [submitted, completed] {
+        record.validate().unwrap();
+        let ticket = record.ticket.as_ref().unwrap();
+        let ticket_wire = serde_json::to_vec(ticket).unwrap();
+        let record_wire = serde_json::to_vec(&record).unwrap();
+        assert_eq!(serde_json::to_value(ticket).unwrap()["model"], nonce);
+        assert!(!format!("{ticket:?}").contains(&nonce));
+        assert!(!format!("{record:?}").contains(&nonce));
+        assert_eq!(serde_json::to_vec(ticket).unwrap(), ticket_wire);
+        assert_eq!(serde_json::to_vec(&record).unwrap(), record_wire);
+        let restored: OperationRecord = serde_json::from_slice(&record_wire).unwrap();
+        restored.validate().unwrap();
+        assert_eq!(restored, record);
+        assert!(!format!("{restored:?}").contains(&nonce));
+    }
+    assert_eq!(mock.requests().len(), 2);
+}
+
+#[tokio::test]
+async fn cancelled_readiness_submission_is_recovered_without_replaying_or_polling() {
+    let hold = Arc::new(Semaphore::new(0));
+    let mock = Mock::start(vec![Reply::accepted(RUN_A, Some(AGENT)).held(&hold)]).await;
+    let temp = tempfile::tempdir().unwrap();
+    let path = temp.path().join("readiness.sqlite");
+    let runtime = mock.runtime(RuntimeStore::open(&path, ORG).unwrap());
+    let spec = readiness(
+        "ready-lost",
+        chrono::Utc::now() + chrono::Duration::minutes(1),
+    );
+    runtime.prepare(spec.clone()).unwrap();
+    let pending = tokio::spawn({
+        let runtime = runtime.clone();
+        async move { runtime.submit_prepared("ready-lost").await }
+    });
+    mock.wait_requests(1).await;
+    pending.abort();
+    assert!(pending.await.unwrap_err().is_cancelled());
+    let interrupted = runtime.get("ready-lost").unwrap();
+    assert_eq!(interrupted.phase, OperationPhase::Submitting);
+    assert_eq!(
+        runtime.submit_prepared("ready-lost").await.unwrap(),
+        interrupted
+    );
+    drop(runtime);
+    let runtime = mock.runtime(RuntimeStore::open(&path, ORG).unwrap());
+    assert_eq!(runtime.recover_interrupted().await.unwrap(), 1);
+    let recovered = runtime.get("ready-lost").unwrap();
+    assert_eq!(recovered.phase, OperationPhase::NeedsReconciliation);
+    assert_eq!(
+        runtime.submit_prepared("ready-lost").await.unwrap(),
+        recovered
+    );
+    assert_eq!(runtime.prepare(spec).unwrap(), recovered);
+    assert!(matches!(
+        runtime.step("ready-lost", false).await,
+        Err(RuntimeError::NeedsReconciliation)
+    ));
+    assert_eq!(mock.requests().len(), 1);
+    hold.add_permits(1);
 }
