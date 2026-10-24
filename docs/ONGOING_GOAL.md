@@ -103,7 +103,7 @@ failures or input that is actually required.
 | Method and comparison contract, G0 | Codex #124; runtime not implemented | Draft the contract pack using #129's requirements and review corrections: separate invocation/acceptance/comparison purposes, durable acceptance versus job authority, and merged versus pending fields; obtain affected-owner feedback before wiring |
 | Selective adoption foundation | Core Claude #122 acknowledged; #116 correction `78a18c0`, #128 classifier `546fb65` stacked on #116, #129 adoption proposal `d8fa531` | Review #116 before #128 and their interaction with #121; keep implementation with its owner |
 | Constitution audit and evidence UI | Eric #123; #120 `0cf383b7` open; new UI assignment not yet acknowledged | Review audit; request bounded UI contract feedback without taking Eric's files |
-| ACP correctness | ACP session #125; prior seven regressions preserved | Confirm current head, correct/test the generic defects; do not add venue product work |
+| ACP correctness | ACP session #125 acknowledged; planned `claude/acp-regressions` not yet pushed; prior seven regressions preserved | Confirm current head, correct/test generic defects, then ACP contract; review #130 as a proposal, not authority to change product scope |
 | Simulator/evaluator, G0/G1 | #126 unassigned; Ines unassigned | Record a named bounded owner before implementation; do not invent one from a collaborator handle |
 | Deployed repair foundation | Pushed forge `1795fb7`, local server/test WIP; happy path only | Preserve until a separately scoped supporting milestone; full revised 12-case target/final checks remain open |
 
