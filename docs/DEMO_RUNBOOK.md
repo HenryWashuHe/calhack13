@@ -176,6 +176,23 @@ Checked: with generated fragments, this merge and `true` pass the CLI's spec
 validation (it stops only at the unreachable org URLs). Keeping `note` fails
 decoding; `false` gives the acknowledgment error above.
 
+## After the run: audit both organizations
+
+```bash
+genesis audit --db data/dev/org_a.db --org-id org_a
+genesis audit --db data/dev/org_b.db --org-id org_b
+```
+
+Start the stack with `GENESIS_AUDIT_COMMITS=1` so the kernel also refuses any
+commit that would break an invariant while it runs. The audit itself is
+read-only. It checks every stored snapshot, every consecutive pair and every
+event against the kernel invariants (limits, reporting tree, single active
+assignment, append-only history, legal lifecycle moves, installed gaps backed
+by accepted installations; full list in [KERNEL_AUDIT.md](KERNEL_AUDIT.md)) and
+exits non-zero on any violation. A clean dev-scenario run: Org A 11 snapshots
+and 67 events, Org B 6 and 23, 0 violations. Use it as the closing line:
+"every state this organization ever held is still well formed."
+
 ## If something fails on stage
 
 | Symptom | Say / do |
