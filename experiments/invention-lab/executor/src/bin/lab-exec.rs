@@ -112,31 +112,8 @@ fn main() -> ExitCode {
             ["synthesis-plan", family, model, operation, out] => {
                 let family = genesis_lab_eval::family::Family::parse(family)
                     .ok_or_else(|| format!("unknown family {family}"))?;
-                let doc = |schema: &str, id: &str, text: &str| serde_json::json!({"reference": refs::content(schema, id, "1", text.as_bytes()), "text": text});
-                let task = format!(
-                    "Task family {name} (version {version}) in the GENESIS invention lab. \
-                     A run gets public development instances of this family through the protocol. \
-                     Develop one design that meets the family's success rule on as many instances \
-                     as possible, using experiments within the run's remaining simulation steps, \
-                     and submit it. The submitted design is later scored by a separate trusted \
-                     evaluator on the receiving organization's instances.",
-                    name = family.name(),
-                    version = genesis_lab_eval::family::FAMILY_VERSION,
-                );
-                let plan = serde_json::json!({
-                    "operation_id": operation,
-                    "org_id": "org_example_a",
-                    "target_id": "generated-method",
-                    "target_version": "0.1.0",
-                    "runtime": refs::runtime(&interpreter_version()),
-                    "protocol": {"reference": refs::protocol(), "text": refs::PROTOCOL},
-                    "entrypoint": "method.py",
-                    "dependencies": [],
-                    "public_task": doc("lab-task-description/1", family.name(), &task),
-                    "public_inputs": [doc("lab-design-language/1", "language-1", include_str!("../../DESIGN_LANGUAGE.md"))],
-                    "instruction": "Write one Python 3 program using only the standard library that implements the protocol exactly: read the instances, spend experiments within the remaining simulation steps to search for a design that succeeds on many instances, then submit the best design found and exit 0. Never write anything but protocol requests to standard output.",
-                    "settings": {"model": model, "max_tokens": 8192, "timeout_ms": 120000, "sampling": "provider_default"},
-                });
+                let plan =
+                    example::synthesis_plan(family, model, operation, &interpreter_version());
                 std::fs::write(out, serde_json::to_vec_pretty(&plan).unwrap())
                     .map_err(|e| format!("write {out}: {e}"))?;
                 serde_json::json!({"plan": out, "runtime": refs::runtime(&interpreter_version()), "protocol": refs::protocol()})
