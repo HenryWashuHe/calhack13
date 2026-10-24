@@ -1,5 +1,6 @@
 mod acquisition_commands;
 mod method_accounting_commands;
+mod method_admission_commands;
 mod method_revision_commands;
 mod method_roster_commands;
 mod method_synthesis_commands;
@@ -21,7 +22,9 @@ use storage::{CheckpointLock, MAX_EXTRACTOR_BYTES};
 const HELP: &str = "Usage:
   genesis-forge prepare --candidate metadata.json --extractor parser.ts --suite suite.json --checkpoint session.json
   genesis-forge method-generate-prepare --plan method-plan.json --checkpoint method-generation.json
-  genesis-forge method-generate-step --checkpoint method-generation.json
+  genesis-forge method-generate-step --checkpoint method-generation.json [--admission admission.json]
+  genesis-forge method-admission-prepare --roster roster.json --admission admission.json
+  genesis-forge method-admission-status --admission admission.json
   genesis-forge method-generate-status --checkpoint method-generation.json
   genesis-forge method-generate-export --checkpoint method-generation.json
   genesis-forge method-cost-assess --manifest cost-evidence.json
@@ -99,13 +102,14 @@ impl Arguments {
             "prepare-generated" => &["--candidate", "--generation", "--suite", "--checkpoint"],
             "method-generate-prepare" => &["--plan", "--checkpoint"],
             "method-cost-assess" => &["--manifest"],
+            "method-admission-prepare" => &["--roster", "--admission"],
+            "method-admission-status" => &["--admission"],
             "method-roster-prepare" | "method-roster-assess" => &["--manifest", "--roster"],
             "method-revise-prepare" | "method-revise-observe" => {
                 &["--plan", "--parent", "--checkpoint"]
             }
-            "method-generate-step" | "method-generate-status" | "method-generate-export" => {
-                &["--checkpoint"]
-            }
+            "method-generate-step" => &["--checkpoint", "--admission"],
+            "method-generate-status" | "method-generate-export" => &["--checkpoint"],
             "generate-prepare" => &["--request", "--model-config", "--checkpoint"],
             "generate-step" | "generate-status" => &["--checkpoint"],
             "acquire-prepare" => &["--plan", "--suite", "--checkpoint"],
@@ -159,6 +163,9 @@ impl Arguments {
             }
         }
         for flag in allowed {
+            if command == "method-generate-step" && *flag == "--admission" {
+                continue;
+            }
             if !paths.contains_key(*flag) {
                 return Err(format!("missing {flag}"));
             }
@@ -200,6 +207,9 @@ async fn run() -> Result<u8, String> {
     };
     if args.command.starts_with("method-generate-") {
         return method_synthesis_commands::run(&args).await;
+    }
+    if args.command.starts_with("method-admission-") {
+        return method_admission_commands::run(&args);
     }
     if args.command == "method-cost-assess" {
         return method_accounting_commands::run(&args);
