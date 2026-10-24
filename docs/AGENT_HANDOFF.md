@@ -35,8 +35,10 @@ remains preserved until separately scoped. Assignment is not acknowledgment.
 **Latest coordination:** Henry acknowledged #122 and opened #128 (`546fb65`,
 classifier stacked on #116) and #129 (`d8fa531`, proposed method adoption).
 He is waiting for #124's shared contract before runtime wiring. Codex's next
-milestone is that contract pack, using #129's required inputs. #123/#125 have no
-recorded acknowledgment yet; #126 and Ines remain unassigned. Verify newer heads
+milestone is that contract pack, using #129's required inputs. The ACP session has now acknowledged #125 and plans the seven fixes on
+`claude/acp-regressions` (not yet pushed at this checkpoint), then the ACP
+contract. Its #130 demo proposal is review input, not a scope change. #123 has
+no recorded acknowledgment yet; #126 and Ines remain unassigned. Verify newer heads
 and comments before review or reassignment.
 
 ### Current ownership and next work
