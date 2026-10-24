@@ -33,10 +33,9 @@ Migration does not make a PR merge-ready. Exact source review, independent
 regressions and relevant checks still apply. New comments belong on the active
 PR; retain links to original reviews and author contributions.
 
-Additional work: [#6](https://github.com/HenryWashuHe/genesis-history-experiment/pull/6) is the proposed routing/sync helper;
-[#7](https://github.com/HenryWashuHe/genesis-history-experiment/pull/7) is preserved deployed-repair WIP. The helper's script
-is held pending review corrections; do not use it merely because it exists on
-a branch. The current manual migration uses explicit mapped bases and complete
+Additional work: [#6](https://github.com/HenryWashuHe/genesis-history-experiment/pull/6) is closed as superseded by #17: its sync script was withdrawn and the routing notice is already on main;
+[#7](https://github.com/HenryWashuHe/genesis-history-experiment/pull/7) is preserved deployed-repair WIP. The helper's withdrawn script
+still has unresolved review findings; do not use an old branch copy. The current manual migration uses explicit mapped bases and complete
 tree differences, not patch-ID equivalence alone.
 
 ## Verified content and history boundaries
