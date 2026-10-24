@@ -208,7 +208,8 @@ pub struct Design {
     pub payload_on: String,
 }
 
-/// The rectangle every body center must start in, and the part budget.
+/// The rectangle every body must start wholly inside (its full extent, rotation
+/// included, not just its center), and the part budget.
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq)]
 pub struct BuildRules {
     pub zone: (f32, f32, f32, f32),

@@ -20,8 +20,10 @@ claims; the last needs independent comparative evidence.
 Event organization is discarded as the product/demo. Preserve existing venue
 code/tests as historical integration fixtures; do not expand that product story
 or use its completion as the new gate. The [invention-lab A → B → A demonstration](docs/INVENTION_LAB_DEMO.md)
-is proposed, not implemented. Its simulator, executable development-method runtime
-and recursive-benefit experiment remain open work.
+is proposed, not complete. Its simulator primitives (#37–#39) are merged;
+the executor/scoring/verdict stack (#42–#46 and #48) has open review holds. The forge's
+single-attempt method-generation path (#50–#52) is merged, but no live generated
+method, accepted method execution or recursive-benefit result is established.
 
 **Ongoing work is resumed under [the repository goal](docs/ONGOING_GOAL.md).**
 The existing hourly continuation is active. At this checkpoint the older app Goal
@@ -36,24 +38,24 @@ and [issue #1](https://github.com/HenryWashuHe/genesis-history-experiment/issues
 branch/head updates, before editing or assigning work. Check goal alignment at
 every milestone. All lower checkpoints are historical.
 
-- Henry's core Claude: [#122](https://github.com/HenryWashuHe/genesis/issues/122),
-  #116 corrections/new outcome classifier and #121 terminal-run retry; then
-  development-method adoption contract. #116 is now `78a18c0`, independently
-  unreviewed; do not repeat old-head findings as verified on its correction.
-- Eric (`EricZhu-31`): [#123](https://github.com/HenryWashuHe/genesis/issues/123),
-  #120 constitution audit; then invention-lab evidence UI design and isolated subtree.
-- ACP Claude session: [#125](https://github.com/HenryWashuHe/genesis/issues/125),
-  merged #114's outstanding regressions, then product-neutral command design.
-- Codex: [#124](https://github.com/HenryWashuHe/genesis/issues/124), shared method,
-  identity, receipt and comparison contracts. Preserve paused repair WIP separately.
-- Evaluator/simulator: Henry’s core Claude is assigned the requested legacy
-  [#126](https://github.com/HenryWashuHe/genesis/issues/126) lane: current proposal
-  [#13](https://github.com/HenryWashuHe/genesis-history-experiment/pull/13), then
-  only `experiments/invention-lab/evaluator/**` after interface agreement.
-  Ines stays unassigned by user instruction; do not infer her identity.
+- Henry's core Claude owns the acknowledged evaluator/executor/scoring and
+  method-adoption lanes. Preserve independent regressions while correcting
+  #42–#46 and #48; exact heads and corrected findings are in the current handoff and PR
+  reviews. Confirmed failed execution with independently scoreable output is
+  allowed by the adopted contract; unknown execution/accounting remains distinct.
+- Eric (`EricZhu-31`) owns the separately assigned lab UI design/subtree;
+  acknowledgment remains outstanding. Do not transfer it implicitly.
+- ACP Claude owns #3–#5 bridge/journal corrections.
+- Codex owns shared contracts, the merged forge method-generation path and
+  independent integration review. Next, coordinate its existing source-package
+  seam with Henry's executor and close explicit-settings/combined-cost gaps.
+  The provider session retains live reruns and reports; its Apify baseline pass
+  is operator-reported and uses a handwritten parser; it is not model-generation
+  evidence.
+- Ines remains unassigned by explicit user instruction.
 
-The task/PR numbers in the preceding legacy lane descriptions refer to the old
-repository unless explicitly linked here. Use the migration map for current PRs.
+Legacy task numbers are historical references in the migration map. Current
+assignments and exact file scopes are recorded in issue #1 and the handoff.
 
 New method/adoption/UI implementation depends on agreed method and evaluator
 contracts. Claim shared wiring explicitly; do not take another session's files.
