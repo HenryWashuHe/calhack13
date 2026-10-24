@@ -37,6 +37,8 @@ pub mod saga;
 pub mod specialist;
 pub mod specialist_jobs;
 pub mod store;
+pub mod venue_assessment_domain;
+pub mod venue_assessments;
 
 /// Optional CREAO specialist registration from the backend environment.
 pub mod creao_config;
@@ -235,6 +237,7 @@ pub fn build_org(cfg: &OrgConfig, providers: Option<ProviderSet>) -> anyhow::Res
     store.init_capability_pins()?;
     store.init_capability_adoptions()?;
     store.init_capability_invocations()?;
+    store.init_venue_assessments()?;
     store.init_capability_finalization()?;
     store.init_gap_acquisitions()?;
     store.init_gap_driver()?;
@@ -330,6 +333,7 @@ pub async fn serve_org(app: AppState, listener: TcpListener) -> anyhow::Result<(
     }
     let _capability_worker = AbortWorker(capability_worker(app.clone()));
     let _finalization_worker = AbortWorker(capability_finalization::spawn(app.clone()));
+    let _venue_assessment_worker = AbortWorker(venue_assessments::spawn(app.clone()));
     let _adoption_worker = AbortWorker(capability_adoption::spawn(app.clone()));
     let _acquisition_worker = app
         .automatic_acquisition

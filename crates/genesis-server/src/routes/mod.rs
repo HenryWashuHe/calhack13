@@ -8,9 +8,10 @@ mod capability_gaps;
 mod changes;
 mod events;
 mod gateway;
-mod jobs;
+pub(crate) mod jobs;
 mod org;
 mod search;
+mod venue_assessments;
 
 use crate::app::AppState;
 use axum::extract::DefaultBodyLimit;
@@ -36,6 +37,12 @@ pub fn router(state: AppState) -> Router {
             get(changes::by_request),
         )
         .route("/jobs", post(jobs::dispatch).get(jobs::list))
+        .route("/venue-assessments", post(venue_assessments::create))
+        .route("/venue-assessments/{id}", get(venue_assessments::get))
+        .route(
+            "/venue-assessments/{id}/verify",
+            post(venue_assessments::verify),
+        )
         .route("/jobs/{id}", get(jobs::get_one))
         .route(
             "/org-changes/{id}/operations/{role_key}/abandon",

@@ -12,8 +12,15 @@ use reqwest::{
     Client, Method, Url,
 };
 use serde_json::Value;
-use std::{fmt, time::Duration};
+use std::{fmt, future::Future, pin::Pin, sync::Arc, time::Duration};
 use tokio::time::{timeout_at, Instant};
+
+/// Backend authorization checked after account quota admission, immediately
+/// before HTTP. Return false on missing authority or an unavailable authority
+/// store. Release any application lock before returning. The client bounds the
+/// future by its request deadline; the callback must not advance this runtime.
+/// Changes after this check require separate result fencing by the caller.
+pub type PreEffectGuard = Arc<dyn Fn() -> Pin<Box<dyn Future<Output = bool> + Send>> + Send + Sync>;
 
 /// Clone shares the HTTP pool and the same durable account quota coordinator.
 /// Create separate clients with the SAME limiter namespace for the same account.
@@ -128,6 +135,7 @@ impl CreaoClient {
                 None,
                 RequestKind::Read,
                 Stage::AgentInspection,
+                None,
             )
             .await?;
         agent_observation(raw, agent_id)
@@ -137,6 +145,25 @@ impl CreaoClient {
     /// must persist submission intent BEFORE calling, and the ticket afterward.
     /// An ambiguous error requires reconciliation, never an automatic new POST.
     pub async fn submit(&self, request: &OperationRequest) -> Result<RunTicket, Error> {
+        self.submit_with_guard(request, None).await
+    }
+
+    /// Submit only if the guard still authorizes the effect after quota waiting.
+    /// A denied guard never sends a request and is not an unknown POST outcome.
+    /// Its conservative account quota reservation is retained, not refunded.
+    pub async fn submit_guarded(
+        &self,
+        request: &OperationRequest,
+        guard: &PreEffectGuard,
+    ) -> Result<RunTicket, Error> {
+        self.submit_with_guard(request, Some(guard)).await
+    }
+
+    pub(crate) async fn submit_with_guard(
+        &self,
+        request: &OperationRequest,
+        guard: Option<&PreEffectGuard>,
+    ) -> Result<RunTicket, Error> {
         let payload = request.payload(self.limits.max_input_bytes)?;
         if self.contains_credential(&payload) {
             return Err(error(ErrorKind::InvalidRequest, Stage::Configuration));
@@ -154,6 +181,7 @@ impl CreaoClient {
                 Some(bytes),
                 kind,
                 Stage::Submission,
+                guard,
             )
             .await?;
         let observed = observation(raw, request, None, Stage::Submission).map_err(|mut e| {
@@ -181,6 +209,25 @@ impl CreaoClient {
         request: &OperationRequest,
         ticket: &RunTicket,
     ) -> Result<RunObservation, Error> {
+        self.poll_with_guard(request, ticket, None).await
+    }
+
+    /// Poll only if live authority still permits a read after quota waiting.
+    pub async fn poll_guarded(
+        &self,
+        request: &OperationRequest,
+        ticket: &RunTicket,
+        guard: &PreEffectGuard,
+    ) -> Result<RunObservation, Error> {
+        self.poll_with_guard(request, ticket, Some(guard)).await
+    }
+
+    pub(crate) async fn poll_with_guard(
+        &self,
+        request: &OperationRequest,
+        ticket: &RunTicket,
+        guard: Option<&PreEffectGuard>,
+    ) -> Result<RunObservation, Error> {
         let payload = request.payload(self.limits.max_input_bytes)?;
         ticket.validate_for_account(request, self.limiter.namespace())?;
         if self.contains_credential(&payload)
@@ -198,6 +245,7 @@ impl CreaoClient {
                 None,
                 RequestKind::Read,
                 Stage::Poll,
+                guard,
             )
             .await?;
         observation(raw, request, Some(ticket), Stage::Poll)
@@ -237,6 +285,7 @@ impl CreaoClient {
         body: Option<Vec<u8>>,
         kind: RequestKind,
         stage: Stage,
+        guard: Option<&PreEffectGuard>,
     ) -> Result<Value, Error> {
         let deadline = Instant::now() + self.limits.request_timeout;
         self.limiter.acquire(kind, deadline).await.map_err(|e| {
@@ -261,6 +310,20 @@ impl CreaoClient {
             .header(AUTHORIZATION, self.authorization.clone());
         if let Some(body) = body {
             request = request.header(CONTENT_TYPE, "application/json").body(body);
+        }
+        // Keep this outside the dispatched-action error mapping: a denied or
+        // timed-out guard proves no request was attempted. No await separates
+        // successful authorization from beginning the HTTP action below.
+        if let Some(guard) = guard {
+            if !timeout_at(deadline, guard())
+                .await
+                .map_err(|_| error(ErrorKind::DeadlineExceeded, stage))?
+            {
+                return Err(error(ErrorKind::GuardRejected, stage));
+            }
+            if Instant::now() >= deadline {
+                return Err(error(ErrorKind::DeadlineExceeded, stage));
+            }
         }
         let action = async {
             let mut response = request.send().await.map_err(|e| {

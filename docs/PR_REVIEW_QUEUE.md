@@ -1,5 +1,17 @@
 # PR review queue — October 22, 2026
 
+## Latest review batch
+
+- [#72 persistent CREAO assessments](https://github.com/HenryWashuHe/genesis/pull/72): reviewed runtime `0dc0986`, based on `72e9ef1`. Durable specialist work over verified invocation facts, independent semantic acceptance, atomic replacement requirements and queued-effect authority checks. `1a340a9` passed 858 Rust tests / 90 nonempty suites (109 including empty suites); final recovery delta passed 50 default-feature tests / six suites, including all 13 assessment tests. Strict default workspace Clippy and fmt pass. No native sponsor run is claimed. See [setup](VENUE_ASSESSMENTS.md).
+- [#70 kernel audit](https://github.com/HenryWashuHe/genesis/pull/70): **held** at `c1162d1`. [Review](https://github.com/HenryWashuHe/genesis/pull/70#issuecomment-6353572643): omitted frozen gap fields; acquired pin/publication rewrites; mixed-version concurrent history reads. Existing 32 focused checks pass; three unchanged negative regressions fail at `c92f9d5`, branch `codex/review-kernel-audit70-refusal`. Strict Clippy also reports `nonminimal_bool` in core audit line 165. Keep valid one-time publication and installation controls.
+- [#71 gap intake UI](https://github.com/HenryWashuHe/genesis/pull/71): **held** at `ba4e00ac`. [Review](https://github.com/HenryWashuHe/genesis/pull/71#issuecomment-6353514214): old polls restore stale Attention; disabled intake appears active for Acquiring gaps. Original 60 web tests/typecheck/build pass; two unchanged negative probes fail at `37dae9f`, branch `codex/review-gap-intake71`. Disabling gap intake does not itself prove an existing child runtime stopped.
+
+Source fixes stay with Claude/Eric; Codex owns assessment/scenario integration and
+review. Current GitHub heads supersede this snapshot. The earlier queue closeout
+below is historical.
+
+## Previous merged baseline
+
 Reviewed main checkpoint: `b2aebcd173972755297d68a1e161e2113cea5181`.
 The user authorizes merging reviewed ready PRs. Preserve ancestry and check the
 exact resulting tree; do not merge a passing but outdated candidate after its
