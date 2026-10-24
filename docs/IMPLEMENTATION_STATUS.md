@@ -9,7 +9,7 @@ Use the [migration map](REPOSITORY_MIGRATION.md) for legacy PRs. The
 development-method loop and honest controlled evaluation with fixed model
 weights. Event organization remains superseded. G0–G4 are still open.
 
-Main through `761eb2bce0a93728ccd54078e992d191475499e6` includes the reviewed
+Main through `6da4a9660acdf0424fa756ba410a1d9126ebb85a` includes the reviewed
 foundations below. Method generation merged at `d1be8443fee46e1196861926a963563f48407936`,
 whose tree `dc9d6adc19863d8584fd5af1fd11eae7552014eb` exactly matches the independently
 validated generation stack. Counts refer to the named source/composition, not a
@@ -21,10 +21,15 @@ combined main run.
 | Trial plan #28 (`e47ee64`, source `f52f182`) and experiment ledger #32 (`8578759`, source `0fa3773`) | Composition `d386fb0` / tree `680cf27e`: 116 core tests and strict Clippy. Declared attempts, cumulative reservations/settlements, unknown usage and exact transcripts are represented. |
 | Source packages #36 (`2b2ecac`, source `f856a5b`) and probes #40 (`df945c9`, source `78dde86`) | Composition `a735bc7` / tree `0125f83c`: 125 core tests and strict Clippy. Exact received bytes, ordered dependencies and host-selected runtime/protocol; no execution or adoption. |
 | Simulator #37/#38/#39 (`dc574135` / `3da2d4f` / `965ffb34`; sources `858ca41` / `7a16825` / `5f1e151`) | Composition `949eb569440da6b4a81b5d1b2ca3fc7cc1774839`, tree `2596db96354f10ad0bc5df857c9303105a200bae`: 22 tests, strict all-target Clippy and fmt pass on ARM64 debug. Preserved geometry/weld regressions are unchanged and pass; full-shape bounds and the torque ceiling are checked. Local simulation primitives, not real engineering or cross-platform proof. |
+| Executor foundations/session #42/#43 (`a76735d` / `58bcaef`; sources `638ac262` / `53054d50`) | Composition `a1e2afdce49294c7b962bdbbe96836e50d21982a`, tree `5e0243f2875a929548f8eafa2baf9209f1215380`: 19 portable tests executed; one Linux namespace test self-skipped on the nonroot Mac. Strict Clippy/fmt pass. Unchanged `b73b62d` finalization/sealed-submit probes and `3784da9` reply-backpressure pass. Experimental foundations only. |
 | Evaluator/adoption proposals #13/#14 (`728d42c` / `407b692`; #14 source `505312ad7efcee57439efc6bf2f054c8899e0c73`) | Corrected holdout protocol, exact evaluator identity, required candidate/control acceptance and receipt boundaries. Reviewed proposals do not close runtime integration or G0. |
 | Adoption outcomes/refusals #11/#12 (`eefde296` / `7010866`) and decision UI #15 (`b94af6d`, source `fd60f1a2a6de33daf30afc87f80544c1833681a9`) | #11/#12: 70 focused tests and strict Clippy. #15: 13 focused tests and typecheck, preserving `ae6ba16` unchanged. Local refusal wording and historical/asynchronous evidence-display regressions are corrected. |
 | Method generation #50/#51/#52 (`3da52d2` / `1533e2b` / `d1be844`; sources `e5eadd4` / `bc8eca2` / `d6c331c`) | Exact merged tree above: 125 forge tests, strict all-target Clippy/fmt independently pass. Frozen complete request, durable intent before one POST, retained measured/unknown completion usage and exact package export. Legacy parser contracts stay unchanged; no live model call or method execution. |
 | Core guard coverage #53 (`761eb2b`, source `c614bb13d03c2f9d8550358f86b1ba79683156e8`) | Henry's 173-line `eacfe0f` test file is preserved exactly with authorship (blob `c537e1e9755284ad9b51a79058e19f2ee469a197`). Reviewed composition passes 130 core tests and strict Clippy/fmt; five new cases independently pass separately. Mutation results are author-reported, not independently rerun. Test-only change. |
+| Accounting identity #56 (`2b69c25`, source `245cbadef63cc3051ef71bc24554234534275f8e`) | Author-validated 134 core tests and strict Clippy/fmt; four new regressions independently pass. Identity-only checks permit retaining overruns without relaxing existing acceptance/budget validators or changing valid hashes; malformed usage cannot hide behind an early overrun. This is not total-cost integration. |
+| Declared combined cost #58 (`04029c56`, source `b27ae8a1f504d53effef42d3c12b1141d3299577`) | Author full forge suite: 128 tests and strict Clippy/fmt. Three new accounting cases and source independently reviewed. Exact generation/checkpoint/trial links, unsuccessful or unused generation and combined known/unknown/overflow/overrun costs; trusted declared roster, not proof of exhaustive history. |
+| Accounting boundaries/guide #59 (`2cc05a65`, source `458ceab337c351cca80de005a5c1e9a41429b7b3`) | 15 focused cases independently pass: three accounting, six boundaries and six generation; author strict Clippy/fmt. See [the accounting contract](invention-lab/contracts/accounting.md). Counts overlap the preceding full suite; no provider execution. |
+| Offline accounting CLI #60 (`6da4a96`, source `19592bd5039bb18243abc2794d7a8e96ecb6cc39`) | Reviewed tree `1ca02117479f8e09dfc6c9f214372ff37df3df9c`: 18 focused tests (12 existing CLI, three generation CLI, three accounting CLI), strict all-target Clippy/fmt pass. A second reviewer reran the three committed tests and nine temporary input/path/immutability probes without failures; counts overlap. [Read-only usage guide](invention-lab/contracts/accounting-cli.md). |
 | Stage #20 (`7023077`, source `bfe10d9`) | Composition `7508c5b`: 15 VM tests, preserving independent files. Neutral startup, explicit fixture replay, ordered live updates and exact manifests; no browser/cloud proof. |
 | Apify metadata-lag reads #47 (`48858e6`, source `86a9894bd06ecf1b00ef7ce999a985d24ab8c7cc`) | Baseline lag regression fails `InvalidDataset`; prior full run has 14 forge, 34 HTTP and 37 overlapping review cases plus doc-test. Six focused lag cases including two new transitions and strict Clippy pass. Existing sixteen-read window, deadline and effect/identity fences remain. A later live pass is operator-reported below; its primary evidence was not independently inspected. |
 | CREAO v2 #25 (`0d6d96d`) and protocol evidence #30 (`67340ba`) | 20 independent #25 tests; five CLI and nine Node #30 tests; scoped strict Clippy. Protocol-fenced routing/hash and saved evidence labels; no hosted v2 agent/run established. |
@@ -36,27 +41,63 @@ request/execution/output identity and comparison closure. The source and ledger
 libraries cannot enforce durable exclusive state, anti-rollback, metering,
 process isolation, wall/model limits or reveal timing on their own.
 
-Henry's acknowledged executor #42–#45 remains unmerged. Independent `b73b62d`
-reproduces two #43 durability/lifecycle failures: a receipt can be retained before
-the sealed ledger is durable, and submission is allowed after finish. #44 probe
-`3784da9` blocks beyond three seconds despite a 500 ms grant, with no receipt.
-Exclusive admission has a separate source-review race concern. Latest observed
-heads are #42 `56e3af3`, #43 `07468e2`, #44 `3d36488` and #45 `ccde1a4`.
-The reviewed runtime is unchanged: the holds apply by source comparison,
-not a fresh rerun on these heads. Other new deltas await independent review.
+The merged #42/#43 foundations correct cooperative exclusive admission, false
+zero-model accounting, receipt-before-durable-ledger ordering and post-seal
+submission. Model use is now Unknown in every sandbox mode. Best-effort mount
+restrictions and trusted-directory storage do not establish safe general
+untrusted execution; no Linux namespace enforcement is independently proved here.
 
-Henry [acknowledged the #42–#46 and #48 corrections](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6382233916)
-and retains `experiments/invention-lab/scoring/**`. #46 `732313a` retains the
-scoring context/wall-budget holds from independent `bdf474f`: unsupported context
-is certified and a zero wall grant is rejected only after simulation/artifact
-writes. Scoring-worker failure handling remains a separate source concern.
-Verdict #48 `1397a25` has unchanged verdict source; corrected probes `639c043`
-cover unknown executor outcome, unknown development accounting and malformed
-extra metric rows. The objection to a **confirmed failed execution with an
-independently scoreable partial output is withdrawn**: the adopted contract
-allows it. It must not be confused with unknown execution/accounting or a failed
-scoring worker. The [latest handoff](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6382322624)
-records that correction.
+Henry's process runtime #44 `7f369d15` remains held: independent test-only
+`4fbe283a124186efeae057212f2bb51d568bdded` sends at most roughly 32 MiB and shows
+that inbound requests accumulate in an unbounded channel while replies are
+blocked. A temporary bounded-queue change passes the probe; production was
+restored. CLI #45 `7b76d32` inherits this hold. Its offline exact-protocol/runtime
+forge preparation passes and rejects tampered protocol without a POST; it does
+not establish generated execution.
+
+Scorer #46 `1fe7d21` clears its own context, zero-grant, scoring-worker and measured
+overrun findings, but still depends on the runtime stack. Verdict #48 `4f266181`
+passes the corrected original probes; composition/test commit
+`8163e3f24d2cc0568e0b66885a0e56c77d60ad27` reports 14 passing cases, two new failures
+and one historical ignored policy probe. The two failures reject an Invalid
+candidate before checking either candidate or control executor's Unknown outcome.
+That violates the agreed any-Unknown precedence rule. Confirmed failed execution
+with scoreable partial output remains allowed. Scored output with measured overrun
+is valid retained evidence that fails budget validation; no requirement to
+rewrite it as Failed is imposed. Wall checking remains episode-granular, without
+hard per-episode preemption. The [review checkpoint](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6382612367)
+records the exact boundaries.
+
+Hidden-comparison scorer #57 `f377445` has its own reproduced hold. Test-only
+`d7543ed643e0ca8991f46d27f91dbbfca8918272` (tree
+`2fbae1a862d91ea332cc6919a23b9787e024cee8`) submits a design, kills the executor,
+recovers an Unknown receipt, then observes hidden scoring return Scored while the
+method heartbeat still advances. Nine existing focused tests and strict Clippy
+pass; the new case fails and a separate rerun fails in 0.69 s. This is explicitly
+`Mode::None` local-process evidence, not Linux namespace enforcement evidence.
+The adopted contract requires every candidate to stop before hidden scoring;
+Henry must retain the regression and provide termination evidence or fail closed
+when stopping is unknown. Parent #48 remains separately held.
+
+New routing heads #44 `1ec58b2`, #45 `38d9fcb`, #46 `b8da4f1`, #48 `d6f2140`
+and #57 `16ebdee` merge main and move #45's synthesis-plan helper into the example
+library. Source comparison finds `run.rs`, `verdict.rs` and `hidden.rs` unchanged;
+#44/#48 failures remain tied to their original tested sources. #57 `16ebdee` was
+freshly rerun with unchanged `d7543ed` in review commit
+`e5f56b50f6556cb85e010baf21e4a1b596bc4ee7`, tree
+`043bf4a76f99542a8e825a4a397708849238e385`: three original hidden-scoring cases
+pass and the local `Mode::None` process-closure regression fails again. This is
+not a full-stack rerun or Linux namespace evidence.
+
+#61 `f57234a8e3adb7f6730a343eab9a64940f8779a9`, tree
+`61a2d3938f106ccb103f8d508cb5569375447289`, clears its own functional review:
+independent rehearsal 1/1 passes in 6.69 s, returning Rejected (candidate 0/3,
+control 0/3, margin 1). It uses exact loopback wire/fixture transport, handwritten
+control source and a local `Mode::None` child; the criterion explicitly allows
+unknown model usage. This is not actual model generation, live provider execution
+or benefit evidence. It stays unmerged on held #48. A minor wording correction
+is requested because its in-memory JSON roundtrip does not prove durability;
+that is covered separately by the existing CLI intent-before-POST test.
 
 Author-reported executor runs use handwritten controls. No live generated
 method, independently accepted method execution, A → B → A return or controlled
@@ -83,8 +124,16 @@ is available for scoped integration with Henry's runtime. It saves the complete
 historical request, reconciles an interrupted request before reading credentials
 and never automatically resubmits an uncertain attempt. Its current
 `provider_default` sampling policy is not a fixed-settings G4 result. Generation
-costs remain separate from execution and scoring grants; explicit sampling and
-combined cost accounting are still required for controlled comparisons.
+costs can now be combined by the merged [declared-roster accounting library](invention-lab/contracts/accounting.md),
+including failed/missing generation with no trial slot. The host still declares
+history and inherited-cost inclusion; the library does not establish roster
+completeness, budget admission/enforcement, authenticated metering or an acceptance
+verdict. Explicit sampling and the controlled comparison remain open. The merged
+[offline read-only CLI](invention-lab/contracts/accounting-cli.md) exposes that
+assessment without checkpoint mutation or provider calls. Omitted declared
+evidence stays unknown; a named missing/malformed/substituted file is an error.
+Exit 0 means assessment completed and can include unknown usage or overruns,
+not that a method was accepted or its budget was satisfied.
 
 Local `.env` configuration is pending: the required model selection/key
 are absent and user input has been requested. Continue offline core work; do not
