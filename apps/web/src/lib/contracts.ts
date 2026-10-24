@@ -344,6 +344,24 @@ export type DomainEvent = {
       };
     }
   | {
+      type: "capability_gap_opened";
+      payload: {
+        gap_id: string;
+        requirement_id: string;
+        role_id: string;
+        responsibility_id: string;
+        capability_id: string;
+      };
+    }
+  | {
+      type: "capability_gap_status_changed";
+      payload: {
+        gap_id: string;
+        from: CapabilityGapStatus;
+        to: CapabilityGapStatus;
+      };
+    }
+  | {
       type: "reporting_edge_changed";
       payload: {
         role_id: string;
@@ -482,6 +500,35 @@ export type Executor =
  */
 
 export type ContractState = "REQUESTED" | "OFFERED" | "ACCEPTED" | "RELEASED" | "DECLINED";
+/**
+ * Where a capability gap stands. Only the kernel's transition function moves it (backend drivers, never the planner); suite, oracle, quota and provider choices stay with operator policy. Verified acquisition, registry publication and local installation are distinct facts: only `Installed` (an accepted local installation) makes the capability attachable.
+ */
+
+export type CapabilityGapStatus =
+  | {
+      state: "open";
+    }
+  | {
+      state: "acquiring";
+      acquisition_id: string;
+    }
+  | {
+      state: "acquired";
+      acquisition_id: string;
+      capability: CapabilityRef;
+      publication_ref?: string | null;
+    }
+  | {
+      state: "installed";
+      acquisition_id: string;
+      capability: CapabilityRef;
+      installation_id: string;
+    }
+  | {
+      state: "refused";
+      reason: string;
+      acquisition_id?: string | null;
+    };
 /**
  * Normalized job status (TECH_SPEC §6). Provider-native statuses are kept separately on the job record.
  */
@@ -669,6 +716,16 @@ export type OrgOp =
       op: "RetireRole";
       role_id: string;
       handoffs?: Handoff[];
+    }
+  | {
+      op: "RequestCapability";
+      key: string;
+      requirement_id: string;
+      role: RoleRef;
+      responsibility: ResponsibilityRef;
+      capability_id: string;
+      purpose: string;
+      observed_sources: string[];
     };
 /**
  * Refers to an existing role or to a role created earlier in the same proposal.
@@ -841,6 +898,9 @@ export interface KeyAllocation {
   contracts?: {
     [k: string]: string;
   };
+  gaps?: {
+    [k: string]: string;
+  };
 }
 /**
  * Provider-side implementation of a role.
@@ -926,9 +986,8 @@ export type AssignmentState = ("ACTIVE" | "RELEASED") | "FENCED";
  */
 
 export type InstallationStatus = ("ACCEPTED" | "REJECTED" | "UNINSTALLED") | "CHECKING";
-
 /**
- * The organization aggregate. One serialized copy is stored per revision.
+ * Where a capability gap stands. Only the kernel's transition function moves it (backend drivers, never the planner); suite, oracle, quota and provider choices stay with operator policy. Verified acquisition, registry publication and local installation are distinct facts: only `Installed` (an accepted local installation) makes the capability attachable.
  */
 
 export interface OrgState {
@@ -959,6 +1018,12 @@ export interface OrgState {
   };
   installations?: {
     [k: string]: Installation;
+  };
+  /**
+   * Committed capability needs (`RequestCapability`). Acquisition is driven by trusted operator policy, never by the proposing agent.
+   */
+  capability_gaps?: {
+    [k: string]: CapabilityGap;
   };
 }
 /**
@@ -1110,4 +1175,37 @@ export interface Installation {
   acceptance_report_ref?: string | null;
   source_digest: string;
   installed_at: string;
+}
+
+export interface CapabilityGap {
+  gap_id: string;
+  mission_id: string;
+  requirement_id: string;
+  /**
+   * Canonical digest of the requirement (summary, acceptance, evidence) at commit, so a driver can detect that it is acting on the same need.
+   */
+  requirement_digest: string;
+  /**
+   * The requirement's triggering observations, frozen at commit.
+   */
+  triggering_evidence: string[];
+  /**
+   * Role that will hold the capability once acquired.
+   */
+  role_id: string;
+  /**
+   * Responsibility the capability serves.
+   */
+  responsibility_id: string;
+  /**
+   * Proposed stable capability name, e.g. `venue-availability`.
+   */
+  capability_id: string;
+  purpose: string;
+  /**
+   * Public sources the capability must read, each on the same origin as the requirement's triggering evidence.
+   */
+  observed_sources: string[];
+  status: CapabilityGapStatus;
+  opened_in_revision: number;
 }
