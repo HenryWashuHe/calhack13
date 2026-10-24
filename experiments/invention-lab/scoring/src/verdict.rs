@@ -5,8 +5,9 @@
 //! slots' execution and scoring receipts, the criterion bytes against
 //! `plan.criterion`, and each metrics artifact against its receipt and the
 //! criterion's exact instances. Acceptance needs both slots' development to
-//! have generated output with fully known resource accounting, and both
-//! scorings to be within their grant. A usage field may be unknown only if the
+//! have a known outcome (a confirmed failure or interruption counts when its
+//! retained output was scored, per adoption.md) with fully known resource
+//! accounting, and both scorings to be within their grant. A usage field may be unknown only if the
 //! frozen criterion explicitly lists it in `unknown_usage_allowed`. Anything
 //! missing, failed or unknown otherwise is `Insufficient`, never a rejection or
 //! a pass. A candidate whose retained output is an invalid design is
@@ -183,10 +184,19 @@ pub fn decide(
         ("candidate", cand_row, candidate),
         ("control", ctrl_row, control),
     ] {
-        if r.development_outcome != Some(ExecutionOutcome::OutputGenerated) {
-            return Ok(Verdict::Insufficient {
-                reason: format!("{name} development outcome {:?}", r.development_outcome),
-            });
+        // adoption.md: an unknown executor outcome is never a verdict; a
+        // confirmed failure or interruption whose retained output was scored
+        // still counts (one without scoreable output fails the scoring check).
+        match r.development_outcome {
+            None | Some(ExecutionOutcome::Unknown) => {
+                return Ok(Verdict::Insufficient {
+                    reason: format!(
+                        "{name} development outcome {:?} (unknown)",
+                        r.development_outcome
+                    ),
+                })
+            }
+            Some(_) => {}
         }
         let unknown: Vec<_> = unknown_usage(&e.execution)
             .into_iter()
