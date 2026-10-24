@@ -11,8 +11,8 @@ weights. Event organization remains superseded. G0–G4 are still open.
 The revised app Goal was activated on October 24, 2026 after the stale record
 was cleared; the existing hourly continuation remains active.
 
-Main through `03c16cb3b9e6067eae7ca52fb8688ee6224cddce`, tree
-`102873ad9e4e0188b6857cadb1c710f95bfbe8ca`, includes the reviewed
+Main through `f2b33d50610c19ee19a31965ad195fd54010bd9a`, tree
+`45bd7f6667d519d5175904558b00e6d8fe39e605`, includes the reviewed
 foundations below. Method generation merged at `d1be8443fee46e1196861926a963563f48407936`,
 whose tree `dc9d6adc19863d8584fd5af1fd11eae7552014eb` exactly matches the independently
 validated generation stack. Counts refer to the named source/composition, not a
@@ -20,6 +20,8 @@ combined main run.
 
 | Work | Validation and evidence boundary |
 | --- | --- |
+| Method exchange CLI #141 final `e938db0` → `ec28434b` | Behavior `be639af`: four CLI plus 16 binary tests pass on the final composition; four CLI cases independently rerun, scoped strict Clippy/fmt, overlapping counts. [Thin existing-client commands](invention-lab/contracts/method-registry.md#operator-cli) publish/search/fetch an explicit selection; JSON stdout stays separate from debug logs. Loopback inert source only, no method execution, adoption or G2 closure. |
+| Registry boundary guards #142 `59faaaf` → `f2b33d50` | Three independent cases and scoped strict Clippy/fmt pass; original 144-line file unchanged. Exact-limit truncation, applicability count and lookup validation boundaries. Test-only; mutation results remain author-reported, and literal-query completeness is not semantic absence. |
 | Public seed ranges #121 `7981a46` → `58b8ba50`; receiving wrapper #136 `5d71188` → `03c16cb3` | Seven scoped metadata/CLI preflight tests pass; original 67-line range guard unchanged, new 47-line CLI guard. Wrapper composition passes nine committed mocks; two additional independent mock checks pass, original 203-line regression unchanged. The CLI rejects invalid ranges before candidate reads/output creation; the wrapper reads package inputs first and rejects before output creation/subprocess calls. No method/scorer/namespace execution or evaluation result. |
 | Typed method client #133 `1f94f312` → `995a7d70` | Author 19 focused cases at `125e260`; six final client cases independently rerun, counts overlap. Strict all-target server Clippy/fmt on unchanged production. Full selected-candidate/source identity, bounded strict responses, no redirects/retries and duplicate-dependency rejection before a request. [Loopback transfer](invention-lab/contracts/method-registry.md#typed-organization-client) reaches B revision `Prepared`, not generation, adoption or authority. |
 | Chain exact-fit guards #134 `edf1a56` → `7955c957` | Original 76-line file unchanged; two independent cases, scoped strict Clippy/fmt pass. Exact call/output capacity is accepted and one-unit-short capacity refused. Test-only; the author's mutation campaign remains author-reported. |
@@ -224,7 +226,10 @@ twice. These are accounting mechanisms, not a new experiment result.
 [Method registry API #132](https://github.com/HenryWashuHe/genesis-history-experiment/pull/132)
 is merged: authenticated publisher, bounded source-free keyword metadata search
 and full-reference fetch in the existing process. [Typed client #133](invention-lab/contracts/method-registry.md#typed-organization-client)
-is also merged; the local fixture reaches B revision preparation only. Source
+is also merged; the local fixture reaches B revision preparation only. The
+[operator CLI #141](invention-lab/contracts/method-registry.md#operator-cli) now exposes
+explicit publication/search/selected fetch without automatic `.env` loading,
+journaling or retry. Any publication error may follow a committed write. Source
 transport grants no acceptance or invocation authority. Henry retains receiver
 adoption and role/grant work.
 Henry [acknowledged the vertical product slice](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388913830):
