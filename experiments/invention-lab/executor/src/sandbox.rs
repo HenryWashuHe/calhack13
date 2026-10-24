@@ -1,31 +1,35 @@
 //! How a method process is started, and what it can reach.
 //!
-//! `Mode::Namespaces` (needs root): new network, mount and PID namespaces;
-//! every existing mount is remounted read-only where the kernel allows it (a
-//! mount that refuses keeps its mode, and the setup doesn't fail on it); fresh
-//! private tmpfs over `/home`, `/root`, `/tmp`, `/var/tmp`, `/dev/shm` and
-//! `/run`, so the evaluator, its sources, the slot state, the staged files and
-//! other runs aren't visible there; the method runs as `nobody` with
-//! `no_new_privs` and gets a copy of its package's source files in `/tmp/work`.
-//! Writes land in those private tmpfs mounts, which vanish at exit, unless a
-//! mount refused the read-only remount. Killing the namespace's first process
-//! ends every process in it.
+//! `Mode::Namespaces` (needs root): new network, IPC, mount and PID namespaces,
+//! then a chroot into a minimal method root built for this run and nothing
+//! else. The root holds, read-only: the interpreter and its standard library
+//! (any `site-packages`/`dist-packages` inside it masked empty), `sh`,
+//! `prlimit`, `setpriv`, the shared libraries those and the stdlib extension
+//! modules link (plus `/etc/ld.so.cache`), and `/dev/{null,zero,random,urandom}`.
+//! The only writable place is a private tmpfs `/tmp`, where `/tmp/work` holds a
+//! copy of the package's source files. There is no `/proc`, `/etc` (beyond the
+//! loader cache), `/home`, `/run`, `/var`, host `/tmp` or other mount in it.
+//! Setup refuses to start if any socket file is inside the root. The method
+//! runs as `nobody` with `no_new_privs`, so it can't leave the chroot. Killing
+//! the namespace's first process ends every process in it.
 //!
 //! Resource limits (prlimit, applied before the privilege drop): 1 GiB address
 //! space, 64 processes for the `nobody` user, 64 MiB per written file, 256 open
 //! files; CPU time is bounded by the wall-time kill.
 //!
-//! Not enforced: read access to the rest of the (read-only) system (`/usr`,
-//! `/etc`, other mounts such as `/var` subtrees not listed) and any syscall
-//! filter. The process limit is per user, so concurrent runs share it. A method can
-//! still compute its own physics inside its wall time; `simulation_steps`
-//! meters evaluator calls only.
+//! **Model usage.** With no network (a fresh network namespace, which also
+//! scopes abstract Unix sockets), no socket file and no other IPC namespace
+//! peer, and no files beyond the interpreter image and the method's own
+//! source, no model or model service is reachable, so model calls and tokens
+//! are recorded as measured zero in this mode. That is a statement about
+//! external models; whatever the method computes itself is its own work.
 //!
-//! Model calls and tokens are recorded as unknown in every mode: the network
-//! namespace doesn't exclude filesystem Unix sockets or a model reachable on a
-//! readable path, so "no network" isn't proof of "no model".
+//! Not enforced: a syscall filter. The process limit is per user, so
+//! concurrent runs share it. A method can still compute its own physics inside
+//! its wall time; `simulation_steps` meters evaluator calls only.
 //!
-//! `Mode::None` runs the method directly with no isolation at all.
+//! `Mode::None` runs the method directly with no isolation at all, and model
+//! usage stays unknown.
 use std::path::Path;
 use std::process::{Command, Stdio};
 
@@ -35,26 +39,65 @@ pub enum Mode {
     None,
 }
 
-/// Commands the sandboxed shell runs as root before dropping to `nobody`.
+/// Commands the sandboxed shell runs as root: build the method root, then
+/// chroot, limit and drop to `nobody`.
 const SETUP: &str = r#"set -e
-mount --bind / /
-# Every existing mount, not just /, becomes read-only (best effort per mount;
-# kernel pseudo-filesystems that refuse are left as they are).
-awk '{print $5}' /proc/self/mountinfo | sort -u | while read -r m; do
-  mount -o remount,bind,ro "$m" 2>/dev/null || true
+R="$LAB_STAGE/root"
+mkdir -p "$R"
+mount -t tmpfs -o size=8m,mode=755 none "$R"
+for l in /bin /sbin /lib /lib64; do
+  if [ -L "$l" ]; then ln -s "$(readlink "$l")" "$R$l"; fi
 done
-mount -t tmpfs -o size=64m,mode=755 none /home
-mount -t tmpfs -o size=1m,mode=700 none /root
-mount -t tmpfs -o size=256m,mode=1777 none /tmp
-mount -t tmpfs -o size=16m,mode=1777 none /var/tmp
-mount -t tmpfs -o size=16m,mode=1777 none /dev/shm
-mkdir -p /tmp/work
-cp -R "$LAB_STAGE/files/." /tmp/work/
-chmod -R a+rX /tmp/work
-mount -t tmpfs -o size=1m,mode=755 none /run
-cd /tmp/work
-exec prlimit --as=1073741824 --nproc=64 --fsize=67108864 --nofile=256 -- \
-  setpriv --reuid 65534 --regid 65534 --clear-groups --no-new-privs -- "$LAB_INTERPRETER" "/tmp/work/$LAB_ENTRY"
+# Recreate an absolute path inside the root: symlinks as symlinks, files and
+# directories as read-only bind mounts.
+add() {
+  d=$(cd "$(dirname "$1")" && pwd -P)
+  p="$d/$(basename "$1")"
+  if [ -L "$p" ]; then
+    t=$(readlink "$p")
+    mkdir -p "$R$d"
+    if [ ! -e "$R$p" ] && [ ! -L "$R$p" ]; then ln -s "$t" "$R$p"; fi
+    case "$t" in /*) add "$t" ;; *) add "$d/$t" ;; esac
+  elif [ ! -e "$R$p" ]; then
+    if [ -d "$p" ]; then mkdir -p "$R$p"; else mkdir -p "$R$d"; : > "$R$p"; fi
+    mount --bind "$p" "$R$p"
+    mount -o remount,bind,ro "$R$p"
+  fi
+}
+libs() { ldd "$1" 2>/dev/null | awk '{for (i = 1; i <= NF; i++) if ($i ~ /^\//) print $i}'; }
+INTERP=$(readlink -f "$(command -v "$LAB_INTERPRETER")")
+STDLIB=$("$INTERP" -I -S -c 'import sysconfig; print(sysconfig.get_paths()["stdlib"])')
+SH=$(command -v sh); PRLIMIT=$(command -v prlimit); SETPRIV=$(command -v setpriv)
+for f in "$INTERP" "$SH" "$PRLIMIT" "$SETPRIV"; do
+  add "$f"
+  for l in $(libs "$f"); do add "$l"; done
+done
+add "$STDLIB"
+for so in "$STDLIB"/lib-dynload/*.so; do
+  for l in $(libs "$so"); do add "$l"; done
+done
+for sp in "$R$STDLIB/site-packages" "$R$STDLIB/dist-packages"; do
+  if [ -d "$sp" ]; then mount -t tmpfs -o size=4k,mode=555 none "$sp"; fi
+done
+if [ -e /etc/ld.so.cache ]; then add /etc/ld.so.cache; fi
+mkdir -p "$R/dev" "$R/tmp"
+for n in null zero random urandom; do
+  : > "$R/dev/$n"
+  mount --bind "/dev/$n" "$R/dev/$n"
+done
+mount -t tmpfs -o size=256m,mode=1777 none "$R/tmp"
+mkdir "$R/tmp/work"
+cp -R "$LAB_STAGE/files/." "$R/tmp/work/"
+chmod -R a+rX "$R/tmp/work"
+if [ -n "$(find "$R" -type s 2>/dev/null)" ]; then
+  echo "a socket file is inside the method root" >&2
+  exit 1
+fi
+mount -o remount,ro "$R"
+ENTRY="$LAB_ENTRY"
+unset LAB_STAGE LAB_ENTRY LAB_INTERPRETER
+exec chroot "$R" "$SH" -c 'cd /tmp/work && exec "$0" --as=1073741824 --nproc=64 --fsize=67108864 --nofile=256 -- "$1" --reuid 65534 --regid 65534 --clear-groups --no-new-privs -- "$2" "/tmp/work/$3"' \
+  "$PRLIMIT" "$SETPRIV" "$INTERP" "$ENTRY"
 "#;
 
 impl Mode {
@@ -69,26 +112,23 @@ impl Mode {
         match self {
             Self::Namespaces => serde_json::json!({
                 "mode": "namespaces",
-                "network": "none (new network namespace)",
+                "namespaces": ["net", "ipc", "mount", "pid"],
+                "root": "chroot into a per-run minimal root: interpreter, its stdlib (site/dist-packages masked), sh, prlimit, setpriv, their shared libraries, the loader cache and /dev/{null,zero,random,urandom}, all read-only; private tmpfs /tmp with the package files in /tmp/work; no socket files",
                 "user": "nobody, no_new_privs",
-                "mounts": "every existing mount remounted read-only where the kernel allows it",
-                "hidden": ["/home", "/root", "/tmp", "/var/tmp", "/dev/shm", "/run"],
                 "pid": "new namespace, killed as a whole at the wall-time limit",
                 "limits": {"address_space_bytes": 1073741824u64, "nproc_user": 64, "file_size_bytes": 67108864u64, "open_files": 256},
-                "not_enforced": ["reads of the rest of the read-only system", "syscall filter", "filesystem Unix sockets", "mounts that refuse a read-only remount"],
-                "model_usage": "unknown",
+                "not_enforced": ["syscall filter"],
+                "model_usage": "measured zero: no network, socket file, IPC peer or file beyond the interpreter image and the method source",
                 "setup": SETUP,
             }),
             Self::None => serde_json::json!({"mode": "none", "isolation": "none"}),
         }
     }
 
-    /// Whether model calls and tokens can be recorded as measured zero. Never:
-    /// no network is not the same as no model. Filesystem Unix sockets and any
-    /// local model or service on readable paths are not excluded, so model
-    /// usage stays unknown in every mode.
+    /// Whether model calls and tokens can be recorded as measured zero: only
+    /// inside the minimal method root, where no model or service is reachable.
     pub fn bounds_model_use(self) -> bool {
-        false
+        matches!(self, Self::Namespaces)
     }
 
     /// `stage/files` holds the package's source files, outside the directories
@@ -99,6 +139,7 @@ impl Mode {
                 let mut c = Command::new("unshare");
                 c.args([
                     "--net",
+                    "--ipc",
                     "--mount",
                     "--pid",
                     "--fork",
@@ -112,7 +153,7 @@ impl Mode {
                     SETUP,
                 ])
                 .env_clear()
-                .env("PATH", "/usr/local/bin:/usr/bin:/bin")
+                .env("PATH", "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin")
                 .env("LAB_STAGE", stage)
                 .env("LAB_ENTRY", entry)
                 .env("LAB_INTERPRETER", interpreter);
