@@ -647,6 +647,8 @@ dependencies = [
  "clap",
  "dotenvy",
  "genesis-core",
+ "genesis-elastic",
+ "genesis-providers",
  "genesis-server",
  "reqwest",
  "serde",

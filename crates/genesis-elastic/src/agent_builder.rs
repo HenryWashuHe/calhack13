@@ -350,6 +350,43 @@ impl AgentBuilder {
         })
     }
 
+    /// ID of an organization's mission-planner agent for given instructions.
+    /// Changed instructions get a new agent rather than mutating an old one.
+    pub fn planner_agent_id(&self, org_id: &str, instructions: &str) -> String {
+        let digest = canonical_sha256(&Value::String(instructions.to_owned()));
+        format!(
+            "genesis-{}-planner-{}",
+            crate::org_namespace(org_id),
+            &digest[..10]
+        )
+    }
+
+    /// Create (or reconcile) the organization's mission-planner agent with
+    /// the given instructions. Its only tool is the organization's evidence
+    /// search. The agent proposes; the kernel validates everything it says.
+    pub async fn ensure_planner_agent(
+        &self,
+        org_id: &str,
+        instructions: &str,
+    ) -> Result<String, ProviderError> {
+        let tool_id = self.ensure_evidence_tool(org_id).await?;
+        let id = self.planner_agent_id(org_id, instructions);
+        let body = json!({
+            "id": id,
+            "name": format!("GENESIS mission planner ({org_id})"),
+            "description": "Proposes organization changes for the GENESIS kernel to validate.",
+            "labels": ["genesis", format!("org:{org_id}"), "role:mission-planner"],
+            "configuration": {
+                "instructions": instructions,
+                "tools": [ { "tool_ids": [tool_id] } ],
+            },
+        });
+        let expected = effective_config(&body);
+        self.ensure("agents", &id, &body, |a| effective_config(a) == expected)
+            .await?;
+        Ok(id)
+    }
+
     /// Create (or reconcile) the specialist for a provisioning request.
     pub async fn ensure_specialist(
         &self,
