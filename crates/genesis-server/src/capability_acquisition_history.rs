@@ -14,6 +14,9 @@ const MAX_SNAPSHOT_BYTES: usize = 4 * 1024;
 const MAX_ROW_BYTES: usize = 8 * 1024;
 const MAX_PAGE_BYTES: usize = 1024 * 1024;
 const MAX_LIMIT: usize = 100;
+// Preserve existing domain IDs exactly. SQL parameters and JSON escaping handle
+// their UTF-8 content; minted acquisition IDs retain the separate ASCII rule.
+const MAX_DOMAIN_ID_BYTES: usize = 256;
 
 #[derive(Debug, thiserror::Error)]
 pub enum HistoryError {
@@ -91,7 +94,7 @@ impl ListQuery {
         if [&self.mission_id, &self.requirement_id]
             .into_iter()
             .flatten()
-            .any(|id| !safe_id(id))
+            .any(|id| !domain_id(id))
         {
             return Err(HistoryError::InvalidQuery);
         }
@@ -108,6 +111,8 @@ pub struct Page<T> {
 }
 
 /// A small historical checkpoint projection, never a verification token.
+/// Existing domain IDs are nonempty UTF-8 strings of at most 256 bytes, retained
+/// exactly. The complete serialized snapshot additionally has a 4 KiB bound.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Snapshot {
@@ -166,17 +171,17 @@ impl Snapshot {
     }
 
     fn validate(&self) -> Result<()> {
-        if [
-            &self.id,
-            &self.org_id,
-            &self.mission_id,
-            &self.requirement_id,
-            &self.role_id,
-            &self.responsibility_id,
-            &self.assignment_id,
-        ]
-        .into_iter()
-        .any(|id| !safe_id(id))
+        if !safe_id(&self.id)
+            || [
+                &self.org_id,
+                &self.mission_id,
+                &self.requirement_id,
+                &self.role_id,
+                &self.responsibility_id,
+                &self.assignment_id,
+            ]
+            .into_iter()
+            .any(|id| !domain_id(id))
             || self.version == 0
             || self.version > i64::MAX as u64
             || self.epoch > i64::MAX as u64
@@ -296,6 +301,9 @@ fn safe_id(id: &str) -> bool {
             .bytes()
             .all(|byte| byte.is_ascii_alphanumeric() || b"-_.:".contains(&byte))
 }
+fn domain_id(id: &str) -> bool {
+    !id.is_empty() && id.len() <= MAX_DOMAIN_ID_BYTES
+}
 fn bounded_json<T: Serialize>(value: &T, max: usize) -> Result<String> {
     let json = serde_json::to_string(value).map_err(|_| HistoryError::Encoding)?;
     if json.len() > max {
@@ -381,8 +389,8 @@ struct Catalog {
 fn catalog(conn: &Connection, id: &str) -> Result<Option<Catalog>> {
     type Raw = (
         i64,
-        String,
-        String,
+        Option<String>,
+        Option<String>,
         i64,
         i64,
         i64,
@@ -391,7 +399,10 @@ fn catalog(conn: &Connection, id: &str) -> Result<Option<Catalog>> {
         Option<String>,
     );
     let row: Option<Raw> = conn.query_row(
-        "SELECT ordinal,substr(mission_id,1,257),substr(requirement_id,1,257),version,org_revision,last_seq,
+        "SELECT ordinal,
+         CASE WHEN length(CAST(mission_id AS BLOB))<=256 THEN mission_id END,
+         CASE WHEN length(CAST(requirement_id AS BLOB))<=256 THEN requirement_id END,
+         version,org_revision,last_seq,
          CASE WHEN length(CAST(snapshot_json AS BLOB))<=?2 THEN snapshot_json END,
          attention_version,CASE WHEN length(CAST(attention_code AS BLOB))<=64 THEN attention_code END FROM acquisition_catalog WHERE id=?1",
         params![id, MAX_SNAPSHOT_BYTES as i64],
@@ -401,7 +412,7 @@ fn catalog(conn: &Connection, id: &str) -> Result<Option<Catalog>> {
         let snapshot: Snapshot = decode(json, MAX_SNAPSHOT_BYTES)?;
         snapshot.validate()?;
         let version = positive(version)?;
-        if snapshot.id != id || snapshot.mission_id != mission || snapshot.requirement_id != requirement || snapshot.version != version {
+        if snapshot.id != id || Some(&snapshot.mission_id) != mission.as_ref() || Some(&snapshot.requirement_id) != requirement.as_ref() || snapshot.version != version {
             return Err(HistoryError::InvalidRecord);
         }
         let attention = match (attention_version, attention) {

@@ -364,7 +364,7 @@ fn query_bounds_and_unknown_fields_are_rejected_without_reading_records() {
     }
     assert!(matches!(
         store.list_acquisitions(&ListQuery {
-            mission_id: Some("bad/id".into()),
+            mission_id: Some("x".repeat(257)),
             ..Default::default()
         }),
         Err(HistoryError::InvalidQuery)
@@ -441,6 +441,9 @@ fn projection_validation_does_not_accept_unbounded_or_impossible_metadata() {
     let encoded = serde_json::to_value(&initial).unwrap();
     for (key, value) in [
         ("id", json!("x".repeat(257))),
+        ("id", json!("acq not minted")),
+        ("org_id", json!("")),
+        ("org_id", json!("💡".repeat(65))),
         ("version", json!(0)),
         ("version", json!(u64::MAX)),
         ("attempt", json!(2)),
@@ -456,4 +459,56 @@ fn projection_validation_does_not_accept_unbounded_or_impossible_metadata() {
             "{key}"
         );
     }
+}
+
+#[test]
+fn unicode_and_spaced_domain_identifiers_round_trip_and_filter_exactly() {
+    let store = store();
+    let mut entry = snapshot("acq_unicode");
+    entry.org_id = "Org A — 组织".into();
+    entry.mission_id = "任务 α / 'campus'".into();
+    entry.requirement_id = "Venue capacity\u{0} requirement".into();
+    entry.role_id = "专员 Venue parser".into();
+    entry.responsibility_id = "保留 lookup responsibility".into();
+    entry.assignment_id = "分配 α 1".into();
+    write(&store, &entry, CheckpointKind::Created);
+    let filtered = store
+        .list_acquisitions(&ListQuery {
+            mission_id: Some(entry.mission_id.clone()),
+            requirement_id: Some(entry.requirement_id.clone()),
+            ..Default::default()
+        })
+        .unwrap();
+    assert_eq!(filtered.items.len(), 1);
+    assert_eq!(filtered.items[0].snapshot, entry);
+    assert_eq!(
+        store
+            .acquisition_history(&entry.id, &PageQuery::default())
+            .unwrap()
+            .items[0]
+            .snapshot,
+        entry
+    );
+    let different = store
+        .list_acquisitions(&ListQuery {
+            mission_id: Some("任务 α / 'Campus'".into()),
+            ..Default::default()
+        })
+        .unwrap();
+    assert!(different.items.is_empty());
+    // Bounds measure UTF-8 bytes, while filters remain exact SQL parameters.
+    let at_bound = "💡".repeat(64);
+    assert!(store
+        .list_acquisitions(&ListQuery {
+            mission_id: Some(at_bound),
+            ..Default::default()
+        })
+        .is_ok());
+    assert!(matches!(
+        store.list_acquisitions(&ListQuery {
+            mission_id: Some("💡".repeat(65)),
+            ..Default::default()
+        }),
+        Err(HistoryError::InvalidQuery)
+    ));
 }
