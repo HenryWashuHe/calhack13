@@ -1,0 +1,17 @@
+[package]
+name = "genesis-lab-eval"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+publish = false
+description = "Invention-lab evaluator: design language v1, deterministic 2D simulation, task families and scoring receipts (experimental)."
+
+# Standalone on purpose: not a member of the root workspace until the
+# interfaces in genesis-history-experiment #18/#22 are agreed.
+[workspace]
+
+[dependencies]
+rapier2d = { version = "=0.22.0", features = ["enhanced-determinism"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
