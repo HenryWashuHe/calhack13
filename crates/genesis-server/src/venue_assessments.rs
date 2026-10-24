@@ -109,6 +109,7 @@ pub struct AssessmentRecord {
     pub role_id: RoleId,
     pub responsibility_id: ResponsibilityId,
     pub status: JobStatus,
+    pub policy: VenueAssessmentPolicy,
     pub proof: Option<AssessmentProof>,
     pub finalization_attempts: u32,
     pub attention: Option<String>,
@@ -496,15 +497,52 @@ fn compute_proof(
     Ok(proof)
 }
 
-fn summary(proof: &AssessmentProof) -> &'static str {
-    match proof.output.as_ref().map(|o| o.verdict) {
-        Some(AssessmentVerdict::Feasible) => "Verified venue assessment: the selected venue meets the frozen event constraints.",
-        _ => "Verified venue assessment: the selected venue no longer meets the frozen event constraints.",
+fn summary(proof: &AssessmentProof, binding: &Binding) -> String {
+    let venue = &binding.context.venue;
+    let policy = &binding.context.policy;
+    let Some(output) = &proof.output else {
+        return "Rejected venue assessment".into();
+    };
+    if output.verdict == AssessmentVerdict::Feasible {
+        return format!("Verified venue assessment for {}: capacity, price, event window, declared availability and step-free requirement meet the frozen event constraints.", venue.venue_id);
     }
+    let mut failures = Vec::new();
+    if !output.checks.capacity {
+        failures.push(format!(
+            "capacity {} is below {} attendees",
+            venue.capacity, policy.attendees
+        ));
+    }
+    if !output.checks.price {
+        failures.push(format!(
+            "price {} {} minor units does not fit maximum {} {}",
+            venue.price.minor_units,
+            venue.price.currency,
+            policy.budget.minor_units,
+            policy.budget.currency
+        ));
+    }
+    if !output.checks.window {
+        failures.push("offered window does not contain the event interval".into());
+    }
+    if !output.checks.availability {
+        failures.push("source declares the venue unavailable".into());
+    }
+    if !output.checks.step_free {
+        failures.push("source does not declare required step-free access".into());
+    }
+    format!(
+        "Verified venue assessment for {} requires replacement work: {}.",
+        venue.venue_id,
+        failures.join("; ")
+    )
 }
 const REQUIREMENT_SUMMARY: &str =
     "Find a replacement venue satisfying the verified event constraints.";
-const ACCEPTANCE: &str = "A new verified venue assessment meets every constraint in the triggering assessment policy; no reservation is implied.";
+fn acceptance(binding: &Binding) -> String {
+    let policy = &binding.context.policy;
+    format!("A new verified assessment of a selected replacement venue must cover at least {} attendees, cost at most {} {} minor units, contain the full interval {} through {}, declare availability, and satisfy step_free_required={}. Source assessment: {}. No reservation is implied.", policy.attendees, policy.budget.minor_units, policy.budget.currency, policy.window.start, policy.window.end, policy.step_free_required, binding.context.assessment_id)
+}
 
 fn restore(
     app: &AppState,
@@ -539,7 +577,7 @@ fn restore(
             .ok_or_else(|| conflict("assessment observation missing"))?;
         if observation.mission_id != job.mission_id
             || observation.source != "creao-venue-assessment"
-            || observation.summary != summary(&proof)
+            || observation.summary != summary(&proof, binding)
             || observation.evidence_ref.as_ref() != Some(&proof.proof_ref)
             || observation.observed_at != proof.verified_at
         {
@@ -557,7 +595,7 @@ fn restore(
                 .ok_or_else(|| conflict("assessment requirement missing"))?;
             if requirement.mission_id != job.mission_id
                 || requirement.summary != REQUIREMENT_SUMMARY
-                || requirement.acceptance != ACCEPTANCE
+                || requirement.acceptance != acceptance(binding)
                 || requirement.status != RequirementStatus::Unmet
                 || requirement.owner != Owner::MissionController
                 || requirement.triggering_evidence != vec![observation.observation_id.clone()]
@@ -604,6 +642,7 @@ fn read_locked(app: &AppState, id: &str) -> ApiResult<AssessmentRecord> {
         role_id: job.role_id,
         responsibility_id: job.responsibility_id,
         status: job.status,
+        policy: binding.context.policy,
         proof,
         finalization_attempts: attempts,
         attention: attention.or(job.rejection_reason),
@@ -640,7 +679,7 @@ fn finalize_locked(app: &AppState, id: &str) -> ApiResult<AssessmentRecord> {
             &updated,
             &job.mission_id,
             "creao-venue-assessment",
-            summary(&proof),
+            &summary(&proof, &binding),
             Some(proof.proof_ref.clone()),
             now,
         )
@@ -658,7 +697,7 @@ fn finalize_locked(app: &AppState, id: &str) -> ApiResult<AssessmentRecord> {
                 &job.mission_id,
                 REQUIREMENT_SUMMARY,
                 &[observation_id],
-                ACCEPTANCE,
+                &acceptance(&binding),
             )
             .map_err(|_| conflict("cannot apply assessment requirement"))?;
             updated = requirement.state;
