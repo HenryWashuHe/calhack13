@@ -425,6 +425,34 @@ fn generation_cli_refuses_credentials_endpoint_overrides_and_retry_flags() {
 }
 
 #[tokio::test]
+async fn generated_prepare_binds_saved_candidate_actor_identity() {
+    let fixture = Fixture::new();
+    let mut request = fixture.read_json("request.json");
+    request["candidate"]["source_version"] = json!("0.2");
+    let mut metadata = fixture.read_json("candidate.json");
+    metadata["source_version"] = json!("0.2");
+    fixture.write_json("request.json", &request);
+    fixture.write_json("candidate.json", &metadata);
+    fixture.generated().await;
+    let generation_before = fs::read(fixture.path("generation.json")).unwrap();
+    assert_success(&fixture.run("prepare-generated"));
+    let forge = fixture.read_json("forge.json");
+    let config = forge["spec"]["source"]["files"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|file| file["name"] == ".actor/actor.json")
+        .unwrap();
+    let config: Value = serde_json::from_str(config["content"].as_str().unwrap()).unwrap();
+    assert_eq!(config["name"], request["candidate"]["actor_name"]);
+    assert_eq!(config["version"], request["candidate"]["source_version"]);
+    assert_eq!(
+        fs::read(fixture.path("generation.json")).unwrap(),
+        generation_before
+    );
+}
+
+#[tokio::test]
 async fn generated_handoff_preserves_exact_parser_and_attaches_only_provenance() {
     let fixture = Fixture::new();
     // The suite may use a subset, but it cannot replace the explicit source

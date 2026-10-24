@@ -1,6 +1,63 @@
 # PR review queue — October 23, 2026
 
-## Current queue after #110 and #113
+## Active repository checkpoint
+
+Work and reviews now belong in [genesis-history-experiment](https://github.com/HenryWashuHe/genesis-history-experiment)
+and [issue #1](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1).
+The [migration map](REPOSITORY_MIGRATION.md) maps all current PRs and preserved WIP.
+Initial new main `e1f2264` matches old main `8794e25` by complete tree; migration
+is not implementation or fresh validation. Adopted method execution, simulator
+and comparative benefit remain open under [the ongoing goal](ONGOING_GOAL.md).
+
+Repair WIP now exists as isolated draft #7 (`110a107`), with the original twelve
+files preserved byte for byte and full validation still incomplete. New #13/#14
+are evaluator/adoption proposals. New #3/#5 ACP heads are advancing after review;
+check current heads rather than reusing earlier passing counts as new evidence.
+Apify and CREAO v2 metadata reads authenticated, but no hosted CREAO agent was
+returned and the current v1 adapter needs a separately scoped compatibility path.
+This is not full live-provider execution. See current ownership in the handoff.
+
+## Historical source checkpoint before migration
+
+
+## Current checkpoint: resumed goal and scoped review
+
+Inspected main is `844f37f27d3288435812c7dec02e4a380b6a8512` (through #127).
+GENESIS's direction is networked recursive capability improvement with fixed
+model weights. The [implementation status](IMPLEMENTATION_STATUS.md) separates
+merged local/loopback/native-process evidence from paused work and the proposed
+[invention-lab demo](INVENTION_LAB_DEMO.md). Event organizing is no longer the
+product direction; its existing fixtures remain historical regression evidence.
+
+| Work | Disposition / exact inspected source | Next boundary |
+| --- | --- | --- |
+| [#116 candidate decision log](https://github.com/HenryWashuHe/genesis/pull/116) | **Correction pushed, independent re-review pending**, `78a18c059e13dde3218da68615928bad05291b6f` | Author reports all three P2 findings fixed, `4b44099` preserved, and 46 gap / 8 adoption / 5 scenario / 1 inheritance checks passing. Prior selection-order, unreadable-score and missing-conflict-log findings were against `03f7101f`, not independently established against this correction. |
+| [#120 constitution audit](https://github.com/HenryWashuHe/genesis/pull/120) | **Open, independent review pending**, `0cf383b71cd816edcf42ca4cd7eb639b96a989ee` | Eric's bounded audit invariant/core-server tests/docs. Author-reported tests are not an independent ready-to-merge decision. |
+| [#121 terminal RunFailed retry](https://github.com/HenryWashuHe/genesis/pull/121) | **Open, independent review pending**, `5d711429699aaedb037e6e968b72771947ebd085` | Henry's core Claude owns the narrow terminal-failure mapping/sanitizer/retry contract. Preserve unknown, running, rejected and unreadable-effect controls. |
+| [#128 outcome classifier](https://github.com/HenryWashuHe/genesis/pull/128) | **Open, stacked on #116**, `546fb65c3a8e5f99d620a82f9ee4220b46d3df0f` | Core Claude's existing lane; review the corrected base first, then the composition. No main-wire claim yet. |
+| [#129 method-adoption contract](https://github.com/HenryWashuHe/genesis/pull/129) | **Proposal, corrections requested**, `d8fa5319bcfb5165e54142818ad0ed4927f5bfc7` | Separate acceptance/comparison execution from ordinary invocation; preserve durable acceptance versus live job authority; distinguish merged and pending dependencies. [Review](https://github.com/HenryWashuHe/genesis/pull/129#issuecomment-6379254757). Useful input for Codex #124, not runtime implementation. |
+| Merged [#114 mission ACP](https://github.com/HenryWashuHe/genesis/pull/114) | **Outstanding main-branch follow-up**, merge `9d4f498`, head `f9d2a37` | Merged without clearing the seven preserved `091100b` + `fad05e4` regressions; reproduced against `880eedb`. ACP author/session owns corrections separately from core adoption work. No public workflow readiness claim. |
+| [#117 native automatic intake](https://github.com/HenryWashuHe/genesis/pull/117) | **Merged**, `29d05e6`, source `059a796` | Both explicit native cases and strict assessment Clippy/fmt passed. Actual signed Python transport; explicitly drained intake; Apify/CREAO/provisioning remain fixtures. |
+| Deployed repair branch | **Paused, unmerged**, `codex/deployed-capability-repair` at `1795fb7` | Forge constructor and 19 acquisition tests passed. Server/store/routes, 12 integration cases and draft docs remain local WIP; happy path passed, full revised target/final checks not run. No repair PR exists. |
+
+Henry's core Claude's [active classifier claim](https://github.com/HenryWashuHe/genesis/issues/4#issuecomment-6379056143)
+is stacked on #116: adoption outcome types/status for `adopted`, `not_applicable`,
+`insufficient_evidence`, `no_candidate`, `unknown`, plus pending/stopped states,
+with small classifier tests and docs. It preserves the conservative fallback
+contract. New invention-lab assignments must respect this existing claim.
+
+New generic development-method execution, physics/evaluator infrastructure,
+reciprocal method improvement and controlled benefit measurements are proposed.
+No live cloud or complete autonomous mission evidence is established. The user
+has resumed ongoing work under the [repository goal](ONGOING_GOAL.md) and active
+hourly continuation. The old native app Goal remains paused pending lifecycle
+replacement; separately preserved repair WIP is not automatically resumed. Ines
+is unassigned. Follow the [current ownership handoff](AGENT_HANDOFF.md) and
+[resumption notice](https://github.com/HenryWashuHe/genesis/issues/4#issuecomment-6379222890).
+Newer GitHub heads and issue #4 supersede this snapshot. Preserve all historical
+review evidence below; old “current” statements do not override this checkpoint.
+
+## Historical queue after #110 and #113
 
 Main through #115 is `841295a`. #114 remains open on reproduced failures. Current GitHub status and [issue #4](https://github.com/HenryWashuHe/genesis/issues/4)
 supersede the historical tables below.

@@ -187,7 +187,8 @@ impl GapAdoptionCode {
     /// conflict, or failed checks. Whatever the code, a retry also requires
     /// every native check run of the stopped adoption to have a definite
     /// outcome (`checks_settled`): an unknown or still-moving run keeps its
-    /// identity and blocks the retry, so no check is ever submitted twice.
+    /// identity and blocks the retry, so a check is never submitted again
+    /// while its earlier run may still be live.
     /// Inconsistent records are never retried.
     pub fn retryable(self) -> bool {
         matches!(
@@ -1023,14 +1024,15 @@ fn can_retry(r: &GapAdoptionRecord) -> bool {
 /// - `Failed` with no receipt: the submission never reached the provider, or
 ///   its response already reported a terminal failure (ambiguous submissions
 ///   become `NeedsReconciliation` instead).
+/// - `Failed` with a receipt and `RunFailed`: a status read of that exact run
+///   and build reported a terminal failure, so the external run has stopped.
 /// - `Prepared` once the adoption has left Checking for good, since the
 ///   runtime then refuses to submit it (`authorized_job` requires Checking,
 ///   checked under the kernel lock this route also holds).
 ///
-/// Everything else blocks a retry. A `Failed` run *with* a receipt was
-/// accepted by the provider and later failed locally: its stored failure is
-/// sanitized, so a terminal provider result can't be told apart from a failed
-/// status read (Codex, #86: HTTP 401 on the run read). `Rejected` is a local
+/// Everything else blocks a retry. Any other `Failed` run *with* a receipt
+/// was accepted by the provider and failed locally without saying whether
+/// that run ended (Codex, #86: HTTP 401 on the run read). `Rejected` is a local
 /// authority/configuration verdict that can overwrite a submitted or
 /// still-running run without polling it. Unreadable records count as
 /// unsettled; only storage errors propagate.
@@ -1053,6 +1055,15 @@ fn checks_settled(app: &AppState, r: &GapAdoptionRecord) -> StoreResult<bool> {
         match app.store.get_capability_run(job) {
             Ok(run) if run.phase == P::Collected => {}
             Ok(run) if run.phase == P::Failed && run.receipt.is_none() => {}
+            // A saved ticket settles only when the provider positively read
+            // that exact run as terminally failed. A failed status read
+            // (HTTP, rejected evidence) or a still-running receipt does not.
+            Ok(run)
+                if run.phase == P::Failed
+                    && matches!(
+                        run.failure,
+                        Some(genesis_providers::ProviderError::RunFailed(_))
+                    ) => {}
             Ok(run) if stopped && run.phase == P::Prepared => {}
             Ok(_) => return Ok(false),
             // No run recorded for the job: nothing was ever submitted.
