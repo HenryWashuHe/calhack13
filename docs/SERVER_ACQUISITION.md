@@ -7,6 +7,10 @@ automatic progression through generation,
 Actor creation/build, independent verification and one optional semantic repair.
 The checkpoint and consumed action counts live in that organization's SQLite DB.
 
+For a later semantic failure of an installed, locally generated version, use the
+[failure-backed repair path](DEPLOYED_CAPABILITY_REPAIR.md). Its single replacement
+attempt shares this journal and cannot open another intra-acquisition repair slot.
+
 This builds on [CAPABILITY_ACQUISITION.md](CAPABILITY_ACQUISITION.md). It does not
 create a role or choose an organization change. Claude's planner can call this
 boundary after its change commits and the actual role, requirement and assignment

@@ -1,24 +1,25 @@
 # PR review queue — October 23, 2026
 
-## Current queue after #110 and #113
+## Current queue after #119
 
-Main through #115 is `841295a`. #114 remains open on reproduced failures. Current GitHub status and [issue #4](https://github.com/HenryWashuHe/genesis/issues/4)
-supersede the historical tables below.
+Base main is `2e5d7f0`. Current GitHub status and
+[issue #4](https://github.com/HenryWashuHe/genesis/issues/4) supersede this snapshot.
 
-| PR | Disposition / source | Evidence |
+| PR / branch | Disposition / source | Evidence |
 | --- | --- | --- |
-| #114 | Hold `3ac1fc6` | 119 original Python tests pass; independent `091100b` reproduces duplicate ACP observation submission after restart and a false no-change response after an accepted POST. Claude owns corrections; preserve the merged README framing. |
-| #115 | Merged `841295a`, source `92c49e7` | Side-chat drafts preserved in `7eeaf9f`; reviewed roadmap/ownership integrated. 108 relative Markdown links/anchors and whitespace checked; docs only. |
-| #86 | Merged `ad622a9`, reviewed `ac50d35` | 35 gap-adoption tests and two-org inheritance pass; retained native receipt failures remain blocked. Strict Clippy/fmt. |
-| #111 | Merged `6194e53`, reviewed `84dd81f` / composition `e1b95ea` | Reproduced full-scenario deadline failure, then five scenarios and 40 scenario units pass. Runtime freshness remains strict; Claude contribution preserved. |
-| #112 | Merged `6e4f1ff`, final reviewed `34a5fe6` | 139 library + 90 assessment tests, then final 12 intake tests; strict Clippy/fmt and independent review. Loopback evidence; counts overlap. |
-| #110 / #113 | Merged `16783da` / `50cb501`; tested composition `9fd1eb0` | 133 web tests, typecheck/build, audit route/library checks and strict Clippy/fmt pass. `b677414` previously failed, now passes unchanged as `5b20bdf`; original controls preserved. #113 merged into parent as `50cb501`; final parent source `d25e9a2` preserves the reviewed code. |
+| #116 | Hold `03f7101f` | Independent `4b44099` reproduces changed first-eligible selection and unreadable overflow-score log. 50 baseline adoption/inheritance checks pass; corrections remain Claude-owned. |
+| #114 | Merged elsewhere `9d4f498`; correction outstanding | Implementation unchanged from reviewed `3ac1fc6`. Original 119 Python tests pass; seven independent regressions fail against actual main `880eedb`. Preserve `091100b`/`fad05e4` and fix with author. |
+| #115 | Merged `841295a`, source `92c49e7` | Original drafts preserved in `7eeaf9f`; reviewed roadmap/ownership integrated. 108 relative links/anchors checked, docs only. |
+| #117 | Merged `29d05e6`, source `059a796` | Both manual and automatic native signed-process tests pass, plus strict assessment Clippy/fmt. Scheduling explicit; Apify/CREAO remain fixtures. |
+| #118 / #119 | Merged `880eedb` / `2e5d7f0` | Separate audit-strip mount and pitch documentation changes. Neither repairs ACP behavior. |
+| `codex/deployed-capability-repair` | Codex core increment | Bounded failure-backed replacement using the current acquisition journal. See [contract](DEPLOYED_CAPABILITY_REPAIR.md); final test evidence is recorded on its PR. |
 
-Henry's Claude retains adoption decision logging and the agreed terminal-outcome
-retry follow-up. Eric's UI fix is merged; no new claim is inferred. Codex owns
-automatic recovery intake and its native/scenario composition. See the [ownership
-map](AGENT_HANDOFF.md#current-ownership-and-next-work) before taking a roadmap slice.
-Public Agentverse/ASI and live provider gates remain unproven.
+Henry's Claude retains candidate-decision corrections and terminal-outcome retry;
+#114's author retains ACP corrections. Eric has now claimed the constitution audit
+invariant/tests/docs. Codex owns the repair slice in issue #4 comment 6378726528.
+Check the [ownership map](AGENT_HANDOFF.md#current-ownership-and-next-work) before
+starting another roadmap slice. Public Agentverse/ASI and live provider gates
+remain unproven.
 
 ## Historical queue after #108
 

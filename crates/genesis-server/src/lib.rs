@@ -27,6 +27,7 @@ pub mod capability_gap_policy;
 pub mod capability_gap_store;
 pub mod capability_gaps;
 pub mod capability_invocation;
+pub mod capability_repair;
 pub mod capability_runtime;
 pub mod capability_scenario;
 pub mod capability_store;
@@ -284,6 +285,7 @@ pub fn build_org(cfg: &OrgConfig, providers: Option<ProviderSet>) -> anyhow::Res
     store.init_capability_pins()?;
     store.init_capability_adoptions()?;
     store.init_capability_invocations()?;
+    store.init_capability_repairs()?;
     store.init_venue_assessments()?;
     store.init_venue_monitors()?;
     store.init_venue_recoveries()?;
