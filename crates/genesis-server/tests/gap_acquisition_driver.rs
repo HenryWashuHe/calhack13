@@ -618,7 +618,9 @@ struct World {
 }
 impl World {
     fn build(&self, actor: &str) -> Value {
-        json!({"data":{"id":format!("build-{actor}"),"actId":actor,"buildNumber":"0.1.1","status":"SUCCEEDED","actVersion":self.actors[actor]["versions"][0]}})
+        let source = &self.actors[actor]["versions"][0];
+        let version = source["versionNumber"].as_str().unwrap();
+        json!({"data":{"id":format!("build-{actor}"),"actId":actor,"buildNumber":format!("{version}.1"),"status":"SUCCEEDED","actVersion":source}})
     }
     fn run(&self, run: &str) -> Value {
         let actor = &self.runs[run].0;
