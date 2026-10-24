@@ -1,0 +1,1242 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DomainEvent",
+  "description": "Envelope stored in the event log (TEAM_WORKSTREAMS \"Domain event\").",
+  "type": "object",
+  "oneOf": [
+    {
+      "type": "object",
+      "required": [
+        "payload",
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "organization_initialized"
+          ]
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "name"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "payload",
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "mission_created"
+          ]
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "goal",
+            "mission_id"
+          ],
+          "properties": {
+            "mission_id": {
+              "type": "string"
+            },
+            "goal": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "payload",
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "observation_recorded"
+          ]
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "observation_id",
+            "source",
+            "summary"
+          ],
+          "properties": {
+            "observation_id": {
+              "type": "string"
+            },
+            "source": {
+              "type": "string"
+            },
+            "summary": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "payload",
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "requirement_recorded"
+          ]
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "evidence",
+            "requirement_id",
+            "summary"
+          ],
+          "properties": {
+            "requirement_id": {
+              "type": "string"
+            },
+            "summary": {
+              "type": "string"
+            },
+            "evidence": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "payload",
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "change_proposed"
+          ]
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "change_id",
+            "expected_revision",
+            "operations",
+            "rationale"
+          ],
+          "properties": {
+            "change_id": {
+              "type": "string"
+            },
+            "expected_revision": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "operations": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "rationale": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "payload",
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "change_status_changed"
+          ]
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "change_id",
+            "from",
+            "to"
+          ],
+          "properties": {
+            "change_id": {
+              "type": "string"
+            },
+            "from": {
+              "$ref": "#/definitions/ChangeStatus"
+            },
+            "to": {
+              "$ref": "#/definitions/ChangeStatus"
+            },
+            "reasons": {
+              "default": [],
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "payload",
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "role_provisioned"
+          ]
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "change_id",
+            "dev_stub",
+            "provider",
+            "provider_agent_id",
+            "role_id",
+            "role_key"
+          ],
+          "properties": {
+            "change_id": {
+              "type": "string"
+            },
+            "role_key": {
+              "type": "string"
+            },
+            "role_id": {
+              "type": "string"
+            },
+            "provider": {
+              "$ref": "#/definitions/Provider"
+            },
+            "provider_agent_id": {
+              "type": "string"
+            },
+            "dev_stub": {
+              "description": "True when a development stub stood in for the real provider.",
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "payload",
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "provisioning_failed"
+          ]
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "change_id",
+            "error",
+            "role_key"
+          ],
+          "properties": {
+            "change_id": {
+              "type": "string"
+            },
+            "role_key": {
+              "type": "string"
+            },
+            "error": {
+              "type": "string"
+            },
+            "provider_agent_id": {
+              "description": "Provider resource created before the failure, kept for cleanup.",
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "payload",
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "role_created"
+          ]
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "name",
+            "provider",
+            "role_id"
+          ],
+          "properties": {
+            "role_id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "provider": {
+              "$ref": "#/definitions/Provider"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "payload",
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "role_activated"
+          ]
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "role_id"
+          ],
+          "properties": {
+            "role_id": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "payload",
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "responsibility_created"
+          ]
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "purpose",
+            "responsibility_id"
+          ],
+          "properties": {
+            "responsibility_id": {
+              "type": "string"
+            },
+            "purpose": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "payload",
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "responsibility_assigned"
+          ]
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "epoch",
+            "owner",
+            "responsibility_id"
+          ],
+          "properties": {
+            "responsibility_id": {
+              "type": "string"
+            },
+            "owner": {
+              "type": "string"
+            },
+            "epoch": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "payload",
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "responsibility_transferred"
+          ]
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "epoch",
+            "from",
+            "responsibility_id",
+            "to"
+          ],
+          "properties": {
+            "responsibility_id": {
+              "type": "string"
+            },
+            "from": {
+              "type": "string"
+            },
+            "to": {
+              "type": "string"
+            },
+            "epoch": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "payload",
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "responsibility_completed"
+          ]
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "responsibility_id"
+          ],
+          "properties": {
+            "responsibility_id": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "payload",
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "task_delegated"
+          ]
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "executor",
+            "responsibility_id",
+            "task"
+          ],
+          "properties": {
+            "responsibility_id": {
+              "type": "string"
+            },
+            "executor": {
+              "$ref": "#/definitions/Executor"
+            },
+            "task": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "payload",
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "contract_requested"
+          ]
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "contract_id",
+            "scope",
+            "specialist_address"
+          ],
+          "properties": {
+            "contract_id": {
+              "type": "string"
+            },
+            "specialist_address": {
+              "type": "string"
+            },
+            "scope": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "payload",
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "contract_state_changed"
+          ]
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "contract_id",
+            "from",
+            "to"
+          ],
+          "properties": {
+            "contract_id": {
+              "type": "string"
+            },
+            "from": {
+              "$ref": "#/definitions/ContractState"
+            },
+            "to": {
+              "$ref": "#/definitions/ContractState"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "payload",
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "capability_attached"
+          ]
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "capability",
+            "role_id"
+          ],
+          "properties": {
+            "role_id": {
+              "type": "string"
+            },
+            "capability": {
+              "$ref": "#/definitions/CapabilityRef"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "payload",
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "reporting_edge_changed"
+          ]
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "role_id"
+          ],
+          "properties": {
+            "role_id": {
+              "type": "string"
+            },
+            "reports_to": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "payload",
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "role_draining"
+          ]
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "role_id"
+          ],
+          "properties": {
+            "role_id": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "payload",
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "role_retired"
+          ]
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "role_id"
+          ],
+          "properties": {
+            "role_id": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "payload",
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "assignment_fenced"
+          ]
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "assignment_id",
+            "epoch",
+            "responsibility_id"
+          ],
+          "properties": {
+            "assignment_id": {
+              "type": "string"
+            },
+            "responsibility_id": {
+              "type": "string"
+            },
+            "epoch": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "payload",
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "job_dispatched"
+          ]
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "epoch",
+            "job_id",
+            "responsibility_id",
+            "role_id",
+            "task"
+          ],
+          "properties": {
+            "job_id": {
+              "type": "string"
+            },
+            "role_id": {
+              "type": "string"
+            },
+            "responsibility_id": {
+              "type": "string"
+            },
+            "epoch": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "task": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "payload",
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "job_status_changed"
+          ]
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "from",
+            "job_id",
+            "to"
+          ],
+          "properties": {
+            "job_id": {
+              "type": "string"
+            },
+            "from": {
+              "$ref": "#/definitions/JobStatus"
+            },
+            "to": {
+              "$ref": "#/definitions/JobStatus"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "payload",
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "job_result_rejected"
+          ]
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "job_id",
+            "reason"
+          ],
+          "properties": {
+            "job_id": {
+              "type": "string"
+            },
+            "reason": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "payload",
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "commitment_recorded"
+          ]
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "job_id",
+            "operation_id"
+          ],
+          "properties": {
+            "operation_id": {
+              "type": "string"
+            },
+            "job_id": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "payload",
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "capability_installed"
+          ]
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "capability",
+            "installation_id",
+            "source_digest",
+            "synthesis_calls"
+          ],
+          "properties": {
+            "installation_id": {
+              "type": "string"
+            },
+            "capability": {
+              "$ref": "#/definitions/CapabilityRef"
+            },
+            "source_digest": {
+              "type": "string"
+            },
+            "synthesis_calls": {
+              "description": "Number of source-generation calls made to install. Must be 0 for compatible adoption.",
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0.0
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "payload",
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "installation_accepted"
+          ]
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "installation_id",
+            "report_ref"
+          ],
+          "properties": {
+            "installation_id": {
+              "type": "string"
+            },
+            "report_ref": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "payload",
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "installation_rejected"
+          ]
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "installation_id",
+            "reasons"
+          ],
+          "properties": {
+            "installation_id": {
+              "type": "string"
+            },
+            "reasons": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "payload",
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "capability_run_requested"
+          ]
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "capability",
+            "installation_id",
+            "job_id",
+            "role_id"
+          ],
+          "properties": {
+            "installation_id": {
+              "type": "string"
+            },
+            "capability": {
+              "$ref": "#/definitions/CapabilityRef"
+            },
+            "role_id": {
+              "type": "string"
+            },
+            "job_id": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "required": [
+    "event_id",
+    "org_id",
+    "revision",
+    "schema_version",
+    "seq",
+    "timestamp"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0.0
+    },
+    "seq": {
+      "description": "Durable sequence assigned by the store. Used as the SSE cursor.",
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0.0
+    },
+    "event_id": {
+      "type": "string"
+    },
+    "org_id": {
+      "type": "string"
+    },
+    "mission_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "correlation_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "causation_id": {
+      "description": "Event or request that caused this event.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "revision": {
+      "description": "Organization revision after this event was applied.",
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0.0
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "definitions": {
+    "ChangeStatus": {
+      "description": "Organization-change lifecycle (TECH_SPEC §5).",
+      "type": "string",
+      "enum": [
+        "PROPOSED",
+        "VALIDATED",
+        "PROVISIONING",
+        "READY",
+        "COMMITTED",
+        "REJECTED",
+        "FAILED"
+      ]
+    },
+    "Provider": {
+      "description": "Who implements a role or runs a job.",
+      "oneOf": [
+        {
+          "description": "Elastic Agent Builder on Serverless: internal specialists.",
+          "type": "string",
+          "enum": [
+            "elastic"
+          ]
+        },
+        {
+          "description": "Fetch.ai uAgents: independent external specialists.",
+          "type": "string",
+          "enum": [
+            "fetch"
+          ]
+        },
+        {
+          "description": "CREAO: persistent operational roles.",
+          "type": "string",
+          "enum": [
+            "creao"
+          ]
+        },
+        {
+          "description": "Apify: executable capabilities (Actors). Never an employee.",
+          "type": "string",
+          "enum": [
+            "apify"
+          ]
+        },
+        {
+          "description": "Implemented by the kernel itself (e.g. the mission controller).",
+          "type": "string",
+          "enum": [
+            "internal"
+          ]
+        },
+        {
+          "description": "Development-only stand-in. The UI must label it as not a live integration.",
+          "type": "string",
+          "enum": [
+            "dev_stub"
+          ]
+        }
+      ]
+    },
+    "Executor": {
+      "description": "Who currently executes a responsibility. Delegation changes the executor, never the accountable owner.",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "id",
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "role"
+              ]
+            },
+            "id": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "id",
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "contractor"
+              ]
+            },
+            "id": {
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "ContractState": {
+      "description": "External contractor agreement (Fetch specialist).",
+      "type": "string",
+      "enum": [
+        "REQUESTED",
+        "OFFERED",
+        "ACCEPTED",
+        "RELEASED",
+        "DECLINED"
+      ]
+    },
+    "CapabilityRef": {
+      "description": "Exact reference to an approved capability version. There is no `latest`.",
+      "type": "object",
+      "required": [
+        "capability_id",
+        "version"
+      ],
+      "properties": {
+        "capability_id": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      }
+    },
+    "JobStatus": {
+      "description": "Normalized job status (TECH_SPEC §6). Provider-native statuses are kept separately on the job record.",
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "QUEUED",
+            "SUBMITTING",
+            "RUNNING",
+            "VERIFYING",
+            "SUCCEEDED",
+            "FAILED",
+            "RESULT_REJECTED"
+          ]
+        },
+        {
+          "description": "The outcome is not known (e.g. a dropped stream). Never treated as success.",
+          "type": "string",
+          "enum": [
+            "UNKNOWN"
+          ]
+        }
+      ]
+    }
+  }
+}

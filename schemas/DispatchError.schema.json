@@ -1,0 +1,174 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DispatchError",
+  "oneOf": [
+    {
+      "type": "object",
+      "required": [
+        "code",
+        "role_id"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "enum": [
+            "unknown_role"
+          ]
+        },
+        "role_id": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "code",
+        "role_id"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "enum": [
+            "role_not_active"
+          ]
+        },
+        "role_id": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "code",
+        "responsibility_id"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "enum": [
+            "unknown_responsibility"
+          ]
+        },
+        "responsibility_id": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "code",
+        "responsibility_id"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "enum": [
+            "responsibility_not_open"
+          ]
+        },
+        "responsibility_id": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "code",
+        "responsibility_id",
+        "role_id"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "enum": [
+            "not_assigned"
+          ]
+        },
+        "role_id": {
+          "type": "string"
+        },
+        "responsibility_id": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "code",
+        "current",
+        "got"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "enum": [
+            "stale_epoch"
+          ]
+        },
+        "current": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "got": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "code",
+        "role_id",
+        "scope"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "enum": [
+            "scope_not_granted"
+          ]
+        },
+        "role_id": {
+          "type": "string"
+        },
+        "scope": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "capability_id",
+        "code",
+        "role_id",
+        "version"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "enum": [
+            "capability_not_attached"
+          ]
+        },
+        "role_id": {
+          "type": "string"
+        },
+        "capability_id": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      }
+    }
+  ]
+}
