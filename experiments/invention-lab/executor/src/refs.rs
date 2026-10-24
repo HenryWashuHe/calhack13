@@ -166,8 +166,17 @@ pub fn source_files() -> Vec<&'static str> {
 }
 
 /// The development environment a plan pins: executor source digest, sandbox
-/// mode and interpreter. Running under a different mode is a mismatch.
+/// mode and the method runtime. Running under a different mode is a mismatch.
 pub fn environment(sandbox: crate::sandbox::Mode, interpreter_version: &str) -> ExactContentRef {
+    environment_for_runtime(sandbox, &runtime(interpreter_version))
+}
+
+/// The same environment, from the runtime reference itself, so a receiver
+/// holding only its runtime reference can check which runtime a plan ran.
+pub fn environment_for_runtime(
+    sandbox: crate::sandbox::Mode,
+    runtime: &ExactContentRef,
+) -> ExactContentRef {
     let mut h = Sha256::new();
     for (name, bytes) in SOURCES {
         h.update((name.len() as u64).to_be_bytes());
@@ -179,7 +188,7 @@ pub fn environment(sandbox: crate::sandbox::Mode, interpreter_version: &str) -> 
         "executor": format!("genesis-lab-exec@{EXECUTOR_VERSION}"),
         "executor_sources_sha256": format!("{:x}", h.finalize()),
         "sandbox": sandbox.describe(),
-        "interpreter": interpreter_version,
+        "runtime": runtime,
     });
     content(
         "lab-environment/1",
