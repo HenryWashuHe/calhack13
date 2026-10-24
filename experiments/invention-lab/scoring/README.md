@@ -7,8 +7,10 @@ ran and froze.
 ```sh
 cd experiments/invention-lab/scoring
 cargo test
-cargo run -q --bin lab-score -- <plan.json> <slot> <executor-state-dir> <score-dir>
+cargo run -q --bin lab-score -- score <plan.json> <slot> <executor-state-dir> <score-dir>
 # then, from ../executor: lab-exec check <plan.json> <slot> <state-dir> <score-dir>
+cargo run -q --bin lab-score -- verdict <plan.json> <criterion.json> \
+  <candidate-state> <candidate-score> <control-state> <control-score>
 ```
 
 `lab-score` (`score_slot`) never runs a method, and nothing here is reachable by one.
@@ -25,6 +27,38 @@ cargo run -q --bin lab-score -- <plan.json> <slot> <executor-state-dir> <score-d
 
 Acceptance uses the plan's **public** development instances, the same ones the
 method could experiment on, as #28 v1 specifies. Hidden comparison scoring and
-the reveal aren't implemented. No criterion verdict is computed: the
-criterion stays an artifact for the receiving organization's acceptance step.
+the reveal aren't implemented.
+
+## Acceptance verdict
+
+`verdict` (module `verdict`) is the receiving organization's decision for a
+candidate/control plan. It re-validates everything before deciding:
+
+- the criterion bytes match `plan.criterion`, use rule `success-count-margin`,
+  and list exactly the plan's public instances;
+- both slots' execution and scoring receipts pass `assess_trials`;
+- each metrics artifact matches its receipt and covers the criterion's
+  instances.
+
+Outcomes:
+
+- `accepted` when both slots' development has a known outcome (a confirmed
+  failure or interruption counts when its retained output was scored, as
+  adoption.md specifies) with fully known resource accounting (or unknown only in fields the frozen criterion lists in
+  `unknown_usage_allowed`), both scorings are `Scored` within their grants, and
+  the candidate's successes are at least the control's plus `min_margin`;
+- `rejected` when the margin isn't met, or when the candidate's output is an
+  invalid design;
+- `insufficient` for anything else: unknown or missing development, unknown usage the criterion doesn't allow, or missing, failed or
+  unknown scoring. Missing evidence never counts as a pass or a rejection.
+
+Metrics rows must be exactly one per criterion instance, in order, each naming
+that instance and carrying a boolean `success`; nothing else is counted.
+
+The executor records model use as unknown in every mode (it can't establish
+zero), so under the default criterion a real sandboxed run is `insufficient`
+unless the plan's criterion explicitly accepts unknown model calls and tokens.
+
+The verdict is acceptance evidence for adoption, not an adoption decision or
+an installation.
 
