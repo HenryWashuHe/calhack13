@@ -139,8 +139,10 @@ server task alive: in 0.26.1, mailbox-only startup with no REST handlers can ret
 from its main task after spawning polling. Recheck both behaviors on upgrades.
 `AlmanacApiRegistrationPolicy` selects API registration instead of ledger
 registration transactions. SDK construction still derives a wallet and may perform
-contract-version discovery; it is not a promise of zero ledger RPC. Message history
-and event reporting are disabled. See the pinned
+contract-version discovery; it is not a promise of zero ledger RPC. Persistent message
+history and event reporting are disabled; Inspector retains bounded in-memory
+envelope history. SDK concurrent handling lets the gateway return busy while
+one backend call is active; it does not impose a network-wide traffic quota. See the pinned
 [Agent lifecycle](https://github.com/fetchai/uAgents/blob/v0.26.1/python/src/uagents/agent.py),
 [ASGI host](https://github.com/fetchai/uAgents/blob/v0.26.1/python/src/uagents/asgi.py),
 [registration](https://github.com/fetchai/uAgents/blob/v0.26.1/python/src/uagents/registration.py),
