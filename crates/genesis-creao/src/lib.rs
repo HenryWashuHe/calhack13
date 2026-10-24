@@ -11,7 +11,7 @@ pub mod runtime;
 
 pub use client::{CreaoClient, PreEffectGuard};
 pub use model::{
-    AgentObservation, CreateAgentRequest, Error, ErrorKind, Limits, NativeRunStatus,
+    AgentObservation, ApiVersion, CreateAgentRequest, Error, ErrorKind, Limits, NativeRunStatus,
     OperationRequest, RunObservation, RunRequest, RunTicket, Stage, WriteAutonomy,
 };
 pub use rate_limiter::{AccountLimiter, LimiterError, QuotaLimits, RequestKind};

@@ -71,6 +71,7 @@ impl CreaoReadinessProbe {
         }
         let spec = OperationSpec {
             schema_version: 1,
+            api_version: self.runtime.api_version(),
             operation_id: format!(
                 "creao-readiness-{}",
                 json_sha256(&json!({"org_id":request.org_id,"challenge_id":request.challenge_id}))
