@@ -21,8 +21,15 @@ when earlier build or run IDs exist; `partial` means unfinished evidence.
 
 Each run works in its own directory, `data/live-gates/apify/<run>/` and
 `data/live-gates/creao/<run>/`, so earlier checkpoints are never touched.
-The result records the exact `resume` command (`genesis-forge step …` or
-`genesis-creao step …`) for a run that stopped at the step limit.
+CREAO's quota database is per account, not per run
+(`data/live-gates/creao/quota.sqlite`), so request/write debits and
+cooldowns carry across runs.
+
+For a run that stopped, the result records the next step as `resume` (a
+shell-quoted command using the absolute binary path) and `resume_argv` (the
+same thing as an array). It includes `--retry-read` only when the CLI's own
+last record explicitly allows a read retry, so running it advances the saved
+operation. Never rerun `prepare` for a stopped run.
 
 | Gate | Credentials | What runs | Evidence recorded | Pass means |
 | --- | --- | --- | --- | --- |
