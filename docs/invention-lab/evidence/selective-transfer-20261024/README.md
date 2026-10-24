@@ -52,8 +52,11 @@ parent converges to one design that solves all twelve instances.
 - **Not adoption.** B has a retained, eligible, accepted trial. Turning that
   into an adoption record and an invocation grant is the receiver-pinned path in
   #155/#159, which are unmerged. If they merge, this trial's exact plan
-  reference is what a receiver `acceptance_plans` pin would name. That is a
-  separate decision.
+  reference is what a receiver `acceptance_plans` pin would name: the merged
+  #154 assessor (`assess_selected`, run locally on #159 `db0deec` over a copy of
+  these records) recomputes `Accepted 12/12 vs 7/12` and plan reference
+  `c3207684…a8c11` for `st-rough-transport`, and `Rejected` for
+  `st-ravine-crossing`. Adopting is a separate decision.
 - **Not improvement.** The method is unchanged from A's generation. Nothing
   here shows a revised method beating its parent, and the one revision so far
   (B's child) regressed. G3 and G4 stay open.
