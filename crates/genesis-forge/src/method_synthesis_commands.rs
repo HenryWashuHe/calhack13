@@ -131,14 +131,16 @@ async fn execute_once(
 }
 fn status(session: &MethodSynthesisSession) -> Result<(), String> {
     let completion = session.completion();
-    emit(
-        &serde_json::json!({"operation_id":session.plan().operation_id,"org_id":session.plan().org_id,
+    let mut value = serde_json::json!({"operation_id":session.plan().operation_id,"org_id":session.plan().org_id,
         "phase":session.phase(),"settings":session.plan().settings,"plan_sha256":session.plan().sha256().map_err(|e|e.to_string())?,
         "request_sha256":completion.map(|c|&c.request_sha256),"wire_sha256":completion.map(|c|&c.wire_sha256),
         "transport":completion.map(|c|c.transport),"actual_model":completion.and_then(|c|c.actual_model.as_ref()),"usage":completion.map(|c|&c.usage),
         "package":session.package().ok().and_then(|p|p.reference().ok()),
-        "authority":"none: generated source, not execution, acceptance or improvement; provider-default sampling is not fixed G4 evidence"}),
-    )
+        "authority":"none: generated source, not execution, acceptance or improvement; provider-default sampling is not fixed G4 evidence"});
+    if let Some(diagnostic) = completion.and_then(|c| c.diagnostic) {
+        value["diagnostic"] = serde_json::to_value(diagnostic).map_err(|e| e.to_string())?;
+    }
+    emit(&value)
 }
 
 // A partial project configuration never falls back to another provider/model.

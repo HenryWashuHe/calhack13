@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "roster": {
+    "schema_version": 1,
+    "id": "live-a-method-20261024t155248z-397f41fb-roster",
+    "settings": {
+      "model": "claude-sonnet-5-5",
+      "max_tokens": 8192,
+      "timeout_ms": 120000,
+      "sampling": "provider_default"
+    },
+    "total_grant": {
+      "model_calls": 1,
+      "input_tokens": 32768,
+      "output_tokens": 8192,
+      "wall_time_ms": 120000,
+      "simulation_steps": 0
+    },
+    "attempts": [
+      {
+        "org_id": "org_example_a",
+        "operation_id": "live-a-method-20261024t155248z-397f41fb",
+        "plan_sha256": "e647b75a8798d72bb6d16f318bc9a13058fed0d6ddac78b34e86ae4c07a8c561",
+        "request_sha256": "c5fef16f1e73876831e4866f31a5dfb1db51d91a25ddc611d79604e23d53e52d",
+        "checkpoint_sha256": "b400ea5632f4b4be5b4fc6a5abb3d102d98ec179fcc20a641bf41013540567e4"
+      }
+    ]
+  },
+  "reserved_prepared_checkpoints": []
+}

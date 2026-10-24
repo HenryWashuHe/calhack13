@@ -1,0 +1,13 @@
+{
+  "source_commit": "7d6119de3a894c3b87c05f9e1fba016050f69d79",
+  "operation_id": "live-a-method-20261024t155248z-397f41fb",
+  "previous_failed_operation": "live-a-method-20261024t152819z-2a3e0b5a",
+  "attempt_number": 2,
+  "model": "claude-sonnet-5-5",
+  "transport": "anthropic_https",
+  "provider_call_limit": 1,
+  "output_token_limit": 8192,
+  "request_timeout_ms": 120000,
+  "source_execution": "not_performed",
+  "intent": "fresh attempt; earlier failed reservation and usage remain retained"
+}
