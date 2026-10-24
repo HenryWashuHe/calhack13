@@ -145,53 +145,49 @@ export function summarizeVerification(m: CapabilityManifest): VerificationSummar
 
 export const capabilityKey = (c: { capability_id: string; version: string }) => `${c.capability_id}@${c.version}`;
 
-/** Installation an acceptance run belongs to, from the backend run purpose. */
-export function acceptanceInstallation(r: CapabilityRunRecord | undefined): string | null {
-  const p = r?.purpose;
-  return p && (p.kind === "local_acceptance" || p.kind === "adoption_acceptance") ? p.installation_id : null;
-}
-
-export interface InstallationRuns {
-  /** Acceptance runs whose backend purpose names this installation. */
-  acceptance: Job[];
-  /**
-   * Other runs of the same capability version: invocations and runs whose
-   * record is not loaded or not backend-managed. Not evidence for this
-   * installation's acceptance.
-   */
-  other: Job[];
-}
-
-/**
- * Split a capability version's runs for one installation card. Acceptance
- * evidence is bound by the run's installation ID, never by version alone, so
- * two installations of one version never show each other's acceptance runs.
- */
-export function runsForInstallation(
-  jobs: Job[],
-  records: Record<string, CapabilityRunRecord | undefined>,
-  inst: Installation,
-): InstallationRuns {
-  const acceptance: Job[] = [];
-  const other: Job[] = [];
-  for (const j of jobsForInstallation(jobs, inst)) {
-    const owner = acceptanceInstallation(records[j.job_id]);
-    if (owner === inst.installation_id) acceptance.push(j);
-    else if (owner === null) other.push(j);
-    // else: another installation's acceptance run
-  }
-  return { acceptance, other };
-}
-
-/** Run phases after which the backend record no longer changes by itself. */
-export const FINAL_PHASES = new Set(["collected", "failed", "rejected"]);
-
-/** Capability jobs for this exact capability version, newest first. */
+/** Capability jobs for one installation, newest first. */
 export function jobsForInstallation(jobs: Job[], inst: Installation): Job[] {
   const key = capabilityKey(inst.capability);
   return jobs
     .filter((j) => j.capability && capabilityKey(j.capability) === key)
     .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+}
+
+/** The installation a run record is bound to, if its purpose names one. */
+export function runInstallation(r: CapabilityRunRecord | undefined): string | null {
+  const p = r?.purpose;
+  return p && (p.kind === "local_acceptance" || p.kind === "adoption_acceptance") ? p.installation_id : null;
+}
+
+export interface InstallationJobs {
+  /** Acceptance runs whose backend purpose names this installation. */
+  bound: Job[];
+  /**
+   * Jobs for the same capability version not bound to an installation
+   * (invocations, records still loading or unavailable). Shown separately:
+   * they are not this installation's acceptance evidence.
+   */
+  unbound: Job[];
+}
+
+/**
+ * Split a capability version's jobs for one installation. Several
+ * installations of one exact version can exist (a stopped adoption intent and
+ * a fresh one); acceptance runs bound to another installation are excluded.
+ */
+export function partitionJobs(
+  jobs: Job[],
+  inst: Installation,
+  records: Record<string, CapabilityRunRecord | undefined>,
+): InstallationJobs {
+  const bound: Job[] = [];
+  const unbound: Job[] = [];
+  for (const j of jobsForInstallation(jobs, inst)) {
+    const owner = runInstallation(records[j.job_id]);
+    if (owner === null) unbound.push(j);
+    else if (owner === inst.installation_id) bound.push(j);
+  }
+  return { bound, unbound };
 }
 
 /** Roles that currently hold this exact capability version. */

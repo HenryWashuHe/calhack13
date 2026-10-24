@@ -5,7 +5,7 @@ import {
   describeOutput,
   failureKind,
   jobsForInstallation,
-  runsForInstallation,
+  partitionJobs,
   summarizeRun,
   summarizeVerification,
 } from "./capabilities";
@@ -98,7 +98,7 @@ describe("jobsForInstallation", () => {
   });
 });
 
-describe("runsForInstallation", () => {
+describe("partitionJobs parent regressions", () => {
   const cap = { capability_id: "venue-extractor", version: "1.0.0" };
   const job = (id: string, at: string) => ({ job_id: id, created_at: at, capability: cap }) as unknown as Job;
   const acceptance = (installation_id: string) =>
@@ -114,13 +114,13 @@ describe("runsForInstallation", () => {
       jb: { job_id: "jb", phase: "collected", purpose: { kind: "local_acceptance", installation_id: "inst_b", suite_id: "s" } } as const,
       inv: { job_id: "inv", phase: "collected", purpose: { kind: "invocation" } } as const,
     };
-    const forA = runsForInstallation(jobs, records, a);
-    const forB = runsForInstallation(jobs, records, b);
-    expect(forA.acceptance.map((j) => j.job_id)).toEqual(["ja"]);
-    expect(forB.acceptance.map((j) => j.job_id)).toEqual(["jb"]);
+    const forA = partitionJobs(jobs, a, records);
+    const forB = partitionJobs(jobs, b, records);
+    expect(forA.bound.map((j) => j.job_id)).toEqual(["ja"]);
+    expect(forB.bound.map((j) => j.job_id)).toEqual(["jb"]);
     // Invocations and runs without a loaded record are shown separately.
-    expect(forA.other.map((j) => j.job_id)).toEqual(["unknown", "inv"]);
-    expect(forB.other.map((j) => j.job_id)).toEqual(["unknown", "inv"]);
+    expect(forA.unbound.map((j) => j.job_id)).toEqual(["unknown", "inv"]);
+    expect(forB.unbound.map((j) => j.job_id)).toEqual(["unknown", "inv"]);
   });
 
   it("labels adoption acceptance runs", () => {

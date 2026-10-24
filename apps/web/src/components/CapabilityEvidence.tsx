@@ -1,5 +1,5 @@
 import type { Installation, Job, OrgState } from "../lib/contracts";
-import { capabilityKey, holders, runsForInstallation, summarizeRun, summarizeVerification } from "../lib/capabilities";
+import { capabilityKey, holders, partitionJobs, summarizeRun, summarizeVerification } from "../lib/capabilities";
 import { NOT_MANAGED, type CapabilityEvidence as Evidence } from "../lib/useCapabilityEvidence";
 import { DEV_ASSERTION } from "../lib/capabilities";
 import { short } from "../lib/graph";
@@ -61,7 +61,7 @@ function Manifest({ inst, evidence }: { inst: Installation; evidence: Evidence }
   );
 }
 
-function Runs({ jobs, evidence, empty }: { jobs: Job[]; evidence: Evidence; empty: string }) {
+function Runs({ jobs, evidence, empty = "No pinned runs yet." }: { jobs: Job[]; evidence: Evidence; empty?: string }) {
   if (jobs.length === 0) return <p className="empty">{empty}</p>;
   return (
     <div className="table-wrap">
@@ -119,25 +119,6 @@ function Runs({ jobs, evidence, empty }: { jobs: Job[]; evidence: Evidence; empt
   );
 }
 
-function InstallationRuns({ inst, jobs, evidence }: { inst: Installation; jobs: Job[]; evidence: Evidence }) {
-  const records = Object.fromEntries(
-    Object.entries(evidence.runs).map(([id, l]) => [id, "value" in l ? l.value : undefined]),
-  );
-  const { acceptance, other } = runsForInstallation(jobs, records, inst);
-  return (
-    <>
-      <h4 className="ev-sub">Acceptance runs for this installation</h4>
-      <Runs jobs={acceptance} evidence={evidence} empty="No acceptance runs bound to this installation." />
-      {other.length > 0 && (
-        <>
-          <h4 className="ev-sub">Other runs of this version (not acceptance evidence for this installation)</h4>
-          <Runs jobs={other} evidence={evidence} empty="" />
-        </>
-      )}
-    </>
-  );
-}
-
 export function CapabilityEvidence({
   state,
   jobs,
@@ -149,6 +130,9 @@ export function CapabilityEvidence({
 }) {
   const installs = Object.values(state?.installations ?? {});
   if (installs.length === 0) return null;
+  const records = Object.fromEntries(
+    Object.entries(evidence.runs).map(([id, l]) => [id, "value" in l ? l.value : undefined]),
+  );
   return (
     <div style={{ display: "grid", gap: 12 }}>
       <p className="muted" style={{ margin: 0, fontSize: 12 }}>
@@ -157,6 +141,7 @@ export function CapabilityEvidence({
       </p>
       {installs.map((i) => {
         const owned = holders(state, i);
+        const split = partitionJobs(jobs, i, records);
         return (
           <article key={i.installation_id} className="change ev-card">
             <div className="change-head">
@@ -166,7 +151,18 @@ export function CapabilityEvidence({
               </span>
             </div>
             <Manifest inst={i} evidence={evidence} />
-            <InstallationRuns inst={i} jobs={jobs} evidence={evidence} />
+            <h4 className="ev-sub">Acceptance runs for this installation</h4>
+            <Runs jobs={split.bound} evidence={evidence} empty="No acceptance runs bound to this installation yet." />
+            {split.unbound.length > 0 && (
+              <>
+                <h4 className="ev-sub">Other runs of this capability version</h4>
+                <p className="muted" style={{ margin: 0, fontSize: 12 }}>
+                  Not bound to a specific installation (invocations, or records still loading). Not acceptance evidence
+                  for this installation.
+                </p>
+                <Runs jobs={split.unbound} evidence={evidence} />
+              </>
+            )}
           </article>
         );
       })}
