@@ -94,6 +94,7 @@ class Bridge:
         db: str,
         peers: dict[str, str],
         specialist: bool = False,
+        specialist_mode: str | None = None,
         max_records: int = 10000,
         max_bytes: int = 64 * 1024 * 1024,
         http_timeout: float = 5,
@@ -119,7 +120,11 @@ class Bridge:
         self.token = token
         self.peers = validate_peers(peers)
         self.store = Store(db, self.identity.address, max_records, max_bytes)
-        self.specialist = Specialist(self.store) if specialist else None
+        self.specialist = (
+            Specialist(self.store, "advisory" if specialist_mode is None else specialist_mode)
+            if specialist or specialist_mode is not None
+            else None
+        )
         self.http_timeout = http_timeout
         self.app = web.Application(
             middlewares=[errors, self.authenticate], client_max_size=MAX_HTTP
