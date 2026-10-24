@@ -153,8 +153,7 @@ zero model calls and zero Actor creations, and runs only its own suite
 inputs.
 
 Timing matters: if B's need is committed before A publishes, B's search is
-empty. With `synthesis_fallback` B then synthesizes its own; without it B
-stops at `attention: no_candidate`. Re-searching later would need a new
-intent (a retry route is not part of this change).
+empty. With `synthesis_fallback` B then synthesizes its own; without it B's
+gap is refused (`no_candidate`) and the planner may request again later.
 
 No live provider was contacted.
