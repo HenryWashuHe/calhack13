@@ -308,6 +308,12 @@ impl ElasticClient {
     }
 
     /// Ensure the organization's evidence index and the shared capability index.
+    /// Ensure only the shared capability index (used by the registry).
+    pub async fn ensure_capability_index(&self) -> ElasticResult<()> {
+        self.ensure_index(&self.capability_index(), capability_mappings())
+            .await
+    }
+
     pub async fn ensure_indices(&self, org_id: &str) -> ElasticResult<()> {
         self.ensure_index(&self.evidence_index(org_id), evidence_mappings())
             .await?;
