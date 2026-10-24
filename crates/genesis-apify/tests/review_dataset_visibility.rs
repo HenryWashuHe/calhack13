@@ -16,7 +16,9 @@ async fn review_visibility_accepts_the_fifth_read_and_preserves_the_frozen_recei
     replies.push(Reply::json(json!([output()])));
     let mock = Mock::serve(replies).await;
     let expected = request();
-    let receipt = mock.client(limits()).execute(&expected).await.unwrap();
+    let mut config = limits();
+    config.deadline = Duration::from_secs(10);
+    let receipt = mock.client(config).execute(&expected).await.unwrap();
     assert_eq!(receipt.artifact, expected.artifact);
     assert_eq!(receipt.source, expected.source);
     assert_eq!(receipt.input_sha256, json_sha256(&expected.input));
