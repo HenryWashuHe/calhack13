@@ -1227,3 +1227,110 @@ fn repeated_refusals_stop_the_same_request_but_new_evidence_starts_fresh() {
     )
     .expect("a new requirement starts fresh");
 }
+
+/// Henry's Claude: an accepted adoption may install a gap straight from
+/// `open`, even under another capability ID (adoption discovers by
+/// requirement, not name). Only the dedicated backend transition can do it;
+/// no acquisition ID, prefixed or not, opens that path through
+/// `update_capability_gap`.
+#[test]
+fn an_accepted_adoption_installs_an_open_gap_and_nothing_else_can() {
+    let d = demo(Some(PORTAL));
+    let mut state = run(
+        &d,
+        vec![assign(&d), request(&d, &[PORTAL])],
+        &StaticCatalog::default(),
+    )
+    .unwrap()
+    .state;
+    let gap = state.capability_gaps.keys().next().unwrap().clone();
+    let adopted = CapabilityRef::new(CapabilityId::new("venue-reader"), "1.0.0".to_string());
+    let install = |status| Installation {
+        installation_id: InstallationId::new("inst_adopted"),
+        capability: adopted.clone(),
+        status,
+        configuration: serde_json::Value::Null,
+        acceptance_report_ref: Some("local-acceptance:x".into()),
+        source_digest: "sha256:x".into(),
+        installed_at: Utc::now(),
+    };
+    let binding = AdoptionInstall {
+        adoption_id: "adoption:ad_1".into(),
+        capability: adopted.clone(),
+        installation_id: InstallationId::new("inst_adopted"),
+    };
+
+    // Not yet accepted: refused.
+    state.installations.insert(
+        InstallationId::new("inst_adopted"),
+        install(genesis_core::lifecycle::InstallationStatus::Checking),
+    );
+    assert!(install_capability_gap_by_adoption_at(&state, &gap, &binding, Utc::now()).is_err());
+    state.installations.insert(
+        InstallationId::new("inst_adopted"),
+        install(genesis_core::lifecycle::InstallationStatus::Accepted),
+    );
+    // Wrong version, `latest`, or a capability the installation isn't: refused.
+    for capability in [
+        CapabilityRef::new(CapabilityId::new("venue-reader"), "2.0.0".to_string()),
+        CapabilityRef::new(CapabilityId::new("venue-reader"), "latest".to_string()),
+        CapabilityRef::new(CapabilityId::new("venue-availability"), "1.0.0".to_string()),
+    ] {
+        let wrong = AdoptionInstall {
+            capability,
+            ..binding.clone()
+        };
+        assert!(install_capability_gap_by_adoption_at(&state, &gap, &wrong, Utc::now()).is_err());
+    }
+    // A fabricated prefixed ID cannot use the ordinary transition from open.
+    let forged = update_capability_gap(
+        &state,
+        &gap,
+        CapabilityGapStatus::Installed {
+            acquisition_id: "adoption:ad_1".into(),
+            capability: adopted.clone(),
+            installation_id: InstallationId::new("inst_adopted"),
+        },
+    );
+    assert_eq!(forged.unwrap_err().code, ValidationCode::InvalidTransition);
+
+    // The backend transition records exactly what was adopted and wakes the planner once.
+    let out = install_capability_gap_by_adoption_at(&state, &gap, &binding, Utc::now()).unwrap();
+    let g = &out.state.capability_gaps[&gap];
+    assert_eq!(
+        g.capability_id,
+        CapabilityId::new("venue-availability"),
+        "the request keeps its own name"
+    );
+    assert_eq!(
+        g.status,
+        CapabilityGapStatus::Installed {
+            acquisition_id: "adoption:ad_1".into(),
+            capability: adopted.clone(),
+            installation_id: InstallationId::new("inst_adopted"),
+        }
+    );
+    let notes = out
+        .state
+        .observations
+        .values()
+        .filter(|o| o.source == CAPABILITY_GAP_SOURCE)
+        .count();
+    assert_eq!(notes, 1);
+    assert!(genesis_core::audit::audit(&out.state).is_empty());
+    assert!(genesis_core::audit::audit_transition(&state, &out.state).is_empty());
+    // Final: neither path can move it again.
+    assert!(install_capability_gap_by_adoption_at(&out.state, &gap, &binding, Utc::now()).is_err());
+
+    // Only from open: a gap already bound to an acquisition is not adoptable.
+    let acquiring = update_capability_gap(
+        &state,
+        &gap,
+        CapabilityGapStatus::Acquiring {
+            acquisition_id: "acq_1".into(),
+        },
+    )
+    .unwrap()
+    .state;
+    assert!(install_capability_gap_by_adoption_at(&acquiring, &gap, &binding, Utc::now()).is_err());
+}

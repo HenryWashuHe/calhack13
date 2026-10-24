@@ -20,6 +20,7 @@ pub mod capability_adoption_store;
 pub mod capability_authority;
 pub mod capability_evidence;
 pub mod capability_finalization;
+pub mod capability_gap_adoption;
 pub mod capability_gap_driver;
 pub mod capability_gap_finalizer;
 pub mod capability_gap_policy;
@@ -124,6 +125,9 @@ pub struct OrgConfig {
     /// Explicit trusted opt-in to publishing, installing and locally accepting
     /// verified gap acquisitions (`acquired` → `installed`). Off by default.
     pub gap_finalization_policy: Option<capability_gap_finalizer::GapFinalizationPolicy>,
+    /// Explicit trusted opt-in to adopting an existing foreign publication for
+    /// a committed gap before any synthesis (`open` → `installed`). Off by default.
+    pub gap_adoption_policy: Option<capability_gap_adoption::GapAdoptionPolicy>,
 }
 
 impl std::fmt::Debug for OrgConfig {
@@ -143,6 +147,10 @@ impl std::fmt::Debug for OrgConfig {
             .field(
                 "gap_finalization_configured",
                 &self.gap_finalization_policy.is_some(),
+            )
+            .field(
+                "gap_adoption_configured",
+                &self.gap_adoption_policy.is_some(),
             )
             .finish_non_exhaustive()
     }
@@ -170,6 +178,7 @@ impl OrgConfig {
             acquisition: None,
             gap_acquisition_policy: None,
             gap_finalization_policy: None,
+            gap_adoption_policy: None,
         }
     }
 }
@@ -199,6 +208,22 @@ pub fn demo_constitution() -> Constitution {
 
 /// Open the store, initialize revision 0 if needed, and build the app state.
 pub fn build_org(cfg: &OrgConfig, providers: Option<ProviderSet>) -> anyhow::Result<AppState> {
+    if let Some(policy) = &cfg.gap_adoption_policy {
+        policy.validate()?;
+        anyhow::ensure!(
+            cfg.registry_url.is_some(),
+            "gap adoption requires a capability registry"
+        );
+        for rule in &policy.rules {
+            anyhow::ensure!(
+                cfg.oracle_suites
+                    .iter()
+                    .any(|s| s.suite_id == rule.suite_id),
+                "gap adoption rule {} names an unknown suite",
+                rule.capability_id
+            );
+        }
+    }
     if let Some(policy) = &cfg.gap_finalization_policy {
         policy.validate()?;
         anyhow::ensure!(
@@ -261,6 +286,7 @@ pub fn build_org(cfg: &OrgConfig, providers: Option<ProviderSet>) -> anyhow::Res
     store.init_gap_acquisitions()?;
     store.init_gap_driver()?;
     store.init_gap_finalizer()?;
+    store.init_gap_adoption()?;
     if let Some(config) = &cfg.acquisition {
         store.init_acquisitions(&config.policy)?;
         store.init_acquisition_driver()?;
@@ -308,6 +334,7 @@ pub fn build_org(cfg: &OrgConfig, providers: Option<ProviderSet>) -> anyhow::Res
         automatic_acquisition: cfg.acquisition.as_ref().is_some_and(|c| c.automatic),
         gap_acquisition_policy: cfg.gap_acquisition_policy.clone().map(Arc::new),
         gap_finalization_policy: cfg.gap_finalization_policy.clone().map(Arc::new),
+        gap_adoption_policy: cfg.gap_adoption_policy.clone().map(Arc::new),
         acquisition_runtime,
         adoption_gate: Arc::new(Mutex::new(())),
         registry,
@@ -368,6 +395,9 @@ pub async fn serve_org(app: AppState, listener: TcpListener) -> anyhow::Result<(
         .gap_finalization_policy
         .is_some()
         .then(|| AbortWorker(capability_gap_finalizer::spawn(app.clone())));
+    // Always runs: frozen adopt-first intents finish even if the policy is
+    // later removed (the driver keeps deferring their gaps until they do).
+    let _gap_adoption = AbortWorker(capability_gap_adoption::spawn(app.clone()));
     let _specialist_worker =
         specialist::spawn(app.clone(), Duration::from_millis(500)).map(AbortWorker);
     let _outbox_worker = AbortWorker(outbox::spawn(app.clone()));
