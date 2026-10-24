@@ -1,5 +1,5 @@
 use crate::synthesis::SynthesisSession;
-use crate::{venue_source, CandidateSpec, ForgeStateError, SourcePackage};
+use crate::{venue_source, venue_source_for_actor, CandidateSpec, ForgeStateError, SourcePackage};
 use genesis_apify::SourceFile;
 use serde_json::json;
 
@@ -15,6 +15,21 @@ use serde_json::json;
 pub fn generated_candidate(
     generation: &SynthesisSession,
 ) -> Result<CandidateSpec, ForgeStateError> {
+    package_candidate(generation, false)
+}
+
+// Only acquisition restoration uses this exact old recipe. It must never become
+// a fresh-generation fallback or rewrite an existing package or provider intent.
+pub(crate) fn legacy_generated_candidate(
+    generation: &SynthesisSession,
+) -> Result<CandidateSpec, ForgeStateError> {
+    package_candidate(generation, true)
+}
+
+fn package_candidate(
+    generation: &SynthesisSession,
+    legacy: bool,
+) -> Result<CandidateSpec, ForgeStateError> {
     generation
         .validate()
         .map_err(|_| ForgeStateError::InvalidCandidate)?;
@@ -25,12 +40,21 @@ pub fn generated_candidate(
     let receipt = generation
         .receipt()
         .ok_or(ForgeStateError::InvalidCandidate)?;
-    let source = venue_source(parser, &request.allowed_source_urls)?;
+    let source = if legacy {
+        venue_source(parser, &request.allowed_source_urls)?
+    } else {
+        venue_source_for_actor(
+            parser,
+            &request.allowed_source_urls,
+            &request.candidate.actor_name,
+            &request.candidate.source_version,
+        )?
+    };
     let mut files = source.files().to_vec();
     files.push(SourceFile {
         name: "genesis-synthesis.json".into(),
         content: serde_json::to_string_pretty(&json!({
-            "format": "genesis-synthesis-v1",
+            "format": if legacy { "genesis-synthesis-v1" } else { "genesis-synthesis-v2" },
             "operation_id": request.operation_id,
             "candidate": request.candidate,
             "receipt": {

@@ -877,6 +877,11 @@ fn sanitize(error: ProviderError) -> ProviderError {
         ProviderError::Rejected(_) => {
             ProviderError::Rejected("capability provider rejected the operation".into())
         }
+        // Kept distinct: a confirmed terminal run is the only provider
+        // failure after submission that proves the external effect stopped.
+        ProviderError::RunFailed(_) => {
+            ProviderError::RunFailed("capability provider run reached a terminal failure".into())
+        }
         ProviderError::Unknown(_) => ProviderError::Unknown(
             "capability provider outcome requires reconciliation or a saved-ticket read".into(),
         ),
