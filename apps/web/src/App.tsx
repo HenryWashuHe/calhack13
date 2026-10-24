@@ -75,7 +75,7 @@ function Console({ ep }: { ep: OrgEndpoint }) {
         <GapIntakeContext.Provider value={intake}>
           <main className="layout">
             <MissionPanel state={view.state} api={view.api} />
-            <OrgPanel api={view.api} state={view.state} changes={view.changes} />
+            <OrgPanel api={view.api} state={view.state} changes={view.changes} events={view.events} />
             <AttentionPanel api={view.api} changes={view.changes} jobs={view.jobs} events={view.events} state={view.state} />
             <EvidencePanel events={view.events} state={view.state} />
             <Deck api={view.api} changes={view.changes} jobs={view.jobs} state={view.state} events={view.events} ledger={view.ledger} />
