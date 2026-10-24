@@ -126,6 +126,11 @@ struct OrgArgs {
     /// publication (verified by this organization's own suite) before synthesis.
     #[arg(long, value_name = "FILE", requires = "registry_url")]
     gap_adoption_policy: Option<PathBuf>,
+    /// Trusted JSON receiver configuration (runtime, protocol, environments,
+    /// evaluators, allowed dependencies, retained-records root) enabling
+    /// method adoption decisions and the invocation check.
+    #[arg(long, value_name = "FILE", requires = "registry_url")]
+    method_receiver: Option<PathBuf>,
     #[arg(long, env = "GENESIS_REGISTRY_URL")]
     registry_url: Option<String>,
     #[arg(long, env = "GENESIS_REGISTRY_TOKEN")]
@@ -282,6 +287,7 @@ async fn main() -> anyhow::Result<()> {
                 gap_acquisition_policy,
                 gap_finalization_policy,
                 gap_adoption_policy,
+                method_receiver,
                 registry_url,
                 registry_token,
                 operator_token,
@@ -367,7 +373,13 @@ async fn main() -> anyhow::Result<()> {
                     .context("configuring the acquisition Apify client")?;
                 config.automatic = auto_acquire;
             }
-            let app = genesis_server::attach_elastic_from_env(build_org(&cfg, Some(providers))?)?;
+            let mut app =
+                genesis_server::attach_elastic_from_env(build_org(&cfg, Some(providers))?)?;
+            app.method_receiver = method_receiver
+                .as_deref()
+                .map(load_trusted_json::<genesis_server::method_adoption::MethodReceiver>)
+                .transpose()?
+                .map(Arc::new);
             let listener = tokio::net::TcpListener::bind(&bind).await?;
             tracing::info!(org = %cfg.org_id, %bind, "organization listening");
             genesis_server::serve_org(app, listener).await
