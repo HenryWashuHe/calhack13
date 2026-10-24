@@ -1,0 +1,10 @@
+{
+  "source_commit": "be72815321ce784c1d487dbf94b9c1521b72325d",
+  "operation_id": "live-a-method-20261024t152819z-2a3e0b5a",
+  "prepared_utc": "2026-10-24T15:28:20.468307+00:00",
+  "plan_file_sha256": "3672f6882657e831af90099e0c97ccf70e27945b1d494c8f70c79b43303d302e",
+  "model": "claude-sonnet-5-5",
+  "provider_requests_authorized": 1,
+  "generated_source_executed": false,
+  "notes": "Source generation only; no runtime/scoring/adoption claim. Unknown provider outcome must not replay."
+}
