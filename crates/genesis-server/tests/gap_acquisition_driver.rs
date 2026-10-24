@@ -441,6 +441,60 @@ async fn failed_gap_transition_recovers_the_already_committed_child_exactly_once
 }
 
 #[tokio::test]
+async fn missing_or_changed_suite_keeps_a_frozen_binding_in_attention_without_a_child() {
+    for missing in [false, true] {
+        let mut f = Fixture::new(
+            if missing {
+                "gap-missing-suite"
+            } else {
+                "gap-changed-suite"
+            },
+            None,
+        )
+        .await;
+        f.sql().execute_batch("CREATE TRIGGER fail_gap_child BEFORE INSERT ON acquisition_history WHEN NEW.event_kind='created' BEGIN SELECT RAISE(ABORT,'PRIVATE_SUITE_TEST_STOP'); END;").unwrap();
+        assert!(drain_once(&f.app).await.is_err());
+        let frozen = f
+            .app
+            .store
+            .gap_acquisition_binding(f.gap_id.as_str())
+            .unwrap()
+            .unwrap();
+        f.sql()
+            .execute_batch("DROP TRIGGER fail_gap_child;")
+            .unwrap();
+        if missing {
+            f.config.oracle_suites.clear();
+        } else {
+            f.config.oracle_suites[0]
+                .scope
+                .push_str(" changed backend contract");
+        }
+        f.reopen(policy());
+        for _ in 0..2 {
+            drain_once(&f.app).await.unwrap();
+        }
+        let status = genesis_server::capability_gap_driver::status(&f.app, &f.gap_id).unwrap();
+        assert_eq!(serde_json::to_value(&status).unwrap()["state"], "attention");
+        assert_eq!(
+            serde_json::to_value(status).unwrap()["code"],
+            "configuration"
+        );
+        assert!(f.ids().is_empty());
+        assert_eq!(f.gap().status, CapabilityGapStatus::Open);
+        assert_eq!(f.app.store.acquisition_counters().unwrap().total_intents, 0);
+        let restored = f
+            .app
+            .store
+            .gap_acquisition_binding(f.gap_id.as_str())
+            .unwrap()
+            .unwrap();
+        assert_eq!(restored.request(), frozen.request());
+        assert!(restored.acquisition_id().is_none());
+    }
+}
+
+#[tokio::test]
 async fn identical_gap_ids_in_independent_organizations_get_distinct_candidates() {
     let a = Fixture::new("gap-org-a", None).await;
     let mut b = Fixture::new("gap-org-b", None).await;
@@ -738,6 +792,57 @@ async fn verified_acquisition_updates_the_gap_without_publishing_or_installing()
     drain_once(&f.app).await.unwrap();
     assert_eq!(f.gap().status, expected);
     assert_eq!(providers.state.lock().unwrap().requests.len(), calls);
+}
+
+#[tokio::test]
+async fn serve_org_drives_a_committed_gap_to_acquired_without_manual_steps() {
+    let providers = Providers::start(false).await;
+    let mut f = Fixture::new("gap-startup", Some(&providers)).await;
+    assert_eq!(f.gap().status, CapabilityGapStatus::Open);
+    assert!(f.ids().is_empty());
+    f.config.gap_acquisition_policy = Some(policy());
+    f.config.acquisition.as_mut().unwrap().automatic = true;
+    f.app = build_org(&f.config, None).unwrap();
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let app = f.app.clone();
+    let mut server = RunningServer(tokio::spawn(async move {
+        genesis_server::serve_org(app, listener).await.unwrap();
+    }));
+    // No gap drain, acquisition step or manual check endpoint is called here.
+    tokio::time::timeout(Duration::from_secs(45), async {
+        loop {
+            if matches!(f.gap().status, CapabilityGapStatus::Acquired { .. }) {
+                break;
+            }
+            assert!(
+                !matches!(f.gap().status, CapabilityGapStatus::Refused { .. }),
+                "automatic gap was refused"
+            );
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+    })
+    .await
+    .expect("configured serve_org workers did not acquire the gap");
+    assert_eq!(f.record().session().phase(), AcquisitionPhase::Verified);
+    let CapabilityGapStatus::Acquired {
+        publication_ref, ..
+    } = f.gap().status
+    else {
+        unreachable!()
+    };
+    assert!(publication_ref.is_none());
+    assert!(f.app.current_state().unwrap().installations.is_empty());
+    assert_eq!(f.ids().len(), 1);
+    assert_eq!(providers.count("POST", "/messages"), 1);
+    assert_eq!(providers.count("POST", "/actors"), 1);
+    assert_eq!(providers.count("POST", "/runs"), 3);
+    server.0.abort();
+    assert!((&mut server.0).await.unwrap_err().is_cancelled());
+    let calls = providers.state.lock().unwrap().requests.clone();
+    let counts = f.app.store.acquisition_counters().unwrap();
+    tokio::time::sleep(Duration::from_millis(1100)).await;
+    assert_eq!(providers.state.lock().unwrap().requests, calls);
+    assert_eq!(f.app.store.acquisition_counters().unwrap(), counts);
 }
 
 #[tokio::test]
