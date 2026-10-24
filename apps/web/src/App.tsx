@@ -5,6 +5,7 @@ import { MissionPanel } from "./components/MissionPanel";
 import { OrgPanel } from "./components/OrgPanel";
 import { EvidencePanel } from "./components/EvidencePanel";
 import { Deck } from "./components/Deck";
+import { AttentionPanel } from "./components/AttentionPanel";
 
 function OrgTab({ ep, selected, onSelect }: { ep: OrgEndpoint; selected: boolean; onSelect: () => void }) {
   // Lightweight health poll for the tab badge; the selected org has its own live stream.
@@ -66,6 +67,7 @@ function Console({ ep }: { ep: OrgEndpoint }) {
       <main className="layout">
         <MissionPanel state={view.state} />
         <OrgPanel api={view.api} state={view.state} changes={view.changes} />
+        <AttentionPanel api={view.api} changes={view.changes} jobs={view.jobs} events={view.events} state={view.state} />
         <EvidencePanel events={view.events} state={view.state} />
         <Deck changes={view.changes} jobs={view.jobs} state={view.state} events={view.events} ledger={view.ledger} />
       </main>
