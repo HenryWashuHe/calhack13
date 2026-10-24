@@ -386,10 +386,13 @@ export function OrgPanel({
             Viewing revision r{viewRevision} as it was committed. In-flight changes are hidden.
           </div>
         )}
-        {shown && (
+        {/* Mounted on `state`, not `shown`: `shown` is null while a historical
+            revision loads, and a remount would rerun the whole-history audit on
+            every replay step or slider move. */}
+        {state && (
           <AuditStrip
             api={api}
-            shown={shown.revision}
+            shown={shown?.revision ?? viewRevision ?? current}
             current={current}
             onSelect={(rev) => {
               stopReplay();
