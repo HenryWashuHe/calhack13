@@ -159,6 +159,23 @@ attention if missed; loopback tests set them by hand):
 - [ ] Start A's planner before A's observation; start B's planner only after
       A's gap shows INSTALLED.
 
+Most of this list is checked by one offline command, which parses the real
+files with the server's own types and cross-checks them (suite pages inside
+the source allowlist and on the tunnel host, `capability.acquire` and the
+finalization permissions held by a starting role and inside the constitution,
+B's adoption suite present and B holding A's manifest permissions, fallback
+off, `ANTHROPIC_API_KEY`/`APIFY_TOKEN`/`GENESIS_AUDIT_COMMITS=1` set). It
+prints PASS/WARN/FAIL, never a secret, and exits 1 on any FAIL:
+
+```sh
+cargo run -p genesis-server --example preflight_autonomy -- --tunnel https://<host> \
+  --a-mission … --a-constitution … --a-suite … --a-gaps … --a-finalize … \
+  --b-mission … --b-constitution … --b-suite … --b-adopt …
+```
+
+It can't check registry tokens or that B's Apify account can run A's Actor;
+those stay manual.
+
 Rehearse it without keys: `cargo run -p genesis-server --example
 rehearse_autonomy` starts the registry and both orgs on the console's default
 ports with a slowed fixture provider (`REHEARSAL_DELAY_MS`), then runs A's and
