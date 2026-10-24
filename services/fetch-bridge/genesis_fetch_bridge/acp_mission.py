@@ -244,35 +244,54 @@ def summarize_org(state: dict) -> str:
 
 
 def summarize_methods(state: dict) -> tuple[str, list[str]]:
-    """Installed capabilities (and, once #124 adds the kind, methods) by exact id@version, with holders."""
+    """Installed capabilities (and, once #124 adds the kind, methods) by exact id@version, with holders.
+    Display labels are shortened; the ids returned for buttons are exact and validated, and the text is
+    bounded by MAX_REPLY with an explicit continuation."""
     names = RoleNames(state)
     holders: dict[str, list[str]] = {}
     for role in state.get("roles", {}).values():
         if not isinstance(role, dict) or role.get("state") == "RETIRED":
             continue
         for cap in role.get("capabilities") or []:
-            if isinstance(cap, dict):
-                key = f"{clean(cap.get('capability_id'), 60)}@{clean(cap.get('version'), 20)}"
-                holders.setdefault(key, []).append(names(role.get("role_id")))
-    lines = []
-    ids: list[str] = []
+            if isinstance(cap, dict) and isinstance(cap.get("capability_id"), str) and isinstance(cap.get("version"), str):
+                holders.setdefault((cap["capability_id"], cap["version"]), []).append(names(role.get("role_id")))
+    entries: list[tuple[str, str]] = []  # (exact id, line)
     for inst in state.get("installations", {}).values():
-        if not isinstance(inst, dict) or not isinstance(inst.get("capability"), dict):
+        cap = inst.get("capability") if isinstance(inst, dict) and isinstance(inst.get("capability"), dict) else None
+        if not cap or not isinstance(cap.get("capability_id"), str) or not isinstance(cap.get("version"), str):
             continue
-        cap = inst["capability"]
-        cid = clean(cap.get("capability_id"), 60)
-        key = f"{cid}@{clean(cap.get('version'), 20)}"
-        who = ", ".join(holders.get(key, [])) or "no role holds it"
-        lines.append(f"- {key}: installation {clean(inst.get('status'), 20).lower()}; held by {who}")
-        if cid not in ids:
-            ids.append(cid)
-    gaps = [g for g in state.get("capability_gaps", {}).values() if isinstance(g, dict)]
-    if gaps:
-        lines.append("Requested, not yet installed: " + "; ".join(f"{clean(g.get('capability_id'), 50)} {gap_state(g.get('status'))}" for g in gaps[:6] if gap_state(g.get("status")).split(" ")[0] != "installed") or "Requested: see above")
-    if not lines:
+        cid, version = cap["capability_id"], cap["version"]
+        who = ", ".join(holders.get((cid, version), [])) or "no role holds it"
+        entries.append((cid, f"- {clean(cid, 80)}@{clean(version, 20)}: installation {clean(inst.get('status'), 20).lower()}; held by {who}"))
+    if not entries:
         return ("No capabilities are installed in this organization yet.", [])
-    head = f"{clean(state.get('name'), 80)} at revision {state.get('revision')}: {len(ids)} capability id(s), exact versions below. Methods (executable development procedures) are not an artifact kind yet; see docs/invention-lab/acp.md."
-    return (head + "\n" + "\n".join(lines[:16]), ids[:4])
+    ids_all = []
+    for cid, _ in entries:
+        if cid not in ids_all:
+            ids_all.append(cid)
+    head = (f"{clean(state.get('name'), 80)} at revision {state.get('revision')}: {len(ids_all)} capability id(s), "
+            f"{len(entries)} installation(s), exact versions below. Methods (executable development procedures) "
+            "are not an artifact kind yet; see docs/invention-lab/acp.md.")
+    budget = MAX_REPLY - 220
+    shown: list[str] = []
+    size = len(head)
+    for _, line in entries:
+        if size + len(line) + 1 > budget:
+            break
+        shown.append(line)
+        size += len(line) + 1
+    text = head + "\n" + "\n".join(shown)
+    if len(shown) < len(entries):
+        text += f"\n{len(entries) - len(shown)} more installation(s) not shown. Ask lineage <capability id> for one capability."
+    gaps = [g for g in state.get("capability_gaps", {}).values() if isinstance(g, dict)]
+    pending = [f"{clean(g.get('capability_id'), 50)} {gap_state(g.get('status'))}" for g in gaps if gap_state(g.get("status")).split(" ")[0] != "installed"]
+    if pending and len(text) + 40 < MAX_REPLY:
+        text += "\nRequested, not yet installed: " + "; ".join(pending[:6])
+    shown_ids = []
+    for cid, line in entries:
+        if line in shown and cid not in shown_ids and CAPABILITY_ID.fullmatch(cid):
+            shown_ids.append(cid)
+    return (text[:MAX_REPLY], shown_ids[:4])
 
 
 def render_manifest(manifest: dict, installation: dict | None) -> str:
@@ -601,7 +620,7 @@ class MissionGateway:
                     return
                 if lowered in METHODS_WORDS:
                     text_out, ids = summarize_methods(await self._state())
-                    yield Reply(text_out, [(f"Lineage of {cid}", f"lineage {cid}") for cid in ids])
+                    yield Reply(text_out, [(f"Lineage of {cid[:40]}", f"lineage {cid}") for cid in ids])
                     return
                 if words[0].lower() in LINEAGE_WORDS:
                     if len(words) != 2 or not CAPABILITY_ID.fullmatch(words[1]):
