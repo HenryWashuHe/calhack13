@@ -4,4 +4,5 @@
 pub mod commit;
 pub mod design;
 pub mod family;
+pub mod score;
 pub mod sim;
