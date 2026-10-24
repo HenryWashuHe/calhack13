@@ -67,6 +67,15 @@ therefore survives expiry and release; it does not authorize new work under an
 expired or revoked grant. A missing or inconsistent chain returns an error without
 preparing a request, retrying delivery or changing kernel state.
 
+JSON floats retain their exact binary value through journal decoding. Canonical
+request identity distinguishes `0.0` from `-0.0`; receipts hash the authenticated
+stored messages rather than an equal-looking caller replacement. Eligible sends
+also verify their original outbox digest and cached request. Legacy rows whose
+float values already drifted fail closed instead of being rehashed or replayed.
+Expired or fenced tasks are skipped before those send checks, so historical drift
+cannot block a contract release or unrelated eligible work. No hash-domain or
+journal-schema migration is performed.
+
 The returned Rust types have private construction and serialization support,
 without deserialization into a trusted receipt. Debug formatting hides task input,
 output and offer terms. Serialized receipts contain evidence for trusted backend
@@ -80,8 +89,10 @@ Transport provenance remains separate from domain verification. A specialist can
 return a well-correlated but wrong answer, and a previously authorized task can
 finish after its authority is revoked. The later server integration must validate
 the result against verified source facts and recheck current kernel authority
-before applying any mission effects. That integration remains future work in the
-[scoped mission bridge plan](FETCH_MISSION_BRIDGE_PLAN.md).
+before applying any mission effects. The operator-started
+[venue recovery coordinator](VENUE_RECOVERY.md) implements this boundary on its
+work-in-progress branch; validation and live evidence remain separate. The earlier
+[scoped mission bridge plan](FETCH_MISSION_BRIDGE_PLAN.md) preserves its rationale.
 
 ## Run the complete local proof
 

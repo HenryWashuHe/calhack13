@@ -22,6 +22,7 @@ genesis-apify = { path = "../genesis-apify" }
 genesis-forge = { path = "../genesis-forge" }
 genesis-verification = { path = "../genesis-verification" }
 genesis-elastic.workspace = true
+genesis-fetch = { path = "../genesis-fetch" }
 anyhow.workspace = true
 async-stream = "0.3"
 axum.workspace = true
