@@ -27,7 +27,7 @@ const HELP: &str = "Usage:
   genesis-forge method-admission-status --admission admission.json
   genesis-forge method-generate-status --checkpoint method-generation.json
   genesis-forge method-generate-export --checkpoint method-generation.json
-  genesis-forge method-cost-assess --manifest cost-evidence.json
+  genesis-forge method-cost-assess --manifest cost-evidence.json [--admission admission.json]
   genesis-forge method-roster-prepare --manifest declaration.json --roster roster.json
   genesis-forge method-roster-assess --manifest snapshots.json --roster roster.json
   genesis-forge method-revise-prepare --plan revision.json --parent parent.package.json --checkpoint generation.json
@@ -101,7 +101,7 @@ impl Arguments {
             "prepare" => &["--candidate", "--extractor", "--suite", "--checkpoint"],
             "prepare-generated" => &["--candidate", "--generation", "--suite", "--checkpoint"],
             "method-generate-prepare" => &["--plan", "--checkpoint"],
-            "method-cost-assess" => &["--manifest"],
+            "method-cost-assess" => &["--manifest", "--admission"],
             "method-admission-prepare" => &["--roster", "--admission"],
             "method-admission-status" => &["--admission"],
             "method-roster-prepare" | "method-roster-assess" => &["--manifest", "--roster"],
@@ -163,7 +163,11 @@ impl Arguments {
             }
         }
         for flag in allowed {
-            if command == "method-generate-step" && *flag == "--admission" {
+            if matches!(
+                command.as_str(),
+                "method-generate-step" | "method-cost-assess"
+            ) && *flag == "--admission"
+            {
                 continue;
             }
             if !paths.contains_key(*flag) {
