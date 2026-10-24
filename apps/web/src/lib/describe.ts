@@ -2,6 +2,7 @@
 
 import type { DomainEvent, OrgState } from "./contracts";
 import { roleName, short } from "./graph";
+import { gapLabel } from "./gaps";
 
 export type Category = "organization" | "evidence" | "jobs" | "capabilities" | "changes";
 
@@ -24,7 +25,9 @@ export function describe(ev: DomainEvent, state: OrgState | null): Described {
       return { title: "Mission created", detail: ev.payload.goal, category: "evidence", refs: [ev.payload.mission_id] };
     case "observation_recorded":
       return {
-        title: "Observation",
+        // The kernel's own note after a capability gap became final: it is
+        // what wakes the planner to attach (or work without) the capability.
+        title: ev.payload.source === "kernel.capability_gap" ? "Planner woken: requested capability is final" : "Observation",
         detail: `${ev.payload.source}: ${ev.payload.summary}`,
         category: "evidence",
         refs: [ev.payload.observation_id],
@@ -149,6 +152,24 @@ export function describe(ev: DomainEvent, state: OrgState | null): Described {
         category: "capabilities",
         refs: [],
       };
+    case "capability_gap_opened":
+      return {
+        title: "Capability requested",
+        detail: `${ev.payload.capability_id} for ${r(ev.payload.role_id)}`,
+        category: "capabilities",
+        refs: [ev.payload.gap_id],
+      };
+    case "capability_gap_status_changed": {
+      const from = gapLabel(ev.payload.from);
+      const to = gapLabel(ev.payload.to);
+      return {
+        title: `Requested capability ${to.label.toLowerCase()}`,
+        detail: [`${from.label} → ${to.label}`, to.version, to.detail].filter(Boolean).join(" · "),
+        category: "capabilities",
+        refs: [ev.payload.gap_id],
+        tone: to.tone,
+      };
+    }
     case "reporting_edge_changed":
       return {
         title: "Reporting line changed",
