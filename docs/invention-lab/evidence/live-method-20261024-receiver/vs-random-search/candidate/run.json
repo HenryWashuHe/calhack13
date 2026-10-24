@@ -1,0 +1,19 @@
+{
+  "started": true,
+  "method": {
+    "domain": "genesis",
+    "schema": "development-method-source/1",
+    "id": "generated-method",
+    "version": "0.1.0",
+    "sha256": "8215c3679a06724069759bcbdaa576b64ec0ef1251c5238a797c0cb34962b944"
+  },
+  "submission": {
+    "domain": "genesis-lab",
+    "schema": "lab-design/1",
+    "id": "output",
+    "version": "1",
+    "sha256": "9a7ca944563ba9661ad62bf2ce2016dc2574197cf5629aa1f31a4dd12e188948"
+  },
+  "sealed": true,
+  "finished": true
+}

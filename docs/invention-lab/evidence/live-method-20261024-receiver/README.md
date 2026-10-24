@@ -33,10 +33,9 @@ measured usage, independent scoring and a verdict.
   accepts, against the weakest possible control (a fixed design with no
   experiments). The generated design succeeds on one instance and gets close on
   four others (progress 0.91 to 0.98).
-- **Not better than the hand-written baseline:** the hand-written random-search
-  method gets 2/6 on the same instances, in a separate trial with the same
-  fixed-cart control. It wasn't a slot in this trial, so this is a reference
-  point, not a verdict. Each method also ran only once.
+- **Not better than the hand-written baseline:** see the second trial below.
+  Against random search as the control, the same generated package is
+  `rejected`, 1/6 vs 2/6.
 - **Runtime build:** the package pins `python3 --version` = `Python 3.14.0`. The
   ref names that version string and nothing else. This run used a Linux
   python-build-standalone 3.14.0. The generation host's build and platform
@@ -49,6 +48,25 @@ measured usage, independent scoring and a verdict.
 - **Not shown:** adoption into another org's installed methods, return to A,
   revision, fixed sampling settings or any improvement claim. G0 to G4 stay
   open.
+
+## Second trial: random search as the control
+
+`vs-random-search/` is a separate frozen plan,
+`example-ravine-crossing-generated-vs-random-search`. It has the same
+instances, grants and criterion, and the same generated candidate. Its control
+slot is the hand-written seeded random-search package (`06777e8e…`, runtime
+`Python 3.14.0`). Both slots ran once, under the same sandbox.
+
+| | Generated candidate | Random-search control |
+| --- | ---: | ---: |
+| Experiments / development steps | 24 / 29896 | 38 / 23633 |
+| Scored successes / 6 | 1 | 2 |
+
+Verdict: **`rejected`** (`candidate 1/6 does not exceed control 2/6 by 1`). The
+generated method's submitted design is byte-identical to the one from the first
+trial, so its run was deterministic here. Random search uses a fixed seed. This
+is the honest bar for any claim that generation helps, and this method doesn't
+clear it.
 
 ## Costs
 
@@ -77,6 +95,7 @@ shasum -a 256 -c SHA256SUMS
 lab-score verdict plan.json criterion.json candidate candidate-score control control-score
 lab-exec check plan.json candidate candidate candidate-score
 lab-exec check plan.json control control control-score
+(cd vs-random-search && lab-score verdict plan.json criterion.json candidate candidate-score control control-score)
 genesis-forge method-cost-assess --manifest cost-manifest.json | cmp - cost-report.json
 ```
 
