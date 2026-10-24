@@ -270,6 +270,7 @@ class MissionGateway:
                         # otherwise status would replay events from before that report.
                         self.db.execute("UPDATE reports SET visible_seq = after_seq")
             # Identity is the authenticated sender plus its message id: two senders may reuse a UUID.
+            self._drop_message_only_unique()
             self.db.execute("DROP INDEX IF EXISTS reports_message")
             self.db.execute("CREATE UNIQUE INDEX IF NOT EXISTS reports_sender_message ON reports(sender, message_id)")
             binding = canonical({"identity": identity, "url": self.url, "config": self.config})
@@ -282,6 +283,49 @@ class MissionGateway:
             if self.db.in_transaction:
                 self.db.execute("ROLLBACK")
             self.db.close()
+            raise
+
+    def _drop_message_only_unique(self):
+        """Journals from before sender-scoped identity declared `message_id TEXT UNIQUE`, an
+        inline constraint that no DROP INDEX removes. Rebuild such a table in one transaction,
+        keeping every row (ids, observations, cursors, pending intents) and the id sequence."""
+        def message_only_unique():
+            for index in self.db.execute("PRAGMA index_list(reports)").fetchall():
+                if index["unique"] and index["name"] != "reports_sender_message":
+                    cols = [c["name"] for c in self.db.execute(f"PRAGMA index_info(\"{index['name']}\")")]
+                    if cols == ["message_id"] and index["origin"] == "u":
+                        return True
+            return False
+
+        if not message_only_unique():
+            return
+        self.db.execute("BEGIN IMMEDIATE")
+        try:
+            if message_only_unique():
+                row = self.db.execute("SELECT seq FROM sqlite_sequence WHERE name='reports'").fetchone()
+                sequence = row[0] if row else 0
+                self.db.execute("DROP INDEX IF EXISTS reports_message")
+                self.db.execute("""
+                    CREATE TABLE reports_migrated(
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        observation_id TEXT,
+                        after_seq INTEGER NOT NULL,
+                        created_at TEXT NOT NULL,
+                        sender TEXT NOT NULL DEFAULT '',
+                        message_id TEXT,
+                        summary TEXT NOT NULL DEFAULT '',
+                        visible_seq INTEGER NOT NULL DEFAULT 0
+                    )""")
+                columns = "id, observation_id, after_seq, created_at, sender, message_id, summary, visible_seq"
+                self.db.execute(f"INSERT INTO reports_migrated({columns}) SELECT {columns} FROM reports")
+                self.db.execute("DROP TABLE reports")
+                self.db.execute("ALTER TABLE reports_migrated RENAME TO reports")
+                self.db.execute(
+                    "UPDATE sqlite_sequence SET seq = MAX(seq, ?) WHERE name='reports'", (sequence,))
+            self.db.execute("COMMIT")
+        except BaseException:
+            if self.db.in_transaction:
+                self.db.execute("ROLLBACK")
             raise
 
     def close(self):
