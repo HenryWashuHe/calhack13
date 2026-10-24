@@ -22,9 +22,35 @@ use tokio::sync::{broadcast, Mutex, OwnedMutexGuard};
 #[derive(Clone, Default)]
 pub(crate) struct SagaGates {
     gates: Arc<StdMutex<HashMap<ChangeId, Weak<Mutex<()>>>>>,
+    /// Changes with a live background driver (running or backing off).
+    drivers: Arc<StdMutex<std::collections::HashSet<ChangeId>>>,
+}
+
+/// Held by a background driver; releases its claim when dropped.
+pub(crate) struct DriverClaim {
+    drivers: Arc<StdMutex<std::collections::HashSet<ChangeId>>>,
+    change_id: ChangeId,
+}
+
+impl Drop for DriverClaim {
+    fn drop(&mut self) {
+        if let Ok(mut d) = self.drivers.lock() {
+            d.remove(&self.change_id);
+        }
+    }
 }
 
 impl SagaGates {
+    /// Claim the single background driver slot for a change, or `None` if
+    /// another driver already holds it.
+    pub(crate) fn claim_driver(&self, change_id: &ChangeId) -> Option<DriverClaim> {
+        let mut d = self.drivers.lock().ok()?;
+        d.insert(change_id.clone()).then(|| DriverClaim {
+            drivers: self.drivers.clone(),
+            change_id: change_id.clone(),
+        })
+    }
+
     pub(crate) async fn acquire(&self, change_id: &ChangeId) -> ApiResult<OwnedMutexGuard<()>> {
         let gate = {
             let mut gates = self
@@ -74,6 +100,9 @@ pub struct AppState {
     pub acquisition_policy: Option<Arc<crate::capability_acquisition_store::AcquisitionPolicy>>,
     pub automatic_acquisition: bool,
     pub gap_acquisition_policy: Option<Arc<crate::capability_gap_policy::GapAcquisitionPolicy>>,
+    pub gap_finalization_policy:
+        Option<Arc<crate::capability_gap_finalizer::GapFinalizationPolicy>>,
+    pub gap_adoption_policy: Option<Arc<crate::capability_gap_adoption::GapAdoptionPolicy>>,
     pub acquisition_runtime: Arc<crate::capability_acquisition_runtime::AcquisitionRuntime>,
     pub(crate) adoption_gate: Arc<Mutex<()>>,
 }

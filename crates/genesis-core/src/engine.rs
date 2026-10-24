@@ -1146,13 +1146,7 @@ impl<'a> Sim<'a> {
         if !self.errors.is_empty() {
             return;
         }
-        let requirement_digest = crate::digest::canonical_sha256(&serde_json::json!({
-            "requirement_id": requirement.requirement_id,
-            "mission_id": requirement.mission_id,
-            "summary": requirement.summary,
-            "acceptance": requirement.acceptance,
-            "triggering_evidence": requirement.triggering_evidence,
-        }));
+        let requirement_digest = requirement_digest(&requirement);
         self.st.capability_gaps.insert(
             gap_id.clone(),
             CapabilityGap {
@@ -2105,6 +2099,19 @@ fn acquirable_source(source: &str) -> Option<String> {
     http_origin(source)
 }
 
+/// Digest a capability gap freezes for its requirement: identity, mission,
+/// summary, acceptance and triggering evidence (not status). Recompute it on
+/// the live requirement to tell whether the gap still describes current work.
+pub fn requirement_digest(requirement: &Requirement) -> String {
+    crate::digest::canonical_sha256(&serde_json::json!({
+        "requirement_id": requirement.requirement_id,
+        "mission_id": requirement.mission_id,
+        "summary": requirement.summary,
+        "acceptance": requirement.acceptance,
+        "triggering_evidence": requirement.triggering_evidence,
+    }))
+}
+
 fn valid_capability_name(name: &str) -> bool {
     (3..=64).contains(&name.len())
         && name
@@ -2147,7 +2154,7 @@ pub fn update_capability_gap_at(
 ) -> Result<Outcome, ValidationError> {
     use CapabilityGapStatus as S;
     let invalid = |msg: String| ValidationError::new(ValidationCode::InvalidInput, None, msg);
-    let mut st = state.clone();
+    let st = state.clone();
     let gap = st
         .capability_gaps
         .get(gap_id)
@@ -2256,6 +2263,91 @@ pub fn update_capability_gap_at(
         }
         S::Acquiring { .. } => {}
     }
+    Ok(apply_gap_status(st, gap_id, to, now))
+}
+
+/// Backend-verified adoption of an installed capability for a gap.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AdoptionInstall {
+    /// The adoption intent that selected, checked and accepted it.
+    pub adoption_id: String,
+    /// The exact capability version adopted; its ID may differ from the gap's
+    /// own name, because adoption discovers by requirement, not by name.
+    pub capability: CapabilityRef,
+    pub installation_id: InstallationId,
+}
+
+/// Record a gap `installed` from an accepted adoption (backend only).
+///
+/// This is the one way a gap moves straight from `open` to `installed`, and
+/// the one way it may name a capability other than its own ID. The caller
+/// (the server's gap adoption coordinator) must hold a backend adoption
+/// record that selected this exact version and accepted this installation;
+/// the kernel checks the parts it can see: the gap is open, the version is
+/// exact, and the installation is an accepted local installation of exactly
+/// that capability. [`update_capability_gap_at`] still refuses
+/// `open → installed` for any acquisition ID, whatever its prefix.
+pub fn install_capability_gap_by_adoption_at(
+    state: &OrgState,
+    gap_id: &CapabilityGapId,
+    adoption: &AdoptionInstall,
+    now: DateTime<Utc>,
+) -> Result<Outcome, ValidationError> {
+    let invalid = |msg: String| ValidationError::new(ValidationCode::InvalidInput, None, msg);
+    let gap = state
+        .capability_gaps
+        .get(gap_id)
+        .ok_or_else(|| invalid(format!("unknown capability gap {gap_id}")))?;
+    if gap.status != CapabilityGapStatus::Open {
+        return Err(ValidationError::new(
+            ValidationCode::InvalidTransition,
+            None,
+            format!(
+                "capability gap {gap_id} can only be installed by adoption while open, not {:?}",
+                gap.status
+            ),
+        ));
+    }
+    let id = adoption.adoption_id.trim();
+    if id.is_empty() || adoption.adoption_id.chars().count() > 400 {
+        return Err(invalid("adoption_id must be 1-400 characters".into()));
+    }
+    let c = &adoption.capability;
+    if !valid_capability_name(c.capability_id.as_str())
+        || c.version.trim().is_empty()
+        || c.version.eq_ignore_ascii_case("latest")
+    {
+        return Err(invalid(
+            "adoption must name an exact capability version".into(),
+        ));
+    }
+    let accepted = state
+        .installations
+        .get(&adoption.installation_id)
+        .is_some_and(|i| i.capability == *c && i.status == InstallationStatus::Accepted);
+    if !accepted {
+        return Err(invalid(format!(
+            "installation {} is not an accepted local installation of {}@{}",
+            adoption.installation_id, c.capability_id, c.version
+        )));
+    }
+    let to = CapabilityGapStatus::Installed {
+        acquisition_id: adoption.adoption_id.clone(),
+        capability: c.clone(),
+        installation_id: adoption.installation_id.clone(),
+    };
+    Ok(apply_gap_status(state.clone(), gap_id, to, now))
+}
+
+/// Apply an already validated gap status change: the audit event and, for a
+/// final status on a runnable mission, the planner's wake-up observation.
+fn apply_gap_status(
+    mut st: OrgState,
+    gap_id: &CapabilityGapId,
+    to: CapabilityGapStatus,
+    now: DateTime<Utc>,
+) -> Outcome {
+    use CapabilityGapStatus as S;
     let gap = st.capability_gaps.get_mut(gap_id).expect("checked");
     let from = std::mem::replace(&mut gap.status, to.clone());
     let note = match &to {
@@ -2307,7 +2399,7 @@ pub fn update_capability_gap_at(
         });
     }
     st.revision += 1;
-    Ok(Outcome { state: st, effects })
+    Outcome { state: st, effects }
 }
 
 // ---------------------------------------------------------------------------

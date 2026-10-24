@@ -49,6 +49,23 @@ export function isOpen(item: AttentionItem): boolean {
 }
 
 /** Open items first (actions, unknown outcomes, waiting), then history newest first. */
+/**
+ * A local acceptance check run ("accept <installation> with <suite>") stays
+ * VERIFYING after collection: its verdict is the installation's, decided for
+ * the whole suite at once. Once that installation is accepted or rejected the
+ * run is settled, not waiting for a per-job verifier.
+ */
+function settledCheck(j: Job, state: OrgState | null): boolean {
+  const m = /^accept (\S+) with \S/.exec(j.task);
+  const installation = m ? state?.installations?.[m[1]!] : undefined;
+  return (
+    !!installation &&
+    (installation.status === "ACCEPTED" || installation.status === "REJECTED") &&
+    j.capability?.capability_id === installation.capability.capability_id &&
+    j.capability?.version === installation.capability.version
+  );
+}
+
 export function attention(
   changes: OrgChangeRecord[],
   jobs: Job[],
@@ -116,7 +133,7 @@ export function attention(
         detail: `${j.task} · ${who}${j.raw_status ? ` · provider status ${j.raw_status}` : ""}`,
         refs: [j.job_id],
       });
-    } else if (j.status === "VERIFYING") {
+    } else if (j.status === "VERIFYING" && !settledCheck(j, state)) {
       open.push({
         key: `job-verifying:${j.job_id}`,
         kind: "waiting",

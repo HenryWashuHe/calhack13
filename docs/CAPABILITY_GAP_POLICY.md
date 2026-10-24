@@ -74,7 +74,9 @@ Operators can inspect redacted progress at
 organization's Operator token and does not expose frozen HTML or oracle answers.
 `Acquired` means a verified exact version, not publication or installation.
 This driver does not publish a manifest, grant provider access, accept an
-installation or attach a capability to a role. Those remain separate steps.
+installation or attach a capability to a role. The opt-in gap finalizer
+([CAPABILITY_GAP_FINALIZER.md](CAPABILITY_GAP_FINALIZER.md)) can take a verified
+gap to `installed`; attachment stays a planner decision.
 
 Tests cover strict decoding, bounds, source narrowing, missing examples,
 deterministic identities across serialization/restart, independent organization
@@ -85,3 +87,18 @@ transaction rollback, restart recovery, changed requirements and assignments,
 unknown outcomes and paused reads. A configured server also advances a committed
 gap to `Acquired` using loopback model/Actor responses without manual step calls.
 These are local checks; no live provider evidence is claimed.
+
+## What the planner sees (Henry's Claude)
+
+A rule matches only the exact `capability_id`, the requested `observed_sources`
+must include every suite page and one example page, and the requesting role
+must hold `capability.acquire`. A live planner can't guess any of that, so
+`GET /api/v1/capability-gaps/requestable` (agent or operator token) returns
+each rule's `capability_id` and `observed_sources` (its allowed public URLs)
+plus `required_scope`, and the planner lists them in its prompt. Suite IDs,
+oracle answers, example HTML and model settings are not exposed. The source
+URLs already reach the synthesis model in the acquisition request.
+
+For a demo, give the role that will own the capability `capability.acquire`
+in the mission's role authority (the planner can also create a new role with
+it).
