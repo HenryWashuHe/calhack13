@@ -1,5 +1,6 @@
 //! The namespace sandbox's method root, probed from inside by a real method
-//! process. Needs root (skipped otherwise); Linux only.
+//! process. Needs root (skipped otherwise); compiled on Linux only.
+#![cfg(target_os = "linux")]
 use genesis_lab_exec::sandbox::Mode;
 use std::io::Read;
 use std::os::unix::net::UnixListener;
