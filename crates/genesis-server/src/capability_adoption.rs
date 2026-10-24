@@ -537,6 +537,7 @@ fn finalize(
     // installed in this same transaction (no-op for ordinary adoptions).
     let (outcome, gap_link) = if passed {
         crate::capability_gap_adoption::link_accepted(&app.store, outcome, record)
+            .map_err(|_| internal())?
     } else {
         (outcome, None)
     };

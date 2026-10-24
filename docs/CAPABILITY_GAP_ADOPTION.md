@@ -67,21 +67,29 @@ installation ID.
 
 ## Outcomes
 
-| Adoption result | Gap adoption | Gap driver |
-| --- | --- | --- |
-| Accepted (authority current) | `installed`, same transaction as acceptance | never runs |
-| `no_candidate`, fallback allowed | `released` (terminal, once) | binds and synthesizes |
-| `no_candidate`, no fallback | `attention: no_candidate` | skips |
-| Registry unavailable or ambiguous | `attention: registry` | skips |
-| Invalid candidate | `attention: candidate` | skips |
-| A check failed or its outcome is unknown | `attention: checks` | skips |
-| B's suite rejected the selection | `attention: rejected` | skips |
-| Fenced, or requirement/assignment changed | `attention: authority` | skips |
-| Another adoption holds the requirement, or a limit | `attention: conflict` | skips |
-| Key already bound to a different intent | `attention: invalid_record` | skips |
+| Adoption result | Gap adoption | Kernel gap | Gap driver |
+| --- | --- | --- | --- |
+| Accepted (authority current) | `installed` | `installed`, same transaction as acceptance | never runs |
+| `no_candidate`, fallback allowed | `released` (terminal, once) | stays `open` | binds and synthesizes |
+| `no_candidate`, no fallback | `refused: no_candidate` | `refused` (planner note) | never runs |
+| B's suite rejected the selection | `refused: rejected` | `refused` | never runs |
+| Fenced, or requirement/assignment changed | `refused: authority` | `refused` | never runs |
+| Registry unavailable or ambiguous | `attention: registry` | `open` | skips |
+| Invalid candidate | `attention: candidate` | `open` | skips |
+| A check failed or its outcome is unknown | `attention: checks` | `open` | skips |
+| Installation conflict (e.g. a sibling gap already installed the same pin) | `attention: conflict` | `open` | skips |
+| Key already bound to a different intent | `attention: invalid_record` | `open` | skips |
+| Another adoption holds the requirement grant, or the store is at capacity | stays `active` with code `conflict`; dispatches when the slot frees | `open` | skips |
 
-Attention keeps the adoption ID and never falls back to synthesis: an unknown
-result is not an empty result. The gap stays `open`.
+Definite outcomes refuse the gap the way the gap driver does, so the planner
+hears about it and the gap stops counting against the live-gap limits; the
+refusal carries the adoption ID. A requirement that changed before anything
+was frozen is refused too (no record is written). A role still waiting for
+activation is not a refusal: the gap waits, deferred from the driver.
+
+Uncertain outcomes stop at attention with the adoption ID kept and never fall
+back to synthesis: an unknown result is not an empty result. The gap stays
+`open`.
 
 ## Ownership
 
@@ -89,6 +97,13 @@ The gap driver defers a gap while adoption owns it: the gap's capability has a
 rule and the driver has not already bound it, or a gap-adoption record exists
 that is not `released`. Unreadable records defer. If the driver had already
 bound a gap before adopt-first was enabled, the driver keeps it.
+
+A frozen record finishes under its frozen choices even if the policy is later
+removed: the coordinator always runs, so a removed policy stops new freezes,
+not existing intents. The acceptance link is found by adoption ID, or, if the
+process stopped between creating the adoption and saving its ID, by the
+coordinator's exact key and binding. A storage error while linking fails the
+acceptance transaction so it is retried whole, never split.
 
 ## Why a separate kernel transition
 
@@ -122,7 +137,12 @@ loopback provider:
 - a changed requirement before dispatch creates no adoption; during checks
   it prevents both acceptance linkage and synthesis;
 - an operator's ordinary accepted adoption for the same requirement leaves
-  the gap open; a squatted `gap-adopt:` key is refused as an invalid record.
+  the gap open; a squatted `gap-adopt:` key is refused as an invalid record;
+- a requirement changed before freeze is refused exactly as without
+  adopt-first (one planner note); removing the policy after dispatch still
+  releases and hands over once; a second ruled gap on the same requirement
+  waits for the slot, then reports its own installation conflict; an
+  acceptance that lands before the adoption ID was saved still links.
 
 `tests/two_org_inheritance.rs` runs both organizations end to end with real
 `serve_org` and no operator calls: A's gap is synthesized, verified,
