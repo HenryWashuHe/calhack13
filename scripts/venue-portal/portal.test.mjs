@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { build, jsonSha256, presetSpec, sha256 } from "./lib.mjs";
+import { build, jsonSha256, presetSpec, sha256, withHoldoutExamples } from "./lib.mjs";
 import { writeVariant } from "./generate.mjs";
 import { labHandler, publicHandler } from "./serve.mjs";
 import { combine } from "./combine-fragments.mjs";
@@ -299,4 +299,66 @@ test("impossible calendar dates are refused; leap days are not", () => {
     assert.ok(build(spec, BASE).suite.cases[0].input.requested_window.start.startsWith(good));
   }
   assert.ok(!isCalendarDate("1900-02-29"));
+});
+
+test("held-out examples share no page, URL or venue with the suite, which is unchanged", () => {
+  for (const p of PRESETS) {
+    for (const seed of ["a", "b", "c"]) {
+      const spec = presetSpec(p, seed);
+      const plain = build(spec, BASE);
+      const held = build(withHoldoutExamples(spec, seed), BASE);
+      assert.deepEqual(withHoldoutExamples(spec, seed), withHoldoutExamples(spec, seed), "deterministic");
+      // Verification is byte-identical: holdout only changes synthesis input.
+      assert.deepEqual(held.suite, plain.suite, `${p}/${seed}`);
+      const caseUrls = new Set(held.suite.cases.map((c) => c.input.source_url));
+      const suiteVenues = new Set(
+        held.suite.cases.flatMap((c) => (c.expected.status === "supported" ? c.expected.venues.map((v) => v.venue_id) : [])),
+      );
+      const { examples, allowed_source_urls: allowed } = held.fragment;
+      const examplePages = held.pages.filter((x) => x.role === "example");
+      assert.equal(examples.length, spec.pages.filter((x) => !x.missing).length);
+      // Forge SynthesisRequest limits: 1-8 examples, each allowed, <= 128 KiB.
+      assert.ok(examples.length >= 1 && examples.length <= 8 && allowed.length <= 100);
+      for (const e of examples) {
+        assert.ok(e.url.includes("/examples/") && !caseUrls.has(e.url), e.url);
+        assert.ok(allowed.includes(e.url) && Buffer.byteLength(e.html) <= 128 * 1024);
+        const page = examplePages.find((x) => x.url === e.url);
+        const got = referenceExtract(e.html, e.url, page.sha256);
+        assert.equal(got.status, "supported", `${p}/${seed}: example readable`);
+        for (const v of got.venues) assert.ok(!suiteVenues.has(v.venue_id), `${v.venue_id} leaks into the suite`);
+      }
+      for (const u of caseUrls) assert.ok(allowed.includes(u), "the Actor may still read every case");
+      // Each supported suite layout has an example of that layout.
+      const layouts = (pages) => new Set(pages.map((x) => x.layout));
+      assert.deepEqual(layouts(examplePages), layouts(held.pages.filter((x) => x.role === "case" && !held.suite.cases.find((c) => c.input.source_url === x.url && c.expected.status !== "supported"))));
+    }
+  }
+});
+
+test("written held-out output serves example pages and the fragment uses only them", () => {
+  const out = mkdtempSync(join(tmpdir(), "portal-holdout-"));
+  const spec = withHoldoutExamples(presetSpec("baseline", "h"), "h");
+  const r = writeVariant({ spec, baseUrl: BASE, out, namespace: "org-a" });
+  const files = walk(join(out, "public"));
+  assert.equal(files.length, r.pages.length + 2, "cases + examples + namespace index + root index");
+  for (const f of files) {
+    const text = readFileSync(f, "utf8");
+    for (const leak of ["minor_units", "snapshot_sha256", "\"expected\"", "\"venues\":"]) {
+      assert.ok(!text.includes(leak), `${f} leaks ${leak}`);
+    }
+  }
+  const fragment = JSON.parse(readFileSync(r.fragmentPath, "utf8"));
+  assert.ok(fragment.examples.every((e) => e.url.startsWith(`${BASE}/org-a/examples/`)));
+  assert.match(fragment.note, /held out/);
+  const manifest = JSON.parse(readFileSync(join(out, "trusted/manifests/org-a.json"), "utf8"));
+  assert.equal(manifest.held_out_examples, true);
+  // A held-out A combines with a plain B exactly as before.
+  const b = writeVariant({ spec: presetSpec("baseline", "b"), baseUrl: BASE, out, namespace: "org-b" });
+  const both = combine(fragment, JSON.parse(readFileSync(b.fragmentPath, "utf8")));
+  assert.deepEqual(both.examples, fragment.examples);
+  // A spec can't smuggle a missing-data page in as an example.
+  const bad = structuredClone(spec);
+  bad.example_pages[0].missing = "price";
+  bad.example_pages[0].venues = bad.example_pages[0].venues.slice(0, 1);
+  assert.throws(() => build(bad, BASE), /example_pages\[0\]\.missing/);
 });
