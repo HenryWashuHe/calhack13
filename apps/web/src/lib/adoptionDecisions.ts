@@ -78,7 +78,11 @@ export const OUTCOME: Record<OutcomeKind, { label: string; tone: Tone; meaning: 
     tone: "warn",
     meaning: "offered, but no verdict could be reached",
   },
-  no_candidate: { label: "no candidate", tone: "neutral", meaning: "nothing eligible was published" },
+  no_candidate: {
+    label: "no candidate",
+    tone: "neutral",
+    meaning: "no eligible result was found in this bounded search",
+  },
   unknown: {
     label: "unknown",
     tone: "bad",
@@ -131,20 +135,22 @@ export function useCandidateDecisions(
   const [result, setResult] = useState<{ id: string; items: CandidateDecision[] | null; error: boolean } | null>(
     null,
   );
-  const latest = useRef<string | null>(null);
+  // Every effect run starts a new generation, so a response from an earlier
+  // open (or for another adoption) can never replace a newer one.
+  const generation = useRef(0);
   useEffect(() => {
-    latest.current = adoptionId;
+    const mine = ++generation.current;
     if (!open || !adoptionId) return;
     api
       .get<{ adoption_id: string; items: CandidateDecision[] }>(
         `/capability-adoptions/${encodeURIComponent(adoptionId)}/candidates`,
       )
       .then((r) => {
-        if (latest.current !== adoptionId || r.adoption_id !== adoptionId || !Array.isArray(r.items)) return;
+        if (generation.current !== mine || r.adoption_id !== adoptionId || !Array.isArray(r.items)) return;
         setResult({ id: adoptionId, items: r.items, error: false });
       })
       .catch(() => {
-        if (latest.current === adoptionId) setResult({ id: adoptionId, items: null, error: true });
+        if (generation.current === mine) setResult({ id: adoptionId, items: null, error: true });
       });
   }, [api, adoptionId, open]);
   if (!result || result.id !== adoptionId) return { items: null, error: false };
