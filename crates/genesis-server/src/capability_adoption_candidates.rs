@@ -44,8 +44,13 @@ pub enum CandidateDecisionKind {
     UnusableState,
     /// The manifest couldn't be read; its applicability is unknown.
     ManifestUnavailable,
-    /// The registry answer as a whole was invalid, so nothing was evaluated.
+    /// The registry answer was invalid: more than five candidates (nothing
+    /// in it is evaluated), or, reached in rank order, a score that isn't a
+    /// positive finite number (discovery stops there).
     InvalidResponse,
+    /// Eligible, but this organization already holds an installation of the
+    /// same exact version; this intent stops without running checks.
+    InstallationConflict,
     /// A higher-ranked candidate was selected or discovery stopped first.
     NotEvaluated,
 }
@@ -62,6 +67,7 @@ impl CandidateDecisionKind {
             Self::UnusableState => "unusable_state",
             Self::ManifestUnavailable => "manifest_unavailable",
             Self::InvalidResponse => "invalid_response",
+            Self::InstallationConflict => "installation_conflict",
             Self::NotEvaluated => "not_evaluated",
         }
     }
@@ -77,7 +83,10 @@ pub struct CandidateDecision {
     pub schema_version: u32,
     pub adoption_id: String,
     pub rank: u32,
-    pub score: f32,
+    /// The registry's similarity score, or `None` when it wasn't a finite
+    /// number (JSON can't carry infinity, and a JSON number past `f32` range
+    /// decodes to it). Ordering only.
+    pub score: Option<f32>,
     pub capability_id: CapabilityId,
     pub version: String,
     pub publisher: OrgId,
@@ -113,7 +122,7 @@ impl CandidateDecision {
             schema_version: 1,
             adoption_id: adoption_id.to_owned(),
             rank: u32::try_from(rank).unwrap_or(u32::MAX),
-            score: candidate.score,
+            score: candidate.score.is_finite().then_some(candidate.score),
             capability_id: candidate.capability_id.clone(),
             version: clip(&candidate.version),
             publisher: candidate.publisher.clone(),

@@ -340,19 +340,15 @@ async fn discover_into(
         .map_err(|_| AdoptionAttention::RegistryUnavailable)?;
     let now = Utc::now();
     let id = record.id();
-    if candidates.len() > 5
-        || candidates
-            .iter()
-            .any(|c| !c.score.is_finite() || c.score <= 0.0)
-    {
-        // A malformed answer is evaluated as a whole: nothing in it is used.
+    if candidates.len() > 5 {
+        // An oversized answer is refused as a whole: nothing in it is used.
         decisions.extend(candidates.iter().take(5).enumerate().map(|(rank, c)| {
             CandidateDecision::new(
                 id,
                 rank,
                 c,
                 Decided::InvalidResponse,
-                "the registry answer was invalid (too many candidates or an unusable score), so no candidate in it was evaluated",
+                "the registry answered with more than five candidates, so none of them was evaluated",
                 now,
             )
         }));
@@ -372,6 +368,20 @@ async fn discover_into(
                 },
                 now,
             ));
+            continue;
+        }
+        // Scores are checked in rank order, as before this log existed: a
+        // later candidate's score can't undo an earlier selection.
+        if !candidate.score.is_finite() || candidate.score <= 0.0 {
+            decisions.push(CandidateDecision::new(
+                id,
+                rank,
+                candidate,
+                Decided::InvalidResponse,
+                "the registry gave it an unusable score (not a positive finite number), so discovery stopped here",
+                now,
+            ));
+            outcome = Err(AdoptionAttention::InvalidCandidate);
             continue;
         }
         if candidate.publisher == app.org_id {
@@ -537,18 +547,38 @@ pub async fn step(app: &AppState, id: &str) -> ApiResult<AdoptionRecord> {
             &decisions,
         );
     }
-    let (outcome, installation_id) =
-        match engine::begin_installation(&state, &manifest, json!({}), Utc::now()) {
-            Ok(value) => value,
-            Err(_) => {
-                return attention(
-                    app,
-                    &state,
-                    &record,
-                    AdoptionAttention::InstallationConflict,
-                )
+    let (outcome, installation_id) = match engine::begin_installation(
+        &state,
+        &manifest,
+        json!({}),
+        Utc::now(),
+    ) {
+        Ok(value) => value,
+        Err(problems) => {
+            let incompatible = problems
+                .iter()
+                .any(|p| p.code == engine::ValidationCode::CapabilityNotApproved);
+            if let Some(d) = decisions
+                .iter_mut()
+                .find(|d| d.rank as usize == selected_rank)
+            {
+                if incompatible {
+                    d.decision = Decided::InvalidManifest;
+                    d.reason = "its manifest isn't compatible with this organization's constitution; this intent stopped without running acceptance checks".into();
+                } else {
+                    d.decision = Decided::InstallationConflict;
+                    d.reason = "this organization already holds an installation of this exact version; this intent stopped without running acceptance checks".into();
+                }
             }
-        };
+            return stop_discovery(
+                app,
+                &state,
+                &record,
+                AdoptionAttention::InstallationConflict,
+                &decisions,
+            );
+        }
+    };
     let next = record
         .select(manifest.clone(), installation_id.clone(), Utc::now())
         .map_err(error)?

@@ -2751,3 +2751,100 @@ async fn review_zero_score_refusal_is_readable_control() {
     assert_eq!(recorded.len(), 1);
     assert_eq!(recorded[0].decision.as_str(), "invalid_response");
 }
+
+#[tokio::test]
+async fn a_valid_first_candidate_is_adopted_and_a_later_overflowing_score_stays_readable() {
+    // Henry's Claude, for Codex's #116 review: rank 0 is eligible and is
+    // selected before rank 1's out-of-range score is ever examined. The
+    // unevaluated row keeps no score (JSON can't hold infinity), so the log
+    // stays readable through local acceptance and its conclusion.
+    let mut f = Fixture::new(Options::default()).await;
+    let registry = review_registry_answer(
+        &mut f,
+        json!([review_search_candidate(2.0), review_search_candidate(1e39)]),
+    )
+    .await;
+    assert_eq!(f.drain().await, Some(Step::Frozen));
+    assert_eq!(f.drain().await, Some(Step::Dispatched));
+    f.adoption_step().await;
+    assert_eq!(f.adoptions()[0].phase(), AdoptionPhase::Selected);
+    let selected = decisions(&f);
+    assert_eq!(selected.len(), 2);
+    assert_eq!(selected[0].decision.as_str(), "selected");
+    assert_eq!(selected[0].score, Some(2.0));
+    assert_eq!(selected[1].decision.as_str(), "not_evaluated");
+    assert_eq!(selected[1].score, None);
+    f.serve().await;
+    f.wait_for("installed", |f| installed(&f.gap_status()).is_some())
+        .await;
+    f.stop();
+    registry.abort();
+    let done = decisions(&f);
+    assert_eq!(done[0].decision.as_str(), "adopted");
+    assert!(done[0].acceptance_ref.is_some());
+    assert_eq!(done[1], selected[1]);
+}
+
+#[tokio::test]
+async fn an_already_installed_version_records_an_installation_conflict_without_checks() {
+    // Henry's Claude, for Codex's #116 review: a separate intent that selects
+    // a version this organization already accepted stops at
+    // `installation_conflict`, with the reason committed alongside the stop.
+    // It never claims to have run acceptance checks.
+    let mut f = Fixture::new(Options::default()).await;
+    f.serve().await;
+    f.wait_for("installed", |f| installed(&f.gap_status()).is_some())
+        .await;
+    f.stop();
+    let posts = f.providers.runs();
+    let gap = f.record().unwrap();
+    let suite = f.app.evidence_policy.suite(&gap.suite_id).unwrap();
+    let (second, created) = f
+        .app
+        .store
+        .create_adoption(
+            &genesis_server::capability_adoption_store::CreateAdoption {
+                client_request_id: "operator-second-intent".into(),
+                mission_id: gap.mission_id.clone(),
+                requirement_id: gap.requirement_id.clone(),
+                role_id: gap.role_id.clone(),
+                responsibility_id: gap.responsibility_id.clone(),
+                suite_id: gap.suite_id.clone(),
+                provider_access_acknowledged: true,
+                deadline: None,
+            },
+            suite,
+            Utc::now(),
+        )
+        .unwrap();
+    assert!(created);
+    let stopped = capability_adoption::step(&f.app, second.id())
+        .await
+        .unwrap();
+    assert_eq!(stopped.phase(), AdoptionPhase::Attention);
+    assert_eq!(
+        stopped.attention_code(),
+        Some(AdoptionAttention::InstallationConflict)
+    );
+    let rows = f.app.store.adoption_candidates(second.id()).unwrap();
+    let conflict: Vec<_> = rows
+        .iter()
+        .filter(|d| d.decision.as_str() == "installation_conflict")
+        .collect();
+    assert_eq!(conflict.len(), 1, "{rows:?}");
+    assert!(conflict[0].acceptance_ref.is_none());
+    assert!(conflict[0]
+        .reason
+        .contains("without running acceptance checks"));
+    assert!(rows.iter().all(|d| !matches!(
+        d.decision.as_str(),
+        "selected" | "adopted" | "not_applicable"
+    )));
+    // Repeating the step changes nothing and submits nothing.
+    capability_adoption::step(&f.app, second.id())
+        .await
+        .unwrap();
+    assert_eq!(f.app.store.adoption_candidates(second.id()).unwrap(), rows);
+    assert_eq!(f.providers.runs(), posts);
+    assert_eq!(f.state().installations.len(), 1);
+}
