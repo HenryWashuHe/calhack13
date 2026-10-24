@@ -1,5 +1,5 @@
 import type { Installation, Job, OrgState } from "../lib/contracts";
-import { capabilityKey, holders, runsForInstallation, summarizeRun, summarizeVerification } from "../lib/capabilities";
+import { capabilityKey, holders, jobsForInstallation, summarizeRun, summarizeVerification } from "../lib/capabilities";
 import { NOT_MANAGED, type CapabilityEvidence as Evidence } from "../lib/useCapabilityEvidence";
 import { DEV_ASSERTION } from "../lib/capabilities";
 import { short } from "../lib/graph";
@@ -61,8 +61,8 @@ function Manifest({ inst, evidence }: { inst: Installation; evidence: Evidence }
   );
 }
 
-function Runs({ jobs, evidence, empty }: { jobs: Job[]; evidence: Evidence; empty: string }) {
-  if (jobs.length === 0) return <p className="empty">{empty}</p>;
+function Runs({ jobs, evidence }: { jobs: Job[]; evidence: Evidence }) {
+  if (jobs.length === 0) return <p className="empty">No pinned runs yet.</p>;
   return (
     <div className="table-wrap">
       <table className="ev-runs">
@@ -119,25 +119,6 @@ function Runs({ jobs, evidence, empty }: { jobs: Job[]; evidence: Evidence; empt
   );
 }
 
-function InstallationRuns({ inst, jobs, evidence }: { inst: Installation; jobs: Job[]; evidence: Evidence }) {
-  const records = Object.fromEntries(
-    Object.entries(evidence.runs).map(([id, l]) => [id, "value" in l ? l.value : undefined]),
-  );
-  const { acceptance, other } = runsForInstallation(jobs, records, inst);
-  return (
-    <>
-      <h4 className="ev-sub">Acceptance runs for this installation</h4>
-      <Runs jobs={acceptance} evidence={evidence} empty="No acceptance runs bound to this installation." />
-      {other.length > 0 && (
-        <>
-          <h4 className="ev-sub">Other runs of this version (not acceptance evidence for this installation)</h4>
-          <Runs jobs={other} evidence={evidence} empty="" />
-        </>
-      )}
-    </>
-  );
-}
-
 export function CapabilityEvidence({
   state,
   jobs,
@@ -166,7 +147,7 @@ export function CapabilityEvidence({
               </span>
             </div>
             <Manifest inst={i} evidence={evidence} />
-            <InstallationRuns inst={i} jobs={jobs} evidence={evidence} />
+            <Runs jobs={jobsForInstallation(jobs, i)} evidence={evidence} />
           </article>
         );
       })}

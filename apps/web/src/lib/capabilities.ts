@@ -15,10 +15,7 @@ export const DEV_ASSERTION = "genesis:development-assertion";
 export interface CapabilityRunRecord {
   job_id: string;
   phase: string;
-  purpose?:
-    | { kind: "invocation" }
-    | { kind: "local_acceptance"; installation_id: string; suite_id: string }
-    | { kind: "adoption_acceptance"; adoption_id: string; installation_id: string; suite_id: string };
+  purpose?: { kind: "invocation" } | { kind: "local_acceptance"; installation_id: string; suite_id: string };
   request?: {
     case_id?: string;
     artifact?: { actor_id?: string; build_id?: string; build_number?: string; capability_id?: string; capability_version?: string };
@@ -93,11 +90,9 @@ export function summarizeRun(r: CapabilityRunRecord): RunSummary {
   const purpose =
     r.purpose?.kind === "local_acceptance"
       ? `local acceptance · ${r.purpose.suite_id}`
-      : r.purpose?.kind === "adoption_acceptance"
-        ? `adoption acceptance · ${r.purpose.suite_id}`
-        : r.purpose?.kind === "invocation"
-          ? "invocation"
-          : "run";
+      : r.purpose?.kind === "invocation"
+        ? "invocation"
+        : "run";
   let attention: string | null = null;
   if (r.phase === "needs_reconciliation") {
     attention = "Submission outcome unknown; reconcile with the provider before any new attempt.";
@@ -145,48 +140,7 @@ export function summarizeVerification(m: CapabilityManifest): VerificationSummar
 
 export const capabilityKey = (c: { capability_id: string; version: string }) => `${c.capability_id}@${c.version}`;
 
-/** Installation an acceptance run belongs to, from the backend run purpose. */
-export function acceptanceInstallation(r: CapabilityRunRecord | undefined): string | null {
-  const p = r?.purpose;
-  return p && (p.kind === "local_acceptance" || p.kind === "adoption_acceptance") ? p.installation_id : null;
-}
-
-export interface InstallationRuns {
-  /** Acceptance runs whose backend purpose names this installation. */
-  acceptance: Job[];
-  /**
-   * Other runs of the same capability version: invocations and runs whose
-   * record is not loaded or not backend-managed. Not evidence for this
-   * installation's acceptance.
-   */
-  other: Job[];
-}
-
-/**
- * Split a capability version's runs for one installation card. Acceptance
- * evidence is bound by the run's installation ID, never by version alone, so
- * two installations of one version never show each other's acceptance runs.
- */
-export function runsForInstallation(
-  jobs: Job[],
-  records: Record<string, CapabilityRunRecord | undefined>,
-  inst: Installation,
-): InstallationRuns {
-  const acceptance: Job[] = [];
-  const other: Job[] = [];
-  for (const j of jobsForInstallation(jobs, inst)) {
-    const owner = acceptanceInstallation(records[j.job_id]);
-    if (owner === inst.installation_id) acceptance.push(j);
-    else if (owner === null) other.push(j);
-    // else: another installation's acceptance run
-  }
-  return { acceptance, other };
-}
-
-/** Run phases after which the backend record no longer changes by itself. */
-export const FINAL_PHASES = new Set(["collected", "failed", "rejected"]);
-
-/** Capability jobs for this exact capability version, newest first. */
+/** Capability jobs for one installation, newest first. */
 export function jobsForInstallation(jobs: Job[], inst: Installation): Job[] {
   const key = capabilityKey(inst.capability);
   return jobs
