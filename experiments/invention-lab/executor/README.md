@@ -30,10 +30,14 @@ is refused by `MethodPackage::load_for`.
      interpreter version) equals `development_environment`;
    - the linked evaluator's content digest equals `context.evaluator`.
 
-   Any mismatch, or any dependency, refuses with nothing written. A slot
-   directory that already holds state is never started again.
+   Any mismatch, or any dependency, refuses with nothing written. The runner
+   then takes the slot's exclusive claim (a lock on `slot.lock`) and holds it
+   through finalization; a concurrent runner, or a slot that already holds
+   state, gets `AlreadyStarted` and is never started again.
 2. The method talks JSON lines on stdin/stdout: `instances`, `experiment`,
-   `submit`.
+   `submit`. Replies go through a bounded queue (64) to a writer thread; a
+   method that keeps sending without reading fails the run instead of blocking
+   it, and the deadline is checked before every queued request.
 3. Each `experiment` goes through these steps in order:
    1. Check the instance: it must be one of the plan's public instances, and
       its id and digest are re-resolved.
@@ -51,11 +55,13 @@ is refused by `MethodPackage::load_for`.
 4. `submit` keeps at most one output: the normalized design bytes, stored
    before the reply.
 5. At exit, at the wall-time kill (grant minus 250 ms), or after an oversized
-   request line (more than 1 MiB): `seal`, write `transcript.json` (exact
-   `transcript_json` bytes), write `receipt.json`.
-6. `recover` handles an executor that stopped mid-run. A pending call is
-   settled `Unknown` and is never resubmitted; the receipt outcome is
-   `unknown`; the method isn't restarted.
+   request line (more than 1 MiB), the child is stopped first. Then `seal`
+   (after which the session accepts nothing), write `transcript.json` (exact
+   `transcript_json` bytes), persist the sealed ledger and run state, and only
+   then write `receipt.json`.
+6. `recover` handles an executor that stopped mid-run or mid-finalization. A
+   pending call is settled `Unknown` and is never resubmitted; the receipt
+   outcome is `unknown`; the method isn't restarted.
 
 `check` runs `validate_execution` and `assess_trials` on the stored records.
 
@@ -67,7 +73,8 @@ Trusted acceptance scoring lives in the separate `../scoring` crate.
 
 - **Enforced:**
   - new network, mount and PID namespaces;
-  - a read-only root filesystem;
+  - every existing mount remounted read-only where the kernel allows it (a
+    mount that refuses keeps its mode);
   - private tmpfs over `/home`, `/root`, `/tmp`, `/var/tmp`, `/dev/shm` and
     `/run`;
   - the method runs as `nobody` with `no_new_privs`;
@@ -76,16 +83,19 @@ Trusted acceptance scoring lives in the separate `../scoring` crate.
     space, 64 processes for `nobody`, 64 MiB per written file, 256 open files.
 
   The method can't see the evaluator, its sources, the slot state or other
-  runs, can't reach the network, and nothing it writes survives the run. With
-  no network and no model inside, model calls and tokens are recorded as
-  measured zero.
-- **Not enforced:** reads of the rest of the read-only system; any syscall
-  filter; a CPU quota beyond the wall time. The process limit is per user, so
-  concurrent runs share it. A method can compute its own physics inside its
+  runs in those hidden directories, and can't reach the network. Its writes
+  land in the private tmpfs mounts and vanish at exit, unless a mount refused
+  the read-only remount.
+- **Not enforced:** reads of the rest of the read-only system; filesystem Unix
+  sockets on readable paths; any syscall filter; a CPU quota beyond the wall
+  time. The process limit is per user, so concurrent runs share it.
+- **Model use is recorded as `unknown` in every mode.** No network is not proof
+  of no model: a local model or service reachable through the filesystem isn't
+  excluded. A method can compute its own physics inside its
   wall time, so `simulation_steps` meters evaluator calls only.
 
-`none` mode has no isolation, so model calls and tokens are recorded as
-`unknown`. The plan pins the mode through the environment digest.
+`none` mode has no isolation at all. The plan pins the mode through the
+environment digest.
 
 ## Seed methods are controls
 
