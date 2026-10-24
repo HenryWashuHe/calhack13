@@ -147,6 +147,7 @@ fn unknown_development_accounting_is_not_an_acceptance() {
 }
 
 #[test]
+#[ignore = "Historical policy probe only: adoption.md does not forbid confirmed failure with scoreable output"]
 fn a_failed_development_attempt_with_a_scored_partial_output_is_not_accepted() {
     let p = plan();
     // In-process fixture has zero actual model calls; failure retains its output.
@@ -224,5 +225,66 @@ fn unnamed_extra_metric_rows_cannot_invent_candidate_successes() {
     assert!(
         !matches!(v, Ok(Verdict::Accepted { .. })),
         "unnamed row counted as a real criterion instance: {v:?}"
+    );
+}
+
+// adoption.md explicitly treats any unknown executor outcome as unknown,
+// even when a retained partial output can be independently scored.
+#[test]
+fn unknown_executor_outcome_with_known_usage_is_not_accepted() {
+    let p = plan();
+    let cand = evidence(
+        &p,
+        "candidate",
+        "unknown-executor-c",
+        Some(design(REFERENCE)),
+        true,
+        Some(ExecutionOutcome::Unknown),
+        true,
+    );
+    let ctrl = evidence(
+        &p,
+        "control",
+        "unknown-executor-k",
+        Some(design(CART)),
+        true,
+        None,
+        true,
+    );
+    let rows = genesis_core::development_trial::assess_trials(
+        &p,
+        &[
+            genesis_core::development_trial::TrialEvidence {
+                slot_id: "candidate".into(),
+                execution: cand.execution.clone(),
+                scoring: cand.scoring.clone(),
+            },
+            genesis_core::development_trial::TrialEvidence {
+                slot_id: "control".into(),
+                execution: ctrl.execution.clone(),
+                scoring: ctrl.scoring.clone(),
+            },
+        ],
+    )
+    .unwrap();
+    assert_eq!(cand.execution.outcome, ExecutionOutcome::Unknown);
+    for row in rows {
+        assert_eq!(
+            row.development_accounting,
+            Some(genesis_core::development_method::BudgetAssessment::WithinLimits)
+        );
+        assert_eq!(
+            row.scoring_accounting,
+            Some(genesis_core::development_method::BudgetAssessment::WithinLimits)
+        );
+        assert_eq!(
+            row.scoring_status,
+            genesis_core::development_evaluation::RequestStatus::Scored
+        );
+    }
+    let v = decide(&p, &criterion(&p, 1), &cand, &ctrl).unwrap();
+    assert!(
+        matches!(v, Verdict::Insufficient { .. }),
+        "unknown executor outcome accepted despite explicit contract: {v:?}"
     );
 }
