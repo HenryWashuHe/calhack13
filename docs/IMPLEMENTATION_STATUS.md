@@ -1,5 +1,25 @@
 # Implementation status
 
+## Active repository checkpoint
+
+Work and reviews now belong in [genesis-history-experiment](https://github.com/HenryWashuHe/genesis-history-experiment)
+and [issue #1](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1).
+The [migration map](REPOSITORY_MIGRATION.md) maps all current PRs and preserved WIP.
+Initial new main `e1f2264` matches old main `8794e25` by complete tree; migration
+is not implementation or fresh validation. Adopted method execution, simulator
+and comparative benefit remain open under [the ongoing goal](ONGOING_GOAL.md).
+
+Repair WIP now exists as isolated draft #7 (`110a107`), with the original twelve
+files preserved byte for byte and full validation still incomplete. New #13/#14
+are evaluator/adoption proposals. New #3/#5 ACP heads are advancing after review;
+check current heads rather than reusing earlier passing counts as new evidence.
+Apify and CREAO v2 metadata reads authenticated, but no hosted CREAO agent was
+returned and the current v1 adapter needs a separately scoped compatibility path.
+This is not full live-provider execution. See current ownership in the handoff.
+
+## Historical source checkpoint before migration
+
+
 This checkpoint describes main `2e5d7f07784eff8563171fd34c85e79584b59fe7`
 and separately identified work as of October 23, 2026 (Pacific time). Newer exact
 heads and [issue #4](https://github.com/HenryWashuHe/genesis/issues/4) supersede

@@ -1,83 +1,57 @@
 # GENESIS implementation handoff
 
-## Current checkpoint: fixed-weight capability improvement
+## Current checkpoint: repository migration
 
-Canonical framing: **networked recursive capability improvement with fixed model
-weights**. The user explicitly chose this as the product identity, superseding
-the earlier decision to put it only in “What's next.” Accumulation, reuse/composition,
-and improving future capability development are different claims. General
-recursive benefit remains unproven. The [implementation inventory](IMPLEMENTATION_STATUS.md)
-separates merged foundations, unmerged work and vision.
+**Networked recursive capability improvement with fixed model weights** remains
+the owner's chosen direction. Work in
+[genesis-history-experiment](https://github.com/HenryWashuHe/genesis-history-experiment)
+and coordinate in [issue #1](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1).
+Use the [migration map](REPOSITORY_MIGRATION.md) for legacy PRs and preserved work;
+old issue #4 and task numbers are source references, not today's posting targets.
 
-Event organization is no longer the product or chosen demo. Existing venue code
-and tests are historical infrastructure fixtures, not new product requirements.
-The [proposed invention labs](INVENTION_LAB_DEMO.md) show A developing a method,
-B improving it for another task, and A evaluating that frozen revision on a fresh
-challenge. The simulator, executable development-method runtime and comparative
-result do not yet exist. Do not present them as implemented or relabel fixture
-results as live sponsor evidence.
+The [ongoing goal](ONGOING_GOAL.md) and hourly continuation target the new repo.
+The stale app Goal remains paused; do not falsely complete it. The initial main
+`e1f2264` has the exact tree of old `8794e25`. Commit identities differ; preserve
+rewritten ancestry and compare complete source trees when porting late work.
 
-Checkpoint: inspected main `2e5d7f0` (October 23, 2026 Pacific). #116 has a new
-correction at `78a18c0`; the earlier review findings were at `03f7101f`, and the
-new head awaits independent re-review. #120 `0cf383b7` and #121 `5d711429` are open
-and await independent review. #114 is merged with the reported ACP follow-up
-regressions still outstanding. See [review queue](PR_REVIEW_QUEUE.md) and newer
-[issue #4](https://github.com/HenryWashuHe/genesis/issues/4) updates before acting.
-
-**Resumption boundary:** the user has resumed ongoing GENESIS work. Use the
-[durable goal and completion gates](ONGOING_GOAL.md); the existing hourly
-continuation is active. The old app Goal card is still paused at this checkpoint
-because its tool cannot replace an unfinished record. Do not falsely complete
-it or revive its superseded venue scope. Existing scoped claims continue; new
-runtime work still requires a bounded ownership claim. Local deployed-repair WIP
-remains preserved until separately scoped. Assignment is not acknowledgment.
-
-**Latest coordination:** Henry acknowledged #122 and opened #128 (`546fb65`,
-classifier stacked on #116) and #129 (`d8fa531`, proposed method adoption).
-He is waiting for #124's shared contract before runtime wiring. Codex's next
-milestone is that contract pack, using #129's required inputs. The ACP session has now acknowledged #125 and plans the seven fixes on
-`claude/acp-regressions` (not yet pushed at this checkpoint), then the ACP
-contract. Its #130 demo proposal is review input, not a scope change. #123 has
-no recorded acknowledgment yet; #126 and Ines remain unassigned. Verify newer heads
-and comments before review or reassignment.
+Accumulation, reuse/composition and improved future development remain distinct.
+The invention-lab executor/simulator and A → B → A comparison are not implemented
+on this checkpoint's main. Event organizing remains superseded. No migration,
+authentication check or local test establishes a positive recursive-benefit result.
 
 ### Current ownership and next work
 
-| Owner/session | Assigned task | Current scope and next deliverable |
+| Owner/session | Active lane and acknowledgment | Scope / next deliverable |
 | --- | --- | --- |
-| Henry's core Claude | [#122](https://github.com/HenryWashuHe/genesis/issues/122) | Preserve #116/#121 and review follow-up. Retain the newly claimed adoption-outcome classifier stacked on #116: status/types, small classifier, focused tests/docs; conservative fallback unchanged. Next: `docs/invention-lab/adoption.md` for independent method acceptance. |
-| Eric / Eric's Claude | [#123](https://github.com/HenryWashuHe/genesis/issues/123) | Finish the bounded #120 constitution-audit lane. Next: `docs/invention-lab/ui.md`, then an isolated `apps/web/src/invention-lab/**` evidence view after receipts/contracts settle. No shared UI wiring without a claim. |
-| Claude ACP session (author of `claude/asi-one-workflow`) | [#125](https://github.com/HenryWashuHe/genesis/issues/125) | Preserve the seven regressions and correct `acp_mission.py` with adjacent tests/config. Next: `docs/invention-lab/acp.md` mapping product-neutral commands to agreed contracts. No new venue features or public-live claims. |
-| Codex, main GENESIS chat | [#124](https://github.com/HenryWashuHe/genesis/issues/124) | Active goal #124; next bounded lane: `docs/invention-lab/contracts/**` for executable methods, exact identity/dependencies, independent receipts and controlled comparison. Preserve paused deployed-repair WIP; repair resumption needs a separate scoped claim. |
-| Unassigned evaluator lane | [#126](https://github.com/HenryWashuHe/genesis/issues/126) | `docs/invention-lab/evaluator.md`, then a separately claimed `experiments/invention-lab/evaluator/**` simulator/evaluator after contract agreement. No owner or implementation is inferred. |
-| Ines | Unassigned by explicit user instruction | Do not identify `i-nix` as Ines or assign her work without new confirmation. |
+| Henry's core Claude | Adoption/planner acknowledged; new #8/#10/#11/#12/#14/#15 | Fix remaining review findings; retain adoption wiring and existing adoption console UI. No transfer of Eric's invention-lab UI. |
+| Henry's core Claude | Requested evaluator lane assigned in issue #1; implementation acknowledgment pending | New #13 `docs/invention-lab/evaluator.md`; then `experiments/invention-lab/evaluator/**` after method/interface agreement. Correct holdout timing, exact evaluator/task identities and resource/receipt bindings. |
+| Eric / Eric's Claude | Audit new #9; new UI assignment not yet acknowledged | `docs/invention-lab/ui.md`, then isolated `apps/web/src/invention-lab/**` after receipts settle. `EricZhu-31` has write access. |
+| ACP Claude session | Acknowledged bridge lane; new #3/#4/#5 | Preserve independent regressions, correct remaining defects, keep method commands proposed. Small Fetch sponsor paragraph approved within this lane. Existing Elastic diagnosis stays here. |
+| Codex main chat | Shared method contracts and migration active | Additive method/receipt/comparison interfaces and validators; current prerequisite is safe live-gate paths/redaction in `scripts/live-gates/run.mjs` and tests. No duplicate runner change by ACP. |
+| Ines | Unassigned by explicit user instruction | Do not infer her identity from another collaborator handle. |
 
-The GitHub account `HenryWashuHe` hosts multiple sessions. Account assignment
-alone does not collapse Codex, core Claude, and ACP Claude into one owner. Eric's
-identity is confirmed as `EricZhu-31`; ownership must be by session and files.
+The same GitHub account hosts multiple sessions; ownership is by session and
+exact files, not account name. Claim shared files and interfaces in issue #1
+before overlapping. Codex's method implementation is additive; it does not
+silently replace current Actor manifests, Henry's adoption or Eric's UI.
 
-**Contract order:** development-method interface → challenge/evaluator/resource
-contract → immutable receipts → local adoption and UI projection. Receipts bind
-exact method/dependencies, task/evaluator versions, model/settings, resources and
-outcomes. Independent acceptance and comparison remain outside candidate control.
+New method wiring depends on exact method/dependency/task/evaluator identities,
+separate execution/evaluation/adoption evidence, declared resource bounds and
+an independent comparison plan. Acceptance/comparison authority before installation
+must be distinguished from ordinary invocation and live assignment authority.
 
-**Shared-file rule:** `App.tsx`, `OrgPanel.tsx`, shared API/types/styles, manifests,
-server routes/startup/events and existing core capability types need a named
-integration claim in #4. Henry's core Claude owns adoption wiring; Codex owns
-verification/contract review; agree each shared edit before parallel implementation.
-No assignment above silently transfers acquisition, provider, kernel or UI files.
-Commit/push small reviewed increments; preserve another session's uncommitted work.
+Repair WIP is now safely pushed as draft #7 at `110a107` on matching forge base
+`f488eef`; the old uncommitted files remain untouched. All twelve files were
+compared byte for byte. Only its earlier happy-path test passed; full revised
+validation remains open. Do not merge its historical draft status docs into main.
 
-**Preserved Codex repair:** forge `1795fb7` is pushed on
-`codex/deployed-capability-repair`; its 19 acquisition tests passed. Server
-repair/store/routes, 12 integration cases and draft docs remain local uncommitted
-WIP. The happy-path failure → replacement → B acceptance check passed, but the
-full revised 12-case target and final checks did not run before the pause. No
-repair PR exists. That work must not be called merged or complete.
+The supplied `.env` stays local, ignored and owner-readable. Apify and CREAO v2
+metadata reads returned 200; there are no hosted CREAO agents in that project.
+The v1 adapter is not compatible by merely renaming the v2 key. These checks
+are separate from ACP's Fetch/Elastic results and do not prove sponsor execution.
 
-All records below are historical snapshots. Old active-goal language, demo gates,
-owner decisions and exclusive claims are superseded by this checkpoint and newer
-explicit issue #4 claims. Preserve useful evidence without reviving old scope.
+Current PR heads and issue #1 supersede this snapshot. Historical evidence below
+retains original repository hashes and links; it does not restore superseded scope.
 
 ## Historical checkpoint through #115: native automatic intake and recursive roadmap
 
