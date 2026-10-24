@@ -2,7 +2,7 @@
 
 ## Current checkpoint: recursive capability roadmap
 
-Main through #110 is `16783da6063e463472aafa0ac228e2d7eab9f8e0`; the PR queue is clear at this checkpoint.
+Main through #110 is `16783da6063e463472aafa0ac228e2d7eab9f8e0`; after the queue cleared, #114 opened for an ASI:One mission adapter and this roadmap became #115.
 Newer GitHub state and [issue #4](https://github.com/HenryWashuHe/genesis/issues/4)
 take precedence over the historical snapshots below. The mission goal is active.
 
@@ -32,7 +32,9 @@ and newer issue #4 claims before assigning or editing work. Henry's Claude keeps
 candidate decision logging and the narrow terminal-RunFailed retry contract.
 Eric's replay work is merged, with no new claim inferred. Codex continues native
 Fetch + automatic intake composition; later network repair contracts need a scoped
-handoff. The side-chat Claude brief is a proposal, not a blanket assignment.
+handoff. Claude's #114 owns its new mission ACP adapter/pitch/submission changes;
+review it before implementing overlapping ACP work. Preserve this framing when
+composing its README changes. The side-chat Claude brief is a proposal, not a blanket assignment.
 
 The current ACP gateway supports fixed recovery cases only. Public Agentverse/
 ASI execution and live sponsor credentials/evidence remain open. Keep the repo
