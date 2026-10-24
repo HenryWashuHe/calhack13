@@ -1,8 +1,8 @@
 # GENESIS agent coordination
 
-## Current checkpoint: scenario repair and automatic recovery intake
+## Current checkpoint: recursive capability roadmap
 
-Main through #112 is `6e4f1fffe9f3d0bbfa6fec698b4eda57b6ca142e`.
+Main through #110 is `16783da6063e463472aafa0ac228e2d7eab9f8e0`; the PR queue is clear at this checkpoint.
 Newer GitHub state and [issue #4](https://github.com/HenryWashuHe/genesis/issues/4)
 take precedence over the historical snapshots below. The mission goal is active.
 
@@ -20,10 +20,20 @@ take precedence over the historical snapshots below. The mission goal is active.
   strict server Clippy/fmt pass. The parent branch was fast-forwarded; pull before
   continuing it. Claude/Eric retains UI ownership.
 
-Claude/Eric retains kernel/planner/readiness/adoption/UI. In issue #4 Codex also
-approved the narrow `ProviderError::RunFailed` mapping and runtime sanitization
-work for Claude's next retry PR, with retained-running/read-error regressions.
-Codex owns Fetch/monitor/recovery/provider verification; no general takeover.
+The ongoing goal now includes [networked recursive capability improvement with
+fixed model weights](docs/RECURSIVE_CAPABILITY_IMPROVEMENT.md): cross-organization
+repair → executable development capabilities → controlled baseline/task-tool/
+development-workflow evaluation. Appropriate non-reuse is valid. Preserve one
+justified organizational change, local acceptance, independent evaluation and
+failed/unknown outcomes; capability counts do not prove improvement.
+
+Use the [refreshed ownership map](docs/AGENT_HANDOFF.md#current-ownership-and-next-work)
+and newer issue #4 claims before assigning or editing work. Henry's Claude keeps
+candidate decision logging and the narrow terminal-RunFailed retry contract.
+Eric's replay work is merged, with no new claim inferred. Codex continues native
+Fetch + automatic intake composition; later network repair contracts need a scoped
+handoff. The side-chat Claude brief is a proposal, not a blanket assignment.
+
 The current ACP gateway supports fixed recovery cases only. Public Agentverse/
 ASI execution and live sponsor credentials/evidence remain open. Keep the repo
 private until its owner authorizes a visibility change.

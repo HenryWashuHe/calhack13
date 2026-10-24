@@ -27,6 +27,8 @@ For the demo, run the same Rust service in two organization instances with separ
 
 ## 2. Required demonstration
 
+This is the original hackathon scenario, designed to exercise both forms of evolution. Its new-role and new-tool steps are scenario requirements, not a rule to recruit or synthesize for every mission. Section 14 adds selective transfer and appropriate non-reuse; the [handoff](AGENT_HANDOFF.md) records current implementation evidence.
+
 Organization A operates a simulated campus event for 120 attendees. Its initial responsibilities cover mission coordination, program scheduling, and attendee information. A venue closure creates relocation and transport coordination work while program work continues.
 
 GENESIS must:
@@ -224,7 +226,9 @@ Test critical domain transitions and effects, not merely enum serialization. Inc
 
 ## 13. Integration gates and scope
 
-Before feature work, prove authenticated Elastic create/invoke/retrieve; Fetch discovery and offer/accept/result messaging; Apify create/build/run/results; and CREAO create/run/custom-skill HTTP execution. Measure actual cold latencies and verify account limits. These gates are currently untested.
+The following records the original integration plan and hackathon scope. For current validation status and active work, use [live gates](LIVE_GATES.md) and the [handoff](AGENT_HANDOFF.md).
+
+The original plan called for proving authenticated Elastic create/invoke/retrieve; Fetch discovery and offer/accept/result messaging; Apify create/build/run/results; and CREAO create/run/custom-skill HTTP execution before feature work, measuring actual cold latencies and verifying account limits. Those checks were untested when this baseline was drafted; this paragraph is not a current test report.
 
 The mandatory scope is one complete mutation, recruitment, Actor creation and verification, persistent CREAO role with a second run, B's adoption, and retirement/handoff. Optional scope is one repair. Defer real payments, real reservations, public marketplaces, unrestricted spawning, automated credential discovery, and production multi-tenancy.
 

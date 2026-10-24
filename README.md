@@ -58,7 +58,7 @@ Verification establishes behavior within the tested scope. It does not prove arb
 
 **Current reproducible beat:** organization A requests a missing capability; its workers acquire, verify, publish, and locally accept it. Independent organization B requests the same need, discovers A's version, runs its own checks, and installs it with no B synthesis. The default rehearsal seeds the requests and uses explicitly labeled loopback model/provider responses.
 
-**Next demonstration:** break a previously working capability. A detects the failure, recruits repair specialists, publishes a verified replacement, and resumes. B independently checks and adopts the repair. Then show one inherited testing or repair capability improving the next build on an unseen task, with the same base model and comparable budget. That final step is the evidence needed for the recursive claim.
+**Next demonstration:** break a previously working capability. A detects the failure, assigns repair responsibility, recruits specialists when needed, publishes a verified replacement, and resumes. B independently checks and adopts the repair. Then show one testing or repair capability developed through GENESIS and inherited by another organization improving the next build on an unseen task, with the same base model and comparable budget. That final step is the evidence needed for the recursive claim.
 
 Include three transfer cases: a new input that justifies direct reuse; a related task that benefits from composition or a development workflow; and an unrelated requirement where the old tool is correctly left unused. Score task outcomes as well as selection: avoiding a tool while failing a solvable task is not success. The current Actor path supports a narrow web workload; broader math or drawing demonstrations require additional executors and domain-specific evaluators.
 
@@ -104,7 +104,7 @@ The [documented goal and acceptance criteria](docs/RECURSIVE_CAPABILITY_IMPROVEM
 | **CREAO** | Reusable operational agents and persistent specialized responsibilities. |
 | **GENESIS** | Organization structure, authority, budgets, lifecycle, capability identity, verification, and adoption decisions. |
 
-[Apify sponsor notes](docs/APIFY_SPONSOR_NOTES.md) explain meaningful-use evidence and the separate AI Chat category. [CREAO sponsor requirements](docs/CREAO_SPONSOR_NOTES.md) track actual core agent work, agent ID, and a genuine run share link. Local signed-process results, loopback tests, and cloud-provider evidence must remain distinguishable.
+[Apify sponsor notes](docs/APIFY_SPONSOR_NOTES.md) explain meaningful-use evidence and the separate AI Chat category. [CREAO sponsor requirements](docs/CREAO_SPONSOR_NOTES.md) track actual core agent work, agent ID, and a genuine run share link. [Fetch sponsor requirements](docs/FETCH_SPONSOR_NOTES.md) track ACP, Agentverse discovery, and actual ASI:One use. Local signed-process results, loopback tests, and cloud-provider evidence must remain distinguishable.
 
 ## Stack
 
