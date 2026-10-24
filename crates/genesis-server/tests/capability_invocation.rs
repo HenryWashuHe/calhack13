@@ -7,8 +7,9 @@ use axum::{Json, Router};
 use genesis_apify::{ApifyClient, RunLimits, SourceFile};
 use genesis_forge::{CandidateSpec, ForgeSession, SourcePackage};
 use genesis_providers::{ApifyCapabilityExecutor, DevStub, ProviderSet};
+use genesis_server::capability_finalization::drain_once;
 use genesis_server::registry::{self, RegistryState};
-use genesis_server::{build_org, parse_publishers, OrgConfig};
+use genesis_server::{build_org, parse_publishers, serve_org, OrgConfig};
 use genesis_verification::{decode_json, ArtifactPin, ExecutionEvidence, OracleSuite};
 use reqwest::StatusCode;
 use serde_json::{json, Value};
@@ -106,6 +107,17 @@ struct Server {
 }
 
 impl Server {
+    async fn start_org(app: genesis_server::app::AppState) -> Self {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let url = format!("http://{}", listener.local_addr().unwrap());
+        let task = tokio::spawn(async move { serve_org(app, listener).await.unwrap() });
+        Self {
+            url,
+            task,
+            process_shutdown: None,
+        }
+    }
+
     async fn start(router: Router) -> Self {
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
         let url = format!("http://{}", listener.local_addr().unwrap());
@@ -302,6 +314,21 @@ struct Org {
 }
 
 impl Org {
+    async fn open_live(config: &OrgConfig, mock: &ApifyMock) -> Self {
+        let app = build_org(config, Some(mock.providers())).unwrap();
+        let server = Server::start_org(app.clone()).await;
+        Self {
+            app,
+            server,
+            id: config.org_id.to_string(),
+            http: reqwest::Client::builder()
+                .timeout(Duration::from_secs(5))
+                .no_proxy()
+                .build()
+                .unwrap(),
+        }
+    }
+
     async fn open(config: &OrgConfig, mock: &ApifyMock) -> Self {
         let app = build_org(config, Some(mock.providers())).unwrap();
         let server = Server::start(app.clone().router()).await;
@@ -501,6 +528,42 @@ struct Fixture {
 }
 
 impl Fixture {
+    async fn restart_live(&mut self) {
+        self.org.server.task.abort();
+        (&mut self.org.server.task).await.unwrap_err();
+        self.config.forge_checkpoints.clear();
+        self.org = Org::open_live(&self.config, &self.mock).await;
+    }
+
+    async fn wait_proof(&self, id: &str) -> Value {
+        tokio::time::timeout(Duration::from_secs(5), async {
+            loop {
+                let (status, proof) = self
+                    .org
+                    .request(
+                        reqwest::Method::GET,
+                        &format!("/capability-runs/{id}/verification"),
+                        "operator",
+                        None,
+                    )
+                    .await;
+                if status == StatusCode::OK {
+                    return proof;
+                }
+                assert_eq!(status, StatusCode::NOT_FOUND, "{proof}");
+                tokio::time::sleep(Duration::from_millis(10)).await;
+            }
+        })
+        .await
+        .expect("automatic finalization did not produce a proof")
+    }
+
+    async fn finalization(&self, id: &str) -> Value {
+        self.org
+            .get(&format!("/capability-runs/{id}/finalization"))
+            .await
+    }
+
     async fn start() -> Self {
         let registry = registry().await;
         let mock = ApifyMock::start().await;
@@ -1350,4 +1413,321 @@ async fn authority_rejected_proof_still_pins_the_collected_evidence() {
     .unwrap();
     tx.commit().unwrap();
     assert_eq!(f.verify(&id).await, proof);
+}
+
+#[tokio::test]
+async fn server_automatically_finalizes_fresh_and_restart_collected_invocations_only() {
+    let mut f = Fixture::start().await;
+    let good = f.collected("auto-good", 0).await;
+    let unsupported = f.collected("auto-unsupported", 2).await;
+    f.mock.state.wrong.store(true, Ordering::SeqCst);
+    let wrong = f.collected("auto-wrong", 0).await;
+    f.mock.state.wrong.store(false, Ordering::SeqCst);
+    let legacy = f.collected("auto-legacy", 1).await;
+    let connection = rusqlite::Connection::open(f.config.db.as_ref().unwrap()).unwrap();
+    connection
+        .execute(
+            "DELETE FROM capability_invocation_bindings WHERE job_id=?1",
+            [&legacy],
+        )
+        .unwrap();
+    let requests = f.mock.state.captured.lock().unwrap().len();
+    f.restart_live().await;
+    for (id, decision, extraction) in [
+        (&good, "verified", "supported"),
+        (&unsupported, "verified", "unsupported"),
+        (&wrong, "semantic_rejected", "supported"),
+    ] {
+        let proof = f.wait_proof(id).await;
+        assert_proof(&proof, id, decision, Some(extraction));
+        assert_redacted(&proof);
+        let status = f.finalization(id).await;
+        assert_eq!(status["state"], "completed");
+        assert_eq!(status["attempts"], 1);
+        assert!(status["error_code"].is_null());
+    }
+    assert_eq!(f.mock.state.captured.lock().unwrap().len(), requests);
+    for id in f.acceptance_jobs.iter().chain(std::iter::once(&legacy)) {
+        assert_eq!(
+            f.org.get(&format!("/jobs/{id}")).await["status"],
+            "VERIFYING"
+        );
+        let (status, _) = f
+            .org
+            .request(
+                reqwest::Method::GET,
+                &format!("/capability-runs/{id}/verification"),
+                "operator",
+                None,
+            )
+            .await;
+        assert_eq!(status, StatusCode::NOT_FOUND);
+        let (status, _) = f
+            .org
+            .request(
+                reqwest::Method::GET,
+                &format!("/capability-runs/{id}/finalization"),
+                "operator",
+                None,
+            )
+            .await;
+        assert_eq!(status, StatusCode::NOT_FOUND);
+    }
+    // After startup, the real transport worker collects a newly prepared run,
+    // and its separate finalizer creates the semantic proof without /verify.
+    let fresh = f.prepare("auto-entire-lifecycle", 1).await;
+    let proof = f.wait_proof(&fresh).await;
+    assert_proof(&proof, &fresh, "verified", Some("supported"));
+    assert_eq!(f.mock.submissions(), 8);
+    for principal in ["agent", "adapter"] {
+        let (status, _) = f
+            .org
+            .request(
+                reqwest::Method::GET,
+                &format!("/capability-runs/{fresh}/finalization"),
+                principal,
+                None,
+            )
+            .await;
+        assert_eq!(status, StatusCode::FORBIDDEN);
+    }
+    f.assert_no_commitment().await;
+}
+
+#[tokio::test]
+async fn automatic_finalization_rejects_a_collected_revoked_executor() {
+    let mut f = Fixture::start().await;
+    let id = f.collected("auto-revoked", 0).await;
+    f.retire_verifier().await;
+    let requests = f.mock.state.captured.lock().unwrap().len();
+    f.restart_live().await;
+    let proof = f.wait_proof(&id).await;
+    assert_proof(&proof, &id, "authority_rejected", None);
+    assert_eq!(
+        f.org.get(&format!("/jobs/{id}")).await["status"],
+        "RESULT_REJECTED"
+    );
+    assert_eq!(f.finalization(&id).await["state"], "completed");
+    assert_eq!(f.mock.state.captured.lock().unwrap().len(), requests);
+    f.assert_no_commitment().await;
+}
+
+#[tokio::test]
+async fn manual_verification_and_automatic_drain_share_one_terminal_transition() {
+    let f = Fixture::start().await;
+    let id = f.collected("manual-auto-race", 0).await;
+    let requests = f.mock.state.captured.lock().unwrap().len();
+    let (drained, manual) = tokio::join!(drain_once(&f.org.app), f.verify(&id));
+    drained.unwrap();
+    assert_proof(&manual, &id, "verified", Some("supported"));
+    assert_eq!(
+        f.org
+            .get(&format!("/capability-runs/{id}/verification"))
+            .await,
+        manual
+    );
+    assert_eq!(f.finalization(&id).await["state"], "completed");
+    let events = f.events().await;
+    assert_eq!(
+        events
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|event| event["type"] == "job_status_changed"
+                && event["payload"]["job_id"] == id
+                && event["payload"]["to"] == "SUCCEEDED")
+            .count(),
+        1
+    );
+    assert_eq!(drain_once(&f.org.app).await.unwrap().claimed, 0);
+    assert_eq!(f.events().await, events);
+    assert_eq!(f.mock.state.captured.lock().unwrap().len(), requests);
+}
+
+#[tokio::test]
+async fn malformed_record_attention_does_not_starve_healthy_work_and_survives_restart() {
+    let mut f = Fixture::start().await;
+    let bad = f.collected("auto-malformed", 0).await;
+    let healthy = f.collected("auto-healthy", 1).await;
+    let connection = rusqlite::Connection::open(f.config.db.as_ref().unwrap()).unwrap();
+    let saved: String = connection
+        .query_row(
+            "SELECT record_json FROM capability_runs WHERE job_id=?1",
+            [&bad],
+            |row| row.get(0),
+        )
+        .unwrap();
+    connection
+        .execute(
+            "UPDATE capability_runs SET record_json='{}' WHERE job_id=?1",
+            [&bad],
+        )
+        .unwrap();
+    let requests = f.mock.state.captured.lock().unwrap().len();
+    let drained = drain_once(&f.org.app).await.unwrap();
+    assert_eq!(drained.claimed, 2);
+    assert_eq!(drained.completed, 1);
+    assert_eq!(drained.attention, 1);
+    assert_proof(
+        &f.wait_proof(&healthy).await,
+        &healthy,
+        "verified",
+        Some("supported"),
+    );
+    let attention = f.finalization(&bad).await;
+    assert_eq!(attention["state"], "attention");
+    assert_eq!(attention["attempts"], 1);
+    assert!(attention["error_code"].is_string());
+    assert!(!attention.to_string().contains("expected"));
+    assert_eq!(drain_once(&f.org.app).await.unwrap().claimed, 0);
+    f.restart_live().await;
+    assert_eq!(f.finalization(&bad).await, attention);
+    assert_eq!(f.mock.state.captured.lock().unwrap().len(), requests);
+    connection
+        .execute(
+            "UPDATE capability_runs SET record_json=?2 WHERE job_id=?1",
+            rusqlite::params![bad, saved],
+        )
+        .unwrap();
+    // Repairing local data alone must not silently retry an attention record.
+    assert_eq!(drain_once(&f.org.app).await.unwrap().claimed, 0);
+    let proof = f.verify(&bad).await;
+    assert_proof(&proof, &bad, "verified", Some("supported"));
+    let completed = f.finalization(&bad).await;
+    assert_eq!(completed["state"], "completed");
+    assert_eq!(completed["attempts"], 1);
+    assert!(completed["error_code"].is_null());
+    assert_eq!(f.mock.state.captured.lock().unwrap().len(), requests);
+    f.assert_no_commitment().await;
+}
+
+#[tokio::test]
+async fn automatic_proof_commit_failure_is_attention_until_explicit_manual_recovery() {
+    let f = Fixture::start().await;
+    let id = f.collected("auto-commit-failure", 0).await;
+    let connection = rusqlite::Connection::open(f.config.db.as_ref().unwrap()).unwrap();
+    let events = f.events().await;
+    let requests = f.mock.state.captured.lock().unwrap().len();
+    connection.execute_batch("CREATE TRIGGER fail_auto_proof_event BEFORE INSERT ON events BEGIN SELECT RAISE(ABORT, 'private fixture commit failure'); END;").unwrap();
+    let drained = drain_once(&f.org.app).await.unwrap();
+    assert_eq!(drained.claimed, 1);
+    assert_eq!(drained.attention, 1);
+    assert_eq!(
+        f.org.get(&format!("/jobs/{id}")).await["status"],
+        "VERIFYING"
+    );
+    let status = f.finalization(&id).await;
+    assert_eq!(status["state"], "attention");
+    assert_eq!(status["attempts"], 1);
+    assert!(!status.to_string().contains("private fixture"));
+    let (status, _) = f
+        .org
+        .request(
+            reqwest::Method::GET,
+            &format!("/capability-runs/{id}/verification"),
+            "operator",
+            None,
+        )
+        .await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+    assert_eq!(f.events().await, events);
+    connection
+        .execute_batch("DROP TRIGGER fail_auto_proof_event;")
+        .unwrap();
+    assert_eq!(drain_once(&f.org.app).await.unwrap().claimed, 0);
+    assert_proof(&f.verify(&id).await, &id, "verified", Some("supported"));
+    assert_eq!(f.finalization(&id).await["state"], "completed");
+    assert_eq!(f.mock.state.captured.lock().unwrap().len(), requests);
+}
+
+#[tokio::test]
+async fn automatic_drain_bounds_each_batch_without_losing_remaining_work() {
+    let f = Fixture::start().await;
+    let mut ids = Vec::new();
+    for index in 0..17 {
+        ids.push(f.collected(&format!("batch-{index}"), 0).await);
+    }
+    let requests = f.mock.state.captured.lock().unwrap().len();
+    let first = drain_once(&f.org.app).await.unwrap();
+    assert_eq!(first.claimed, 16);
+    assert_eq!(first.completed, 16);
+    let mut pending = 0;
+    for id in &ids {
+        let status = f.finalization(id).await;
+        match status["state"].as_str().unwrap() {
+            "completed" => assert_eq!(status["attempts"], 1),
+            "pending" => {
+                pending += 1;
+                assert_eq!(status["attempts"], 0);
+            }
+            state => panic!("unexpected {state}: {status}"),
+        }
+    }
+    assert_eq!(pending, 1);
+    let second = drain_once(&f.org.app).await.unwrap();
+    assert_eq!(second.claimed, 1);
+    assert_eq!(second.completed, 1);
+    assert_eq!(drain_once(&f.org.app).await.unwrap().claimed, 0);
+    for id in &ids {
+        assert_eq!(
+            f.org.get(&format!("/jobs/{id}")).await["status"],
+            "SUCCEEDED"
+        );
+    }
+    assert_eq!(f.mock.state.captured.lock().unwrap().len(), requests);
+    f.assert_no_commitment().await;
+}
+
+#[tokio::test]
+async fn dropping_server_cancels_a_waiting_finalizer_and_restart_resumes_the_job() {
+    let mut f = Fixture::start().await;
+    let id = f.collected("cancel-server-finalizer", 0).await;
+    let connection = rusqlite::Connection::open(f.config.db.as_ref().unwrap()).unwrap();
+    let now = chrono::Utc::now();
+    let future =
+        (now + chrono::Duration::hours(1)).to_rfc3339_opts(chrono::SecondsFormat::Nanos, true);
+    connection.execute("INSERT INTO capability_invocation_attempts(job_id,state,attempts,next_attempt_at,error_code,updated_at) VALUES (?1,'pending',0,?2,NULL,?3)", rusqlite::params![id, future, now.to_rfc3339_opts(chrono::SecondsFormat::Nanos, true)]).unwrap();
+    f.restart_live().await;
+    // A successful HTTP read means startup recovery has finished and all
+    // serve_org workers exist. Hold their shared gate before making work due.
+    f.org.get("/organization").await;
+    let kernel = f.org.app.kernel.clone();
+    let guard = kernel.lock().await;
+    connection.execute("UPDATE capability_invocation_attempts SET next_attempt_at='2000-01-01T00:00:00.000000000Z' WHERE job_id=?1", [&id]).unwrap();
+    tokio::time::sleep(Duration::from_millis(350)).await;
+    f.org.server.task.abort();
+    (&mut f.org.server.task).await.unwrap_err();
+    drop(guard);
+    tokio::time::sleep(Duration::from_millis(350)).await;
+    let job = f
+        .org
+        .app
+        .store
+        .get_job(&genesis_core::ids::JobId::new(&id))
+        .unwrap();
+    assert_eq!(job.status, genesis_core::lifecycle::JobStatus::Verifying);
+    let status = f
+        .org
+        .app
+        .store
+        .capability_finalization_status(&job.job_id)
+        .unwrap();
+    let status = serde_json::to_value(status).unwrap();
+    assert_eq!(status["state"], "pending");
+    assert_eq!(status["attempts"], 0);
+    let proof_count: usize = connection
+        .query_row(
+            "SELECT COUNT(*) FROM capability_invocation_verifications WHERE job_id=?1",
+            [&id],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(
+        proof_count, 0,
+        "a detached worker finalized after server shutdown"
+    );
+    let requests = f.mock.state.captured.lock().unwrap().len();
+    f.org = Org::open_live(&f.config, &f.mock).await;
+    assert_proof(&f.wait_proof(&id).await, &id, "verified", Some("supported"));
+    assert_eq!(f.mock.state.captured.lock().unwrap().len(), requests);
 }

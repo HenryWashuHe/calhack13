@@ -56,6 +56,10 @@ pub fn router(state: AppState) -> Router {
             "/capability-runs/{id}/verification",
             get(capabilities::run_verification),
         )
+        .route(
+            "/capability-runs/{id}/finalization",
+            get(capabilities::run_finalization),
+        )
         .route("/capability-acquisitions", post(acquisitions::create))
         .route("/capability-acquisitions/{id}", get(acquisitions::status))
         .route(
