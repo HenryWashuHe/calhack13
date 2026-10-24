@@ -60,7 +60,7 @@ const REJECTION: Record<string, string> = {
 };
 const STOP = new Set(["end_turn", "max_tokens", "stop_sequence", "tool_use", "other"]);
 export function diagnosticLabel(rejection: string, stopReason: string | null): Label {
-  const what = REJECTION[rejection];
+  const what = own(REJECTION, rejection);
   if (!what) return unrecognized(rejection);
   const stop =
     stopReason === null ? "no stop reason retained" : STOP.has(stopReason) ? `stop reason ${stopReason}` : `unrecognized stop: ${stopReason}`;
