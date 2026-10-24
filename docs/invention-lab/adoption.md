@@ -29,13 +29,13 @@ described by a `CapabilityManifest`. Pieces this contract reuses:
 | Pinned installations; publication never changes one | kernel `begin_installation`, registry | on main | one `checking`/`accepted` installation per exact `capability_id@version` |
 | Unknown submission never becomes empty or a retry | #86 | on main | `needs_reconciliation`, retry gate `adoption_checks_unresolved` |
 | Per-candidate decision log, committed with the outcome it explains | legacy #116 → #8, `capability_adoption_candidates.rs` | on main | `selected`, `adopted`, `not_applicable`, `own_publication`, `missing_scope`, `invalid_manifest`, `unusable_state`, `manifest_unavailable`, `invalid_response`, `installation_conflict`, `not_evaluated` |
-| Conclusion of an adopt-first gap | legacy #128 → #11, `capability_adoption_outcome.rs` | open PR | `pending`, `adopted`, `not_applicable`, `insufficient_evidence`, `no_candidate`, `unknown`, `stopped` |
+| Conclusion of an adopt-first gap | legacy #128 → #11, `capability_adoption_outcome.rs` | on main | `pending`, `adopted`, `not_applicable`, `insufficient_evidence`, `no_candidate`, `unknown`, `stopped` |
 | Confirmed terminal provider failure distinct from transport uncertainty | legacy #121 → #10 | on main | `ProviderError::RunFailed` |
 
-Values from open PRs (#11) are pending dependencies of this proposal, not
-main's current wire contract. #18 (execution) and #22 (scoring) are merged
-experimental contracts; the pre-execution trial plan is draft #28 and the
-experiment-call ledger draft #32.
+#18 (execution), #22 (scoring), #28 (pre-execution trial plan), #32
+(experiment-call ledger) and #36 (method source packages) are merged
+experimental contracts, and the corrected evaluator proposal #13 is on main.
+The evaluator implementation (#37–#39) and executor (#42–#45) are open PRs.
 
 The method case keeps all of these rules. It adds an artifact kind, an
 environment check and a different acceptance experiment. It does not add a
@@ -127,8 +127,11 @@ small experiment:
   executor supports one.
 - **Treatment and control:** the candidate method versus the receiver's current
   method (or its configured baseline method if it has none), same tasks, same
-  budget, same evaluator (id, version and content digest). No control means the method can only be
-  accepted on an absolute threshold, and the receipt says so.
+  budget, same evaluator (id, version and content digest). TrialPlan v1
+  (#28) requires a candidate and a control in the receiving organization; use
+  its configured baseline when no current method exists. Control-free
+  absolute-threshold acceptance would need a separately reviewed protocol
+  extension.
 - **Criterion, fixed before the run:** e.g. "at least as many tasks solved as
   the control, with no task regressing past the tolerated margin, within
   budget". The criterion is part of the frozen acceptance suite and its digest
@@ -189,9 +192,11 @@ Unchanged from adopt-first for task capabilities, and explicit per rule:
   evaluator digest is pinned in the adoption intent, the acceptance evidence
   and every execution and scoring receipt (#18/#22 carry it as an exact
   content reference).
-- Every method execution receipt names the installation and purpose it ran
-  under. An `invocation` refuses an installation that is not `accepted`;
-  acceptance and comparison follow the purposes above.
+- Every method execution receipt (#18) binds the exact method and execution
+  purpose; it has no installation field. Proposed method-adoption evidence
+  separately links a receipt to an installation when there is one; comparison
+  runs need not have an accepted installation. Ordinary invocation requires
+  current authority and accepted installation evidence.
 - **Job authority and committed acceptance are different things** (on main,
   `capability_authority.rs`). Current authority (requirement, assignment,
   epoch, scopes) is checked for each live job and for the initial acceptance
