@@ -4,6 +4,9 @@
 //!     writes <score-dir>/evaluation.json
 //!   lab-score verdict <plan.json> <criterion.json> <candidate-state> <candidate-score>
 //!                     <control-state> <control-score>
+//!   lab-score feedback <plan.json> <slot> <state-dir> <score-dir> <out.json>
+//!     writes the receiver's public-instance observations for the slot
+//!     (create-only) and prints their content reference
 use genesis_core::development_evaluation::{EvaluationOutcome, EvaluationReceipt};
 use genesis_core::development_method::ExecutionReceipt;
 use genesis_core::development_trial::TrialPlan;
@@ -72,6 +75,25 @@ fn main() -> ExitCode {
                 };
                 let verdict = decide(&plan, &criterion, &load(cs, cx)?, &load(ks, kx)?)?;
                 serde_json::to_value(verdict).unwrap()
+            }
+            ["feedback", plan, slot, state, score, out] => {
+                let plan: TrialPlan = json(plan)?;
+                let open = |d: &str| Store::open(Path::new(d)).map_err(|e| format!("{d}: {e}"));
+                let (reference, bytes) = genesis_lab_score::feedback::receiver_feedback(
+                    &plan,
+                    slot,
+                    &open(state)?,
+                    &open(score)?,
+                )
+                .map_err(|e| format!("feedback: {e:?}"))?;
+                use std::io::Write;
+                std::fs::OpenOptions::new()
+                    .write(true)
+                    .create_new(true)
+                    .open(out)
+                    .and_then(|mut f| f.write_all(&bytes).and_then(|_| f.sync_all()))
+                    .map_err(|e| format!("write {out}: {e}"))?;
+                serde_json::to_value(reference).unwrap()
             }
             _ => return Err("usage: see the header of src/bin/lab-score.rs".into()),
         })
