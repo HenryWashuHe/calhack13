@@ -193,6 +193,12 @@ impl MethodSynthesisSession {
     pub fn plan(&self) -> &MethodSynthesisPlan {
         &self.record.plan
     }
+    pub fn request_sha256(&self) -> &str {
+        &self.record.request_sha256
+    }
+    pub fn checkpoint_sha256(&self) -> &str {
+        &self.record.checkpoint_sha256
+    }
     pub fn phase(&self) -> MethodSynthesisPhase {
         self.record.phase
     }
