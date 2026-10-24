@@ -154,6 +154,25 @@ impl Case {
         self.scope.generated_links.clear();
         self.trial_binding = None;
     }
+    fn declare_no_trial(&mut self) {
+        self.generation_only();
+        self.stage.limits.max_trial_slots = 0;
+        self.stage.limits.development_grant = grant(0);
+        self.stage.limits.scoring_grant = grant(0);
+        let prepared = MethodSynthesisSession::new(self.snapshots[0].plan().clone()).unwrap();
+        let mut admission =
+            GenerationAdmission::new(self.admission.as_ref().unwrap().roster().clone()).unwrap();
+        self.allocation = Some(
+            StageAllocation::prepare(
+                self.stage.limits.clone(),
+                &admission,
+                std::slice::from_ref(&prepared),
+            )
+            .unwrap(),
+        );
+        admission.reserve(&prepared).unwrap();
+        self.admission = Some(admission);
+    }
     fn rebuild_trial_only(&mut self) {
         assert!(self.allocation.is_none());
         self.scope = fixture::scope(&[], Some(&self.trial));
@@ -285,6 +304,73 @@ fn generation_only_missing_and_unbound_stages_remain_visible_and_unknown() {
         .combined
         .iter()
         .all(|t| t.unknown && t.known_lower_bound == 0));
+}
+
+#[test]
+fn explicit_generation_only_and_later_trial_have_complete_separate_costs() {
+    let mut generated = Case::new("source", "generate", true);
+    generated.declare_no_trial();
+    let later = Case::new("later", "generate", false);
+    let chain = chain(&[&generated, &later]);
+    let saved = serde_json::to_vec(&chain).unwrap();
+    let restored: ChainAllocation = serde_json::from_slice(&saved).unwrap();
+    assert_eq!(chain.sha256().unwrap(), restored.sha256().unwrap());
+    assert_eq!(saved, serde_json::to_vec(&restored).unwrap());
+    let allocation = generated.allocation.as_ref().unwrap();
+    let saved = serde_json::to_vec(allocation).unwrap();
+    let restored: StageAllocation = serde_json::from_slice(&saved).unwrap();
+    assert_eq!(allocation.sha256().unwrap(), restored.sha256().unwrap());
+    assert_eq!(saved, serde_json::to_vec(&restored).unwrap());
+
+    let bindings = [generated.binding(&chain), later.binding(&chain)];
+    let report = assess_chain_costs(
+        &chain,
+        &[generated.input(&bindings[0]), later.input(&bindings[1])],
+    )
+    .unwrap();
+    assert!(report.stages.iter().all(|s| !s.unresolved_trial));
+    for (index, total) in report.combined.iter().enumerate() {
+        assert_eq!(total.known_lower_bound, if index == 4 { 4 } else { 5 });
+        assert!(!total.unknown && !total.overflow && !total.limit_exceeded);
+    }
+    let ChainObservedCosts::Generation(costs) = report.stages[0].observed.as_ref().unwrap() else {
+        panic!("generation report")
+    };
+    assert_eq!(costs.costs.rows.len(), 1);
+    assert!(costs.costs.matched_package_links.is_empty());
+}
+
+#[test]
+fn generation_only_failed_attempt_retains_known_cost_and_overrun() {
+    let mut case = Case::new("failed-source", "failed", true);
+    case.declare_no_trial();
+    let mut failed = MethodSynthesisSession::new(case.snapshots[0].plan().clone()).unwrap();
+    failed.begin().unwrap();
+    let mut completion = case.snapshots[0].completion().unwrap().clone();
+    completion.outcome = TextOutcome::Failed {
+        reason: TextFailure::Protocol,
+    };
+    completion.usage.input_tokens = ResourceUsage::Measured { value: 3001 };
+    failed.complete(completion).unwrap();
+    case.snapshots = vec![failed];
+    let chain = chain(&[&case]);
+    let binding = case.binding(&chain);
+    let report = assess_chain_costs(&chain, &[case.input(&binding)]).unwrap();
+    assert!(!report.stages[0].unresolved_trial);
+    assert!(report.combined.iter().all(|t| !t.unknown));
+    assert_eq!(report.combined[1].known_lower_bound, 3001);
+    assert!(report.combined[1].limit_exceeded);
+    let ChainObservedCosts::Generation(costs) = report.stages[0].observed.as_ref().unwrap() else {
+        panic!("generation report")
+    };
+    assert!(matches!(
+        costs.costs.rows[0].observation,
+        CostObservation::Generation {
+            phase: MethodSynthesisPhase::Failed,
+            ..
+        }
+    ));
+    assert!(costs.generation.costs.combined[1].limit_exceeded);
 }
 
 #[test]
