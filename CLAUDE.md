@@ -79,8 +79,10 @@ every milestone. All lower checkpoints are historical.
   connects selected method/receiver acceptance to requirement/responsibility/current
   owner grant, pinned invocation, decline/revocation and an existing-owner control.
   [Pure core verdict #146](https://github.com/HenryWashuHe/genesis-history-experiment/pull/146)
-  is merged at `c6870504`; the server connection, execution under its grant and justified
-  specialist creation remain future work in Henry's lane.
+  is merged at `c6870504`. New acceptance #154 `cc099833` and adoption-store
+  #155 `df286ad4` are unmerged and under independent review in Henry's lane.
+  Their stacked bases need retargeting to main as dependencies merge; no
+  clearance is claimed. Execution under the grant remains later work.
   #116 B-task records are now checked; local adoption and an accepted fresh
   A return remain unestablished. Receiving wrapper #118 `68bc82d0` merged at
   `ec23efb5`: frozen package/spec bytes and atomic failure summaries clear all
@@ -180,6 +182,22 @@ every milestone. All lower checkpoints are historical.
   [Read-only chain-cost CLI #130](docs/invention-lab/contracts/chain-allocation.md#read-only-chain-cost-cli)
   is merged at `fc16ba14`, source `04e22315`: 21 focused tests/6 targets and scoped
   strict Clippy/fmt/diff pass. No provider/runtime calls or gate closure.
+  Explicit generation-only stages #153 `2efdca90` merged at `86505a09`, matching
+  tree `0c85d672`: root 40 focused checks (36 plus four independent regressions)
+  and scoped strict Clippy/fmt pass; independent exact-head source review clear.
+  The 241-line `5596b771` guard is preserved unchanged. Zero trial slots require
+  zero development/scoring grants and cannot bind a trial. Missing/uncertain
+  generation stays unknown, as do historical nonzero-slot stages without trial
+  evidence; #113 records and hashes are unchanged. This is local accounting,
+  not new execution or G4.
+  Henry's [receiver-ID follow-up](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6389372825)
+  is requested within his lane: derive unique run/attempt/scoring IDs from the
+  predeclared trial before execution, with same-trial preparation stable.
+  Do not relabel old receipts. Codex [has claimed the intake integration](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6389431891):
+  selected method plus receiver-owned need → one atomic ordinary observation →
+  existing planner/saga. Scope is the new server intake module, minimal
+  init/export/router wiring and separate scripted-planner tests. Work is active,
+  not merged or demonstrated; no second planner or adoption/current-grant edits.
   [Method registry API #132](https://github.com/HenryWashuHe/genesis-history-experiment/pull/132)
   is merged at `26b6cc87`: authenticated immutable publication, bounded keyword
   metadata search and exact-source fetch reuse the existing registry process.
@@ -199,8 +217,9 @@ every milestone. All lower checkpoints are historical.
   bounded revision bundle and ordinary Prepared checkpoint. Receiver inputs and
   legacy identities are preserved; local HTTP/pure preparation only, no new
   generation, execution, adoption or G2/G3 closure.
-  Henry's acknowledged authority slice now has its pure verdict prerequisite
-  merged in #146; none of the server adoption/invocation connection is merged.
+  Henry's authority slice has pure verdict #146 merged; new server acceptance
+  #154 and adoption-store #155 remain unmerged under review, without clearance
+  or a completed invocation connection.
   Eric's [MethodOffer UI intake increment](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388858370)
   is requested, not acknowledged. CREAO Trigger #137 is separately held on
   durability, bounded response reads and concurrent reconciliation; no live run.
