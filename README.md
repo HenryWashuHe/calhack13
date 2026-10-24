@@ -3,13 +3,21 @@
 ![tag:innovationlab](https://img.shields.io/badge/innovationlab-3D8BD3)
 ![tag:hackathon](https://img.shields.io/badge/hackathon-5F43F1)
 
-**A self-healing operating system for networks of AI agents.**
+**The operating system that lets an AI organization change shape, and keep what it learns.**
 
-GENESIS provides infrastructure for agents to **build, verify, share, inherit, and improve executable capabilities** across independent organizations. A capability developed for one mission can become the starting point for another. A verified repair can become a reusable improvement instead of knowledge trapped in one agent's conversation.
+Every agent framework ships a fixed org chart. GENESIS runs an organization as
+durable state instead: roles, responsibilities, authority, budgets, contracts
+and a constitution. When evidence arrives, a planner proposes the smallest
+valid change and the kernel decides. Roles are created, specialists are
+recruited, missing abilities are built and verified, work is handed off, and
+temporary teams retire. Every revision is kept, and every state is audited.
 
-The long-term goal is **networked recursive capability improvement, with fixed model weights**. What evolves is the system around the model: tools, workflows, operational knowledge, specialist teams, and eventually the methods agents use to build and repair those capabilities.
-
-> Agents can build on the network's applicable experience—including better ways to build, verify, and repair.
+What one organization builds, another can inherit. A verified capability is
+published with its exact build, its acceptance suite and its provenance. A
+second organization checks it against its own suite and installs it without
+a single model call. Over time that makes GENESIS a network: organizations
+that change shape as their missions change, and that build on each other's
+verified abilities, including better ways to build, verify and repair them.
 
 ## See it in 60 seconds
 
@@ -21,7 +29,16 @@ The long-term goal is **networked recursive capability improvement, with fixed m
 
 What is live, fixture or pending at any moment is stated in the [demo runbook's honesty table](docs/DEMO_RUNBOOK.md); fixture runs are labeled on screen and never presented as live. The pitch script is in [docs/PITCH.md](docs/PITCH.md) and the submission text in [docs/DEVPOST.md](docs/DEVPOST.md).
 
-## How the network improves
+## Where this goes: a network that improves itself
+
+The long-term goal is **networked recursive capability improvement, with fixed
+model weights**. What evolves is the system around the model: tools, workflows,
+operational knowledge, specialist teams, and eventually the methods agents use
+to build and repair those capabilities. This section describes that goal; the
+[current implementation](#what-the-current-implementation-supports) states what
+exists today.
+
+### How the network improves
 
 1. **Discover:** An agent encounters a requirement and searches for an existing capability that fits it.
 2. **Organize:** If the capability is missing, the organization assigns responsibility and can create or recruit the specialists needed to develop it.
@@ -33,7 +50,7 @@ Organizations are the authority boundary: each owns its missions, roles, budgets
 
 GENESIS supports two connected forms of evolution: **organizational evolution**, changing who is responsible and which specialists participate; and **capability evolution**, changing what those specialists can execute and share.
 
-## What “recursive” means here
+### What “recursive” means here
 
 A growing capability library provides accumulation. Reusing or composing its contents can improve a task. The recursive step is an improvement that makes the system **better at producing its next improvement**, demonstrated on independent evaluation.
 
@@ -41,7 +58,7 @@ For example, one organization publishes an extractor; another develops a regress
 
 This is the intended architecture. **The current implementation establishes important foundations; it does not yet demonstrate a general recursive self-improvement loop.** No model-weight training is required by this design, and there is no claim of autonomous model-weight improvement.
 
-### Universal infrastructure, selective transfer
+#### Universal infrastructure, selective transfer
 
 A universal runtime does not require universal tools. An equation solver may help a later equation or a function plot and contribute nothing to drawing a cartoon cat. A capability can become useful many missions later; consecutive tasks need not share it. These are execution and evaluation tasks, not model-training steps.
 
