@@ -24,7 +24,7 @@ use storage::{CheckpointLock, MAX_EXTRACTOR_BYTES};
 const HELP: &str = "Usage:
   genesis-forge prepare --candidate metadata.json --extractor parser.ts --suite suite.json --checkpoint session.json
   genesis-forge method-generate-prepare --plan method-plan.json --checkpoint method-generation.json
-  genesis-forge method-generate-step --checkpoint method-generation.json [--admission admission.json [--allocation stage.json]]
+  genesis-forge method-generate-step --checkpoint method-generation.json [--admission admission.json [--allocation stage.json [--chain chain.json]]]
   genesis-forge method-chain-prepare --manifest chain-input.json --chain chain.json
   genesis-forge method-chain-bind --manifest chain-stage-input.json --chain chain.json
   genesis-forge method-chain-check --manifest chain-stage-input.json --chain chain.json
@@ -120,7 +120,7 @@ impl Arguments {
             "method-revise-prepare" | "method-revise-observe" => {
                 &["--plan", "--parent", "--checkpoint"]
             }
-            "method-generate-step" => &["--checkpoint", "--admission", "--allocation"],
+            "method-generate-step" => &["--checkpoint", "--admission", "--allocation", "--chain"],
             "method-generate-status" | "method-generate-export" => &["--checkpoint"],
             "generate-prepare" => &["--request", "--model-config", "--checkpoint"],
             "generate-step" | "generate-status" => &["--checkpoint"],
@@ -175,6 +175,9 @@ impl Arguments {
             }
         }
         for flag in allowed {
+            if command == "method-generate-step" && *flag == "--chain" {
+                continue;
+            }
             if matches!(
                 command.as_str(),
                 "method-generate-step" | "method-cost-assess"
@@ -193,6 +196,12 @@ impl Arguments {
             && !paths.contains_key("--admission")
         {
             return Err("--allocation requires --admission".into());
+        }
+        if command == "method-generate-step"
+            && paths.contains_key("--chain")
+            && !paths.contains_key("--allocation")
+        {
+            return Err("--chain requires --allocation".into());
         }
         if command == "acquire-run" && max_steps.is_none() {
             return Err("acquire-run requires --max-steps".into());
