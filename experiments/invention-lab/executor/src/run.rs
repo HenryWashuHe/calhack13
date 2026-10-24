@@ -371,7 +371,7 @@ pub fn execute(
     // Unconditional cleanup: the child is stopped before any evidence is
     // finalized, on every path out of the loop.
     if outcome.is_some() || fatal.is_some() {
-        let _ = child.kill();
+        cfg.sandbox.stop(&mut child);
     }
     let status = loop {
         if let Some(status) = child.try_wait()? {
@@ -379,7 +379,7 @@ pub fn execute(
         }
         if started.elapsed() >= deadline {
             outcome = Some(ExecutionOutcome::Interrupted);
-            let _ = child.kill();
+            cfg.sandbox.stop(&mut child);
             break child.wait()?;
         }
         std::thread::sleep(Duration::from_millis(5));
