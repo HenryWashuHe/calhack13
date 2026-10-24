@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Api, OrgEndpoint } from "./api";
 import type { DomainEvent, Job, OrgChangeRecord, OrgState } from "./contracts";
+import { SnapshotGate } from "./snapshot";
 
 export type Connection = "connecting" | "live" | "offline";
 
@@ -56,8 +57,10 @@ export function useOrg(ep: OrgEndpoint): OrgView {
   const [connection, setConnection] = useState<Connection>("connecting");
   const [error, setError] = useState<string | null>(null);
   const timer = useRef<number | null>(null);
+  const gate = useRef(new SnapshotGate());
 
   const load = useCallback(async () => {
+    const generation = gate.current.begin();
     try {
       const [h, s, c, j, l] = await Promise.all([
         api.get<Health>("/health"),
@@ -66,6 +69,8 @@ export function useOrg(ep: OrgEndpoint): OrgView {
         api.get<Job[]>("/jobs"),
         api.get<Commitment[]>("/ledger"),
       ]);
+      // Loads overlap; a slower, older response must not roll the view back.
+      if (!gate.current.accept(generation, s.revision)) return;
       setHealth(h);
       setState(s);
       setChanges(c);
@@ -73,7 +78,7 @@ export function useOrg(ep: OrgEndpoint): OrgView {
       setLedger(l);
       setError(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      if (gate.current.isLatest(generation)) setError(e instanceof Error ? e.message : String(e));
     }
   }, [api]);
 
@@ -86,13 +91,23 @@ export function useOrg(ep: OrgEndpoint): OrgView {
   }, [load]);
 
   useEffect(() => {
+    gate.current.reset();
     setHealth(null);
     setState(null);
+    setChanges([]);
+    setJobs([]);
+    setLedger([]);
     setEvents([]);
+    setError(null);
     setConnection("connecting");
     void load();
     const source = new EventSource(api.eventsUrl(0));
-    source.onopen = () => setConnection("live");
+    // Every (re)connection reloads the snapshot: a refresh may have failed
+    // while the stream was down, and "live" must not sit on stale state.
+    source.onopen = () => {
+      setConnection("live");
+      void load();
+    };
     source.onerror = () => setConnection(source.readyState === EventSource.CLOSED ? "offline" : "connecting");
     source.addEventListener("domain_event", (msg) => {
       const ev = JSON.parse((msg as MessageEvent<string>).data) as DomainEvent;

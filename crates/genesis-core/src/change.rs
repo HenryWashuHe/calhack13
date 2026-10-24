@@ -216,6 +216,10 @@ pub struct OrgChangeRecord {
     /// Provider bindings obtained during provisioning, keyed by role key.
     #[serde(default)]
     pub provisioned: std::collections::BTreeMap<String, crate::model::AgentBinding>,
+    /// Role keys whose provider readiness check has passed. A provisioned
+    /// binding without readiness is kept for reconciliation and cleanup.
+    #[serde(default)]
+    pub ready: std::collections::BTreeSet<String>,
     #[serde(default)]
     pub errors: Vec<crate::engine::ValidationError>,
     pub committed_revision: Option<u64>,

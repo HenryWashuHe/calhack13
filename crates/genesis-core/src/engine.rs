@@ -159,7 +159,8 @@ struct Sim<'a> {
     effects: Vec<EventKind>,
     new_roles: BTreeSet<RoleId>,
     new_contracts: BTreeSet<ContractId>,
-    new_budget: u64,
+    /// New budget allocated by this change; `None` after an overflow.
+    new_budget: Option<u64>,
 }
 
 impl<'a> Sim<'a> {
@@ -181,7 +182,7 @@ impl<'a> Sim<'a> {
             effects: Vec::new(),
             new_roles: BTreeSet::new(),
             new_contracts: BTreeSet::new(),
-            new_budget: 0,
+            new_budget: Some(0),
         }
     }
 
@@ -532,7 +533,9 @@ impl<'a> Sim<'a> {
             },
         );
         self.new_roles.insert(role_id.clone());
-        self.new_budget += authority.budget_cents;
+        self.new_budget = self
+            .new_budget
+            .and_then(|b| b.checked_add(authority.budget_cents));
         self.effects.push(EventKind::RoleCreated {
             role_id: role_id.clone(),
             name: name.to_owned(),
@@ -719,8 +722,13 @@ impl<'a> Sim<'a> {
             if matches!(&r.executor, Some(Executor::Role(e)) if e != owner) {
                 r.executor = None;
             }
-            r.epoch
+            (r.epoch, r.requirement_id.clone())
         };
+        let (epoch, requirement) = epoch;
+        // Keep the linked requirement's accountable owner in step.
+        if let Some(req) = requirement.and_then(|id| self.st.requirements.get_mut(&id)) {
+            req.owner = Owner::Role(owner.clone());
+        }
         let fenced: Vec<AssignmentId> = self
             .st
             .assignments
@@ -1049,22 +1057,32 @@ impl<'a> Sim<'a> {
             }
         }
         let c = &self.st.constitution;
-        let allocated = self.st.allocated_budget_cents();
-        if allocated > c.budget_cents {
-            let msg = format!(
-                "roles would hold {allocated} cents of budget, constitution allows {}",
-                c.budget_cents
-            );
-            self.err(ValidationCode::BudgetExceeded, None, msg);
-        }
-        if let Some(limit) = proposal.budget_limit_cents {
-            if self.new_budget > limit {
+        match self.st.checked_allocated_budget_cents() {
+            None => self.err(
+                ValidationCode::BudgetExceeded,
+                None,
+                "role budgets overflow; no allocation can exceed the constitution budget",
+            ),
+            Some(allocated) if allocated > c.budget_cents => {
                 let msg = format!(
-                    "change allocates {} cents, its own limit is {limit}",
-                    self.new_budget
+                    "roles would hold {allocated} cents of budget, constitution allows {}",
+                    c.budget_cents
                 );
+                self.err(ValidationCode::BudgetExceeded, None, msg);
+            }
+            Some(_) => {}
+        }
+        match (self.new_budget, proposal.budget_limit_cents) {
+            (None, _) => self.err(
+                ValidationCode::ChangeBudgetExceeded,
+                None,
+                "budgets in this change overflow",
+            ),
+            (Some(new), Some(limit)) if new > limit => {
+                let msg = format!("change allocates {new} cents, its own limit is {limit}");
                 self.err(ValidationCode::ChangeBudgetExceeded, None, msg);
             }
+            _ => {}
         }
         let live = self.st.live_roles().count() as u32;
         if live > self.st.constitution.max_active_roles {
@@ -1257,7 +1275,7 @@ pub fn bootstrap_mission(
                 binding: Some(AgentBinding {
                     provider: Provider::Internal,
                     provider_agent_id: format!("kernel:{}", r.key),
-                    config_digest: crate::capability::sha256_hex(config.to_string().as_bytes()),
+                    config_digest: crate::digest::canonical_sha256(&config),
                     conversation_ref: None,
                 }),
                 capabilities: Vec::new(),
@@ -1319,11 +1337,34 @@ pub fn bootstrap_mission(
             epoch: 1,
         });
     }
-    if st.allocated_budget_cents() > st.constitution.budget_cents {
-        errors.push(ValidationError::new(
+    match st.checked_allocated_budget_cents() {
+        Some(total) if total <= st.constitution.budget_cents => {}
+        Some(_) => errors.push(ValidationError::new(
             ValidationCode::BudgetExceeded,
             None,
             "initial roles exceed the constitution budget",
+        )),
+        None => errors.push(ValidationError::new(
+            ValidationCode::BudgetExceeded,
+            None,
+            "initial role budgets overflow",
+        )),
+    }
+    // The same reporting-graph invariant ChangeReportingEdge enforces.
+    let cyclic: Vec<String> = st
+        .roles
+        .values()
+        .filter(|r| st.reports_transitively_to(&r.role_id, &r.role_id))
+        .map(|r| r.name.clone())
+        .collect();
+    if !cyclic.is_empty() {
+        errors.push(ValidationError::new(
+            ValidationCode::ReportingCycle,
+            None,
+            format!(
+                "reporting lines form a cycle through: {}",
+                cyclic.join(", ")
+            ),
         ));
     }
     if st.live_roles().count() as u32 > st.constitution.max_active_roles {
@@ -1550,8 +1591,13 @@ pub fn authorize_dispatch(
     })
 }
 
-/// A result carrying `epoch` may change commitments only if the epoch is still
-/// current. Late results from fenced assignments are archived, not applied.
+/// A result carrying `epoch` may change commitments only while the
+/// responsibility is still open and the epoch is current. Late results from
+/// fenced assignments or completed work are archived, not applied.
+///
+/// This checks the responsibility only. Job results must use
+/// [`check_job_result`], which also checks that the submitting role still
+/// holds the work.
 pub fn check_result_epoch(
     state: &OrgState,
     responsibility_id: &ResponsibilityId,
@@ -1567,6 +1613,50 @@ pub fn check_result_epoch(
         return Err(DispatchError::StaleEpoch {
             current: resp.epoch,
             got: epoch,
+        });
+    }
+    if resp.status != ResponsibilityStatus::Open {
+        return Err(DispatchError::ResponsibilityNotOpen {
+            responsibility_id: responsibility_id.clone(),
+        });
+    }
+    Ok(())
+}
+
+/// Whether a result from `role` for work dispatched at `epoch` may still have
+/// effects (ledger writes, completion). Requires an open responsibility at the
+/// same epoch, a role that is still ACTIVE, and that the role still holds the
+/// work: either the owner of the current active assignment or the current
+/// delegated executor. A replaced, retired or otherwise revoked executor's
+/// late result is rejected even though the responsibility epoch is unchanged.
+pub fn check_job_result(
+    state: &OrgState,
+    role_id: &RoleId,
+    responsibility_id: &ResponsibilityId,
+    epoch: u64,
+) -> Result<(), DispatchError> {
+    check_result_epoch(state, responsibility_id, epoch)?;
+    let role = state
+        .roles
+        .get(role_id)
+        .ok_or_else(|| DispatchError::UnknownRole {
+            role_id: role_id.clone(),
+        })?;
+    if !role.state.accepts_work() {
+        return Err(DispatchError::RoleNotActive {
+            role_id: role_id.clone(),
+        });
+    }
+    let resp = &state.responsibilities[responsibility_id];
+    let owns = state
+        .active_assignment(responsibility_id)
+        .map(|a| &a.role_id == role_id && a.epoch == epoch)
+        .unwrap_or(false);
+    let executes = resp.executor == Some(Executor::Role(role_id.clone()));
+    if !owns && !executes {
+        return Err(DispatchError::NotAssigned {
+            role_id: role_id.clone(),
+            responsibility_id: responsibility_id.clone(),
         });
     }
     Ok(())

@@ -343,6 +343,23 @@ impl Store {
         Ok((record.clone(), true))
     }
 
+    /// The change stored for a client request ID, if any.
+    pub fn find_change_by_request(
+        &self,
+        client_request_id: &str,
+    ) -> StoreResult<Option<OrgChangeRecord>> {
+        let conn = self.lock();
+        let json: Option<String> = conn
+            .query_row(
+                "SELECT record_json FROM org_changes WHERE client_request_id = ?1",
+                params![client_request_id],
+                |r| r.get(0),
+            )
+            .optional()?;
+        json.map(|j| serde_json::from_str(&j).map_err(StoreError::from))
+            .transpose()
+    }
+
     pub fn get_change(&self, id: &ChangeId) -> StoreResult<OrgChangeRecord> {
         let conn = self.lock();
         let json: Option<String> = conn
@@ -394,6 +411,20 @@ impl Store {
             ],
         )?;
         Ok((job.clone(), true))
+    }
+
+    /// The job stored for a client request ID, if any.
+    pub fn find_job_by_request(&self, client_request_id: &str) -> StoreResult<Option<Job>> {
+        let conn = self.lock();
+        let json: Option<String> = conn
+            .query_row(
+                "SELECT job_json FROM jobs WHERE client_request_id = ?1",
+                params![client_request_id],
+                |r| r.get(0),
+            )
+            .optional()?;
+        json.map(|j| serde_json::from_str(&j).map_err(StoreError::from))
+            .transpose()
     }
 
     pub fn get_job(&self, id: &JobId) -> StoreResult<Job> {
@@ -575,6 +606,43 @@ pub fn enqueue(tx: &Transaction<'_>, item: &NewOutbox) -> StoreResult<()> {
     tx.execute(
         "INSERT INTO outbox (destination, kind, payload_json, next_attempt_at, created_at) VALUES (?1, ?2, ?3, ?4, ?4)",
         params![item.destination, item.kind, serde_json::to_string(&item.payload)?, now],
+    )?;
+    Ok(())
+}
+
+/// Insert a new change record inside a transaction (with its events).
+pub fn insert_change_tx(
+    tx: &Transaction<'_>,
+    client_request_id: &str,
+    record: &OrgChangeRecord,
+) -> StoreResult<()> {
+    tx.execute(
+        "INSERT INTO org_changes (change_id, client_request_id, status, record_json, created_at, updated_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+        params![
+            record.change_id.as_str(),
+            client_request_id,
+            format!("{:?}", record.status),
+            serde_json::to_string(record)?,
+            ts(record.created_at),
+            ts(record.updated_at)
+        ],
+    )?;
+    Ok(())
+}
+
+/// Insert a new job inside a transaction (with its dispatch event and outbox).
+pub fn insert_job_tx(tx: &Transaction<'_>, client_request_id: &str, job: &Job) -> StoreResult<()> {
+    tx.execute(
+        "INSERT INTO jobs (job_id, client_request_id, status, job_json, created_at, updated_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?5)",
+        params![
+            job.job_id.as_str(),
+            client_request_id,
+            format!("{:?}", job.status),
+            serde_json::to_string(job)?,
+            ts(job.created_at)
+        ],
     )?;
     Ok(())
 }
