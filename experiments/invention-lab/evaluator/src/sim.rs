@@ -1,0 +1,344 @@
+//! Deterministic 2D rigid-body episode for one design on one instance.
+use crate::design::{Body, Design, JointKind, MAX_MOTOR_TORQUE};
+use crate::family::{Family, Instance};
+use rapier2d::prelude::*;
+use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
+use std::collections::BTreeMap;
+
+/// Sampled every this many steps, for the trace digest and the display trace.
+pub const TRACE_EVERY: u32 = 12;
+const PAYLOAD_HALF: f32 = 0.2;
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub struct Frame {
+    pub step: u32,
+    /// (x, y, angle) per design body in design order, then the payload.
+    pub poses: Vec<[f32; 3]>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub struct Episode {
+    pub success: bool,
+    pub progress: f32,
+    pub joints_broken: u32,
+    pub steps_run: u32,
+    pub steps_to_target: Option<u32>,
+    pub trace_sha256: String,
+    pub frames: Vec<Frame>,
+    /// The engine produced a non-finite state.
+    pub diverged: bool,
+}
+
+fn ground(
+    bodies: &mut RigidBodySet,
+    colliders: &mut ColliderSet,
+    x0: f32,
+    x1: f32,
+    top: f32,
+    friction: f32,
+) {
+    let hw = (x1 - x0) / 2.0;
+    let h = bodies.insert(RigidBodyBuilder::fixed().translation(vector![x0 + hw, top - 0.5]));
+    colliders.insert_with_parent(
+        ColliderBuilder::cuboid(hw, 0.5).friction(friction),
+        h,
+        bodies,
+    );
+}
+
+/// Runs one episode. Never panics on a validated design; a non-finite state
+/// ends the episode with `diverged`.
+/// A motorized hinge: open-loop target speed, torque capped at
+/// [`MAX_MOTOR_TORQUE`]. (`motor_velocity`'s second argument is a response
+/// factor in Rapier 0.22, not a force limit.)
+pub fn motor_joint(pa: Point<Real>, pb: Point<Real>, speed: f32) -> GenericJoint {
+    RevoluteJointBuilder::new()
+        .local_anchor1(pa)
+        .local_anchor2(pb)
+        .contacts_enabled(false)
+        .motor_velocity(speed, 800.0)
+        .motor_max_force(MAX_MOTOR_TORQUE)
+        .into()
+}
+
+pub fn run(design: &Design, inst: &Instance) -> Episode {
+    let mut bodies = RigidBodySet::new();
+    let mut colliders = ColliderSet::new();
+    let mut joints = ImpulseJointSet::new();
+    let f = inst.friction;
+    // Shared launch platform: every family starts on flat ground left of x=0.
+    match inst.family {
+        Family::RavineCrossing | Family::ReturnMix => {
+            ground(&mut bodies, &mut colliders, -20.0, 0.0, 0.0, f);
+            ground(
+                &mut bodies,
+                &mut colliders,
+                inst.gap,
+                inst.gap + 20.0,
+                inst.step_height,
+                f,
+            );
+        }
+        Family::RoughTransport => {
+            ground(
+                &mut bodies,
+                &mut colliders,
+                -20.0,
+                inst.distance + 20.0,
+                0.0,
+                f,
+            );
+            let mut x = 0.5;
+            while x < inst.distance + 2.0 {
+                let h = bodies.insert(
+                    RigidBodyBuilder::fixed().translation(vector![x, inst.bump_height / 2.0]),
+                );
+                colliders.insert_with_parent(
+                    ColliderBuilder::cuboid(0.1, inst.bump_height / 2.0).friction(f),
+                    h,
+                    &mut bodies,
+                );
+                x += inst.bump_spacing;
+            }
+        }
+        Family::ProjectileTarget => {
+            ground(&mut bodies, &mut colliders, -20.0, 30.0, 0.0, f);
+            // A wall the launcher can't pass: the payload has to fly.
+            let h = bodies.insert(RigidBodyBuilder::fixed().translation(vector![1.5, 0.5]));
+            colliders.insert_with_parent(
+                ColliderBuilder::cuboid(0.05, 0.5).friction(f),
+                h,
+                &mut bodies,
+            );
+        }
+    }
+    let mut handle = BTreeMap::new();
+    let mut order = vec![];
+    for b in &design.bodies {
+        let p = b.material().props();
+        let (rb, col) = match b {
+            Body::Rect {
+                x, y, w, h, angle, ..
+            } => (
+                RigidBodyBuilder::dynamic()
+                    .translation(vector![*x, *y])
+                    .rotation(*angle),
+                ColliderBuilder::cuboid(w / 2.0, h / 2.0),
+            ),
+            Body::Circle { x, y, r, .. } => (
+                RigidBodyBuilder::dynamic().translation(vector![*x, *y]),
+                ColliderBuilder::ball(*r),
+            ),
+        };
+        let h = bodies.insert(rb);
+        colliders.insert_with_parent(
+            col.density(p.density)
+                .friction(p.friction)
+                .restitution(p.restitution),
+            h,
+            &mut bodies,
+        );
+        handle.insert(b.id().to_owned(), h);
+        order.push(h);
+    }
+    let base = design
+        .bodies
+        .iter()
+        .find(|b| b.id() == design.payload_on)
+        .expect("validated payload_on");
+    let (_, _, _, top) = base.aabb();
+    let (cx, _) = base.center();
+    let payload = bodies
+        .insert(RigidBodyBuilder::dynamic().translation(vector![cx, top + PAYLOAD_HALF + 0.01]));
+    colliders.insert_with_parent(
+        ColliderBuilder::cuboid(PAYLOAD_HALF, PAYLOAD_HALF)
+            .mass(inst.payload_kg)
+            .friction(1.0),
+        payload,
+        &mut bodies,
+    );
+    order.push(payload);
+
+    let mut live: Vec<(ImpulseJointHandle, f32)> = vec![];
+    for j in &design.joints {
+        let (ha, hb) = (handle[&j.a], handle[&j.b]);
+        let pa = bodies[ha]
+            .position()
+            .inverse_transform_point(&point![j.x, j.y]);
+        let pb = bodies[hb]
+            .position()
+            .inverse_transform_point(&point![j.x, j.y]);
+        let joint: GenericJoint = match (j.kind, j.motor_speed) {
+            // Both frames sit at the anchor with world orientation, so the
+            // weld holds the bodies' initial relative pose, rotation included.
+            (JointKind::Weld, _) => {
+                let anchor = Isometry::translation(j.x, j.y);
+                FixedJointBuilder::new()
+                    .local_frame1(bodies[ha].position().inverse() * anchor)
+                    .local_frame2(bodies[hb].position().inverse() * anchor)
+                    .contacts_enabled(false)
+                    .into()
+            }
+            (JointKind::Hinge, None) => RevoluteJointBuilder::new()
+                .local_anchor1(pa)
+                .local_anchor2(pb)
+                .contacts_enabled(false)
+                .into(),
+            (JointKind::Hinge, Some(v)) => motor_joint(pa, pb, v),
+        };
+        let ma = design
+            .bodies
+            .iter()
+            .find(|b| b.id() == j.a)
+            .unwrap()
+            .material();
+        let mb = design
+            .bodies
+            .iter()
+            .find(|b| b.id() == j.b)
+            .unwrap()
+            .material();
+        let strength = ma.props().strength.min(mb.props().strength);
+        live.push((joints.insert(ha, hb, joint, true), strength));
+    }
+
+    let mut pipeline = PhysicsPipeline::new();
+    let mut islands = IslandManager::new();
+    let mut broad = DefaultBroadPhase::new();
+    let mut narrow = NarrowPhase::new();
+    let mut multibody = MultibodyJointSet::new();
+    let mut ccd = CCDSolver::new();
+    let mut query = QueryPipeline::new();
+    let params = IntegrationParameters {
+        dt: 1.0 / crate::family::STEPS_PER_SECOND as f32,
+        ..Default::default()
+    };
+    let gravity = vector![0.0, -9.81];
+    let mut hasher = Sha256::new();
+    let mut frames = vec![];
+    let mut broken = 0u32;
+    let mut best_x = f32::MIN;
+    let mut held = 0u32;
+    let mut reached: Option<u32> = None;
+    let mut failed = false;
+    let mut diverged = false;
+    let max = inst.family.max_steps();
+    let mut steps_run = 0;
+    let (target, start_x) = match inst.family {
+        Family::RavineCrossing | Family::ReturnMix => (inst.gap + 1.0, cx),
+        Family::RoughTransport => (inst.distance, cx),
+        Family::ProjectileTarget => (inst.target_x, cx),
+    };
+    for step in 0..max {
+        for p in inst.pushes.iter().filter(|p| p.step == step) {
+            bodies[payload].apply_impulse(vector![p.dx, p.dy], true);
+        }
+        pipeline.step(
+            &gravity,
+            &params,
+            &mut islands,
+            &mut broad,
+            &mut narrow,
+            &mut bodies,
+            &mut colliders,
+            &mut joints,
+            &mut multibody,
+            &mut ccd,
+            Some(&mut query),
+            &(),
+            &(),
+        );
+        steps_run = step + 1;
+        live.retain(|(jh, strength)| {
+            let impulse = joints
+                .get(*jh)
+                .map(|j| j.impulses.xy().norm())
+                .unwrap_or(0.0);
+            if impulse > *strength * params.dt * 480.0 {
+                joints.remove(*jh, true);
+                broken += 1;
+                false
+            } else {
+                true
+            }
+        });
+        let p = *bodies[payload].translation();
+        if !p.x.is_finite() || !p.y.is_finite() {
+            diverged = true;
+            break;
+        }
+        best_x = best_x.max(p.x);
+        if step % TRACE_EVERY == 0 {
+            let mut poses = Vec::with_capacity(order.len());
+            for h in &order {
+                let t = bodies[*h].position();
+                let pose = [t.translation.x, t.translation.y, t.rotation.angle()];
+                for v in pose {
+                    hasher.update(v.to_bits().to_le_bytes());
+                }
+                poses.push(pose.map(|v| (v * 1000.0).round() / 1000.0));
+            }
+            frames.push(Frame { step, poses });
+        }
+        match inst.family {
+            Family::RavineCrossing | Family::ReturnMix => {
+                if p.y < -1.5 {
+                    failed = true;
+                    break;
+                }
+                if p.x > target && p.y > inst.step_height - 0.5 {
+                    held += 1;
+                    reached.get_or_insert(step);
+                    if held >= crate::family::STEPS_PER_SECOND {
+                        break;
+                    }
+                } else {
+                    held = 0;
+                }
+            }
+            Family::RoughTransport => {
+                // Touching the ground: the payload's bottom at ground level.
+                if p.y - PAYLOAD_HALF < 0.02 {
+                    failed = true;
+                    break;
+                }
+                if p.x >= target {
+                    reached.get_or_insert(step);
+                    break;
+                }
+            }
+            Family::ProjectileTarget => {}
+        }
+    }
+    let p = *bodies[payload].translation();
+    let success = !diverged
+        && match inst.family {
+            Family::RavineCrossing | Family::ReturnMix => {
+                !failed && held >= crate::family::STEPS_PER_SECOND
+            }
+            Family::RoughTransport => !failed && reached.is_some(),
+            Family::ProjectileTarget => {
+                (p.x - inst.target_x).abs() <= inst.target_half_width && p.y < 1.0
+            }
+        };
+    if inst.family == Family::ProjectileTarget && success {
+        reached = Some(steps_run);
+    }
+    let span = (target - start_x).max(0.001);
+    let progress = if diverged {
+        0.0
+    } else {
+        ((best_x - start_x) / span).clamp(0.0, 1.0)
+    };
+    Episode {
+        success,
+        progress: (progress * 1000.0).round() / 1000.0,
+        joints_broken: broken,
+        steps_run,
+        steps_to_target: reached,
+        trace_sha256: crate::design::hex(&hasher.finalize()),
+        frames,
+        diverged,
+    }
+}
