@@ -1,0 +1,23 @@
+[package]
+name = "genesis-lab-score"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+publish = false
+description = "Invention-lab trusted acceptance scoring of a frozen trial slot (experimental)."
+
+# Standalone like the evaluator and executor: not a root workspace member.
+[workspace]
+
+[dependencies]
+genesis-core = { path = "../../../crates/genesis-core" }
+genesis-lab-eval = { path = "../evaluator" }
+genesis-lab-exec = { path = "../executor" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+
+[dev-dependencies]
+# Only the offline generation rehearsal test uses the forge.
+genesis-forge = { path = "../../../crates/genesis-forge" }
+tokio = { version = "1", features = ["macros", "rt", "net", "io-util"] }

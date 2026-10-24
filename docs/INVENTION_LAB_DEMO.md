@@ -9,12 +9,20 @@ includes the source/receipt/ledger foundations, #37–#39's local simulator
 also merged; their reviewed composition executed 19 portable tests, while one
 Linux namespace test self-skipped. The generation path exports a host-bound
 package; no live model generation or execution of a generated method is established.
-Runtime #44/#45, verdict #48 and hidden scoring #57 remain held; #46's own findings
-are cleared but it depends on the runtime stack. #57's local process regression
-shows that recovery to Unknown does not establish that a candidate stopped before
-hidden scoring; this is not a Linux namespace test. Handwritten controls, including
+Process runtime/CLI and acceptance scoring/verdict (#44/#45/#46/#48) are
+merged after independent composition checks. Hidden-scoring #57
+clears its original recovery case but remains held: an actual local CLI probe
+returns Scored while a forked candidate descendant continues running. This does
+not establish Linux namespace behavior. Method-adoption #64 still has an
+independently confirmed offer/receiver binding hold. Source-only parent-bound
+revision preparation (#66) is merged: seven focused synthetic-completion tests
+pass independently, but changed source bytes do not establish parent adoption,
+authenticated organization identity, execution or improvement. Its offline CLI (#68) is also merged. See the
+[revision contract](invention-lab/contracts/revision.md). Handwritten controls, including
 the separately reported live Apify parser baseline, do not demonstrate generated
-methods. No independent method acceptance, A → B → A loop or recursive-benefit
+methods. The merged #61 rehearsal returns Rejected (0/3 versus 0/3) and passes
+its cost assertions using fixture source; no actual model generation is shown.
+No independent method acceptance, A → B → A loop or recursive-benefit
 result is established. Core identity checks and declared combined-cost accounting
 (#56/#58/#59) are merged, including unsuccessful or unused generation and unknown
 usage. The offline assessment CLI (#60) is also merged. Provider-default sampling,

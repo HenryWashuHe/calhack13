@@ -111,3 +111,41 @@ pub fn acceptance_plan_for(
         ],
     }
 }
+
+/// A genesis-forge `MethodSynthesisPlan` (as JSON) for one method that develops
+/// designs for `family` through this host's runtime and protocol: entrypoint
+/// `method.py`, no dependencies, a task description as the public task and the
+/// public design-language document as the one public input. Organization
+/// `org_example_a`, target `generated-method@0.1.0`, provider-default sampling.
+pub fn synthesis_plan(
+    family: Family,
+    model: &str,
+    operation_id: &str,
+    interpreter_version: &str,
+) -> serde_json::Value {
+    let doc = |schema: &str, id: &str, text: &str| serde_json::json!({"reference": content(schema, id, "1", text.as_bytes()), "text": text});
+    let task = format!(
+        "Task family {name} (version {version}) in the GENESIS invention lab. \
+         A run gets public development instances of this family through the protocol. \
+         Develop one design that meets the family's success rule on as many instances \
+         as possible, using experiments within the run's remaining simulation steps, \
+         and submit it. The submitted design is later scored by a separate trusted \
+         evaluator on the receiving organization's instances.",
+        name = family.name(),
+        version = genesis_lab_eval::family::FAMILY_VERSION,
+    );
+    serde_json::json!({
+        "operation_id": operation_id,
+        "org_id": "org_example_a",
+        "target_id": "generated-method",
+        "target_version": "0.1.0",
+        "runtime": refs::runtime(interpreter_version),
+        "protocol": {"reference": refs::protocol(), "text": refs::PROTOCOL},
+        "entrypoint": "method.py",
+        "dependencies": [],
+        "public_task": doc("lab-task-description/1", family.name(), &task),
+        "public_inputs": [doc("lab-design-language/1", "language-1", include_str!("../DESIGN_LANGUAGE.md"))],
+        "instruction": "Write one Python 3 program using only the standard library that implements the protocol exactly: read the instances, spend experiments within the remaining simulation steps to search for a design that succeeds on many instances, then submit the best design found and exit 0. Never write anything but protocol requests to standard output.",
+        "settings": {"model": model, "max_tokens": 8192, "timeout_ms": 120000, "sampling": "provider_default"},
+    })
+}

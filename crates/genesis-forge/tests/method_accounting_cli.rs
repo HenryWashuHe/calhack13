@@ -1,20 +1,24 @@
 use genesis_forge::method_synthesis::{MethodSynthesisPhase, MethodSynthesisSession};
 use serde::Serialize;
 use serde_json::{json, Value};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::{fs, path::PathBuf, process::Command};
 #[path = "common/method_accounting_fixture.rs"]
 mod fixture;
 
 struct Files(PathBuf);
+// Parallel tests can observe the same clock tick, even through `as_nanos()`.
+static NEXT_DIRECTORY_ID: AtomicU64 = AtomicU64::new(0);
 impl Files {
     fn new() -> Self {
         let path = std::env::temp_dir().join(format!(
-            "genesis-cost-cli-{}-{}",
+            "genesis-cost-cli-{}-{}-{}",
             std::process::id(),
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap()
-                .as_nanos()
+                .as_nanos(),
+            NEXT_DIRECTORY_ID.fetch_add(1, Ordering::Relaxed)
         ));
         fs::create_dir(&path).unwrap();
         Self(path)
