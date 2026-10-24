@@ -7,6 +7,7 @@ fallback. The original PR #3 review targeted `21103d1`; the current resolution
 checkpoint is recorded in [AGENT_HANDOFF.md](AGENT_HANDOFF.md).
 
 Current Codex addition: capability-source synthesis on `codex/capability-synthesis`
+in [PR #8](https://github.com/HenryWashuHe/genesis/pull/8), code checkpoint `f91d6ef`,
 in forge modules/CLI/tests/examples and focused docs. PR #3/#5/#6/#7 are merged;
 Claude should merge main before integrating this new acquisition boundary.
 See [CAPABILITY_SYNTHESIS.md](CAPABILITY_SYNTHESIS.md). Planner, role activation,
