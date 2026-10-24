@@ -1,5 +1,6 @@
 //! CLI checks stay offline: provider credentials are stripped from every child.
-use genesis_forge::AcquisitionSession;
+use genesis_apify::{ApifyClient, RunLimits};
+use genesis_forge::{AcquisitionSession, AnthropicGenerator};
 use genesis_verification::OracleSuite;
 use serde_json::{json, Value};
 use std::ffi::OsString;
@@ -7,6 +8,8 @@ use std::fs;
 use std::path::PathBuf;
 use std::process::{Command, Output};
 use std::sync::atomic::{AtomicU64, Ordering};
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::net::TcpListener;
 
 static NEXT_ID: AtomicU64 = AtomicU64::new(0);
 const PUBLIC_HTML: &str = "ACQUISITION_EXAMPLE_HTML_NOT_STATUS_637a";
@@ -137,6 +140,43 @@ fn command() -> Command {
 
 fn invoke(args: &[OsString]) -> Output {
     command().args(args).output().unwrap()
+}
+
+/// One actual bounded client exchange, used only to obtain opaque completions.
+async fn reply_once(status: u16, body: Value) -> (String, tokio::task::JoinHandle<()>) {
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let base = format!("http://{}", listener.local_addr().unwrap());
+    let task = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+        let mut request = Vec::new();
+        loop {
+            let mut buffer = [0; 4096];
+            let read = socket.read(&mut buffer).await.unwrap();
+            assert_ne!(read, 0);
+            request.extend_from_slice(&buffer[..read]);
+            assert!(request.len() < 1024 * 1024);
+            if let Some(end) = request.windows(4).position(|part| part == b"\r\n\r\n") {
+                let headers = String::from_utf8_lossy(&request[..end]);
+                let length = headers
+                    .lines()
+                    .find_map(|line| {
+                        let (key, value) = line.split_once(':')?;
+                        key.eq_ignore_ascii_case("content-length")
+                            .then(|| value.trim().parse::<usize>().unwrap())
+                    })
+                    .unwrap();
+                if request.len() >= end + 4 + length {
+                    break;
+                }
+            }
+        }
+        let body = body.to_string();
+        let headers = format!("HTTP/1.1 {status} Test\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", body.len());
+        socket.write_all(headers.as_bytes()).await.unwrap();
+        socket.write_all(body.as_bytes()).await.unwrap();
+        socket.shutdown().await.unwrap();
+    });
+    (base, task)
 }
 
 fn redacted(output: &Output) {
@@ -394,6 +434,65 @@ fn interrupted_generation_recovers_without_credentials_and_never_replays() {
         redacted(&repeated);
         assert!(repeated.stderr.is_empty());
         assert_eq!(fixture.bytes("acquisition.json"), saved);
+    }
+}
+
+#[tokio::test]
+async fn ambiguous_actor_creation_is_terminal_without_a_read_retry_flag() {
+    let fixture = Fixture::new();
+    fixture.prepare();
+    let mut session: AcquisitionSession =
+        serde_json::from_slice(&fixture.bytes("acquisition.json")).unwrap();
+    let suite: OracleSuite = serde_json::from_slice(&fixture.bytes("suite.json")).unwrap();
+    let prompt = session.begin_generation(&suite).unwrap();
+    let source = "export function extract() { throw new Error('never execute this fixture'); }";
+    let (base, model) = reply_once(200, json!({
+        "id": "msg_acquisition_cli_503", "type": "message", "role": "assistant", "model": MODEL,
+        "content": [{"type": "text", "text": json!({"extractor_typescript": source}).to_string()}],
+        "stop_reason": "end_turn", "stop_sequence": null,
+        "usage": {"input_tokens": 200, "output_tokens": 80}
+    })).await;
+    let generator = AnthropicGenerator::with_test_endpoint(
+        &format!("{base}/v1/messages"),
+        "loopback-model-key",
+    )
+    .unwrap();
+    let receipt = generator
+        .generate(&prompt, session.generation().config())
+        .await;
+    session.complete_generation(receipt, &suite).unwrap();
+    model.await.unwrap();
+    assert!(session.advance_local(&suite).unwrap());
+
+    let (base, provider) = reply_once(503, json!({"error": "provider unavailable"})).await;
+    let client =
+        ApifyClient::for_local_testing("loopback-apify-key", RunLimits::default(), &base).unwrap();
+    let action = session.prepare_forge(&suite).unwrap().unwrap();
+    session
+        .complete_forge(action.execute(&client).await, &suite)
+        .unwrap();
+    provider.await.unwrap();
+    assert!(session.forge().unwrap().failure().unwrap().retryable);
+    fixture.write_json("acquisition.json", &session);
+    let before = fixture.bytes("acquisition.json");
+
+    // Both fixture listeners have closed; the CLI has no provider credentials.
+    // A terminal mutating failure must not demand or authorize a read retry.
+    for action in ["acquire-step", "acquire-run"] {
+        let mut args = fixture.args(action);
+        if action == "acquire-run" {
+            args.extend(["--max-steps".into(), "64".into()]);
+        }
+        let output = invoke(&args);
+        assert_eq!(output.status.code(), Some(1));
+        assert!(output.stderr.is_empty());
+        redacted(&output);
+        let status: Value = serde_json::from_slice(&output.stdout).unwrap();
+        assert_eq!(status["phase"], "needs_reconciliation");
+        assert_eq!(fixture.bytes("acquisition.json"), before);
+        args.push("--retry-read".into());
+        error(&invoke(&args), "requires a prior retryable read failure");
+        assert_eq!(fixture.bytes("acquisition.json"), before);
     }
 }
 
