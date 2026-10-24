@@ -1,0 +1,36 @@
+{
+  "actual_model": "claude-sonnet-5-5",
+  "authority": "none: generated source, not execution, acceptance or improvement; provider-default sampling is not fixed G4 evidence",
+  "operation_id": "live-a-method-20261024t152819z-2a3e0b5a",
+  "org_id": "org_example_a",
+  "package": null,
+  "phase": "failed",
+  "plan_sha256": "40f731e017036229c8148d9f97b41743c23e56de043bf121f21bb37eabfc82b9",
+  "request_sha256": "dd791fc011a3d577355d91f353eb922d2bbb4798f609e6c89bc11cae0c2dd556",
+  "settings": {
+    "max_tokens": 8192,
+    "model": "claude-sonnet-5-5",
+    "sampling": "provider_default",
+    "timeout_ms": 120000
+  },
+  "transport": "anthropic_https",
+  "usage": {
+    "input_tokens": {
+      "kind": "measured",
+      "value": 3971
+    },
+    "model_calls": {
+      "kind": "measured",
+      "value": 1
+    },
+    "output_tokens": {
+      "kind": "measured",
+      "value": 8192
+    },
+    "wall_time_ms": {
+      "kind": "measured",
+      "value": 62131
+    }
+  },
+  "wire_sha256": "06e9d640893f143230572e8c93746e28916e25bf40a4bcf1dd0dd87bcfee49f5"
+}
