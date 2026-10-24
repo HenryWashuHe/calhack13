@@ -1,5 +1,5 @@
-//! Henry's Claude: the planner learns which capability names the operator's
-//! trusted gap policy can act on, and nothing else about that policy.
+//! Henry's Claude: the planner learns which capability names and public
+//! sources the operator's trusted gap policy can act on, and nothing else.
 use genesis_forge::PublicExample;
 use genesis_server::{
     build_org,
@@ -15,9 +15,12 @@ fn rule(capability: &str) -> GapAcquisitionRule {
         capability_id: capability.into(),
         suite_id: "PRIVATE_SUITE_ID".into(),
         actor_name_prefix: "gap-reader".into(),
-        allowed_source_urls: vec!["https://portal.example/PRIVATE_SOURCE.html".into()],
+        allowed_source_urls: vec![
+            format!("https://portal.example/{capability}/a.html"),
+            format!("https://portal.example/{capability}/b.html"),
+        ],
         examples: vec![PublicExample {
-            url: "https://portal.example/PRIVATE_SOURCE.html".into(),
+            url: format!("https://portal.example/{capability}/a.html"),
             html: "<html>PRIVATE_EXAMPLE</html>".into(),
         }],
         repair: false,
@@ -59,7 +62,12 @@ async fn agent_and_operator_see_policy_names_only() {
         assert_eq!(status, StatusCode::OK, "{body}");
         assert_eq!(
             body,
-            json!({"capability_ids":["capacity-checker","venue-reader"]})
+            json!({"capabilities":[
+                {"capability_id":"capacity-checker","observed_sources":[
+                    "https://portal.example/capacity-checker/a.html","https://portal.example/capacity-checker/b.html"]},
+                {"capability_id":"venue-reader","observed_sources":[
+                    "https://portal.example/venue-reader/a.html","https://portal.example/venue-reader/b.html"]}
+            ]})
         );
         assert!(!body.to_string().contains("PRIVATE"));
     }
@@ -73,5 +81,5 @@ async fn without_a_policy_the_list_is_empty() {
     let url = serve(build_org(&cfg, None).unwrap()).await;
     let (status, body) = get(&url, &cfg.tokens.agent).await;
     assert_eq!(status, StatusCode::OK);
-    assert_eq!(body, json!({"capability_ids":[]}));
+    assert_eq!(body, json!({"capabilities":[]}));
 }

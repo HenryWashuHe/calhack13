@@ -22,12 +22,21 @@ pub async fn acquisition(
         })
 }
 
-/// Capability names the operator's trusted policy can act on, for the planner
-/// (agent token) to use in `RequestCapability`. Names only: suites, sources,
-/// examples and model settings stay server-side.
+/// What the planner (agent token) needs to make a `RequestCapability` the
+/// operator's trusted gap policy can act on: each rule's capability name and
+/// its allowed public source URLs. The policy narrows to the requested
+/// sources and the suite must still cover its own pages, so the request has
+/// to list them. Suite IDs, oracle answers, example HTML and model settings
+/// stay server-side.
 #[derive(Debug, serde::Serialize)]
 pub struct Requestable {
-    pub capability_ids: Vec<String>,
+    pub capabilities: Vec<RequestableCapability>,
+}
+
+#[derive(Debug, serde::Serialize)]
+pub struct RequestableCapability {
+    pub capability_id: String,
+    pub observed_sources: Vec<String>,
 }
 
 pub async fn requestable(
@@ -35,17 +44,19 @@ pub async fn requestable(
     principal: Principal,
 ) -> ApiResult<Json<Requestable>> {
     principal.require(&[Principal::Operator, Principal::Agent])?;
-    let mut capability_ids: Vec<String> = app
+    let mut capabilities: Vec<RequestableCapability> = app
         .gap_acquisition_policy
         .as_deref()
         .map(|p| {
             p.rules
                 .iter()
-                .map(|r| r.capability_id.to_string())
+                .map(|r| RequestableCapability {
+                    capability_id: r.capability_id.clone(),
+                    observed_sources: r.allowed_source_urls.clone(),
+                })
                 .collect()
         })
         .unwrap_or_default();
-    capability_ids.sort();
-    capability_ids.dedup();
-    Ok(Json(Requestable { capability_ids }))
+    capabilities.sort_by(|a, b| a.capability_id.cmp(&b.capability_id));
+    Ok(Json(Requestable { capabilities }))
 }

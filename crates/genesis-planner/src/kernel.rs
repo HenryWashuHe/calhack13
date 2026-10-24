@@ -153,18 +153,21 @@ impl KernelClient {
         self.send(self.http.get(self.url("/organization"))).await
     }
 
-    /// Capability names the server's trusted gap policy can act on. Servers
-    /// without the route (or without a policy) yield an empty list.
-    pub async fn requestable_capabilities(&self) -> Result<Vec<String>, KernelError> {
+    /// Capabilities the server's trusted gap policy can act on, with the
+    /// public sources a request must list. Servers without the route (or
+    /// without a policy) yield an empty list.
+    pub async fn requestable_capabilities(
+        &self,
+    ) -> Result<Vec<crate::prompt::Requestable>, KernelError> {
         #[derive(serde::Deserialize)]
-        struct Requestable {
-            capability_ids: Vec<String>,
+        struct Response {
+            capabilities: Vec<crate::prompt::Requestable>,
         }
         match self
-            .send::<Requestable>(self.http.get(self.url("/capability-gaps/requestable")))
+            .send::<Response>(self.http.get(self.url("/capability-gaps/requestable")))
             .await
         {
-            Ok(r) => Ok(r.capability_ids),
+            Ok(r) => Ok(r.capabilities),
             Err(KernelError::Api { status: 404, .. }) => Ok(vec![]),
             Err(e) => Err(e),
         }

@@ -54,8 +54,8 @@ async fn prompt_for(policy: Option<Value>) -> String {
 async fn the_prompt_lists_the_policy_names_and_nothing_else_about_the_policy() {
     let rule = |id: &str| {
         json!({"capability_id": id, "suite_id": "PRIVATE_SUITE", "actor_name_prefix": "gap-reader",
-               "allowed_source_urls": ["https://portal.example/PRIVATE.html"],
-               "examples": [{"url": "https://portal.example/PRIVATE.html", "html": "<html>PRIVATE</html>"}],
+               "allowed_source_urls": [format!("https://portal.example/{id}/a.html"), format!("https://portal.example/{id}/b.html")],
+               "examples": [{"url": format!("https://portal.example/{id}/a.html"), "html": "<html>PRIVATE</html>"}],
                "repair": false})
     };
     let prompt = prompt_for(Some(
@@ -63,11 +63,11 @@ async fn the_prompt_lists_the_policy_names_and_nothing_else_about_the_policy() {
     ))
     .await;
     assert!(
-        prompt.contains("## Requestable capability names (operator policy)"),
+        prompt.contains("## Requestable capabilities (operator policy)"),
         "{prompt}"
     );
     assert!(
-        prompt.contains("capacity-checker, venue-reader"),
+        prompt.contains("- venue-reader: observed_sources https://portal.example/venue-reader/a.html https://portal.example/venue-reader/b.html"),
         "{prompt}"
     );
     assert!(!prompt.contains("PRIVATE"), "{prompt}");
@@ -76,5 +76,5 @@ async fn the_prompt_lists_the_policy_names_and_nothing_else_about_the_policy() {
 #[tokio::test]
 async fn without_a_policy_the_prompt_is_unchanged() {
     let prompt = prompt_for(None).await;
-    assert!(!prompt.contains("Requestable capability names"), "{prompt}");
+    assert!(!prompt.contains("Requestable capabilities"), "{prompt}");
 }
