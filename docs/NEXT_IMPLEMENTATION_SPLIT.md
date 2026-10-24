@@ -6,12 +6,16 @@ This is a scoped integration handoff, not activation of the whole-kernel credit
 fallback. The original PR #3 review targeted `21103d1`; the current resolution
 checkpoint is recorded in [AGENT_HANDOFF.md](AGENT_HANDOFF.md).
 
-Current Codex addition: capability-source synthesis on `codex/capability-synthesis`
-in [PR #8](https://github.com/HenryWashuHe/genesis/pull/8), code checkpoint `f91d6ef`,
-in forge modules/CLI/tests/examples and focused docs. PR #3/#5/#6/#7 are merged;
-Claude should merge main before integrating this new acquisition boundary.
-See [CAPABILITY_SYNTHESIS.md](CAPABILITY_SYNTHESIS.md). Planner, role activation,
-Elastic and UI remain Claude-owned.
+Current Codex addition: durable capability acquisition in [PR #9](https://github.com/HenryWashuHe/genesis/pull/9),
+`codex/capability-acquisition`,
+stacked on source synthesis [PR #8](https://github.com/HenryWashuHe/genesis/pull/8).
+Reserved paths remain forge modules/CLI/tests/examples and focused docs. The
+coordinator joins generation, build and independent verification with one planned
+semantic repair. See [CAPABILITY_ACQUISITION.md](CAPABILITY_ACQUISITION.md) for its
+library interface and backend-compatible proof export. PR #3/#5/#6/#7 are merged;
+Claude should merge main before integrating this boundary. Planner, role activation,
+Elastic and UI remain Claude-owned. Codex continues successive capability/provider
+milestones under the user's ongoing goal, checking this ownership split before each.
 
 ## Codex: capability execution and verification integration
 
