@@ -3,8 +3,10 @@ resolver = "2"
 members = [
     "crates/genesis-apify",
     "crates/genesis-core",
+    "crates/genesis-creao",
     "crates/genesis-elastic",
     "crates/genesis-forge",
+    "crates/genesis-fetch",
     "crates/genesis-providers",
     "crates/genesis-server",
     "crates/genesis-verification",
