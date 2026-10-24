@@ -12,6 +12,7 @@ fn command() -> Command {
 fn spec() -> OperationSpec {
     OperationSpec {
         schema_version: 1,
+        api_version: genesis_creao::ApiVersion::V1,
         operation_id: "cli-create".into(),
         org_id: "org_a".into(),
         role_id: "role_monitor".into(),

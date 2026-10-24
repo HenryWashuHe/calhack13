@@ -7,7 +7,7 @@
 //! private requests and provider output and is not an importable authority token.
 
 use crate::{
-    CreaoClient, Error, ErrorKind, NativeRunStatus, OperationRequest, PreEffectGuard,
+    ApiVersion, CreaoClient, Error, ErrorKind, NativeRunStatus, OperationRequest, PreEffectGuard,
     RunObservation, RunTicket,
 };
 use chrono::{DateTime, Utc};
@@ -74,6 +74,8 @@ pub enum OperationPurpose {
 #[serde(deny_unknown_fields)]
 pub struct OperationSpec {
     pub schema_version: u32,
+    #[serde(default, skip_serializing_if = "ApiVersion::is_v1")]
+    pub api_version: ApiVersion,
     pub operation_id: String,
     pub org_id: String,
     pub role_id: String,
@@ -90,7 +92,10 @@ impl OperationSpec {
                 .any(|v| !identifier(v))
             || !crate::model::plain(&self.account_namespace, 256)
             || !self.account_namespace.is_ascii()
-            || self.request.validate().is_err()
+            || self
+                .request
+                .payload_for(self.api_version, crate::model::MAX_INPUT)
+                .is_err()
         {
             return Err(RuntimeError::Invalid);
         }
@@ -126,7 +131,7 @@ impl OperationSpec {
         self.validate()?;
         let request_sha256 = self
             .request
-            .request_sha256()
+            .request_sha256_for(self.api_version)
             .map_err(|_| RuntimeError::Invalid)?;
         Ok(json_sha256(
             &json!({"schema_version": 1, "spec": self, "request_sha256": request_sha256}),
@@ -520,8 +525,13 @@ impl Runtime {
     pub fn account_namespace(&self) -> &str {
         self.client.account_namespace()
     }
+    pub fn api_version(&self) -> ApiVersion {
+        self.client.api_version()
+    }
     pub fn prepare(&self, spec: OperationSpec) -> Result<OperationRecord, RuntimeError> {
-        if spec.account_namespace != self.account_namespace() {
+        if spec.account_namespace != self.account_namespace()
+            || spec.api_version != self.api_version()
+        {
             return Err(RuntimeError::ContextMismatch);
         }
         self.store.prepare(spec)
@@ -536,6 +546,7 @@ impl Runtime {
         record.validate()?;
         if record.spec.account_namespace != self.account_namespace()
             || record.spec.org_id != self.org_id()
+            || record.spec.api_version != self.api_version()
         {
             return Err(RuntimeError::ContextMismatch);
         }

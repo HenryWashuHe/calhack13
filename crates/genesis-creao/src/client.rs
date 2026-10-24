@@ -1,6 +1,6 @@
 use crate::model::{
-    account_fingerprint, agent_observation, bounded_serialize, bounded_tree, error, observation,
-    uuid, MAX_INPUT, MAX_RESPONSE,
+    account_fingerprint_for, agent_observation, bounded_serialize, bounded_tree, error,
+    observation_for, uuid, ApiVersion, MAX_INPUT, MAX_RESPONSE,
 };
 use crate::{
     AccountLimiter, AgentObservation, Error, ErrorKind, LimiterError, Limits, OperationRequest,
@@ -31,23 +31,34 @@ pub struct CreaoClient {
     authorization: HeaderValue,
     limits: Limits,
     limiter: AccountLimiter,
+    api_version: ApiVersion,
 }
 impl fmt::Debug for CreaoClient {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("CreaoClient")
             .field("authorization", &"[REDACTED]")
             .field("limits", &self.limits)
+            .field("api_version", &self.api_version)
             .finish_non_exhaustive()
     }
 }
 impl CreaoClient {
     pub fn new(token: &str, limits: Limits, limiter: AccountLimiter) -> Result<Self, Error> {
+        Self::new_for_version(token, limits, limiter, ApiVersion::V1)
+    }
+    pub fn new_for_version(
+        token: &str,
+        limits: Limits,
+        limiter: AccountLimiter,
+        version: ApiVersion,
+    ) -> Result<Self, Error> {
         Self::configured(
             token,
             limits,
             limiter,
-            "https://developer.creao.ai/v1",
+            &format!("https://developer.creao.ai/{}", version.path()),
             false,
+            version,
         )
     }
     /// Only literal loopback HTTP URLs ending in `/v1` are permitted. Never use
@@ -58,7 +69,15 @@ impl CreaoClient {
         limiter: AccountLimiter,
         base: &str,
     ) -> Result<Self, Error> {
-        Self::configured(token, limits, limiter, base, true)
+        Self::configured(token, limits, limiter, base, true, ApiVersion::V1)
+    }
+    pub fn for_local_testing_v2(
+        token: &str,
+        limits: Limits,
+        limiter: AccountLimiter,
+        base: &str,
+    ) -> Result<Self, Error> {
+        Self::configured(token, limits, limiter, base, true, ApiVersion::V2)
     }
     fn configured(
         token: &str,
@@ -66,6 +85,7 @@ impl CreaoClient {
         limiter: AccountLimiter,
         base: &str,
         local: bool,
+        api_version: ApiVersion,
     ) -> Result<Self, Error> {
         let invalid = || error(ErrorKind::InvalidConfiguration, Stage::Configuration);
         let base = Url::parse(base).map_err(|_| invalid())?;
@@ -82,7 +102,7 @@ impl CreaoClient {
                 && (base.scheme() != "https"
                     || base.host_str() != Some("developer.creao.ai")
                     || base.port().is_some()))
-            || base.path() != "/v1"
+            || base.path() != format!("/{}", api_version.path())
             || base.query().is_some()
             || base.fragment().is_some()
             || !base.username().is_empty()
@@ -116,7 +136,11 @@ impl CreaoClient {
             authorization,
             limits,
             limiter,
+            api_version,
         })
+    }
+    pub fn api_version(&self) -> ApiVersion {
+        self.api_version
     }
     pub fn account_namespace(&self) -> &str {
         self.limiter.namespace()
@@ -164,7 +188,7 @@ impl CreaoClient {
         request: &OperationRequest,
         guard: Option<&PreEffectGuard>,
     ) -> Result<RunTicket, Error> {
-        let payload = request.payload(self.limits.max_input_bytes)?;
+        let payload = request.payload_for(self.api_version, self.limits.max_input_bytes)?;
         if self.contains_credential(&payload) {
             return Err(error(ErrorKind::InvalidRequest, Stage::Configuration));
         }
@@ -184,14 +208,31 @@ impl CreaoClient {
                 guard,
             )
             .await?;
-        let observed = observation(raw, request, None, Stage::Submission).map_err(|mut e| {
+        let observed = observation_for(raw, request, None, Stage::Submission, self.api_version)
+            .map_err(|mut e| {
+                e.post_may_have_run = true;
+                e
+            })?;
+        // v2 creation is polled through an agent-scoped edit URL. A response
+        // without an agent ID has no safe GET target; retain the submitted
+        // intent for operator reconciliation rather than inventing an ID.
+        if self.api_version == ApiVersion::V2
+            && matches!(request, OperationRequest::CreateAgent(_))
+            && observed.agent_id.is_none()
+        {
+            let mut e = error(ErrorKind::MalformedResponse, Stage::Submission);
             e.post_may_have_run = true;
-            e
-        })?;
+            return Err(e);
+        }
         Ok(RunTicket {
             schema_version: 1,
+            api_version: self.api_version,
             account_namespace: self.limiter.namespace().to_owned(),
-            request_sha256: account_fingerprint(request, self.limiter.namespace())?,
+            request_sha256: account_fingerprint_for(
+                request,
+                self.limiter.namespace(),
+                self.api_version,
+            )?,
             run_id: observed.run_id,
             agent_id: observed.agent_id,
             conversation_id: observed.conversation_id,
@@ -228,8 +269,11 @@ impl CreaoClient {
         ticket: &RunTicket,
         guard: Option<&PreEffectGuard>,
     ) -> Result<RunObservation, Error> {
-        let payload = request.payload(self.limits.max_input_bytes)?;
+        let payload = request.payload_for(self.api_version, self.limits.max_input_bytes)?;
         ticket.validate_for_account(request, self.limiter.namespace())?;
+        if ticket.api_version != self.api_version {
+            return Err(error(ErrorKind::TicketMismatch, Stage::Configuration));
+        }
         if self.contains_credential(&payload)
             || ticket
                 .model
@@ -238,17 +282,28 @@ impl CreaoClient {
         {
             return Err(error(ErrorKind::TicketMismatch, Stage::Configuration));
         }
+        let poll_path = if self.api_version == ApiVersion::V2
+            && matches!(request, OperationRequest::CreateAgent(_))
+        {
+            let agent_id = ticket
+                .agent_id
+                .as_deref()
+                .ok_or_else(|| error(ErrorKind::TicketMismatch, Stage::Configuration))?;
+            format!("agents/{agent_id}/edits/{}", ticket.run_id)
+        } else {
+            format!("runs/{}", ticket.run_id)
+        };
         let raw = self
             .request(
                 Method::GET,
-                &format!("runs/{}", ticket.run_id),
+                &poll_path,
                 None,
                 RequestKind::Read,
                 Stage::Poll,
                 guard,
             )
             .await?;
-        observation(raw, request, Some(ticket), Stage::Poll)
+        observation_for(raw, request, Some(ticket), Stage::Poll, self.api_version)
     }
 
     fn token(&self) -> &str {
@@ -302,7 +357,7 @@ impl CreaoClient {
             return Err(error(ErrorKind::DeadlineExceeded, stage));
         }
         let mut url = self.base.clone();
-        url.set_path(&format!("/v1/{path}"));
+        url.set_path(&format!("/{}/{path}", self.api_version.path()));
         let post = method == Method::POST;
         let mut request = self
             .client

@@ -2,8 +2,8 @@
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use genesis_creao::{
-    AccountLimiter, CreaoClient, Limits, OperationRecord, OperationSpec, QuotaLimits, Runtime,
-    RuntimeStore,
+    AccountLimiter, ApiVersion, CreaoClient, Limits, OperationRecord, OperationSpec, QuotaLimits,
+    Runtime, RuntimeStore,
 };
 use genesis_verification::decode_json;
 use serde_json::{json, Value};
@@ -92,7 +92,13 @@ fn runtime(db: &Path, org: &str, account: &str, quota_db: &Path) -> Result<Runti
         anyhow::anyhow!("CREAO_ACCOUNT_API_KEY is required in the backend environment")
     })?;
     let limiter = AccountLimiter::open(quota_db, account, QuotaLimits::default())?;
-    let client = CreaoClient::new(&token, Limits::default(), limiter)?;
+    let version = match std::env::var("CREAO_API_VERSION") {
+        Err(std::env::VarError::NotPresent) => ApiVersion::V1,
+        Ok(value) if value == "v1" => ApiVersion::V1,
+        Ok(value) if value == "v2" => ApiVersion::V2,
+        _ => anyhow::bail!("CREAO_API_VERSION must be v1 or v2"),
+    };
+    let client = CreaoClient::new_for_version(&token, Limits::default(), limiter, version)?;
     Ok(Runtime::new(
         client,
         RuntimeStore::open(db, org)?,
