@@ -31,7 +31,7 @@ use crate::capability_adoption_store::{
 };
 use crate::capability_authority::authorize_current;
 use crate::error::{ApiError, ApiResult};
-use crate::store::{Store, StoreError, StoreResult};
+use crate::store::{EventMeta, Store, StoreError, StoreResult};
 use axum::extract::{Path, State};
 use axum::Json;
 use chrono::{DateTime, Utc};
@@ -116,6 +116,9 @@ pub enum GapAdoptionState {
     Installed,
     /// Stopped for an operator; the adoption ID is kept, nothing falls back.
     Attention,
+    /// A definite outcome (rejection, lost authority, or an empty search
+    /// without fallback) refused the kernel gap, which wakes the planner.
+    Refused,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -188,11 +191,16 @@ impl GapAdoptionRecord {
         }
     }
 
-    /// The adoption is this intent's child: same key, requirement, grant
+    /// The adoption is this intent's child: same ID, key, requirement, grant
     /// and suite. A matching ID prefix alone proves nothing.
     fn owns(&self, a: &AdoptionRecord) -> bool {
+        self.adoption_id.as_deref() == Some(a.id()) && self.binds(a)
+    }
+
+    /// Same key, requirement, grant and suite (used before the ID is saved).
+    fn binds(&self, a: &AdoptionRecord) -> bool {
         let b = a.binding();
-        self.adoption_id.as_deref() == Some(a.id())
+        a.client_request_id() == self.client_request_id()
             && b.mission_id == self.mission_id
             && b.requirement_id == self.requirement_id
             && b.role_id == self.role_id
@@ -276,12 +284,37 @@ impl Store {
         let rows = stmt.query_map([], |r| r.get::<_, String>(0))?;
         let mut out = vec![];
         for row in rows {
-            let r = decode(None, &row?)?;
-            if r.state == GapAdoptionState::Active {
-                out.push(r);
+            // One unreadable record must not stop every other gap.
+            match decode(None, &row?) {
+                Ok(r) if r.state == GapAdoptionState::Active => out.push(r),
+                Ok(_) => {}
+                Err(e) => tracing::warn!(error = %e, "skipping unreadable gap adoption record"),
             }
         }
         Ok(out)
+    }
+
+    /// The active record whose adoption was created but whose ID was not yet
+    /// saved (a crash between the two writes), matched by key and binding.
+    fn gap_adoption_unlinked(
+        &self,
+        adoption: &AdoptionRecord,
+    ) -> StoreResult<Option<GapAdoptionRecord>> {
+        let conn = self.lock();
+        if !table_exists(&conn)? {
+            return Ok(None);
+        }
+        let mut stmt = conn.prepare(
+            "SELECT record_json FROM capability_gap_adoptions WHERE adoption_id IS NULL",
+        )?;
+        let rows = stmt.query_map([], |r| r.get::<_, String>(0))?;
+        for row in rows {
+            let r = decode(None, &row?)?;
+            if r.state == GapAdoptionState::Active && r.binds(adoption) {
+                return Ok(Some(r));
+            }
+        }
+        Ok(None)
     }
 }
 
@@ -378,24 +411,36 @@ pub fn defers_driver(app: &AppState, gap: &CapabilityGap) -> bool {
 /// Adoption-acceptance hook. `accepted` is the adoption's outcome with the
 /// installation already accepted; when this adoption belongs to an active
 /// gap intent whose authority is still current, the same outcome also records
-/// the gap installed with the exact selected pin. Anything else returns the
-/// outcome unchanged and the coordinator stops at attention afterwards.
+/// the gap installed with the exact selected pin. A definite mismatch returns
+/// the outcome unchanged (the coordinator then reports it); a storage error
+/// fails the whole acceptance so it is retried rather than split.
 pub(crate) fn link_accepted(
     store: &Store,
     accepted: Outcome,
     adoption: &AdoptionRecord,
-) -> (Outcome, Option<(GapAdoptionRecord, GapAdoptionRecord)>) {
-    let Ok(Some(r)) = store.gap_adoption_by_child(adoption.id()) else {
-        return (accepted, None);
+) -> StoreResult<(Outcome, Option<(GapAdoptionRecord, GapAdoptionRecord)>)> {
+    let r = match store.gap_adoption_by_child(adoption.id())? {
+        Some(r) => r,
+        None => match store.gap_adoption_unlinked(adoption)? {
+            Some(r) => r,
+            None => return Ok((accepted, None)),
+        },
     };
     let (Some(manifest), Some(installation_id)) =
         (adoption.selection(), adoption.installation_id())
     else {
-        return (accepted, None);
+        return Ok((accepted, None));
     };
-    if r.state != GapAdoptionState::Active || !r.owns(adoption) || !authorized(&accepted.state, &r)
+    let mut linked = r.clone();
+    linked.adoption_id = Some(adoption.id().to_owned());
+    if r.state != GapAdoptionState::Active
+        || r.adoption_id
+            .as_deref()
+            .is_some_and(|id| id != adoption.id())
+        || !linked.owns(adoption)
+        || !authorized(&accepted.state, &r)
     {
-        return (accepted, None);
+        return Ok((accepted, None));
     }
     let install = AdoptionInstall {
         adoption_id: adoption.id().to_owned(),
@@ -408,23 +453,22 @@ pub(crate) fn link_accepted(
         &install,
         Utc::now(),
     ) else {
-        return (accepted, None);
+        return Ok((accepted, None));
     };
-    let mut next = r.clone();
-    next.state = GapAdoptionState::Installed;
-    next.code = None;
-    next.selected = Some(install.capability);
-    next.installation_id = Some(install.installation_id);
-    next.updated_at = Utc::now();
+    linked.state = GapAdoptionState::Installed;
+    linked.code = None;
+    linked.selected = Some(install.capability);
+    linked.installation_id = Some(install.installation_id);
+    linked.updated_at = Utc::now();
     let mut effects = accepted.effects;
     effects.extend(done.effects);
-    (
+    Ok((
         Outcome {
             state: done.state,
             effects,
         },
-        Some((r, next)),
-    )
+        Some((r, linked)),
+    ))
 }
 
 /// Write the linked record inside the adoption's acceptance transaction.
@@ -448,6 +492,7 @@ pub enum Step {
     Waiting,
     Installed,
     Released,
+    Refused(GapAdoptionCode),
     Attention(GapAdoptionCode),
 }
 
@@ -472,6 +517,75 @@ fn stop(
 
 fn attention(app: &AppState, r: &GapAdoptionRecord, code: GapAdoptionCode) -> StoreResult<Step> {
     stop(app, r, GapAdoptionState::Attention, Some(code))
+}
+
+fn reason(code: GapAdoptionCode) -> &'static str {
+    match code {
+        GapAdoptionCode::Rejected => {
+            "This organization's own acceptance suite rejected the adopted capability."
+        }
+        GapAdoptionCode::NoCandidate => {
+            "No compatible published capability was found and synthesis is not allowed for it."
+        }
+        _ => "The original requirement or its assignment is no longer valid.",
+    }
+}
+
+/// A definite outcome: refuse the open kernel gap (which wakes the planner)
+/// and close the record in the same transaction, keeping the adoption ID.
+fn refuse(
+    app: &AppState,
+    state: &OrgState,
+    gap: &CapabilityGap,
+    r: Option<&GapAdoptionRecord>,
+    code: GapAdoptionCode,
+) -> StoreResult<Step> {
+    if gap.status != CapabilityGapStatus::Open {
+        return match r {
+            Some(r) => attention(app, r, code),
+            None => Ok(Step::Idle),
+        };
+    }
+    let outcome = engine::update_capability_gap_at(
+        state,
+        &gap.gap_id,
+        CapabilityGapStatus::Refused {
+            reason: reason(code).into(),
+            acquisition_id: r.and_then(|r| r.adoption_id.clone()),
+        },
+        Utc::now(),
+    )
+    .map_err(|e| StoreError::NotFound(format!("gap refusal: {e}")))?;
+    let next = r.map(|r| {
+        let mut next = r.clone();
+        next.state = GapAdoptionState::Refused;
+        next.code = Some(code);
+        next.updated_at = Utc::now();
+        (r.clone(), next)
+    });
+    let events = app.store.commit_state(
+        state.revision,
+        &outcome.state,
+        outcome.effects,
+        &EventMeta::mission(gap.mission_id.clone()).caused_by(gap.gap_id.to_string()),
+        vec![],
+        |tx| match &next {
+            Some((prev, next)) => put(tx, Some(prev), next),
+            None => Ok(()),
+        },
+    )?;
+    app.broadcast(&events);
+    Ok(Step::Refused(code))
+}
+
+/// The gap's requirement itself changed (not merely a role still waiting to
+/// be activated): a definite reason to refuse before anything is frozen.
+fn requirement_changed(state: &OrgState, gap: &CapabilityGap) -> bool {
+    state.requirements.get(&gap.requirement_id).is_none_or(|q| {
+        q.status != RequirementStatus::Assigned
+            || q.mission_id != gap.mission_id
+            || engine::requirement_digest(q) != gap.requirement_digest
+    })
 }
 
 fn suite_sha256(suite: &genesis_verification::OracleSuite) -> Option<String> {
@@ -514,7 +628,7 @@ fn step_locked(app: &AppState, state: &OrgState, gap_id: &CapabilityGapId) -> St
             // The adoption fences itself on lost authority; mirror it early so
             // an acceptance can never link to a changed requirement.
             if !authorized(state, &r) {
-                return attention(app, &r, GapAdoptionCode::Authority);
+                return refuse(app, state, gap, Some(&r), GapAdoptionCode::Authority);
             }
             Ok(Step::Waiting)
         }
@@ -526,15 +640,14 @@ fn step_locked(app: &AppState, state: &OrgState, gap_id: &CapabilityGapId) -> St
             if linked {
                 return Ok(Step::Idle);
             }
-            let code = if authorized(state, &r) {
-                GapAdoptionCode::InvalidRecord
+            if authorized(state, &r) {
+                attention(app, &r, GapAdoptionCode::InvalidRecord)
             } else {
-                GapAdoptionCode::Authority
-            };
-            attention(app, &r, code)
+                refuse(app, state, gap, Some(&r), GapAdoptionCode::Authority)
+            }
         }
-        AdoptionPhase::Rejected => attention(app, &r, GapAdoptionCode::Rejected),
-        AdoptionPhase::Fenced => attention(app, &r, GapAdoptionCode::Authority),
+        AdoptionPhase::Rejected => refuse(app, state, gap, Some(&r), GapAdoptionCode::Rejected),
+        AdoptionPhase::Fenced => refuse(app, state, gap, Some(&r), GapAdoptionCode::Authority),
         AdoptionPhase::Attention => match adoption.attention_code() {
             Some(A::NoCandidate)
                 if r.synthesis_fallback && gap.status == CapabilityGapStatus::Open =>
@@ -546,7 +659,7 @@ fn step_locked(app: &AppState, state: &OrgState, gap_id: &CapabilityGapId) -> St
                     Some(GapAdoptionCode::NoCandidate),
                 )
             }
-            Some(A::NoCandidate) => attention(app, &r, GapAdoptionCode::NoCandidate),
+            Some(A::NoCandidate) => refuse(app, state, gap, Some(&r), GapAdoptionCode::NoCandidate),
             Some(A::RegistryUnavailable) => attention(app, &r, GapAdoptionCode::Registry),
             Some(A::InvalidCandidate) => attention(app, &r, GapAdoptionCode::Candidate),
             Some(A::ChecksFailed | A::ProviderUnavailable) => {
@@ -586,6 +699,9 @@ fn freeze(app: &AppState, state: &OrgState, gap: &CapabilityGap) -> StoreResult<
     let Some(suite_sha256) = suite_sha256(suite) else {
         return Ok(Step::Idle);
     };
+    if requirement_changed(state, gap) {
+        return refuse(app, state, gap, None, GapAdoptionCode::Authority);
+    }
     // Wait (still deferring the driver) until the role holds the work.
     let Ok(grant) = authorize_current(
         state,
@@ -632,8 +748,11 @@ fn dispatch(
     gap: &CapabilityGap,
     r: &GapAdoptionRecord,
 ) -> StoreResult<Step> {
-    if gap.status != CapabilityGapStatus::Open || !authorized(state, r) {
-        return attention(app, r, GapAdoptionCode::Authority);
+    if gap.status != CapabilityGapStatus::Open {
+        return attention(app, r, GapAdoptionCode::InvalidRecord);
+    }
+    if !authorized(state, r) {
+        return refuse(app, state, gap, Some(r), GapAdoptionCode::Authority);
     }
     if !suite_current(app, r) || crate::capability_adoption::configured(app).is_err() {
         return attention(app, r, GapAdoptionCode::Configuration);
@@ -643,9 +762,19 @@ fn dispatch(
     let adoption = match app.store.create_adoption(&r.intent(), suite, Utc::now()) {
         Ok((a, _)) => a,
         Err(AdoptionError::Db(e)) => return Err(StoreError::Db(e)),
-        Err(AdoptionError::Authority(_)) => return attention(app, r, GapAdoptionCode::Authority),
+        Err(AdoptionError::Authority(_)) => {
+            return refuse(app, state, gap, Some(r), GapAdoptionCode::Authority)
+        }
+        // Another adoption holds this requirement and grant, or the store is
+        // at capacity: both clear when that work ends, so wait (visibly).
         Err(AdoptionError::ActiveConflict | AdoptionError::Limit) => {
-            return attention(app, r, GapAdoptionCode::Conflict)
+            if r.code != Some(GapAdoptionCode::Conflict) {
+                let mut next = r.clone();
+                next.code = Some(GapAdoptionCode::Conflict);
+                next.updated_at = Utc::now();
+                save(app, Some(r), &next)?;
+            }
+            return Ok(Step::Waiting);
         }
         Err(AdoptionError::InvalidInput) => {
             return attention(app, r, GapAdoptionCode::Configuration)
@@ -654,6 +783,7 @@ fn dispatch(
     };
     let mut next = r.clone();
     next.adoption_id = Some(adoption.id().to_owned());
+    next.code = None;
     next.updated_at = Utc::now();
     if !next.owns(&adoption) {
         return attention(app, r, GapAdoptionCode::InvalidRecord);
@@ -686,6 +816,8 @@ pub async fn drain_once(app: &AppState) -> StoreResult<BTreeMap<CapabilityGapId,
         }
     }
     for (_, id) in ids {
+        // A step may commit (a refusal), so each gap reads the latest state.
+        let state = app.store.current_state()?;
         match step_locked(app, &state, &id) {
             Ok(step) => {
                 out.insert(id, step);
