@@ -25,17 +25,18 @@ agent ID and genuine run share link. The current Apify monitor invocation and
 CREAO readiness probe do not close that mission-execution gap.
 
 Latest assembled source: [draft PR #25](https://github.com/HenryWashuHe/genesis/pull/25),
-`codex/combined-integration` at `8014683`. It adds main's CREAO execution receipts
-#32 and #28's reviewed UI fix #31 to the previous combined stack. Affected checks
-pass: 112 Rust tests/17 suites, 37 web tests, production build, formatting and
-strict all-target Clippy. The previous full Rust run at `1004934` passed 699 tests;
+`codex/combined-integration` at `3961ecc`. It adds main's CREAO execution receipts
+#32, #28's UI fix #31, and #27's sibling-agent fix #33. Receipt/UI checks at
+`8014683` pass: 112 Rust tests/17 suites and 37 web tests plus production build.
+The later sibling fix passes its 19 focused tests/four suites; formatting and
+strict all-target Clippy pass. The previous full Rust run at `1004934` passed 699 tests;
 it was not repeated for this narrow integration. No live sponsor evidence is claimed.
 See [the integration matrix](docs/COMBINED_INTEGRATION.md) and [review queue](docs/PR_REVIEW_QUEUE.md).
 
-This branch remains draft: thirteen reproduced failing regressions across
-#11/#12/#20/#26/#27 remain on separate test-only branches, with source findings
-on #21/#22. #28's own UI finding is resolved but its backend dependencies remain
-held. Henry's Claude is handling scoped #27/#28 fixes; Claude/Eric owns the other
+This branch remains draft: twelve reproduced failing regressions across
+#11/#12/#20/#26 remain on separate test-only branches, with source findings
+on #21/#22. #27/#28's own findings are resolved but their backend dependencies
+remain held. Henry's Claude is handling scoped #27/#28 fixes; Claude/Eric owns the other
 source fixes. No whole-kernel takeover is active. The ongoing mission goal remains
 active; CREAO core mission work is still distinct from readiness and provenance.
 

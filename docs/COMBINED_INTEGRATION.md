@@ -6,10 +6,10 @@ for both machines. It is draft because the source reviews below still have open
 findings. Passing the existing suite does not resolve those findings.
 
 The [PR review queue](PR_REVIEW_QUEUE.md) distinguishes merged additions from
-held source changes. Latest source integration `8014683` includes main `f03ce9b`
-(CREAO execution receipts #32) and #28 at `17b6b02` (reviewed UI fix #31).
-Both merged cleanly. The UI finding is resolved; #28's backend dependencies remain
-held. Henry's Claude has claimed the scoped #27/#28 corrections in issue #4;
+held source changes. Latest source integration `3961ecc` includes main `f03ce9b`
+(CREAO execution receipts #32), #28 at `17b6b02` (UI fix #31), and #27 at
+`5952987` (sibling-agent fix #33). All merged cleanly. #27/#28's own findings
+are resolved; #26/#20 backend dependencies remain held. Henry's Claude has claimed the scoped #27/#28 corrections in issue #4;
 other source ownership is unchanged.
 
 ## Included snapshots
@@ -25,7 +25,7 @@ other source ownership is unchanged.
 | #22 `feat/elastic-planner` | `8a23273c` | Elastic Agent Builder model path for the planner |
 | #23 `docs/claude-checkpoint` | `665aab42` | Claude's source handoff and development guide |
 | #26 `feat/creao-gateway-readiness` | `3dc95d6b` | Kernel gateway readiness challenges and receipts |
-| #27 `feat/creao-attach` | `95a33a0e` | Operator attachment of uncertain native agent creations |
+| #27 `feat/creao-attach` | `5952987` | Operator attachment, including reviewed sibling-agent collision fix #33 |
 | #28 `feat/attention-ui` | `17b6b02` | Attention panel, failure drills and reviewed Abandon-only readiness fix #31 |
 | #29 `codex/creao-readiness-probe` | `c1e6ba4` | Durable provider challenge dispatch and explicit CREAO gateway registration |
 
@@ -45,13 +45,19 @@ registration of `creao_readiness`. No route or worker changed in this merge.
 
 ## Validation
 
-Latest source `8014683` passes **112 focused Rust tests across 17 suites**:
+The receipt/UI integration at `8014683` passes **112 focused Rust tests across 17 suites**:
 `genesis-creao`, `genesis-providers`, and the five server suites for CREAO config,
 provider readiness probes, gateway readiness, specialist readiness and jobs.
 Formatting and strict workspace all-target Clippy pass. The assembled console
 passes **37 tests across six suites** and its TypeScript/Vite production build.
 These checks cover the newly combined source; the full Rust suite was not rerun
 for this narrow integration. Main's separate #32 head passes 598 tests/65 suites.
+
+The subsequent sibling-agent integration `3961ecc` passes **19 focused tests
+across four suites**: the unchanged original duplicate-attachment regression,
+existing attachment behavior, saga concurrency and specialist readiness.
+Formatting and strict workspace all-target Clippy also pass at this source.
+The provider/UI sources and their scoped checks above are unchanged by this merge.
 
 The assembled source snapshot `1004934` passes **699 Rust tests across 87 suites**
 with `serde_json/preserve_order`, zero failed or ignored, strict default-feature
@@ -104,10 +110,12 @@ landed separately under the user's authorization.
 | #21 | Bind displayed acceptance jobs to their installation and refresh active/failed run observations | [Source review](https://github.com/HenryWashuHe/genesis/pull/21#pullrequestreview-5615620684); no new browser reproduction |
 | #22 / shared #11 client | Revalidate cached planner configuration and disable Agent Builder redirects | [Source review](https://github.com/HenryWashuHe/genesis/pull/22#pullrequestreview-5615620695); no new redirect/configuration-drift reproduction |
 | #26 | Reconcile early receipt run correlation against the trusted dispatch result | [Review](https://github.com/HenryWashuHe/genesis/pull/26#pullrequestreview-5616058167); test-only `8d82c32`, one failure and one passing control |
-| #27 | Refuse attaching one native agent to sibling roles in the same change | [Review](https://github.com/HenryWashuHe/genesis/pull/27#pullrequestreview-5616058543); test-only `e161aad`, one failure with two duplicate committed bindings |
 
-#28's UI finding is resolved by #31 at `17b6b02`; it remains held by #27/#26/#20.
-The corrected actions were tested through component rendering, not browser clicks.
+#27's sibling-agent finding is resolved by #33 at `5952987`; its original
+`e161aad` regression is now in the passing suite. Twelve other reproduced Rust
+review regressions remain unresolved outside this baseline. #28's UI finding
+is resolved by #31 at `17b6b02`, using component rendering, not browser clicks.
+Both parents remain held from main by #26/#20.
 
 Claude/Eric retains planner, general lifecycle/saga/outbox, asynchronous role
 activation and Elastic ownership. Henry's Claude has claimed the scoped #27/#28
