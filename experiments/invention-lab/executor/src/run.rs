@@ -21,8 +21,8 @@ pub const MAX_LINE: usize = 1 << 20;
 /// The method is killed this long before its wall-time grant ends, so the
 /// measured time stays inside the grant in the ordinary case.
 pub const KILL_MARGIN_MS: u64 = 250;
-/// Replies waiting for a method that isn't reading them; past this the run
-/// fails instead of blocking.
+/// Replies waiting for a method that isn't reading them; past this the loop
+/// waits for room, never beyond the deadline.
 pub const MAX_QUEUED_REPLIES: usize = 64;
 
 /// `<interpreter> --version`, pinned in the environment reference.
@@ -291,13 +291,24 @@ pub fn execute(
                 };
                 let mut out = serde_json::to_vec(&reply).expect("reply serializes");
                 out.push(b'\n');
-                match reply_tx.try_send(out) {
-                    Ok(()) | Err(mpsc::TrySendError::Disconnected(_)) => {}
-                    Err(mpsc::TrySendError::Full(_)) => {
-                        // The method keeps sending without reading replies.
-                        outcome = Some(ExecutionOutcome::Failed);
-                        break;
+                // Backpressure: while the method isn't reading, wait for room
+                // in the reply queue, but never past the deadline.
+                let mut pending = Some(out);
+                while let Some(out) = pending.take() {
+                    match reply_tx.try_send(out) {
+                        Ok(()) | Err(mpsc::TrySendError::Disconnected(_)) => {}
+                        Err(mpsc::TrySendError::Full(out)) => {
+                            if started.elapsed() >= deadline {
+                                break;
+                            }
+                            std::thread::sleep(Duration::from_millis(5));
+                            pending = Some(out);
+                        }
                     }
+                }
+                if started.elapsed() >= deadline {
+                    outcome = Some(ExecutionOutcome::Interrupted);
+                    break;
                 }
             }
             Ok(None) => {
