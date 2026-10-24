@@ -7,8 +7,8 @@ use genesis_core::jobs::Job;
 use genesis_core::lifecycle::JobStatus;
 use genesis_core::model::{AgentBinding, AuthorityGrant, CapabilityRef, Provider};
 use genesis_creao::{
-    AccountLimiter, CreaoClient, Limits, OperationPurpose, OperationRequest, QuotaLimits, Runtime,
-    RuntimeStore,
+    AccountLimiter, CreaoClient, Limits, OperationPhase, OperationPurpose, OperationRequest,
+    OperationSpec, QuotaLimits, RunRequest, Runtime, RuntimeStore,
 };
 use genesis_providers::{
     CreaoSpecialist, DevStub, ProviderError, ProviderSet, ProvisionRequest, SpecialistProgress,
@@ -96,7 +96,7 @@ impl Mock {
     }
 }
 
-fn specialist(base: &str) -> (CreaoSpecialist, RuntimeStore) {
+fn native_runtime(base: &str) -> (Runtime, RuntimeStore) {
     let store = RuntimeStore::in_memory("org-a").unwrap();
     let client = CreaoClient::for_local_testing(
         "cr_sk_local_test_only",
@@ -109,6 +109,10 @@ fn specialist(base: &str) -> (CreaoSpecialist, RuntimeStore) {
     )
     .unwrap();
     let runtime = Runtime::new(client, store.clone(), Duration::from_millis(1)).unwrap();
+    (runtime, store)
+}
+fn specialist(base: &str) -> (CreaoSpecialist, RuntimeStore) {
+    let (runtime, store) = native_runtime(base);
     (CreaoSpecialist::new(runtime), store)
 }
 fn local() -> (CreaoSpecialist, RuntimeStore) {
@@ -211,6 +215,15 @@ fn role_intent_is_idempotent_and_binds_complete_contract_without_http() {
         .input
         .contains(&serde_json::to_string(&request).unwrap()));
     assert!(native.conversation_id.is_none());
+    assert!(native.input.contains("GENESIS readiness gateway skill"));
+    assert!(native.input.contains("challenge-bound readiness receipt"));
+    assert!(native.input.contains("never grants mission authority"));
+    assert!(native
+        .input
+        .contains("Require an explicit GENESIS job and scoped grant for all mission work"));
+    assert!(native.input.contains(
+        "Do not claim the skill is installed or readiness is proven without returned evidence"
+    ));
     for field in ["charter", "name", "authority", "key"] {
         let mut changed = request.clone();
         match field {
@@ -531,4 +544,185 @@ fn registered_specialist_does_not_claim_synchronous_readiness_or_implicit_stub_s
             provider: Provider::Creao
         })
     ));
+}
+
+#[tokio::test]
+async fn readiness_records_are_never_exposed_or_driven_as_role_or_job_progress() {
+    const NONCE: &str = "READINESS_SECRET_NOT_FOR_SPECIALIST_PROGRESS";
+    for (status, phase) in [
+        ("completed", OperationPhase::NativeCompleted),
+        ("failed", OperationPhase::Failed),
+        ("future_status", OperationPhase::NeedsReconciliation),
+    ] {
+        let mock = Mock::serve(vec![
+            Reply {
+                status: 202,
+                body: response(RUN_A, Some(AGENT), "pending", None),
+            },
+            Reply {
+                status: 200,
+                body: response(RUN_A, Some(AGENT), status, Some(json!({"echo": NONCE}))),
+            },
+        ])
+        .await;
+        let (runtime, store) = native_runtime(&mock.base);
+        let specialist = CreaoSpecialist::new(runtime.clone());
+        runtime
+            .prepare(OperationSpec {
+                schema_version: 1,
+                operation_id: "readiness-only".into(),
+                org_id: "org-a".into(),
+                role_id: "role-monitor".into(),
+                account_namespace: "shared-account".into(),
+                purpose: OperationPurpose::Readiness {
+                    challenge_id: "rc-test".into(),
+                    config_digest: "a".repeat(64),
+                    expires_at: Utc::now() + chrono::Duration::minutes(1),
+                },
+                request: OperationRequest::CreateRun(RunRequest {
+                    agent_id: AGENT.into(),
+                    input: json!({"nonce": NONCE}),
+                    model: None,
+                    conversation_id: None,
+                    workspace_id: None,
+                }),
+            })
+            .unwrap();
+        for stage in [OperationPhase::Prepared, OperationPhase::Waiting, phase] {
+            let saved = store.get("readiness-only").unwrap();
+            assert_eq!(saved.phase, stage);
+            let before_requests = mock.requests.lock().unwrap().len();
+            for result in [
+                specialist.get("readiness-only"),
+                specialist.advance("readiness-only", false).await,
+            ] {
+                let error = result.unwrap_err();
+                assert!(matches!(error, ProviderError::Rejected(_)));
+                assert!(!format!("{error:?} {error}").contains(NONCE));
+            }
+            assert_eq!(
+                store.get("readiness-only").unwrap(),
+                saved,
+                "generic adapter must not mutate readiness"
+            );
+            assert_eq!(
+                mock.requests.lock().unwrap().len(),
+                before_requests,
+                "generic adapter must not perform readiness I/O"
+            );
+            if stage == OperationPhase::Prepared {
+                runtime.submit_prepared("readiness-only").await.unwrap();
+            } else if stage == OperationPhase::Waiting {
+                due(&store, "readiness-only").await;
+                runtime.step("readiness-only", false).await.unwrap();
+            }
+        }
+        let requests = mock.finish().await;
+        assert_eq!(requests.len(), 2);
+        assert!(requests[0].starts_with("POST /v1/runs "));
+        assert!(requests[1].starts_with(&format!("GET /v1/runs/{RUN_A} ")));
+    }
+}
+
+#[tokio::test]
+async fn guarded_specialist_advance_forwards_authority_and_preserves_execution_receipts() {
+    let mock = Mock::serve(vec![
+        Reply {
+            status: 202,
+            body: response(RUN_A, Some(AGENT), "pending", None),
+        },
+        Reply {
+            status: 200,
+            body: response(
+                RUN_A,
+                Some(AGENT),
+                "completed",
+                Some(json!({"assessment":"fixture only"})),
+            ),
+        },
+    ])
+    .await;
+    let (adapter, store) = specialist(&mock.base);
+    let denied = adapter.prepare_job(&job(), &binding()).unwrap();
+    let denied = adapter
+        .advance_guarded(
+            denied.operation_id(),
+            false,
+            Arc::new(|| Box::pin(async { false })),
+        )
+        .await
+        .unwrap();
+    assert!(matches!(
+        denied,
+        SpecialistProgress::Failed { run_id: None, .. }
+    ));
+    assert!(mock.requests.lock().unwrap().is_empty());
+
+    let mut allowed_job = job();
+    allowed_job.job_id = JobId::new("guarded-allowed-job");
+    allowed_job.attempt_id = AttemptId::new("guarded-allowed-attempt");
+    let prepared = adapter.prepare_job(&allowed_job, &binding()).unwrap();
+    let op = prepared.operation_id();
+    let guard: genesis_providers::PreEffectGuard = Arc::new(|| Box::pin(async { true }));
+    assert!(matches!(
+        adapter
+            .advance_guarded(op, false, guard.clone())
+            .await
+            .unwrap(),
+        SpecialistProgress::Pending {
+            run_id: Some(_),
+            ..
+        }
+    ));
+    due(&store, op).await;
+    assert!(matches!(
+        adapter.advance_guarded(op, false, guard).await.unwrap(),
+        SpecialistProgress::Collected {
+            domain_verified: false,
+            ..
+        }
+    ));
+    let receipt = adapter.execution_receipt(&allowed_job, &binding()).unwrap();
+    assert_eq!(receipt.job_id, allowed_job.job_id);
+    assert_eq!(receipt.run_id, RUN_A);
+    assert_eq!(receipt.output, Some(json!({"assessment":"fixture only"})));
+    let requests = mock.finish().await;
+    assert_eq!(requests.len(), 2);
+    assert!(requests[0].starts_with("POST /v1/runs "));
+    assert!(requests[1].starts_with(&format!("GET /v1/runs/{RUN_A} ")));
+}
+
+struct UnguardedOnly;
+#[async_trait::async_trait]
+impl SpecialistRuntime for UnguardedOnly {
+    fn provider(&self) -> Provider {
+        Provider::Creao
+    }
+    fn org_id(&self) -> &str {
+        "org-a"
+    }
+    fn prepare_role(&self, _: &ProvisionRequest) -> Result<SpecialistProgress, ProviderError> {
+        unreachable!()
+    }
+    fn prepare_job(&self, _: &Job, _: &AgentBinding) -> Result<SpecialistProgress, ProviderError> {
+        unreachable!()
+    }
+    fn get(&self, _: &str) -> Result<SpecialistProgress, ProviderError> {
+        unreachable!()
+    }
+    async fn advance(&self, _: &str, _: bool) -> Result<SpecialistProgress, ProviderError> {
+        panic!("a guarded call must never silently invoke the unguarded adapter")
+    }
+}
+
+#[tokio::test]
+async fn unsupported_guarded_adapter_rejects_without_using_unguarded_advance() {
+    let result = UnguardedOnly
+        .advance_guarded(
+            "opaque-operation",
+            false,
+            Arc::new(|| Box::pin(async { true })),
+        )
+        .await;
+    assert!(matches!(result, Err(ProviderError::Rejected(_))));
 }

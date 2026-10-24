@@ -272,6 +272,86 @@ pub struct OrgState {
     pub contracts: BTreeMap<ContractId, ContractorAgreement>,
     #[serde(default)]
     pub installations: BTreeMap<InstallationId, Installation>,
+    /// Committed capability needs (`RequestCapability`). Acquisition is
+    /// driven by trusted operator policy, never by the proposing agent.
+    #[serde(default)]
+    pub capability_gaps: BTreeMap<CapabilityGapId, CapabilityGap>,
+}
+
+/// Where a capability gap stands. Only the kernel's transition function moves
+/// it (backend drivers, never the planner); suite, oracle, quota and provider
+/// choices stay with operator policy. Verified acquisition, registry
+/// publication and local installation are distinct facts: only `Installed`
+/// (an accepted local installation) makes the capability attachable.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(tag = "state", rename_all = "snake_case")]
+pub enum CapabilityGapStatus {
+    /// Committed; no acquisition yet.
+    Open,
+    /// One acquisition intent was created for this gap.
+    Acquiring { acquisition_id: String },
+    /// That acquisition produced an independently verified exact version.
+    /// `publication_ref` is set when it was also published to the registry.
+    Acquired {
+        acquisition_id: String,
+        capability: CapabilityRef,
+        #[serde(default)]
+        publication_ref: Option<String>,
+    },
+    /// The verified version is installed and accepted in this organization.
+    Installed {
+        acquisition_id: String,
+        capability: CapabilityRef,
+        installation_id: InstallationId,
+    },
+    /// Policy refused, or the attempt ended without a capability. The attempt
+    /// stays recorded; genuinely new work needs a new gap.
+    Refused {
+        reason: String,
+        #[serde(default)]
+        acquisition_id: Option<String>,
+    },
+}
+
+impl CapabilityGapStatus {
+    pub fn is_terminal(&self) -> bool {
+        matches!(self, Self::Installed { .. } | Self::Refused { .. })
+    }
+
+    /// The acquisition this gap is bound to, once one exists.
+    pub fn acquisition_id(&self) -> Option<&str> {
+        match self {
+            Self::Open => None,
+            Self::Acquiring { acquisition_id }
+            | Self::Acquired { acquisition_id, .. }
+            | Self::Installed { acquisition_id, .. } => Some(acquisition_id),
+            Self::Refused { acquisition_id, .. } => acquisition_id.as_deref(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub struct CapabilityGap {
+    pub gap_id: CapabilityGapId,
+    pub mission_id: MissionId,
+    pub requirement_id: RequirementId,
+    /// Canonical digest of the requirement (summary, acceptance, evidence) at
+    /// commit, so a driver can detect that it is acting on the same need.
+    pub requirement_digest: String,
+    /// The requirement's triggering observations, frozen at commit.
+    pub triggering_evidence: Vec<ObservationId>,
+    /// Role that will hold the capability once acquired.
+    pub role_id: RoleId,
+    /// Responsibility the capability serves.
+    pub responsibility_id: ResponsibilityId,
+    /// Proposed stable capability name, e.g. `venue-availability`.
+    pub capability_id: CapabilityId,
+    pub purpose: String,
+    /// Public sources the capability must read, each on the same origin as
+    /// the requirement's triggering evidence.
+    pub observed_sources: Vec<String>,
+    pub status: CapabilityGapStatus,
+    pub opened_in_revision: u64,
 }
 
 impl OrgState {
@@ -289,6 +369,7 @@ impl OrgState {
             assignments: BTreeMap::new(),
             contracts: BTreeMap::new(),
             installations: BTreeMap::new(),
+            capability_gaps: BTreeMap::new(),
         }
     }
 

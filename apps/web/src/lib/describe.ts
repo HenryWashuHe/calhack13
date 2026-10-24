@@ -2,6 +2,7 @@
 
 import type { DomainEvent, OrgState } from "./contracts";
 import { roleName, short } from "./graph";
+import { gapLabel } from "./gaps";
 
 export type Category = "organization" | "evidence" | "jobs" | "capabilities" | "changes";
 
@@ -24,7 +25,8 @@ export function describe(ev: DomainEvent, state: OrgState | null): Described {
       return { title: "Mission created", detail: ev.payload.goal, category: "evidence", refs: [ev.payload.mission_id] };
     case "observation_recorded":
       return {
-        title: "Observation",
+        // This source identifies a gap update, not proof the planner consumed it.
+        title: ev.payload.source === "kernel.capability_gap" ? "Capability gap update recorded" : "Observation",
         detail: `${ev.payload.source}: ${ev.payload.summary}`,
         category: "evidence",
         refs: [ev.payload.observation_id],
@@ -72,8 +74,10 @@ export function describe(ev: DomainEvent, state: OrgState | null): Described {
         failed: "Provider operation failed",
       };
       const p = ev.payload;
+      // The kernel's attach note: the agent ID came from an operator, not the provider.
+      const attached = p.state === "awaiting_readiness" && (p.attention ?? "").includes("attached by operator");
       return {
-        title: labels[p.state] ?? `Provider operation ${p.state}`,
+        title: attached ? "Agent ID attached by operator, awaiting readiness" : labels[p.state] ?? `Provider operation ${p.state}`,
         detail:
           `${p.role_key} on ${p.provider} · ${p.operation_id}` +
           (p.run_id ? ` · run ${p.run_id}` : "") +
@@ -81,7 +85,7 @@ export function describe(ev: DomainEvent, state: OrgState | null): Described {
         category: "organization",
         refs: [p.change_id],
         tone:
-          p.state === "ready" ? "ok" : p.state === "failed" || p.state === "needs_reconciliation" ? "bad" : p.attention ? "warn" : undefined,
+          p.state === "ready" ? "ok" : p.state === "failed" || p.state === "needs_reconciliation" ? "bad" : attached || p.attention ? "warn" : undefined,
       };
     }
     case "provisioning_failed":
@@ -149,6 +153,24 @@ export function describe(ev: DomainEvent, state: OrgState | null): Described {
         category: "capabilities",
         refs: [],
       };
+    case "capability_gap_opened":
+      return {
+        title: "Capability requested",
+        detail: `${ev.payload.capability_id} for ${r(ev.payload.role_id)}`,
+        category: "capabilities",
+        refs: [ev.payload.gap_id],
+      };
+    case "capability_gap_status_changed": {
+      const from = gapLabel(ev.payload.from);
+      const to = gapLabel(ev.payload.to);
+      return {
+        title: `Requested capability ${to.label.toLowerCase()}`,
+        detail: [`${from.label} → ${to.label}`, to.version, to.detail].filter(Boolean).join(" · "),
+        category: "capabilities",
+        refs: [ev.payload.gap_id],
+        tone: to.tone,
+      };
+    }
     case "reporting_edge_changed":
       return {
         title: "Reporting line changed",

@@ -1,43 +1,193 @@
 # GENESIS implementation handoff
 
-## Current merge and ownership checkpoint — October 22, 2026
+## Current implementation and ownership — October 22, 2026
 
-Main is `f51d4d9`, including the capability stack, CREAO execution receipts #32,
-[specialist execution #20](https://github.com/HenryWashuHe/genesis/pull/20) with
-fixes #36/#41, and [venue portal #35](https://github.com/HenryWashuHe/genesis/pull/35)
-with output-path fix #40. #20 is no longer a blocker for the readiness stack.
-[Current queue](PR_REVIEW_QUEUE.md).
+Immutable Fetch receipts are implemented at `afbe0bf` (reviewed original
+`6424bfb`). Exact frozen recruitment/consent/task messages are checked against
+prepared outbox and authenticated Applied inbox records in one SQLite snapshot.
+Receipt hashes survive later work/release/restart; construction is private and
+Debug hides payloads. **64 Fetch crate tests**, including 13 receipt tests, strict
+crate all-target Clippy and workspace fmt pass. Independent review is clean.
+See [the API and trust boundary](FETCH_RUNTIME.md#immutable-receipt-reconstruction).
+This adds no server integration, native signature verification or domain verdict.
 
-Specialist integration `9bac3e1` passed 620 Rust tests across 69 suites before the
-final provider-guard correction. Final source `5798cb4` passed 53 affected tests
-across six suites, formatting, strict workspace all-target Clippy, 17 web tests
-and the production build, with no schema/type drift. Main's #20 merge tree matches
-that final source. The subsequent portal merge matches the expected combined tree;
-16 portal tests pass with zero skipped, and both suites passed Rust verification
-against independently fetched A/B pages. These checks do not constitute a new full-workspace total for
-current main.
+[PR #79](https://github.com/HenryWashuHe/genesis/pull/79) is merged as `1fc1b8e`,
+reviewed source `135c839`, exact tree `c09245b`. Runtime `8741f38` registers one
+durable subscription and observes both accepted assessment cycles. All 40 scenario
+unit/HTTP checks and five full scenarios pass, with strict default workspace
+all-target Clippy/fmt and clean independent review. Loopback evidence only.
 
-Hold #11/#21. The reviewed #39 head `49ca9ac` reproduces the Elastic capability-routing
-failure; updated head `1bf7304` is under review. Updated #38 (`ae3879b`) passed 28 focused tests, formatting and strict
-focused Clippy, and merged into #12 at `d1a5e1d`; no recorded #12 source blocker
-remains, but its main integration at `0cad0c4` is still being tested. #42 (`c2b0f11`)
-passed 16 focused tests and strict Clippy, then merged into #22 at `c6ccee4`; #22's
-own findings are resolved, with #11/#12 dependencies and integration still pending.
-Readiness fix #37 still has a durable mismatch-reconciliation
-failure; #26 and descendants #27/#28/#29 remain pending. #27/#28's own reported
-findings are resolved.
-Claude/Eric and Henry's Claude retain their scoped source fixes. Codex owns
-capability/provider implementation, review and narrow integration; no whole-kernel
-takeover is active. The combined draft now includes main at `f5e747c` and passes
-71 affected Rust tests across nine suites, formatting and strict workspace
-all-target Clippy. Earlier full combined test counts remain historical and do not apply to current main.
+Claude's [PR #78](https://github.com/HenryWashuHe/genesis/pull/78) is on review
+hold at `7cb747c`. Composition `6be7dc2` on `codex/review-gap-finalizer78` preserves
+five reproduced regressions and 11 passing controls: live requirement fencing,
+weaker-suite acceptance, acceptance followed by delegation, and conflicting
+same-pin publication. The ten original tests still pass. The two requirement
+mutation tests use an explicitly documented Store commit seam; the acceptance,
+delegation and publication paths use genuine public endpoints and loopback clients.
+No production fix is included in that review branch.
 
-[CREAO sponsor evidence](CREAO_SPONSOR_NOTES.md) still needs core mission execution,
-an actual agent ID and run share link. [Apify notes](APIFY_SPONSOR_NOTES.md) retain its
-meaningful-use and credit information. The portal has not been exposed through a
-public tunnel, and no live provider or sponsor proof is claimed.
+Stacked [PR #80](https://github.com/HenryWashuHe/genesis/pull/80), `931192c`, also
+awaits correction: global finalizer enablement with no per-gap record must not
+claim work is queued. Its 66 original web tests/typecheck/build pass; `d369213`
+adds the failing no-record regression and passing organization-switch/terminal
+AttentionPanel control. Claude retains both implementations.
+
+After those fixes, Claude is assigned the opt-in adopt-before-acquire gap
+coordinator and narrow kernel transition in a separate PR. It must create one
+durable adoption intent, retain uncertain outcomes, and permit synthesis fallback
+only after a definitive persisted empty result. A correlation prefix cannot by
+itself authorize a different selected capability ID. The detailed acceptance
+criteria and ownership are in issue #4 comment `6354798168`; implementation has
+not yet been reported.
+
+Codex owns the immutable Fetch receipt slice, restricted to `genesis-fetch` and
+its focused docs/tests. The implementation binds exact prepared requests to
+authenticated Applied inbox evidence and preserves historical identity across
+later tasks and release. No server bridge, kernel, planner,
+readiness or UI changes are part of that slice. Native sponsor evidence remains
+open. See the scoped handoff in issue #4 and the Fetch mission bridge plan.
+
+[PR #77](https://github.com/HenryWashuHe/genesis/pull/77) adds opt-in durable venue
+monitor subscriptions; **merged** as `1bb3c9f`, reviewed source `c889491`,
+exact tree `3ad4418`. Runtime checkpoint `e699659` was based on main `3ea5ec4`.
+One operator registration freezes the existing role/assignment/CREAO binding,
+accepted capability and event policy. The server follows verified invocation
+events, persists each exact child intent before creation, and uses the existing
+assessment verifier for mission effects. Work is bounded by expiry and 1–16
+intents. Unknown work retains its child identity; an accepted Reopen completes
+the subscription with its replacement requirement, without completing the mission.
+See [the API and limits](VENUE_MONITORS.md).
+
+Validation: **154 source-scoped Rust checks** across four targets: 113 server
+library, 14 CLI, 22 assessment integration (including nine subscription tests),
+and five full scenarios. The original 21 assessment checks passed together; the
+final test-only addition passed with all nine subscription checks. The same
+runtime passed strict default workspace all-target Clippy and formatting.
+The crash regression recovers a committed child after its link write fails,
+including a stopped subscription, without changing the job/deadline/native run.
+A 205-event regression preserves the cursor through restart, skips a different
+event input and processes a job verified after registration. Providers are
+loopback; the subscription tests use trusted synthetic provisioning/publication.
+Native sponsor evidence remains open.
+
+[PR #76](https://github.com/HenryWashuHe/genesis/pull/76) adds the offline monitoring
+setup helper; merged as `3ea5ec4`, reviewed source `1ff0c94`, exact tree
+`fe419e7`. Implementation checkpoint `bfcfe00` was based on main `64d6492`.
+It validates three immutable portal namespaces and atomically emits B's frozen
+baseline/update suite and the complete strict scenario. The explicit policy must
+accept the baseline and reject only the update's capacity. Public aliases and
+non-string identities are refused; template access flags are preserved.
+All **35 portal tests pass without skips**, including the actual Rust verifier
+and scenario CLI. Independent review is clean; the exact documented walkthrough
+also passed with temporary paths and a fake HTTPS origin. See the
+[executable setup](VENUE_PORTAL.md#prepare-continuing-creao-monitoring).
+These checks make no native provider or unforeseen-update claim.
+
+[PR #75](https://github.com/HenryWashuHe/genesis/pull/75) connects persistent CREAO
+assessment to the two-organization scenario. Runtime checkpoint `f5136fe`, based
+on reviewed main `8187430`, adds optional `venue_monitoring`: after independent
+capability adoption and verifier retirement, the same newly created CREAO monitor
+assesses a feasible baseline and a distinct capacity-cut snapshot. Its second
+verified result creates one cited replacement requirement. Both proofs and the
+same agent survive restart without extra native requests. See
+[scenario setup and evidence limits](INHERITED_MISSION.md).
+
+Validation: **145 default-feature Rust checks** across four targets: 113 server
+library tests (including 37 scenario unit/HTTP checks), 14 CLI tests, 13 assessment
+integration tests and all five full scenario tests. Strict default workspace
+all-target Clippy and formatting pass. Independent regressions failed before and
+passed after fixes for bounded local-verification recovery, the final permitted
+poll, and the kernel's valid owner-only handoff with no separate executor.
+
+All providers in these tests are loopback. The full scenario uses the real CREAO
+creation/client/runtime/journal, with an explicitly labeled creation-journal
+readiness fixture; it does not prove a live gateway callback or cloud execution.
+Both B source cases are configured before adoption. Actual sponsor runs, a genuine
+CREAO Share link and the complete autonomous mission remain open. The underlying
+assessment API from merged #72 remains unchanged; see
+[its runtime contract](VENUE_ASSESSMENTS.md).
+
+Reviewed #70, #71, #73, #74 and #75 are merged. Main checkpoint `64d6492`
+includes the persistent scenario and corrected audit. All three original audit
+regressions from `c92f9d5` now pass unchanged: frozen gap binding, acquired pin /
+publication stability, and consistent concurrent history reads. Six latest
+history/regression tests and 37 scenario units pass; the prior composition's
+identical core/CLI files passed 65 core and 14 CLI checks. Strict core/server
+all-target Clippy and formatting pass. See [the review queue](PR_REVIEW_QUEUE.md).
+
+Claude/Eric owns kernel/planner/readiness/UI and the explicitly assigned opt-in
+gap `Acquired → Installed` finalizer. Codex owns the monitor subscription and
+its scenario integration, along with the completed operator setup helper.
+No audit review hold remains from the previous batch.
+Coordinate through [issue #4](https://github.com/HenryWashuHe/genesis/issues/4).
+The ongoing mission goal remains active; historical notes below do not supersede
+this ownership or current GitHub heads.
+
+## Previous merge and ownership checkpoint — October 22, 2026
+
+Reviewed main checkpoint: `b2aebcd173972755297d68a1e161e2113cea5181`.
+The capability stack, specialist execution, planner and Elastic integrations,
+evidence and gap UI, portal holdout generation, gateway readiness verification,
+operator attach, Attention UI, the durable gap driver and CREAO readiness probe
+have landed. The reviewed queue is closed out. See
+[the review queue](PR_REVIEW_QUEUE.md) for exact sources and checks.
+
+Readiness #62 now fixes both fresh-schema recovery and legacy database migration;
+it merged into #26 at `9935bd8`. Main's #26 integration passed 304 server tests.
+The #27 composition passed 69 focused tests with `serde_json/preserve_order`
+and strict default-feature Clippy. Main's #28 tree equals `0862df8`: clean
+install, 56 web tests, typecheck and build pass, preserving the evidence-refresh
+and gap-event tests. These are source-scoped checks, not a new full-workspace
+total, native provider run or browser walkthrough.
+
+The original #60 example-index mismatch is fixed and merged at `ec5ec22`.
+`--holdout` supplies separate synthesis-example and verification pages; ordinary
+portal generation still supports explicitly labeled reproducibility checks.
+CREAO readiness probe #29 is merged at `ba4c920`, with 40 final default-feature
+checks and strict workspace Clippy/fmt; its earlier scoped run passed 122 checks
+with `serde_json/preserve_order`. The probe sends a durable challenge run, but
+only a valid callback establishes readiness. Neither readiness nor operator
+attachment establishes core mission work or a live sponsor demonstration.
+
+Merged #66 implements the durable gap-to-acquisition driver. Initial source
+`a66a298` passed 310 server tests across 30 suites, including 16 driver tests with
+loopback provider responses and a real server-startup path. Final integration
+`2561be` passed 152 default-feature tests across nine targets, strict workspace
+Clippy and formatting; the later source delta was documentation only.
+It freezes the request, model policy, suite and assignment, recovers one intent
+across restart, and retains unknown-outcome and explicit read-retry protections.
+`Acquired` records independent verification; publication, installation and
+attachment remain separate. The next Codex core implementation is persistent
+CREAO mission assessment backed by verified capability output and native execution
+receipts. Readiness alone does not satisfy that work.
+
+Combined draft #25 was closed without merging after all 17 combined-only merge
+commits and remaining unique content were audited. No pending runtime was unique
+to it. Its Elastic recording-proxy scenario
+test was preserved in merged #68 (`2adaff4`): the targeted repaired A→B scenario
+passed with real Rust Elastic retrieval/projection against loopback fixtures.
+The old branch remains available; its 699-test total is historical. Merged #67
+adds invariant tests: 63 core checks pass, including seeded sequences and six
+sampled negative controls, with strict core Clippy/fmt. This is not an exhaustive
+proof of every invariant.
+
+Claude/Eric and Henry's Claude keep their scoped kernel/planner/readiness/UI work.
+Codex handles capability/provider implementation, review and narrow integration;
+no whole-kernel takeover is active. Coordinate in
+[issue #4](https://github.com/HenryWashuHe/genesis/issues/4), push tested increments,
+and leave parent/main merges to the active reviewer to avoid concurrent merge
+races. Preserve source branches and exact-head evidence.
+
+[CREAO sponsor evidence](CREAO_SPONSOR_NOTES.md) still needs core mission work,
+an actual agent ID and a genuine run share link. The
+[Apify notes](APIFY_SPONSOR_NOTES.md) retain meaningful-use requirements.
+No live sponsor execution, public portal tunnel or independent-account Actor
+access is established by these local tests. The ongoing mission goal remains active.
 
 ## Historical pre-merge checkpoint
+
+The remaining sections preserve earlier checkpoints. References to “current”
+below describe those earlier states, not the reviewed main checkpoint above.
 
 Updated: October 22, 2026.
 

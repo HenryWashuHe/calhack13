@@ -235,6 +235,19 @@ impl AcquisitionRecord {
     pub fn updated_at(&self) -> DateTime<Utc> {
         self.updated_at
     }
+    pub(crate) fn matches_frozen_request(
+        &self,
+        request: &CreateAcquisition,
+        policy: &AcquisitionPolicy,
+        binding: &AcquisitionBinding,
+        suite_sha256: &str,
+    ) -> Result<bool> {
+        Ok(self.intent_sha256 == hash(request)?
+            && self.model == policy.model
+            && self.binding == *binding
+            && self.suite_id == request.suite_id
+            && self.suite_sha256 == suite_sha256)
+    }
     pub fn with_session(&self, session: AcquisitionSession) -> Result<Self> {
         if session.plan() != self.session.plan() {
             return Err(AcquisitionStoreError::InvalidRecord);
@@ -414,142 +427,11 @@ impl Store {
         suite: &OracleSuite,
         now: DateTime<Utc>,
     ) -> Result<(AcquisitionRecord, bool)> {
-        policy.validate()?;
-        if !label(&intent.client_request_id, 128)
-            || !label(&intent.suite_id, 256)
-            || intent.suite_id != suite.suite_id
-        {
-            return Err(AcquisitionStoreError::InvalidInput);
-        }
-        let intent_sha256 = hash(intent)?;
         let mut conn = self.lock();
         let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
-        let limits = limits(&tx)?;
-        if policy.quotas != limits {
-            return Err(AcquisitionStoreError::PolicyChanged);
-        }
-        let existing: Option<(String, String)> = tx
-            .query_row(
-                "SELECT id,suite_id FROM capability_acquisitions WHERE client_request_id=?1",
-                params![intent.client_request_id],
-                |row| Ok((row.get(0)?, row.get(1)?)),
-            )
-            .optional()?;
-        if let Some((id, suite_id)) = existing {
-            // A different configured suite is a changed intent, not corrupt
-            // evidence. Do not validate the saved session against that suite.
-            if suite_id != intent.suite_id {
-                return Err(AcquisitionStoreError::IdempotencyConflict);
-            }
-            let record = load_record(&tx, &id, suite)?;
-            if record.intent_sha256 != intent_sha256 {
-                return Err(AcquisitionStoreError::IdempotencyConflict);
-            }
-            return Ok((record, false));
-        }
-        let state = current_state(&tx)?;
-        let (grant, requirement_sha256, authority_sha256, mission_sha256, lease_expires_at) =
-            authority_snapshot(
-                &state,
-                &intent.mission_id,
-                &intent.requirement_id,
-                &intent.role_id,
-                &intent.responsibility_id,
-                now,
-            )?;
-        if grant.epoch > i64::MAX as u64 {
-            return Err(AcquisitionStoreError::InvalidRecord);
-        }
-        let mut deadline = now
-            .checked_add_signed(Duration::seconds(policy.max_duration_seconds as i64))
-            .ok_or(AcquisitionStoreError::InvalidInput)?;
-        for bound in [
-            intent.deadline,
-            state.missions[&intent.mission_id].deadline,
-            lease_expires_at,
-        ]
-        .into_iter()
-        .flatten()
-        {
-            deadline = deadline.min(bound);
-        }
-        if deadline <= now {
-            return fenced(AcquisitionFence::DeadlineExpired);
-        }
-        let id = format!("acq_{}", uuid::Uuid::new_v4().simple());
-        let requirement = &state.requirements[&intent.requirement_id];
-        let request = SynthesisRequest {
-            operation_id: format!("{id}:generate:0"),
-            candidate: intent.candidate.clone(),
-            requirement: format!(
-                "Requirement: {}\nAcceptance: {}",
-                requirement.summary, requirement.acceptance
-            ),
-            allowed_source_urls: intent.allowed_source_urls.clone(),
-            examples: intent.examples.clone(),
-        };
-        let plan = AcquisitionPlan {
-            request,
-            model: policy.model.clone(),
-            repair: intent.repair.clone().map(|candidate| RepairIdentity {
-                operation_id: format!("{id}:generate:1"),
-                candidate,
-            }),
-        };
-        let session = AcquisitionSession::new(plan, suite)
-            .map_err(|_| AcquisitionStoreError::InvalidInput)?;
-        let mut record = AcquisitionRecord {
-            schema_version: 1,
-            id,
-            client_request_id: intent.client_request_id.clone(),
-            intent_sha256,
-            binding: AcquisitionBinding {
-                org_id: state.org_id.clone(),
-                mission_id: intent.mission_id.clone(),
-                requirement_id: intent.requirement_id.clone(),
-                role_id: intent.role_id.clone(),
-                responsibility_id: intent.responsibility_id.clone(),
-                grant,
-                deadline,
-                lease_expires_at,
-                requirement_sha256,
-                authority_sha256,
-                mission_sha256,
-            },
-            suite_id: suite.suite_id.clone(),
-            suite_sha256: hash(suite)?,
-            model: policy.model.clone(),
-            session,
-            version: 1,
-            created_at: now,
-            updated_at: now,
-            fence_reason: None,
-            record_sha256: String::new(),
-        };
-        record.seal()?;
-        record.validate(suite)?;
-        let b = &record.binding;
-        let occupied:bool=tx.query_row("SELECT EXISTS(SELECT 1 FROM capability_acquisitions WHERE requirement_id=?1 AND assignment_id=?2 AND epoch=?3 AND active=1)",params![b.requirement_id.as_str(),b.grant.assignment_id.as_str(),b.grant.epoch as i64],|row|row.get(0))?;
-        if occupied {
-            return Err(AcquisitionStoreError::ActiveConflict);
-        }
-        let mut counts = counters(&tx)?;
-        require_count(counts.total_intents, limits.total_intents, "total_intents")?;
-        require_count(counts.active, limits.active, "active")?;
-        counts.total_intents += 1;
-        persist_counters(&tx, &counts)?;
-        tx.execute("INSERT INTO capability_acquisitions(id,client_request_id,requirement_id,assignment_id,epoch,suite_id,version,active,record_json) VALUES(?1,?2,?3,?4,?5,?6,1,1,?7)",params![record.id,record.client_request_id,b.requirement_id.as_str(),b.grant.assignment_id.as_str(),b.grant.epoch as i64,record.suite_id,text(&record)?])?;
-        history::append_checkpoint(
-            &tx,
-            &record,
-            state.revision,
-            CheckpointKind::Created,
-            None,
-            true,
-            now,
-        )?;
+        let result = create_acquisition_in_tx(&tx, intent, policy, suite, now)?;
         tx.commit()?;
-        Ok((record, true))
+        Ok(result)
     }
     pub fn acquisition_suite_id(&self, id: &str) -> Result<String> {
         self.lock()
@@ -715,6 +597,150 @@ fn validate_debit(
     Ok(())
 }
 
+/// Local-only creation primitive for callers that atomically link a parent.
+/// The caller owns the transaction; this never commits or performs an effect.
+pub(crate) fn create_acquisition_in_tx(
+    tx: &Transaction<'_>,
+    intent: &CreateAcquisition,
+    policy: &AcquisitionPolicy,
+    suite: &OracleSuite,
+    now: DateTime<Utc>,
+) -> Result<(AcquisitionRecord, bool)> {
+    policy.validate()?;
+    if !label(&intent.client_request_id, 128)
+        || !label(&intent.suite_id, 256)
+        || intent.suite_id != suite.suite_id
+    {
+        return Err(AcquisitionStoreError::InvalidInput);
+    }
+    let intent_sha256 = hash(intent)?;
+    let limits = limits(tx)?;
+    if policy.quotas != limits {
+        return Err(AcquisitionStoreError::PolicyChanged);
+    }
+    let existing: Option<(String, String)> = tx
+        .query_row(
+            "SELECT id,suite_id FROM capability_acquisitions WHERE client_request_id=?1",
+            params![intent.client_request_id],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .optional()?;
+    if let Some((id, suite_id)) = existing {
+        // A different configured suite is a changed intent, not corrupt
+        // evidence. Do not validate the saved session against that suite.
+        if suite_id != intent.suite_id {
+            return Err(AcquisitionStoreError::IdempotencyConflict);
+        }
+        let record = load_record(tx, &id, suite)?;
+        if record.intent_sha256 != intent_sha256 {
+            return Err(AcquisitionStoreError::IdempotencyConflict);
+        }
+        return Ok((record, false));
+    }
+    let state = current_state(tx)?;
+    let (grant, requirement_sha256, authority_sha256, mission_sha256, lease_expires_at) =
+        authority_snapshot(
+            &state,
+            &intent.mission_id,
+            &intent.requirement_id,
+            &intent.role_id,
+            &intent.responsibility_id,
+            now,
+        )?;
+    if grant.epoch > i64::MAX as u64 {
+        return Err(AcquisitionStoreError::InvalidRecord);
+    }
+    let mut deadline = now
+        .checked_add_signed(Duration::seconds(policy.max_duration_seconds as i64))
+        .ok_or(AcquisitionStoreError::InvalidInput)?;
+    for bound in [
+        intent.deadline,
+        state.missions[&intent.mission_id].deadline,
+        lease_expires_at,
+    ]
+    .into_iter()
+    .flatten()
+    {
+        deadline = deadline.min(bound);
+    }
+    if deadline <= now {
+        return fenced(AcquisitionFence::DeadlineExpired);
+    }
+    let id = format!("acq_{}", uuid::Uuid::new_v4().simple());
+    let requirement = &state.requirements[&intent.requirement_id];
+    let request = SynthesisRequest {
+        operation_id: format!("{id}:generate:0"),
+        candidate: intent.candidate.clone(),
+        requirement: format!(
+            "Requirement: {}\nAcceptance: {}",
+            requirement.summary, requirement.acceptance
+        ),
+        allowed_source_urls: intent.allowed_source_urls.clone(),
+        examples: intent.examples.clone(),
+    };
+    let plan = AcquisitionPlan {
+        request,
+        model: policy.model.clone(),
+        repair: intent.repair.clone().map(|candidate| RepairIdentity {
+            operation_id: format!("{id}:generate:1"),
+            candidate,
+        }),
+    };
+    let session =
+        AcquisitionSession::new(plan, suite).map_err(|_| AcquisitionStoreError::InvalidInput)?;
+    let mut record = AcquisitionRecord {
+        schema_version: 1,
+        id,
+        client_request_id: intent.client_request_id.clone(),
+        intent_sha256,
+        binding: AcquisitionBinding {
+            org_id: state.org_id.clone(),
+            mission_id: intent.mission_id.clone(),
+            requirement_id: intent.requirement_id.clone(),
+            role_id: intent.role_id.clone(),
+            responsibility_id: intent.responsibility_id.clone(),
+            grant,
+            deadline,
+            lease_expires_at,
+            requirement_sha256,
+            authority_sha256,
+            mission_sha256,
+        },
+        suite_id: suite.suite_id.clone(),
+        suite_sha256: hash(suite)?,
+        model: policy.model.clone(),
+        session,
+        version: 1,
+        created_at: now,
+        updated_at: now,
+        fence_reason: None,
+        record_sha256: String::new(),
+    };
+    record.seal()?;
+    record.validate(suite)?;
+    let b = &record.binding;
+    let occupied:bool=tx.query_row("SELECT EXISTS(SELECT 1 FROM capability_acquisitions WHERE requirement_id=?1 AND assignment_id=?2 AND epoch=?3 AND active=1)",params![b.requirement_id.as_str(),b.grant.assignment_id.as_str(),b.grant.epoch as i64],|row|row.get(0))?;
+    if occupied {
+        return Err(AcquisitionStoreError::ActiveConflict);
+    }
+    let mut counts = counters(tx)?;
+    require_count(counts.total_intents, limits.total_intents, "total_intents")?;
+    require_count(counts.active, limits.active, "active")?;
+    counts.total_intents += 1;
+    persist_counters(tx, &counts)?;
+    tx.execute("INSERT INTO capability_acquisitions(id,client_request_id,requirement_id,assignment_id,epoch,suite_id,version,active,record_json) VALUES(?1,?2,?3,?4,?5,?6,1,1,?7)",params![record.id,record.client_request_id,b.requirement_id.as_str(),b.grant.assignment_id.as_str(),b.grant.epoch as i64,record.suite_id,text(&record)?])?;
+    history::append_checkpoint(
+        tx,
+        &record,
+        state.revision,
+        CheckpointKind::Created,
+        None,
+        true,
+        now,
+    )?;
+    Ok((record, true))
+}
+
 type AuthoritySnapshot = (DispatchGrant, String, String, String, Option<DateTime<Utc>>);
 fn authority_snapshot(
     state: &OrgState,
@@ -723,6 +749,47 @@ fn authority_snapshot(
     role_id: &RoleId,
     responsibility_id: &ResponsibilityId,
     now: DateTime<Utc>,
+) -> Result<AuthoritySnapshot> {
+    authority_snapshot_inner(
+        state,
+        mission_id,
+        requirement_id,
+        role_id,
+        responsibility_id,
+        now,
+        false,
+    )
+}
+
+/// Captures the same authority identity while a role is awaiting activation.
+/// This does not authorize provider work; gap creation requires Active later.
+pub(crate) fn gap_authority_snapshot(
+    state: &OrgState,
+    mission_id: &MissionId,
+    requirement_id: &RequirementId,
+    role_id: &RoleId,
+    responsibility_id: &ResponsibilityId,
+    now: DateTime<Utc>,
+) -> Result<AuthoritySnapshot> {
+    authority_snapshot_inner(
+        state,
+        mission_id,
+        requirement_id,
+        role_id,
+        responsibility_id,
+        now,
+        true,
+    )
+}
+
+fn authority_snapshot_inner(
+    state: &OrgState,
+    mission_id: &MissionId,
+    requirement_id: &RequirementId,
+    role_id: &RoleId,
+    responsibility_id: &ResponsibilityId,
+    now: DateTime<Utc>,
+    allow_waiting: bool,
 ) -> Result<AuthoritySnapshot> {
     let mission = state
         .missions
@@ -774,8 +841,41 @@ fn authority_snapshot(
                 ))
         })
         .collect::<Result<Vec<_>>>()?;
-    let grant = authorize_dispatch(state, role_id, responsibility_id, Some(ACQUIRE_SCOPE))
-        .map_err(|_| AcquisitionStoreError::Authority(AcquisitionFence::AuthorityChanged))?;
+    let role = state
+        .roles
+        .get(role_id)
+        .ok_or(AcquisitionStoreError::Authority(
+            AcquisitionFence::AuthorityChanged,
+        ))?;
+    let waiting = matches!(
+        role.state,
+        genesis_core::lifecycle::RoleState::Proposed
+            | genesis_core::lifecycle::RoleState::Provisioning
+            | genesis_core::lifecycle::RoleState::Ready
+    );
+    let grant =
+        if allow_waiting && waiting {
+            let assignment = state.active_assignment(responsibility_id).ok_or(
+                AcquisitionStoreError::Authority(AcquisitionFence::AuthorityChanged),
+            )?;
+            if (assignment.role_id != *role_id
+                && responsibility.executor
+                    != Some(genesis_core::model::Executor::Role(role_id.clone())))
+                || assignment.epoch != responsibility.epoch
+                || !role.authority.allows(ACQUIRE_SCOPE)
+            {
+                return fenced(AcquisitionFence::AuthorityChanged);
+            }
+            DispatchGrant {
+                role_id: role_id.clone(),
+                responsibility_id: responsibility_id.clone(),
+                assignment_id: assignment.assignment_id.clone(),
+                epoch: assignment.epoch,
+            }
+        } else {
+            authorize_dispatch(state, role_id, responsibility_id, Some(ACQUIRE_SCOPE))
+                .map_err(|_| AcquisitionStoreError::Authority(AcquisitionFence::AuthorityChanged))?
+        };
     let assignment =
         state
             .assignments
@@ -810,7 +910,7 @@ fn authority_snapshot(
         assignment.lease_expires_at,
     ))
 }
-fn current_state(conn: &Connection) -> Result<OrgState> {
+pub(crate) fn current_state(conn: &Connection) -> Result<OrgState> {
     let text: String = conn.query_row(
         "SELECT state_json FROM org_snapshots ORDER BY revision DESC LIMIT 1",
         [],

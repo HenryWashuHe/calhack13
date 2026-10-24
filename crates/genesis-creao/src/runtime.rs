@@ -7,7 +7,8 @@
 //! private requests and provider output and is not an importable authority token.
 
 use crate::{
-    CreaoClient, Error, ErrorKind, NativeRunStatus, OperationRequest, RunObservation, RunTicket,
+    CreaoClient, Error, ErrorKind, NativeRunStatus, OperationRequest, PreEffectGuard,
+    RunObservation, RunTicket,
 };
 use chrono::{DateTime, Utc};
 use genesis_verification::{decode_json, json_sha256};
@@ -44,6 +45,8 @@ pub enum RuntimeError {
     RetryRequired,
     #[error("CREAO operation has no read failure to retry")]
     UnexpectedRetry,
+    #[error("CREAO readiness challenge expired before submission")]
+    Expired,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -57,6 +60,13 @@ pub enum OperationPurpose {
         job_id: String,
         assignment_id: String,
         epoch: u64,
+    },
+    /// A gateway readiness challenge is neither provisioning nor mission work.
+    /// Expiration controls dispatch/receipt acceptance, not historical validity.
+    Readiness {
+        challenge_id: String,
+        config_digest: String,
+        expires_at: DateTime<Utc>,
     },
 }
 
@@ -100,6 +110,14 @@ impl OperationSpec {
                 },
                 OperationRequest::CreateRun(_),
             ) if identifier(job_id) && identifier(assignment_id) => Ok(()),
+            (
+                OperationPurpose::Readiness {
+                    challenge_id,
+                    config_digest,
+                    ..
+                },
+                OperationRequest::CreateRun(_),
+            ) if identifier(challenge_id) && digest(config_digest) => Ok(()),
             _ => Err(RuntimeError::Invalid),
         }
     }
@@ -532,6 +550,46 @@ impl Runtime {
         retry_read: bool,
     ) -> Result<OperationRecord, RuntimeError> {
         let _gate = self.store.gate.lock().await;
+        self.step_locked(operation_id, retry_read, None).await
+    }
+
+    /// Recheck live backend authority after both runtime and account queues.
+    /// While waiting for the guard, the operation retains its previous state.
+    /// Its durable effect claim is saved only after authorization, before HTTP.
+    /// Cancellation after that claim remains conservatively ambiguous for POST;
+    /// the caller must independently fence any result after authority changes.
+    pub async fn step_guarded(
+        &self,
+        operation_id: &str,
+        retry_read: bool,
+        guard: PreEffectGuard,
+    ) -> Result<OperationRecord, RuntimeError> {
+        let _gate = self.store.gate.lock().await;
+        self.step_locked(operation_id, retry_read, Some(guard))
+            .await
+    }
+
+    /// Atomically submit only a still-prepared operation. Concurrent callers
+    /// return its saved state; they never poll or replay an existing submission.
+    /// This lets a readiness probe own dispatch without taking over collection.
+    pub async fn submit_prepared(
+        &self,
+        operation_id: &str,
+    ) -> Result<OperationRecord, RuntimeError> {
+        let _gate = self.store.gate.lock().await;
+        let record = self.get(operation_id)?;
+        if record.phase != OperationPhase::Prepared {
+            return Ok(record);
+        }
+        self.step_locked(operation_id, false, None).await
+    }
+
+    async fn step_locked(
+        &self,
+        operation_id: &str,
+        retry_read: bool,
+        guard: Option<PreEffectGuard>,
+    ) -> Result<OperationRecord, RuntimeError> {
         let record = self.get(operation_id)?;
         match record.phase {
             OperationPhase::Submitting | OperationPhase::NeedsReconciliation => {
@@ -540,6 +598,11 @@ impl Runtime {
             OperationPhase::Polling => return Err(RuntimeError::ConcurrentChange),
             OperationPhase::NativeCompleted | OperationPhase::Failed => return Ok(record),
             _ => {}
+        }
+        if record.phase == OperationPhase::Prepared
+            && matches!(&record.spec.purpose, OperationPurpose::Readiness { expires_at, .. } if *expires_at <= Utc::now())
+        {
+            return Err(RuntimeError::Expired);
         }
         if record.retryable_read && !retry_read {
             return Err(RuntimeError::RetryRequired);
@@ -561,11 +624,82 @@ impl Runtime {
         claimed.next_poll_at = None;
         claimed.failure = None;
         claimed.retryable_read = false;
-        // This FULL-synchronous SQLite commit must succeed before any HTTP.
-        let claimed = self.store.save(&record, claimed)?;
+        // Legacy calls claim before entering the client. Guarded calls defer
+        // this same FULL-synchronous write until AFTER quota admission and live
+        // authorization. Cancellation while queued therefore leaves Prepared
+        // (or Waiting), not an invented uncertain submission.
+        let deferred_claim = Arc::new(Mutex::new(None));
+        let (claimed, effect_guard) = if let Some(guard) = guard {
+            let store = self.store.clone();
+            let before = record.clone();
+            let claim = claimed;
+            let result = deferred_claim.clone();
+            let effect_guard: PreEffectGuard = Arc::new(move || {
+                let guard = guard.clone();
+                let store = store.clone();
+                let before = before.clone();
+                let claim = claim.clone();
+                let result = result.clone();
+                Box::pin(async move {
+                    if !guard().await {
+                        return false;
+                    }
+                    let mut claim = claim;
+                    claim.updated_at = Utc::now().max(before.updated_at);
+                    let saved = store.save(&before, claim);
+                    let allowed = saved.is_ok();
+                    let Ok(mut result) = result.lock() else {
+                        return false;
+                    };
+                    *result = Some(saved);
+                    allowed
+                })
+            });
+            (None, Some(effect_guard))
+        } else {
+            (Some(self.store.save(&record, claimed)?), None)
+        };
+        let submission = if submitting {
+            Some(
+                self.client
+                    .submit_with_guard(&record.spec.request, effect_guard.as_ref())
+                    .await,
+            )
+        } else {
+            None
+        };
+        let poll = if !submitting {
+            let ticket = record.ticket.as_ref().ok_or(RuntimeError::Invalid)?;
+            Some(
+                self.client
+                    .poll_with_guard(&record.spec.request, ticket, effect_guard.as_ref())
+                    .await,
+            )
+        } else {
+            None
+        };
+        let claimed = if let Some(claimed) = claimed {
+            claimed
+        } else {
+            let saved = deferred_claim
+                .lock()
+                .map_err(|_| RuntimeError::Storage)?
+                .take();
+            match saved {
+                Some(saved) => saved?,
+                // The client failed before authorization or the guard denied
+                // it. Persist a definite local failure from the unchanged
+                // record, never an unknown external outcome.
+                None => record.clone(),
+            }
+        };
         let mut completed = claimed.clone();
-        if submitting {
-            match self.client.submit(&claimed.spec.request).await {
+        // Also clear an old read failure when no new claim was needed.
+        completed.next_poll_at = None;
+        completed.retryable_read = false;
+        completed.failure = None;
+        if let Some(submission) = submission {
+            match submission {
                 Ok(ticket) => {
                     ticket
                         .validate_for_account(&claimed.spec.request, self.account_namespace())
@@ -582,9 +716,9 @@ impl Runtime {
                     completed.failure = Some(RuntimeFailure::Provider(error));
                 }
             }
-        } else {
+        } else if let Some(poll) = poll {
             let ticket = claimed.ticket.as_ref().ok_or(RuntimeError::Invalid)?;
-            match self.client.poll(&claimed.spec.request, ticket).await {
+            match poll {
                 Ok(observation) => {
                     observation
                         .validate_for(&claimed.spec.request, ticket)

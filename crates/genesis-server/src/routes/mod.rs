@@ -4,13 +4,18 @@ mod acquisition_history;
 mod acquisitions;
 mod adoptions;
 pub(crate) mod capabilities;
+mod capability_gaps;
 mod changes;
 mod events;
-mod jobs;
+mod gateway;
+pub(crate) mod jobs;
 mod org;
 mod search;
+mod venue_assessments;
+mod venue_monitors;
 
 use crate::app::AppState;
+use axum::extract::DefaultBodyLimit;
 use axum::routing::{get, post};
 use axum::Router;
 use tower_http::cors::{Any, CorsLayer};
@@ -33,10 +38,23 @@ pub fn router(state: AppState) -> Router {
             get(changes::by_request),
         )
         .route("/jobs", post(jobs::dispatch).get(jobs::list))
+        .route("/venue-assessments", post(venue_assessments::create))
+        .route("/venue-assessments/{id}", get(venue_assessments::get))
+        .route("/venue-monitors", post(venue_monitors::create))
+        .route("/venue-monitors/{id}", get(venue_monitors::get))
+        .route("/venue-monitors/{id}/stop", post(venue_monitors::stop))
+        .route(
+            "/venue-assessments/{id}/verify",
+            post(venue_assessments::verify),
+        )
         .route("/jobs/{id}", get(jobs::get_one))
         .route(
             "/org-changes/{id}/operations/{role_key}/abandon",
             post(changes::abandon_operation),
+        )
+        .route(
+            "/org-changes/{id}/operations/{role_key}/attach",
+            post(changes::attach_operation),
         )
         .route("/jobs/{id}/results", post(jobs::submit_result))
         .route("/ledger", get(jobs::ledger))
@@ -52,6 +70,10 @@ pub fn router(state: AppState) -> Router {
             get(capabilities::manifest),
         )
         .route("/capability-installations", post(capabilities::install))
+        .route(
+            "/capability-gaps/{id}/acquisition",
+            get(capability_gaps::acquisition),
+        )
         .route(
             "/capability-adoptions",
             post(adoptions::create).get(adoptions::list),
@@ -97,7 +119,15 @@ pub fn router(state: AppState) -> Router {
             "/capability-acquisitions/{id}/step",
             post(acquisitions::step),
         )
-        .route("/capability-runs", post(capabilities::run));
+        .route("/capability-runs", post(capabilities::run))
+        .route(
+            "/gateway/readiness-receipts",
+            post(gateway::readiness_receipt).layer(DefaultBodyLimit::max(4096)),
+        )
+        .route(
+            "/gateway/readiness-challenges/{id}",
+            get(gateway::readiness_challenge),
+        );
 
     Router::new()
         .nest("/api/v1", api)

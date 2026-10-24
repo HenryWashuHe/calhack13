@@ -1,159 +1,89 @@
 # PR review queue — October 22, 2026
 
-Main is `f51d4d9785c8087e37f631021f434a547b343ddc`. The user authorized merging
-reviewed ready PRs; the capability stack, execution receipts #32, specialist work
-#20 and venue portal #35 have landed. Other findings and dependency holds remain.
-Reviewed merges preserve ancestry and use explicit tree checks; no administrator
-bypass or squash/rebase was used. This documentation does not merge held source code.
+## Latest review batch
 
-## Latest landings and validation scope
+- Immutable Fetch receipts (`afbe0bf`, original `6424bfb`): 64 crate tests including 13 new receipt checks, strict crate all-target Clippy, workspace fmt and clean independent review. Exact expected messages plus prepared/Applied journal chain; stable historical hashes, private serialization-only types and bounded/redacted payloads. Synthetic authenticated-boundary fixtures, no SDK/cloud/domain-verification claim. Server integration remains future work.
 
-- [#20](https://github.com/HenryWashuHe/genesis/pull/20) merged to main at
-  `38aa6228e550d9ddb8d8e86a7a9f45d06576adb2`. Fix #36 first merged into #20 at
-  `7693701`; [#41](https://github.com/HenryWashuHe/genesis/pull/41), reviewed source
-  `5798cb4`, then merged into #20 at `456170e`. Both the final #20 head and its
-  main merge have the exact reviewed `5798cb4` tree. Managed results and retry
-  authority are guarded; mission/lease checks apply before preparation, advances,
-  retries and collection. The generic provider-override guard stays at `/jobs`,
-  allowing CREAO-bound roles to use backend Apify acceptance/invocation routes.
-- **Rust evidence is scoped:** integration `9bac3e1` passed 620 tests across 69
-  suites with `serde_json/preserve_order` before the final guard move. Final
-  source `5798cb4` passed 53 affected tests across six suites, formatting and
-  strict workspace all-target Clippy. Its 17 web tests and production build pass;
-  schema/type regeneration has no drift. No new full-workspace total is claimed
-  for the final source or subsequent portal merge.
-- [#35](https://github.com/HenryWashuHe/genesis/pull/35) merged to main at
-  `f51d4d9`, resolving its reported findings. [#40](https://github.com/HenryWashuHe/genesis/pull/40)
-  source `1316f49` merged into #35 at `e46dcdd` with an identical tree, separating
-  generated suite and manifest paths. The main merge matches the expected combined
-  tree `74e0185151f675958d3328711ea064d0da048e38` exactly. **16 portal tests pass,
-  zero skipped**; two separately fetched A/B pages passed Rust verification. No
-  public tunnel or live provider execution was performed.
-- Updated [#38](https://github.com/HenryWashuHe/genesis/pull/38), source
-  `ae3879b3ebb2dc9dc5bdbd1f72fc1cad6de6e0ae`, merged into #12 at
-  `d1a5e1dd4ca83885e1c761074f563328cffaed94` with the identical reviewed tree.
-  The unchanged `72e03cd` recovery-gap regression now passes. All 28 focused tests
-  pass (six unit, eight planner integration, two HTTP, eight recovery and four
-  requirement-idempotency tests), plus formatting and strict focused Clippy.
-  [Independent review](https://github.com/HenryWashuHe/genesis/pull/38#issuecomment-6346903563)
-  found no remaining recorded source blocker. #12's integration with main is being
-  tested at `0cad0c4` on `codex/planner-main-integration`; it has not merged to main.
-- [#42](https://github.com/HenryWashuHe/genesis/pull/42), source
-  `c2b0f1107d4ff6049e7b78fa6a2ffb52fbed12da`, merged into #22 at
-  `c6ccee4c77229d0f187c568f3564c2659e22d935` with the identical reviewed tree.
-  All 16 focused tests pass (four configuration drift, one planner, nine Agent
-  Builder and two redirect tests), plus strict focused Clippy. #22's own findings
-  are resolved; #11/#12 dependencies and integration remain pending.
+- [#79 subscribed monitoring scenario](https://github.com/HenryWashuHe/genesis/pull/79): **merged** as `1fc1b8e`, reviewed source `135c839`, exact tree `c09245b`. Runtime `8741f38`: 40 scenario unit/HTTP checks and five full scenarios, strict default workspace all-target Clippy/fmt, independent review clean. One durable registration and exact second-proof replacement requirement; loopback evidence only.
+- [#78 gap finalizer](https://github.com/HenryWashuHe/genesis/pull/78): **hold** at `7cb747c`. Review composition `6be7dc2` on `codex/review-gap-finalizer78` has 11 passing controls and five reproduced failures: stale requirement installation/dispatch, weaker-suite acceptance reuse, Accepted shortcut after real delegation, conflicting same-pin publication. Detailed review and scoped fix handoff are on GitHub. Claude owns runtime fixes; review branch changes only tests plus main composition.
+- [#80 finalizer UI](https://github.com/HenryWashuHe/genesis/pull/80): **hold** at `931192c`, stacked on #78. All 66 original web tests/typecheck/build pass. Test-only `d369213` reproduces a false queued claim for global enablement with no matching per-gap rule; organization-switch and terminal AttentionPanel controls pass. Await corrected parent and wording/eligibility.
 
-## Earlier reviewed additions
+- [#77 continuing venue subscriptions](https://github.com/HenryWashuHe/genesis/pull/77): **merged** as `1bb3c9f`, reviewed source `c889491`, exact tree `3ad4418`. Runtime `e699659` was based on main `3ea5ec4`. 154 source-scoped Rust checks: 113 server library, 14 CLI, 22 assessment integration including nine subscription checks, and five full scenarios. The final test-only addition passed with all nine subscription tests; earlier 21 assessment tests passed together. Strict default workspace all-target Clippy/fmt pass. Genuine Rust clients/private journals over loopback, trusted fixture publication/provisioning; no native sponsor claim. Crash-link recovery, authority/unknown/stop bounds and 205-event late-verification regression pass. Independent runtime review is clean through `e5ca93d`; later handoff edits are documentation only.
 
-- [#32](https://github.com/HenryWashuHe/genesis/pull/32), source `050b099`, merged
-  to main at `f03ce9b`: read-only CREAO execution receipts bind the frozen
-  job/attempt/assignment/agent to the backend journal. That identical source/merge
-  tree passed 598 Rust tests across 65 suites, formatting and strict all-target
-  Clippy. Venue-continuity domain verification and live mission execution remain
-  separate work.
-- [#31](https://github.com/HenryWashuHe/genesis/pull/31), source `a83357a`, merged
-  into #28 at `17b6b02`: awaiting readiness keeps Abandon and hides Attach.
-  28 web tests, typecheck and build pass; component rendering is covered, not
-  interactive browser writes.
-- [#33](https://github.com/HenryWashuHe/genesis/pull/33), source `140c26f`, merged
-  into #27 at `5952987`: sibling roles cannot attach the same native agent.
-  The unchanged original `e161aad` regression and 18 related tests pass, along
-  with formatting and strict focused Clippy. #27/#28's own findings are resolved;
-  their readiness dependency remains pending, while #20 is now on main.
+- [#76 immutable monitoring setup](https://github.com/HenryWashuHe/genesis/pull/76): **merged** as `3ea5ec4`, reviewed source `1ff0c94`, exact tree `fe419e7`. Implementation `bfcfe00` was based on main `64d6492`. All 35 portal tests pass without skips, including real Rust verifier and strict scenario CLI. Independent review reproduced and fixed public symlink aliases and non-string generator identities. Exact documented walkthrough also passes in a fresh temporary directory. Offline configured snapshot coverage only.
 
-Henry's Claude [claimed #27/#28](https://github.com/HenryWashuHe/genesis/issues/4#issuecomment-6345636513)
-and supplied #31/#33. The scoped specialist follow-up #41 and output-path fix #40
-were Codex work; neither changes the broader source ownership split.
+- [#75 continuing CREAO scenario](https://github.com/HenryWashuHe/genesis/pull/75): **merged** as `7e92e37`, reviewed source `67291ab`, exact tree `a9e63cd`. Runtime `f5136fe` based on reviewed main `8187430`. 145 default-feature Rust checks across four targets pass: 113 server library (37 scenario unit/HTTP), 14 CLI, 13 assessment and five full scenario tests. Strict default workspace all-target Clippy/fmt pass. Three observer regressions failed before their fixes. Real CREAO creation/runtime/journal against loopback, explicitly labeled fixture readiness; no live sponsor or Share-link claim.
+- [#72 persistent CREAO assessments](https://github.com/HenryWashuHe/genesis/pull/72): **merged** as `8823d81`, exact reviewed source tree `50b508a`; runtime `0dc0986`. Durable specialist work over verified invocation facts, independent semantic acceptance, atomic replacement requirements and queued-effect authority checks. `1a340a9` passed 858 Rust tests / 90 nonempty suites (109 including empty suites); final recovery delta passed 50 default-feature tests / six suites, including all 13 assessment tests. Strict default workspace Clippy and fmt pass. No native sponsor run is claimed. See [setup](VENUE_ASSESSMENTS.md).
+- [#70 kernel audit](https://github.com/HenryWashuHe/genesis/pull/70): **merged** as `64d6492`, reviewed source `e552a39`, exact composed tree `343ae1b`. All three original `c92f9d5` regressions pass unchanged: complete frozen gap fields, acquired pin/publication stability, consistent snapshot/event reads under a synchronized writer. Positive first-publication and installation controls remain accepted. Latest composition passed six history/regression tests and 37 scenario units; 65 core and 14 CLI checks passed on the prior composition with identical corresponding source. Strict core/server all-target Clippy/fmt pass. The earlier hold at `c1162d1` is resolved.
+- [#71 gap intake UI](https://github.com/HenryWashuHe/genesis/pull/71): **merged** as `7baf9d3`, reviewed source `3d37503`. Both original regressions from `37dae9f` pass unchanged, along with all 62 web tests, typecheck and production build. Older polls cannot restore stale Attention; disabled intake keeps the acquisition identity and accurately describes configuration. Exact composed tree `8b0edde`; no backend changes or live browser claim.
+- [#73 bounded refused requests](https://github.com/HenryWashuHe/genesis/pull/73): **merged** as `870cbd7`, reviewed source `22c2a22`, exact tree `2feec0b`. Three refusals per requirement across all capability names bound the loop. Composed review: 145 checks including two extra controls, strict scoped Clippy/fmt. Extra isolation, failed-proposal and planner restart controls preserved as `090d6fe` on `codex/review-gap-retry73-renamed`.
+- [#74 planner busy-provider retries](https://github.com/HenryWashuHe/genesis/pull/74): **merged** as `8187430`, reviewed source `323a2dc`, exact tree `852e6fa` after the UI merge. 54 planner/evaluation tests plus four actual loopback HTTP checks, strict scoped Clippy/fmt. Elastic retries revalidate configuration; malformed success and definite authorization errors do not retry. Extra HTTP controls preserved as `71f816a` on `codex/review-planner-retry74-http`.
 
-## Historical capability-stack landing
+Claude/Eric owns the explicitly assigned opt-in gap `Acquired → Installed`
+finalizer and kernel/planner/readiness/UI. Codex owns assessment/scenario
+integration, continuing monitor subscriptions and the monitoring setup helper.
+No review hold remains from the
+#70/#71/#73/#74/#75 batch. Current GitHub heads supersede this snapshot. The earlier queue closeout
+below is historical.
 
-The following dependency order was used. All reviewed source heads and their
-ancestry were preserved.
+## Previous merged baseline
 
-| Order | PR | Reviewed head | Merge commit | Main review focus |
-| --- | --- | --- | --- | --- |
-| 1 | [#8](https://github.com/HenryWashuHe/genesis/pull/8) | `2a006e2a85dd237ac9f37320704ee7e19707a478` | `5c8c4b6` | Persisted model intent before POST, prompt/receipt binding, bounded transport, no ambiguous replay |
-| 2 | [#9](https://github.com/HenryWashuHe/genesis/pull/9) | `3af3551718c9f678fb667a9ebdae625449141b40` | `f9f20b3` | Repair lineage, semantic-only repair gate, atomic transitions and completion capacity |
-| 3 | [#10](https://github.com/HenryWashuHe/genesis/pull/10) | `343789f22d1db3286bd945cd0d8e1da33a2d0c06` | `b1abe6a` | Authority/version checks, atomic quota debit and saved effect intent, post-call fencing |
-| 4 | [#13](https://github.com/HenryWashuHe/genesis/pull/13) | `248e8af33d3c53241a37417985530a9f9818dec4` | `6d35ecb` | Mission/lease deadlines, saved assignment identity, acceptance surviving retirement, bounded manual scenario |
-| 5 | [#14](https://github.com/HenryWashuHe/genesis/pull/14) | `b364226e27d1b74cb9cc79d90238fa805935e502` | `f318cdb` | Fresh invocation evidence, historical proof restoration, atomic proof/job/event commit |
-| 6 | [#15](https://github.com/HenryWashuHe/genesis/pull/15) | `11c76d122518ea5d3cd8b44d3709da556c77a233` | `ea96b06` | Transactional finalizer claims, bounded restart recovery, manual/worker convergence |
-| 7 | [#16](https://github.com/HenryWashuHe/genesis/pull/16) | `4c428ca01ba6a3e3d403797cdf5444505fa30824` | `a36aa19` | Scheduled-version fencing, local paused-work reconciliation, unknown POST and failed-read gates |
-| 8 | [#17](https://github.com/HenryWashuHe/genesis/pull/17) | `6d089be417c70f12b967ef9347ecd7c3a6d2ade2` | `ab1f5f9` | Automatic observation without manual fallback, version-skew handling, immutable proof requirement |
-| 9 | [#18](https://github.com/HenryWashuHe/genesis/pull/18) | `4e37944db99d87aca7d3e040b1359ac0523d07d9` | `d19b1ca` | Atomic history, resumable baseline migration, stable pagination, redaction |
-| 10 | [#19](https://github.com/HenryWashuHe/genesis/pull/19) | `7df90de6cd8b81e5b095ba5ffec050be5e4a9593` | `94d2e51` | Requirement-bound selection, atomic installation/check batch/acceptance, child authorization, terminal recovery |
-| 11 | [#24](https://github.com/HenryWashuHe/genesis/pull/24) | `9e7939a0f060784db282a8269ce2e5acbbe6554a` | `4ecc397` | Independent B-only adoption intent, frozen selection checks, adoption-bound evidence and fresh invocation proofs |
+Reviewed main checkpoint: `b2aebcd173972755297d68a1e161e2113cea5181`.
+The user authorizes merging reviewed ready PRs. Preserve ancestry and check the
+exact resulting tree; do not merge a passing but outdated candidate after its
+source changes. Current GitHub heads and comments supersede this snapshot.
 
-The historical stacked head has prior local evidence of 594 passing Rust tests across 64
-suites with `serde_json/preserve_order`, formatting and strict default-feature
-all-target Clippy. The user's subsequent merge authorization applied to these
-reviewed heads. Validation does not apply automatically to a changed head. GitHub's CodeRabbit summary status is not
-a build/test CI result or a comprehensive code review.
+## Landed milestones
 
-Known boundaries remain: one process owns each organization database; retained
-checkpoints require compatible trusted configuration; invocation verification
-uses trusted inputs; failed reads and ambiguous POSTs require explicit recovery.
-The scenario is an operator-driven demonstration of structural evolution, not
-proof that the planner independently discovered and solved the entire mission.
-Cloud execution and cross-account provider access remain separate evidence gates.
-
-## Open source fixes and dependency holds
-
-Keep fixes on their source branches. Passing original regressions does not approve
-a candidate that introduces a new failure. The current candidate blockers are:
-
-| Parent / candidate head | Remaining blocker | Review evidence |
+| PR | Main merge | Reviewed source and evidence |
 | --- | --- | --- |
-| [#11](https://github.com/HenryWashuHe/genesis/pull/11) / [#39](https://github.com/HenryWashuHe/genesis/pull/39) `49ca9aca2c9ef79bf43c00c63cb872d2ab138f6c` | Provider override guard in shared `new_job` blocks backend Apify acceptance/invocation for Elastic-bound roles; compose with main's #41 HTTP-boundary fix | [Review](https://github.com/HenryWashuHe/genesis/pull/39#issuecomment-6346762701); test-only `b3d4082934f6220e058d6b3697ae14f12c69d3d4` reproduces HTTP 409 at backend checks. 26 Elastic + 18 server checks and strict Clippy pass, including the original authority regressions. |
-| [#26](https://github.com/HenryWashuHe/genesis/pull/26) / [#37](https://github.com/HenryWashuHe/genesis/pull/37) `5e6072d25b3ccc5ce7c4b5cbee88c1d318f39c46` | Failed mismatch-retirement write leaves a provisional receipt eligible for the next pass's Ready shortcut | [Review](https://github.com/HenryWashuHe/genesis/pull/37#issuecomment-6346531598); test-only `80c000232c8d13fb8ebcdb2331b448656ca315a1`. 23 ordinary readiness checks and strict focused Clippy pass. |
-| [#21](https://github.com/HenryWashuHe/genesis/pull/21) `2c987193892da94e4110179362f2ef2aa052779c` | Bind acceptance runs to installation ID, support adoption acceptance purpose, and refresh changed/failed evidence reads | [Source review](https://github.com/HenryWashuHe/genesis/pull/21#pullrequestreview-5615620684); no new browser reproduction. |
+| [#20 specialist execution](https://github.com/HenryWashuHe/genesis/pull/20) | `38aa622` | `5798cb4`, exact tree. Earlier integration: 620 Rust tests; final 53 affected tests, strict Clippy, 17 web tests/build and schema checks. Includes #36/#41. |
+| [#35 venue portal](https://github.com/HenryWashuHe/genesis/pull/35) | `f51d4d9` | Computed merge tree matches; 16 portal tests, no skips, independent fetched A/B pages verified. Includes #40 path collision fix. |
+| [#12 planner](https://github.com/HenryWashuHe/genesis/pull/12) | `90433a8` | `e5835c8`, exact tree; runtime `0cad0c4`: 649 Rust tests, strict default Clippy, 17 web tests/build and schema checks. Final delta was docs only. Includes #38/#44. |
+| [#11 Elastic](https://github.com/HenryWashuHe/genesis/pull/11) | `8c1d292` | `4c5181f`, exact tree; 260 focused tests, strict default workspace Clippy, 21 web tests/build and schema checks. Includes #39/#46. |
+| [#22 Elastic planner](https://github.com/HenryWashuHe/genesis/pull/22) | `09c13ee` | `54d0d2b`, exact tree; 57 planner/Elastic tests and strict default workspace Clippy. Web/schema unchanged. Includes #42/#48. |
+| [#49 capability gaps](https://github.com/HenryWashuHe/genesis/pull/49) | `08dfece` | Corrected `c54d339`: 83 core/planner/server tests, 21 web tests/build, schema/type checks. Clean integration `579e31c`: 58 planner/Elastic tests and strict Clippy; main tree matches. |
+| [#21 evidence UI](https://github.com/HenryWashuHe/genesis/pull/21) | `f8856f1` | `84463a1`, exact tree; 40 tests, clean install, typecheck/build. Includes reviewed #45 and integrations #53/#55, preserving both authors' assertions. Backend/schema unchanged. |
+| [#54 gap lifecycle UI](https://github.com/HenryWashuHe/genesis/pull/54) | `50db34b` | `e212741` clean integration, exact computed merge tree; 42 web tests/typecheck/build. Backend/schema unchanged. Duplicate #50 closed with branches preserved. |
+| [#23 development guide](https://github.com/HenryWashuHe/genesis/pull/23) | `a313a8e` | Reviewed child #58 `ee37037` / parent `99db48a`; final DEV.md-only delta, 12 relative links and whitespace checked, exact computed merge tree. |
+| [#56 gap policy](https://github.com/HenryWashuHe/genesis/pull/56) | `00ad205` | `02cfc90`, exact tree; runtime identical to `cf591a3`, ten policy tests/strict server Clippy. Offline materializer at that source; durable driver is now merged in #66. |
+| [#47 live gates](https://github.com/HenryWashuHe/genesis/pull/47) | `1857b38` | `c91424a`, exact computed merge tree; 14 offline tests including unchanged retry, terminal-result, independent checkpoint, shared quota and resume regressions. No provider calls. |
+| [#51 demo runbook](https://github.com/HenryWashuHe/genesis/pull/51) | `dd33842` | `ae81688`, exact computed tree; original setup/acknowledgment/wording findings fixed, four relative links and whitespace checked. Historical #60 fallback was explicit; holdout support has since landed. Documentation only. |
+| [#61 gap event log](https://github.com/HenryWashuHe/genesis/pull/61) | `e0c0d5d` | Reviewed #64 correction `245c3e1` / parent `c34ccc1`; 45 web tests, typecheck/build and component render/filter checks. Main web source equals reviewed source; backend/schema unchanged. |
+| [#52 planner eval](https://github.com/HenryWashuHe/genesis/pull/52) | `aec4792` | `b887280` resolves the three unchanged negative probes. Integration `278ecfc`, exact tree: 12 tests and strict default workspace Clippy pass. Separate recorded replay: nine scenarios pass, zero skips/errors. No live model run. |
+| [#63 planner lifecycle](https://github.com/HenryWashuHe/genesis/pull/63), [#57 gap wakeup](https://github.com/HenryWashuHe/genesis/pull/57) | `b91ad0a`, `f0d295a` | Exact final tree equals `7731aa3`. Tested `bffd82c` differs only by one additional queued-wakeup test file: 74 focused tests (41 planner, 16 core, five server, 12 eval), formatting and strict workspace Clippy pass. No planning on closed missions at entry/replay; in-flight cancellation not claimed. |
+| [#60 portal holdout](https://github.com/HenryWashuHe/genesis/pull/60) | `ec5ec22` | `bfd5f88` fixes emitted example-index links and hashes. Separate example/verification generation preserves the ordinary reproducibility path. |
+| [#26 gateway readiness](https://github.com/HenryWashuHe/genesis/pull/26), [#62 durable recovery](https://github.com/HenryWashuHe/genesis/pull/62) | `aadb15d` | #62 `e27ecf7` merged into #26 at `9935bd8`; fresh-schema retry/reopen and legacy migration regressions resolved. Main integration passed 304 server tests. No native readiness run claimed. |
+| [#27 operator attach](https://github.com/HenryWashuHe/genesis/pull/27) | `574c5b8` | `29c9853` composed with current main and corrected #26: 69 focused tests with `serde_json/preserve_order`, strict default Clippy. Attachment retains the separate readiness gate. |
+| [#28 Attention UI](https://github.com/HenryWashuHe/genesis/pull/28) | `0b91ddf` | `606b92b`; final composition `0862df8`, exact main tree. Clean install, 56 web tests/typecheck/build; evidence refresh and gap-event behavior retained. Attention checks are pure/SSR; no live-provider or browser-interaction claim. |
+| [#66 durable gap driver](https://github.com/HenryWashuHe/genesis/pull/66) | `e2563ef` | Source `dd2d6b6`, exact main tree. Earlier `a66a298`: 310 server tests/30 suites, including 16 driver tests. Final runtime composition `2561be`: 152 default-feature tests/nine targets, strict workspace Clippy/fmt; final delta docs only. Actual loopback `serve_org` progresses a committed gap without manual steps. |
+| [#29 CREAO readiness probe](https://github.com/HenryWashuHe/genesis/pull/29) | `ba4c920` | `5f5b776`, exact main tree. Final composition: 40 default-feature tests (16 gap, eight probe, 14 CLI, two configuration), strict workspace Clippy/fmt. Earlier scoped run: 122 tests with `serde_json/preserve_order`. Native status alone is not readiness; no live account run. |
+| [#68 preserved Elastic scenario](https://github.com/HenryWashuHe/genesis/pull/68) | `2adaff4` | Extracted unchanged scenario from `9d63cc0`, source `182e22f`. One targeted repaired A→B scenario passed in 97.72 seconds, including Elastic search, organization-isolated evidence and restart. Final composition Clippy passes. Test only, loopback providers. |
+| [#67 invariant tests](https://github.com/HenryWashuHe/genesis/pull/67) | `b2aebcd` | `eeddda5`, test only; 63 core checks, seeded 8,000-step sequences and six sampled negative controls, strict core Clippy/fmt. These controls do not cover every invariant. |
 
-The held parent heads remain #11 `aa94d10` and #26 `3dc95d6`; the candidate fixes
-in the table have not landed. Updated #39 head `1bf7304` is under review; its
-previously reviewed `49ca9ac` finding remains recorded above. #12 now includes reviewed #38 at `d1a5e1d`, with
-main integration pending. The earlier `ed0f074` gap failure is historical and is
-resolved at `ae3879b`. #20 is merged and no longer holds #26.
-After a durable readiness correction is reviewed, reconcile the ancestry of
-#26 → #27 → #28 and sibling #29 with current main; resolved child findings do not
-remove that dependency or approve an unreviewed merge result.
+Strict Clippy checks above use default features. An additional planner integration Clippy run with the JSON-order
+feature reported size lints and is not claimed green. Counts belong to their
+listed sources, not an aggregate current-main test run. Review caches are separate
+per checkout; the specialist/planner cache is exclusively
+`/tmp/genesis-pr20-review-target`, while other checkouts use their own `target`.
 
-- [#22](https://github.com/HenryWashuHe/genesis/pull/22) `c6ccee4`: own configuration/transport
-  findings resolved by #42; pending #11/#12 dependencies and integration.
-- [#27](https://github.com/HenryWashuHe/genesis/pull/27) `5952987`: own sibling-binding
-  finding resolved by [#33's review](https://github.com/HenryWashuHe/genesis/pull/33#issuecomment-6345993608); pending #26.
-- [#28](https://github.com/HenryWashuHe/genesis/pull/28) `17b6b02`: own UI finding
-  resolved by [#31's review](https://github.com/HenryWashuHe/genesis/pull/31#issuecomment-6345825851); pending the readiness ancestry.
-- [Draft #29](https://github.com/HenryWashuHe/genesis/pull/29) `c1e6ba4`, based on
-  #26 at `3dc95d6`: the provider readiness probe passed its scoped review and
-  407 Rust tests, formatting and strict Clippy. It remains draft for #26/#37's
-  durable readiness issue. Native completion does not establish readiness or
-  prove skill installation; no live provider run was made.
+The earlier capability stack #8–#10/#13–#19/#24 and CREAO execution receipts #32
+are on main. Historical detailed evidence remains in
+[the prior queue](https://github.com/HenryWashuHe/genesis/blob/a857a9f/docs/PR_REVIEW_QUEUE.md).
 
-## Documentation and historical combined checkpoint
+## Queue closeout and remaining product work
 
-- [#23](https://github.com/HenryWashuHe/genesis/pull/23) `665aab4` still needs its
-  stale handoff claims refreshed against current main and this queue. Specialist
-  registration is now on main through #20; gateway readiness #26 and the durable
-  provider probe #29 remain pending. Live skill/account proof remains absent.
-- [Draft #25](https://github.com/HenryWashuHe/genesis/pull/25) now includes main
-  `f51d4d9` at combined checkpoint `f5e747c`, a clean merge with no additional
-  runtime changes. 71 affected Rust tests across nine server suites, formatting
-  and strict workspace all-target Clippy pass. Web/schema sources are unchanged
-  from `cfdaa77`, so their checks were not repeated. [Current combined guide](COMBINED_INTEGRATION.md).
-  The earlier `1004934` snapshot passed 699
-  Rust tests across 87 suites, strict Clippy and formatting; that is not a
-  current-main or updated-combined full-workspace validation claim.
-  The earlier `dde0682` web/schema evidence was 33 web tests, production build and
-  schema/type regeneration without drift. Original negative review probes were
-  outside that passing baseline; the remaining candidate failures and pending
-  integration checks above are separate gates. [Historical validation scope](https://github.com/HenryWashuHe/genesis/blob/8a7b115/docs/COMBINED_INTEGRATION.md).
+The reviewed queue is handled at this checkpoint. [#25](https://github.com/HenryWashuHe/genesis/pull/25)
+was closed without merging or deleting its branch after all 17 combined-only merge
+commits and remaining unique content were audited. No unique pending runtime
+remained; its useful recording-proxy scenario
+was preserved in #68. Its `2829025`/132-test and `1004934`/699-test results remain
+historical. See [the combined checkpoint](COMBINED_INTEGRATION.md).
 
-Before landing held work, verify the exact proposed head, rerun its affected
-regressions and inspect any integration changes. Preserve ancestry when reconciling
-with main; do not merge the combined draft wholesale while its findings remain.
-Passing fixtures do not close live-provider gates. Codex owns capability/provider
-implementation, review and narrow integration; Claude/Eric and Henry's Claude
-retain their scoped planner, general lifecycle, Elastic, readiness and UI work.
-No whole-kernel ownership transfer is active.
+The merged gap driver stops at verified `Acquired`; publication and installation
+remain separate. The next Codex core implementation is persistent CREAO mission
+assessment backed by verified capability output and execution receipts. The mission
+still needs the full planner-to-acquisition-to-publication and independent adoption
+demonstration, persistent CREAO core work, and native sponsor receipts. Fixture execution, API presence, callback reachability
+and a green PR do not establish those live outcomes. Coordinate ownership and
+merge sequencing in [issue #4](https://github.com/HenryWashuHe/genesis/issues/4).

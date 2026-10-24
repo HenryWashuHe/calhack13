@@ -4,7 +4,10 @@ The Rust CREAO core can create an operational agent, retain its asynchronous
 creation identity across restarts, and invoke the same agent for distinct events.
 It exposes durable progress through `genesis-providers::SpecialistRuntime` and a
 local backend CLI. It does not activate a kernel role or approve a task result.
-The current synchronous saga needs the pending/readiness hook described below.
+The asynchronous saga hook and optional provider readiness bridge are implemented;
+see [ASYNC_PROVISIONING.md](ASYNC_PROVISIONING.md) and
+[CREAO_READINESS.md](CREAO_READINESS.md). The historical hook checklist below
+describes the integration boundary; live provider evidence is still required.
 
 ## Implemented behavior
 

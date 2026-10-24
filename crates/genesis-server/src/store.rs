@@ -28,6 +28,8 @@ pub enum StoreError {
     Json(#[from] serde_json::Error),
     #[error("store not initialized")]
     Uninitialized,
+    #[error("commit refused, it would break kernel invariants: {0}")]
+    InvariantViolation(String),
 }
 
 pub type StoreResult<T> = Result<T, StoreError>;
@@ -78,6 +80,9 @@ pub struct NewOutbox {
 pub struct Store {
     conn: Arc<Mutex<Connection>>,
     org_id: OrgId,
+    /// Refuse any commit whose state or transition breaks a
+    /// [`genesis_core::audit`] invariant. Opt-in: `GENESIS_AUDIT_COMMITS=1`.
+    audit_commits: bool,
 }
 
 const MIGRATIONS: &str = r#"
@@ -176,7 +181,20 @@ impl Store {
         Ok(Self {
             conn: Arc::new(Mutex::new(conn)),
             org_id,
+            audit_commits: std::env::var("GENESIS_AUDIT_COMMITS").is_ok_and(|v| v == "1"),
         })
+    }
+
+    /// Turn commit-time invariant auditing on or off for this handle (and its
+    /// clones made afterwards).
+    pub fn with_commit_audit(mut self, on: bool) -> Self {
+        self.audit_commits = on;
+        self
+    }
+
+    /// The organization this store belongs to.
+    pub fn org_id(&self) -> &OrgId {
+        &self.org_id
     }
 
     pub(crate) fn lock(&self) -> std::sync::MutexGuard<'_, Connection> {
@@ -267,6 +285,9 @@ impl Store {
             });
         }
         if new_state.revision != base_revision {
+            if self.audit_commits {
+                audit_commit(&tx, base_revision, new_state)?;
+            }
             insert_snapshot(&tx, new_state)?;
         }
         let events = insert_events(&tx, &self.org_id, new_state.revision, meta, effects)?;
@@ -562,6 +583,36 @@ impl Store {
 }
 
 // -- transaction helpers usable inside `extra` closures ----------------------
+
+/// Audit `next` and the step from the stored `base_revision` to it.
+fn audit_commit(tx: &Transaction<'_>, base_revision: u64, next: &OrgState) -> StoreResult<()> {
+    let prev: Option<String> = tx
+        .query_row(
+            "SELECT state_json FROM org_snapshots WHERE revision = ?1",
+            params![base_revision as i64],
+            |r| r.get(0),
+        )
+        .optional()?;
+    let mut found = genesis_core::audit::audit(next);
+    if let Some(prev) = prev {
+        let prev: OrgState = serde_json::from_str(&prev)?;
+        found.extend(genesis_core::audit::audit_transition(&prev, next));
+    }
+    if found.is_empty() {
+        return Ok(());
+    }
+    let summary: Vec<String> = found
+        .iter()
+        .take(5)
+        .map(|v| format!("{}: {}", v.invariant, v.detail))
+        .collect();
+    tracing::error!(
+        revision = next.revision,
+        violations = found.len(),
+        "refusing an ill-formed commit"
+    );
+    Err(StoreError::InvariantViolation(summary.join("; ")))
+}
 
 pub fn insert_snapshot(tx: &Transaction<'_>, state: &OrgState) -> StoreResult<()> {
     tx.execute(
