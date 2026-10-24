@@ -95,11 +95,16 @@ fn main() -> ExitCode {
                         .split_once('=')
                         .ok_or_else(|| format!("expected <slot>=<state-dir>, got {arm}"))?;
                     let receipt: ExecutionReceipt = json(&format!("{dir}/receipt.json"))?;
-                    closure.push((id, dir, receipt));
+                    let ended = genesis_lab_exec::run::termination(id, Path::new(dir))
+                        .map_err(|e| format!("{dir}: {e:?}"))?
+                        .ok_or_else(|| {
+                            format!("slot {id}: no executor-observed termination (recovered or unfinished)")
+                        })?;
+                    closure.push((id, dir, receipt, ended));
                 }
-                let (_, dir, receipt) = closure
+                let (_, dir, receipt, _) = closure
                     .iter()
-                    .find(|(id, _, _)| id == slot)
+                    .find(|(id, _, _, _)| id == slot)
                     .ok_or("the scored slot is not among the closed slots")?;
                 let output = receipt
                     .outputs
@@ -108,8 +113,12 @@ fn main() -> ExitCode {
                 let bytes = std::fs::read(format!("{dir}/artifacts/{}", output.sha256))
                     .map_err(|e| format!("read output: {e}"))?;
                 let refs: Vec<(&str, &ExecutionReceipt)> =
-                    closure.iter().map(|(id, _, r)| (*id, r)).collect();
+                    closure.iter().map(|(id, _, r, _)| (*id, r)).collect();
                 let store = Store::open(Path::new(out)).map_err(|e| e.to_string())?;
+                for (_, _, _, ended) in &closure {
+                    genesis_lab_score::hidden::record_termination(&store, ended)
+                        .map_err(|e| e.to_string())?;
+                }
                 let scored = genesis_lab_score::hidden::score_hidden(
                     &plan,
                     slot,

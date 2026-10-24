@@ -129,6 +129,42 @@ pub fn recover(
     )
 }
 
+/// Executor-observed evidence that a finished slot's method process ended.
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Termination {
+    pub slot_id: String,
+    /// Canonical hash of the slot's execution receipt.
+    pub execution_sha256: String,
+    pub how: String,
+}
+
+/// Canonical hash of an execution receipt, as [`Termination`] binds it.
+pub fn receipt_sha256(receipt: &genesis_core::development_method::ExecutionReceipt) -> String {
+    genesis_core::digest::canonical_sha256(
+        &serde_json::to_value(receipt).expect("receipt serializes"),
+    )
+}
+
+/// The termination evidence a finished slot's executor recorded, if any. A
+/// recovered slot (or one whose run never reached a reaped process) has none.
+pub fn termination(slot_id: &str, dir: &Path) -> Result<Option<Termination>, RunError> {
+    let store = Store::open(dir)?;
+    let state: RunState = serde_json::from_slice(&store.read("run.json")?)
+        .map_err(|e| RunError::Refused(format!("run state: {e}")))?;
+    let (true, Some(how)) = (state.finished, state.terminated) else {
+        return Ok(None);
+    };
+    let receipt: genesis_core::development_method::ExecutionReceipt =
+        serde_json::from_slice(&store.read("receipt.json")?)
+            .map_err(|e| RunError::Refused(format!("receipt: {e}")))?;
+    Ok(Some(Termination {
+        slot_id: slot_id.into(),
+        execution_sha256: receipt_sha256(&receipt),
+        how,
+    }))
+}
+
 /// Exclusive ownership of the slot; another runner holding it means the slot
 /// is already started.
 fn claim(dir: &Path) -> Result<SlotClaim, RunError> {
@@ -351,6 +387,15 @@ pub fn execute(
     }
     let wall = started.elapsed().as_millis() as u64;
     let _ = std::fs::remove_dir_all(&stage);
+    // The child has been reaped: record how its end was observed, as the
+    // termination evidence hidden scoring requires.
+    slot.state.terminated = Some(
+        match cfg.sandbox {
+            Mode::Namespaces => "the executor reaped the sandbox's first process; the kernel ends every process in its PID namespace with it",
+            Mode::None => "the executor reaped the method process; mode none does not cover processes the method started itself",
+        }
+        .into(),
+    );
     let outcome = outcome.unwrap_or(if status.success() && slot.state.submission.is_some() {
         ExecutionOutcome::OutputGenerated
     } else {
