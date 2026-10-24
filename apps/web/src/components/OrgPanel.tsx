@@ -4,6 +4,26 @@ import type { OrgChangeRecord, OrgState } from "../lib/contracts";
 import { buildTree, executedBy, ownedBy, pendingRoles, RoleNode, short } from "../lib/graph";
 import { HistoryEntry, historyView } from "../lib/snapshot";
 import { ProviderBadge, StateChip } from "./Chips";
+import { gapsForRole } from "../lib/gaps";
+
+function RequestedCapabilities({ state, roleId }: { state: OrgState; roleId: string }) {
+  const gaps = gapsForRole(state, roleId);
+  if (gaps.length === 0) return null;
+  return (
+    <ul className="duties gaps">
+      {gaps.map((g) => (
+        <li key={g.gapId} title={`Requested by this organization's change; sources: ${g.sources.join(", ")}`}>
+          <span className="chip provider dashed" style={{ ["--pc" as string]: "var(--p-apify)" }}>
+            {g.version ?? g.capabilityId}
+          </span>
+          <span className={`chip ${g.tone}`}>{g.label}</span>
+          <span>{g.purpose}</span>
+          {g.detail && <span className="muted">{g.detail}</span>}
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 function Duties({ state, roleId }: { state: OrgState; roleId: string }) {
   const owned = ownedBy(state, roleId);
@@ -95,6 +115,7 @@ function Node({ node, state, freshRevision }: { node: RoleNode; state: OrgState;
         </div>
         <div className="role-charter">{r.charter}</div>
         <Duties state={state} roleId={r.role_id} />
+        <RequestedCapabilities state={state} roleId={r.role_id} />
         {(r.capabilities ?? []).length > 0 && (
           <div className="role-meta">
             {(r.capabilities ?? []).map((c) => (
