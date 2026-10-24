@@ -126,7 +126,7 @@ test("the public server serves exact bytes and nothing outside public/", async (
       assert.equal(res.headers.get("x-content-sha256"), p.sha256);
       assert.equal(res.headers.get("cache-control"), "no-store");
     }
-    for (const bad of ["/../trusted/manifest.json", "/%2e%2e/trusted/manifest.json", "/..%2ftrusted%2fmanifest.json", `/../trusted/${r.suite.suite_id}.json`, "/venues/"]) {
+    for (const bad of [`/../trusted/manifests/${r.namespace}.json`, `/%2e%2e/trusted/manifests/${r.namespace}.json`, `/..%2ftrusted%2fmanifests%2f${r.namespace}.json`, `/../trusted/suites/${r.suite.suite_id}.json`, "/venues/"]) {
       const res = await fetch(`${url}${bad}`);
       assert.equal(res.status, 404, bad);
     }
@@ -237,6 +237,30 @@ test("an existing namespace is never overwritten without replace", () => {
   const replaced = writeVariant({ spec: presetSpec("capacity-cut", "n"), baseUrl: BASE, out, namespace: "run-1", replace: true });
   assert.equal(replaced.namespace, "run-1");
   assert.throws(() => build(presetSpec("baseline", "n"), BASE, "../x"), /namespace/);
+});
+
+test("a suite ID matching its namespace's former manifest filename keeps both outputs", () => {
+  const out = mkdtempSync(join(tmpdir(), "portal-self-collision-"));
+  const spec = presetSpec("baseline", "self");
+  spec.suite_id = "org-a.manifest";
+  const result = writeVariant({ spec, baseUrl: BASE, out, namespace: "org-a" });
+  assert.deepEqual(JSON.parse(readFileSync(result.suitePath, "utf8")), result.suite);
+  assert.equal(readFileSync(join(out, "trusted", "manifests", "org-a.json"), "utf8"), `${JSON.stringify(result.manifest, null, 2)}\n`);
+});
+
+test("a later namespace cannot overwrite an earlier suite with its manifest", () => {
+  const out = mkdtempSync(join(tmpdir(), "portal-retained-suite-"));
+  const firstSpec = presetSpec("baseline", "first");
+  firstSpec.suite_id = "org-b.manifest";
+  const first = writeVariant({ spec: firstSpec, baseUrl: BASE, out, namespace: "org-a" });
+  const suiteBefore = readFileSync(first.suitePath);
+  const manifestPath = join(out, "trusted", "manifests", "org-a.json");
+  const manifestBefore = readFileSync(manifestPath);
+  const second = writeVariant({ spec: presetSpec("baseline", "second"), baseUrl: BASE, out, namespace: "org-b" });
+  assert.deepEqual(readFileSync(first.suitePath), suiteBefore, "earlier suite bytes stay unchanged");
+  assert.deepEqual(readFileSync(manifestPath), manifestBefore, "earlier manifest bytes stay unchanged");
+  assert.deepEqual(JSON.parse(readFileSync(second.suitePath, "utf8")), second.suite);
+  assert.equal(readFileSync(join(out, "trusted", "manifests", "org-b.json"), "utf8"), `${JSON.stringify(second.manifest, null, 2)}\n`);
 });
 
 test("the lab writes each variant to a new namespace", async () => {

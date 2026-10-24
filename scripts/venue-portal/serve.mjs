@@ -63,7 +63,7 @@ function labPage({ out, baseUrl, last, error }) {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Venue portal lab</title>
 <style>body{font:15px system-ui;margin:2rem;max-width:56rem}fieldset{margin:1rem 0}textarea{width:100%;height:12rem;font:12px ui-monospace}td,th{padding:.25rem .5rem;text-align:left}.err{color:#b00}</style></head>
 <body><h1>Venue portal lab <small>(localhost only)</small></h1>
-<p>Pick a disruption. Each variant is written to a new namespace under <code>${esc(baseUrl)}</code>, with its own suite in <code>${esc(out)}/trusted/</code> (never served).
+<p>Pick a disruption. Each variant is written to a new namespace under <code>${esc(baseUrl)}</code>, with its own suite in <code>${esc(out)}/trusted/suites/</code> (never served).
 Existing namespaces are never changed, so runs already bound to their pages keep valid evidence. Start a fresh organization run with the new
 <code>--oracle-suite</code> (keep the old suite files loaded for organizations that used them).</p>
 ${error ? `<p class="err">${esc(error)}</p>` : ""}
