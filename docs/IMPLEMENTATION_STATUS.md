@@ -10,81 +10,47 @@ are preserved. The [ongoing goal](ONGOING_GOAL.md) remains open: a bounded
 A → B → A executable development-method loop and honest controlled evaluation
 with fixed model weights. Event organization remains superseded.
 
-At main `67340ba`, the following new contracts and provider corrections are merged:
+At main `728d42c`, these reviewed increments are merged:
 
 | Work | Validation and evidence boundary |
 | --- | --- |
-| Method execution records #18, merge `07961f1`; independent scoring records #22, merge `7510b86` | Tested composition `785a22c` / `4d64fe6` passed 102 core tests and strict Clippy; merged tree matches `6742948e`. Pure experimental records, with affected-owner feedback; no executor or evaluator runtime. |
-| Opt-in CREAO v2 #25, merge `0d6d96d`, source `d3434e5` | Saved protocol version controls routing, durable fencing and specialist request hashing. Independent composition `e977ab4` passed 20 focused tests and strict package Clippy; original regression file `affdaf4` is preserved byte-for-byte. Offline loopback evidence only. |
-| Apify bounded empty-page reread #26, merge `f153f58`, source `46ada41` | At most five GETs after a pinned successful run, within the operation deadline; no extra Actor POST. Independent composition `601e381` passed 44 package tests plus three extra visibility cases, strict Clippy and formatting. |
-| Independent Apify regressions #29, merge `b69f2ba`, source `041d478`, composition `d81d618` | Three new tests pass on the composition with main `0d6d96d`: fifth-read success, immediate failure for seven invalid-page variants, and no dataset collection for four substituted run-identity fields. These do not prove live resolution. |
-| CREAO protocol evidence #30, merge `67340ba`, source `0311f62` | Saved protocol appears in CLI/gate summaries; invalid version is rejected before checkpoint preparation. Five CLI and nine Node gate tests plus scoped strict Clippy pass independently. Offline evidence only. |
+| Method execution #18 (`07961f1`) and independent scoring #22 (`7510b86`) | Composition `785a22c` / `4d64fe6` passed 102 core tests and strict Clippy; merged tree matches `6742948e`. Pure experimental records, not executor/evaluator runtime. |
+| Trial plan #28 (`e47ee64`, source `f52f182`) and experiment ledger #32 (`8578759`, source `0fa3773`) | Independent composition `d386fb0` / tree `680cf27e` passed 116 core tests and strict Clippy. Frozen-plan records retain all declared attempts; the ledger binds cumulative public experiments, unknown/overrun evidence and exact sealed transcripts. |
+| Adoption outcomes #11 (`eefde296`, source `7f2102f`) and refusals #12 (`7010866`, source `9eaf8e0`) | 70 focused tests and strict Clippy pass, preserving original independent regressions. Local refusal no longer claims a confirmed provider failure. Existing #8/#10 adoption foundations remain merged. |
+| Stage #20 (`7023077`, source `bfe10d9`) | Independent composition `7508c5b` passed 15 VM tests, preserving both independent test files. Neutral startup, explicit replay opt-in, ordered live responses and exact manifest identity are checked. No browser walkthrough or sponsor evidence. |
+| Evaluator proposal #13 (`728d42c`, source `1a7f542`) | Corrected protocol clauses are agreed: immutable commitment, unambiguous encoding, public comparison development, frozen normalized outputs before private scoring/reveal, exact evaluator identity. This is a reviewed proposal, not approved runtime or G0 completion. |
+| CREAO v2 #25 (`0d6d96d`, source `d3434e5`) and protocol evidence #30 (`67340ba`, source `0311f62`) | #25: 20 independent focused tests and strict Clippy, original `affdaf4` regression unchanged. #30: five CLI and nine Node gate tests plus scoped strict Clippy. Saved protocol controls durable routing/hash and evidence labels; offline evidence only. |
+| Apify rereads #26 (`f153f58`, source `46ada41`) and independent regressions #29 (`b69f2ba`, source `041d478`) | Composition `601e381` passed 44 package tests and three additional visibility/identity cases plus strict Clippy; #29 preserves those cases, rerun on `d81d618`. #34's later read-window correction and live boundary are below. |
 
-Draft [#28](https://github.com/HenryWashuHe/genesis-history-experiment/pull/28)
-at `f52f182` adds a frozen pre-execution trial plan and assessment retaining
-no-output, failed, interrupted, missing and unknown attempts. It pins criterion,
-public instances, hidden commitment/protocol, exact methods, stable comparison
-arms, local candidate/control acceptance and equal grants. 109 core tests pass;
-seven new cases were independently rerun, and strict Clippy/formatting pass.
-Affected-owner interface feedback is pending. This does not enforce prior
-freezing, process isolation, cumulative experiment budgets, reveal timing or
-authentication. Trusted runtime integration for the executor, experiment transcript
-and evaluator remains necessary; no G0 completion or comparative result is claimed.
+The #28/#32 libraries do not enforce prior freezing, exclusive durable state,
+anti-rollback, actual metering, process isolation, wall/model limits or reveal
+timing. Trusted executor/evaluator integration remains necessary. Their merge
+does not establish affected-owner agreement on the complete runtime or close G0.
 
-Draft [#32](https://github.com/HenryWashuHe/genesis-history-experiment/pull/32)
-`0fa3773`, stacked on #28, now implements the library experiment-call ledger.
-It admits exact public-instance/design calls under one cumulative simulation
-grant, checks an independently supplied expected slot, retains charged failures,
-unknowns and overruns, and seals exact transcript bytes for receipt validation.
-116 core tests and strict Clippy pass; two independent probes check coordinated
-slot substitution and preservation after invalid/duplicate settlement. Runtime
-exclusive persistence, anti-rollback, actual metering, sandboxing and wall/model
-limits are still absent from this module. Both drafts await affected-owner
-feedback; no executor, authenticated execution or improvement result follows.
+Henry [acknowledged and started the evaluator/executor lane](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6381504911).
+Branch-only evaluator `72eb7a6` has not been independently reviewed; its author’s
+content-digest/reservation changes and executor isolation design are not verified
+runtime evidence. Neither runtime is on main. The handwritten seed is a control,
+not a generated method. Codex's source-package [#36](https://github.com/HenryWashuHe/genesis-history-experiment/pull/36)
+`f856a5b` is active/unmerged, with independent review pending: canonical source
+bytes and trusted loading are a G1/G2 prerequisite, not a selected ABI, dependency
+resolver, executor, local acceptance decision or method-derivation proof.
 
-Henry's core Claude acknowledged the evaluator lane and pushed an isolated
-implementation spike. Reviewed `b065a70` passes seven existing tests independently;
-newer `d65cf3e` is reported but not independently reviewed. Neither is on main.
-The reviewed spike hashes version labels instead of complete
-evaluator content, accepts a fresh caller-supplied remaining budget on each call,
-and lacks the merged scoring contract's trusted adapter. Two CLI experiments
-each accepted the same 1,200-step allowance; this reproduces missing cumulative
-enforcement, not a method improvement. Revised proposal #13 `f3b6a12` fixes the
-main holdout timeline and content-identity requirement but retains contradictory
-reveal/experiment clauses and ambiguous commitment encoding. #14 `9cd04e1`
-fixes evaluator identity/routing but still blurs development with hidden scoring
-and overstates unrelated-task non-use. Both remain proposals under review.
-Henry's proposed narrow executor subtree is now explicitly assigned in
-[issue #1](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6381016259),
-awaiting acknowledgment; its handwritten seed will be labeled a control. Codex
-retains the shared call/transcript contract. Assignment does not imply execution.
-
-Adoption foundations #8 and #10 are merged (`8f26401e`, `1aed609f`), with the
-same tree as tested composition `015e4fc5`: 47 adoption and 17 provider-executor
-tests plus strict Clippy. #11 `7438308` now avoids invented discovery cardinality,
-but still labels local pre-submission refusal as a confirmed provider failure.
-All 56 existing gap-adoption and eight capability-adoption tests pass; new
-independent `d11a8ba` fails with zero provider GETs/POSTs. #11 remains held;
-#12 `a047f59` clears its own wording holds: three refusal tests and one planner
-test independently pass on composition `77143c3`, with the #11 regression retained
-as `6e8dc9e`. #12/#15 stay unmerged dependents; method-adoption wiring is separate.
+Henry retains adoption proposal #14 `c67a324`: its control-free acceptance option
+conflicts with TrialPlan v1's required candidate/control pair, and its receipt
+installation-ID claim conflicts with #18. Adoption UI #15 `87624fff` has three
+P2 holds: historical snapshots reveal future outcomes, stale candidate responses
+overwrite newer decisions, and registry absence receives an overbroad tooltip.
+Ten original tests pass; three independent `ae6ba16` cases fail. Eric's separate
+invention-lab UI assignment remains unacknowledged; Ines is unassigned.
 
 ACP #3 `3ad7685` fixes fresh-journal sender identity and confirmed-POST wording;
-138 existing tests pass in composition `c099fdd`. Existing journals still retain
-inline `UNIQUE(message_id)`; independent `bb5a841` is preserved and fails.
-#5 `fc956a8` fixes exact IDs/size and the overflow fixture; its focused overflow
-test was independently rerun successfully. It still depends on #3's migration.
-#4 needs current routing/status language. #6 was withdrawn and closed as
-superseded by #17; its unsafe migration script was not approved.
-
-Stage #20 `9a6234a` now has neutral opt-in startup, correct replay/poll ordering,
-distinct organizations and matching installation digests. All six author and
-six original independent tests pass on composition `853c5fe8`. New test-only
-`10d1edd` adds one actual opt-in replay-callback pass and two failing cases:
-missing manifest digest and mismatched manifest ID/version still show adoption.
-ACP retains that final evidence hold and the stale README default wording.
-Historical events stay secondary; Eric's separate invention-lab UI assignment
-remains unacknowledged. Ines is unassigned.
+138 existing tests pass in composition `c099fdd`, but upgraded journals retain
+inline `UNIQUE(message_id)` and fail preserved independent `bb5a841`. #5 `fc956a8`
+clears its exact-ID/size and overflow-fixture holds but depends on #3's migration.
+#4 still needs routing/status corrections. #6's migration script was withdrawn,
+not approved; venue fallback #2 was closed unmerged as superseded, with its branch
+preserved. Current method-development work does not depend on that venue scope.
 
 [Issue #1's live Apify report](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6380843098)
 records a successful Actor build and `SUCCEEDED` run. A later exact dataset GET
