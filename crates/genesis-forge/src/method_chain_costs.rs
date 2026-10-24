@@ -50,7 +50,8 @@ pub struct ChainStageCosts {
     pub reserved_grant: ResourceGrant,
     pub binding: Option<ChainStageBinding>,
     pub observed: Option<ChainObservedCosts>,
-    /// No exact bound trial was supplied; unused capacity is not measured zero.
+    /// Declared trial work is unbound, or stage evidence is absent. An observed
+    /// explicit zero-slot generation stage has no future trial to resolve.
     pub unresolved_trial: bool,
 }
 
@@ -87,7 +88,7 @@ pub fn assess_chain_costs(
         BTreeSet::new(),
     );
     for input in evidence {
-        let (binding, scope, trial, report) = match input {
+        let (binding, scope, trial, unresolved_trial, report) = match input {
             ChainStageEvidence::Generation {
                 binding,
                 allocation,
@@ -129,6 +130,7 @@ pub fn assess_chain_costs(
                     *binding,
                     *scope,
                     plan,
+                    plan.is_none() && allocation.limits().max_trial_slots != 0,
                     ChainObservedCosts::Generation(Box::new(report)),
                 )
             }
@@ -144,6 +146,7 @@ pub fn assess_chain_costs(
                     *binding,
                     *scope,
                     Some(*trial),
+                    false,
                     ChainObservedCosts::TrialOnly(Box::new(report)),
                 )
             }
@@ -186,7 +189,7 @@ pub fn assess_chain_costs(
             }
         }
         if observed
-            .insert(binding.stage_id(), (binding, trial.is_none(), report))
+            .insert(binding.stage_id(), (binding, unresolved_trial, report))
             .is_some()
         {
             return Err(invalid("duplicate chain stage evidence"));

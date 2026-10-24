@@ -114,7 +114,7 @@ impl ChainAllocation {
                     {
                         return Err(invalid("chain generation caps exceed grant"));
                     }
-                    validate_limits(&stage.limits, grant)?;
+                    validate_limits(&stage.limits, grant, true)?;
                 }
                 ChainWork::TrialOnly => validate_limits(
                     &stage.limits,
@@ -125,6 +125,7 @@ impl ChainAllocation {
                         wall_time_ms: 0,
                         simulation_steps: 0,
                     },
+                    false,
                 )?,
             }
             for (sum, amount) in allocated.iter_mut().zip(amounts(&stage.limits.total_grant)) {

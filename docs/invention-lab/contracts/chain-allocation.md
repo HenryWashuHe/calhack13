@@ -6,8 +6,12 @@ existing `StageLimits`, exact trial-model-settings reference and one work kind:
 
 - `Generation`: exact generation settings, 1–64 maximum attempts and a complete
   generation grant. The grant must cover every declared call and output cap.
+  It may explicitly declare zero trial slots with all development/scoring grant
+  dimensions zero; such a stage cannot bind a trial. Later evaluations belong in
+  separately declared `TrialOnly` stages and do not repeat the generation cost.
 - `TrialOnly`: an inherited-method, return, control or decline trial without a
-  generation roster or generated-method links. It does not manufacture a call.
+  generation roster or generated-method links. It requires 1–64 trial slots and
+  does not manufacture a call.
 
 Checked arithmetic requires each full generation allowance plus every possible
 trial slot's development/scoring grants to fit its stage ceiling. The sum of
@@ -144,8 +148,13 @@ The run/attempt rule extends TrialPlan's existing uniqueness policy across the
 chain; changing one label cannot reuse the other within the same organization.
 It rejects ambiguous retained identities, not proof of duplicate physical work.
 
-A generation-only observation is useful before its trial exists: known generation
-costs are included, while `unresolved_trial` keeps the reserved future work unknown.
+A generation observation without a trial retains `unresolved_trial` when its
+declaration has nonzero trial slots, even when their grants are zero. For an
+explicit zero-slot Generation stage, validated binding/allocation/admission and
+generation evidence have no future trial to resolve. Complete measured generation
+can yield known totals; failed attempts still cost resources, and missing,
+Prepared, pending or unknown generation evidence remains unknown as before.
+The unused trial-model-settings reference remains declared but supplies no costs.
 An omitted or declined-without-evidence stage is also unknown, never zero spend.
 A bound trial still reports missing execution/scoring evidence through the existing
 cost rows. Known lower bounds, unknown flags, saturating overflow and chain-limit
