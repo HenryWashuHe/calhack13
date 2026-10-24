@@ -77,10 +77,13 @@ export function intake(files: { name: string; text: string }[]): Intake {
     }
   }
 
-  // A status pairs with the checkpoint for the same operation in the same phase;
-  // an operation's earlier (e.g. Prepared) checkpoint is listed, not used.
+  // A status pairs with the checkpoint of the same organization, operation and
+  // exact request, in the same phase. Operation names can repeat across
+  // organizations; an operation's earlier (e.g. Prepared) checkpoint is listed, not used.
   for (const { file, c } of checkpoints) {
-    const g = records.generations.find((x) => x.status.operation_id === c.operation_id);
+    const g = records.generations.find(
+      (x) => x.status.org_id === c.org_id && x.status.operation_id === c.operation_id && x.status.request_sha256 === c.request_sha256,
+    );
     if (g && !g.checkpoint && g.status.phase === c.phase) {
       g.checkpoint = c;
       used.push({ file, note: "generation checkpoint (outcome enum only)" });
@@ -88,8 +91,8 @@ export function intake(files: { name: string; text: string }[]): Intake {
       skipped.push({
         file,
         note: g
-          ? `generation checkpoint in phase ${c.phase}; the status for ${c.operation_id} is ${g.status.phase}`
-          : `generation checkpoint without a matching status for ${c.operation_id}`,
+          ? `generation checkpoint in phase ${c.phase}; the status for ${c.operation_id} of ${c.org_id} is ${g.status.phase}`
+          : `generation checkpoint without a matching status for ${c.operation_id} of ${c.org_id}`,
       });
     }
   }
