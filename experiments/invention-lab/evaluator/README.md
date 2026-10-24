@@ -39,15 +39,15 @@ cargo run --release --bin lab-eval -- compare designs/reference-five-wheel.json 
 | `ravine-crossing` | carry the payload across a 1.0–2.5 m gap and hold it on the far bank for 1 s | A's visible task |
 | `rough-transport` | carry it 8 m over bumps (0.10–0.35 m) through 1–4 pushes without it touching the ground | B's related task |
 | `return-mix` | ravine plus pushes and lower friction | A's return challenge; use hidden instances |
-| `projectile-target` | land the payload in a 1 m zone 4–9 m away; a wall at x = 1.5 m stops the launcher | non-reuse control |
+| `projectile-target` | land the payload in a 1 m zone 4–9 m away; a wall at x = 1.5 m stops the launcher | different-task control; transfer to it is measured, not assumed |
 
 Outcomes follow #22: `scored` (with `success` as a metric), `invalid` (design
 validation), `failed` (simulation diverged), `unknown` (worker stopped).
 
-Calibration notes, local and small. `designs/reference-five-wheel.json` is a
-hand-built sanity design, never a method or a baseline. On development seeds
-0–19 it crosses 13/20 ravines and passes 8/20 rough tracks;
-`designs/cart-long.json` crosses 0/20 ravines and passes 10/20 rough tracks.
-A crude random search over catapult parameters found designs that land 2 of
-10 projectile instances. The same trace digests come out of debug and release
-builds on x86_64; other architectures haven't been checked.
+Calibration notes, local and small, with the 2000 N·m motor torque ceiling.
+`designs/reference-five-wheel.json` is a hand-built sanity design, never a
+method or a baseline. On development seeds 0–19 it crosses 13/20 ravines and
+passes 3/20 rough tracks; `designs/cart-long.json` crosses 0/20 ravines and
+passes 8/20 rough tracks. The projectile family hasn't been recalibrated since
+the torque ceiling. The same trace digests come out of debug and release builds
+on x86_64; other architectures haven't been checked.
