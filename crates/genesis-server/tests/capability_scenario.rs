@@ -2,9 +2,12 @@
 //! adapters. Model output and provider execution are canned loopback fixtures;
 //! this does not claim cloud execution, autonomous planning, or native role
 //! activation. Both synthetic provider credentials may access the same Actor.
+//! Real organization servers own progression; an HTTP guard rejects all manual
+//! step/verify requests made by the scenario or these tests.
 
-use axum::body::to_bytes;
+use axum::body::{to_bytes, Body};
 use axum::extract::{Request, State};
+use axum::response::{IntoResponse, Response};
 use axum::{Json, Router};
 use genesis_apify::{ApifyClient, RunLimits};
 use genesis_core::ids::{InstallationId, JobId, RoleId};
@@ -18,10 +21,11 @@ use genesis_server::app::AppState;
 use genesis_server::capability_acquisition_store::{AcquisitionPolicy, AcquisitionQuotas};
 use genesis_server::capability_runtime::CapabilityRunPhase;
 use genesis_server::capability_scenario::{
-    ScenarioDriver, ScenarioEndpoint, ScenarioError, ScenarioLimits, ScenarioSpec,
+    ScenarioDriver, ScenarioEndpoint, ScenarioError, ScenarioLimits, ScenarioProgression,
+    ScenarioSpec,
 };
 use genesis_server::registry::{self, RegistryState};
-use genesis_server::{build_org, parse_publishers, AcquisitionConfig, OrgConfig};
+use genesis_server::{build_org, parse_publishers, serve_org, AcquisitionConfig, OrgConfig};
 use genesis_verification::{decode_json, json_sha256, ExecutionEvidence, OracleSuite, RunStatus};
 use reqwest::StatusCode;
 use serde_json::{json, Value};
@@ -50,11 +54,76 @@ impl Server {
         let task = tokio::spawn(async move { axum::serve(listener, router).await.unwrap() });
         Self { url, task }
     }
+    async fn start_org(app: AppState) -> Self {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let url = format!("http://{}", listener.local_addr().unwrap());
+        let task = tokio::spawn(async move { serve_org(app, listener).await.unwrap() });
+        Self { url, task }
+    }
+    async fn stop(&mut self) {
+        self.task.abort();
+        let _ = (&mut self.task).await;
+    }
 }
 impl Drop for Server {
     fn drop(&mut self) {
         self.task.abort();
     }
+}
+
+#[derive(Clone, Debug)]
+struct OrgRequest {
+    method: String,
+    path: String,
+}
+impl OrgRequest {
+    fn manual_advancement(&self) -> bool {
+        self.method == "POST"
+            && matches!(
+                self.path.trim_end_matches('/').rsplit('/').next(),
+                Some("step" | "verify")
+            )
+    }
+}
+#[derive(Clone)]
+struct GuardedProxy {
+    upstream: String,
+    client: reqwest::Client,
+    requests: Arc<Mutex<Vec<OrgRequest>>>,
+}
+async fn guarded_proxy(State(proxy): State<GuardedProxy>, request: Request) -> Response {
+    let observed = OrgRequest {
+        method: request.method().to_string(),
+        path: request.uri().path().to_owned(),
+    };
+    let forbidden = observed.manual_advancement();
+    proxy.requests.lock().unwrap().push(observed);
+    if forbidden {
+        return (
+            StatusCode::METHOD_NOT_ALLOWED,
+            Json(json!({"error":"scenario must use automatic progression"})),
+        )
+            .into_response();
+    }
+    let (mut parts, body) = request.into_parts();
+    parts.headers.remove("host");
+    let body = to_bytes(body, 2 * 1024 * 1024).await.unwrap();
+    let response = proxy
+        .client
+        .request(parts.method, format!("{}{}", proxy.upstream, parts.uri))
+        .headers(parts.headers)
+        .body(body)
+        .send()
+        .await
+        .unwrap();
+    let status = response.status();
+    let bytes = response.bytes().await.unwrap();
+    assert!(bytes.len() <= 2 * 1024 * 1024);
+    Response::builder()
+        .status(status)
+        .header("content-type", "application/json")
+        .body(Body::from(bytes))
+        .unwrap()
 }
 
 fn suite(side: &str) -> OracleSuite {
@@ -347,8 +416,62 @@ impl Providers {
 
 struct Org {
     server: Server,
+    backend: Server,
     app: AppState,
     config: OrgConfig,
+    requests: Arc<Mutex<Vec<OrgRequest>>>,
+}
+impl Org {
+    async fn start(
+        config: OrgConfig,
+        providers: ProviderSet,
+        requests: Arc<Mutex<Vec<OrgRequest>>>,
+    ) -> Self {
+        let app = build_org(&config, Some(providers)).unwrap();
+        let backend = Server::start_org(app.clone()).await;
+        let server = Server::start(
+            Router::new()
+                .fallback(guarded_proxy)
+                .with_state(GuardedProxy {
+                    upstream: backend.url.clone(),
+                    client: reqwest::Client::builder()
+                        .timeout(Duration::from_secs(35))
+                        .redirect(reqwest::redirect::Policy::none())
+                        .no_proxy()
+                        .build()
+                        .unwrap(),
+                    requests: requests.clone(),
+                }),
+        )
+        .await;
+        Self {
+            server,
+            backend,
+            app,
+            config,
+            requests,
+        }
+    }
+    async fn restart(&mut self, providers: ProviderSet) {
+        self.server.stop().await;
+        self.backend.stop().await;
+        *self = Self::start(self.config.clone(), providers, self.requests.clone()).await;
+    }
+    fn assert_no_manual_advancement(&self) {
+        let requests = self.requests.lock().unwrap();
+        assert!(
+            !requests.is_empty(),
+            "the guard must observe actual organization traffic"
+        );
+        assert!(
+            requests.iter().all(|request| !request.manual_advancement()),
+            "manual progression was attempted: {:?}",
+            requests
+                .iter()
+                .filter(|request| request.manual_advancement())
+                .collect::<Vec<_>>()
+        );
+    }
 }
 struct Fixture {
     _directory: tempfile::TempDir,
@@ -359,6 +482,9 @@ struct Fixture {
 }
 impl Fixture {
     async fn start(behavior: Behavior) -> Self {
+        Self::start_with_automation(behavior, true).await
+    }
+    async fn start_with_automation(behavior: Behavior, automatic: bool) -> Self {
         let directory = tempfile::tempdir().unwrap();
         let registry = Server::start(registry::router(
             RegistryState::open_in_memory(
@@ -380,7 +506,7 @@ impl Fixture {
             config.registry_token = Some(format!("{id}-registry"));
             if side == Side::A {
                 config.acquisition = Some(AcquisitionConfig {
-                    automatic: false,
+                    automatic,
                     policy: AcquisitionPolicy {
                         model: ModelConfig {
                             model: MODEL.into(),
@@ -399,13 +525,7 @@ impl Fixture {
                     apify: Some(Arc::new(providers.apify(side))),
                 });
             }
-            let app = build_org(&config, Some(providers.set(side))).unwrap();
-            let server = Server::start(app.clone().router()).await;
-            orgs.push(Org {
-                server,
-                app,
-                config,
-            });
+            orgs.push(Org::start(config, providers.set(side), Arc::default()).await);
         }
         let b = orgs.pop().unwrap();
         let a = orgs.pop().unwrap();
@@ -421,6 +541,7 @@ impl Fixture {
         let a = suite("a");
         let b = suite("b");
         ScenarioSpec {
+            progression: ScenarioProgression::Automatic,
             run_id: "inherited-mission-fixture".into(),
             suite_a_id: a.suite_id,
             suite_b_id: b.suite_id,
@@ -453,11 +574,11 @@ impl Fixture {
             ScenarioLimits {
                 request_timeout: Duration::from_secs(30),
                 max_response_bytes: 2 * 1024 * 1024,
-                poll_interval: Duration::from_millis(1),
-                max_polls: 128,
+                poll_interval: Duration::from_millis(250),
+                max_polls: 1024,
                 // Debug builds rehash the complete generated package on every
                 // transition; the repaired scenario validates two full passes.
-                total_timeout: Duration::from_secs(180),
+                total_timeout: Duration::from_secs(240),
             },
         )
         .unwrap()
@@ -494,6 +615,25 @@ async fn get(org: &Org, path: &str) -> (StatusCode, Value) {
     (response.status(), response.json().await.unwrap())
 }
 
+async fn wait_for_proof(org: &Org, id: &str) -> Value {
+    tokio::time::timeout(Duration::from_secs(30), async {
+        loop {
+            let (status, proof) = get(org, &format!("/capability-runs/{id}/verification")).await;
+            if status == StatusCode::OK {
+                return proof;
+            }
+            assert_eq!(status, StatusCode::NOT_FOUND, "{proof}");
+            let (status, finalization) =
+                get(org, &format!("/capability-runs/{id}/finalization")).await;
+            assert_eq!(status, StatusCode::OK, "{finalization}");
+            assert_ne!(finalization["state"], "attention", "{finalization}");
+            tokio::time::sleep(Duration::from_millis(250)).await;
+        }
+    })
+    .await
+    .expect("the actual server must collect and finalize the invocation without a manual request")
+}
+
 #[tokio::test]
 async fn repaired_acquisition_survives_independent_adoption_and_both_role_handoffs() {
     let mut fixture = Fixture::start(Behavior::RepairOnce).await;
@@ -517,6 +657,9 @@ async fn repaired_acquisition_survives_independent_adoption_and_both_role_handof
                 world.runs.len()
             );
         });
+    assert_eq!(report.progression, ScenarioProgression::Automatic);
+    fixture.a.assert_no_manual_advancement();
+    fixture.b.assert_no_manual_advancement();
     assert_eq!(report.acquisition_attempt, 1);
     assert_eq!(report.artifact.capability_version, "1.0.1");
     assert_eq!(report.acquisition_usage.model_calls, 2);
@@ -673,12 +816,8 @@ async fn repaired_acquisition_survives_independent_adoption_and_both_role_handof
             proof["case_report"]["artifact"],
             serde_json::to_value(&report.artifact).unwrap()
         );
-        let (status, replayed) = post(
-            &fixture.b,
-            &format!("/capability-runs/{id}/verify"),
-            json!({}),
-        )
-        .await;
+        let (status, replayed) =
+            get(&fixture.b, &format!("/capability-runs/{id}/verification")).await;
         assert_eq!(status, StatusCode::OK);
         assert_eq!(
             replayed, proof,
@@ -785,15 +924,8 @@ async fn repaired_acquisition_survives_independent_adoption_and_both_role_handof
     );
     // Replace the HTTP server and open a fresh store connection using only B's
     // existing DB/config. No imported A checkpoint or acquisition client exists.
-    fixture.b.server.task.abort();
-    let _ = (&mut fixture.b.server.task).await;
-    let app = build_org(&fixture.b.config, Some(fixture.providers.set(Side::B))).unwrap();
-    let server = Server::start(app.clone().router()).await;
-    let restarted = Org {
-        server,
-        app,
-        config: fixture.b.config.clone(),
-    };
+    fixture.b.restart(fixture.providers.set(Side::B)).await;
+    let restarted = &fixture.b;
     let accepted = restarted
         .app
         .store
@@ -804,7 +936,7 @@ async fn repaired_acquisition_survives_independent_adoption_and_both_role_handof
     assert_eq!(accepted.report_ref, local.report_ref);
     assert_eq!(accepted.job_ids, local.job_ids);
     let (status, restored_proof) = get(
-        &restarted,
+        restarted,
         &format!(
             "/capability-runs/{}/verification",
             report.continuation_run_b_id
@@ -816,7 +948,7 @@ async fn repaired_acquisition_survives_independent_adoption_and_both_role_handof
         restored_proof["proof_ref"],
         report.continuation_invocation_proof_ref
     );
-    let (status, job) = post(&restarted, "/capability-runs", json!({
+    let (status, job) = post(restarted, "/capability-runs", json!({
         "client_request_id":"successor-after-restart","installation_id":report.installation_b_id,
         "role_id":report.monitor_role_id,"responsibility_id":report.responsibility_b_id,
         "suite_id":suite("b").suite_id,"input":suite("b").cases[0].input
@@ -825,15 +957,7 @@ async fn repaired_acquisition_survives_independent_adoption_and_both_role_handof
     assert_eq!(job["assignment_id"], after.assignment_id.as_str());
     assert_eq!(job["epoch"], after.epoch);
     let id = job["job_id"].as_str().unwrap();
-    for _ in 0..2 {
-        let (status, _) = post(
-            &restarted,
-            &format!("/capability-runs/{id}/step"),
-            json!({}),
-        )
-        .await;
-        assert_eq!(status, StatusCode::OK);
-    }
+    let proof = wait_for_proof(restarted, id).await;
     let collected = restarted
         .app
         .store
@@ -843,17 +967,10 @@ async fn repaired_acquisition_survives_independent_adoption_and_both_role_handof
     let evidence = collected.evidence.unwrap();
     assert_eq!(evidence.artifact, report.artifact);
     assert!(native_ids.insert(evidence.run_id));
-    let (status, proof) = post(
-        &restarted,
-        &format!("/capability-runs/{id}/verify"),
-        json!({}),
-    )
-    .await;
-    assert_eq!(status, StatusCode::OK, "{proof}");
     assert_eq!(proof["decision"], "verified");
     assert_eq!(proof["case_report"]["extraction"], "supported");
     assert_ne!(proof["proof_ref"], report.continuation_invocation_proof_ref);
-    let (status, persisted) = get(&restarted, &format!("/capability-runs/{id}/verification")).await;
+    let (status, persisted) = get(restarted, &format!("/capability-runs/{id}/verification")).await;
     assert_eq!(status, StatusCode::OK);
     assert_eq!(persisted, proof);
     assert_eq!(
@@ -861,6 +978,8 @@ async fn repaired_acquisition_survives_independent_adoption_and_both_role_handof
         JobStatus::Succeeded
     );
     assert!(restarted.app.store.commitments().unwrap().is_empty());
+    fixture.a.assert_no_manual_advancement();
+    fixture.b.assert_no_manual_advancement();
     let world = fixture.providers.world.lock().unwrap();
     assert_eq!(world.model_requests.len(), 2);
     assert_eq!(world.actors.len(), 2);
@@ -885,6 +1004,8 @@ async fn wrong_fresh_output_stops_after_transport_success_without_role_handoffs(
         ),
         "{error}"
     );
+    fixture.a.assert_no_manual_advancement();
+    fixture.b.assert_no_manual_advancement();
     let job = fixture
         .b
         .app
@@ -956,12 +1077,24 @@ async fn wrong_fresh_output_stops_after_transport_success_without_role_handoffs(
 
 #[tokio::test]
 async fn ambiguous_actor_creation_stops_without_retry_or_false_inheritance() {
-    let fixture = Fixture::start(Behavior::AmbiguousActor).await;
+    let mut fixture = Fixture::start(Behavior::AmbiguousActor).await;
     let error = fixture.driver().run(&fixture.spec()).await.unwrap_err();
-    assert!(matches!(error, ScenarioError::Stopped(_)), "{error}");
+    assert!(
+        matches!(
+            &error,
+            ScenarioError::Observation {
+                kind: "acquisition",
+                ..
+            }
+        ),
+        "{error}"
+    );
     assert!(!error.to_string().contains(PROVIDER_CANARY));
     let ids = fixture.a.app.store.acquisition_ids().unwrap();
     assert_eq!(ids.len(), 1);
+    if let ScenarioError::Observation { id, .. } = &error {
+        assert_eq!(id, &ids[0]);
+    }
     let record = fixture.a.app.acquisition_runtime.status(&ids[0]).unwrap();
     assert_eq!(
         record.session().phase(),
@@ -970,7 +1103,34 @@ async fn ambiguous_actor_creation_stops_without_retry_or_false_inheritance() {
     let counters = fixture.a.app.store.acquisition_counters().unwrap();
     assert_eq!(counters.actor_creates, 1);
     assert_eq!(counters.model_calls, 1);
+    let counts = serde_json::to_value(&counters).unwrap();
+    let request_count = fixture.providers.world.lock().unwrap().requests.len();
+    fixture.a.restart(fixture.providers.set(Side::A)).await;
+    let (status, automation) = get(
+        &fixture.a,
+        &format!("/capability-acquisitions/{}/automation", ids[0]),
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK, "{automation}");
+    assert_eq!(automation["enabled"], true);
+    assert_eq!(automation["state"], "inactive");
+    // Let the restarted server scan repeatedly; an uncertain native POST must
+    // remain inert even though automatic acquisition is still enabled.
+    tokio::time::sleep(Duration::from_millis(1250)).await;
+    let restored = fixture.a.app.acquisition_runtime.status(&ids[0]).unwrap();
+    assert_eq!(
+        restored.session().phase(),
+        AcquisitionPhase::NeedsReconciliation
+    );
+    assert_eq!(
+        serde_json::to_value(fixture.a.app.store.acquisition_counters().unwrap()).unwrap(),
+        counts
+    );
+    fixture.a.assert_no_manual_advancement();
+    fixture.b.assert_no_manual_advancement();
     let world = fixture.providers.world.lock().unwrap();
+    assert_eq!(world.requests.len(), request_count);
+    assert_eq!(world.model_requests.len(), 1);
     assert_eq!(
         world
             .requests
@@ -990,6 +1150,34 @@ async fn ambiguous_actor_creation_stops_without_retry_or_false_inheritance() {
 }
 
 #[tokio::test]
+async fn automatic_scenario_refuses_disabled_automation_before_creating_missions() {
+    let fixture = Fixture::start_with_automation(Behavior::RepairOnce, false).await;
+    let (status, health) = get(&fixture.a, "/health").await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(health["acquisition_enabled"], true);
+    assert_eq!(health["automatic_acquisition_enabled"], false);
+    let error = fixture.driver().run(&fixture.spec()).await.unwrap_err();
+    assert!(matches!(error, ScenarioError::Preflight(_)), "{error}");
+    for org in [&fixture.a, &fixture.b] {
+        let state = org.app.current_state().unwrap();
+        assert_eq!(state.revision, 0);
+        assert!(state.missions.is_empty());
+        assert!(state.roles.is_empty());
+        org.assert_no_manual_advancement();
+        assert!(org
+            .requests
+            .lock()
+            .unwrap()
+            .iter()
+            .all(|request| request.method == "GET"));
+    }
+    assert!(fixture.a.app.store.acquisition_ids().unwrap().is_empty());
+    let world = fixture.providers.world.lock().unwrap();
+    assert!(world.model_requests.is_empty());
+    assert!(world.requests.is_empty());
+}
+
+#[tokio::test]
 async fn role_stub_and_private_actor_access_require_explicit_scenario_opt_in() {
     let fixture = Fixture::start(Behavior::RepairOnce).await;
     let mut spec = fixture.spec();
@@ -1003,6 +1191,8 @@ async fn role_stub_and_private_actor_access_require_explicit_scenario_opt_in() {
     assert!(fixture.driver().run(&spec).await.is_err());
     assert!(fixture.a.app.current_state().unwrap().missions.is_empty());
     assert!(fixture.b.app.current_state().unwrap().missions.is_empty());
+    fixture.a.assert_no_manual_advancement();
+    fixture.b.assert_no_manual_advancement();
     let world = fixture.providers.world.lock().unwrap();
     assert!(world.model_requests.is_empty());
     assert!(world.requests.is_empty());
