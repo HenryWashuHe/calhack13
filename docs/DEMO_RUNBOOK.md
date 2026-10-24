@@ -51,11 +51,16 @@ Each terminal needs the binaries on PATH: `export PATH="$PWD/target/debug:$PATH"
 from the repository root, after the build above.
 
 ```sh
+# 0. Local, untracked working files (scenario spec, fragments, gap policy)
+mkdir -p runtime
+
 # 1. Public portal (no account): get the URL first, then generate, then serve
 cloudflared tunnel --url http://127.0.0.1:7200
 U=https://<random>.trycloudflare.com
+# --holdout needs #60; until it is on main, drop the flag (checks are then
+# reproducibility checks, not held out).
 node scripts/venue-portal/generate.mjs --preset baseline --seed a1 --namespace org-a \
-  --suite-id portal-a-v1 --base-url $U --out data/portal --holdout   # #60: examples not in the suite
+  --suite-id portal-a-v1 --base-url $U --out data/portal --holdout
 node scripts/venue-portal/generate.mjs --preset baseline --seed b1 --namespace org-b \
   --suite-id portal-b-v1 --attendees 150 --base-url $U --out data/portal
 node scripts/venue-portal/serve.mjs --out data/portal --base-url $U       # :7200, lab :7201
@@ -123,6 +128,7 @@ fragments. The scenario input is strict, so drop the fragment's
 informational `note`:
 
 ```sh
+mkdir -p runtime
 node scripts/venue-portal/combine-fragments.mjs \
   --a data/portal/fragments/org-a.json --b data/portal/fragments/org-b.json > runtime/fragment.json
 node -e 'const fs=require("fs");const [m,f,o]=process.argv.slice(1);
