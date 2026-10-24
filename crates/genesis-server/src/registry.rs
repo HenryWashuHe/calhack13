@@ -2,9 +2,12 @@
 //! (TECH_SPEC §9).
 //!
 //! Runs as its own process (`genesis registry`) so that Org A and Org B share
-//! nothing but published manifests. Search here is a simple keyword ranking;
-//! the Elastic workstream replaces it with native retrieval over the same
-//! manifests. Installation always re-fetches the canonical manifest.
+//! nothing but published manifests. With Elastic configured, published
+//! manifests are projected into the shared capability index and search uses
+//! Elastic retrieval; every hit is resolved against the canonical stored
+//! manifest, so the index can rank but never inject candidates. Without
+//! Elastic (or if it fails) search falls back to a keyword ranking.
+//! Installation always re-fetches the canonical manifest.
 
 use crate::error::{ApiError, ApiResult};
 use axum::extract::{Path, State};
@@ -28,6 +31,11 @@ pub struct RegistryState {
     publishers: Arc<HashMap<String, OrgId>>,
     /// Tokens allowed to search and read (publisher tokens are always readers).
     readers: Arc<Vec<String>>,
+    /// Optional Elastic projection of published manifests.
+    elastic: Option<genesis_elastic::ElasticClient>,
+    /// Set when the Elastic index may be missing manifests (startup, failed
+    /// indexing); the next search re-projects all manifests first.
+    needs_sync: Arc<std::sync::atomic::AtomicBool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, schemars::JsonSchema)]
@@ -99,7 +107,103 @@ impl RegistryState {
             conn: Arc::new(Mutex::new(conn)),
             publishers: Arc::new(publishers),
             readers: Arc::new(readers),
+            elastic: None,
+            needs_sync: Arc::new(std::sync::atomic::AtomicBool::new(true)),
         })
+    }
+
+    /// Use Elastic retrieval for capability search.
+    pub fn with_elastic(mut self, client: genesis_elastic::ElasticClient) -> Self {
+        self.elastic = Some(client);
+        self
+    }
+
+    /// Enable Elastic retrieval when `ELASTICSEARCH_URL` and
+    /// `ELASTIC_DATA_API_KEY` are set.
+    pub fn with_elastic_from_env(self) -> anyhow::Result<Self> {
+        match genesis_elastic::ElasticConfig::from_env() {
+            Some(cfg) => {
+                let client = genesis_elastic::ElasticClient::new(cfg)?;
+                tracing::info!(index = %client.capability_index(), "registry elastic retrieval enabled");
+                Ok(self.with_elastic(client))
+            }
+            None => Ok(self),
+        }
+    }
+
+    /// Project every stored manifest into the capability index (idempotent).
+    async fn sync_index(&self, es: &genesis_elastic::ElasticClient) -> Result<(), String> {
+        use std::sync::atomic::Ordering;
+        let docs: Vec<_> = self
+            .all_manifests()
+            .map_err(|e| e.message)?
+            .iter()
+            .map(genesis_elastic::capability_doc)
+            .collect();
+        es.ensure_capability_index()
+            .await
+            .map_err(|e| e.to_string())?;
+        if !docs.is_empty() {
+            es.index_capabilities(&docs)
+                .await
+                .map_err(|e| e.to_string())?;
+        }
+        self.needs_sync.store(false, Ordering::SeqCst);
+        Ok(())
+    }
+
+    /// The canonical stored manifest for an exact version.
+    fn manifest(&self, id: &str, version: &str) -> ApiResult<Option<CapabilityManifest>> {
+        let conn = self.lock();
+        let json: Option<String> = conn
+            .query_row(
+                "SELECT manifest_json FROM capability_versions WHERE capability_id = ?1 AND version = ?2",
+                params![id, version],
+                |r| r.get(0),
+            )
+            .optional()
+            .map_err(|e| ApiError::internal(e.to_string()))?;
+        json.map(|j| serde_json::from_str(&j).map_err(|e| ApiError::internal(e.to_string())))
+            .transpose()
+    }
+
+    /// Elastic retrieval resolved against canonical manifests.
+    async fn elastic_search(
+        &self,
+        es: &genesis_elastic::ElasticClient,
+        req: &SearchRequest,
+    ) -> Result<Vec<SearchCandidate>, String> {
+        use std::sync::atomic::Ordering;
+        if self.needs_sync.load(Ordering::SeqCst) {
+            self.sync_index(es).await?;
+        }
+        let hits = es
+            .search_capabilities(
+                &req.query,
+                req.available_scopes.as_deref(),
+                req.limit.max(1),
+            )
+            .await
+            .map_err(|e| e.to_string())?;
+        let mut out = Vec::new();
+        for h in hits {
+            let Some(m) = self
+                .manifest(&h.doc.capability_id, &h.doc.version)
+                .map_err(|e| e.message)?
+            else {
+                continue; // not in the canonical store: never a candidate
+            };
+            if !m.state.is_usable() {
+                continue;
+            }
+            if let Some(scopes) = &req.available_scopes {
+                if !m.required_permissions.iter().all(|p| scopes.contains(p)) {
+                    continue;
+                }
+            }
+            out.push(candidate(&m, h.score as f32));
+        }
+        Ok(out)
     }
 
     fn lock(&self) -> std::sync::MutexGuard<'_, Connection> {
@@ -184,45 +288,61 @@ async fn publish(
     let now = Utc::now();
     manifest.published_at.get_or_insert(now);
 
-    let conn = reg.lock();
-    let existing: Option<String> = conn
-        .query_row(
-            "SELECT manifest_json FROM capability_versions WHERE capability_id = ?1 AND version = ?2",
-            params![manifest.capability_id.as_str(), manifest.version],
-            |r| r.get(0),
-        )
-        .optional()
-        .map_err(|e| ApiError::internal(e.to_string()))?;
-    if let Some(encoded) = existing {
-        let stored: CapabilityManifest =
-            serde_json::from_str(&encoded).map_err(|e| ApiError::internal(e.to_string()))?;
-        // Retries may have fresh timestamps, but an immutable version must keep
-        // its entire artifact, publisher, oracle and permission contract.
-        let mut comparable = manifest.clone();
-        comparable.published_at = stored.published_at;
-        comparable.verification.verified_at = stored.verification.verified_at;
-        if comparable == stored {
-            return Ok((StatusCode::OK, Json(stored)));
+    {
+        let conn = reg.lock();
+        let existing: Option<String> = conn
+            .query_row(
+                "SELECT manifest_json FROM capability_versions WHERE capability_id = ?1 AND version = ?2",
+                params![manifest.capability_id.as_str(), manifest.version],
+                |r| r.get(0),
+            )
+            .optional()
+            .map_err(|e| ApiError::internal(e.to_string()))?;
+        if let Some(encoded) = existing {
+            let stored: CapabilityManifest =
+                serde_json::from_str(&encoded).map_err(|e| ApiError::internal(e.to_string()))?;
+            // Retries may have fresh timestamps, but an immutable version must keep
+            // its entire artifact, publisher, oracle and permission contract.
+            let mut comparable = manifest.clone();
+            comparable.published_at = stored.published_at;
+            comparable.verification.verified_at = stored.verification.verified_at;
+            if comparable == stored {
+                return Ok((StatusCode::OK, Json(stored)));
+            }
+            return Err(ApiError::new(
+                StatusCode::CONFLICT,
+                "immutable_version",
+                "capability version already has a different manifest; publish a new version",
+            ));
         }
-        return Err(ApiError::new(
-            StatusCode::CONFLICT,
-            "immutable_version",
-            "capability version already has a different manifest; publish a new version",
-        ));
+        conn.execute(
+            "INSERT INTO capability_versions (capability_id, version, publisher, source_digest, manifest_json, published_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![
+                manifest.capability_id.as_str(),
+                manifest.version,
+                manifest.publisher.as_str(),
+                manifest.source_digest,
+                serde_json::to_string(&manifest).map_err(|e| ApiError::internal(e.to_string()))?,
+                now.to_rfc3339()
+            ],
+        )
+        .map_err(|e| ApiError::internal(e.to_string()))?;
     }
-    conn.execute(
-        "INSERT INTO capability_versions (capability_id, version, publisher, source_digest, manifest_json, published_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-        params![
-            manifest.capability_id.as_str(),
-            manifest.version,
-            manifest.publisher.as_str(),
-            manifest.source_digest,
-            serde_json::to_string(&manifest).map_err(|e| ApiError::internal(e.to_string()))?,
-            now.to_rfc3339()
-        ],
-    )
-    .map_err(|e| ApiError::internal(e.to_string()))?;
+    if let Some(es) = &reg.elastic {
+        // Best effort: the SQLite record is authoritative; a failed
+        // projection is retried by the next search.
+        let doc = genesis_elastic::capability_doc(&manifest);
+        let indexed = match es.ensure_capability_index().await {
+            Ok(()) => es.index_capabilities(&[doc]).await.map(|_| ()),
+            Err(e) => Err(e),
+        };
+        if let Err(error) = indexed {
+            tracing::warn!(%error, "capability projection failed; will resync");
+            reg.needs_sync
+                .store(true, std::sync::atomic::Ordering::SeqCst);
+        }
+    }
     Ok((StatusCode::CREATED, Json(manifest)))
 }
 
@@ -321,6 +441,14 @@ async fn search(
     Json(req): Json<SearchRequest>,
 ) -> ApiResult<Json<Vec<SearchCandidate>>> {
     reg.require_reader(&headers)?;
+    if let Some(es) = &reg.elastic {
+        match reg.elastic_search(es, &req).await {
+            Ok(found) => return Ok(Json(found)),
+            Err(error) => {
+                tracing::warn!(%error, "elastic capability search failed; using keyword ranking")
+            }
+        }
+    }
     let all = reg.all_manifests()?;
     Ok(Json(rank(&all, &req)))
 }

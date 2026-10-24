@@ -71,6 +71,10 @@ define_id!(
     CapabilityId, "cap"
 );
 define_id!(InstallationId, "inst");
+define_id!(
+    /// A capability the organization committed to needing but does not have.
+    CapabilityGapId, "gap"
+);
 define_id!(JobId, "job");
 define_id!(AttemptId, "att");
 define_id!(ChangeId, "chg");

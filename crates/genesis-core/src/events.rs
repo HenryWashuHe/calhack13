@@ -3,7 +3,7 @@
 
 use crate::ids::*;
 use crate::lifecycle::{ChangeStatus, ContractState, JobStatus};
-use crate::model::{CapabilityRef, Executor, Provider};
+use crate::model::{CapabilityGapStatus, CapabilityRef, Executor, Provider};
 use chrono::{DateTime, Utc};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -135,6 +135,18 @@ pub enum EventKind {
         role_id: RoleId,
         capability: CapabilityRef,
     },
+    CapabilityGapOpened {
+        gap_id: CapabilityGapId,
+        requirement_id: RequirementId,
+        role_id: RoleId,
+        responsibility_id: ResponsibilityId,
+        capability_id: CapabilityId,
+    },
+    CapabilityGapStatusChanged {
+        gap_id: CapabilityGapId,
+        from: CapabilityGapStatus,
+        to: CapabilityGapStatus,
+    },
     ReportingEdgeChanged {
         role_id: RoleId,
         reports_to: Option<RoleId>,
@@ -192,6 +204,36 @@ pub enum EventKind {
         role_id: RoleId,
         job_id: JobId,
     },
+    /// A planning agent's decision about one observation, with enough detail
+    /// to audit how it reasoned. Recorded whether or not a change follows.
+    PlannerDecision {
+        planner: String,
+        model: String,
+        observation_id: ObservationId,
+        verdict: PlannerVerdict,
+        summary: String,
+        rationale: String,
+        attempt: u32,
+        latency_ms: u64,
+        requirement_id: Option<RequirementId>,
+        change_id: Option<ChangeId>,
+        #[serde(default)]
+        kernel_errors: Vec<String>,
+    },
+}
+
+/// Outcome of one planning pass over an observation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum PlannerVerdict {
+    /// Submitted an organization change.
+    ChangeProposed,
+    /// The observation needs no organizational change.
+    NoChange,
+    /// The proposal was rejected by the kernel and needs another attempt.
+    Rejected,
+    /// The planner gave up or could not produce valid output; a human decides.
+    Escalated,
 }
 
 impl EventKind {
