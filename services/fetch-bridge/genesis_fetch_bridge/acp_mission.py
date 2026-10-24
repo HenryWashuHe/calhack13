@@ -38,7 +38,12 @@ POLL_SECONDS = 2.0
 SETTLE_SECONDS = 3.0
 REPORT_VERBS = ("report", "disruption", "evidence", "observe")
 STATUS_WORDS = {"status", "progress", "update", "updates", "what happened", "what happened?", "watch"}
-ORG_WORDS = {"org", "organization", "organisation", "who", "team", "roles", "show org", "show organization"}
+ORG_WORDS = {"org", "lab", "organization", "organisation", "who", "team", "roles", "show org", "show organization"}
+METHODS_WORDS = {"methods", "capabilities", "method", "capability", "installed", "what can you do"}
+LINEAGE_WORDS = ("lineage", "history", "provenance")
+CAPABILITY_ID = re.compile(r"[A-Za-z0-9_.:-]{1,128}\Z")
+CARD_COMMAND = re.compile(r"(?:help|org|status|methods|lineage [A-Za-z0-9_.:-]{1,128})\Z")
+COMMAND_LIST = "help, org, report <what happened>, status, methods, or lineage <capability id>"
 HELP_WORDS = {"help", "hi", "hello", "hey", "start", "?", "commands"}
 _CONTROL = re.compile(r"[\x00-\x1f\x7f-\x9f]")
 
@@ -90,6 +95,23 @@ def clean(value: object, limit: int = 240) -> str:
         return "?"
     text = _CONTROL.sub(" ", value).strip()
     return text if len(text) <= limit else text[: limit - 1] + "…"
+
+
+class Reply(str):
+    """One chat reply: the text itself (a `str`, so callers that only know text keep working) plus optional
+    next-step buttons (ASI Interactive Cards). Every button sends exactly one of the read-only commands;
+    no button can carry an operator action."""
+
+    actions: list[tuple[str, str]]
+
+    def __new__(cls, text: str, actions: list[tuple[str, str]] | None = None):
+        obj = super().__new__(cls, text)
+        obj.actions = list(actions or [])
+        return obj
+
+
+def reply_text(item: object) -> str:
+    return str(item)
 
 
 def gap_state(value: object) -> str:
@@ -221,6 +243,81 @@ def summarize_org(state: dict) -> str:
     return "\n".join(lines)
 
 
+def summarize_methods(state: dict) -> tuple[str, list[str]]:
+    """Installed capabilities (and, once #124 adds the kind, methods) by exact id@version, with holders.
+    Display labels are shortened; the ids returned for buttons are exact and validated, and the text is
+    bounded by MAX_REPLY with an explicit continuation."""
+    names = RoleNames(state)
+    holders: dict[str, list[str]] = {}
+    for role in state.get("roles", {}).values():
+        if not isinstance(role, dict) or role.get("state") == "RETIRED":
+            continue
+        for cap in role.get("capabilities") or []:
+            if isinstance(cap, dict) and isinstance(cap.get("capability_id"), str) and isinstance(cap.get("version"), str):
+                holders.setdefault((cap["capability_id"], cap["version"]), []).append(names(role.get("role_id")))
+    entries: list[tuple[str, str]] = []  # (exact id, line)
+    for inst in state.get("installations", {}).values():
+        cap = inst.get("capability") if isinstance(inst, dict) and isinstance(inst.get("capability"), dict) else None
+        if not cap or not isinstance(cap.get("capability_id"), str) or not isinstance(cap.get("version"), str):
+            continue
+        cid, version = cap["capability_id"], cap["version"]
+        who = ", ".join(holders.get((cid, version), [])) or "no role holds it"
+        entries.append((cid, f"- {clean(cid, 80)}@{clean(version, 20)}: installation {clean(inst.get('status'), 20).lower()}; held by {who}"))
+    if not entries:
+        return ("No capabilities are installed in this organization yet.", [])
+    ids_all = []
+    for cid, _ in entries:
+        if cid not in ids_all:
+            ids_all.append(cid)
+    head = (f"{clean(state.get('name'), 80)} at revision {state.get('revision')}: {len(ids_all)} capability id(s), "
+            f"{len(entries)} installation(s), exact versions below. Methods (executable development procedures) "
+            "are not an artifact kind yet; see docs/invention-lab/acp.md.")
+    budget = MAX_REPLY - 220
+    shown: list[str] = []
+    size = len(head)
+    for _, line in entries:
+        if size + len(line) + 1 > budget:
+            break
+        shown.append(line)
+        size += len(line) + 1
+    text = head + "\n" + "\n".join(shown)
+    if len(shown) < len(entries):
+        text += f"\n{len(entries) - len(shown)} more installation(s) not shown. Ask lineage <capability id> for one capability."
+    gaps = [g for g in state.get("capability_gaps", {}).values() if isinstance(g, dict)]
+    pending = [f"{clean(g.get('capability_id'), 50)} {gap_state(g.get('status'))}" for g in gaps if gap_state(g.get("status")).split(" ")[0] != "installed"]
+    if pending and len(text) + 40 < MAX_REPLY:
+        text += "\nRequested, not yet installed: " + "; ".join(pending[:6])
+    shown_ids = []
+    for cid, line in entries:
+        if line in shown and cid not in shown_ids and CAPABILITY_ID.fullmatch(cid):
+            shown_ids.append(cid)
+    return (text[:MAX_REPLY], shown_ids[:4])
+
+
+def render_manifest(manifest: dict, installation: dict | None) -> str:
+    cid = clean(manifest.get("capability_id"), 60)
+    version = clean(manifest.get("version"), 20)
+    publisher = clean(manifest.get("publisher"), 40)
+    verification = manifest.get("verification") if isinstance(manifest.get("verification"), dict) else {}
+    cases = verification.get("cases") if isinstance(verification.get("cases"), list) else []
+    passed = sum(1 for c in cases if isinstance(c, dict) and c.get("passed") is True)
+    env = clean(verification.get("tested_environment"), 120)
+    verdict = "passed" if verification.get("passed") is True else "not passed"
+    line = f"{cid}@{version}: published by {publisher}, verification {verdict} ({passed}/{len(cases)} cases, {env})"
+    limits = manifest.get("known_limitations") if isinstance(manifest.get("known_limitations"), list) else []
+    if limits:
+        line += "; limitations: " + "; ".join(clean(l, 80) for l in limits[:3])
+    artifact = manifest.get("artifact") if isinstance(manifest.get("artifact"), dict) else {}
+    if artifact:
+        line += f"; artifact {clean(artifact.get('actor_id'), 60)} build {clean(artifact.get('build_number'), 30)}"
+    if installation:
+        line += f". This organization: installation {clean(installation.get('status'), 20).lower()}, acceptance {clean(installation.get('acceptance_report_ref'), 80)}"
+    else:
+        line += ". This organization has not installed this version."
+    line += ". Derivation (what it was built from) is not recorded by the manifest yet; see docs/invention-lab/acp.md."
+    return line
+
+
 class MissionGateway:
     """One bounded journal per public agent, backend and immutable configuration.
 
@@ -347,6 +444,8 @@ class MissionGateway:
             "- report <what happened>: record evidence (for example: report the main hall is closed on Nov 14). "
             "The organization's planner decides whether roles, specialists or capabilities must change; I relay each step.\n"
             "- status: what has happened since your last report\n"
+            "- methods: installed capabilities by exact version and who holds them\n"
+            "- lineage <capability id>: who published each version, how it was verified, and whether this organization adopted it\n"
             "Chat cannot approve, commit, book or spend anything. Provider steps labeled DEV STUB are stand-ins, not live integrations."
         )
 
@@ -381,6 +480,41 @@ class MissionGateway:
         if status != 200 or not isinstance(events, list):
             raise Invalid("event log unavailable")
         return [e for e in events if isinstance(e, dict) and type(e.get("seq")) is int]
+
+    async def _manifest(self, capability_id: str, version: str) -> dict | None:
+        if not CAPABILITY_ID.fullmatch(capability_id) or not re.fullmatch(r"[A-Za-z0-9_.+-]{1,64}", version):
+            raise Invalid("invalid capability identity")
+        status, manifest = await self._http("GET", f"/capabilities/{capability_id}/versions/{version}", cap=STATE_CAP)
+        if status == 404:
+            return None
+        if status != 200 or not isinstance(manifest, dict):
+            raise Invalid("registry unavailable")
+        return manifest
+
+    async def _lineage(self, capability_id: str) -> str:
+        state = await self._state()
+        versions: list[str] = []
+        installations: dict[str, dict] = {}
+        for inst in state.get("installations", {}).values():
+            cap = inst.get("capability") if isinstance(inst, dict) and isinstance(inst.get("capability"), dict) else None
+            if cap and cap.get("capability_id") == capability_id and isinstance(cap.get("version"), str):
+                versions.append(cap["version"])
+                installations[cap["version"]] = inst
+        for role in state.get("roles", {}).values():
+            for cap in (role.get("capabilities") or []) if isinstance(role, dict) else []:
+                if isinstance(cap, dict) and cap.get("capability_id") == capability_id and isinstance(cap.get("version"), str) and cap["version"] not in versions:
+                    versions.append(cap["version"])
+        if not versions:
+            return f"{clean(capability_id, 60)} is not installed or attached in this organization, so there is no local lineage to show. Registry search from chat is not offered."
+        lines = []
+        for version in sorted(set(versions))[:6]:
+            manifest = await self._manifest(capability_id, version)
+            if manifest is None:
+                lines.append(f"{clean(capability_id, 60)}@{clean(version, 20)}: installed here, but its manifest is not readable from this organization's registry view.")
+            else:
+                lines.append(render_manifest(manifest, installations.get(version)))
+        lines.append("Publisher claims are the publisher's; this organization's acceptance is its own. \"Improved\" is never shown here; it needs a declared comparison.")
+        return "\n".join(lines)[:MAX_REPLY]
 
     async def _latest_seq(self) -> int:
         # The log only pages forward; find the tail so a report's cursor starts at "now".
@@ -517,15 +651,15 @@ class MissionGateway:
         message_id = message_id if isinstance(message_id, str) and message_id else str(uuid4())
         try:
             if not isinstance(text, str) or len(text.encode()) > MAX_TEXT:
-                yield "Keep messages under 512 bytes. Use help, org, report <what happened>, or status."
+                yield f"Keep messages under 512 bytes. Use {COMMAND_LIST}."
                 return
         except UnicodeError:
-            yield "Use help, org, report <what happened>, or status."
+            yield f"Use {COMMAND_LIST}."
             return
         words = text.strip().split()
         lowered = " ".join(words).lower()
         if not words or lowered in HELP_WORDS:
-            yield self.help()
+            yield Reply(self.help(), [("Who is in the organization?", "org"), ("Installed capabilities", "methods"), ("What happened?", "status")])
             return
         if self.lock.locked():
             yield "I am relaying another conversation's report right now. Repeat your message in a moment; nothing was recorded."
@@ -533,7 +667,17 @@ class MissionGateway:
         async with self.lock:
             try:
                 if lowered in ORG_WORDS:
-                    yield summarize_org(await self._state())
+                    yield Reply(summarize_org(await self._state()), [("Installed capabilities", "methods"), ("What happened?", "status")])
+                    return
+                if lowered in METHODS_WORDS:
+                    text_out, ids = summarize_methods(await self._state())
+                    yield Reply(text_out, [(f"Lineage of {cid[:40]}", f"lineage {cid}") for cid in ids])
+                    return
+                if words[0].lower() in LINEAGE_WORDS:
+                    if len(words) != 2 or not CAPABILITY_ID.fullmatch(words[1]):
+                        yield "Use lineage <capability id>, for example: lineage cap_venue_availability."
+                        return
+                    yield Reply(await self._lineage(words[1]), [("Installed capabilities", "methods"), ("Who is in the organization?", "org")])
                     return
                 if lowered in STATUS_WORDS:
                     last = self._last_report(sender)
@@ -607,23 +751,43 @@ class MissionGateway:
                             "Ask status later to see what the organization did with it."
                         )
                         return
-                    yield "That is what the organization did so far. Ask status later for anything that follows, or org for the current shape."
+                    yield Reply("That is what the organization did so far. Ask status later for anything that follows, or org for the current shape.", [("What happened since?", "status"), ("Who is in the organization now?", "org")])
                     return
-                yield self.help()
+                yield Reply(self.help(), [("Who is in the organization?", "org"), ("Installed capabilities", "methods")])
             except (aiohttp.ClientError, TimeoutError, Invalid, sqlite3.Error):
                 yield "The organization is not reachable right now. Nothing was changed by this message."
+
+
+def card_command(content) -> str | None:
+    """A card button press arrives as a MetadataContent card response whose selection names one read-only
+    command. Anything else is ignored; buttons can never carry an operator action."""
+    from uagents_core.contrib.protocols.chat.cards import extract_card_response
+
+    response = extract_card_response(content)
+    if response is None or response.cancelled or not response.selection:
+        return None
+    command = response.selection.get("command")
+    return command if isinstance(command, str) and CARD_COMMAND.fullmatch(command) else None
 
 
 def make_protocol(gateway: MissionGateway):
     from uagents import Protocol
     from uagents_core.contrib.protocols.chat import (
-        ChatAcknowledgement, ChatMessage, EndSessionContent, StartSessionContent, TextContent, chat_protocol_spec,
+        ChatAcknowledgement, ChatMessage, EndSessionContent, MetadataContent, StartSessionContent, TextContent, chat_protocol_spec,
     )
+    from uagents_core.contrib.protocols.chat.cards import CtaAction, DetailCardPayload, create_card_content
 
     protocol = Protocol(spec=chat_protocol_spec)
 
-    async def send_text(ctx, sender: str, text: str, *, end: bool):
+    async def send_reply(ctx, sender: str, item: object, *, end: bool):
+        text = reply_text(item)
         content = [TextContent(type="text", text=text)]
+        actions = item.actions if isinstance(item, Reply) else []
+        if actions:
+            content.append(create_card_content(DetailCardPayload(
+                title="Next",
+                ctas=[CtaAction(label=label[:60], selection={"command": command}, primary=(i == 0)) for i, (label, command) in enumerate(actions[:4])],
+            ), card_id=uuid4(), is_terminal=end))
         if end:
             content.append(EndSessionContent(type="end-session"))
         await ctx.send(sender, ChatMessage(timestamp=datetime.now(UTC), msg_id=uuid4(), content=content))
@@ -632,26 +796,47 @@ def make_protocol(gateway: MissionGateway):
     async def handle_message(ctx, sender: str, msg: ChatMessage):
         await ctx.send(sender, ChatAcknowledgement(timestamp=datetime.now(UTC), acknowledged_msg_id=msg.msg_id))
         texts = [item.text for item in msg.content if isinstance(item, TextContent)]
-        supported = all(isinstance(item, (TextContent, StartSessionContent, EndSessionContent)) for item in msg.content)
-        if not supported or len(texts) != 1 or len(msg.content) > 3:
-            if texts or not supported:
-                await send_text(ctx, sender, "Send one text message: help, org, report <what happened>, or status. Attachments are not processed.", end=True)
+        commands = [c for c in (card_command(item) for item in msg.content if isinstance(item, MetadataContent)) if c]
+        supported = all(isinstance(item, (TextContent, MetadataContent, StartSessionContent, EndSessionContent)) for item in msg.content)
+        sources = texts + commands
+        if not supported or len(sources) != 1 or len(msg.content) > 3:
+            if sources or not supported:
+                await send_reply(ctx, sender, f"Send one text message or press one button: {COMMAND_LIST}. Attachments are not processed.", end=True)
             return
-        pending: str | None = None
+        pending: object | None = None
         try:
-            async for chunk in gateway.respond(texts[0], sender=sender, message_id=str(msg.msg_id)):
+            async for chunk in gateway.respond(sources[0], sender=sender, message_id=str(msg.msg_id)):
                 if pending is not None:
-                    await send_text(ctx, sender, pending, end=False)
+                    await send_reply(ctx, sender, pending, end=False)
                 pending = chunk
         except (Invalid, sqlite3.Error, UnicodeError, aiohttp.ClientError, TimeoutError):
             pending = "Gateway unavailable. Nothing was changed by this message."
-        await send_text(ctx, sender, pending or "No response.", end=True)
+        await send_reply(ctx, sender, pending if pending is not None else "No response.", end=True)
 
     @protocol.on_message(ChatAcknowledgement)
     async def handle_ack(_ctx, _sender: str, _msg: ChatAcknowledgement):
         pass
 
     return protocol
+
+
+async def chat_loop(gateway: MissionGateway, *, read=input, write=print) -> None:
+    """Local stand-in for an ASI:One conversation: the same gateway, same journal, same authority boundary,
+    driven from a terminal. It is for rehearsal and recording only and says so; it is not Agentverse routing."""
+    write("GENESIS organization chat: LOCAL STAND-IN, not ASI:One. Same gateway and journal as the public agent.")
+    write(f"Commands: {COMMAND_LIST}. Buttons are shown as [label -> command]. Ctrl-D or 'quit' to leave.")
+    while True:
+        try:
+            line = read("you> ")
+        except EOFError:
+            write("")
+            return
+        if line is None or line.strip().lower() in {"quit", "exit"}:
+            return
+        async for item in gateway.respond(line, sender="local-stand-in", message_id=str(uuid4())):
+            write("org> " + reply_text(item))
+            if isinstance(item, Reply) and item.actions:
+                write("     " + "  ".join(f"[{label} -> {command}]" for label, command in item.actions))
 
 
 def main():
@@ -664,12 +849,25 @@ def main():
     serve.add_argument("--port", type=int, default=8104, help="Loopback-only SDK Inspector/bootstrap port")
     serve.add_argument("--name", default="GENESIS Organization")
     serve.add_argument("--readme", required=True, help="Agent README published to Agentverse; inspect it before use")
+    chat = commands.add_parser("chat", help="Local stand-in conversation against the backend; no network beyond loopback, no registration")
+    chat.add_argument("--config", required=True)
+    chat.add_argument("--db", required=True)
     args = parser.parse_args()
     gateway = None
     try:
         from uagents_core.identity import Identity
 
         seed = os.environ.get("GENESIS_ACP_MISSION_SEED", "")
+        if args.command == "chat":
+            # Rehearsal only: a fixed local identity binds the journal; no seed, Agent or registration.
+            with Path(args.config).open("rb") as stream:
+                config = config_from_bytes(stream.read(32769))
+            gateway = MissionGateway(
+                config=config, url=os.environ.get("GENESIS_ACP_BACKEND_URL", ""),
+                token=os.environ.get("GENESIS_ACP_AGENT_TOKEN", ""), identity="local-stand-in", db=args.db,
+            )
+            asyncio.run(chat_loop(gateway))
+            return
         if not 32 <= len(seed.encode()) <= 4096:
             raise Invalid("GENESIS_ACP_MISSION_SEED must contain 32..4096 bytes")
         identity = Identity.from_seed(seed, 0).address
