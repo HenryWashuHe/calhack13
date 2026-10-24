@@ -1,6 +1,6 @@
 # GENESIS technical specification
 
-Status: implementation draft, October 21, 2026. This specifies the first executable proof of direction B: a self-expanding operating system for autonomous organizations. It preserves organizational evolution and capability evolution as separate, connected mechanisms. Application code is not implemented. Provider facts and untested integration assumptions are tracked in [PROVIDER_CONTRACTS.md](PROVIDER_CONTRACTS.md).
+Status: baseline design drafted October 21, 2026, with a selective-transfer design addendum in section 14. The repository now implements substantial parts of this design; the proposed layouts, routes, and original milestone wording below are not a current implementation inventory. Consult the [README](../README.md), [handoff](AGENT_HANDOFF.md), and [live gates](LIVE_GATES.md) for implementation and validation status. GENESIS is a self-healing operating system for networks of AI agents, preserving organizational evolution and capability evolution as separate, connected mechanisms. Provider contracts are tracked in [PROVIDER_CONTRACTS.md](PROVIDER_CONTRACTS.md).
 
 ## 1. Stack and boundaries
 
@@ -26,6 +26,8 @@ docs/                     specifications and research
 For the demo, run the same Rust service in two organization instances with separate state stores and conversations. A shared capability service provides manifest publication, discovery, and execution brokerage. These may share code and a host. Do not create a service per conceptual box or introduce Kafka/Redis solely for the prototype.
 
 ## 2. Required demonstration
+
+This is the original hackathon scenario, designed to exercise both forms of evolution. Its new-role and new-tool steps are scenario requirements, not a rule to recruit or synthesize for every mission. Section 14 adds selective transfer and appropriate non-reuse; the [handoff](AGENT_HANDOFF.md) records current implementation evidence.
 
 Organization A operates a simulated campus event for 120 attendees. Its initial responsibilities cover mission coordination, program scheduling, and attendee information. A venue closure creates relocation and transport coordination work while program work continues.
 
@@ -224,8 +226,28 @@ Test critical domain transitions and effects, not merely enum serialization. Inc
 
 ## 13. Integration gates and scope
 
-Before feature work, prove authenticated Elastic create/invoke/retrieve; Fetch discovery and offer/accept/result messaging; Apify create/build/run/results; and CREAO create/run/custom-skill HTTP execution. Measure actual cold latencies and verify account limits. These gates are currently untested.
+The following records the original integration plan and hackathon scope. For current validation status and active work, use [live gates](LIVE_GATES.md) and the [handoff](AGENT_HANDOFF.md).
+
+The original plan called for proving authenticated Elastic create/invoke/retrieve; Fetch discovery and offer/accept/result messaging; Apify create/build/run/results; and CREAO create/run/custom-skill HTTP execution before feature work, measuring actual cold latencies and verifying account limits. Those checks were untested when this baseline was drafted; this paragraph is not a current test report.
 
 The mandatory scope is one complete mutation, recruitment, Actor creation and verification, persistent CREAO role with a second run, B's adoption, and retirement/handoff. Optional scope is one repair. Defer real payments, real reservations, public marketplaces, unrestricted spawning, automated credential discovery, and production multi-tenancy.
 
 A three-minute all-cold path is a target, not a guarantee. If measured provider latency exceeds it, use an honestly labeled full-run recording alongside live progress and reuse. Never display prebuilt resources as freshly synthesized. Team ownership and the hour-by-hour integration sequence are in [TEAM_WORKSTREAMS.md](TEAM_WORKSTREAMS.md).
+
+## 14. Selective transfer and recursive capability improvement
+
+This addendum defines the next design target, not newly implemented behavior. The detailed [goal, milestones, and evaluation protocol](RECURSIVE_CAPABILITY_IMPROVEMENT.md) extend the original two-organization proof without changing its existing runtime contracts or active ownership.
+
+The architecture is general when it can admit different capability types, select them for their applicable tasks, and apply the appropriate verification method. It does not require every artifact to transfer across domains or improve the immediately following task. Fixed model weights permit system-level adaptation through retained executable capabilities; execution tasks are not weight-training steps.
+
+Required design properties:
+
+- Distinguish accumulation, reuse/composition, and measured improvement of capability creation, verification, or repair. Capability count alone demonstrates only accumulation.
+- Preserve task-specific applicability, schemas, permissions, environment assumptions, known failures, exact versions, provenance, and verification scope. Extend the existing manifest rather than creating a second competing capability catalog.
+- Treat discovery as candidate retrieval. Receiving organizations make their own adoption decisions; publisher verification does not prove target-task suitability. Insufficient evidence and operational uncertainty remain explicit.
+- Permit non-reuse. No candidate, incompatible candidate, insufficient evidence, and unavailable discovery are different outcomes. Preserve the existing rule that an ambiguous search or failed adoption cannot silently authorize synthesis.
+- Make executable builder/test/repair workflows and pinned dependencies explicit before claiming recursive composition. A workflow description is not an executable package. Inherited workflows cannot rewrite the kernel's authority rules or approve their own evaluation.
+- Associate failures and replacements with exact versions. Deprecation or quarantine should filter discovery while preserving audit history and installations needed for reconciliation; adoption of a repair remains local and independently checked.
+- Evaluate direct reuse, related transfer, and appropriate non-reuse separately. Compare a fixed baseline, accumulated task capabilities, and accumulated development workflows under the same model and declared budgets. Include acquisition and selection costs, task failures, and family-specific regressions.
+
+These mechanisms constrain adoption and make evidence inspectable. They do not guarantee universal transfer, zero negative transfer, or monotonically improving performance. A positive recursive-improvement claim requires an inherited development capability to improve later development outcomes on independent tasks; an honestly reported null or negative result must not be relabeled as success.

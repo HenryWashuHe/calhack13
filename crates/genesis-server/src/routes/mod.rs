@@ -27,6 +27,7 @@ pub fn router(state: AppState) -> Router {
         .route("/health", get(org::health))
         .route("/organization", get(org::organization))
         .route("/organization/revisions/{revision}", get(org::revision))
+        .route("/organization/audit", get(org::audit))
         .route("/missions", post(org::create_mission))
         .route("/missions/{id}/observations", post(org::add_observation))
         .route("/missions/{id}/requirements", post(org::add_requirement))
@@ -45,6 +46,7 @@ pub fn router(state: AppState) -> Router {
         .route("/venue-monitors/{id}", get(venue_monitors::get))
         .route("/venue-monitors/{id}/stop", post(venue_monitors::stop))
         .route("/venue-recoveries", post(venue_recoveries::create))
+        .route("/venue-recovery-intakes", get(venue_recoveries::intakes))
         .route("/venue-recoveries/{id}", get(venue_recoveries::get))
         .route("/venue-recoveries/{id}/step", post(venue_recoveries::step))
         .route(
