@@ -1,4 +1,6 @@
-# Demo runbook
+# Historical venue integration runbook
+
+> **Superseded as the product demonstration.** These commands document existing venue fixtures and provider integration. They are retained for engineering reference; they do not implement the proposed [invention labs](INVENTION_LAB_DEMO.md). Use [implementation status](IMPLEMENTATION_STATUS.md) for current evidence. Event organization is not a completion gate. Schedule details below are historical notes, not newly verified event guidance.
 
 One place for demo day: what to start, in what order, what each step proves,
 and what is live, fixture or still pending. Every command here exists in the
@@ -19,10 +21,10 @@ prebuilt artifact must never be presented as freshly generated.
 | Planner proposes changes | real code; model needs `GENESIS_LLM_*` or `GENESIS_LLM_PROVIDER=elastic` | model key set | decision events, kernel rejections fed back |
 | Capability need → acquisition | `RequestCapability`, trusted policy and opt-in durable driver merged (#49/#56/#66) | acquisition options and keys configured, **https portal evidence** | `capability_gap_opened` → `…status_changed` (`acquiring`, `acquired`), independent verification proof |
 | Verified → published + installed (A) | opt-in finalizer, #78 (+ console #80) | `--gap-finalization-policy` + registry | gap `installed`, `registry:<id>@<version>`, local acceptance runs |
-| B adopts before synthesizing | opt-in adopt-first, #82; two-org test #83 | `--gap-adoption-policy` + registry, B's Apify access to A's Actor | B gap `installed` as A's exact version, 0 B model/Actor calls |
+| B adopts before synthesizing | opt-in adopt-first, #82; two-org test #83 | `--gap-adoption-policy` + registry, B's Apify access to A's Actor | B gap `installed` as A's exact version, 0 B source-synthesis/Actor-creation calls; B acceptance still executes the pinned Actor |
 | Source generation, Actor build, verification | real code; needs `ANTHROPIC_API_KEY` + `APIFY_TOKEN` | keys + reachable portal | actor/build/run IDs, oracle verdict |
 | Venue portal (judge varies it) | real, merged | tunnel up | lab variant, page hashes |
-| Org B independent adoption | real code (loopback-proven) | both orgs + registry | B's own acceptance runs, 0 synthesis calls |
+| Org B independent adoption | real code (loopback-proven) | both orgs + registry | B's own acceptance runs, 0 B synthesis calls |
 | Elastic specialists / planner agent | real code | Elastic keys | smoke report, agent IDs |
 | Fetch recruitment | real code; discovery + signed bridge | Agentverse key + bridge | search ID, signed receipts |
 | CREAO persistent role | creation/runtime, execution receipts, gateway verification, operator attach, readiness probe and verified persistent mission assessment (#72) merged; optional scenario assessment cycles documented below; live evidence open | CREAO key + configured durable runtime + reachable gateway callback | same agent, two verified assessments, replacement requirement; actual agent ID **and run share link** required by the track |

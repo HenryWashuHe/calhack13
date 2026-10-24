@@ -1,150 +1,234 @@
-# GENESIS: Devpost submission text
+# GENESIS: Devpost submission draft
 
-Paste the sections below into Devpost. Fill every `TODO-LIVE:` line with the
-real identifier from a live run before submitting. Do not submit a
-placeholder.
+**Networked recursive capability improvement with fixed model weights.**
+
+Status: working draft, not ready to submit. Codex's previous implementation Goal and recurring work remain
+paused; colleagues' existing scoped claims continue. Confirm every accomplishment against [implementation status](IMPLEMENTATION_STATUS.md),
+and replace each `TODO-LIVE:` with actual evidence before claiming a sponsor
+integration. The [invention-lab demonstration](INVENTION_LAB_DEMO.md) is
+proposed; its outcomes must not be described as completed work.
 
 ## Inspiration
 
-Every agent framework we tried ships a fixed org chart. You pick the agents,
-wire the tools, and hope the task fits. Real organizations are different.
-They hire when the work changes, build tools they lack, hand work off, and
-dissolve teams while keeping what they learned. We wanted an operating system
-that lets an AI organization do that, with the safeguards a real company
-needs: authority, budgets, verification, and an audit trail.
+An organization can retain more than the answer to its last task. It can
+retain a better way to investigate, build and test the next one. What if
+independent AI organizations could exchange those improvements, while each
+kept control of its own mission and resources?
 
-## What it does
+GENESIS explores that possibility without changing the underlying model
+weights. Its ambition is a network where organizations create, verify, share
+and selectively inherit executable capabilities, including the methods used
+to develop future capabilities. One organization's experience could improve
+how another organization produces its next improvement.
 
-GENESIS runs an organization as durable state: roles, responsibilities,
-scopes, budgets, assignments and contracts, governed by a constitution. When
-evidence arrives, a planner proposes the smallest valid organizational change.
-The kernel validates it, provisions what it needs, and commits it as a new
-revision with an event log.
+## What it does today
 
-The demo is an event company whose venue closes. GENESIS creates a relocation
-role, recruits an independent logistics specialist, writes and verifies a web
-capability it did not have, hands continuing monitoring to a persistent agent,
-and retires the temporary role. A second, independent organization then
-discovers that capability, checks it against its own acceptance suite, and
-installs it with zero model calls. A read-only audit checks every revision
-ever stored against the kernel invariants.
+GENESIS implements foundations for that network. A Rust kernel governs
+organization state: roles, responsibilities, assignments, authority, budgets
+and contracts. It validates proposed changes, records committed revisions,
+and fences work whose authority is no longer current. A shared registry
+carries versioned capabilities; receiving organizations run their own
+acceptance checks before adoption.
 
-## How we built it
+The current executable acquisition path generates TypeScript web-extraction
+candidates within an Apify Actor scaffold. It pins artifacts, verifies output
+against independently configured acceptance data, and permits a bounded
+semantic repair during acquisition. It is not yet a general executable
+development-workflow or physics runtime.
 
-- **Rust kernel** (Axum, Tokio, SQLite): validation, a provisioning saga with
-  durable outbox, epoch fencing, append-only history, SSE event stream, and a
-  shared capability registry.
-- **Planner**: a domain-neutral system prompt describes only the mutation
-  vocabulary and decision rules. Role names and charters come from the
-  evidence. The model proposes; the kernel decides. Runs on Anthropic,
-  OpenAI-compatible endpoints, or an Elastic Agent Builder agent.
-- **Elastic Agent Builder on Serverless**: every organization projects its
-  missions, observations, requirements and roles into its own evidence index.
-  Internal specialist roles become Agent Builder agents whose only tool is an
-  index search scoped to that organization. The planner itself can run as an
-  Agent Builder agent that consults the evidence before proposing.
-- **Fetch.ai**: specialists are discovered on Agentverse and recruited as
-  independent uAgents under signed, durable contracts. A separate ACP agent
-  makes the primary workflow usable from an ASI:One conversation: report the
-  disruption, watch the organization evolve, read the result.
-- **Apify**: when the organization lacks an executable capability, GENESIS
-  synthesizes Actor source from the public requirement and example pages,
-  creates the Actor, builds it, pins the build, runs it, and verifies the
-  output against a held-out oracle the model never sees. One bounded semantic
-  repair is allowed. The verified pin is what the registry publishes.
-- **CREAO**: continuing operational work lives in a persistent CREAO agent.
-  After the temporary relocation role hands off, the same agent assesses two
-  later venue updates and its verified assessments change the mission.
-- **Console** (React): org tree, evidence log, capability chips, Attention
-  panel, and provenance views: why each role exists, how the organization
-  evolved, replay by revision, and the kernel audit strip.
+A two-organization integration exercises A creating, verifying and publishing
+a capability, then B discovering, checking and installing it without B
+synthesizing another copy. That integration uses explicitly labeled loopback
+model/provider responses. Separate local signed Fetch-process evidence
+exercises specialist selection and retirement with other providers simulated.
+These results establish bounded mechanisms, not live cloud completion or
+recursive improvement.
 
-## Challenges
+## Proposed demonstration: autonomous invention labs
 
-Keeping provider success separate from domain truth. An Actor run finishing is
-not a correct extraction, and a CREAO run completing is not a mission
-outcome. Every provider result enters as evidence and is verified before it
-changes the organization. Recovery was the other half: lost responses,
-restarts mid-provisioning, late results from retired roles. The kernel refuses
-to guess, records `needs_reconciliation`, and surfaces it in the Attention
-panel instead of repeating an effect.
+Lab A must design a machine to move cargo across a ravine in a simulated
+physics world. It develops an executable method for searching designs and
+choosing experiments, then publishes a verified version with documented
+scope and limitations.
 
-## Accomplishments
+Independent Lab B investigates a robot that must handle uneven terrain and
+gusts. It checks whether A's method fits. If interacting conditions expose a
+weakness, B can develop a new method that retains counterexamples and tests
+designs across relevant scenarios. This is a candidate direction for a
+system-generated change, not a hardcoded upgrade or a promised result.
 
-- A role appears, does its job, hands off, and retires, and the history
-  proves it.
-- An organization grows a verified web capability it did not have.
-- A second organization inherits it with zero synthesis calls.
-- Two different disruptions produce two different organizational answers.
-- 600 plus tests across the workspace, a crash test that restarts each
-  organization at fixed points of the capability path, and a full-history
-  invariant audit.
+After that candidate is frozen, a judge reveals a new perturbation for A.
+A independently accepts or declines the method and attempts a new design.
+A control uses the previous method from the same initial state under the
+same declared budget. The evaluator and hidden acceptance criteria remain
+outside both organizations' editing authority.
 
-## What we learned
+The visible result should be machines failing, experiments exposing why, and
+new designs succeeding if the system finds them. The critical evidence is
+the A → B → A transfer of an improved **development method**, followed by an
+independent comparison. Passing a finished design between labs is ordinary
+reuse. A method that fails to help must be reported as such.
 
-Organizational evolution is only real if ownership, authority, future
-dispatch and handoff change. Otherwise it is orchestration with extra steps.
-And the model is the least reliable component, so the kernel must be the
-authority.
+The scene is a research environment for testing the architecture. It would
+not establish real-world engineering safety or general scientific ability.
+Historical venue fixtures remain infrastructure tests; event organizing is
+no longer the product direction or a required demonstration.
+
+## How the foundations are built
+
+- **Rust, Axum, Tokio and SQLite:** organizational authority, durable state,
+  provisioning and execution records, version identity, and recovery states.
+- **Planner:** structured proposals are checked by the kernel. Provider
+  integrations support model-backed planning; a valid proposal does not
+  prove the plan is optimal or scientifically correct.
+- **Capability acquisition and verification:** backend-controlled source
+  generation, pinned Apify artifacts, independent acceptance data, bounded
+  attempts and immutable evidence.
+- **Cross-organization adoption:** shared discovery and organization-local
+  acceptance. Publishing a replacement does not automatically upgrade
+  another organization's installation.
+- **Provider adapters:** Elastic Agent Builder/evidence retrieval, Fetch
+  specialist messaging, Apify Actor operations and CREAO operational roles.
+  Each integration's live evidence is tracked separately.
+- **React console:** organization state, capability progress, evidence,
+  provenance and audit views. A visual transition is not itself proof of an
+  external effect or a successful mission.
+
+## Challenges and what we learned
+
+Retaining tools is accumulation. Executing them is reuse. Recursive
+capability improvement requires something stronger: an inherited change to
+the development process must improve later development on independently
+evaluated tasks. More tools, more agents or a shorter trace cannot establish
+that by themselves.
+
+The other challenge is preserving authority and evidence across independent
+organizations. Provider completion is distinct from a correct result;
+publisher verification is distinct from receiving-organization acceptance.
+Ambiguous external effects can require reconciliation instead of another
+submission. These boundaries matter even when a demonstration uses fixtures.
+
+## Current accomplishments and limits
+
+- Implemented governed organizational mutations, capability acquisition and
+  versioned independent adoption with focused local tests.
+- Exercised the two-organization creation/publication/adoption path with
+  loopback providers and no B synthesis.
+- Composed automatic recovery intake with actual signed local Fetch
+  processes; the remaining providers in that test are fixtures.
+- Recorded source-specific evidence and remaining gates in
+  [implementation status](IMPLEMENTATION_STATUS.md).
+
+The proposed invention labs, executable development-method inheritance and
+measured recursive benefit are not completed accomplishments. Deployed
+capability repair work remains paused and unmerged. The merged ACP mission
+adapter has outstanding review regressions. No complete public ASI:One or
+live sponsor mission is established by the evidence above.
 
 ## What's next
 
-A network of organizations that improves itself, with fixed model weights (see
-[docs/RECURSIVE_CAPABILITY_IMPROVEMENT.md](RECURSIVE_CAPABILITY_IMPROVEMENT.md)). Each one changes shape as its mission changes,
-and each one can inherit verified abilities from the others with provenance
-attached. Capability packages carry intent, limits, contracts, acceptance
-suites and known failures. Organizations recruit services from each other,
-form temporary joint teams, and keep expertise when those teams disband. The
-event agency is day one.
+The long-term product is infrastructure for autonomous research and
+engineering organizations to exchange verified improvements in how they
+develop capabilities. Organizational evolution changes accountable
+responsibilities and specialist participation when warranted. Capability
+evolution changes executable methods and tools while preserving local
+authority, exact versions and independent evaluation.
+
+The proposed lab requires a physics executor, domain-specific evaluation and
+executable development-method contracts beyond the present extraction path.
+The [recursive roadmap](RECURSIVE_CAPABILITY_IMPROVEMENT.md) separates
+accumulation, reuse/composition and measured recursive improvement. It calls
+for fixed-model comparisons, total cost accounting, unsuccessful runs and
+appropriate non-reuse. Broader transfer remains a research question.
 
 ## Built with
 
-Rust, Axum, Tokio, SQLite, TypeScript, React, Vite, Python, uAgents,
-Elastic Agent Builder, Elasticsearch Serverless, Apify, CREAO, Anthropic
-Claude.
+Rust, Axum, Tokio, SQLite, TypeScript, React, Vite and Python; integrations for
+uAgents/Fetch.ai, Elastic Agent Builder on Elasticsearch Serverless, Apify,
+CREAO and model providers. Integration code is not a claim of authenticated
+execution; see the evidence below.
 
-## Disclosure
+## Development disclosure
 
-The repository was created on October 20, 2026 PT with research, the
-technical specification and early kernel code. The ASI:One path, the live
-sponsor runs, the provenance console fixes, the pitch and the end-to-end runs
-were done during Cal Hacks 13.0. The commit log in the repository shows when
-each piece landed.
+Before submission, record the actual event window and identify pre-existing
+work versus work completed during it from repository history. Attach exact
+source revisions and run evidence for the submitted demonstration. Do not
+infer that a provider run occurred from the date its adapter was committed.
+Do not publish the current draft's proposed outcomes as accomplishments.
 
 ## Sponsor evidence
+
+The proposed roles below must be implemented and demonstrated before they
+become submission claims. They describe GENESIS responsibilities, not new
+sponsor API guarantees. Current submission requirements are recorded in the
+linked sponsor notes; account setup or a logo alone does not meet them.
 
 ### Fetch.ai
 
 ![tag:innovationlab](https://img.shields.io/badge/innovationlab-3D8BD3)
 ![tag:hackathon](https://img.shields.io/badge/hackathon-5F43F1)
 
-| Agent | Address | Role |
-| --- | --- | --- |
-| GENESIS Organization | `TODO-LIVE: agent1q…` | ACP agent, primary workflow in ASI:One |
-| GENESIS Logistics Specialist | `TODO-LIVE: agent1q…` | independent recruited specialist |
+Proposed role: discover and recruit independent lab specialists, with an ACP
+agent exposing the complete primary workflow through ASI:One. Local signed
+transport tests do not prove public discovery or ASI:One completion.
 
-- Agentverse profile: `TODO-LIVE: https://agentverse.ai/agents/details/…`
-- ASI:One shared conversation: `TODO-LIVE: https://asi1.ai/…`
-- Run instructions: `services/fetch-bridge/README.md`, `docs/FETCH_SPONSOR_NOTES.md`
+| Agent | Address | Proposed responsibility |
+| --- | --- | --- |
+| GENESIS Organization | `TODO-LIVE: agent1q…` | ACP entry point for the complete primary workflow |
+| GENESIS Research Specialist | `TODO-LIVE: agent1q…` | Independently recruited experimental or mechanism specialist |
+
+- Agentverse registration/profile: `TODO-LIVE: https://agentverse.ai/agents/details/…`
+- ASI:One shared conversation completing the primary workflow: `TODO-LIVE: https://asi1.ai/…`
+- Public GitHub submission repository: `TODO-LIVE: public repository URL`.
+  Visibility changes remain a separate owner decision.
+- Setup and evidence requirements: [Fetch sponsor notes](FETCH_SPONSOR_NOTES.md)
+  and [bridge README](../services/fetch-bridge/README.md).
 
 ### CREAO
 
-- Agent built on agent.creao.ai: `TODO-LIVE: agent ID`
-- Run share link: `TODO-LIVE: https://…` (the Share link from CREAO, not a run ID)
-- Core work: persistent venue monitor; two verified assessments after handoff
-- Track: Best AI-First Disruptor
+Proposed core work: a persistent experiment analyst executes the lab's
+analysis and follow-up responsibility across iterations. This workflow is
+not implemented by the current venue-specific assessment path.
+
+- Agent built on agent.creao.ai that actually performs core work:
+  `TODO-LIVE: agent ID`
+- Genuine run share link: `TODO-LIVE: https://…` (the CREAO Share link, not a run ID)
+- Core output and its effect on the lab's next action:
+  `TODO-LIVE: evidence reference`
+- Proposed track: Best AI-First Disruptor; select the track when submitting.
+- Requirements: [CREAO sponsor notes](CREAO_SPONSOR_NOTES.md).
 
 ### Apify
 
+Proposed role: build and execute generated software Actors for a compatible
+bounded experiment worker or development tool used by the labs. This requires
+a new validated scaffold/executor; the current Actor path supports extraction
+and does not implement a physics lab. Check the selected platform contract,
+independently evaluate output and record its contribution before claiming
+this role is implemented.
+
 - Actor: `TODO-LIVE: actor ID`
 - Build: `TODO-LIVE: build ID, build number`
-- Verification runs: `TODO-LIVE: run IDs, dataset IDs`, oracle verdict `TODO-LIVE: n/n`
-- Org B adoption run of the same pinned build: `TODO-LIVE: run ID`
+- Verification runs: `TODO-LIVE: run IDs, dataset IDs and actual acceptance results`
+- Evidence of the Actor output affecting a design decision:
+  `TODO-LIVE: input/output/decision references`
+- Independent adoption run, if demonstrated:
+  `TODO-LIVE: organization and run ID for the same pinned build`
+- Requirements and separate AI Chat category: [Apify sponsor notes](APIFY_SPONSOR_NOTES.md).
 
 ### Elastic Agent Builder on Serverless
 
-- Project: `TODO-LIVE: project name/region` (no URLs with keys)
-- Evidence index: `TODO-LIVE: genesis-evidence-…`
-- Specialist agent ID: `TODO-LIVE: …`
-- Planner agent ID (if the planner ran on Agent Builder): `TODO-LIVE: …`
+Proposed role: specialist agents retrieve scoped experimental evidence and
+candidate methods, helping the labs select, develop and evaluate capabilities.
+Show actual use of Agent Builder and retrieval, not only an indexed record.
+
+- Project: `TODO-LIVE: project name/region` (no URLs containing keys)
+- Evidence/capability index: `TODO-LIVE: index name`
+- Specialist agent ID: `TODO-LIVE: agent ID`
+- Planner agent ID, if the planner ran on Agent Builder: `TODO-LIVE: agent ID`
+- Retrieval/agent execution and resulting decision: `TODO-LIVE: evidence references`
 - Smoke report: `TODO-LIVE: data/live-gates/gates-<run>.md`
+
+Authenticated cloud runs establish provider execution. They do not by
+themselves establish recursive improvement; that requires the independently
+evaluated method-transfer experiment.

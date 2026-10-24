@@ -1,6 +1,74 @@
 # GENESIS implementation handoff
 
-## Current checkpoint: native automatic intake and recursive roadmap
+## Current checkpoint: fixed-weight capability improvement
+
+Canonical framing: **networked recursive capability improvement with fixed model
+weights**. The user explicitly chose this as the product identity, superseding
+the earlier decision to put it only in “What's next.” Accumulation, reuse/composition,
+and improving future capability development are different claims. General
+recursive benefit remains unproven. The [implementation inventory](IMPLEMENTATION_STATUS.md)
+separates merged foundations, unmerged work and vision.
+
+Event organization is no longer the product or chosen demo. Existing venue code
+and tests are historical infrastructure fixtures, not new product requirements.
+The [proposed invention labs](INVENTION_LAB_DEMO.md) show A developing a method,
+B improving it for another task, and A evaluating that frozen revision on a fresh
+challenge. The simulator, executable development-method runtime and comparative
+result do not yet exist. Do not present them as implemented or relabel fixture
+results as live sponsor evidence.
+
+Checkpoint: inspected main `2e5d7f0` (October 23, 2026 Pacific). #116 has a new
+correction at `78a18c0`; the earlier review findings were at `03f7101f`, and the
+new head awaits independent re-review. #120 `0cf383b7` and #121 `5d711429` are open
+and await independent review. #114 is merged with the reported ACP follow-up
+regressions still outstanding. See [review queue](PR_REVIEW_QUEUE.md) and newer
+[issue #4](https://github.com/HenryWashuHe/genesis/issues/4) updates before acting.
+
+**Pause boundary:** Codex's previous implementation Goal and recurring automation
+remain paused. This bounded documentation/task-routing update does not resume
+them or authorize a whole-kernel takeover. Colleagues' existing scoped work and
+new design assignments are tracked below; a GitHub assignment is not evidence
+that a remote session has acknowledged or started it.
+
+### Current ownership and next work
+
+| Owner/session | Assigned task | Current scope and next deliverable |
+| --- | --- | --- |
+| Henry's core Claude | [#122](https://github.com/HenryWashuHe/genesis/issues/122) | Preserve #116/#121 and review follow-up. Retain the newly claimed adoption-outcome classifier stacked on #116: status/types, small classifier, focused tests/docs; conservative fallback unchanged. Next: `docs/invention-lab/adoption.md` for independent method acceptance. |
+| Eric / Eric's Claude | [#123](https://github.com/HenryWashuHe/genesis/issues/123) | Finish the bounded #120 constitution-audit lane. Next: `docs/invention-lab/ui.md`, then an isolated `apps/web/src/invention-lab/**` evidence view after receipts/contracts settle. No shared UI wiring without a claim. |
+| Claude ACP session (author of `claude/asi-one-workflow`) | [#125](https://github.com/HenryWashuHe/genesis/issues/125) | Preserve the seven regressions and correct `acp_mission.py` with adjacent tests/config. Next: `docs/invention-lab/acp.md` mapping product-neutral commands to agreed contracts. No new venue features or public-live claims. |
+| Codex, main GENESIS chat | [#124](https://github.com/HenryWashuHe/genesis/issues/124) | Current framing and coordination. Next bounded lane: `docs/invention-lab/contracts/**` for executable methods, exact identity/dependencies, independent receipts and controlled comparison. Preserve paused deployed-repair WIP; runtime resumption is separate. |
+| Unassigned evaluator lane | [#126](https://github.com/HenryWashuHe/genesis/issues/126) | `docs/invention-lab/evaluator.md`, then a separately claimed `experiments/invention-lab/evaluator/**` simulator/evaluator after contract agreement. No owner or implementation is inferred. |
+| Ines | Unassigned by explicit user instruction | Do not identify `i-nix` as Ines or assign her work without new confirmation. |
+
+The GitHub account `HenryWashuHe` hosts multiple sessions. Account assignment
+alone does not collapse Codex, core Claude, and ACP Claude into one owner. Eric's
+identity is confirmed as `EricZhu-31`; ownership must be by session and files.
+
+**Contract order:** development-method interface → challenge/evaluator/resource
+contract → immutable receipts → local adoption and UI projection. Receipts bind
+exact method/dependencies, task/evaluator versions, model/settings, resources and
+outcomes. Independent acceptance and comparison remain outside candidate control.
+
+**Shared-file rule:** `App.tsx`, `OrgPanel.tsx`, shared API/types/styles, manifests,
+server routes/startup/events and existing core capability types need a named
+integration claim in #4. Henry's core Claude owns adoption wiring; Codex owns
+verification/contract review; agree each shared edit before parallel implementation.
+No assignment above silently transfers acquisition, provider, kernel or UI files.
+Commit/push small reviewed increments; preserve another session's uncommitted work.
+
+**Preserved Codex repair:** forge `1795fb7` is pushed on
+`codex/deployed-capability-repair`; its 19 acquisition tests passed. Server
+repair/store/routes, 12 integration cases and draft docs remain local uncommitted
+WIP. The happy-path failure → replacement → B acceptance check passed, but the
+full revised 12-case target and final checks did not run before the pause. No
+repair PR exists. That work must not be called merged or complete.
+
+All records below are historical snapshots. Old active-goal language, demo gates,
+owner decisions and exclusive claims are superseded by this checkpoint and newer
+explicit issue #4 claims. Preserve useful evidence without reviving old scope.
+
+## Historical checkpoint through #115: native automatic intake and recursive roadmap
 
 This supersedes the historical snapshots below. Main through #115 is `841295a`;
 current GitHub state and newer [issue #4](https://github.com/HenryWashuHe/genesis/issues/4)
@@ -62,7 +130,7 @@ history. Claude/Eric should pull before continuing it. This is jsdom/stub API
 and local backend evidence, not a new browser walkthrough. Current GitHub state
 records #110 merged at `16783da`; both PRs are closed.
 
-### Current ownership and next work
+### Historical ownership after #115
 
 | Owner | Active scope | Boundary / next handoff |
 | --- | --- | --- |

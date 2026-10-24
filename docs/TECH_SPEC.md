@@ -1,6 +1,21 @@
 # GENESIS technical specification
 
-Status: baseline design drafted October 21, 2026, with a selective-transfer design addendum in section 14. The repository now implements substantial parts of this design; the proposed layouts, routes, and original milestone wording below are not a current implementation inventory. Consult the [README](../README.md), [handoff](AGENT_HANDOFF.md), and [live gates](LIVE_GATES.md) for implementation and validation status. GENESIS is a self-healing operating system for networks of AI agents, preserving organizational evolution and capability evolution as separate, connected mechanisms. Provider contracts are tracked in [PROVIDER_CONTRACTS.md](PROVIDER_CONTRACTS.md).
+**Canonical framing: networked recursive capability improvement with fixed model weights.**
+
+Status: baseline architecture drafted October 21, 2026; direction revised October
+23. Section 14 now states the governing design direction. The original layouts,
+routes and venue workload below are design history, not a current inventory or
+product completion gate. Use [implementation status](IMPLEMENTATION_STATUS.md)
+for implemented vs unmerged vs proposed behavior, the [invention-lab proposal](INVENTION_LAB_DEMO.md)
+for the new demonstration, and the [handoff](AGENT_HANDOFF.md) for ownership.
+
+The network should retain executable capabilities and methods for developing
+further capabilities across independent organizations. Organizational evolution
+changes accountable roles and specialists; capability evolution changes what
+they can execute and how they develop it. Model weights stay fixed. Measured
+recursive benefit remains unproven. Provider contracts and authenticated-live
+evidence are tracked separately in [PROVIDER_CONTRACTS.md](PROVIDER_CONTRACTS.md)
+and [LIVE_GATES.md](LIVE_GATES.md).
 
 ## 1. Stack and boundaries
 
@@ -25,13 +40,13 @@ docs/                     specifications and research
 
 For the demo, run the same Rust service in two organization instances with separate state stores and conversations. A shared capability service provides manifest publication, discovery, and execution brokerage. These may share code and a host. Do not create a service per conceptual box or introduce Kafka/Redis solely for the prototype.
 
-## 2. Required demonstration
+## 2. Historical venue integration workload (superseded)
 
-This is the original hackathon scenario, designed to exercise both forms of evolution. Its new-role and new-tool steps are scenario requirements, not a rule to recruit or synthesize for every mission. Section 14 adds selective transfer and appropriate non-reuse; the [handoff](AGENT_HANDOFF.md) records current implementation evidence.
+This scenario is retained solely to explain existing code and integration fixtures. Event organization is no longer the product or chosen demonstration. The following requirements belong to that historical fixture; they do not gate the new [invention-lab proposal](INVENTION_LAB_DEMO.md). Section 14 governs selective transfer and recursive development.
 
 Organization A operates a simulated campus event for 120 attendees. Its initial responsibilities cover mission coordination, program scheduling, and attendee information. A venue closure creates relocation and transport coordination work while program work continues.
 
-GENESIS must:
+The historical fixture was designed to:
 
 1. Derive the unmet requirements from the observation.
 2. Explain why the existing organization needs new ownership and a new web capability.
@@ -230,13 +245,13 @@ The following records the original integration plan and hackathon scope. For cur
 
 The original plan called for proving authenticated Elastic create/invoke/retrieve; Fetch discovery and offer/accept/result messaging; Apify create/build/run/results; and CREAO create/run/custom-skill HTTP execution before feature work, measuring actual cold latencies and verifying account limits. Those checks were untested when this baseline was drafted; this paragraph is not a current test report.
 
-The mandatory scope is one complete mutation, recruitment, Actor creation and verification, persistent CREAO role with a second run, B's adoption, and retirement/handoff. Optional scope is one repair. Defer real payments, real reservations, public marketplaces, unrestricted spawning, automated credential discovery, and production multi-tenancy.
+The original, now-superseded demo scope was one complete mutation, recruitment, Actor creation and verification, persistent CREAO role with a second run, B's adoption, and retirement/handoff. One repair was optional in that original plan. Defer real payments, real reservations, public marketplaces, unrestricted spawning, automated credential discovery, and production multi-tenancy.
 
 A three-minute all-cold path is a target, not a guarantee. If measured provider latency exceeds it, use an honestly labeled full-run recording alongside live progress and reuse. Never display prebuilt resources as freshly synthesized. Team ownership and the hour-by-hour integration sequence are in [TEAM_WORKSTREAMS.md](TEAM_WORKSTREAMS.md).
 
 ## 14. Selective transfer and recursive capability improvement
 
-This addendum defines the next design target, not newly implemented behavior. The detailed [goal, milestones, and evaluation protocol](RECURSIVE_CAPABILITY_IMPROVEMENT.md) extend the original two-organization proof without changing its existing runtime contracts or active ownership.
+This section is the governing design direction, not newly implemented behavior. The detailed [goal, milestones, and evaluation protocol](RECURSIVE_CAPABILITY_IMPROVEMENT.md) and [proposed invention-lab demonstration](INVENTION_LAB_DEMO.md) supersede the venue product narrative. Runtime contracts remain unchanged by this documentation update; the [handoff](AGENT_HANDOFF.md) assigns bounded work.
 
 The architecture is general when it can admit different capability types, select them for their applicable tasks, and apply the appropriate verification method. It does not require every artifact to transfer across domains or improve the immediately following task. Fixed model weights permit system-level adaptation through retained executable capabilities; execution tasks are not weight-training steps.
 
