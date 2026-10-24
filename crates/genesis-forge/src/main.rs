@@ -1,6 +1,7 @@
 mod acquisition_commands;
 mod method_accounting_commands;
 mod method_admission_commands;
+mod method_chain_commands;
 mod method_revision_commands;
 mod method_roster_commands;
 mod method_stage_commands;
@@ -24,6 +25,9 @@ const HELP: &str = "Usage:
   genesis-forge prepare --candidate metadata.json --extractor parser.ts --suite suite.json --checkpoint session.json
   genesis-forge method-generate-prepare --plan method-plan.json --checkpoint method-generation.json
   genesis-forge method-generate-step --checkpoint method-generation.json [--admission admission.json [--allocation stage.json]]
+  genesis-forge method-chain-prepare --manifest chain-input.json --chain chain.json
+  genesis-forge method-chain-bind --manifest chain-stage-input.json --chain chain.json
+  genesis-forge method-chain-check --manifest chain-stage-input.json --chain chain.json
   genesis-forge method-stage-prepare --manifest stage-input.json --admission admission.json --allocation stage.json
   genesis-forge method-stage-bind --manifest trial-input.json --allocation stage.json
   genesis-forge method-admission-prepare --roster roster.json --admission admission.json
@@ -106,6 +110,9 @@ impl Arguments {
             "method-generate-prepare" => &["--plan", "--checkpoint"],
             "method-cost-assess" => &["--manifest", "--admission", "--allocation"],
             "method-stage-prepare" => &["--manifest", "--admission", "--allocation"],
+            "method-chain-prepare" | "method-chain-bind" | "method-chain-check" => {
+                &["--manifest", "--chain"]
+            }
             "method-stage-bind" => &["--manifest", "--allocation"],
             "method-admission-prepare" => &["--roster", "--admission"],
             "method-admission-status" => &["--admission"],
@@ -236,6 +243,9 @@ async fn run() -> Result<u8, String> {
         "method-stage-prepare" | "method-stage-bind"
     ) {
         return method_stage_commands::run(&args);
+    }
+    if args.command.starts_with("method-chain-") {
+        return method_chain_commands::run(&args);
     }
     if args.command.starts_with("method-roster-") {
         return method_roster_commands::run(&args);
