@@ -168,41 +168,75 @@ pub(crate) async fn advance_jobs(app: &AppState) {
     }
 }
 
+/// Check live authority before a provider call. Returns `false` (after
+/// archiving the job as rejected if authority was lost) when the job must not
+/// advance. The kernel lock is never held across provider I/O.
+async fn authorized_for_advance(app: &AppState, job_id: &JobId) -> Result<bool, String> {
+    let _guard = app.kernel.lock().await;
+    let mut job = app.store.get_job(job_id).map_err(|e| e.to_string())?;
+    if !matches!(job.status, JobStatus::Submitting | JobStatus::Running) {
+        return Ok(false);
+    }
+    if let Err(reason) = authorize(app, &job) {
+        refuse(
+            app,
+            &mut job,
+            format!("authority lost before advance: {reason}"),
+            true,
+        )?;
+        return Ok(false);
+    }
+    Ok(true)
+}
+
+/// Results of jobs run through an asynchronous specialist runtime are
+/// collected by the backend and stay unverified until a domain verifier
+/// decides. The generic results route may not report or verify them. Keyed
+/// on the job's durable provider, so it holds across restarts and while the
+/// runtime is not configured.
+pub(crate) fn reject_generic_result(job: &Job) -> Result<(), crate::error::ApiError> {
+    let managed = matches!(job.provider, Some(genesis_core::model::Provider::Creao))
+        || job.provider_refs.contains_key(OPERATION);
+    if managed {
+        return Err(crate::error::ApiError::new(
+            axum::http::StatusCode::CONFLICT,
+            "managed_specialist_result",
+            "this job's result is collected by the backend specialist runtime; callers cannot report or verify it",
+        ));
+    }
+    Ok(())
+}
+
 async fn advance_job(
     app: &AppState,
     job_id: &JobId,
     op: &str,
     runtime: Arc<dyn SpecialistRuntime>,
 ) -> Result<(), String> {
-    // Authority before each advance.
-    {
-        let _guard = app.kernel.lock().await;
-        let mut job = app.store.get_job(job_id).map_err(|e| e.to_string())?;
-        if !matches!(job.status, JobStatus::Submitting | JobStatus::Running) {
+    let timeout = app.provision_timeout;
+    let mut progress = None;
+    // At most two provider calls: a failed read may be retried once (a POST
+    // never is by the runtime). Live authority is checked before **each**
+    // call, so a handoff during the first call stops the retry.
+    for retry in [false, true] {
+        if !authorized_for_advance(app, job_id).await? {
             return Ok(());
         }
-        if let Err(reason) = authorize(app, &job) {
-            return refuse(
-                app,
-                &mut job,
-                format!("authority lost before advance: {reason}"),
-                true,
-            );
+        let attempt = tokio::time::timeout(timeout, runtime.advance(op, retry))
+            .await
+            .map_err(|_| "provider call timed out".to_owned())
+            .and_then(|r| r.map_err(|e| e.to_string()));
+        match attempt {
+            Ok(p) => {
+                progress = Some(p);
+                break;
+            }
+            Err(error) if retry => return Err(error),
+            Err(_) => {}
         }
     }
-    let timeout = app.provision_timeout;
-    let once = |retry| {
-        let runtime = runtime.clone();
-        async move {
-            tokio::time::timeout(timeout, runtime.advance(op, retry))
-                .await
-                .map_err(|_| "provider call timed out".to_owned())?
-                .map_err(|e| e.to_string())
-        }
-    };
-    let progress = match once(false).await {
-        Ok(p) => p,
-        Err(_) => once(true).await?, // a failed read may be retried; a POST never is
+    let Some(progress) = progress else {
+        return Ok(());
     };
 
     let _guard = app.kernel.lock().await;

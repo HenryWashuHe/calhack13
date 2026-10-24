@@ -176,6 +176,7 @@ pub async fn submit_result(
     let state = app.current_state()?;
     let mut job = app.store.get_job(&JobId::new(id))?;
     super::capabilities::reject_managed_result(&app, &job)?;
+    crate::specialist_jobs::reject_generic_result(&job)?;
     if sub.attempt_id != job.attempt_id {
         return Err(ApiError::new(
             StatusCode::CONFLICT,

@@ -18,6 +18,7 @@ use std::time::Duration;
 use tokio::sync::Notify;
 
 #[derive(Clone, Copy)]
+#[allow(dead_code)] // scripted steps not every probe uses
 enum Step {
     Pending,
     Collected,
