@@ -2,21 +2,23 @@
 
 ## Current checkpoint: scenario repair and automatic recovery intake
 
-Main through #111 is `6194e534e5f3e5c65e5f9f24d4981a31efa85a82`.
+Main through #112 is `6e4f1fffe9f3d0bbfa6fec698b4eda57b6ca142e`.
 Newer GitHub state and [issue #4](https://github.com/HenryWashuHe/genesis/issues/4)
 take precedence over the historical snapshots below. The mission goal is active.
 
 - #86 is merged (`ad622a9`); final reviewed source `ac50d35` safely limits retries.
 - #111 is merged: the full scenario now uses exact source freshness deadlines.
   Five full scenarios and 40 scenario units passed with strict Clippy/fmt.
-- #112 implements opt-in automatic Reopen-to-recovery intake: runtime `1b2610c`,
+- #112 is merged and implements opt-in automatic Reopen-to-recovery intake: runtime `1b2610c`,
   integration coverage `bbe1872`. See [its contract](docs/VENUE_RECOVERY_INTAKE.md).
   139 library and 90 assessment tests passed, then the final 12 intake tests
   passed; one pre-existing native test remains opt-in. Strict Clippy/fmt and
   independent source review passed. These counts overlap, and providers are fixtures.
-- #110 supersedes #91 and remains held at `91b0169` on structural replay
-  starvation. Regression-only `b677414` reproduces one failure alongside three
-  unchanged passing controls. Claude/Eric owns the UI correction.
+- #110 supersedes #91; #113's `08f2b74` fix clears structural replay starvation.
+  Reviewed composition `9fd1eb0` preserves the independent `b677414` regression
+  as `5b20bdf`. All 133 web tests, typecheck/build, audit route/library tests and
+  strict server Clippy/fmt pass. The parent branch was fast-forwarded; pull before
+  continuing it. Claude/Eric retains UI ownership.
 
 Claude/Eric retains kernel/planner/readiness/adoption/UI. In issue #4 Codex also
 approved the narrow `ProviderError::RunFailed` mapping and runtime sanitization

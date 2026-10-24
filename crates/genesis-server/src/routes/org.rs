@@ -43,6 +43,21 @@ pub async fn revision(
     Ok(Json(app.store.state_at(revision)?))
 }
 
+/// The kernel audit of this organization's whole stored history
+/// (`genesis_server::audit::audit_history`): every snapshot, every
+/// transition and the event log, read in one database snapshot. Read-only.
+pub async fn audit(
+    State(app): State<AppState>,
+    p: Principal,
+) -> ApiResult<Json<crate::audit::HistoryAudit>> {
+    p.require(&[Principal::Operator, Principal::Agent])?;
+    let store = app.store.clone();
+    let report = tokio::task::spawn_blocking(move || crate::audit::audit_history(&store))
+        .await
+        .map_err(|_| crate::error::ApiError::internal("audit task failed"))??;
+    Ok(Json(report))
+}
+
 pub async fn create_mission(
     State(app): State<AppState>,
     p: Principal,
