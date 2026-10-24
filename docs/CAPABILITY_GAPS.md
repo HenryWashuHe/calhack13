@@ -14,10 +14,27 @@ observation (evidence_ref) ─► requirement ─► planner proposal
                                    │  acquisition driver (operator policy)
                                    ▼
           acquiring ─► acquired { capability@version } │ refused { reason }
-                                   │  planner's next pass
+                                   │  installed { installation_id } │ refused
+                                   │  + one kernel observation, same commit
+                                   ▼
+                  planner's next pass (the runner plans on that observation)
                                    ▼
                   AttachCapability(role, capability@version)
 ```
+
+### Closing the loop
+
+The planner only plans on new observations, so a final transition records
+one itself. `installed` and `refused` each add an observation on the gap's
+mission (source `kernel.capability_gap`, `evidence_ref`
+`genesis://capability-gaps/<gap_id>`) in the same outcome as the status
+change, so the note can't be lost or duplicated. A repeated transition is a
+no-op and adds nothing. The note names the role, requirement and, when
+installed, the exact version and installation. The planner then attaches it,
+or decides what to do without it after a refusal. The note has no public
+URL, so it can't justify another `RequestCapability` (the origin check
+rejects it), and the kernel can't drive a re-request loop with its own notes.
+`Acquiring` and `Acquired` record nothing: acquired is not installed.
 
 ## The operation
 
