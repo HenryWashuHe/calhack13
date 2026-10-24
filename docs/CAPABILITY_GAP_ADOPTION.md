@@ -98,6 +98,34 @@ Uncertain outcomes stop at attention with the adoption ID kept and never fall
 back to synthesis: an unknown result is not an empty result. The gap stays
 `open`.
 
+## Retrying a stop
+
+`POST /api/v1/capability-gaps/{id}/adoption/retry` (operator) starts one fresh
+adoption for a gap stopped at `registry`, `candidate`, `configuration`,
+`conflict` or `checks`, while the gap is still open: the stopped adoption moves to
+`previous_adoption_ids`, the record returns to `active` with `attempt` + 1,
+and the coordinator dispatches under the key `gap-adopt:<gap>:<attempt>`
+after rechecking the requirement and grant. At most two retries per gap.
+Whatever the code, a retry also needs every native check run of the stopped
+adoption to carry terminal provider evidence or never to have been accepted
+by the provider: `collected`; `failed` with no receipt (the submission never
+reached the provider, or its response already reported a terminal failure);
+or `prepared` under an adoption that left checking. Anything else answers 409
+`adoption_checks_unresolved` and leaves the record untouched: an unknown
+outcome (`needs_reconciliation`, e.g. a restart mid-POST), a run in flight,
+`rejected` (a local verdict that can overwrite a submitted or still-running
+run without polling it), and `failed` with a receipt (the provider accepted
+the run and it later failed locally; the stored failure can't tell a
+terminal provider result from a failed status read). There is no
+reconciliation of such runs yet, so the gap stays at attention. In practice
+retry recovers registry, candidate and conflict stops (no checks yet) and
+checks that were refused or finished before anything ran; it does not
+recover a check that failed after the provider accepted it, or a stop that
+interrupted one. Automatic paths never retry. `invalid_record` is never
+retryable. A retry never releases the gap to
+synthesis; only a definitive empty search does. Status shows `attempt`,
+`previous_adoption_ids` and whether a retry is allowed now (`retryable`).
+
 ## Ownership
 
 The gap driver defers a gap while adoption owns it: the gap's capability has a
