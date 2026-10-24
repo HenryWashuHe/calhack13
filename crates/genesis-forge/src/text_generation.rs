@@ -38,6 +38,23 @@ pub enum Sampling {
     ProviderDefault,
 }
 
+/// Client-selected reasoning settings, not a deterministic sampling guarantee.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ReasoningEffort {
+    Low,
+    Medium,
+    High,
+    Xhigh,
+    Max,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "mode", rename_all = "snake_case", deny_unknown_fields)]
+pub enum ReasoningPolicy {
+    Adaptive { effort: ReasoningEffort },
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TextModelSettings {
@@ -45,12 +62,18 @@ pub struct TextModelSettings {
     pub max_tokens: u32,
     pub timeout_ms: u64,
     pub sampling: Sampling,
+    /// Omitted on historical records to preserve their exact serialized identity.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reasoning: Option<ReasoningPolicy>,
 }
 impl TextModelSettings {
     pub fn validate(&self) -> Result<(), SynthesisError> {
         if !identifier(&self.model, 128)
             || !(1..=16_384).contains(&self.max_tokens)
             || !(1..=120_000).contains(&self.timeout_ms)
+            // Explicit policy support is intentionally bounded to the documented
+            // model used by this experiment; no silent model/policy substitution.
+            || (self.reasoning.is_some() && self.model != "claude-sonnet-5-5")
         {
             return Err(SynthesisError::InvalidInput);
         }
@@ -81,10 +104,13 @@ impl TextGenerationRequest {
     /// Exact submitted JSON bytes. API version is bound separately in identity.
     pub fn wire_bytes(&self) -> Result<Vec<u8>, SynthesisError> {
         self.validate()?;
-        encode(
-            &serde_json::json!({"model": self.settings.model, "max_tokens": self.settings.max_tokens,
-            "system": self.system, "messages": [{"role":"user", "content": self.user}], "stream":false}),
-        )
+        let mut wire = serde_json::json!({"model": self.settings.model, "max_tokens": self.settings.max_tokens,
+            "system": self.system, "messages": [{"role":"user", "content": self.user}], "stream":false});
+        if let Some(ReasoningPolicy::Adaptive { effort }) = &self.settings.reasoning {
+            wire["thinking"] = serde_json::json!({"type": "adaptive"});
+            wire["output_config"] = serde_json::json!({"effort": effort});
+        }
+        encode(&wire)
     }
     pub fn sha256(&self) -> Result<String, SynthesisError> {
         Ok(hash(&encode(&(

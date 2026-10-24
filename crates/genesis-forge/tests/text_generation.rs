@@ -20,6 +20,7 @@ fn request() -> TextGenerationRequest {
             max_tokens: 512,
             timeout_ms: 1000,
             sampling: Sampling::ProviderDefault,
+            reasoning: None,
         },
     }
 }
