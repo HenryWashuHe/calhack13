@@ -23,6 +23,7 @@ async fn call(content: Value) -> genesis_forge::text_generation::TextCompletion 
             max_tokens: 512,
             timeout_ms: 1000,
             sampling: Sampling::ProviderDefault,
+            reasoning: None,
         },
     };
     let completion = AnthropicGenerator::with_test_endpoint(&endpoint, "synthetic-key")
