@@ -24,6 +24,17 @@ Choose one of two modes, labeled in the top-left badge:
   the third is the fixture's hostile-evidence case. Their rows carry a `D`
   sequence and the word "scripted", the audit line says those revisions are
   not audited, nothing is called, and Play fixture replay clears them.
+  The story opens on the thesis ("an AI organization that changes shape and
+  keeps what it learns") and runs along a named chapter rail (Thesis,
+  Evidence, Decision, New role, Capability, Handoff, Inheritance, Audit).
+  Every scene carries proof chips: green for the path that is the real kernel
+  in that scene, dashed amber for the fixture stand-in or the proposal, so a
+  judge never has to guess what is being claimed. Roles that changed since
+  the previous scene are spotlighted. A planner verdict, whether a thrown
+  disruption's transcript or a live `planner_decision` event, is shown as one
+  decision card naming its source, the model and the timing the record
+  supports (the transcript's planner-call duration; live, the kernel's own
+  observation-to-decision interval).
 - **Presenter mode** (Present button, key P, Esc to leave): the same page at
   projector scale with the chrome hidden and a caption naming the scene, the
   source and the keys. Fullscreen is requested but optional.
