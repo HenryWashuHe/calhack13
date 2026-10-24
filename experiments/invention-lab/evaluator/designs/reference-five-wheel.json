@@ -1,0 +1,97 @@
+{
+ "language": 1,
+ "payload_on": "deck",
+ "bodies": [
+  {
+   "shape": "rect",
+   "id": "deck",
+   "x": -2.2,
+   "y": 0.5,
+   "w": 4.0,
+   "h": 0.25,
+   "material": "wood"
+  },
+  {
+   "shape": "circle",
+   "id": "w0",
+   "x": -4.0,
+   "y": 0.38,
+   "r": 0.25,
+   "material": "rubber"
+  },
+  {
+   "shape": "circle",
+   "id": "w1",
+   "x": -3.1,
+   "y": 0.38,
+   "r": 0.25,
+   "material": "rubber"
+  },
+  {
+   "shape": "circle",
+   "id": "w2",
+   "x": -2.2,
+   "y": 0.38,
+   "r": 0.25,
+   "material": "rubber"
+  },
+  {
+   "shape": "circle",
+   "id": "w3",
+   "x": -1.3,
+   "y": 0.38,
+   "r": 0.25,
+   "material": "rubber"
+  },
+  {
+   "shape": "circle",
+   "id": "w4",
+   "x": -0.4,
+   "y": 0.38,
+   "r": 0.25,
+   "material": "rubber"
+  }
+ ],
+ "joints": [
+  {
+   "a": "deck",
+   "b": "w0",
+   "kind": "hinge",
+   "x": -4.0,
+   "y": 0.38,
+   "motor_speed": -4.0
+  },
+  {
+   "a": "deck",
+   "b": "w1",
+   "kind": "hinge",
+   "x": -3.1,
+   "y": 0.38,
+   "motor_speed": -4.0
+  },
+  {
+   "a": "deck",
+   "b": "w2",
+   "kind": "hinge",
+   "x": -2.2,
+   "y": 0.38,
+   "motor_speed": -4.0
+  },
+  {
+   "a": "deck",
+   "b": "w3",
+   "kind": "hinge",
+   "x": -1.3,
+   "y": 0.38,
+   "motor_speed": -4.0
+  },
+  {
+   "a": "deck",
+   "b": "w4",
+   "kind": "hinge",
+   "x": -0.4,
+   "y": 0.38,
+   "motor_speed": -4.0
+  }
+ ]
+}
