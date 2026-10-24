@@ -43,8 +43,15 @@ later observations and one optional trial. Original generation and combined
 grants remain separate, with unsuccessful, missing and unknown rows retained.
 The join is read-only and its scope can be declared after generation; it does
 not establish pre-spend trial allocation or full adaptive-chain accounting.
-Pre-generation stage envelopes, later exact trial binding and finite whole-chain
-stage ceilings are the next proposed contract work, not implemented guarantees.
+Merged [stage allocations and retained CLI binding](invention-lab/contracts/stage-allocation.md#cli-and-retained-files)
+(#85/#86) structurally fit the full generation grant plus bounded trial-slot
+grants under all five resource ceilings. Preparation checks an unused exact roster;
+binding retains one exact trial/scope companion per canonical allocation path.
+Optional generation and assessment checks are implemented, but runtime entry
+consumption, protection from copies/rollback and trusted chronology are not.
+Finite whole-chain ceilings remain proposed work, including trial-only inherited,
+declined and control paths without dummy generation. Independent guards are
+preserved in #87; these checks do not demonstrate the proposed method loop.
 Provider-default sampling,
 complete operation history, budget enforcement and the controlled comparison
 remain open for G4. Experimental namespace and storage foundations are not a
