@@ -182,6 +182,9 @@ impl Store {
     }
 
     fn from_conn(conn: Connection, org_id: OrgId) -> StoreResult<Self> {
+        // Wait briefly for another connection's lock (an operator tool, a
+        // second process during a restart) instead of failing the write.
+        conn.busy_timeout(std::time::Duration::from_secs(5))?;
         conn.execute_batch(MIGRATIONS)?;
         Ok(Self {
             conn: Arc::new(Mutex::new(conn)),
