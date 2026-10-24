@@ -67,3 +67,30 @@ Generations are folded from the event log in `lib/evolution.ts`, sorted by
 `seq`, so the result is independent of delivery order. Each tree frame is the
 kernel's own stored revision snapshot (`GET /organization/revisions/:n`), not
 a client reconstruction.
+
+# Constitution audit
+
+Under the scrubber, a strip re-checks the snapshot on screen against eight
+rules the kernel enforces when it commits changes:
+
+1. Every open duty has a live owner.
+2. Each open duty has one current holder: exactly one active assignment, held by its owner at the current epoch.
+3. Requirements follow their duty's owner.
+4. The budget held by live roles stays within the constitution.
+5. Live roles hold only scopes the constitution grants.
+6. Role and contract counts stay within the constitution's limits.
+7. Reporting lines form a tree of live roles.
+8. Delegated executors are live roles or known contracts.
+
+The strip follows the scrubber and replay, so each frame is audited. **Audit
+all revisions** fetches every stored snapshot (r0 to the current revision),
+audits each one, and shows a cell per revision. Selecting a cell opens that
+revision.
+
+![Constitution audit across all revisions](img/console-audit.png)
+
+The audit is a second, independent reading of the kernel's own stored
+snapshots in `lib/audit.ts`. It is not the enforcement point. A red cell
+means the stored state and the rules disagree, and should be investigated.
+Every revision of both dev-scenario organizations passes (Org A r0–r10, Org B
+r0–r5). Unit tests mutate a consistent snapshot to show that each rule fires.

@@ -7,6 +7,7 @@ import { ProviderBadge, StateChip } from "./Chips";
 import { WhyDrawer } from "./WhyDrawer";
 import { EvolutionView } from "./EvolutionView";
 import { generations } from "../lib/evolution";
+import { AuditStrip } from "./AuditStrip";
 
 /** Records the "Why?" drawer explains a role from. Absent → no drawer. */
 const Provenance = createContext<{ changes: OrgChangeRecord[]; events: DomainEvent[] } | null>(null);
@@ -312,6 +313,17 @@ export function OrgPanel({
           <div className="history-banner">
             Viewing revision r{viewRevision} as it was committed. In-flight changes are hidden.
           </div>
+        )}
+        {shown && (
+          <AuditStrip
+            api={api}
+            state={shown}
+            current={current}
+            onSelect={(rev) => {
+              stopReplay();
+              setViewRevision(rev);
+            }}
+          />
         )}
         {mode === "evolution" && (
           <EvolutionView
