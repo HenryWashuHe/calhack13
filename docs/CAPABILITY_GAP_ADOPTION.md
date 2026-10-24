@@ -110,20 +110,24 @@ Whatever the code, a retry also needs every native check run of the stopped
 adoption to carry terminal provider evidence or never to have been accepted
 by the provider: `collected`; `failed` with no receipt (the submission never
 reached the provider, or its response already reported a terminal failure);
-or `prepared` under an adoption that left checking. Anything else answers 409
+`failed` with a receipt whose failure is `RunFailed` (a status read of that
+exact run and build reported Apify `FAILED`, `TIMED-OUT` or `ABORTED`); or
+`prepared` under an adoption that left checking. Anything else answers 409
 `adoption_checks_unresolved` and leaves the record untouched: an unknown
 outcome (`needs_reconciliation`, e.g. a restart mid-POST), a run in flight,
 `rejected` (a local verdict that can overwrite a submitted or still-running
-run without polling it), and `failed` with a receipt (the provider accepted
-the run and it later failed locally; the stored failure can't tell a
-terminal provider result from a failed status read). There is no
-reconciliation of such runs yet, so the gap stays at attention. In practice
-retry recovers registry, candidate and conflict stops (no checks yet) and
-checks with collected evidence or a definite failure before submission or in
-the submission response; it does not recover a check that failed after a
-receipt was saved, or a stop that
-interrupted one. Automatic paths never retry. `invalid_record` is never
-retryable. A retry never releases the gap to
+run without polling it, including one that also lost its authority), and any
+other `failed` with a receipt (an HTTP status-read failure such as 401, or
+output evidence that didn't match the saved request: neither says the
+provider run ended). `RunFailed` is a distinct provider error that the
+capability runtime keeps through sanitization; `Rejected` is not evidence of
+termination. There is no reconciliation of the blocked runs yet, so the gap
+stays at attention. In practice retry recovers registry, candidate and
+conflict stops (no checks yet) and checks with collected evidence or a
+confirmed terminal failure (before submission, in the submission response, or
+from a later read of the saved ticket); it does not recover a check whose
+status read failed, or a stop that interrupted one. Automatic paths never
+retry. `invalid_record` is never retryable. A retry never releases the gap to
 synthesis; only a definitive empty search does. Status shows `attempt`,
 `previous_adoption_ids` and whether a retry is allowed now (`retryable`).
 

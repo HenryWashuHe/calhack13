@@ -2409,15 +2409,10 @@ async fn review_failed_check_read_does_not_settle_a_still_running_native_effect(
     assert!(!f.driver_bound());
 }
 
-#[tokio::test]
-async fn a_check_failed_after_submission_still_blocks_retry_without_terminal_evidence() {
-    // Henry's Claude: POST accepted the run, then a status read reported it
-    // FAILED. The local record keeps its receipt and a sanitized failure that
-    // can't be told apart from a failed read (Codex, d84eb44), so retry stays
-    // refused rather than risk a second POST beside a live run. Recovering this
-    // case needs the runtime to record terminal provider evidence.
+/// Henry's Claude: drive one adoption to `Checks` attention after its first
+/// check was accepted by the provider and later read as FAILED.
+async fn confirmed_terminal_failure(f: &Fixture) -> (String, genesis_core::ids::JobId) {
     use genesis_server::capability_runtime::CapabilityRunPhase;
-    let f = Fixture::new(Options::default()).await;
     assert_eq!(f.drain().await, Some(Step::Frozen));
     assert_eq!(f.drain().await, Some(Step::Dispatched));
     f.adoption_step().await;
@@ -2434,15 +2429,99 @@ async fn a_check_failed_after_submission_still_blocks_retry_without_terminal_evi
     let run = f.app.store.get_capability_run(&job).unwrap();
     assert_eq!(run.phase, CapabilityRunPhase::Failed);
     assert!(run.receipt.is_some(), "the POST was accepted");
+    assert!(
+        matches!(
+            run.failure,
+            Some(genesis_providers::ProviderError::RunFailed(_))
+        ),
+        "{:?}",
+        run.failure
+    );
     f.adoption_step().await;
     assert_eq!(
         f.drain().await,
         Some(Step::Attention(GapAdoptionCode::Checks))
     );
+    // Independent provider view: that exact run ended.
+    let native: Value = reqwest::Client::builder()
+        .no_proxy()
+        .build()
+        .unwrap()
+        .get(format!("{}/v2/actor-runs/b-run-0", f.providers.url))
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert_eq!(native["data"]["status"], "FAILED");
+    (first.id().to_owned(), job)
+}
+
+#[tokio::test]
+async fn a_check_confirmed_terminal_after_submission_allows_one_retry_that_installs() {
+    // Henry's Claude: POST accepted the run, then a provenance-checked status
+    // read reported it FAILED. The runtime keeps the receipt and records
+    // `RunFailed`, which proves the external effect stopped, so an operator
+    // may retry. The old check is never resubmitted; the fresh adoption runs
+    // its own checks and installs.
+    let mut f = Fixture::new(Options::default()).await;
+    let (first, _) = confirmed_terminal_failure(&f).await;
     let posts = f.providers.runs();
+    let (_, status_body) = adoption_status(&f, f.gap_id.as_str()).await;
+    assert_eq!(status_body["retryable"], true, "{status_body}");
     let (code, body) = retry(&f, "operator").await;
-    assert_eq!(code, reqwest::StatusCode::CONFLICT, "{body}");
-    assert_eq!(body["error"], "adoption_checks_unresolved", "{body}");
-    assert_eq!(f.record().unwrap().adoption_id.as_deref(), Some(first.id()));
+    assert_eq!(code, reqwest::StatusCode::OK, "{body}");
+    assert_eq!(body["attempt"], 1);
+    assert_eq!(body["previous_adoption_ids"], json!([first]));
+    f.serve().await;
+    f.wait_for("installed after retry", |f| {
+        installed(&f.gap_status()).is_some()
+    })
+    .await;
+    f.stop();
+    assert_eq!(f.adoptions().len(), 2);
+    assert_eq!(f.providers.runs(), posts + b_suite().cases.len());
+    assert_eq!(f.providers.model_calls(), 0);
+    assert!(!f.driver_bound());
+}
+
+#[tokio::test]
+async fn a_confirmed_terminal_check_stays_retryable_across_restart_and_retries_once() {
+    let mut f = Fixture::new(Options::default()).await;
+    let (first, job) = confirmed_terminal_failure(&f).await;
+    let posts = f.providers.runs();
+    let reads = f.providers.count("GET", "/v2/actor-runs/");
+    f.reopen();
+    // Restart recovery contacts no provider and keeps the terminal evidence.
+    let run = f.app.store.get_capability_run(&job).unwrap();
+    assert!(matches!(
+        run.failure,
+        Some(genesis_providers::ProviderError::RunFailed(_))
+    ));
+    assert!(run.receipt.is_some());
+    assert_eq!(f.providers.count("GET", "/v2/actor-runs/"), reads);
+    let (_, status_body) = adoption_status(&f, f.gap_id.as_str()).await;
+    assert_eq!(status_body["retryable"], true, "{status_body}");
+    let (code, body) = retry(&f, "operator").await;
+    assert_eq!(code, reqwest::StatusCode::OK, "{body}");
+    // A repeated request after the retry is not a second retry.
+    let (again, again_body) = retry(&f, "operator").await;
+    assert_eq!(again, reqwest::StatusCode::CONFLICT, "{again_body}");
+    f.reopen();
+    assert_eq!(f.drain().await, Some(Step::Dispatched));
+    let record = f.record().unwrap();
+    assert_eq!(record.attempt, 1);
+    assert_eq!(record.previous_adoption_ids, vec![first.clone()]);
+    assert_ne!(record.adoption_id.as_deref(), Some(first.as_str()));
+    assert_eq!(f.adoptions().len(), 2);
     assert_eq!(f.providers.runs(), posts);
+    f.serve().await;
+    f.wait_for("installed after retry", |f| {
+        installed(&f.gap_status()).is_some()
+    })
+    .await;
+    f.stop();
+    assert_eq!(f.providers.runs(), posts + b_suite().cases.len());
+    assert_eq!(f.providers.model_calls(), 0);
 }
