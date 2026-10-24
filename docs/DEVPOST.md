@@ -89,7 +89,8 @@ authority.
 
 ## What's next
 
-A network of organizations. Each one changes shape as its mission changes,
+A network of organizations that improves itself, with fixed model weights (see
+[docs/RECURSIVE_CAPABILITY_IMPROVEMENT.md](RECURSIVE_CAPABILITY_IMPROVEMENT.md)). Each one changes shape as its mission changes,
 and each one can inherit verified abilities from the others with provenance
 attached. Capability packages carry intent, limits, contracts, acceptance
 suites and known failures. Organizations recruit services from each other,
