@@ -414,9 +414,9 @@ class CommandTests(FixtureMixin, unittest.IsolatedAsyncioTestCase):
         value = state(with_lead=True)
         roles = {}
         installations = {}
-        for i in range(12):
+        for i in range(20):
             rid = f"role_{i:032d}"
-            caps = [{"capability_id": long_id if i == 0 else f"cap_{i}_{j}", "version": "1.0.0"} for j in range(2)]
+            caps = [{"capability_id": long_id if (i == 0 and j == 0) else f"cap_{i}_{j}_" + "y" * 60, "version": "1.0.0"} for j in range(3)]
             roles[rid] = {"role_id": rid, "name": f"Role {i}", "charter": "c", "state": "ACTIVE", "binding": {"provider": "internal", "provider_agent_id": "k"}, "capabilities": caps}
             for cap in caps:
                 installations[f"inst_{cap['capability_id']}"] = {"installation_id": f"inst_{cap['capability_id']}", "capability": cap, "status": "ACCEPTED", "acceptance_report_ref": "r"}
