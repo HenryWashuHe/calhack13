@@ -6,6 +6,7 @@
 
 import { useState } from "react";
 import type { Api } from "../lib/api";
+import { shortLabel } from "../lib/capabilities";
 import {
   DECISION,
   evidenceTiers,
@@ -33,8 +34,8 @@ export function AdoptionDecisions({
         adoption: {o.label}
       </span>
       {c && (
-        <span className="mono" title={`decision: ${DECISION[c.decision].label}`}>
-          {c.capability_id}@{c.version} from {c.publisher}
+        <span className="mono" title={`${c.capability_id}@${c.version} · decision: ${DECISION[c.decision].label}`}>
+          {shortLabel(`${c.capability_id}@${c.version}`)} from {c.publisher}
         </span>
       )}
       <span className="muted">{outcome.reason}</span>
@@ -78,8 +79,8 @@ export function AdoptionDecisions({
                     <td title={d.score === null ? "score not finite" : `score ${d.score} (ordering only)`}>
                       {d.rank + 1}
                     </td>
-                    <td className="mono">
-                      {d.capability_id}@{d.version}
+                    <td className="mono" title={`${d.capability_id}@${d.version}`}>
+                      {shortLabel(`${d.capability_id}@${d.version}`)}
                     </td>
                     <td className="mono">{d.publisher}</td>
                     <td>
@@ -89,7 +90,9 @@ export function AdoptionDecisions({
                       {d.reason}
                       {d.missing_scopes.length > 0 && ` (${d.missing_scopes.join(", ")})`}
                     </td>
-                    <td className="mono">{d.acceptance_ref ?? "—"}</td>
+                    <td className="mono" title={d.acceptance_ref ?? undefined}>
+                      {d.acceptance_ref ? shortLabel(d.acceptance_ref) : "—"}
+                    </td>
                   </tr>
                 ))}
               </tbody>
