@@ -41,6 +41,8 @@ pub mod store;
 pub mod venue_assessment_domain;
 pub mod venue_assessments;
 pub mod venue_monitors;
+pub mod venue_recovery;
+mod venue_recovery_sources;
 
 /// Optional CREAO specialist registration from the backend environment.
 pub mod creao_config;
@@ -241,6 +243,7 @@ pub fn build_org(cfg: &OrgConfig, providers: Option<ProviderSet>) -> anyhow::Res
     store.init_capability_invocations()?;
     store.init_venue_assessments()?;
     store.init_venue_monitors()?;
+    store.init_venue_recoveries()?;
     store.init_capability_finalization()?;
     store.init_gap_acquisitions()?;
     store.init_gap_driver()?;
@@ -295,6 +298,7 @@ pub fn build_org(cfg: &OrgConfig, providers: Option<ProviderSet>) -> anyhow::Res
         registry,
         projection: projection::Projection::disabled(),
         elastic_agents: None,
+        fetch_recovery: None,
         provision_timeout: cfg.provision_timeout,
         readiness: specialist::ReadinessRegistry::default(),
     })
@@ -325,6 +329,7 @@ pub fn attach_elastic_from_env(mut app: AppState) -> anyhow::Result<AppState> {
 pub async fn serve_org(app: AppState, listener: TcpListener) -> anyhow::Result<()> {
     // Registered here because CREAO startup recovery is asynchronous.
     let app = creao_config::attach_creao_from_env(app).await?;
+    let app = venue_recovery::attach_from_env(app)?;
     let resumed = saga::resume_pending(&app).await.unwrap_or(0);
     if resumed > 0 {
         tracing::info!(resumed, "resumed interrupted organization changes");
@@ -338,6 +343,7 @@ pub async fn serve_org(app: AppState, listener: TcpListener) -> anyhow::Result<(
     let _finalization_worker = AbortWorker(capability_finalization::spawn(app.clone()));
     let _venue_assessment_worker = AbortWorker(venue_assessments::spawn(app.clone()));
     let _venue_monitor_worker = AbortWorker(venue_monitors::spawn(app.clone()));
+    let _venue_recovery_worker = AbortWorker(venue_recovery::spawn(app.clone()));
     let _adoption_worker = AbortWorker(capability_adoption::spawn(app.clone()));
     let _acquisition_worker = app
         .automatic_acquisition
