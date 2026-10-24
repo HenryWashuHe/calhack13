@@ -92,8 +92,14 @@ every milestone. All lower checkpoints are historical.
   Henry still needs to consume the retained binding before runtime intent.
   Project credentials now work; the first [live method attempt](docs/invention-lab/evidence/live-method-20261024/README.md)
   failed protocol validation with no package or source execution. Its reservation
-  remains spent; do not replay it. Next: bounded, allowlisted stop/rejection
-  diagnostics before separately declaring another attempt. Finite whole-chain
+  remains spent; do not replay it. The [separate second attempt](docs/invention-lab/evidence/live-method-20261024-diagnostic/README.md)
+  on `7d6119d` also failed, now retaining `content_shape` / `end_turn`, with no
+  package or execution. Both costs remain recorded; the first failure is unchanged.
+  Strict reasoning-prefix/one-text compatibility is implemented at `054b105`: full
+  forge 211 tests/40 targets pass, plus five independently rerun focused cases.
+  The old response shape remains unknown. Next: separately declare one new bounded
+  attempt, then hand its valid package to Henry if produced; no source execution here.
+  Finite whole-chain
   ceilings remain proposed behind the genuine method run; hashes prove no timing.
   Retain input-token/wall, billing, global enforcement and history limits.
   Preserve Henry's runtime files; provider/settings reproducibility, complete
