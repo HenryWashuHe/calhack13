@@ -3,11 +3,18 @@
 //!
 //! Every input is re-validated against the plan: `assess_trials` over both
 //! slots' execution and scoring receipts, the criterion bytes against
-//! `plan.criterion`, and each metrics artifact against its receipt. Anything
-//! missing, failed or unknown is `Insufficient`, never a rejection or a pass.
-//! A candidate whose retained output is an invalid design is `Rejected`.
+//! `plan.criterion`, and each metrics artifact against its receipt and the
+//! criterion's exact instances. Acceptance needs both slots' development to
+//! have generated output with fully known resource accounting, and both
+//! scorings to be within their grant. A usage field may be unknown only if the
+//! frozen criterion explicitly lists it in `unknown_usage_allowed`. Anything
+//! missing, failed or unknown otherwise is `Insufficient`, never a rejection or
+//! a pass. A candidate whose retained output is an invalid design is
+//! `Rejected`.
 use genesis_core::development_evaluation::{EvaluationOutcome, EvaluationReceipt, RequestStatus};
-use genesis_core::development_method::{AcceptanceRole, ExecutionReceipt};
+use genesis_core::development_method::{
+    AcceptanceRole, BudgetAssessment, ExecutionOutcome, ExecutionReceipt, ResourceUsage,
+};
 use genesis_core::development_trial::{assess_trials, TrialEvidence, TrialPlan, TrialPurpose};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -19,6 +26,34 @@ pub struct Criterion {
     pub rule: String,
     pub min_margin: u64,
     pub instances: Vec<String>,
+    /// Usage fields the receiving organization explicitly accepts as unknown
+    /// (for example model calls when the sandbox can't establish zero).
+    #[serde(default)]
+    pub unknown_usage_allowed: Vec<String>,
+}
+
+const USAGE_FIELDS: [&str; 5] = [
+    "model_calls",
+    "input_tokens",
+    "output_tokens",
+    "wall_time_ms",
+    "simulation_steps",
+];
+
+/// The usage fields an execution reports as unknown.
+fn unknown_usage(execution: &ExecutionReceipt) -> Vec<&'static str> {
+    let u = &execution.usage;
+    [
+        &u.model_calls,
+        &u.input_tokens,
+        &u.output_tokens,
+        &u.wall_time_ms,
+        &u.simulation_steps,
+    ]
+    .into_iter()
+    .zip(USAGE_FIELDS)
+    .filter_map(|(usage, name)| matches!(usage, ResourceUsage::Unknown { .. }).then_some(name))
+    .collect()
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -73,11 +108,29 @@ fn successes(
     let rows = m["instances"]
         .as_array()
         .ok_or("metrics without instances")?;
-    let listed: Vec<&str> = rows.iter().filter_map(|r| r["instance"].as_str()).collect();
-    if listed != instances.iter().map(String::as_str).collect::<Vec<_>>() {
-        return Err("metrics cover different instances than the criterion".into());
+    // Exactly one row per criterion instance, in order, each with an exact
+    // instance id and a boolean success; nothing else is counted.
+    if rows.len() != instances.len() {
+        return Err(format!(
+            "metrics have {} rows for {} criterion instances",
+            rows.len(),
+            instances.len()
+        ));
     }
-    Ok(rows.iter().filter(|r| r["success"] == true).count() as u64)
+    let mut successes = 0;
+    for (row, expected) in rows.iter().zip(instances) {
+        if row["instance"].as_str() != Some(expected.as_str()) {
+            return Err(format!(
+                "metrics row does not name criterion instance {expected}"
+            ));
+        }
+        match row["success"].as_bool() {
+            Some(true) => successes += 1,
+            Some(false) => {}
+            None => return Err(format!("metrics row for {expected} has no boolean success")),
+        }
+    }
+    Ok(successes)
 }
 
 pub fn decide(
@@ -93,6 +146,15 @@ pub fn decide(
         serde_json::from_slice(criterion_bytes).map_err(|e| format!("criterion: {e}"))?;
     if criterion.rule != "success-count-margin" {
         return Err(format!("unsupported criterion rule {}", criterion.rule));
+    }
+    if let Some(bad) = criterion
+        .unknown_usage_allowed
+        .iter()
+        .find(|f| !USAGE_FIELDS.contains(&f.as_str()))
+    {
+        return Err(format!(
+            "criterion allows unknown usage of unknown field {bad}"
+        ));
     }
     let plan_ids: Vec<String> = plan
         .development_instances
@@ -110,22 +172,40 @@ pub fn decide(
         scoring: e.scoring.clone(),
     });
     let rows = assess_trials(plan, &evidence).map_err(|e| format!("evidence: {e}"))?;
-    let status = |slot: &str| {
-        rows.iter()
-            .find(|r| r.slot_id == slot)
-            .map(|r| r.scoring_status)
-    };
-    match (status(cand_slot), status(ctrl_slot)) {
-        (Some(RequestStatus::Invalid), _) => {
-            return Ok(Verdict::Rejected {
-                reason: "the candidate's retained output is not a valid design".into(),
-            })
-        }
-        (Some(RequestStatus::Scored), Some(RequestStatus::Scored)) => {}
-        (c, k) => {
+    let row = |slot: &str| rows.iter().find(|r| r.slot_id == slot).unwrap();
+    let (cand_row, ctrl_row) = (row(cand_slot), row(ctrl_slot));
+    if cand_row.scoring_status == RequestStatus::Invalid {
+        return Ok(Verdict::Rejected {
+            reason: "the candidate's retained output is not a valid design".into(),
+        });
+    }
+    for (name, r, e) in [
+        ("candidate", cand_row, candidate),
+        ("control", ctrl_row, control),
+    ] {
+        if r.development_outcome != Some(ExecutionOutcome::OutputGenerated) {
             return Ok(Verdict::Insufficient {
-                reason: format!("candidate scoring {c:?}, control scoring {k:?}"),
-            })
+                reason: format!("{name} development outcome {:?}", r.development_outcome),
+            });
+        }
+        let unknown: Vec<_> = unknown_usage(&e.execution)
+            .into_iter()
+            .filter(|f| !criterion.unknown_usage_allowed.iter().any(|a| a == f))
+            .collect();
+        if !unknown.is_empty() {
+            return Ok(Verdict::Insufficient {
+                reason: format!("{name} development usage unknown: {}", unknown.join(", ")),
+            });
+        }
+        if r.scoring_status != RequestStatus::Scored {
+            return Ok(Verdict::Insufficient {
+                reason: format!("{name} scoring {:?}", r.scoring_status),
+            });
+        }
+        if r.scoring_accounting != Some(BudgetAssessment::WithinLimits) {
+            return Ok(Verdict::Insufficient {
+                reason: format!("{name} scoring accounting {:?}", r.scoring_accounting),
+            });
         }
     }
     let count = |e: &SlotEvidence| {

@@ -42,12 +42,22 @@ candidate/control plan. It re-validates everything before deciding:
 
 Outcomes:
 
-- `accepted` when the candidate's successes are at least the control's plus
-  `min_margin`;
-- `rejected` when they aren't, or when the candidate's output is an invalid
-  design;
-- `insufficient` when any scoring is missing, failed or unknown. Missing
-  evidence never counts as a pass or a rejection.
+- `accepted` when both slots' development generated output with fully known
+  resource accounting (or unknown only in fields the frozen criterion lists in
+  `unknown_usage_allowed`), both scorings are `Scored` within their grants, and
+  the candidate's successes are at least the control's plus `min_margin`;
+- `rejected` when the margin isn't met, or when the candidate's output is an
+  invalid design;
+- `insufficient` for anything else: failed, interrupted or unknown
+  development, unknown usage the criterion doesn't allow, or missing, failed or
+  unknown scoring. Missing evidence never counts as a pass or a rejection.
+
+Metrics rows must be exactly one per criterion instance, in order, each naming
+that instance and carrying a boolean `success`; nothing else is counted.
+
+The executor records model use as unknown in every mode (it can't establish
+zero), so under the default criterion a real sandboxed run is `insufficient`
+unless the plan's criterion explicitly accepts unknown model calls and tokens.
 
 The verdict is acceptance evidence for adoption, not an adoption decision or
 an installation.

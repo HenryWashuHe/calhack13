@@ -73,7 +73,7 @@ fn evidence(
     let done = finish(
         &mut s,
         refs::environment(Mode::None, "Python 3"),
-        false,
+        true, // in-process fixture: no model can have been called
         outcome,
         ResourceUsage::Measured { value: 1 },
     )
@@ -172,4 +172,105 @@ fn substituted_criterion_metrics_or_slots_are_refused() {
     assert!(decide(&p, &criterion(&p, 1), &cand, &forged).is_err());
     // Control evidence offered as the candidate's.
     assert!(decide(&p, &criterion(&p, 1), &ctrl, &cand).is_err());
+}
+
+#[test]
+fn unknown_model_usage_needs_an_explicit_criterion_allowance() {
+    // The real sandbox can't establish zero model use, so its receipts say
+    // unknown; a plan accepts that only if its frozen criterion says so.
+    let mut p = plan();
+    let ids: Vec<String> = p
+        .development_instances
+        .iter()
+        .map(|r| r.id.clone())
+        .collect();
+    let allowing = genesis_core::digest::canonical_json(&json!({
+        "rule": "success-count-margin", "min_margin": 1, "instances": ids,
+        "unknown_usage_allowed": ["model_calls", "input_tokens", "output_tokens"],
+    }))
+    .into_bytes();
+    p.criterion = refs::content("lab-criterion/1", "success-count-margin", "1", &allowing);
+    let cand = evidence_unknown(&p, "candidate", "allow-c", design(REFERENCE));
+    let ctrl = evidence_unknown(&p, "control", "allow-k", design(CART));
+    assert!(matches!(
+        decide(&p, &allowing, &cand, &ctrl).unwrap(),
+        Verdict::Accepted { .. }
+    ));
+    // The same evidence under the strict criterion is insufficient.
+    let mut strict = p.clone();
+    strict.criterion = refs::content(
+        "lab-criterion/1",
+        "success-count-margin",
+        "1",
+        &criterion(&p, 1),
+    );
+    let cand = evidence_unknown(&strict, "candidate", "strict-c", design(REFERENCE));
+    let ctrl = evidence_unknown(&strict, "control", "strict-k", design(CART));
+    assert!(matches!(
+        decide(&strict, &criterion(&p, 1), &cand, &ctrl).unwrap(),
+        Verdict::Insufficient { .. }
+    ));
+    // An allowance naming a field that doesn't exist is refused.
+    let bogus = genesis_core::digest::canonical_json(&json!({
+        "rule": "success-count-margin", "min_margin": 1, "instances": p.development_instances.iter().map(|r| r.id.clone()).collect::<Vec<_>>(),
+        "unknown_usage_allowed": ["gpu_hours"],
+    }))
+    .into_bytes();
+    let mut bp = p.clone();
+    bp.criterion = refs::content("lab-criterion/1", "success-count-margin", "1", &bogus);
+    let cand = evidence_unknown(&bp, "candidate", "bogus-c", design(REFERENCE));
+    let ctrl = evidence_unknown(&bp, "control", "bogus-k", design(CART));
+    assert!(decide(&bp, &bogus, &cand, &ctrl).is_err());
+}
+
+/// Like `evidence`, but with model usage recorded as unknown (as the
+/// namespace sandbox records it), and always scored.
+fn evidence_unknown(p: &TrialPlan, slot: &'static str, name: &str, d: Value) -> SlotEvidence {
+    let dir = std::env::temp_dir().join(format!("lab-verdict-u-{name}-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    let scope = ExperimentScope {
+        plan: p,
+        slot_id: slot,
+    };
+    let mut s = Session {
+        plan: p,
+        slot_id: slot,
+        store: Store::open(&dir.join("slot")).unwrap(),
+        ledger: ExperimentLedger::new(scope).unwrap(),
+        state: RunState {
+            started: true,
+            method: Some(p.expected_binding(slot).unwrap().method),
+            ..Default::default()
+        },
+    };
+    s.handle(&json!({"op":"submit","design":d}).to_string())
+        .unwrap();
+    let execution = finish(
+        &mut s,
+        refs::environment(Mode::None, "Python 3"),
+        false,
+        ExecutionOutcome::OutputGenerated,
+        ResourceUsage::Measured { value: 1 },
+    )
+    .unwrap()
+    .receipt;
+    let out = s
+        .store
+        .read(&format!("artifacts/{}", execution.outputs[0].sha256))
+        .unwrap();
+    let store = Store::open(&dir.join("score")).unwrap();
+    let receipt = score_slot(p, slot, &execution, &out, &store).unwrap();
+    let metrics = match &receipt.outcome {
+        EvaluationOutcome::Scored { metrics } => Some(
+            store
+                .read(&format!("artifacts/{}", metrics.sha256))
+                .unwrap(),
+        ),
+        _ => None,
+    };
+    SlotEvidence {
+        execution,
+        scoring: Some(receipt),
+        metrics,
+    }
 }
