@@ -52,7 +52,7 @@ Apify baseline do not close those gates. Event organizing remains superseded.
 | Eric / Eric's Claude | UI #93 `9733b96` / #94 `9ac13fc` updated; existing two findings remain | `docs/invention-lab/ui.md` and `apps/web/src/invention-lab/**`, no shared routes. Preserve independent `78adef37ac21f8b7b0506bf6a83af6dce1c2d844`; #99 `63fdded`, #100 `dbb31c2`, #101 `fe73a50` await base fixes. No implicit lane transfer. |
 | ACP Claude session | #3 `f64e131` / #5 `e95a286` merged; stage #20 merged | Migration holds cleared with all eight independent cases unchanged. Reconcile held #4 routing/status/demo docs with merged #3/#5, local executor/scorer and issue #1; preserve the superseded event-organizer boundary. Bridge ownership remains with ACP. |
 | Codex main chat | Third live package retained; #97/#103 shared validation and finite-chain contract merged | Retain #98 decision/evidence context and require #102 corrections, then prepare an exact-parent B revision from checked public feedback and explicit decision context, with immutable request/settings/parent and a separate prior budget. No blind regeneration, spent-operation replay or new provider call in this review increment. Preserve Henry's runtime and ACP ownership. |
-| EricZhu-31 / Codex provider session | [CREAO nullable-ticket slice claimed](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6387513389); #104 `5023a48` open for review; prior Apify baseline remains operator-reported | Only `crates/genesis-creao/src/{client,model,runtime,main}.rs`, focused CREAO tests and `docs/CREAO_RUNTIME.md`. Preserve exact account/version/request/run ticket before operator read-only reconciliation; wrong IDs/read failures leave it unchanged. No duplicate create, name/time-window binding or retroactive recovery of the old lost run ID. Implementation under review, not completed recovery; ACP keeps hosted-gate evidence. |
+| EricZhu-31 / Codex provider session | [CREAO nullable-ticket slice claimed](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6387513389); #104 `5023a48` merged as `62a2f009` after independent review; prior Apify baseline remains operator-reported | Only `crates/genesis-creao/src/{client,model,runtime,main}.rs`, focused CREAO tests and `docs/CREAO_RUNTIME.md`. Preserve exact account/version/request/run ticket before operator read-only reconciliation; wrong IDs/read failures leave it unchanged. No duplicate create, name/time-window binding or retroactive recovery of the old lost run ID. 69 original and 3 independent local tests pass; no hosted recovery; ACP keeps hosted-gate evidence. |
 | Ines | Unassigned by explicit user instruction | Do not infer identity from another collaborator handle. |
 
 Henry [acknowledged the receiving-side execution/scoring/verdict/adoption handoff](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6386515979)
@@ -60,6 +60,15 @@ within his existing lane; the exact generated package is now available below.
 The [latest direction and ownership checkpoint](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6387556484)
 is authoritative: feedback-driven B revision and return to A are the next mechanism
 target; use/experimentation does not imply adoption or promotion.
+
+Codex retained-chain CLI source `f8b6919`, reviewed composition `42d15cd`, adds
+create-only preparation/binding and read-only checks. Full forge 221/42 passed
+at `e0139a6`; independent 20 focused checks passed after the non-overlapping
+CREAO merge. No provider or generated-source execution. See the
+[exact CLI boundary](invention-lab/contracts/chain-allocation.md#retained-cli-files).
+Henry still owns consumption before runtime intent; Codex retains generation
+wiring. A check without a trial is allocation-only, and none of the old live
+calls can acquire a prior chain declaration retroactively.
 
 Ownership is by session and exact files, even when sessions share a GitHub
 account. Claim shared interfaces in issue #1 before overlapping. The allocation
