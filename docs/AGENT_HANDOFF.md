@@ -1,18 +1,29 @@
 # GENESIS implementation handoff
 
-## Current checkpoint: recursive capability roadmap and merged review queue
+## Current checkpoint: native automatic intake and recursive roadmap
 
-This supersedes the historical snapshots below. Main through #110 is `16783da`;
+This supersedes the historical snapshots below. Main through #115 is `841295a`;
 current GitHub state and newer [issue #4](https://github.com/HenryWashuHe/genesis/issues/4)
-comments remain authoritative. The queue was clear before the roadmap branch; #114 then opened for an ASI:One
-mission adapter and pitch/submission drafts. Review it alongside this framing. The existing
-two-organization mission goal remains active and now includes the [recursive
-capability roadmap](RECURSIVE_CAPABILITY_IMPROVEMENT.md): cross-organization repair,
-executable development capabilities, then a controlled three-treatment evaluation.
-Fixed weights, selective transfer and valid non-reuse are explicit. Accumulation
-and reuse alone do not establish improvement of future capability development.
-The side-chat drafts are preserved verbatim in `7eeaf9f`; subsequent review edits
-retain organizational evolution and strengthen evaluation isolation and provenance.
+comments remain authoritative. #115 merged the reviewed recursive roadmap,
+preserving original side-chat drafts in `7eeaf9f`; primary main was updated without
+losing the originals. The existing Goal stays active, and its continuation schedule
+now references the expanded [milestones and evaluation](RECURSIVE_CAPABILITY_IMPROVEMENT.md).
+
+**Native automatic-intake composition:** source `059a796`, composed with #115 at
+`362a5a0`. Both explicitly enabled native checks pass: the original manual entry
+and the new automatic intake path. Two actual signed Python Fetch processes drive
+selection and retirement; prepared intent survives Rust restart and newer source
+evidence, with one exact coordinator and no recovery HTTP POST in the automatic
+variant. Strict assessment-target Clippy and workspace formatting pass. Explicit
+drains do not prove background timer scheduling; Apify/CREAO/provisioning remain
+fixtures. See [the command and evidence](VENUE_RECOVERY_INTAKE.md#inspection-and-evidence).
+
+**#114 review hold at `3ac1fc6`:** all 119 original Python tests pass, but independent
+`091100b` regressions reproduce duplicate observation submission when the same ACP
+message is delivered after restart, and a false no-change response after a confirmed
+POST followed by a failed progress read. Claude owns the production corrections;
+see [the review](https://github.com/HenryWashuHe/genesis/pull/114#issuecomment-6378556404).
+Its new mission adapter is not merged or public-provider evidence.
 
 **Merged #86:** reviewed `ac50d35`, merge `ad622a9`. Confirmed pre-submission or
 otherwise safely settled checks can retry; retained native receipts remain
@@ -58,7 +69,7 @@ records #110 merged at `16783da`; both PRs are closed.
 | Henry's Claude | Kernel/planner/readiness/adoption; candidate decision logging in the adoption coordinator/store/routes/tests | Also owns the explicitly agreed narrow terminal `ProviderError::RunFailed` mapping, sanitizer preservation and safe retry gate. Unknown submissions, failed status reads and retained running receipts stay blocked. No general provider/runtime ownership transfer. |
 | Eric's Claude | Provenance/replay UI contribution #113 is merged | No next exclusive implementation claim is recorded. Coordinate UI work with Henry's Claude before claiming overlapping files. |
 | Claude, PR #114 | New `acp_mission.py` ASI:One mission adapter, adjacent Python tests/config, pitch and submission drafts | Newly opened during roadmap integration; review pending. Preserve the selective-transfer framing when composing its README changes. Public Agentverse/ASI execution remains unproven. |
-| Codex | Fetch, monitor/recovery, provider verification and acquisition/execution verification boundaries | Next: automatic intake composed with the native Fetch process test; review #114 before further full-mission/ACP changes. Scope exact-version failure evidence and repair intent in issue #4 before expanding into network capability repair. |
+| Codex | Fetch, monitor/recovery, provider verification and acquisition/execution verification boundaries | Native automatic-intake composition now passes. Review #114 before further full-mission/ACP changes; next scope exact-version failure evidence and repair intent in issue #4 before expanding into network capability repair. |
 | Proposed, not assigned | Executable development packages and controlled recursive-benefit evaluation | Inspect current branches/claims and agree bounded contracts first. The side-chat Claude brief is a proposal, not an assignment. |
 
 The roadmap adds work to the existing goal; it does not replace the original
