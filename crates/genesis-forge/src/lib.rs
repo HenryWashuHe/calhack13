@@ -11,7 +11,7 @@ pub mod synthesis_http;
 mod synthesis_source;
 
 pub use acquisition::*;
-pub use scaffold::venue_source;
+pub use scaffold::{venue_source, venue_source_for_actor};
 pub use session::*;
 pub use source::*;
 pub use synthesis::*;
