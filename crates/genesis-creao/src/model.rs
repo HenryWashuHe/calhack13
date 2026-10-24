@@ -439,6 +439,8 @@ pub enum ErrorKind {
     MalformedResponse,
     ProvenanceMismatch,
     CredentialEcho,
+    /// Backend authority denied the request before any network effect.
+    GuardRejected,
 }
 /// Contains no provider text, request contents, URL, or credentials.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]

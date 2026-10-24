@@ -28,6 +28,7 @@ pub use apify::ApifyCapabilityExecutor;
 pub use creao::{
     CreaoSpecialist, SpecialistExecutionReceipt, SpecialistProgress, SpecialistRuntime,
 };
+pub use genesis_creao::PreEffectGuard;
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error, Serialize, Deserialize)]
 #[serde(tag = "kind", content = "detail", rename_all = "snake_case")]
