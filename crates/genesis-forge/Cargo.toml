@@ -6,6 +6,7 @@ rust-version = "1.94"
 description = "Checkpointed source-to-verified-capability pipeline for GENESIS"
 
 [dependencies]
+genesis-core = { path = "../genesis-core" }
 genesis-apify = { path = "../genesis-apify" }
 genesis-verification = { path = "../genesis-verification" }
 serde = { version = "1", features = ["derive"] }
