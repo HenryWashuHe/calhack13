@@ -2110,7 +2110,9 @@ pub const CAPABILITY_GAP_SOURCE: &str = "kernel.capability_gap";
 /// [`update_capability_gap`] at a given time. A final transition (`installed`
 /// or `refused`) also records one observation on the gap's mission, in the
 /// same outcome, so the planner gets its next pass: attach the installed
-/// capability, or decide what to do without it. The observation carries no
+/// capability, or decide what to do without it. Only while the mission is
+/// active and before its deadline: a closed mission gets the audit event and
+/// no new planning input. The observation carries no
 /// public URL, so it cannot itself justify another `RequestCapability`.
 pub fn update_capability_gap_at(
     state: &OrgState,
@@ -2247,6 +2249,14 @@ pub fn update_capability_gap_at(
         _ => None,
     };
     let mission_id = gap.mission_id.clone();
+    // Wake the planner only for a mission that can still act on it. A gap of a
+    // finished, failed or expired mission still records its final status
+    // (the event above is the audit), but no fresh planning input.
+    let runnable = st
+        .missions
+        .get(&mission_id)
+        .is_some_and(|m| m.status == MissionStatus::Active && m.deadline.is_none_or(|d| d > now));
+    let note = note.filter(|_| runnable);
     let mut effects = vec![EventKind::CapabilityGapStatusChanged {
         gap_id: gap_id.clone(),
         from,

@@ -1042,3 +1042,47 @@ fn http_evidence_cannot_back_an_https_request() {
         "{errs:?}"
     );
 }
+
+#[test]
+fn a_closed_or_expired_mission_gets_the_audit_but_no_wakeup() {
+    use genesis_core::lifecycle::MissionStatus;
+    use CapabilityGapStatus as S;
+    for close in ["succeeded", "failed", "expired"] {
+        let d = demo(Some(PORTAL));
+        let out = run(
+            &d,
+            vec![assign(&d), request(&d, &[PORTAL])],
+            &StaticCatalog::default(),
+        )
+        .unwrap();
+        let id = out.state.capability_gaps.keys().next().unwrap().clone();
+        let mut st = out.state.clone();
+        let mission = st.capability_gaps[&id].mission_id.clone();
+        let m = st.missions.get_mut(&mission).unwrap();
+        match close {
+            "succeeded" => m.status = MissionStatus::Succeeded,
+            "failed" => m.status = MissionStatus::Failed,
+            _ => m.deadline = Some(Utc::now() - chrono::Duration::seconds(1)),
+        }
+        let before = st.observations.len();
+        let done = update_capability_gap(
+            &st,
+            &id,
+            S::Refused {
+                reason: "declined".into(),
+                acquisition_id: None,
+            },
+        )
+        .unwrap();
+        assert!(
+            matches!(done.state.capability_gaps[&id].status, S::Refused { .. }),
+            "{close}"
+        );
+        assert_eq!(done.effects.len(), 1, "{close}: audit only");
+        assert!(matches!(
+            done.effects[0],
+            EventKind::CapabilityGapStatusChanged { .. }
+        ));
+        assert_eq!(done.state.observations.len(), before, "{close}: no wake-up");
+    }
+}
