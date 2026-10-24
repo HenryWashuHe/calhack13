@@ -3,6 +3,8 @@
 //! sender boundary; it does not claim SDK signatures, cloud execution, native
 //! provisioning, live source freshness or a venue booking.
 use super::*;
+#[path = "recovery/native.rs"]
+mod native;
 use genesis_fetch::{
     client::{BridgeClient, ClientLimits},
     protocol::{Body as FetchBody, InboxItem, Message, SendRequest, PROTOCOL_DIGEST},
@@ -902,3 +904,6 @@ async fn cleanup_lifetime_attempt_bound_survives_explicit_retry_and_restart() {
     assert_eq!(assessment_count(&f), 1);
     assert_eq!(f.providers.execution_posts().len(), 1);
 }
+
+#[path = "recovery_review.rs"]
+mod review;

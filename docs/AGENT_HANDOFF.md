@@ -1,6 +1,73 @@
 # GENESIS implementation handoff
 
-## Authoritative checkpoint — October 23, 2026
+## Authoritative checkpoint after #108 — October 23, 2026
+
+Main `74b99c3fabf6d17188b5bf53fba9cd83d828305d`, tree
+`f75934c42770f902e40700079b50d9972806d220`. Exact newer GitHub heads and
+[issue #4](https://github.com/HenryWashuHe/genesis/issues/4) take precedence.
+The unbounded two-organization mission goal remains active; none of the following
+local checks establishes a completed live sponsor mission.
+
+- **#84, #103 and #104 are merged.** Preflight/runbook wording now keeps unsafe
+  adoption retries unreleased; four preflight tests passed. Adoption-only policy
+  visibility passed 83 focused tests plus strict Clippy. The capability-version
+  tooltip passed 86 web tests, typecheck and build.
+- **#105 native Fetch composition** is merged at `8e046c7`, source `dcc3648`.
+  The explicit ignored integration passed with two actual signed Python Fetch
+  processes and the Rust recovery coordinator, including restarts and separate
+  queue/peer-release evidence. Apify, CREAO and provisioning remain fixtures.
+- **#106 regression coverage** is merged at `8f86571`, source `be49d82`.
+  Claude's additive recovery and Python mutation tests were preserved: 66 venue
+  tests plus 77 Python tests passed, with the native test ignored by default.
+- **#107 ACP entry point** is merged at `2ad34dd`, source `6676c52`.
+  An explicit public-demo gateway starts/reads frozen recovery cases through the
+  Rust coordinator. All 104 Python tests passed before a narrow SDK concurrency
+  configuration correction; all 27 ACP tests passed afterward. Lock/whitespace
+  checks and independent review passed. SDK public startup/Inspector, Agentverse
+  registration/discovery and ASI:One execution are still unvalidated.
+- **#108 monitor cleanup** is merged at `74b99c3`, source `180d37c`.
+  Claude's 12 monitor mutation tests remain unchanged. Two new regressions first
+  failed and a missing-provider control passed. Stopped uncreated intents now
+  leave the worker queue only after exact historical lookup proves no child
+  exists; lost links and unavailable/Unknown evidence remain reconcilable.
+  **135 server-library + 81 assessment tests**, strict server all-target Clippy
+  and formatting passed; the existing native integration remains opt-in.
+
+**Held:** #86 remains `c2dc523483b3d474cd52e5978f2ad22dc486f93f`. A run-status
+HTTP401 changes a still-running native effect into local `Failed`; retry then
+submits another POST. Test-only `d84eb44` reproduces this (33 pass, 1 fail in the
+fresh composition). #91 remains `6776130365fb04ba0c77b589ba82688c9e553edc` with
+replay starvation under frequent events and nonexistent revisions shown as audit
+success. Its separate fixes branch is not an updated reviewed PR head.
+
+**Ownership and next core milestone:** Claude/Eric retains kernel, planner,
+readiness, adoption and UI, including #86/#91 corrections. Codex retains Fetch,
+monitor/recovery and provider verification. Codex's next implementation is opt-in
+persistent recovery intake: accepted Reopen → discover fresh verified same-event
+replacement sources → freeze one exact recovery request → reconcile/start the
+existing coordinator. No per-recovery operator POST and no new kernel transition.
+
+The intake design must preserve a durable trigger cursor, bounded source scan
+and exact prepared intent. Candidate Succeeded events can lack mission metadata;
+resolve the actual job and reconstruct its source proof. Start the source cursor
+at zero so earlier candidate evidence is eligible. Prefer one newest qualifying
+source with multiple alternatives for the first slice; wait until a feasible
+alternative exists before freezing the unique recovery. Reuse source-domain
+checks without sending a precomputed winner to Fetch. Reconcile existing/manual
+recovery ownership before freshness checks; never renew a prepared deadline or
+replace its sources after an uncertain create. These are design constraints,
+not implemented behavior. Continue independent work while cloud keys are absent.
+
+**Sponsor gates:** the official Fetch track requires ACP, Agentverse registration,
+ASI:One usability, the complete primary workflow inside its conversation, and a
+public GitHub repository. The current ACP adapter covers only recovery; the full
+two-org conversation remains open. Keep the repository private until the owner
+authorizes publication. See [Fetch setup and evidence](FETCH_SPONSOR_NOTES.md).
+Apify/CREAO/Elastic credentials are still absent in the local configuration;
+no secrets belong in Git or handoffs. Native provider runs, actual CREAO agent/run
+Share evidence and public ASI conversation evidence remain required.
+
+## Historical checkpoint after #101
 
 Source basis: main `0a0c175aa452d2dfcdee617e6f1647a523f5cceb`, tree
 `ec382ccbfabc37487d23e3962e955f49f295493c`, after #101. This checkpoint

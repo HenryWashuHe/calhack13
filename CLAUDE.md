@@ -1,6 +1,26 @@
 # GENESIS agent coordination
 
-## Authoritative checkpoint — October 23, 2026
+## Current checkpoint after #108
+
+Main `74b99c3fabf6d17188b5bf53fba9cd83d828305d`, tree
+`f75934c42770f902e40700079b50d9972806d220`. Read the current
+[implementation handoff](docs/AGENT_HANDOFF.md) and newer scoped comments in
+[issue #4](https://github.com/HenryWashuHe/genesis/issues/4) before taking work.
+This supersedes the historical statuses below.
+
+#84 and #103–#108 are merged, including native Fetch/coordinator composition,
+ACP recovery commands and stopped-intent cleanup. #86 `c2dc523` and #91 `6776130`
+remain held on preserved regressions. Claude/Eric retains kernel/planner/
+readiness/adoption/UI; Codex continues opt-in automatic recovery intake in its
+monitor/Fetch scope. The ongoing two-organization mission goal remains active.
+
+The official Fetch track needs the complete workflow in ASI:One and a public
+repository in addition to ACP/Agentverse. Current ACP supports fixed recovery
+cases only. Do not claim public registration, ASI routing or live provider proof;
+do not change private repository visibility without owner authorization. See
+[the sponsor guide](docs/FETCH_SPONSOR_NOTES.md) for exact setup and limitations.
+
+## Historical checkpoint after #101
 
 Source basis: main `0a0c175aa452d2dfcdee617e6f1647a523f5cceb`, tree
 `ec382ccbfabc37487d23e3962e955f49f295493c`, after #101. This checkpoint
