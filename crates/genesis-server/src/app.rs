@@ -66,6 +66,7 @@ pub struct AppState {
     pub acquisition_policy: Option<Arc<crate::capability_acquisition_store::AcquisitionPolicy>>,
     pub automatic_acquisition: bool,
     pub acquisition_runtime: Arc<crate::capability_acquisition_runtime::AcquisitionRuntime>,
+    pub(crate) adoption_gate: Arc<Mutex<()>>,
 }
 
 /// Result of a kernel mutation.

@@ -2,6 +2,7 @@
 
 mod acquisition_history;
 mod acquisitions;
+mod adoptions;
 pub(crate) mod capabilities;
 mod changes;
 mod events;
@@ -39,6 +40,12 @@ pub fn router(state: AppState) -> Router {
             get(capabilities::manifest),
         )
         .route("/capability-installations", post(capabilities::install))
+        .route(
+            "/capability-adoptions",
+            post(adoptions::create).get(adoptions::list),
+        )
+        .route("/capability-adoptions/{id}", get(adoptions::status))
+        .route("/capability-adoptions/{id}/step", post(adoptions::step))
         .route(
             "/capability-installations/{id}/acceptance",
             post(capabilities::acceptance),
