@@ -379,7 +379,7 @@ pub const OPERATOR_ATTACHED: &str = "operator_attached";
 /// verifier passes for it (for CREAO, a gateway receipt naming that agent ID,
 /// which shows the agent can run its gateway skill). The kernel does not check
 /// that the agent's configuration matches the role. An ID already bound to any
-/// role, or to another change, is refused. No provider request is made here
+/// role, to another change, or to a sibling role in this change is refused. No provider request is made here
 /// and the runtime's own record is left untouched.
 pub async fn attach_operation(
     app: &AppState,
@@ -448,11 +448,18 @@ pub async fn attach_operation(
                 .values()
                 .any(|b| b.provider_agent_id == provider_agent_id)
     });
-    if bound_role.is_some() || bound_change.is_some() {
+    // Sibling roles of this change are not in OrgState until commit, so their
+    // bindings must be checked on the record itself. The change gate held
+    // above keeps `record` current for this check.
+    let bound_sibling = record
+        .provisioned
+        .values()
+        .any(|b| b.provider_agent_id == provider_agent_id);
+    if bound_role.is_some() || bound_change.is_some() || bound_sibling {
         return Err(ApiError::new(
             StatusCode::CONFLICT,
             "agent_already_bound",
-            "this provider agent is already bound to a role or another change",
+            "this provider agent is already bound to a role, another change or a sibling role in this change",
         ));
     }
     let binding = genesis_core::model::AgentBinding {
