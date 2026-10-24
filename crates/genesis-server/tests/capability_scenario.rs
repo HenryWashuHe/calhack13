@@ -3,7 +3,9 @@
 //! this does not claim cloud execution, autonomous planning, or native role
 //! activation. Both synthetic provider credentials may access the same Actor.
 //! Real organization servers own progression; an HTTP guard rejects all manual
-//! step/verify requests made by the scenario or these tests.
+//! step/verify calls and low-level discovery/installation/acceptance requests.
+//! B submits one durable adoption intent; its server chooses and verifies the
+//! foreign capability using B's own requirement and trusted suite.
 
 use axum::body::{to_bytes, Body};
 use axum::extract::{Request, State};
@@ -75,14 +77,20 @@ impl Drop for Server {
 struct OrgRequest {
     method: String,
     path: String,
+    body: Value,
+    adoption_response: Option<Value>,
 }
 impl OrgRequest {
-    fn manual_advancement(&self) -> bool {
+    fn forbidden_automatic_call(&self) -> bool {
+        let path = self.path.trim_end_matches('/');
         self.method == "POST"
-            && matches!(
-                self.path.trim_end_matches('/').rsplit('/').next(),
-                Some("step" | "verify")
-            )
+            && (matches!(path.rsplit('/').next(), Some("step" | "verify"))
+                || matches!(
+                    path,
+                    "/api/v1/capabilities/search" | "/api/v1/capability-installations"
+                )
+                || (path.starts_with("/api/v1/capability-installations/")
+                    && matches!(path.rsplit('/').next(), Some("checks" | "acceptance"))))
     }
 }
 #[derive(Clone)]
@@ -92,22 +100,34 @@ struct GuardedProxy {
     requests: Arc<Mutex<Vec<OrgRequest>>>,
 }
 async fn guarded_proxy(State(proxy): State<GuardedProxy>, request: Request) -> Response {
+    let (mut parts, body) = request.into_parts();
+    let body = to_bytes(body, 2 * 1024 * 1024).await.unwrap();
     let observed = OrgRequest {
-        method: request.method().to_string(),
-        path: request.uri().path().to_owned(),
+        method: parts.method.to_string(),
+        path: parts.uri.path().to_owned(),
+        body: if body.is_empty() {
+            Value::Null
+        } else {
+            serde_json::from_slice(&body).unwrap()
+        },
+        adoption_response: None,
     };
-    let forbidden = observed.manual_advancement();
-    proxy.requests.lock().unwrap().push(observed);
+    let forbidden = observed.forbidden_automatic_call();
+    let is_adoption_observation =
+        observed.method == "GET" && observed.path.starts_with("/api/v1/capability-adoptions/");
+    let request_index = {
+        let mut requests = proxy.requests.lock().unwrap();
+        let index = requests.len();
+        requests.push(observed);
+        index
+    };
     if forbidden {
         return (
             StatusCode::METHOD_NOT_ALLOWED,
-            Json(json!({"error":"scenario must use automatic progression"})),
-        )
-            .into_response();
+            Json(json!({"error":"scenario must let the server own acquisition, adoption, and finalization"})),
+        ).into_response();
     }
-    let (mut parts, body) = request.into_parts();
     parts.headers.remove("host");
-    let body = to_bytes(body, 2 * 1024 * 1024).await.unwrap();
     let response = proxy
         .client
         .request(parts.method, format!("{}{}", proxy.upstream, parts.uri))
@@ -119,6 +139,10 @@ async fn guarded_proxy(State(proxy): State<GuardedProxy>, request: Request) -> R
     let status = response.status();
     let bytes = response.bytes().await.unwrap();
     assert!(bytes.len() <= 2 * 1024 * 1024);
+    if is_adoption_observation && status.is_success() {
+        proxy.requests.lock().unwrap()[request_index].adoption_response =
+            Some(serde_json::from_slice(&bytes).unwrap());
+    }
     Response::builder()
         .status(status)
         .header("content-type", "application/json")
@@ -457,18 +481,62 @@ impl Org {
         self.backend.stop().await;
         *self = Self::start(self.config.clone(), providers, self.requests.clone()).await;
     }
-    fn assert_no_manual_advancement(&self) {
+    fn adoption_request(&self) -> Value {
+        let requests = self.requests.lock().unwrap();
+        let adoption: Vec<_> = requests
+            .iter()
+            .filter(|request| {
+                request.method == "POST" && request.path == "/api/v1/capability-adoptions"
+            })
+            .collect();
+        assert_eq!(
+            adoption.len(),
+            1,
+            "B should submit one durable adoption intent"
+        );
+        let body = adoption[0].body.clone();
+        let keys: BTreeSet<_> = body
+            .as_object()
+            .unwrap()
+            .keys()
+            .map(String::as_str)
+            .collect();
+        let required: BTreeSet<_> = [
+            "client_request_id",
+            "mission_id",
+            "requirement_id",
+            "role_id",
+            "responsibility_id",
+            "suite_id",
+            "provider_access_acknowledged",
+        ]
+        .into_iter()
+        .collect();
+        assert_eq!(
+            keys, required,
+            "the scenario must not supply A's identity, artifact, or search query"
+        );
+        assert_eq!(body["provider_access_acknowledged"], true);
+        assert_eq!(body["suite_id"], suite("b").suite_id);
+        assert!(body["client_request_id"]
+            .as_str()
+            .is_some_and(|key| !key.is_empty()));
+        body
+    }
+    fn assert_server_owned_progression(&self) {
         let requests = self.requests.lock().unwrap();
         assert!(
             !requests.is_empty(),
             "the guard must observe actual organization traffic"
         );
         assert!(
-            requests.iter().all(|request| !request.manual_advancement()),
-            "manual progression was attempted: {:?}",
             requests
                 .iter()
-                .filter(|request| request.manual_advancement())
+                .all(|request| !request.forbidden_automatic_call()),
+            "client attempted an operation owned by the automatic server: {:?}",
+            requests
+                .iter()
+                .filter(|request| request.forbidden_automatic_call())
                 .collect::<Vec<_>>()
         );
     }
@@ -658,8 +726,80 @@ async fn repaired_acquisition_survives_independent_adoption_and_both_role_handof
             );
         });
     assert_eq!(report.progression, ScenarioProgression::Automatic);
-    fixture.a.assert_no_manual_advancement();
-    fixture.b.assert_no_manual_advancement();
+    let adoption_id = report
+        .adoption_b_id
+        .as_deref()
+        .expect("automatic scenario reports B's durable adoption");
+    assert_eq!(
+        report.adoption_b_publisher.as_deref(),
+        Some(report.org_a_id.as_str())
+    );
+    let adoption_request = fixture.b.adoption_request();
+    assert_eq!(adoption_request["mission_id"], report.mission_b_id);
+    assert_eq!(adoption_request["requirement_id"], report.requirement_b_id);
+    assert_eq!(adoption_request["role_id"], report.verifier_role_id);
+    assert_eq!(
+        adoption_request["responsibility_id"],
+        report.responsibility_b_id
+    );
+    assert!(fixture
+        .a
+        .requests
+        .lock()
+        .unwrap()
+        .iter()
+        .all(|request| request.method != "POST" || request.path != "/api/v1/capability-adoptions"));
+    let (status, adoption) = get(&fixture.b, &format!("/capability-adoptions/{adoption_id}")).await;
+    assert_eq!(status, StatusCode::OK, "{adoption}");
+    assert_eq!(adoption["phase"], "accepted");
+    assert_eq!(adoption["selection"]["publisher"], report.org_a_id);
+    assert_eq!(
+        adoption["selection"]["capability_id"],
+        report.artifact.capability_id
+    );
+    assert_eq!(
+        adoption["selection"]["version"],
+        report.artifact.capability_version
+    );
+    assert_eq!(
+        adoption["artifact"],
+        serde_json::to_value(&report.artifact).unwrap()
+    );
+    assert_eq!(adoption["installation_id"], report.installation_b_id);
+    assert_eq!(adoption["job_ids"], json!(report.acceptance_b_jobs));
+    assert_eq!(adoption["acceptance_ref"], report.acceptance_b_ref);
+    assert_eq!(adoption["suite_id"], suite("b").suite_id);
+    assert!(adoption["rejection_ref"].is_null());
+    // The driver observed this accepted status before it could request the
+    // verifier handoff. The terminal record remains identical afterward.
+    {
+        let requests = fixture.b.requests.lock().unwrap();
+        let (observed_index, observed) = requests
+            .iter()
+            .enumerate()
+            .find(|(_, request)| {
+                request
+                    .adoption_response
+                    .as_ref()
+                    .is_some_and(|body| body["phase"] == "accepted")
+            })
+            .unwrap();
+        assert_eq!(observed.adoption_response.as_ref().unwrap(), &adoption);
+        assert!(requests
+            .iter()
+            .enumerate()
+            .any(|(index, request)| index > observed_index
+                && request.method == "POST"
+                && request.path == "/api/v1/org-changes"
+                && request.body["proposal"]["operations"]
+                    .as_array()
+                    .is_some_and(|operations| operations
+                        .iter()
+                        .any(|operation| operation["op"] == "RetireRole"
+                            && operation["role_id"] == report.verifier_role_id))));
+    }
+    fixture.a.assert_server_owned_progression();
+    fixture.b.assert_server_owned_progression();
     assert_eq!(report.acquisition_attempt, 1);
     assert_eq!(report.artifact.capability_version, "1.0.1");
     assert_eq!(report.acquisition_usage.model_calls, 2);
@@ -926,6 +1066,15 @@ async fn repaired_acquisition_survives_independent_adoption_and_both_role_handof
     // existing DB/config. No imported A checkpoint or acquisition client exists.
     fixture.b.restart(fixture.providers.set(Side::B)).await;
     let restarted = &fixture.b;
+    let (status, restored_adoption) =
+        get(restarted, &format!("/capability-adoptions/{adoption_id}")).await;
+    assert_eq!(status, StatusCode::OK, "{restored_adoption}");
+    assert_eq!(restored_adoption, adoption, "accepted adoption survives verifier retirement and process restart with the same pin, jobs and proof");
+    assert_eq!(
+        restarted.adoption_request(),
+        adoption_request,
+        "recovery observes the existing intent without creating another one"
+    );
     let accepted = restarted
         .app
         .store
@@ -978,8 +1127,8 @@ async fn repaired_acquisition_survives_independent_adoption_and_both_role_handof
         JobStatus::Succeeded
     );
     assert!(restarted.app.store.commitments().unwrap().is_empty());
-    fixture.a.assert_no_manual_advancement();
-    fixture.b.assert_no_manual_advancement();
+    fixture.a.assert_server_owned_progression();
+    fixture.b.assert_server_owned_progression();
     let world = fixture.providers.world.lock().unwrap();
     assert_eq!(world.model_requests.len(), 2);
     assert_eq!(world.actors.len(), 2);
@@ -1004,8 +1153,16 @@ async fn wrong_fresh_output_stops_after_transport_success_without_role_handoffs(
         ),
         "{error}"
     );
-    fixture.a.assert_no_manual_advancement();
-    fixture.b.assert_no_manual_advancement();
+    fixture.a.assert_server_owned_progression();
+    fixture.b.assert_server_owned_progression();
+    let adoption_request = fixture.b.adoption_request();
+    let adopted = fixture.b.app.store.list_adoptions(0, 32).unwrap();
+    assert_eq!(adopted.len(), 1);
+    let status = serde_json::to_value(adopted[0].status()).unwrap();
+    assert_eq!(status["phase"], "accepted");
+    assert_eq!(status["requirement_id"], adoption_request["requirement_id"]);
+    assert_eq!(status["selection"]["publisher"], "scenario_a");
+    assert!(status["acceptance_ref"].as_str().is_some());
     let job = fixture
         .b
         .app
@@ -1126,8 +1283,22 @@ async fn ambiguous_actor_creation_stops_without_retry_or_false_inheritance() {
         serde_json::to_value(fixture.a.app.store.acquisition_counters().unwrap()).unwrap(),
         counts
     );
-    fixture.a.assert_no_manual_advancement();
-    fixture.b.assert_no_manual_advancement();
+    fixture.a.assert_server_owned_progression();
+    fixture.b.assert_server_owned_progression();
+    assert!(fixture
+        .b
+        .app
+        .store
+        .list_adoptions(0, 32)
+        .unwrap()
+        .is_empty());
+    assert!(fixture
+        .b
+        .requests
+        .lock()
+        .unwrap()
+        .iter()
+        .all(|request| request.method != "POST" || request.path != "/api/v1/capability-adoptions"));
     let world = fixture.providers.world.lock().unwrap();
     assert_eq!(world.requests.len(), request_count);
     assert_eq!(world.model_requests.len(), 1);
@@ -1163,7 +1334,7 @@ async fn automatic_scenario_refuses_disabled_automation_before_creating_missions
         assert_eq!(state.revision, 0);
         assert!(state.missions.is_empty());
         assert!(state.roles.is_empty());
-        org.assert_no_manual_advancement();
+        org.assert_server_owned_progression();
         assert!(org
             .requests
             .lock()
@@ -1191,8 +1362,8 @@ async fn role_stub_and_private_actor_access_require_explicit_scenario_opt_in() {
     assert!(fixture.driver().run(&spec).await.is_err());
     assert!(fixture.a.app.current_state().unwrap().missions.is_empty());
     assert!(fixture.b.app.current_state().unwrap().missions.is_empty());
-    fixture.a.assert_no_manual_advancement();
-    fixture.b.assert_no_manual_advancement();
+    fixture.a.assert_server_owned_progression();
+    fixture.b.assert_server_owned_progression();
     let world = fixture.providers.world.lock().unwrap();
     assert!(world.model_requests.is_empty());
     assert!(world.requests.is_empty());
