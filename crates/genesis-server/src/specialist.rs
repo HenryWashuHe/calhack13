@@ -369,7 +369,8 @@ fn advanceable(record: &OrgChangeRecord) -> bool {
             .any(|o| matches!(o.state, S::Pending | S::AwaitingReadiness))
 }
 
-/// Re-run sagas with pending asynchronous operations. The provider runtime
+/// Re-run sagas with pending asynchronous operations and advance running
+/// specialist jobs (see [`crate::specialist_jobs`]). The provider runtime
 /// itself honors poll due times, so frequent passes do not mean frequent
 /// provider calls. Returns `None` when no asynchronous provider is configured.
 pub fn spawn(app: AppState, every: Duration) -> Option<tokio::task::JoinHandle<()>> {
@@ -392,6 +393,7 @@ pub fn spawn(app: AppState, every: Duration) -> Option<tokio::task::JoinHandle<(
                     tracing::warn!(change = %c.change_id, error = %e.message, "specialist provisioning pass failed");
                 }
             }
+            crate::specialist_jobs::advance_jobs(&app).await;
         }
     }))
 }
