@@ -287,8 +287,13 @@ follow a committed write. Local HTTP fixtures, not provider/source execution.
 pass with scoped strict Clippy/fmt, original 144 lines unchanged; mutation campaign
 is author-reported. Adoption-document reconciliation #138 `7975780d` merged at
 `1af21d2c`; Henry's acknowledged authority connection remains unimplemented.
-Optional flood-watch #143 remains under review, not a replacement goal or a new
-Ines assignment.
+Optional flood-watch [#143 is held at `bc993197`](https://github.com/HenryWashuHe/genesis-history-experiment/pull/143#issuecomment-6389070775):
+unknown readings clear an active response; repeated episode IDs and lost pending
+transitions break recovery; downstream attachment is development-only, not verified
+inheritance. Preserve the 44-line `bac2427` file unchanged: two unknown-state
+regressions fail, one normal control and all seven original tests pass. It is not
+a replacement goal or a new Ines assignment. ACP iteration #144 `50e4405` remains
+under review pending existing-contract interface agreement.
 
 #126 `b7bdb18` remains held on an early-decision race, poll-failure evidence loss,
 cross-organization acknowledgment and malformed success. Its four mocked failures
