@@ -5,13 +5,22 @@ GENESIS is infrastructure for **networked recursive capability improvement with
 fixed model weights**. The current [implementation inventory](IMPLEMENTATION_STATUS.md)
 includes the source/receipt/ledger foundations, #37–#39's local simulator
 (22 evaluator tests) and #50–#52's checkpointed method-source generation
-(125 forge tests on its reviewed tree). The generation path exports a host-bound
-package; no live model generation or method execution is established. Executor
-#42–#45 and scoring/verdict #46/#48 remain held. Handwritten controls, including
+(125 forge tests on its reviewed tree). Executor foundations/session #42/#43 are
+also merged; their reviewed composition executed 19 portable tests, while one
+Linux namespace test self-skipped. The generation path exports a host-bound
+package; no live model generation or execution of a generated method is established.
+Runtime #44/#45, verdict #48 and hidden scoring #57 remain held; #46's own findings
+are cleared but it depends on the runtime stack. #57's local process regression
+shows that recovery to Unknown does not establish that a candidate stopped before
+hidden scoring; this is not a Linux namespace test. Handwritten controls, including
 the separately reported live Apify parser baseline, do not demonstrate generated
 methods. No independent method acceptance, A → B → A loop or recursive-benefit
-result is established. Provider-default sampling and separately recorded
-generation costs still need explicit settings and combined accounting for G4.
+result is established. Core identity checks and declared combined-cost accounting
+(#56/#58/#59) are merged, including unsuccessful or unused generation and unknown
+usage. The offline assessment CLI (#60) is also merged. Provider-default sampling,
+complete operation history, budget enforcement and the controlled comparison
+remain open for G4. Experimental namespace and storage foundations are not a
+general untrusted-code isolation guarantee.
 The [ongoing goal](ONGOING_GOAL.md#completion-gates-and-evidence)
 defines the authoritative G0–G4 completion criteria. The event-organizer
 product/demo is superseded; its code remains an integration fixture.

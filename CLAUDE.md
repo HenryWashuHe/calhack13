@@ -20,10 +20,13 @@ claims; the last needs independent comparative evidence.
 Event organization is discarded as the product/demo. Preserve existing venue
 code/tests as historical integration fixtures; do not expand that product story
 or use its completion as the new gate. The [invention-lab A → B → A demonstration](docs/INVENTION_LAB_DEMO.md)
-is proposed, not complete. Its simulator primitives (#37–#39) are merged;
-the executor/scoring/verdict stack (#42–#46 and #48) has open review holds. The forge's
-single-attempt method-generation path (#50–#52) is merged, but no live generated
-method, accepted method execution or recursive-benefit result is established.
+is proposed, not complete. Its simulator (#37–#39), executor foundations/session
+(#42/#43) and single-attempt method-generation path (#50–#52) are merged.
+Runtime #44/#45, verdict #48 and hidden scoring #57 remain held; #46's own findings
+are cleared but it depends on the runtime stack. No live generated method, independently
+accepted method execution or recursive-benefit result is established. Best-effort
+namespace mounts and trusted-directory storage are experimental boundaries,
+not proof of safe general untrusted execution.
 
 **Ongoing work is resumed under [the repository goal](docs/ONGOING_GOAL.md).**
 The existing hourly continuation is active. At this checkpoint the older app Goal
@@ -39,16 +42,21 @@ branch/head updates, before editing or assigning work. Check goal alignment at
 every milestone. All lower checkpoints are historical.
 
 - Henry's core Claude owns the acknowledged evaluator/executor/scoring and
-  method-adoption lanes. Preserve independent regressions while correcting
-  #42–#46 and #48; exact heads and corrected findings are in the current handoff and PR
-  reviews. Confirmed failed execution with independently scoreable output is
-  allowed by the adopted contract; unknown execution/accounting remains distinct.
+  method-adoption lanes. Preserve the now-passing finalization/reply-backpressure
+  regressions while correcting #44's unbounded request queue and #48's verdict
+  precedence. Exact sources and checks are in the current handoff. Confirmed
+  failed execution with scoreable output is allowed; unknown execution/accounting
+  must still prevent a conclusive verdict. #57 must establish that every candidate
+  process stopped before hidden scoring; recovery to Unknown is not termination
+  evidence. Preserve the independently reproduced local-process regression.
 - Eric (`EricZhu-31`) owns the separately assigned lab UI design/subtree;
   acknowledgment remains outstanding. Do not transfer it implicitly.
 - ACP Claude owns #3–#5 bridge/journal corrections.
 - Codex owns shared contracts, the merged forge method-generation path and
-  independent integration review. Next, coordinate its existing source-package
-  seam with Henry's executor and close explicit-settings/combined-cost gaps.
+  independent integration review. Core identity checks and declared combined-cost
+  accounting (#56/#58/#59), plus the offline read-only cost-assessment CLI (#60),
+  are merged. Preserve Henry's runtime files. Explicit sampling, complete history,
+  budget enforcement and end-to-end comparison remain open.
   The provider session retains live reruns and reports; its Apify baseline pass
   is operator-reported and uses a handwritten parser; it is not model-generation
   evidence.
