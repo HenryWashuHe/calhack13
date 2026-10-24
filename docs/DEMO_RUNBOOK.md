@@ -308,14 +308,18 @@ plan around them:
   happens anyway, say it plainly: GENESIS refused to guess whether the
   provider acted. Then switch to the labeled recording. Once `acquired`,
   restarts during finalization were recovered in every run.
-- **Org B while adoption is checking:** a restart mid-check stops adoption at
-  `attention / checks`, and on main there is no recovery path: no retry
-  endpoint is merged. An operator retry is proposed in #86, still under
-  review. Its checks must distinguish terminal provider outcomes from local
-  failures, including failed status reads while a provider run is still active.
-  The current proposal has a reproduced duplicate-run path and is not a
-  supported recovery procedure. Don't stop B between its `RequestCapability`
-  and INSTALLED; preserve the stopped record for reconciliation.
+- **Org B while adoption is checking:** a restart mid-check can stop adoption at
+  `attention / checks`. The bounded operator retry endpoint rejects unknown,
+  running or locally rejected effects, and rejects failed checks that retain a
+  native receipt. A failed status read cannot authorize a second submission.
+  Retry is available for eligible registry/candidate/configuration/conflict
+  stops and checks with collected evidence or `failed` without a receipt
+  (a pre-submission refusal or terminal submission response). At most two
+  retries preserve the previous adoption IDs.
+  A terminal failure learned after submission remains blocked because its
+  sanitized record cannot yet distinguish it from a failed read. Preserve that
+  record for reconciliation; do not use retry as generic restart recovery.
+  See [the exact retry gates](CAPABILITY_GAP_ADOPTION.md).
 - `rehearse_autonomy` does not rehearse a restart: each launch creates fresh
   temporary databases, so stopping and relaunching it starts both orgs over
   rather than resuming them. Only the crash test above resumes the same

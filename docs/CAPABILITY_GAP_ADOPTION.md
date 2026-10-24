@@ -119,8 +119,9 @@ the run and it later failed locally; the stored failure can't tell a
 terminal provider result from a failed status read). There is no
 reconciliation of such runs yet, so the gap stays at attention. In practice
 retry recovers registry, candidate and conflict stops (no checks yet) and
-checks that were refused or finished before anything ran; it does not
-recover a check that failed after the provider accepted it, or a stop that
+checks with collected evidence or a definite failure before submission or in
+the submission response; it does not recover a check that failed after a
+receipt was saved, or a stop that
 interrupted one. Automatic paths never retry. `invalid_record` is never
 retryable. A retry never releases the gap to
 synthesis; only a definitive empty search does. Status shows `attempt`,

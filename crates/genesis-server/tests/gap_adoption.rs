@@ -172,6 +172,7 @@ impl World {
                 }
                 if self.failing_submits > 0 {
                     self.failing_submits -= 1;
+                    self.failed.insert(run);
                     let mut reply = self.run(run);
                     reply["data"]["status"] = json!("FAILED");
                     return (StatusCode::CREATED, reply);
@@ -1462,6 +1463,16 @@ async fn unknown_check_outcomes_block_retry_definite_ones_allow_it_and_retries_a
     f.stop();
     assert_eq!(f.record().unwrap().code, Some(GapAdoptionCode::Checks));
     let first = f.record().unwrap().adoption_id.unwrap();
+    let terminal: Value = reqwest::get(format!("{}/v2/actor-runs/b-run-0", f.providers.url))
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert_eq!(
+        terminal["data"]["status"], "FAILED",
+        "the retry positive control must retain terminal provider evidence"
+    );
     f.providers.fail_submits(0);
     let (status, body) = retry(&f, "operator").await;
     assert_eq!(status, reqwest::StatusCode::OK, "{body}");
