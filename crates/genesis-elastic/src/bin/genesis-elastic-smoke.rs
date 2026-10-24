@@ -7,6 +7,8 @@
 //!
 //! ```sh
 //! cargo run -p genesis-elastic --bin genesis-elastic-smoke -- --org smoke-org --converse --cleanup
+//! # --skip-capabilities: for an org data key that cannot write the shared index
+//! # --names: print the index/tool names for an org (offline)
 //! ```
 
 use genesis_core::engine::RoleToProvision;
@@ -47,6 +49,24 @@ fn flag(name: &str) -> bool {
 async fn main() {
     let _ = dotenvy::dotenv(); // keys may live in a git-ignored .env
     let org = arg("--org").unwrap_or_else(|| "genesis-smoke".into());
+    if flag("--names") {
+        // Offline: the resource names to put in API key role descriptors.
+        let prefix = std::env::var("GENESIS_ELASTIC_INDEX_PREFIX")
+            .ok()
+            .filter(|p| !p.trim().is_empty())
+            .unwrap_or_else(|| "genesis".into());
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&json!({
+                "org": org,
+                "evidence_index": evidence_index_name(&prefix, &org),
+                "capability_index": format!("{prefix}-capabilities"),
+                "evidence_tool": format!("genesis-{}-evidence-search", org_namespace(&org)),
+            }))
+            .unwrap_or_default()
+        );
+        return;
+    }
     let run = format!("{}", chrono::Utc::now().timestamp());
     let token = format!("smoketoken{run}");
     let mut r = Report {
@@ -99,39 +119,41 @@ async fn main() {
                 tokio::time::sleep(Duration::from_millis(500)).await;
             }
             r.step("evidence search", found.is_some(), json!({"doc_id": found}));
-            let cap = CapabilityDoc {
-                doc_id: format!("smoke-cap-{run}@0.0.1"),
-                capability_id: format!("smoke-cap-{run}"),
-                version: "0.0.1".into(),
-                publisher: org.clone(),
-                intent: format!("Smoke capability {token}"),
-                applicability_conditions: vec![],
-                known_limitations: vec!["smoke test document".into()],
-                required_permissions: vec![],
-                source_digest: "smoke".into(),
-                state: "PUBLISHED".into(),
-            };
-            let indexed = es.index_capabilities(&[cap]).await;
-            r.step(
-                "capability index",
-                indexed.is_ok(),
-                json!(indexed.map_err(|e| e.to_string())),
-            );
-            let mut cap_found = None;
-            for _ in 0..20 {
-                if let Ok(h) = es.search_capabilities(&token, None, 5).await {
-                    if let Some(hit) = h.into_iter().next() {
-                        cap_found = Some(hit.doc.capability_id);
-                        break;
+            if !flag("--skip-capabilities") {
+                let cap = CapabilityDoc {
+                    doc_id: format!("smoke-cap-{run}@0.0.1"),
+                    capability_id: format!("smoke-cap-{run}"),
+                    version: "0.0.1".into(),
+                    publisher: org.clone(),
+                    intent: format!("Smoke capability {token}"),
+                    applicability_conditions: vec![],
+                    known_limitations: vec!["smoke test document".into()],
+                    required_permissions: vec![],
+                    source_digest: "smoke".into(),
+                    state: "PUBLISHED".into(),
+                };
+                let indexed = es.index_capabilities(&[cap]).await;
+                r.step(
+                    "capability index",
+                    indexed.is_ok(),
+                    json!(indexed.map_err(|e| e.to_string())),
+                );
+                let mut cap_found = None;
+                for _ in 0..20 {
+                    if let Ok(h) = es.search_capabilities(&token, None, 5).await {
+                        if let Some(hit) = h.into_iter().next() {
+                            cap_found = Some(hit.doc.capability_id);
+                            break;
+                        }
                     }
+                    tokio::time::sleep(Duration::from_millis(500)).await;
                 }
-                tokio::time::sleep(Duration::from_millis(500)).await;
+                r.step(
+                    "capability search",
+                    cap_found.is_some(),
+                    json!({"capability_id": cap_found}),
+                );
             }
-            r.step(
-                "capability search",
-                cap_found.is_some(),
-                json!({"capability_id": cap_found}),
-            );
         }
     }
 
