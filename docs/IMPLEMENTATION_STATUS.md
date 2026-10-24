@@ -255,9 +255,12 @@ not retained. Independent retained-file consistency checks are not cloud-source
 authentication. [Closed diagnostics](invention-lab/contracts/generation.md) are now
 implemented at source `f4fa271e603d3b38be1b8d9caeb2215bda2f04fd`: 206 forge tests
 across 38 targets pass, zero failed/ignored; strict all-target Clippy/fmt/diff pass.
-These local/loopback checks preserve #89 unchanged and establish no new live result.
-Next: a fresh separately declared bounded attempt, then a valid-package handoff to
-Henry if produced. Finite-chain ceilings remain proposed; G0–G4 remain open.
+Those local checks preserve #89 unchanged. The [separate second cloud attempt](invention-lab/evidence/live-method-20261024-diagnostic/README.md)
+on `7d6119d` failed with `content_shape` / `end_turn`: 1 call, 4,028 input / 4,892
+output tokens, 36,790 ms; no package/execution and no reservation refund.
+Codex's strict reasoning-prefix/one-text parser fix is active, not yet merged or
+validated here. Its proposed cause remains inference; any later attempt needs a
+fresh declaration. Henry's package handoff and G0–G4 remain open; chain ceilings proposed.
 Earlier delivery/source-specific evidence remains in the handoff; overlapping
 test counts must not be summed. Repair WIP is isolated in draft #7 and its
 original files remain untouched. Follow current
