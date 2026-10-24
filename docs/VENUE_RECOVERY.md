@@ -1,8 +1,7 @@
 # Fetch venue recovery
 
-**Work in progress on `codex/fetch-venue-recovery`.** This guide describes the
-implemented source contract; runtime integration and review are still in progress.
-It makes no passing-test, live-provider or completed-mission claim.
+This opt-in implementation has passed the local integration checks below.
+Cloud-provider validation and the complete autonomous mission remain open.
 
 After an accepted CREAO assessment reopens an event requirement, an operator can
 start bounded recovery using already verified candidate venue invocations.
@@ -261,3 +260,20 @@ genuine CREAO Share link. Loopback authenticated-boundary fixtures do not execut
 the native SDK; separate local signed-process tests do not prove Agentverse cloud
 discovery. Frozen same-event candidate pages do not demonstrate discovery of an
 unseen venue layout. Preserve these distinctions when recording results.
+
+## Validation evidence
+
+The integrated implementation passed 42 venue-assessment tests (including eight
+recovery cases), 135 server-library tests, 78 Fetch tests, scoped strict all-target
+Clippy and formatting. The Python bridge passed 34 tests, including real
+separate-process SDK-signature exchanges and the shared Rust/Python selection
+fixture. The coordinator integration tests use a synthetic authenticated bridge
+boundary and loopback Apify/CREAO responses; they do not run that whole path
+through the separate Python processes.
+
+Recovery cases cover exact receipt and child identity across restart, incorrect
+semantics without mission effects, foreign-event/ACL refusal, CREAO progress
+during a Fetch inbox outage, corrupt-row scheduling fairness, actual contract-slot
+reuse, expiry without a configured runtime, and bounded exact cleanup retries.
+These checks establish the tested local behaviors. They do not establish cloud
+registration/discovery, live web facts, a genuine CREAO Share link, or booking.
