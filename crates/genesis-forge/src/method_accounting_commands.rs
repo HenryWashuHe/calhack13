@@ -40,8 +40,13 @@ fn resolve(base: &Path, path: &Path) -> Result<PathBuf, String> {
     }
     Ok(base.join(path))
 }
-pub fn run(args: &Arguments) -> Result<u8, String> {
-    let path = args.path("--manifest")?;
+pub(crate) struct LoadedCosts {
+    pub scope: CostScope,
+    pub generations: Vec<MethodSynthesisSession>,
+    pub trial: Option<(TrialPlan, Vec<TrialEvidence>)>,
+}
+/// Every path inside this manifest is relative to this manifest, not its caller.
+pub(crate) fn load(path: &Path) -> Result<LoadedCosts, String> {
     let manifest: Manifest = storage::read_json(path)?;
     if manifest.schema != "genesis-method-cost-input/1"
         || manifest.generation_checkpoints.len() > 64
@@ -73,6 +78,18 @@ pub fn run(args: &Arguments) -> Result<u8, String> {
             ))
         })
         .transpose()?;
+    Ok(LoadedCosts {
+        scope,
+        generations,
+        trial,
+    })
+}
+pub fn run(args: &Arguments) -> Result<u8, String> {
+    let LoadedCosts {
+        scope,
+        generations,
+        trial,
+    } = load(args.path("--manifest")?)?;
     let trial = trial.as_ref().map(|(p, e)| (p, e.as_slice()));
     if let Some(path) = args.paths.get("--admission") {
         let admission: GenerationAdmission = storage::read_json(path)?;
