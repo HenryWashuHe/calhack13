@@ -179,11 +179,12 @@ class GatewayTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("private-detail", text)
         self.assertNotIn(TOKEN, text)
         self.observation_status = 201
-        for _ in range(3):
+        # The refused attempt counts: intent is journaled before every submission.
+        for _ in range(2):
             await self.collect("report main hall closed on Nov 14 again")
         text = (await self.collect("report yet another closure report"))[0]
         self.assertIn("limited number of reports per hour", text)
-        self.assertEqual(sum(1 for c in self.calls if c["method"] == "POST"), 4)
+        self.assertEqual(sum(1 for c in self.calls if c["method"] == "POST"), 3)
 
     async def test_unconfirmed_post_is_reported_not_repeated(self):
         self.hang_post = True
@@ -341,7 +342,7 @@ class ProtocolTests(unittest.IsolatedAsyncioTestCase):
         from uagents import Model
         from uagents_core.contrib.protocols.chat import ChatMessage
         self.gateway = MagicMock()
-        async def respond(text):
+        async def respond(text, **_identity):
             yield "first"
             yield "second"
             yield "last"
@@ -377,7 +378,7 @@ class ProtocolTests(unittest.IsolatedAsyncioTestCase):
         await self.handler(self.ctx, "sender", self.message([TextContent(type="text", text="report hall closed"), item]))
 
     async def test_gateway_failure_is_generic(self):
-        async def failing(_text):
+        async def failing(_text, **_identity):
             raise Invalid("secret agent token value")
             yield  # pragma: no cover
         self.gateway.respond = failing
