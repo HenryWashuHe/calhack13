@@ -285,6 +285,13 @@ async fn hosted_v2_creation_uses_edit_poll_and_keeps_exact_agent() {
     assert_eq!(requests.len(), 2);
     assert_eq!(requests[0].1, "/v2/agents");
     assert_eq!(requests[1].1, format!("/v2/agents/{AGENT}/edits/{RUN_A}"));
+
+    // A stored ticket cannot be relabeled as a v1 operation even when the
+    // operation fingerprint is recomputed for the changed spec.
+    let mut mismatched = completed.clone();
+    mismatched.spec.api_version = ApiVersion::V1;
+    mismatched.fingerprint = mismatched.spec.fingerprint().unwrap();
+    assert!(matches!(mismatched.validate(), Err(RuntimeError::Invalid)));
 }
 fn execution(id: &str, event: u64) -> OperationSpec {
     OperationSpec {
