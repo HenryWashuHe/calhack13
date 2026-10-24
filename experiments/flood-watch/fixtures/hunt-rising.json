@@ -1,0 +1,30 @@
+{
+  "label": "SYNTHETIC timeline for rehearsal. Gauge metadata and flood stages are the real NOAA NWPS values for HNTT2 (read Oct 24, 2026); every stage reading and alert below is invented.",
+  "gauge": {
+    "lid": "HNTT2",
+    "usgsId": "08165500",
+    "name": "Guadalupe River at Hunt",
+    "latitude": 30.0699,
+    "longitude": -99.3217,
+    "downstreamLid": "GRHT2",
+    "flood": {
+      "stageUnits": "ft",
+      "categories": {
+        "action": { "stage": 10 },
+        "minor": { "stage": 10 },
+        "moderate": { "stage": 12 },
+        "major": { "stage": 22 }
+      }
+    }
+  },
+  "expected": ["flood_started", "flood_rising", "flood_ended"],
+  "steps": [
+    { "at": "2026-11-02T03:00:00Z", "stage_ft": 7.7, "alerts": [] },
+    { "at": "2026-11-02T04:00:00Z", "stage_ft": 8.6, "alerts": ["Flash Flood Watch"] },
+    { "at": "2026-11-02T05:00:00Z", "stage_ft": 10.8, "alerts": ["Flash Flood Warning"] },
+    { "at": "2026-11-02T06:00:00Z", "stage_ft": 13.9, "alerts": ["Flash Flood Warning"] },
+    { "at": "2026-11-02T07:00:00Z", "stage_ft": 15.2, "alerts": ["Flash Flood Warning"] },
+    { "at": "2026-11-02T10:00:00Z", "stage_ft": 9.4, "alerts": ["Flood Warning"] },
+    { "at": "2026-11-02T14:00:00Z", "stage_ft": 7.9, "alerts": [] }
+  ]
+}
