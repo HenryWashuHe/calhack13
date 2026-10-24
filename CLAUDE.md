@@ -2,7 +2,10 @@
 
 ## Current checkpoint: recursive capability roadmap
 
-Main through #110 is `16783da6063e463472aafa0ac228e2d7eab9f8e0`; after the queue cleared, #114 opened for an ASI:One mission adapter and this roadmap became #115.
+Main through #115 is `841295a`. The reviewed recursive roadmap is merged.
+#114 remains held at `3ac1fc6`: 119 original Python tests pass, while `091100b`
+reproduces duplicate ACP observation submission after restart and a false no-change
+response after an accepted POST. Claude owns those corrections.
 Newer GitHub state and [issue #4](https://github.com/HenryWashuHe/genesis/issues/4)
 take precedence over the historical snapshots below. The mission goal is active.
 
@@ -27,12 +30,19 @@ development-workflow evaluation. Appropriate non-reuse is valid. Preserve one
 justified organizational change, local acceptance, independent evaluation and
 failed/unknown outcomes; capability counts do not prove improvement.
 
+**Owner decision, October 23, 2026 (evening):** the pitch, README tagline and
+Devpost lead with "an AI organization that changes shape and keeps what it
+learns". The recursive capability network is presented as the long-term goal
+("Where this goes") and in "What's next", not as the headline. Keep the two
+consistent; see [docs/PITCH.md](docs/PITCH.md) and [docs/DEVPOST.md](docs/DEVPOST.md).
+
 Use the [refreshed ownership map](docs/AGENT_HANDOFF.md#current-ownership-and-next-work)
 and newer issue #4 claims before assigning or editing work. Henry's Claude keeps
 candidate decision logging and the narrow terminal-RunFailed retry contract.
-Eric's replay work is merged, with no new claim inferred. Codex continues native
-Fetch + automatic intake composition; later network repair contracts need a scoped
-handoff. Claude's #114 owns its new mission ACP adapter/pitch/submission changes;
+Eric's replay work is merged, with no new claim inferred. Codex's native Fetch +
+automatic intake composition `059a796` passes both explicit native checks, strict
+assessment Clippy and formatting; scheduling is explicit and Apify/CREAO remain
+fixtures. Next network repair contracts need a scoped handoff. Claude's #114 owns its new mission ACP adapter/pitch/submission changes;
 review it before implementing overlapping ACP work. Preserve this framing when
 composing its README changes. The side-chat Claude brief is a proposal, not a blanket assignment.
 
