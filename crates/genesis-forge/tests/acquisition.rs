@@ -6,7 +6,7 @@ use genesis_forge::synthesis::{ModelConfig, SynthesisPrompt};
 use genesis_forge::synthesis_http::AnthropicGenerator;
 use genesis_forge::{
     generated_candidate, AcquisitionPhase, AcquisitionPlan, AcquisitionSession, ActionKind,
-    CandidateSpec, Phase,
+    CandidateSpec, Phase, RepairFeedback,
 };
 use genesis_verification::{decode_json, json_sha256, Decision, ExecutionEvidence, OracleSuite};
 use serde_json::{json, Value};
@@ -330,6 +330,298 @@ fn assert_fresh_pipeline(requests: &[String], attempt: &str, total_cases: usize)
             !request.contains("PUBLIC_ACQUISITION_EXAMPLE_3d9a") && !request.contains("grand-hall")
         }),
         "Actor requests must not carry model examples or oracle answers"
+    );
+}
+
+fn deployed_plan(parent: &AcquisitionSession, suffix: &str) -> AcquisitionPlan {
+    let mut plan = parent.plan().clone();
+    plan.repair = None;
+    plan.request.operation_id = format!("deployed-{suffix}");
+    plan.request.candidate = parent.generation().request().candidate.clone();
+    plan.request.candidate.actor_name = format!("genesis-deployed-{suffix}");
+    plan.request.candidate.capability_version = format!("deployed-{suffix}");
+    plan
+}
+
+fn deployed_repair(
+    parent: &AcquisitionSession,
+    suite: &OracleSuite,
+    suffix: &str,
+) -> AcquisitionSession {
+    AcquisitionSession::new_deployed_repair(
+        deployed_plan(parent, suffix),
+        suite,
+        parent,
+        format!("deployment-failure:{suffix}"),
+        vec![RepairFeedback::ValueMismatch],
+    )
+    .unwrap()
+}
+
+async fn verified_parent(intra_acquisition_repair: bool) -> (AcquisitionSession, OracleSuite) {
+    let (mut parent, suite, _) = prepared(intra_acquisition_repair).await;
+    if intra_acquisition_repair {
+        finish_forge(&mut parent, &suite, "parent-initial", wrong_outputs()).await;
+        advance_local(&mut parent, &suite);
+        generation(&mut parent, &suite, REPAIRED_PARSER, "msg_parent_repair").await;
+        advance_local(&mut parent, &suite);
+    }
+    finish_forge(&mut parent, &suite, "parent", outputs()).await;
+    parent.verified(&suite).unwrap();
+    (parent, suite)
+}
+
+#[tokio::test]
+async fn deployed_repair_uses_current_verified_parser_and_fresh_forge_without_recursive_history() {
+    let (parent, suite) = verified_parent(true).await;
+    assert_eq!(parent.forge().unwrap().repair_count(), 1);
+    let parent_bytes = serde_json::to_vec(&parent).unwrap();
+    let mut replacement = deployed_repair(&parent, &suite, "one");
+    let origin = replacement
+        .deployed_repair_origin_sha256()
+        .unwrap()
+        .unwrap();
+    assert_eq!(replacement.attempt(), 0);
+    let archive = serde_json::to_value(&replacement).unwrap();
+    assert!(archive["original"].is_null());
+    assert_eq!(
+        archive["deployed_repair_origin"]["parent"]
+            .as_object()
+            .unwrap()
+            .len(),
+        2
+    );
+    assert_eq!(
+        archive["deployed_repair_origin"]["parent"]["generation"],
+        serde_json::to_value(parent.generation()).unwrap()
+    );
+    let parser = "export function extract() { throw new Error('deployed replacement one'); }";
+    let prompt = generation(&mut replacement, &suite, parser, "msg_deployed_one").await;
+    let public = user_prompt(&prompt);
+    assert_eq!(
+        public["repair"]["previous_extractor_typescript"],
+        REPAIRED_PARSER
+    );
+    assert_eq!(public["repair"]["feedback"], json!(["value_mismatch"]));
+    assert!(!prompt.contains("deployment-failure:"));
+    assert!(!prompt.contains("actor-parent"));
+    advance_local(&mut replacement, &suite);
+    assert_eq!(replacement.forge().unwrap().repair_count(), 0);
+    assert!(replacement.forge().unwrap().parent_operation_id().is_none());
+    assert!(replacement.forge().unwrap().artifact().is_none());
+    let requests = finish_forge(&mut replacement, &suite, "deployed-one", outputs()).await;
+    assert_fresh_pipeline(&requests, "deployed-one", suite.cases.len());
+    assert_eq!(
+        replacement.verified(&suite).unwrap().artifact.actor_id,
+        "actor-deployed-one"
+    );
+    assert_eq!(
+        replacement
+            .deployed_repair_origin_sha256()
+            .unwrap()
+            .as_deref(),
+        Some(origin.as_str())
+    );
+    assert_eq!(serde_json::to_vec(&parent).unwrap(), parent_bytes);
+
+    let mut recursive = deployed_repair(&replacement, &suite, "two");
+    let recursive_json = serde_json::to_value(&recursive).unwrap();
+    let archived = &recursive_json["deployed_repair_origin"]["parent"];
+    assert_eq!(archived.as_object().unwrap().len(), 2);
+    assert!(archived.get("deployed_repair_origin").is_none());
+    assert_eq!(
+        archived["generation"],
+        serde_json::to_value(replacement.generation()).unwrap()
+    );
+    assert_eq!(
+        archived["forge"],
+        serde_json::to_value(replacement.forge().unwrap()).unwrap()
+    );
+    assert_ne!(
+        recursive.deployed_repair_origin_sha256().unwrap(),
+        Some(origin)
+    );
+    let next = "export function extract() { throw new Error('deployed replacement two'); }";
+    generation(&mut recursive, &suite, next, "msg_deployed_two").await;
+    advance_local(&mut recursive, &suite);
+    let requests = finish_forge(&mut recursive, &suite, "deployed-two", outputs()).await;
+    assert_fresh_pipeline(&requests, "deployed-two", suite.cases.len());
+    restore(&recursive, &suite).verified(&suite).unwrap();
+}
+
+#[tokio::test]
+async fn deployed_repair_unchanged_parser_or_rejected_replacement_cannot_open_another_attempt() {
+    let (parent, suite) = verified_parent(false).await;
+    let mut unchanged = deployed_repair(&parent, &suite, "unchanged");
+    generation(
+        &mut unchanged,
+        &suite,
+        INITIAL_PARSER,
+        "msg_unchanged_deployed",
+    )
+    .await;
+    advance_local(&mut unchanged, &suite);
+    assert_eq!(unchanged.phase(), AcquisitionPhase::Rejected);
+    assert!(unchanged.unchanged_repair());
+    assert!(unchanged.forge().is_none());
+    assert!(!unchanged.advance_local(&suite).unwrap());
+    assert!(unchanged.begin_generation(&suite).is_err());
+    assert!(unchanged.prepare_forge(&suite).unwrap().is_none());
+    assert!(unchanged.verified(&suite).is_err());
+
+    let mut rejected = deployed_repair(&parent, &suite, "rejected");
+    generation(
+        &mut rejected,
+        &suite,
+        REPAIRED_PARSER,
+        "msg_rejected_deployed",
+    )
+    .await;
+    advance_local(&mut rejected, &suite);
+    let requests = finish_forge(&mut rejected, &suite, "deployed-rejected", wrong_outputs()).await;
+    assert_fresh_pipeline(&requests, "deployed-rejected", suite.cases.len());
+    let before = serde_json::to_vec(&rejected).unwrap();
+    assert_eq!(rejected.phase(), AcquisitionPhase::Rejected);
+    assert!(!rejected.advance_local(&suite).unwrap());
+    assert!(rejected.begin_generation(&suite).is_err());
+    assert!(rejected.prepare_forge(&suite).unwrap().is_none());
+    assert_eq!(serde_json::to_vec(&rejected).unwrap(), before);
+}
+
+#[tokio::test]
+async fn deployed_repair_refuses_invalid_identity_feedback_and_unverified_parent() {
+    let (parent, suite) = verified_parent(true).await;
+    let candidate = deployed_plan(&parent, "identity");
+    let edits: Vec<fn(&mut AcquisitionPlan, &AcquisitionSession)> = vec![
+        |p, old| p.request.operation_id = old.generation().request().operation_id.clone(),
+        |p, old| {
+            p.request.candidate.actor_name = old.generation().request().candidate.actor_name.clone()
+        },
+        |p, old| {
+            p.request.candidate.capability_version = old
+                .generation()
+                .request()
+                .candidate
+                .capability_version
+                .clone()
+        },
+        |p, _| p.request.candidate.capability_id = "another-capability".into(),
+        |p, old| p.repair = old.plan().repair.clone(),
+    ];
+    for edit in edits {
+        let mut invalid = candidate.clone();
+        edit(&mut invalid, &parent);
+        assert!(AcquisitionSession::new_deployed_repair(
+            invalid,
+            &suite,
+            &parent,
+            "failure:identity".into(),
+            vec![RepairFeedback::ValueMismatch]
+        )
+        .is_err());
+    }
+    for reference in [
+        String::new(),
+        "x".repeat(257),
+        " padded".into(),
+        "line\nbreak".into(),
+    ] {
+        assert!(AcquisitionSession::new_deployed_repair(
+            candidate.clone(),
+            &suite,
+            &parent,
+            reference,
+            vec![RepairFeedback::ValueMismatch]
+        )
+        .is_err());
+    }
+    for feedback in [
+        vec![],
+        vec![RepairFeedback::ValueMismatch; 2],
+        vec![
+            RepairFeedback::ValueMismatch,
+            RepairFeedback::MalformedOutput,
+        ],
+    ] {
+        assert!(AcquisitionSession::new_deployed_repair(
+            candidate.clone(),
+            &suite,
+            &parent,
+            "failure:feedback".into(),
+            feedback
+        )
+        .is_err());
+    }
+    let unverified = AcquisitionSession::new(plan(&suite, false), &suite).unwrap();
+    assert!(AcquisitionSession::new_deployed_repair(
+        candidate,
+        &suite,
+        &unverified,
+        "failure:unverified".into(),
+        vec![RepairFeedback::ValueMismatch]
+    )
+    .is_err());
+}
+
+fn reseal_deployed(value: &mut Value) {
+    value["checkpoint_sha256"] = json!(json_sha256(&json!([
+        "genesis-acquisition-deployed-repair-v1",
+        value["schema_version"],
+        value["plan_sha256"],
+        value["suite_sha256"],
+        value["generation"],
+        value["forge"],
+        value["original"],
+        value["deployed_repair_origin"],
+        value["unchanged_repair"],
+        value["phase"]
+    ])));
+}
+
+#[tokio::test]
+async fn deployed_repair_restore_rechecks_origin_context_and_verified_parser_binding() {
+    let (parent, suite) = verified_parent(false).await;
+    let replacement = deployed_repair(&parent, &suite, "tamper");
+    let value = serde_json::to_value(&replacement).unwrap();
+    for (pointer, changed) in [
+        (
+            "/deployed_repair_origin/failure_ref",
+            json!("failure:substituted"),
+        ),
+        ("/deployed_repair_origin/feedback", json!(["missing_venue"])),
+    ] {
+        let mut tampered = value.clone();
+        *tampered.pointer_mut(pointer).unwrap() = changed;
+        assert!(serde_json::from_value::<AcquisitionSession>(tampered).is_err());
+    }
+    let mut feedback = value.clone();
+    feedback["deployed_repair_origin"]["feedback"] = json!(["missing_venue"]);
+    reseal_deployed(&mut feedback);
+    let restored: AcquisitionSession = serde_json::from_value(feedback).unwrap();
+    assert!(
+        restored.validate(&suite).is_err(),
+        "origin must agree with actual synthesis context"
+    );
+
+    // A separately valid generated parser cannot be substituted for the one
+    // independently exercised by the archived forge, even with a new outer hash.
+    let mut other = AcquisitionSession::new(plan(&suite, false), &suite).unwrap();
+    generation(&mut other, &suite, REPAIRED_PARSER, "msg_substitute_parent").await;
+    let mut swapped = value.clone();
+    swapped["deployed_repair_origin"]["parent"]["generation"] =
+        serde_json::to_value(other.generation()).unwrap();
+    reseal_deployed(&mut swapped);
+    let restored: AcquisitionSession = serde_json::from_value(swapped).unwrap();
+    assert!(restored.validate(&suite).is_err());
+
+    let mut fake_success = value;
+    fake_success["deployed_repair_origin"]["parent"]["forge"]["receipts"][0]["output"]["venues"]
+        [0]["capacity"] = json!(999);
+    reseal_deployed(&mut fake_success);
+    let restored: AcquisitionSession = serde_json::from_value(fake_success).unwrap();
+    assert!(
+        restored.validate(&suite).is_err(),
+        "a stored Verified label is not independent acceptance"
     );
 }
 

@@ -143,6 +143,51 @@ struct ArchivedAttempt {
     generation: SynthesisSession,
     forge: ForgeSession,
 }
+/// A deployed parent is already accepted, not a rejected intra-acquisition
+/// attempt. Retain only its current independently verifiable artifact so a
+/// sequence of deployed repairs does not recursively embed acquisition history.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct DeployedRepairOrigin {
+    failure_ref: String,
+    feedback: Vec<RepairFeedback>,
+    parent: ArchivedAttempt,
+}
+impl DeployedRepairOrigin {
+    fn context(&self) -> Result<SynthesisRepairContext, AcquisitionError> {
+        if self.failure_ref.is_empty()
+            || self.failure_ref.len() > 256
+            || self.failure_ref.trim() != self.failure_ref
+            || self.failure_ref.chars().any(char::is_control)
+        {
+            return Err(AcquisitionError::InvalidPlan);
+        }
+        let context = SynthesisRepairContext {
+            previous_extractor_typescript: self.parent.generation.extractor()?.into(),
+            feedback: self.feedback.clone(),
+        };
+        context.validate()?;
+        Ok(context)
+    }
+    fn validate(
+        &self,
+        plan: &AcquisitionPlan,
+        suite: &OracleSuite,
+    ) -> Result<(), AcquisitionError> {
+        self.context()?;
+        let generation = &self.parent.generation;
+        generation.validate()?;
+        self.parent.forge.verified(suite)?;
+        if plan.repair.is_some()
+            || generation.phase() != SynthesisPhase::Generated
+            || generated_candidate(generation)?.fingerprint()?
+                != self.parent.forge.spec().fingerprint()?
+        {
+            return Err(AcquisitionError::CorruptCheckpoint);
+        }
+        validate_deployed_identity(&plan.request, generation.request())
+    }
+}
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct AcquisitionRecord {
@@ -153,6 +198,8 @@ struct AcquisitionRecord {
     generation: SynthesisSession,
     forge: Option<ForgeSession>,
     original: Option<ArchivedAttempt>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    deployed_repair_origin: Option<DeployedRepairOrigin>,
     unchanged_repair: bool,
     phase: AcquisitionPhase,
     checkpoint_sha256: String,
@@ -193,6 +240,7 @@ impl AcquisitionSession {
                 generation,
                 forge: None,
                 original: None,
+                deployed_repair_origin: None,
                 unchanged_repair: false,
                 phase: AcquisitionPhase::Generating,
                 checkpoint_sha256: String::new(),
@@ -201,6 +249,64 @@ impl AcquisitionSession {
         session.seal()?;
         session.validate(suite)?;
         Ok(session)
+    }
+    /// Start one replacement of an independently verified deployed parser.
+    /// The caller authenticates the external failure reference and exact parent
+    /// artifact. Forge binds that immutable origin and accepts only coarse,
+    /// bounded feedback; it grants no deployment or publication authority.
+    pub fn new_deployed_repair(
+        plan: AcquisitionPlan,
+        suite: &OracleSuite,
+        parent: &AcquisitionSession,
+        failure_ref: String,
+        feedback: Vec<RepairFeedback>,
+    ) -> Result<Self, AcquisitionError> {
+        plan.validate(suite)?;
+        if plan.repair.is_some() {
+            return Err(AcquisitionError::InvalidPlan);
+        }
+        parent.verified(suite)?;
+        validate_deployed_identity(&plan.request, parent.generation().request())?;
+        let origin = DeployedRepairOrigin {
+            failure_ref,
+            feedback,
+            parent: ArchivedAttempt {
+                generation: parent.generation().clone(),
+                forge: parent.forge().ok_or(AcquisitionError::NotVerified)?.clone(),
+            },
+        };
+        let generation = SynthesisSession::new_repair(
+            plan.request.clone(),
+            plan.model.clone(),
+            origin.context()?,
+        )?;
+        let mut session = Self {
+            record: AcquisitionRecord {
+                schema_version: 1,
+                plan_sha256: digest(&plan)?,
+                suite_sha256: suite_digest(suite)?,
+                plan,
+                generation,
+                forge: None,
+                original: None,
+                deployed_repair_origin: Some(origin),
+                unchanged_repair: false,
+                phase: AcquisitionPhase::Generating,
+                checkpoint_sha256: String::new(),
+            },
+        };
+        session.seal()?;
+        session.validate(suite)?;
+        Ok(session)
+    }
+    /// Stable across progress, for the caller's immutable intent binding.
+    pub fn deployed_repair_origin_sha256(&self) -> Result<Option<String>, AcquisitionError> {
+        self.validate_envelope()?;
+        self.record
+            .deployed_repair_origin
+            .as_ref()
+            .map(|origin| digest(&("genesis-deployed-repair-origin-v1", origin)))
+            .transpose()
     }
     pub fn plan(&self) -> &AcquisitionPlan {
         &self.record.plan
@@ -232,7 +338,23 @@ impl AcquisitionSession {
         if r.generation.config() != &r.plan.model {
             return Err(AcquisitionError::CorruptCheckpoint);
         }
-        if let Some(original) = &r.original {
+        if let Some(origin) = &r.deployed_repair_origin {
+            origin.validate(&r.plan, suite)?;
+            if r.original.is_some()
+                || r.generation.request() != &r.plan.request
+                || r.generation.repair_context() != Some(&origin.context()?)
+            {
+                return Err(AcquisitionError::CorruptCheckpoint);
+            }
+            if let Some(forge) = &r.forge {
+                if same_parser(&r.generation, &origin.parent.generation)? {
+                    return Err(AcquisitionError::CorruptCheckpoint);
+                }
+                // External origin is explicit above; do not fabricate a
+                // rejected forge or consume its intra-acquisition repair slot.
+                validate_forge_binding(&r.generation, forge, suite, None)?;
+            }
+        } else if let Some(original) = &r.original {
             validate_original_generation(&original.generation, &r.plan)?;
             if original.generation.phase() != SynthesisPhase::Generated
                 || original.forge.phase() != Phase::Rejected
@@ -265,8 +387,10 @@ impl AcquisitionSession {
         }
         if r.unchanged_repair {
             let original = r
-                .original
+                .deployed_repair_origin
                 .as_ref()
+                .map(|origin| &origin.parent)
+                .or(r.original.as_ref())
                 .ok_or(AcquisitionError::CorruptCheckpoint)?;
             if r.forge.is_some()
                 || r.generation.phase() != SynthesisPhase::Generated
@@ -295,6 +419,15 @@ impl AcquisitionSession {
                 } else {
                     let candidate = generated_candidate(&next.record.generation)?;
                     next.record.forge = Some(original.forge.repair(candidate, suite)?);
+                }
+            } else if let Some(origin) = &next.record.deployed_repair_origin {
+                if same_parser(&next.record.generation, &origin.parent.generation)? {
+                    next.record.unchanged_repair = true;
+                } else {
+                    next.record.forge = Some(ForgeSession::new(
+                        generated_candidate(&next.record.generation)?,
+                        suite,
+                    )?);
                 }
             } else {
                 next.record.forge = Some(ForgeSession::new(
@@ -490,6 +623,20 @@ impl AcquisitionSession {
         self.validate(suite)
     }
     fn digest(&self) -> Result<String, AcquisitionError> {
+        if let Some(origin) = &self.record.deployed_repair_origin {
+            return digest(&(
+                "genesis-acquisition-deployed-repair-v1",
+                self.record.schema_version,
+                &self.record.plan_sha256,
+                &self.record.suite_sha256,
+                &self.record.generation,
+                &self.record.forge,
+                &self.record.original,
+                origin,
+                self.record.unchanged_repair,
+                self.record.phase,
+            ));
+        }
         digest(&(
             "genesis-acquisition-v1",
             self.record.schema_version,
@@ -506,6 +653,20 @@ impl AcquisitionSession {
         self.record.checkpoint_sha256 = self.digest()?;
         Ok(())
     }
+}
+
+fn validate_deployed_identity(
+    replacement: &SynthesisRequest,
+    parent: &SynthesisRequest,
+) -> Result<(), AcquisitionError> {
+    if replacement.operation_id == parent.operation_id
+        || replacement.candidate.actor_name == parent.candidate.actor_name
+        || replacement.candidate.capability_id != parent.candidate.capability_id
+        || replacement.candidate.capability_version == parent.candidate.capability_version
+    {
+        return Err(AcquisitionError::InvalidPlan);
+    }
+    Ok(())
 }
 
 fn validate_original_generation(

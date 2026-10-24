@@ -61,6 +61,69 @@ fn serialized(session: &AcquisitionSession) -> Vec<u8> {
 }
 
 #[test]
+fn ordinary_acquisition_preserves_legacy_checkpoint_bytes_and_digest() {
+    // Preserve the original record's field order as well as its hash input.
+    // Adding an absent origin to either would rewrite existing checkpoints.
+    #[derive(serde::Serialize)]
+    struct LegacyRecord<'a> {
+        schema_version: u32,
+        plan: &'a AcquisitionPlan,
+        plan_sha256: String,
+        suite_sha256: String,
+        generation: &'a SynthesisSession,
+        forge: Option<()>,
+        original: Option<()>,
+        unchanged_repair: bool,
+        phase: AcquisitionPhase,
+        checkpoint_sha256: String,
+    }
+
+    let session = session();
+    let oracle = suite();
+    let plan = plan();
+    let generation = SynthesisSession::new(plan.request.clone(), plan.model.clone()).unwrap();
+    let plan_sha256 = json_sha256(&serde_json::to_value(&plan).unwrap());
+    let suite_sha256 = json_sha256(&serde_json::to_value(&oracle).unwrap());
+    let checkpoint_sha256 = json_sha256(
+        &serde_json::to_value((
+            "genesis-acquisition-v1",
+            1u32,
+            &plan_sha256,
+            &suite_sha256,
+            &generation,
+            Option::<()>::None,
+            Option::<()>::None,
+            false,
+            AcquisitionPhase::Generating,
+        ))
+        .unwrap(),
+    );
+    let legacy = LegacyRecord {
+        schema_version: 1,
+        plan: &plan,
+        plan_sha256,
+        suite_sha256,
+        generation: &generation,
+        forge: None,
+        original: None,
+        unchanged_repair: false,
+        phase: AcquisitionPhase::Generating,
+        checkpoint_sha256,
+    };
+    let legacy_bytes = serde_json::to_vec(&legacy).unwrap();
+    let current = serde_json::to_value(&session).unwrap();
+    assert!(current.get("deployed_repair_origin").is_none());
+    assert!(session.deployed_repair_origin_sha256().unwrap().is_none());
+    assert_eq!(current["checkpoint_sha256"], legacy.checkpoint_sha256);
+    assert_eq!(serialized(&session), legacy_bytes);
+
+    let restored: AcquisitionSession = decode_json(&legacy_bytes).unwrap();
+    restored.validate(&oracle).unwrap();
+    assert!(restored.deployed_repair_origin_sha256().unwrap().is_none());
+    assert_eq!(serialized(&restored), legacy_bytes);
+}
+
+#[test]
 fn validates_repair_identity_and_oracle_source_contract_before_generation() {
     let edits: Vec<fn(&mut AcquisitionPlan)> = vec![
         |p| p.request.operation_id.clear(),
