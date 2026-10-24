@@ -1,7 +1,7 @@
 // One app-scoped CREAO API Trigger run. The journal is written before POST so
 // an uncertain response can never be retried as a second credit-consuming run.
 import { createHash, randomUUID } from "node:crypto";
-import { closeSync, existsSync, fsyncSync, mkdirSync, openSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { closeSync, existsSync, fsyncSync, openSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { fileURLToPath } from "node:url";
@@ -18,9 +18,14 @@ function digest(value) {
   return createHash("sha256").update(JSON.stringify(value)).digest("hex");
 }
 
+function syncDirectory(path) {
+  const fd = openSync(path, "r");
+  try { fsyncSync(fd); }
+  finally { closeSync(fd); }
+}
+
 function save(path, record, first = false) {
   const body = `${JSON.stringify(record, null, 2)}\n`;
-  mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
   const target = first ? path : `${path}.${randomUUID()}.tmp`;
   const fd = openSync(target, "wx", 0o600);
   try {
@@ -30,16 +35,38 @@ function save(path, record, first = false) {
     closeSync(fd);
   }
   if (!first) renameSync(target, path);
+  syncDirectory(dirname(path));
 }
 
 async function jsonResponse(response) {
   if (response.type === "opaqueredirect" || response.status >= 300 && response.status < 400) {
     throw new Error("redirect_rejected");
   }
+  const limit = 256 * 1024;
   const length = Number(response.headers.get("content-length"));
-  if (length > 256 * 1024) throw new Error("response_too_large");
-  const raw = await response.text();
-  if (Buffer.byteLength(raw) > 256 * 1024) throw new Error("response_too_large");
+  if (length > limit) {
+    await response.body?.cancel();
+    throw new Error("response_too_large");
+  }
+  if (!response.body) throw new Error("invalid_json");
+  const reader = response.body.getReader();
+  const chunks = [];
+  let size = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > limit) {
+        await reader.cancel();
+        throw new Error("response_too_large");
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  const raw = Buffer.concat(chunks, size).toString("utf8");
   try { return JSON.parse(raw); } catch { throw new Error("invalid_json"); }
 }
 
@@ -85,69 +112,86 @@ export async function runTrigger({ appId, inputs, out, allowCredits = false, key
   if (typeof key !== "string" || !key.startsWith("capi_")) {
     throw new Error("CREAO_TRIGGER_API_KEY must be a capi_ key");
   }
-  let record;
-  if (existsSync(path)) {
-    try { record = JSON.parse(readFileSync(path, "utf8")); }
-    catch { throw new Error("existing journal is unreadable; do not replay the POST"); }
-    if (record.schema !== "genesis-creao-trigger-smoke/1" || record.app_id !== appId ||
-      record.input_sha256 !== inputSha) {
-      throw new Error("existing journal does not match this app and exact input");
-    }
-    if (TERMINAL.has(record.phase) || record.phase === "needs_reconciliation") return recordView(record);
-    if (!UUID.test(record.run_id ?? "")) {
-      return recordView({ ...record, phase: "needs_reconciliation", reason: "post_outcome_unknown" });
-    }
-  } else {
-    record = { schema: "genesis-creao-trigger-smoke/1", started_at: new Date().toISOString(), app_id: appId,
-      input_sha256: inputSha, phase: "post_outcome_unknown", run_id: null };
-    save(path, record, true);
-    let response;
-    try {
-      response = await fetchImpl(`${baseUrl}/api/v1/apps/${appId}/runs`, {
-        method: "POST", redirect: "manual", signal: AbortSignal.timeout(15000),
-        headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ inputs }),
-      });
-      if (response.status !== 202) throw new Error("post_not_accepted");
-      const body = await jsonResponse(response);
-      if (!UUID.test(body.id ?? "") || body.appId !== appId ||
-        !["pending", "running", "completed", "failed", "cancelled"].includes(body.status)) {
-        throw new Error("invalid_post_receipt");
+  // Require an already existing journal directory. Creating ancestors here
+  // would need each new directory entry persisted before the crediting POST.
+  const directory = dirname(path);
+  if (!statSync(directory, { throwIfNoEntry: false })?.isDirectory()) {
+    throw new Error("journal directory must already exist before --allow-credits");
+  }
+  // One live invocation per journal. A stale lock after a process crash fails
+  // closed until the operator checks the journal and clears the lock.
+  const lockPath = `${path}.lock`;
+  let lockFd;
+  try { lockFd = openSync(lockPath, "wx", 0o600); }
+  catch { throw new Error("journal lock exists or cannot be created; check for another run"); }
+  try {
+    closeSync(lockFd);
+    let record;
+    if (existsSync(path)) {
+      try { record = JSON.parse(readFileSync(path, "utf8")); }
+      catch { throw new Error("existing journal is unreadable; do not replay the POST"); }
+      if (record.schema !== "genesis-creao-trigger-smoke/1" || record.app_id !== appId ||
+        record.input_sha256 !== inputSha) {
+        throw new Error("existing journal does not match this app and exact input");
       }
-      record = { ...record, phase: "running", run_id: body.id, status: body.status };
+      if (TERMINAL.has(record.phase) || record.phase === "needs_reconciliation") return recordView(record);
+      if (!UUID.test(record.run_id ?? "")) {
+        return recordView({ ...record, phase: "needs_reconciliation", reason: "post_outcome_unknown" });
+      }
+    } else {
+      record = { schema: "genesis-creao-trigger-smoke/1", started_at: new Date().toISOString(), app_id: appId,
+        input_sha256: inputSha, phase: "post_outcome_unknown", run_id: null };
+      save(path, record, true);
+      let response;
+      try {
+        response = await fetchImpl(`${baseUrl}/api/v1/apps/${appId}/runs`, {
+          method: "POST", redirect: "manual", signal: AbortSignal.timeout(15000),
+          headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ inputs }),
+        });
+        if (response.status !== 202) throw new Error("post_not_accepted");
+        const body = await jsonResponse(response);
+        if (!UUID.test(body.id ?? "") || body.appId !== appId ||
+          !["pending", "running", "completed", "failed", "cancelled"].includes(body.status)) {
+          throw new Error("invalid_post_receipt");
+        }
+        record = { ...record, phase: "running", run_id: body.id, status: body.status };
+        save(path, record);
+      } catch {
+        // A failed request may have reached CREAO. Preserve the pre-POST journal.
+        return recordView({ ...record, phase: "needs_reconciliation", reason: "post_outcome_unknown" });
+      }
+    }
+    for (let i = 0; i < maxPolls; i++) {
+      let body;
+      try {
+        const response = await fetchImpl(`${baseUrl}/api/v1/apps/${appId}/runs/${record.run_id}`, {
+          method: "GET", redirect: "manual", signal: AbortSignal.timeout(15000),
+          headers: { Authorization: `Bearer ${key}`, "User-Agent": USER_AGENT },
+        });
+        if (response.status !== 200) throw new Error("get_failed");
+        body = await jsonResponse(response);
+        // The live GET receipt omits appId, although POST includes it. The
+        // exact run ID and app-scoped URL still bind this read to the journal.
+        if (body.id !== record.run_id || (body.appId !== undefined && body.appId !== appId) ||
+          !["pending", "running", "completed", "failed", "cancelled"].includes(body.status)) {
+          throw new Error("invalid_get_receipt");
+        }
+      } catch {
+        return recordView({ ...record, reason: "poll_failed; rerun with the same journal to retry GET only" });
+      }
+      record = { ...record, status: body.status, phase: body.status,
+        result_sha256: body.result === undefined ? null : digest(body.result),
+        credits_used: typeof body.usage?.credits === "number" && Number.isFinite(body.usage.credits)
+          ? body.usage.credits : null, reason: null };
       save(path, record);
-    } catch {
-      // A failed request may have reached CREAO. Preserve the pre-POST journal.
-      return recordView({ ...record, phase: "needs_reconciliation", reason: "post_outcome_unknown" });
+      if (TERMINAL.has(body.status)) return recordView(record);
+      if (i + 1 < maxPolls) await sleep(pollMs);
     }
+    return recordView({ ...record, reason: "poll_limit; rerun with the same journal to continue GET only" });
+  } finally {
+    unlinkSync(lockPath);
   }
-  for (let i = 0; i < maxPolls; i++) {
-    let body;
-    try {
-      const response = await fetchImpl(`${baseUrl}/api/v1/apps/${appId}/runs/${record.run_id}`, {
-        method: "GET", redirect: "manual", signal: AbortSignal.timeout(15000),
-        headers: { Authorization: `Bearer ${key}`, "User-Agent": USER_AGENT },
-      });
-      if (response.status !== 200) throw new Error("get_failed");
-      body = await jsonResponse(response);
-      // The live GET receipt omits appId, although POST includes it. The
-      // exact run ID and app-scoped URL still bind this read to the journal.
-      if (body.id !== record.run_id || (body.appId !== undefined && body.appId !== appId) ||
-        !["pending", "running", "completed", "failed", "cancelled"].includes(body.status)) {
-        throw new Error("invalid_get_receipt");
-      }
-    } catch {
-      return recordView({ ...record, reason: "poll_failed; rerun with the same journal to retry GET only" });
-    }
-    record = { ...record, status: body.status, phase: body.status,
-      result_sha256: body.result === undefined ? null : digest(body.result),
-      credits_used: typeof body.usage?.credits === "number" && Number.isFinite(body.usage.credits)
-        ? body.usage.credits : null, reason: null };
-    save(path, record);
-    if (TERMINAL.has(body.status)) return recordView(record);
-    if (i + 1 < maxPolls) await sleep(pollMs);
-  }
-  return recordView({ ...record, reason: "poll_limit; rerun with the same journal to continue GET only" });
 }
 
 async function main() {
