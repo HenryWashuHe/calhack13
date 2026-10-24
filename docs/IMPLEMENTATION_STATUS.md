@@ -11,8 +11,8 @@ weights. Event organization remains superseded. G0–G4 are still open.
 The revised app Goal was activated on October 24, 2026 after the stale record
 was cleared; the existing hourly continuation remains active.
 
-Main through `c68705045748d74c2257489bdd84cc549e33d0f6`, tree
-`e321aa19342c1e434ba6f6e4c7087207f8383897`, includes the reviewed
+Main through `d18591ad6eb97f0eb59a3c70dea097878f8fb10b`, tree
+`e457ac0b472fe7531906e042ae2f1d9638e12810`, includes the reviewed
 foundations below. Method generation merged at `d1be8443fee46e1196861926a963563f48407936`,
 whose tree `dc9d6adc19863d8584fd5af1fd11eae7552014eb` exactly matches the independently
 validated generation stack. Counts refer to the named source/composition, not a
@@ -20,6 +20,8 @@ combined main run.
 
 | Work | Validation and evidence boundary |
 | --- | --- |
+| Revision input #150 `6376713a` → `a5f87bfe` | Root 18 focused tests and scoped strict Clippy/fmt pass; independent source/guide review clear. [Generic bounded bundle](invention-lab/contracts/revision.md#bundled-input) delegates existing prepare/observe logic, preserves legacy identities and refuses conflicting modes before effects. No provider/source execution. |
+| Selected-source bridge #151 `54283b57` → `d18591ad` | Behavior `7d0d30f`: root 25 scoped tests (five new including two independent, four legacy CLI, 16 binary) and strict Clippy/fmt; independent final source/guide review clear. [Exact fetch → retained revision input](invention-lab/contracts/method-registry.md#selected-parent-to-revision-input) preserves receiver fields and publisher-qualified metadata. Original 88-line guard retained, including 14+2 inputs and overflow refusal. Prepared only, no model run, adoption or G2/G3 closure. |
 | Pure core verdict #146 `0c9a5533` → `c6870504` | Existing 253-line decision implementation moved to core, equivalent modulo import prefixes; scorer compatibility re-export and three original regression files unchanged. Root full core tests, strict all-target core Clippy/fmt and standalone scorer `cargo check --tests` pass. Scorer check was compile-only; no lab tests executed in review. Prerequisite for Henry's authority slice, not acceptance/authority evidence. |
 | Method exchange CLI #141 final `e938db0` → `ec28434b` | Behavior `be639af`: four CLI plus 16 binary tests pass on the final composition; four CLI cases independently rerun, scoped strict Clippy/fmt, overlapping counts. [Thin existing-client commands](invention-lab/contracts/method-registry.md#operator-cli) publish/search/fetch an explicit selection; JSON stdout stays separate from debug logs. Loopback inert source only, no method execution, adoption or G2 closure. |
 | Registry boundary guards #142 `59faaaf` → `f2b33d50` | Three independent cases and scoped strict Clippy/fmt pass; original 144-line file unchanged. Exact-limit truncation, applicability count and lookup validation boundaries. Test-only; mutation results remain author-reported, and literal-query completeness is not semantic absence. |
@@ -231,8 +233,9 @@ is also merged; the local fixture reaches B revision preparation only. The
 [operator CLI #141](invention-lab/contracts/method-registry.md#operator-cli) now exposes
 explicit publication/search/selected fetch without automatic `.env` loading,
 journaling or retry. Any publication error may follow a committed write. Source
-transport grants no acceptance or invocation authority. Henry retains receiver
-adoption and role/grant work.
+transport grants no acceptance or invocation authority. #150/#151 now carry the
+explicit selection and exact parent into a bounded revision bundle and ordinary
+Prepared checkpoint. Henry retains receiver adoption and role/grant work.
 Henry [acknowledged the vertical product slice](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388913830):
 recompute retained acceptance, bind the selected method to requirement/responsibility
 and current owner grant, then check pinned invocation, decline/revocation and an
