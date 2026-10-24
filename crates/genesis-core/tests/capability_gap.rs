@@ -1227,3 +1227,136 @@ fn repeated_refusals_stop_the_same_request_but_new_evidence_starts_fresh() {
     )
     .expect("a new requirement starts fresh");
 }
+
+/// Review #73: historical refusal limits span names and failed proposals
+/// cannot consume an attempt, including after state serialization/restart.
+#[test]
+fn review_refusal_budget_spans_names_and_failed_proposals_do_not_spend_it() {
+    let mut d = demo(Some(PORTAL));
+    d.state = run(
+        &d,
+        vec![assign(&d), request(&d, &[PORTAL])],
+        &StaticCatalog::default(),
+    )
+    .unwrap()
+    .state;
+    let gap = d.state.capability_gaps.values().next().unwrap().clone();
+    let again = |cap: &str| OrgOp::RequestCapability {
+        key: "again".into(),
+        requirement_id: d.requirement.clone(),
+        role: RoleRef::existing(d.lead.clone()),
+        responsibility: ResponsibilityRef::Existing {
+            responsibility_id: gap.responsibility_id.clone(),
+        },
+        capability_id: CapabilityId::new(cap),
+        purpose: "Read portal".into(),
+        observed_sources: vec![PORTAL.into()],
+    };
+    let refuse = |state: &OrgState, id: &CapabilityGapId| {
+        update_capability_gap(
+            state,
+            id,
+            CapabilityGapStatus::Refused {
+                reason: "No trusted source rule".into(),
+                acquisition_id: None,
+            },
+        )
+        .unwrap()
+        .state
+    };
+    d.state = refuse(&d.state, &gap.gap_id);
+    let before = serde_json::to_value(&d.state).unwrap();
+    // An otherwise valid request followed by an invalid reporting edge is one
+    // rejected atomic proposal. Neither validation nor attempted commit stores it.
+    let failing = proposal(
+        &d,
+        vec![
+            again("venue-availability"),
+            OrgOp::ChangeReportingEdge {
+                role: RoleRef::existing(d.lead.clone()),
+                reports_to: Some(RoleRef::existing(RoleId::new("missing-role"))),
+            },
+        ],
+    );
+    let allocation = KeyAllocation::allocate(&failing);
+    assert!(validate(
+        &d.state,
+        &failing,
+        &allocation,
+        &StaticCatalog::default(),
+        Utc::now()
+    )
+    .is_err());
+    assert!(commit(
+        &d.state,
+        &failing,
+        &allocation,
+        &BTreeMap::new(),
+        &StaticCatalog::default(),
+        Utc::now()
+    )
+    .is_err());
+    assert_eq!(serde_json::to_value(&d.state).unwrap(), before);
+    assert_eq!(d.state.capability_gaps.len(), 1);
+    d.state = run(
+        &d,
+        vec![again("venue-availability")],
+        &StaticCatalog::default(),
+    )
+    .unwrap()
+    .state;
+    let live = d
+        .state
+        .capability_gaps
+        .values()
+        .find(|g| !g.status.is_terminal())
+        .unwrap()
+        .gap_id
+        .clone();
+    d.state = refuse(&d.state, &live);
+    // A distinct capability is still allowed while this requirement has one
+    // remaining attempt. Refusing it spends the third shared attempt.
+    d.state = run(&d, vec![again("venue-hours")], &StaticCatalog::default())
+        .unwrap()
+        .state;
+    assert_eq!(d.state.capability_gaps.len(), 3);
+    let third = d
+        .state
+        .capability_gaps
+        .values()
+        .find(|g| !g.status.is_terminal())
+        .unwrap()
+        .gap_id
+        .clone();
+    d.state = refuse(&d.state, &third);
+    // Durable history, not in-process counters, enforces the bound on restart.
+    d.state = serde_json::from_str(&serde_json::to_string(&d.state).unwrap()).unwrap();
+    let blocked = proposal(&d, vec![again("venue-availability")]);
+    assert!(validate(
+        &d.state,
+        &blocked,
+        &KeyAllocation::allocate(&blocked),
+        &StaticCatalog::default(),
+        Utc::now()
+    )
+    .unwrap_err()
+    .iter()
+    .any(|e| e.code == ValidationCode::CapabilityGapLimitExceeded));
+    assert!(run(
+        &d,
+        vec![again("venue-availability")],
+        &StaticCatalog::default()
+    )
+    .unwrap_err()
+    .iter()
+    .any(|e| e.code == ValidationCode::CapabilityGapLimitExceeded));
+    // A new name cannot reset the exhausted requirement budget.
+    assert!(run(
+        &d,
+        vec![again("venue-availability-renamed")],
+        &StaticCatalog::default()
+    )
+    .unwrap_err()
+    .iter()
+    .any(|e| e.code == ValidationCode::CapabilityGapLimitExceeded));
+}
