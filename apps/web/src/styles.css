@@ -396,3 +396,12 @@ td .sub { display: block; color: var(--ink-3); font-size: 12px; }
 @media (prefers-reduced-motion: no-preference) {
   .role.fresh { transition: box-shadow 0.6s ease; }
 }
+
+.ev-sub {
+  margin: 8px 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted, #666);
+}
