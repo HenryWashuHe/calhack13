@@ -95,11 +95,93 @@ node scripts/venue-portal/combine-fragments.mjs \
    A's `examples` (generation input) and B's `invocation_input` (B's suite
    contains exactly that input), plus `suite_a_id`/`suite_b_id`. It refuses
    fragments that share URLs.
-4. For a second disruption during a demo, generate it into a **new** namespace
+4. For a new disruption outside the original frozen suite, generate it into a **new** namespace
    (for example `--preset capacity-cut --namespace org-a-cut`) and start a new
    organization run with that suite, keeping the earlier suites loaded for
    organizations whose history references them. Do not replace a namespace an
    existing run used.
+
+### Prepare continuing CREAO monitoring
+
+`prepare-monitoring.mjs` builds the optional two-cycle scenario from three
+existing immutable namespaces: A's generation sources, B's baseline, and B's
+capacity-cut update. Run it **before starting either organization**. The new B
+suite contains all its baseline cases plus the selected update case; B verifies
+both snapshots during adoption. This is configured snapshot coverage, not an
+unseen future page or a live-availability claim.
+
+Use explicit event facts rather than relying on randomized presets to satisfy
+price, window and step-free constraints. This creates example local input files;
+exclusive writes refuse to replace existing ones:
+
+```sh
+mkdir -p runtime
+node --input-type=module <<'JS'
+import { writeFileSync } from 'node:fs';
+import { presetSpec } from './scripts/venue-portal/lib.mjs';
+const baseline = presetSpec('baseline', 'monitoring-event');
+Object.assign(baseline, { suite_id: 'monitor-baseline-v1', date: '2026-11-14', utc_offset: '-08:00', attendees: 150 });
+baseline.pages[0].date = '2026-11-14';
+Object.assign(baseline.pages[0].venues[0], {
+  venue_id: 'event-hall', capacity: 180, price_minor: 75000, currency: 'USD',
+  start: '18:00', end: '22:00', availability: 'available', step_free: true,
+});
+const update = structuredClone(baseline);
+update.suite_id = 'monitor-update-v1';
+update.pages[0].venues[0].capacity = 100;
+const policy = {
+  selected_venue_id: 'event-hall', attendees: 150,
+  budget: { minor_units: 80000, currency: 'USD' },
+  window: { start: '2026-11-14T18:00:00-08:00', end: '2026-11-14T22:00:00-08:00' },
+  step_free_required: true,
+};
+for (const [name, value] of Object.entries({ baseline, update, policy })) {
+  writeFileSync(`runtime/monitor-${name}.json`, JSON.stringify(value, null, 2) + '\n', { flag: 'wx' });
+}
+JS
+```
+
+After obtaining the HTTPS portal URL in `U`, generate all three namespaces and
+prepare a fresh setup directory **outside** `data/portal`:
+
+```sh
+node scripts/venue-portal/generate.mjs --preset baseline --seed monitor-a --holdout \
+  --suite-id monitor-a-v1 --namespace monitor-a --base-url "$U" --out data/portal
+node scripts/venue-portal/generate.mjs --spec runtime/monitor-baseline.json \
+  --namespace monitor-b --base-url "$U" --out data/portal
+node scripts/venue-portal/generate.mjs --spec runtime/monitor-update.json \
+  --namespace monitor-b-update --base-url "$U" --out data/portal
+node scripts/venue-portal/prepare-monitoring.mjs \
+  --portal data/portal --a monitor-a --b monitor-b --update monitor-b-update \
+  --policy runtime/monitor-policy.json --suite-id monitor-b-frozen-v1 \
+  --template crates/genesis-server/examples/scenario/mission.json \
+  --out runtime/monitoring-001
+```
+
+The helper checks generated manifests, suites, fragments and actual HTML bytes;
+requires a feasible baseline and a same-event update failing only capacity; and
+keeps A's synthesis examples separate from oracle answers. It emits:
+
+- `runtime/monitoring-001/trusted/suite-b.json`: B's complete frozen suite.
+- `runtime/monitoring-001/scenario.json`: the strict scenario spec, including
+  the public Actor allowlist and `venue_monitoring` policy/input.
+- `runtime/monitoring-001/setup.json`: file references, digests and coverage
+  labels for inspection. This is not a scenario spec.
+
+Start A with `--oracle-suite data/portal/trusted/suites/monitor-a-v1.json`, and
+B with `--oracle-suite runtime/monitoring-001/trusted/suite-b.json`. Run
+`genesis scenario --spec runtime/monitoring-001/scenario.json` with both
+organization URLs and operator tokens as described in
+[INHERITED_MISSION.md](INHERITED_MISSION.md). B needs the real CREAO runtime,
+role provisioner, readiness integration and `monitor.venue` authority.
+
+The template's candidate, repair and access flags are preserved. The checked-in
+template leaves `provider_access_acknowledged` false: arrange B's permitted Actor
+access before explicitly acknowledging it. Change candidate versions/Actor names
+for a new run. Never publish the setup directory or trusted suites. Output paths
+inside the portal, symlinked public trees, public trees exceeding 4,096 entries,
+modified source bytes and existing output directories are refused; earlier source
+artifacts stay unchanged.
 
 ### Held-out examples (`--holdout`)
 
