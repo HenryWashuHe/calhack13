@@ -4,6 +4,7 @@ use crate::refs;
 use crate::sandbox::Mode;
 use crate::session::{finish, Finished, RunError, RunState, Session};
 use crate::store::Store;
+use genesis_core::development_evaluation::EvaluationError;
 use genesis_core::development_experiment::{
     ExperimentLedger, ExperimentOutcome, ExperimentScope, ExperimentSettlement,
 };
@@ -109,7 +110,7 @@ pub fn recover(
     {
         let call = last.call.clone();
         let reason = "the executor stopped before this experiment's result was recorded";
-        slot.ledger.settle(
+        let settled = slot.ledger.settle(
             slot.scope(),
             &call,
             ExperimentSettlement {
@@ -120,7 +121,14 @@ pub fn recover(
                     reason: reason.into(),
                 },
             },
-        )?;
+        );
+        match settled {
+            Ok(()) => {}
+            // Stopped after sealing but before the receipt: the sealed
+            // transcript keeps the call pending, which is already unknown.
+            Err(EvaluationError::Invalid("sealed experiment ledger")) => {}
+            Err(e) => return Err(e.into()),
+        }
     }
     finish(
         &mut slot,
