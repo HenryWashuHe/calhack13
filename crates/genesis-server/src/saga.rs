@@ -36,6 +36,7 @@ pub async fn submit(
         // is validated now instead of being returned unchanged forever.
         drop(guard);
         let stored = if stored.status == ChangeStatus::Proposed {
+            let _drive = app.saga_gates.acquire(&stored.change_id).await?;
             let checked = validate_stored(app, &stored.change_id).await?;
             spawn_run(app, &checked);
             checked
@@ -128,6 +129,7 @@ fn spawn_run(app: &AppState, record: &OrgChangeRecord) {
 
 /// Validate a stored PROPOSED record against current state and persist the
 /// verdict. Used for records written before submission became atomic.
+/// The caller holds this change's saga gate before acquiring the kernel lock.
 async fn validate_stored(app: &AppState, change_id: &ChangeId) -> ApiResult<OrgChangeRecord> {
     let _guard = app.kernel.lock().await;
     let mut record = app.store.get_change(change_id)?;
@@ -186,9 +188,11 @@ fn save(app: &AppState, record: &OrgChangeRecord, effects: Vec<EventKind>) -> Ap
     Ok(())
 }
 
-/// Drive a validated change to a terminal state. Safe to call again after a
-/// restart: completed steps are skipped.
+/// Drive a validated change to a terminal state. Concurrent calls on AppState
+/// clones serialize before loading the record; known completed steps are skipped
+/// after restart. This gate does not make an unknown native POST safe to repeat.
 pub async fn run(app: &AppState, change_id: &ChangeId) -> ApiResult<OrgChangeRecord> {
+    let _drive = app.saga_gates.acquire(change_id).await?;
     let mut record = app.store.get_change(change_id)?;
     if record.status == ChangeStatus::Proposed {
         record = validate_stored(app, change_id).await?;
