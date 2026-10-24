@@ -6,8 +6,8 @@
 > Push here, open PRs here, and coordinate in
 > [issue #1](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1)
 > (the continuation of `genesis` issue #4). Never merge or cherry-pick by SHA
-> across the two repositories; `scripts/sync-from-legacy.sh` ports anything
-> still landing in the legacy repository by patch. Issue and PR numbers below
+> across the two repositories; anything still landing in the legacy repository
+> is ported by hand onto the same-tree base here. Issue and PR numbers below
 > refer to `genesis` unless written as `#N here`.
 
 ## Current direction and coordination
