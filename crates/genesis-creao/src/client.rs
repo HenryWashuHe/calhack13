@@ -213,17 +213,9 @@ impl CreaoClient {
                 e.post_may_have_run = true;
                 e
             })?;
-        // v2 creation is polled through an agent-scoped edit URL. A response
-        // without an agent ID has no safe GET target; retain the submitted
-        // intent for operator reconciliation rather than inventing an ID.
-        if self.api_version == ApiVersion::V2
-            && matches!(request, OperationRequest::CreateAgent(_))
-            && observed.agent_id.is_none()
-        {
-            let mut e = error(ErrorKind::MalformedResponse, Stage::Submission);
-            e.post_may_have_run = true;
-            return Err(e);
-        }
+        // A v2 creation may return a run ID before its agent ID. Preserve that
+        // exact run ID; the runtime blocks polling until an agent-scoped edit
+        // GET verifies an operator-supplied candidate ID.
         Ok(RunTicket {
             schema_version: 1,
             api_version: self.api_version,
