@@ -86,7 +86,12 @@ pub fn user_message(
 #[derive(Debug, Clone, PartialEq, Eq, serde::Deserialize)]
 pub struct Requestable {
     pub capability_id: String,
+    #[serde(default)]
     pub observed_sources: Vec<String>,
+    /// Only adopted (an existing published capability), never built here.
+    /// It has no policy sources: the request uses the observation's pages.
+    #[serde(default)]
+    pub adoption_only: bool,
 }
 
 /// What the server's trusted gap policy accepts: capabilities with their
@@ -296,21 +301,32 @@ pub fn user_message_with(
         let _ = writeln!(s, "\n## Requestable capabilities (operator policy)");
         let _ = writeln!(
             s,
-            "Only these can be acquired or adopted here. If you use RequestCapability, use one of these capability_id values with exactly its observed_sources; if none fits the need, do not request a capability."
+            "Only these can be acquired or adopted here. If you use RequestCapability, use one of these capability_id values with exactly its observed_sources (adopt-only names: see below); if none fits the need, do not request a capability."
         );
-        if let Some(scope) = &policy.required_scope {
+        let acquirable = policy.capabilities.iter().any(|r| !r.adoption_only);
+        if let Some(scope) = policy.required_scope.as_ref().filter(|_| acquirable) {
             let _ = writeln!(
                 s,
-                "The role you request it for must hold the {scope} scope: pick a role that has it, or give it to a new role in CreateRole authority."
+                "For a name listed with observed_sources, the role you request it for must hold the {scope} scope: pick a role that has it, or give it to a new role in CreateRole authority."
+            );
+        }
+        if policy.capabilities.iter().any(|r| r.adoption_only) {
+            let _ = writeln!(
+                s,
+                "Names marked adopt-only are filled by adopting a capability another organization already published; nothing is built here. Request them with observed_sources set to the public page URLs of the observation behind the requirement (its evidence_ref and pages on the same site), and attach the capability only once it appears under \"Installed capabilities\"."
             );
         }
         for r in &policy.capabilities {
-            let _ = writeln!(
-                s,
-                "- {}: observed_sources {}",
-                r.capability_id,
-                r.observed_sources.join(" ")
-            );
+            if r.adoption_only {
+                let _ = writeln!(s, "- {}: adopt-only", r.capability_id);
+            } else {
+                let _ = writeln!(
+                    s,
+                    "- {}: observed_sources {}",
+                    r.capability_id,
+                    r.observed_sources.join(" ")
+                );
+            }
         }
     }
 
