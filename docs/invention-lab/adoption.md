@@ -9,24 +9,30 @@ are issue #126 (unassigned). Where this document needs something from those
 contracts it says so under [Required from the method contract](#required-from-the-method-contract)
 instead of inventing their fields.
 
-Throughout, **implemented** means present on main or in an open PR with tests,
-and names its wire value. **Intended** means a proposed status with no wire value
-yet. Nothing here is a claim that a method has been adopted, executed or shown to
+Throughout, three statuses are kept apart: **on main** (merged), **open PR**
+(pushed with tests, not merged, so not yet main's wire contract) and
+**proposed** (no wire value yet). Nothing here is a claim that a method has been adopted, executed or shown to
 improve anything.
 
 ## What exists today, and what this extends
 
 Adoption today handles one artifact kind: a task capability (an Apify Actor build)
-described by a `CapabilityManifest`. Implemented pieces this contract reuses:
+described by a `CapabilityManifest`. Pieces this contract reuses:
 
-| Piece | Where | Wire values |
-| --- | --- | --- |
-| Bounded discovery, own-publication and scope filtering, exact manifest match | `capability_adoption.rs` | adoption attention codes `registry_unavailable`, `no_candidate`, `invalid_candidate`, ... |
-| Per-candidate decision log, committed with the outcome it explains | #116, `capability_adoption_candidates.rs` | `selected`, `adopted`, `not_applicable`, `own_publication`, `missing_scope`, `invalid_manifest`, `unusable_state`, `manifest_unavailable`, `invalid_response`, `installation_conflict`, `not_evaluated` |
-| Local acceptance by the receiver's own trusted suite, fresh inputs | `capability_adoption.rs`, `genesis-verification` | installation `checking` → `accepted` / `rejected` |
-| Conclusion of an adopt-first gap | #128, `capability_adoption_outcome.rs` | `pending`, `adopted`, `not_applicable`, `insufficient_evidence`, `no_candidate`, `unknown`, `stopped` |
-| Pinned installations; publication never changes one | kernel `begin_installation`, registry | one `checking`/`accepted` installation per exact `capability_id@version` |
-| Unknown provider outcome never becomes empty or a retry | #86, #121 | `needs_reconciliation`, `RunFailed` |
+| Piece | Where | Status | Wire values |
+| --- | --- | --- | --- |
+| Bounded discovery, own-publication and scope filtering, exact manifest match | `capability_adoption.rs` | on main | adoption attention codes `registry_unavailable`, `no_candidate`, `invalid_candidate`, ... |
+| Separate execution purposes | `capability_runtime.rs` `ExecutionPurpose` | on main | `invocation`, `local_acceptance`, `adoption_acceptance` |
+| Local acceptance by the receiver's own trusted suite, fresh inputs | `capability_adoption.rs`, `genesis-verification` | on main | installation `checking` → `accepted` / `rejected` |
+| Committed acceptance is organization-owned evidence; current authority gates live jobs and the initial decision | `capability_authority.rs` | on main | n/a |
+| Pinned installations; publication never changes one | kernel `begin_installation`, registry | on main | one `checking`/`accepted` installation per exact `capability_id@version` |
+| Unknown submission never becomes empty or a retry | #86 | on main | `needs_reconciliation`, retry gate `adoption_checks_unresolved` |
+| Per-candidate decision log, committed with the outcome it explains | #116, `capability_adoption_candidates.rs` | open PR | `selected`, `adopted`, `not_applicable`, `own_publication`, `missing_scope`, `invalid_manifest`, `unusable_state`, `manifest_unavailable`, `invalid_response`, `installation_conflict`, `not_evaluated` |
+| Conclusion of an adopt-first gap | #128, `capability_adoption_outcome.rs` | open PR (stacked on #116) | `pending`, `adopted`, `not_applicable`, `insufficient_evidence`, `no_candidate`, `unknown`, `stopped` |
+| Confirmed terminal provider failure distinct from transport uncertainty | #121 | open PR | `ProviderError::RunFailed` |
+
+Values from open PRs are pending dependencies of this proposal, not main's
+current wire contract.
 
 The method case keeps all of these rules. It adds an artifact kind, an
 environment check and a different acceptance experiment. It does not add a
@@ -64,20 +70,21 @@ the existing one fits.
 For one adoption intent (one requirement, one role, one frozen authority
 binding, one acceptance suite), in rank order over at most five candidates:
 
-| Step | Check | On failure (decision) | Status |
+| Step | Check | On failure (decision) | Status (check / decision value) |
 | --- | --- | --- | --- |
-| 1 | Registry answer well-formed; candidate's score usable | `invalid_response`, discovery stops | implemented |
-| 2 | Not this organization's own publication | `own_publication`, next candidate | implemented |
-| 3 | Requesting role holds every declared permission | `missing_scope`, next candidate | implemented |
-| 4 | Manifest readable and matches the search answer exactly | `manifest_unavailable` (→ `unknown`) or `invalid_manifest`, stop | implemented |
-| 5 | Artifact kind is one this organization can execute | `unsupported_kind`, next candidate | intended |
-| 6 | Environment compatible: executor kind and version, design-language / simulator version, every dependency digest resolvable and allowed | `incompatible_environment`, next candidate; `dependency_unavailable` (→ `unknown`) if a dependency can't be fetched | intended |
-| 7 | Declared budget fits the receiver's policy (CPU, wall time, experiments, model calls) | `budget_exceeds_policy`, next candidate | intended |
-| 8 | Declared evaluator requirement matches an evaluator the receiver trusts, by id and version | `evaluator_unavailable`, next candidate | intended |
-| 9 | No `checking`/`accepted` installation of the same exact version | `installation_conflict`, stop | implemented |
-| 10 | First candidate passing 1–9 | `selected` → local acceptance | implemented |
+| 1 | Registry answer well-formed; candidate's score usable | `invalid_response`, discovery stops | check on main / value in #116 |
+| 2 | Not this organization's own publication | `own_publication`, next candidate | check on main / value in #116 |
+| 3 | Requesting role holds every declared permission | `missing_scope`, next candidate | check on main / value in #116 |
+| 4 | Manifest readable and matches the search answer exactly | `manifest_unavailable` (→ `unknown`) or `invalid_manifest`, stop | check on main / value in #116 |
+| 5 | Artifact kind is one this organization can execute | `unsupported_kind`, next candidate | proposed |
+| 6 | Environment compatible: executor kind and version, design-language / simulator version, every dependency digest resolvable and allowed | `incompatible_environment`, next candidate; `dependency_unavailable` (→ `unknown`) if a dependency can't be fetched | proposed |
+| 7 | Declared budget fits the receiver's policy (CPU, wall time, experiments, model calls) | `budget_exceeds_policy`, next candidate | proposed |
+| 8 | Declared evaluator requirement matches an evaluator the receiver trusts, by id and version | `evaluator_unavailable`, next candidate | proposed |
+| 9 | No `checking`/`accepted` installation of the same exact version | `installation_conflict`, stop | check on main / value in #116 |
+| 10 | First candidate passing 1–9 | `selected` → local acceptance | check on main / value in #116 |
 
-Steps 5–8 are new and must be decided **before** anything executes. They never
+Every recorded decision value comes from #116 (open PR); the checks for steps
+1–4, 9 and 10 already run on main without the log. Steps 5–8 are new and must be decided **before** anything executes. They never
 use similarity. Their reasons name the mismatched requirement (e.g. "needs
 design language 2, this organization runs 1"), never hidden evaluation data.
 
@@ -85,6 +92,24 @@ design language 2, this organization runs 1"), never hidden evaluation data.
 one candidate move on; a problem that makes the registry answer or the selected
 manifest untrustworthy stops discovery. This keeps first-eligible selection
 unchanged (the #116 review finding).
+
+### Execution purposes
+
+A method has to run before it can be accepted, so "only accepted
+installations execute" is wrong as a blanket rule. Following main's
+`ExecutionPurpose`, there are three purposes with different authority:
+
+| Purpose | Runs | Authority it needs | What it can produce |
+| --- | --- | --- | --- |
+| `invocation` | ordinary mission work | an `accepted` installation and the requesting role's current grant | mission effects and an execution receipt |
+| acceptance (`local_acceptance` / `adoption_acceptance` on main; method variant proposed) | a `checking` installation on the receiver's development instances only | the adoption intent's frozen binding, bounded by its budget | an acceptance or rejection receipt; never mission effects |
+| comparison (proposed, #124/#126) | any frozen version, accepted or declined, on held-out instances revealed for that comparison | the comparison runner's own declared protocol, not a mission grant | score receipts for the comparison only |
+
+A comparison run never grants mission authority, never installs, and never
+reads a holdout before the salt is revealed. A version A declined can still
+run in a comparison as the alternative arm; that is a measurement, not an
+adoption. #124 carries the execution purpose and the distinct execution,
+evaluation and adoption receipts.
 
 ### Local acceptance for a method
 
@@ -155,14 +180,19 @@ Unchanged from adopt-first for task capabilities, and explicit per rule:
 
 - An accepted method installation names `method_id@version`, its digest, its
   dependency digests, the acceptance suite digest and evaluator version.
-- Every method execution receipt names the installation it ran under. The
-  executor refuses an installation that is not `accepted`, or whose authority
-  binding (requirement, assignment, epoch, scopes) no longer matches.
-- Re-evaluation is required, and old acceptance evidence can't authorize use,
-  when any of these change: the acceptance suite or its criterion, the trusted
-  evaluator version, the role's authority or assignment epoch, or a dependency
-  digest the receiver resolves. Today's adoption fences already enforce this
-  for authority and suite changes; evaluator and dependency drift are intended.
+- Every method execution receipt names the installation and purpose it ran
+  under. An `invocation` refuses an installation that is not `accepted`;
+  acceptance and comparison follow the purposes above.
+- **Job authority and committed acceptance are different things** (on main,
+  `capability_authority.rs`). Current authority (requirement, assignment,
+  epoch, scopes) is checked for each live job and for the initial acceptance
+  decision; a stale in-flight job is fenced. A later epoch or handoff does
+  **not** erase an already committed acceptance: a new, currently authorized
+  job may use the accepted installation (`routes/capabilities.rs`).
+- **Proposed, for methods only:** re-acceptance when the *semantic
+  applicability* changes, namely the acceptance suite or criterion, the
+  trusted evaluator version, or a dependency digest the receiver resolves.
+  This is separate from fencing stale jobs and is not on main.
 - v1 and v2 may both be `accepted`. Which one a development run uses is an
   explicit, recorded choice (planner or policy), never "the newest".
 - Retiring v1 stops new runs under it. It does not erase its receipts or the
@@ -236,14 +266,18 @@ organization databases and grants.
    1. Declined at step 6 before any execution; outcome `no_candidate` with a
    named reason; B develops with its current method.
 3. **Same domain, fails acceptance:** v1 underperforms B's current method on
-   B's development tasks → `not_applicable`; v1 never runs on held-out tasks.
+   B's development tasks → `not_applicable`; v1 is never *invoked* for B's
+   mission work. It may still run as a comparison arm, which produces score
+   receipts only.
 4. **Unrelated task:** v1 is never executed; its non-use is recorded and scored
    separately from task success.
 5. **Registry, dependency or evaluator timeout:** `unknown`; no method synthesis,
    no resubmission of an unknown run.
 6. **Restart and duplicate events:** one decision log, one installation, one
    receipt per run identity; no duplicate external effects.
-7. **Authority, epoch, suite, evaluator or dependency change:** old acceptance
-   can't authorize a new run; re-evaluation required.
+7. **Authority or epoch change:** an in-flight job under the old binding is
+   fenced; a new job under current authority may still use the committed
+   acceptance. **Suite, evaluator or dependency change (proposed):** a new
+   acceptance is required before further invocation.
 8. **Upgrade:** B publishes v2; A's v1 installation and its runs are unchanged
    until A explicitly adopts v2; both versions' receipts stay distinct.
