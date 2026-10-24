@@ -1,5 +1,6 @@
 mod acquisition_commands;
 mod method_accounting_commands;
+mod method_revision_commands;
 mod method_synthesis_commands;
 mod storage;
 mod synthesis_commands;
@@ -23,6 +24,8 @@ const HELP: &str = "Usage:
   genesis-forge method-generate-status --checkpoint method-generation.json
   genesis-forge method-generate-export --checkpoint method-generation.json
   genesis-forge method-cost-assess --manifest cost-evidence.json
+  genesis-forge method-revise-prepare --plan revision.json --parent parent.package.json --checkpoint generation.json
+  genesis-forge method-revise-observe --plan revision.json --parent parent.package.json --checkpoint generation.json
   genesis-forge generate-prepare --request public-request.json --model-config model.json --checkpoint generation.json
   genesis-forge generate-step --checkpoint generation.json
   genesis-forge generate-status --checkpoint generation.json
@@ -93,6 +96,9 @@ impl Arguments {
             "prepare-generated" => &["--candidate", "--generation", "--suite", "--checkpoint"],
             "method-generate-prepare" => &["--plan", "--checkpoint"],
             "method-cost-assess" => &["--manifest"],
+            "method-revise-prepare" | "method-revise-observe" => {
+                &["--plan", "--parent", "--checkpoint"]
+            }
             "method-generate-step" | "method-generate-status" | "method-generate-export" => {
                 &["--checkpoint"]
             }
@@ -193,6 +199,9 @@ async fn run() -> Result<u8, String> {
     }
     if args.command == "method-cost-assess" {
         return method_accounting_commands::run(&args);
+    }
+    if args.command.starts_with("method-revise-") {
+        return method_revision_commands::run(&args);
     }
     if args.command.starts_with("generate-") {
         return synthesis_commands::run(&args).await;
