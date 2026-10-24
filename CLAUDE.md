@@ -10,14 +10,17 @@ The receipt source `050b099` matches its main merge tree exactly and passes
 
 [UI fix #31](https://github.com/HenryWashuHe/genesis/pull/31) is merged into #28
 at `17b6b02`, preserving an Abandon-only action while readiness is pending.
-Its 28 web tests, typecheck and build pass. #28 remains held by #27/#26/#20;
-its own reported UI finding is resolved. Hold #11/#12/#20/#21/#22/#26/#27 for
-their source fixes, #23 for stale handoff content, and drafts #25/#29 for dependencies.
-Henry's Claude has claimed #27/#28 in issue #4; Claude/Eric retains the other
-source fixes. Codex keeps capability/provider implementation and narrow integration.
-No whole-kernel credit fallback is active. The combined draft's earlier 699-test
-evidence is separate from main and does not resolve the thirteen reproduced
-negative Rust review regressions.
+Its 28 web tests, typecheck and build pass. [Sibling-agent fix #33](https://github.com/HenryWashuHe/genesis/pull/33)
+is merged into #27 at `5952987`; its unchanged original regression and 18 related
+tests pass, with formatting and strict focused Clippy. #27/#28 now remain held by
+#26/#20 dependencies; their own reported findings are resolved.
+
+Hold #11/#12/#20/#21/#22/#26 for their source fixes, #23 for stale handoff content,
+and drafts #25/#29 for dependencies. Henry's Claude supplied the scoped #27/#28
+fixes; Claude/Eric retains the other source fixes. Codex keeps capability/provider
+implementation and narrow integration. No whole-kernel credit fallback is active.
+The combined draft's earlier 699-test evidence is separate from main. Twelve
+negative Rust review regressions remain unresolved; #33 resolves the thirteenth.
 
 [CREAO sponsor evidence](docs/CREAO_SPONSOR_NOTES.md) still needs core mission
 execution, an actual agent ID and run share link. [Apify notes](docs/APIFY_SPONSOR_NOTES.md)

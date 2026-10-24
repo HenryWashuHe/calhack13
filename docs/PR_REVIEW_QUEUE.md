@@ -2,7 +2,8 @@
 
 The user authorized merging ready PRs on October 22, 2026. All eleven capability
 PRs below are now merged to `main`. Receipt PR #32 has also landed; UI fix #31
-landed in parent #28. Other source findings and dependency holds remain. Each capability-stack merge used the reviewed head, a merge commit and a
+landed in parent #28, and sibling-agent fix #33 landed in parent #27. Other
+source findings and dependency holds remain. Each capability-stack merge used the reviewed head, a merge commit and a
 tree-equality check; branches were retained and children retargeted to `main`
 sequentially. No administrator bypass or squash/rebase was used.
 
@@ -27,8 +28,16 @@ history-only merges. Documentation updates do not introduce sponsor source code.
   rendering is covered; interactive browser actions and live writes are not.
   #28 remains held by #27/#26/#20, not by its now-resolved UI finding.
 
+- [#33](https://github.com/HenryWashuHe/genesis/pull/33), source `140c26f`,
+  merged into #27 at `5952987e2a65efe9fc899ec1b3744a97de05d3ad`: refuses one native
+  agent attached to two sibling roles. The merge tree equals the reviewed source.
+  **19 focused tests** pass, including the unchanged original `e161aad` regression,
+  with formatting and strict focused Clippy. An initial Clippy disk-space failure
+  was resolved by clearing disposable incremental cache before a successful retry.
+  #27/#28 remain held from main by #26/#20. No live provider work was performed.
+
 Henry's Claude [claimed #27/#28](https://github.com/HenryWashuHe/genesis/issues/4#issuecomment-6345636513)
-without taking the other source fixes; #31 is that agent's completed #28 fix.
+without taking the other source fixes; #31/#33 are that agent's completed fixes.
 Codex owns the provider receipt addition and review/integration. Source branches
 remain available; no whole-kernel takeover is active.
 
@@ -78,16 +87,15 @@ consume them without duplicating implementation in the integration branch.
 | [#21](https://github.com/HenryWashuHe/genesis/pull/21) / `2c987193892da94e4110179362f2ef2aa052779c` | Bind acceptance runs to installation ID, support adoption acceptance purpose, and refresh changed/failed evidence reads | [Source review](https://github.com/HenryWashuHe/genesis/pull/21#pullrequestreview-5615620684); no new browser reproduction |
 | [#22](https://github.com/HenryWashuHe/genesis/pull/22) / `8a23273ccbf97b611ed73ddfc43646b31dffbcca` | Revalidate effective remote planner configuration; disable redirects in the shared Agent Builder client | [Source review](https://github.com/HenryWashuHe/genesis/pull/22#pullrequestreview-5615620695); no new drift/redirect reproduction |
 | [#26](https://github.com/HenryWashuHe/genesis/pull/26) / `3dc95d6bd9863c09e5775957d5346edbc3d35d2e` | Reconcile a provisional receipt run ID against the trusted dispatch result before treating correlation as verified | [Review](https://github.com/HenryWashuHe/genesis/pull/26#pullrequestreview-5616058167); test-only `8d82c32`, one reproduced failure and a passing late-receipt control |
-| [#27](https://github.com/HenryWashuHe/genesis/pull/27) / `95a33a0edd1b574eef59cbe6a11b0a09915978aa` | Include sibling bindings in the current change when checking whether an attached native agent is already in use | [Review](https://github.com/HenryWashuHe/genesis/pull/27#pullrequestreview-5616058543); test-only `e161aad` reproduces two committed roles sharing the same native agent |
+| [#27](https://github.com/HenryWashuHe/genesis/pull/27) / `5952987e2a65efe9fc899ec1b3744a97de05d3ad` | Sibling-binding finding resolved by #33; hold for #26/#20 dependencies | [Fix review](https://github.com/HenryWashuHe/genesis/pull/33#issuecomment-6345993608); original `e161aad` reproduction and 18 related tests pass |
 | [#28](https://github.com/HenryWashuHe/genesis/pull/28) / `17b6b0274eed9138737395867fd056f1c5e36f3c` | UI finding resolved by #31; hold for #27/#26/#20 dependencies | [Fix review](https://github.com/HenryWashuHe/genesis/pull/31#issuecomment-6345825851); 28 web tests, typecheck and build pass; no interactive browser test |
 
 Prioritize the shared backend-managed result guard across #11/#20 first, then
 time-sensitive authority/retry checks and planner restart behavior. Put the shared
 Agent Builder transport correction in #11 and absorb it into #22. Finish #21's
 installation/adoption evidence bindings against the current capability contracts.
-The new recovery stack is #20 → #26 → #27 → #28. Fix #27's sibling identity
-collision before relying on operator attachment; fix #26's run correlation without
-losing valid early receipts. #28 now preserves abandonment without exposing Attach for an already-bound
+The new recovery stack is #20 → #26 → #27 → #28. #27's sibling collision is
+fixed by #33; fix #26's run correlation without losing valid early receipts. #28 now preserves abandonment without exposing Attach for an already-bound
 operation. The remaining findings are additions to the earlier source review;
 the UI correction does not resolve its backend dependencies.
 
@@ -120,8 +128,8 @@ validation, not a GitHub approval or evidence that the inherited defects are fix
   It passes 699 Rust tests across 87 suites, strict Clippy and formatting.
   Unchanged web/schema sources retain the earlier `dde0682` validation: 33 web
   tests, production build and schema/type regeneration without drift.
-  The thirteen failing source-review probes are separate and are not in that
-  passing baseline. [Full validation scope](https://github.com/HenryWashuHe/genesis/blob/8a7b115/docs/COMBINED_INTEGRATION.md).
+  The original thirteen failing source-review probes are separate from that
+  historical baseline. #33 now includes and passes one; twelve remain unresolved. [Full validation scope](https://github.com/HenryWashuHe/genesis/blob/8a7b115/docs/COMBINED_INTEGRATION.md).
 
 Before landing any held item, verify its findings are fixed on the exact proposed
 head and rerun the affected regressions. Reconcile source branches and draft #25
