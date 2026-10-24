@@ -1,6 +1,8 @@
 # GENESIS agent coordination
 
-Current Codex continuation: `codex/inherited-mission`, stacked on PR #10.
+Current Codex continuation: [PR #13](https://github.com/HenryWashuHe/genesis/pull/13),
+`codex/inherited-mission`, stacked on PR #10. All 471 workspace tests, formatting
+and strict Clippy pass. Claude's new Elastic #11 and planner #12 are under review.
 The reserved slice is `capability_scenario.rs`, its HTTP integration tests,
 `capability_authority.rs`, focused capability runtime/route regressions, narrow
 CLI/health/module registrations and [INHERITED_MISSION.md](docs/INHERITED_MISSION.md).
