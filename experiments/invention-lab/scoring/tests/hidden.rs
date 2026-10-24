@@ -355,6 +355,25 @@ fn hidden_scoring_refuses_before_simulating_anything() {
     ));
     assert!(nothing_simulated(&store));
 
+    // No wall time to score with.
+    let zero = arms("zero-wall", 3, Some(REFERENCE), Some(REFERENCE), |p| {
+        p.scoring_grant.wall_time_ms = 0
+    });
+    let store = zero.store("zero");
+    assert!(matches!(
+        score_hidden(
+            &zero.plan,
+            "candidate",
+            &zero.output(),
+            &zero.closed(),
+            &descriptor(3),
+            SALT,
+            &store
+        ),
+        Err(ScoringError::Refused(_))
+    ));
+    assert!(nothing_simulated(&store));
+
     // One episode short of the draw.
     let short = arms("short", 3, Some(REFERENCE), Some(REFERENCE), |p| {
         p.scoring_grant.simulation_steps -= 1
