@@ -26,5 +26,7 @@
       }
     ]
   },
-  "reserved_prepared_checkpoints": []
+  "reserved_prepared_checkpoints": [
+    "f02248fd50ea40de443ac68b600b47e013c68dccad3e562d72821d5961e57aad"
+  ]
 }
