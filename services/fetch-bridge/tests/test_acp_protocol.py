@@ -108,6 +108,7 @@ class CliTests(unittest.TestCase):
                 self.assertTrue(kwargs["enable_agent_inspector"])
                 self.assertFalse(kwargs["report_events"])
                 self.assertFalse(kwargs["store_message_history"])
+                self.assertTrue(kwargs["handle_messages_concurrently"])
                 self.assertIsInstance(kwargs["registration_policy"], AlmanacApiRegistrationPolicy)
                 self.assertEqual(kwargs["port"], 8103)
                 protocol = factory.return_value.include.call_args.args[0]

@@ -111,6 +111,7 @@ def main():
             registration_policy=AlmanacApiRegistrationPolicy(),
             enable_agent_inspector=True, publish_agent_details=True,
             store_message_history=False, report_events=False,
+            handle_messages_concurrently=True,
             readme_path=str(Path(args.readme).resolve()),
         )
         agent.include(make_protocol(gateway), publish_manifest=True)
