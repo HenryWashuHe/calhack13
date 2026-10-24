@@ -594,6 +594,10 @@ impl CapabilityRuntime {
                 self.persist(before, &record, &mut job)?;
                 return Ok(record);
             }
+            // A paused gap finalizer: no provider call, phase unchanged.
+            if paused(&self.store, &self.store.current_state()?, &record) {
+                return Ok(record);
+            }
             executor = match self.providers.executor() {
                 Ok(executor) if executor.provider() == Provider::Apify => executor,
                 _ => {
@@ -795,6 +799,14 @@ impl CapabilityRuntime {
     }
 }
 
+/// A local-acceptance run whose owning gap finalizer is paused at attention.
+/// Results already in flight are still recorded; only new calls wait.
+fn paused(store: &Store, state: &OrgState, record: &CapabilityRunRecord) -> bool {
+    matches!(&record.purpose, ExecutionPurpose::LocalAcceptance { installation_id, .. }
+        if crate::capability_gap_finalizer::run_fence(store, state, installation_id)
+            == crate::capability_gap_finalizer::RunFence::Pause)
+}
+
 fn authorized(
     store: &Store,
     adoption_policy: Option<&crate::capability_evidence::EvidencePolicy>,
@@ -834,7 +846,8 @@ fn authorized(
                 })
                 // A gap finalizer's checks also need its frozen grant and live
                 // requirement, before submission and before applying a result.
-                && crate::capability_gap_finalizer::run_allowed(store, state, installation_id)
+                && crate::capability_gap_finalizer::run_fence(store, state, installation_id)
+                    != crate::capability_gap_finalizer::RunFence::Revoke
         }
     }
 }
