@@ -3,9 +3,23 @@
 Henry's Claude, genesis#126. Implements the contract in
 [docs/invention-lab/evaluator.md](../../../docs/invention-lab/evaluator.md):
 design language v1, a deterministic 2D rigid-body simulation (Rapier 2D 0.22
-with `enhanced-determinism`), four task families, metered development
-experiments, acceptance and comparison scoring, and commit/reveal hidden
+with `enhanced-determinism`), four task families, and commit/reveal hidden
 instances. **Simulated results say nothing about physical machines.**
+
+These are **simulation primitives**, not the enforced contract:
+
+- No grant or ledger lives here. `experiment` takes a reservation the caller's
+  ledger already made and reports measured steps (`None` = unknown, never 0).
+  Cumulative charging is the trusted experiment ledger (#32) in the executor.
+- `score_acceptance` / `score_comparison` simulate; the scoring grant, comparison
+  closure and #22 request/execution/output binding belong to a separate
+  trusted scoring adapter that doesn't exist yet.
+- `evaluator_digest()` hashes the scoring sources, manifest and lockfile
+  (`score::digest_files`), so a source edit changes it under the same version.
+  It identifies the evaluator; it doesn't authenticate a binary or cover the
+  compiler and platform.
+- Hidden sets use the immutable `genesis-lab-hidden/2` descriptor with
+  length-prefixed fields; the salt is checked against it, never added to it.
 
 Standalone crate (its own `[workspace]`), not a member of the root workspace
 until the #18/#22 interfaces are agreed. No provider, kernel, API or UI code.
@@ -15,9 +29,9 @@ cd experiments/invention-lab/evaluator
 cargo test --release
 cargo run --release --bin lab-eval -- instance ravine-crossing 3
 cargo run --release --bin lab-eval -- accept designs/reference-five-wheel.json ravine-crossing 0 1 2 3
-cargo run --release --bin lab-eval -- experiment designs/cart-long.json ravine-crossing 0 100000
-cargo run --release --bin lab-eval -- commit cmp-1 my-salt return-mix 5
-cargo run --release --bin lab-eval -- compare designs/reference-five-wheel.json cmp-1 return-mix 5 <commitment> my-salt 0
+cargo run --release --bin lab-eval -- experiment designs/cart-long.json ravine-crossing 0 2400
+cargo run --release --bin lab-eval -- commit cmp-1 my-salt return-mix 5 > descriptor.json
+cargo run --release --bin lab-eval -- compare designs/reference-five-wheel.json descriptor.json my-salt 0
 ```
 
 | Family | Task | Notes |

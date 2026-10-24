@@ -1,11 +1,10 @@
 //! Henry's Claude: the tests docs/invention-lab/evaluator.md requires, plus
 //! budget, purpose and digest checks. Local simulation only.
-use genesis_lab_eval::commit::{commitment, hidden_seed};
+use genesis_lab_eval::commit::Descriptor;
 use genesis_lab_eval::design::Design;
 use genesis_lab_eval::family::{instance, Family};
 use genesis_lab_eval::score::{
-    experiment, is_hidden_seed, score_acceptance, score_comparison, HiddenSet, Outcome, Purpose,
-    Refusal,
+    experiment, is_hidden_seed, score_acceptance, score_comparison, Outcome, Purpose, Refusal,
 };
 
 fn load(name: &str) -> Design {
@@ -70,7 +69,7 @@ fn invalid_designs_are_refused_without_simulating() {
         let r = score_acceptance(&d, Family::RavineCrossing, 0).unwrap();
         assert_eq!(r.outcome, Outcome::Invalid, "{what}");
         assert!(r.reason.is_some(), "{what}");
-        assert_eq!(r.simulation_steps, 0, "{what}");
+        assert_eq!(r.simulation_steps, Some(0), "{what}");
         assert!(r.metrics.is_none() && r.trace_sha256.is_none(), "{what}");
     }
     // Materials are a closed table: an unknown one doesn't parse.
@@ -80,9 +79,9 @@ fn invalid_designs_are_refused_without_simulating() {
 }
 
 #[test]
-fn experiments_refuse_hidden_instances_and_spent_budgets_and_debit_steps() {
+fn experiments_refuse_hidden_instances_and_short_reservations_and_measure_steps() {
     let d = load("reference-five-wheel.json");
-    let hidden = hidden_seed("cmp", "salt", Family::RavineCrossing, 0);
+    let hidden = Descriptor::new("cmp", "salt", Family::RavineCrossing, 1).hidden_seed("salt", 0);
     assert_eq!(
         experiment(&d, Family::RavineCrossing, hidden, u64::MAX).unwrap_err(),
         Refusal::HiddenInstance
@@ -94,14 +93,16 @@ fn experiments_refuse_hidden_instances_and_spent_budgets_and_debit_steps() {
     let max = Family::RavineCrossing.max_steps() as u64;
     assert!(matches!(
         experiment(&d, Family::RavineCrossing, 0, max - 1),
-        Err(Refusal::BudgetSpent { .. })
+        Err(Refusal::ReservationTooSmall { .. })
     ));
-    let r = experiment(&d, Family::RavineCrossing, 0, max + 10).unwrap();
+    // No balance is kept here: two identical calls each measure the same
+    // steps, and charging them cumulatively is the trusted ledger's job.
+    let r = experiment(&d, Family::RavineCrossing, 0, max).unwrap();
     assert_eq!(r.receipt.purpose, Purpose::Experiment);
-    let used = r.receipt.simulation_steps as u64;
+    let used = r.receipt.simulation_steps.unwrap() as u64;
     assert!(used > 0 && used <= max);
-    assert_eq!(r.steps_remaining, max + 10 - used);
     assert!(!r.frames.is_empty());
+    assert_eq!(experiment(&d, Family::RavineCrossing, 0, max).unwrap(), r);
 }
 
 #[test]
@@ -116,23 +117,27 @@ fn a_design_that_misses_its_task_is_scored_not_failed() {
 fn hidden_instances_follow_their_commitment_and_need_the_matching_salt() {
     let d = load("reference-five-wheel.json");
     let f = Family::ReturnMix;
-    let c = commitment("cmp-1", "secret-salt", f, 5);
-    assert_eq!(c, commitment("cmp-1", "secret-salt", f, 5));
+    let set = Descriptor::new("cmp-1", "secret-salt", f, 5);
+    let c = set.commitment.clone();
+    assert_eq!(set, Descriptor::new("cmp-1", "secret-salt", f, 5));
+    assert!(set.opens("secret-salt") && !set.opens("other-salt"));
     // Comparison id, salt and count are all bound.
-    assert_ne!(c, commitment("cmp-2", "secret-salt", f, 5));
-    assert_ne!(c, commitment("cmp-1", "other-salt", f, 5));
-    assert_ne!(c, commitment("cmp-1", "secret-salt", f, 6));
-    let seeds: Vec<u64> = (0..5)
-        .map(|i| hidden_seed("cmp-1", "secret-salt", f, i))
-        .collect();
+    assert_ne!(c, Descriptor::new("cmp-2", "secret-salt", f, 5).commitment);
+    assert_ne!(c, Descriptor::new("cmp-1", "other-salt", f, 5).commitment);
+    assert_ne!(c, Descriptor::new("cmp-1", "secret-salt", f, 6).commitment);
+    // Fields are length-prefixed, so moving a separator can't collide.
+    assert_ne!(
+        Descriptor::new("a:b", "c", f, 5).commitment,
+        Descriptor::new("a", "b:c", f, 5).commitment
+    );
+    // A descriptor edited after publication no longer opens.
+    let mut edited = set.clone();
+    edited.count = 6;
+    assert!(!edited.opens("secret-salt"));
+    let seeds: Vec<u64> = (0..5).map(|i| set.hidden_seed("secret-salt", i)).collect();
     assert!(seeds.iter().all(|s| is_hidden_seed(*s)));
-    assert_ne!(seeds[0], hidden_seed("cmp-2", "secret-salt", f, 0));
-    let set = HiddenSet {
-        comparison: "cmp-1",
-        family: f,
-        count: 5,
-        commitment: &c,
-    };
+    let other = Descriptor::new("cmp-2", "secret-salt", f, 5);
+    assert_ne!(seeds[0], other.hidden_seed("secret-salt", 0));
     assert_eq!(
         score_comparison(&d, &set, "wrong-salt", 0).unwrap_err(),
         Refusal::WrongSalt
@@ -184,4 +189,23 @@ fn design_digest_is_stable_and_families_draw_different_worlds() {
     assert_ne!(a.friction, b.friction);
     assert!(!b.pushes.is_empty());
     assert!(instance(Family::RavineCrossing, 7).pushes.is_empty());
+}
+
+#[test]
+fn the_evaluator_digest_covers_every_scoring_source_file() {
+    let root = env!("CARGO_MANIFEST_DIR");
+    let covered = genesis_lab_eval::score::digest_files();
+    for entry in std::fs::read_dir(format!("{root}/src")).unwrap() {
+        let name = entry.unwrap().file_name().into_string().unwrap();
+        if name.ends_with(".rs") {
+            assert!(
+                covered.contains(&format!("src/{name}").as_str()),
+                "src/{name} decides results but isn't in the evaluator digest"
+            );
+        }
+    }
+    assert!(covered.contains(&"Cargo.lock"));
+    let d = genesis_lab_eval::score::evaluator_digest();
+    assert_eq!(d.len(), 64);
+    assert_eq!(d, genesis_lab_eval::score::evaluator_digest());
 }

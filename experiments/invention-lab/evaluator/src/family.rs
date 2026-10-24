@@ -164,3 +164,12 @@ pub fn instance(family: Family, seed: u64) -> Instance {
 pub fn development_seeds(count: u64) -> Vec<u64> {
     (0..count).collect()
 }
+
+/// Identity of one instance: SHA-256 of its JSON (struct field order). Lets a
+/// plan pin the exact world, not only `(family, version, seed)`.
+pub fn instance_digest(inst: &Instance) -> String {
+    use sha2::{Digest, Sha256};
+    crate::design::hex(&Sha256::digest(
+        serde_json::to_vec(inst).expect("instance serializes"),
+    ))
+}

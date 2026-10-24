@@ -1,10 +1,13 @@
 //! `lab-eval` CLI. JSON in, JSON out.
 //!
 //!   lab-eval instance <family> <seed>
-//!   lab-eval experiment <design.json> <family> <seed> <steps-remaining>
+//!   lab-eval experiment <design.json> <family> <seed> <reserved-steps>
 //!   lab-eval accept <design.json> <family> <seed>...
 //!   lab-eval commit <comparison> <salt> <family> <count>
-//!   lab-eval compare <design.json> <comparison> <family> <count> <commitment> <salt> <index>
+//!   lab-eval compare <design.json> <descriptor.json> <salt> <index>
+//!
+//! These expose simulation primitives for local inspection. They hold no
+//! grant or ledger and must not be given to a development method.
 use genesis_lab_eval::{commit, design::Design, family, score};
 use std::process::ExitCode;
 
@@ -49,17 +52,13 @@ fn main() -> ExitCode {
                     .count();
                 serde_json::json!({"succeeded": ok, "of": receipts.len(), "receipts": receipts})
             }
-            ["commit", cmp, salt, f, n] => serde_json::json!({
-                "comparison": cmp, "family": f, "count": num::<u32>(n)?,
-                "commitment": commit::commitment(cmp, salt, fam(f)?, num(n)?)
-            }),
-            ["compare", d, cmp, f, n, c, salt, i] => {
-                let set = score::HiddenSet {
-                    comparison: cmp,
-                    family: fam(f)?,
-                    count: num(n)?,
-                    commitment: c,
-                };
+            ["commit", cmp, salt, f, n] => {
+                serde_json::to_value(commit::Descriptor::new(cmp, salt, fam(f)?, num(n)?)).unwrap()
+            }
+            ["compare", d, desc, salt, i] => {
+                let bytes = std::fs::read(desc).map_err(|e| format!("read {desc}: {e}"))?;
+                let set: commit::Descriptor = serde_json::from_slice(&bytes)
+                    .map_err(|e| format!("descriptor {desc}: {e}"))?;
                 serde_json::to_value(
                     score::score_comparison(&design(d)?, &set, salt, num(i)?)
                         .map_err(|e| format!("refused: {e:?}"))?,
