@@ -42,6 +42,7 @@ fn retained_adoption(registry_url: Option<String>) -> Fixture {
         records_root: records,
         acceptance_plans: vec![genesis_server::method_adoption::AcceptancePin {
             requirement_id: owner.requirement.clone(),
+            publisher: OrgId::new("org_example_a"),
             plan: plan.reference().unwrap(),
         }],
     });
