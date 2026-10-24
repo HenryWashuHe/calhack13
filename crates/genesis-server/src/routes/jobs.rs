@@ -111,16 +111,20 @@ pub async fn dispatch(
         return Ok((StatusCode::OK, Json(stored)));
     }
     let state = app.current_state()?;
-    // A caller-selected provider must not bypass specialist result collection.
-    // Keep this HTTP boundary separate from backend capability preparation,
-    // which validates the installation and chooses the executable provider.
+    // A caller-selected provider must not bypass backend specialist result
+    // collection. Keep this HTTP boundary separate from backend capability
+    // preparation, which validates the installation and chooses the executable
+    // provider for both CREAO and Elastic roles.
     let bound = state
         .roles
         .get(&req.role_id)
         .and_then(|role| role.binding.as_ref())
         .map(|binding| binding.provider);
     if let (Some(bound), Some(asked)) = (bound, req.provider) {
-        if bound != asked && crate::specialist_jobs::BACKEND_MANAGED.contains(&bound) {
+        if bound != asked
+            && (crate::specialist_jobs::BACKEND_MANAGED.contains(&bound)
+                || bound == Provider::Elastic)
+        {
             return Err(ApiError::new(
                 StatusCode::CONFLICT,
                 "provider_mismatch",
@@ -199,6 +203,13 @@ pub async fn submit_result(
             StatusCode::CONFLICT,
             "managed_specialist_result",
             "specialist output is collected by the backend; caller result flags cannot verify it",
+        ));
+    }
+    if crate::elastic_jobs::backend_managed(&job) {
+        return Err(ApiError::new(
+            StatusCode::CONFLICT,
+            "managed_elastic_result",
+            "Elastic answers are collected by the backend; caller result flags cannot verify them",
         ));
     }
     if sub.attempt_id != job.attempt_id {
