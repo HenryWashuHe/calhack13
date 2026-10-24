@@ -311,14 +311,14 @@ plan around them:
 - **Org B while adoption is checking:** a restart mid-check can stop adoption at
   `attention / checks`. The bounded operator retry endpoint rejects unknown,
   running or locally rejected effects, and rejects failed checks that retain a
-  native receipt. A failed status read cannot authorize a second submission.
-  Retry is available for eligible registry/candidate/configuration/conflict
-  stops and checks with collected evidence or `failed` without a receipt
-  (a pre-submission refusal or terminal submission response). At most two
-  retries preserve the previous adoption IDs.
-  A terminal failure learned after submission remains blocked because its
-  sanitized record cannot yet distinguish it from a failed read. Preserve that
-  record for reconciliation; do not use retry as generic restart recovery.
+  native receipt unless the provider confirmed that exact run terminally
+  failed (`RunFailed`). A failed status read cannot authorize a second
+  submission. Retry is available for eligible registry/candidate/configuration/
+  conflict stops and checks with collected evidence, `failed` without a receipt
+  (a pre-submission refusal or terminal submission response), or a confirmed
+  terminal run after submission. At most two retries preserve the previous
+  adoption IDs. Preserve blocked records for reconciliation; do not use retry
+  as generic restart recovery.
   See [the exact retry gates](CAPABILITY_GAP_ADOPTION.md).
 - `rehearse_autonomy` does not rehearse a restart: each launch creates fresh
   temporary databases, so stopping and relaunching it starts both orgs over

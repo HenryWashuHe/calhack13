@@ -410,6 +410,7 @@ fn probe_error_kind(e: &ProviderError) -> String {
         ProviderError::Http { status, .. } => format!("provider returned HTTP {status}"),
         ProviderError::Timeout => "timed out".into(),
         ProviderError::Rejected(_) => "rejected by the provider".into(),
+        ProviderError::RunFailed(_) => "provider run reached a terminal failure".into(),
         ProviderError::Unknown(_) => "outcome unknown".into(),
     }
 }
