@@ -70,16 +70,21 @@ every milestone. All lower checkpoints are historical.
   replace independently retained acceptance evidence. #98 `cb29a95` receiving
   records are merged after independent checks, retaining Accepted 1/6 versus 0/6
   and Rejected 1/6 versus 2/6. They do not establish local adoption or a return.
-  #102 `737d214` public feedback is held on two
-  independent failures: hidden-comparison export and oversized revision input.
-  Henry owns that correction; do not use the export yet.
+  #102 `c8bf7a0` public feedback is merged at `7accefd3`: hidden-comparison
+  records are refused before reads and the document is bounded to 128 KiB.
+  Eight focused tests and strict Clippy/fmt independently pass; the original
+  `8ad9d645` regressions are unchanged. This supplies feedback, not adoption.
   Retain B's explicit selection/local acceptance decision and intended responsibility;
   a distinct B task and fresh A return remain required.
 - Eric (`EricZhu-31`) [acknowledged](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6386421464)
   the lab UI lane: `docs/invention-lab/ui.md` and `apps/web/src/invention-lab/**`,
-  without shared routes. #93 `9733b96` / #94 `9ac13fc` retain the two existing
-  review findings; preserve independent regression `78adef37`. The #99–#101
-  UI stack awaits those base fixes. Do not transfer this lane implicitly.
+  without shared routes. #93 `c723533` / #94 `8eeb8db` only merged main;
+  their existing label/organization findings remain, with `78adef37` unchanged.
+  #99–#101 also remain held on precise ledger sums, foreign-execution scoring
+  attribution and cross-org lineage/checkpoint pairing; preserve `59c3e1c`.
+  Do not transfer this lane implicitly. Archival stage presenter #108 `feb3da7`
+  is held on visible hidden controls and a stale Live caption after failure;
+  it does not advance the goal or revive the event-organizer direction.
   Eric also [claimed a separate CREAO nullable-ticket reconciliation slice](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6387513389):
   exact saved run/account/version binding and operator read-only reconciliation,
   no duplicate create or name/time-window matching. The old lost run ID cannot
@@ -122,12 +127,13 @@ every milestone. All lower checkpoints are historical.
   retained receiving execution/scoring records passed independent consistency
   checks without source/scorer re-execution; the first-trial report excludes the
   failed generations and separate reference/comparison runs. No gate closes.
-  Finite-chain ceilings #103 now supply a G4 structural prerequisite; hashes
-  prove no timing and do not predeclare the three previous calls. Codex next
-  owns exact-parent B revision preparation from reviewed public feedback, with
-  immutable parent/request/settings and a separately declared budget. First
-  retain #98 decision context and require #102 corrections; no blind
-  regeneration or replay.
+  Finite-chain ceilings #103 and retained CLI #107 are merged; hashes prove
+  no timing and do not predeclare the three previous calls. Optional generation
+  chain guard #110 `4b57cfa` is merged at `0f277d7`: 34 focused checks pass
+  independently. Codex's next planned step is one operator-assigned, source-only
+  exploratory B revision using checked #102 feedback, an exact parent, immutable
+  request/settings and a separate prior budget; offline preparation comes first. Retain #98 decision context; this does not replace Henry's receiving
+  acceptance, distinct B task or fresh A return. No spent-operation replay.
   G0–G4 remain open.
   Retain input-token/wall, billing, global enforcement and history limits.
   Preserve Henry's runtime files; provider/settings reproducibility, complete
