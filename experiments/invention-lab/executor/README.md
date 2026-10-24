@@ -69,15 +69,17 @@ is refused by `MethodPackage::load_for`.
     `/run`;
   - the method runs as `nobody` with `no_new_privs`;
   - the whole PID namespace is killed at the limit.
+  - resource limits set with prlimit before the privilege drop: 1 GiB address
+    space, 64 processes for `nobody`, 64 MiB per written file, 256 open files.
 
   The method can't see the evaluator, its sources, the slot state or other
   runs, can't reach the network, and nothing it writes survives the run. With
   no network and no model inside, model calls and tokens are recorded as
   measured zero.
 - **Not enforced:** reads of the rest of the read-only system; any syscall
-  filter; CPU or memory quotas beyond the wall time and the tmpfs sizes. A
-  method can compute its own physics inside its wall time, so
-  `simulation_steps` meters evaluator calls only.
+  filter; a CPU quota beyond the wall time. The process limit is per user, so
+  concurrent runs share it. A method can compute its own physics inside its
+  wall time, so `simulation_steps` meters evaluator calls only.
 
 `none` mode has no isolation, so model calls and tokens are recorded as
 `unknown`. The plan pins the mode through the environment digest.
