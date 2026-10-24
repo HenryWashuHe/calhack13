@@ -2927,3 +2927,212 @@ async fn an_already_installed_version_records_an_installation_conflict_without_c
     assert_eq!(f.providers.runs(), posts);
     assert_eq!(f.state().installations.len(), 1);
 }
+
+// Henry's Claude: what each gap adoption concluded. One test per acceptance
+// scenario; the classifier is read-only, so each also checks nothing fell
+// back to synthesis.
+fn outcome(f: &Fixture) -> genesis_server::capability_adoption_outcome::OutcomeView {
+    let record = f.record().expect("a gap adoption record");
+    genesis_server::capability_gap_adoption::outcome(&f.app, &record)
+        .unwrap()
+        .expect("a readable decision log")
+}
+
+async fn settle(f: &mut Fixture) {
+    f.serve().await;
+    f.wait_for("a conclusion", |f| {
+        f.record()
+            .is_some_and(|r| r.state != GapAdoptionState::Active)
+    })
+    .await;
+    f.stop();
+}
+
+#[tokio::test]
+async fn outcome_compatible_candidate_is_adopted_with_its_exact_version_and_local_acceptance() {
+    let mut f = Fixture::new(Options::default()).await;
+    settle(&mut f).await;
+    let o = outcome(&f);
+    assert_eq!(o.outcome.as_str(), "adopted", "{o:?}");
+    let c = o.candidate.expect("the adopted candidate");
+    assert_eq!(c.decision.as_str(), "adopted");
+    assert_eq!(c.publisher.as_str(), "org-a");
+    assert_eq!(c.version, manifest(FOREIGN, "org-a")["version"]);
+    assert!(c.acceptance_ref.is_some());
+    // The same view on the status route.
+    let (code, body) = adoption_status(&f, f.gap_id.as_str()).await;
+    assert_eq!(code, reqwest::StatusCode::OK);
+    assert_eq!(body["outcome"]["outcome"], "adopted", "{body}");
+    assert_eq!(
+        body["outcome"]["candidate"]["capability_id"],
+        json!(FOREIGN)
+    );
+    assert!(body["outcome"].get("score").is_none());
+    assert_eq!(f.providers.model_calls(), 0);
+}
+
+#[tokio::test]
+async fn outcome_same_domain_but_incompatible_is_not_applicable_with_the_local_reason() {
+    let mut f = Fixture::new(Options::default()).await;
+    f.providers.wrong_outputs();
+    settle(&mut f).await;
+    let o = outcome(&f);
+    assert_eq!(o.outcome.as_str(), "not_applicable", "{o:?}");
+    assert!(o.reason.contains("cases failed"), "{}", o.reason);
+    let expected = receipts()[0].output["venues"][0]["capacity"].to_string();
+    assert!(!o.reason.contains(&expected));
+    assert!(o
+        .candidate
+        .as_ref()
+        .and_then(|c| c.acceptance_ref.as_deref())
+        .is_some_and(|r| r.starts_with("adoption-rejection:")));
+    assert!(installed(&f.gap_status()).is_none());
+    assert_eq!(f.providers.model_calls(), 0);
+    assert!(!f.driver_bound());
+}
+
+#[tokio::test]
+async fn outcome_nothing_eligible_is_no_candidate_and_names_why_without_a_candidate() {
+    let f = Fixture::new(Options {
+        foreign: false,
+        fallback: false,
+        ..Options::default()
+    })
+    .await;
+    f.drain().await;
+    f.drain().await;
+    f.adoption_step().await;
+    f.drain().await;
+    let o = outcome(&f);
+    assert_eq!(o.outcome.as_str(), "no_candidate", "{o:?}");
+    assert!(o.candidate.is_none());
+    assert!(o.considered >= 1);
+    assert!(
+        o.reason.contains("published by this organization"),
+        "{}",
+        o.reason
+    );
+    // The unrelated or own tool is never executed.
+    assert_eq!(f.providers.runs(), 0);
+    assert!(!f.driver_bound());
+}
+
+#[tokio::test]
+async fn outcome_unreachable_registry_is_unknown_and_never_no_candidate() {
+    let f = Fixture::new(Options {
+        registry_up: false,
+        ..Options::default()
+    })
+    .await;
+    f.drain().await;
+    f.drain().await;
+    f.adoption_step().await;
+    f.drain().await;
+    let o = outcome(&f);
+    assert_eq!(o.outcome.as_str(), "unknown", "{o:?}");
+    assert_eq!(o.considered, 0);
+    assert!(o.reason.contains("couldn't be searched"), "{}", o.reason);
+    assert!(!f.driver_bound());
+    assert_eq!(f.gap_status(), CapabilityGapStatus::Open);
+    assert_eq!(f.providers.model_calls(), 0);
+}
+
+#[tokio::test]
+async fn outcome_unknown_check_is_unknown_and_a_confirmed_failed_check_is_insufficient_evidence() {
+    let mut f = Fixture::new(Options {
+        ambiguous_runs: true,
+        ..Options::default()
+    })
+    .await;
+    settle(&mut f).await;
+    assert_eq!(f.record().unwrap().code, Some(GapAdoptionCode::Checks));
+    let o = outcome(&f);
+    assert_eq!(o.outcome.as_str(), "unknown", "{o:?}");
+    assert!(o.reason.contains("unknown or unresolved"), "{}", o.reason);
+    // The candidate was chosen, but no verdict: still `selected`.
+    assert_eq!(
+        o.candidate.as_ref().map(|c| c.decision.as_str()),
+        Some("selected")
+    );
+
+    let mut f = Fixture::new(Options::default()).await;
+    f.providers.fail_submits(usize::MAX);
+    settle(&mut f).await;
+    assert_eq!(f.record().unwrap().code, Some(GapAdoptionCode::Checks));
+    let o = outcome(&f);
+    assert_eq!(o.outcome.as_str(), "insufficient_evidence", "{o:?}");
+    assert!(!f.driver_bound());
+    assert_eq!(f.providers.model_calls(), 0);
+}
+
+#[tokio::test]
+async fn outcome_an_unusable_score_is_insufficient_evidence_not_empty() {
+    let mut f = Fixture::new(Options::default()).await;
+    let registry = review_registry_answer(&mut f, json!([review_search_candidate(0.0)])).await;
+    f.drain().await;
+    f.drain().await;
+    f.adoption_step().await;
+    f.drain().await;
+    registry.abort();
+    let o = outcome(&f);
+    assert_eq!(o.outcome.as_str(), "insufficient_evidence", "{o:?}");
+    assert!(o.reason.contains("unusable score"), "{}", o.reason);
+    assert!(!f.driver_bound());
+}
+
+#[tokio::test]
+async fn outcome_changed_authority_is_stopped_and_old_evidence_names_no_verdict() {
+    let mut f = Fixture::new(Options::default()).await;
+    f.drain().await;
+    f.drain().await;
+    f.adoption_step().await;
+    f.adoption_step().await;
+    f.change_requirement();
+    settle(&mut f).await;
+    assert_eq!(f.record().unwrap().code, Some(GapAdoptionCode::Authority));
+    let o = outcome(&f);
+    assert_eq!(o.outcome.as_str(), "stopped", "{o:?}");
+    assert!(o.reason.contains("can't authorize"), "{}", o.reason);
+    assert!(o
+        .candidate
+        .as_ref()
+        .is_none_or(|c| c.decision.as_str() != "adopted"));
+}
+
+#[tokio::test]
+async fn outcome_is_stable_across_restart() {
+    let mut f = Fixture::new(Options::default()).await;
+    f.providers.wrong_outputs();
+    settle(&mut f).await;
+    let before = outcome(&f);
+    f.reopen();
+    f.drain().await;
+    assert_eq!(outcome(&f), before);
+}
+
+#[tokio::test]
+async fn outcome_without_recorded_decisions_does_not_invent_search_cardinality() {
+    // Henry's Claude, for Codex's #11 review: an adoption with no decision
+    // rows (an empty answer, or one from before the log) must not be described
+    // as "the registry answered with no candidates".
+    use genesis_server::capability_adoption_outcome::classify;
+    use genesis_server::capability_gap_adoption::{GapAdoptionCode, GapAdoptionState};
+    let o = classify(
+        GapAdoptionState::Refused,
+        Some(GapAdoptionCode::NoCandidate),
+        &[],
+        false,
+    );
+    assert_eq!(o.outcome.as_str(), "no_candidate");
+    assert_eq!(o.considered, 0);
+    assert!(
+        o.reason.contains("no eligible candidate was found"),
+        "{}",
+        o.reason
+    );
+    assert!(
+        !o.reason.contains("answered with no candidates"),
+        "{}",
+        o.reason
+    );
+}
