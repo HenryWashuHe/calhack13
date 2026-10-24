@@ -423,3 +423,60 @@ async fn review_unresolved_requirement_post_must_not_replay_after_restart() {
         "ambiguous requirement replay created an orphan after the original request committed"
     );
 }
+
+#[tokio::test]
+async fn review_restart_recovers_accepted_change_after_an_unsubmitted_attempt() {
+    let org = Org::start().await;
+    let lead = org.seed().await;
+    let kernel = KernelClient::new(&org.url, &org.agent);
+    let state = kernel.state().await.unwrap();
+    let observation = state.observations.values().next().unwrap();
+    let parsed = genesis_planner::output::parse(&reply(&lead)).unwrap();
+    let draft = parsed.requirement.as_ref().unwrap();
+    let requirement = kernel
+        .record_requirement_once(
+            &format!("planner:{}:requirement", observation.observation_id),
+            &observation.mission_id,
+            &draft.summary,
+            std::slice::from_ref(&observation.observation_id),
+            &draft.acceptance,
+        )
+        .await
+        .unwrap();
+    let revision = kernel.state().await.unwrap().revision;
+    let proposal = genesis_planner::output::proposal(
+        &parsed,
+        Some(&requirement),
+        &observation.observation_id,
+        revision,
+    )
+    .unwrap();
+    // Attempt 1 failed to parse/build a proposal, so it left no change row.
+    // Attempt 2 committed, then the process stopped before its decision write.
+    let original = kernel
+        .submit_change(
+            &format!("planner:{}:a2:s0", observation.observation_id),
+            &proposal,
+        )
+        .await
+        .unwrap();
+    org.wait_quiet().await;
+    let model = Arc::new(ReplayClient::new([json!({
+        "assessment": "The current organization already has a recovery owner",
+        "verdict": "no_change",
+        "rationale": "No additional role is needed"
+    })
+    .to_string()]));
+    let planner = Planner::new(kernel, model.clone());
+    let outcome = planner.plan(&observation.observation_id).await.unwrap();
+    assert_eq!(
+        model.requests().len(),
+        0,
+        "a gap in earlier attempt keys must not hide committed change {}; outcome={outcome:?}",
+        original.change_id
+    );
+    assert!(
+        matches!(outcome, genesis_planner::agent::PlanOutcome::Proposed { change, attempts: 0 }
+        if change.change_id == original.change_id)
+    );
+}
