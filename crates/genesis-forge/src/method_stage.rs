@@ -10,7 +10,7 @@ use genesis_core::development_method::{ExactContentRef, ResourceGrant};
 use genesis_core::development_trial::{TrialEvidence, TrialPlan};
 use serde::{Deserialize, Deserializer, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct StageLimits {
     pub id: String,
@@ -53,6 +53,39 @@ fn amounts(g: &ResourceGrant) -> [u64; 5] {
     ]
 }
 
+pub(crate) fn validate_limits(
+    limits: &StageLimits,
+    generation: &ResourceGrant,
+    allow_generation_only: bool,
+) -> Result<(), AccountingError> {
+    if !identifier(&limits.id, 128) || limits.max_trial_slots > 64 {
+        return Err(invalid("stage allocation identity or slot count"));
+    }
+    if limits.max_trial_slots == 0
+        && (!allow_generation_only
+            || amounts(&limits.development_grant) != [0; 5]
+            || amounts(&limits.scoring_grant) != [0; 5])
+    {
+        return Err(invalid("generation-only stage requires zero trial grants"));
+    }
+    for (((generation, development), scoring), ceiling) in amounts(generation)
+        .into_iter()
+        .zip(amounts(&limits.development_grant))
+        .zip(amounts(&limits.scoring_grant))
+        .zip(amounts(&limits.total_grant))
+    {
+        let allocated = development
+            .checked_add(scoring)
+            .and_then(|v| v.checked_mul(u64::from(limits.max_trial_slots)))
+            .and_then(|v| v.checked_add(generation))
+            .ok_or_else(|| invalid("stage allocation arithmetic overflow"))?;
+        if allocated > ceiling {
+            return Err(invalid("declared grants exceed stage ceiling"));
+        }
+    }
+    Ok(())
+}
+
 impl StageAllocation {
     /// The host must lock the admission journal while checking these snapshots
     /// and persist this allocation before any participating generation intent.
@@ -83,29 +116,18 @@ impl StageAllocation {
 
     pub fn validate(&self) -> Result<(), AccountingError> {
         self.0.roster.validate()?;
-        let limits = &self.0.limits;
-        if self.0.schema_version != 1
-            || !identifier(&limits.id, 128)
-            || !(1..=64).contains(&limits.max_trial_slots)
-        {
-            return Err(invalid("stage allocation identity or slot count"));
+        if self.0.schema_version != 1 {
+            return Err(invalid("stage allocation version"));
         }
-        for (((generation, development), scoring), ceiling) in amounts(self.0.roster.total_grant())
-            .into_iter()
-            .zip(amounts(&limits.development_grant))
-            .zip(amounts(&limits.scoring_grant))
-            .zip(amounts(&limits.total_grant))
-        {
-            let allocated = development
-                .checked_add(scoring)
-                .and_then(|v| v.checked_mul(u64::from(limits.max_trial_slots)))
-                .and_then(|v| v.checked_add(generation))
-                .ok_or_else(|| invalid("stage allocation arithmetic overflow"))?;
-            if allocated > ceiling {
-                return Err(invalid("declared grants exceed stage ceiling"));
-            }
-        }
-        Ok(())
+        validate_limits(&self.0.limits, self.0.roster.total_grant(), true)
+    }
+
+    pub fn limits(&self) -> &StageLimits {
+        &self.0.limits
+    }
+
+    pub fn roster(&self) -> &GenerationRoster {
+        &self.0.roster
     }
 
     pub fn sha256(&self) -> Result<String, AccountingError> {
@@ -133,6 +155,9 @@ impl StageAllocation {
         scope: &CostScope,
     ) -> Result<StageTrialBinding, AccountingError> {
         let allocation_sha256 = self.sha256()?;
+        if self.0.limits.max_trial_slots == 0 {
+            return Err(invalid("generation-only stage cannot bind a trial"));
+        }
         let cost_scope_sha256 = scope.sha256()?;
         let reference = trial.reference()?;
         let limits = &self.0.limits;

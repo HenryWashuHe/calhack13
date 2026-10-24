@@ -62,3 +62,26 @@ unless the plan's criterion explicitly accepts unknown model calls and tokens.
 The verdict is acceptance evidence for adoption, not an adoption decision or
 an installation.
 
+
+## Predeclared receiving runs (`tools/receive.py`)
+
+`tools/receive.py <spec.json> <out-dir>` runs a whole set of receiving-side
+trials from one `lab-receive-spec/1` file, with `LAB_EXEC` and `LAB_SCORE`
+pointing at the built binaries. The spec names the receiving organization,
+the sandbox, equal per-arm grants, each method package by path and expected
+SHA-256, and the trials (family, candidate, control). The spec and every
+package are read once, checked, and retained under the output directory
+(`spec.json`, `packages/`). Only those snapshots are used afterwards, so editing
+the inputs mid-run changes nothing. Publish the spec or its hash before the run
+starts. The hash the tool prints isn't proof of a prior declaration.
+Each trial is a fresh two-slot plan from `lab-exec example-plan`, with the
+control method, slot organization and plan id rewritten. Each slot runs once,
+then the tool scores both, decides the strict verdict and writes the
+candidate's `lab-score feedback`. Failures are recorded, not retried.
+`summary.json` is rewritten after every trial. An unexpected error records an
+error row and stops the run. The output directory must not already exist, and
+the summary repeats the spec hash and the host's runtime ref. A package whose bytes don't match its
+declared hash stops the run before anything executes. A trial may add
+`first_seed` to run on seeds `first_seed..first_seed + instances` (a fresh
+public panel, via `lab-exec example-plan … <first-seed>`). Ranges that reach
+the reserved hidden-seed domain (2^63 and up) are refused before any effect.

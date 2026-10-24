@@ -23,6 +23,7 @@ use genesis_core::development_method::{ExecutionReceipt, ResourceUsage, Usage};
 use genesis_core::development_trial::{ScoringInstances, TrialPlan};
 use genesis_lab_eval::design::Design;
 use genesis_lab_eval::score::{score_acceptance, Outcome, Receipt};
+pub mod feedback;
 pub mod hidden;
 pub mod verdict;
 

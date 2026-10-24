@@ -1,0 +1,338 @@
+{
+  "schema": "genesis-method-cost-report/1",
+  "scope_sha256": "eec2acf941c31e4c5a865d07abeb6b360e2164f9ebec9b4edd4aeb257b3d390e",
+  "rows": [
+    {
+      "stage": "generation",
+      "identity": "org_example_b/live-b-revision-20261024t182242z-80adc80d",
+      "evidence_sha256": "38382a7b7f016c38afc0022c5f685b9610f732d39a5ffce670b5f7ae3104fae5",
+      "observation": {
+        "kind": "generation",
+        "phase": "generated",
+        "transport": "anthropic_https"
+      },
+      "usage": {
+        "model_calls": {
+          "kind": "measured",
+          "value": 1
+        },
+        "input_tokens": {
+          "kind": "measured",
+          "value": 20798
+        },
+        "output_tokens": {
+          "kind": "measured",
+          "value": 5741
+        },
+        "wall_time_ms": {
+          "kind": "measured",
+          "value": 40223
+        },
+        "simulation_steps": {
+          "kind": "measured",
+          "value": 0
+        }
+      },
+      "individual_limit_exceeded": null
+    },
+    {
+      "stage": "execution",
+      "identity": "candidate",
+      "evidence_sha256": "2cd5132dcb784253d373a673ff4b9059650551ce898b126ff5272d8cf773305b",
+      "observation": {
+        "kind": "execution",
+        "outcome": "output_generated",
+        "has_output": true
+      },
+      "usage": {
+        "model_calls": {
+          "kind": "measured",
+          "value": 0
+        },
+        "input_tokens": {
+          "kind": "measured",
+          "value": 0
+        },
+        "output_tokens": {
+          "kind": "measured",
+          "value": 0
+        },
+        "wall_time_ms": {
+          "kind": "measured",
+          "value": 30822
+        },
+        "simulation_steps": {
+          "kind": "measured",
+          "value": 39778
+        }
+      },
+      "individual_limit_exceeded": false
+    },
+    {
+      "stage": "scoring",
+      "identity": "candidate",
+      "evidence_sha256": "0e2fc249947f2522efd14fbf67df74ff798cbec003291d3cd15562b4406e6fd7",
+      "observation": {
+        "kind": "scoring",
+        "outcome": {
+          "kind": "scored",
+          "metrics": {
+            "domain": "genesis-lab",
+            "schema": "lab-scoring-metrics/1",
+            "id": "lab-scoring-metrics/1",
+            "version": "1",
+            "sha256": "874cc58444f1115d0f4cad03eba7b195aae7fd6f3619c744a6b1cb41a34432f0"
+          }
+        }
+      },
+      "usage": {
+        "model_calls": {
+          "kind": "measured",
+          "value": 0
+        },
+        "input_tokens": {
+          "kind": "measured",
+          "value": 0
+        },
+        "output_tokens": {
+          "kind": "measured",
+          "value": 0
+        },
+        "wall_time_ms": {
+          "kind": "measured",
+          "value": 4473
+        },
+        "simulation_steps": {
+          "kind": "measured",
+          "value": 9498
+        }
+      },
+      "individual_limit_exceeded": false
+    },
+    {
+      "stage": "execution",
+      "identity": "control",
+      "evidence_sha256": "f9d1f8cd75282888f8cb2143fd3e6d6e452fd10a41667ef80959f4984c4fa3d3",
+      "observation": {
+        "kind": "execution",
+        "outcome": "output_generated",
+        "has_output": true
+      },
+      "usage": {
+        "model_calls": {
+          "kind": "measured",
+          "value": 0
+        },
+        "input_tokens": {
+          "kind": "measured",
+          "value": 0
+        },
+        "output_tokens": {
+          "kind": "measured",
+          "value": 0
+        },
+        "wall_time_ms": {
+          "kind": "measured",
+          "value": 58179
+        },
+        "simulation_steps": {
+          "kind": "measured",
+          "value": 63581
+        }
+      },
+      "individual_limit_exceeded": false
+    },
+    {
+      "stage": "scoring",
+      "identity": "control",
+      "evidence_sha256": "23bdc4d7ffdd59dfdd3fb6d4f1f308fe560775bf8b23f319c7ea0e74fec1ce36",
+      "observation": {
+        "kind": "scoring",
+        "outcome": {
+          "kind": "scored",
+          "metrics": {
+            "domain": "genesis-lab",
+            "schema": "lab-scoring-metrics/1",
+            "id": "lab-scoring-metrics/1",
+            "version": "1",
+            "sha256": "6d658db84d0c167cb71e43fc4e567da613ed3db04437ccdaf7b2e1fec251927c"
+          }
+        }
+      },
+      "usage": {
+        "model_calls": {
+          "kind": "measured",
+          "value": 0
+        },
+        "input_tokens": {
+          "kind": "measured",
+          "value": 0
+        },
+        "output_tokens": {
+          "kind": "measured",
+          "value": 0
+        },
+        "wall_time_ms": {
+          "kind": "measured",
+          "value": 6943
+        },
+        "simulation_steps": {
+          "kind": "measured",
+          "value": 10256
+        }
+      },
+      "individual_limit_exceeded": false
+    }
+  ],
+  "matched_package_links": [
+    true
+  ],
+  "generation": [
+    {
+      "resource": "model_calls",
+      "known_lower_bound": 1,
+      "unknown": false,
+      "overflow": false,
+      "limit_exceeded": false
+    },
+    {
+      "resource": "input_tokens",
+      "known_lower_bound": 20798,
+      "unknown": false,
+      "overflow": false,
+      "limit_exceeded": false
+    },
+    {
+      "resource": "output_tokens",
+      "known_lower_bound": 5741,
+      "unknown": false,
+      "overflow": false,
+      "limit_exceeded": false
+    },
+    {
+      "resource": "wall_time_ms",
+      "known_lower_bound": 40223,
+      "unknown": false,
+      "overflow": false,
+      "limit_exceeded": false
+    },
+    {
+      "resource": "simulation_steps",
+      "known_lower_bound": 0,
+      "unknown": false,
+      "overflow": false,
+      "limit_exceeded": false
+    }
+  ],
+  "execution": [
+    {
+      "resource": "model_calls",
+      "known_lower_bound": 0,
+      "unknown": false,
+      "overflow": false,
+      "limit_exceeded": false
+    },
+    {
+      "resource": "input_tokens",
+      "known_lower_bound": 0,
+      "unknown": false,
+      "overflow": false,
+      "limit_exceeded": false
+    },
+    {
+      "resource": "output_tokens",
+      "known_lower_bound": 0,
+      "unknown": false,
+      "overflow": false,
+      "limit_exceeded": false
+    },
+    {
+      "resource": "wall_time_ms",
+      "known_lower_bound": 89001,
+      "unknown": false,
+      "overflow": false,
+      "limit_exceeded": false
+    },
+    {
+      "resource": "simulation_steps",
+      "known_lower_bound": 103359,
+      "unknown": false,
+      "overflow": false,
+      "limit_exceeded": false
+    }
+  ],
+  "scoring": [
+    {
+      "resource": "model_calls",
+      "known_lower_bound": 0,
+      "unknown": false,
+      "overflow": false,
+      "limit_exceeded": false
+    },
+    {
+      "resource": "input_tokens",
+      "known_lower_bound": 0,
+      "unknown": false,
+      "overflow": false,
+      "limit_exceeded": false
+    },
+    {
+      "resource": "output_tokens",
+      "known_lower_bound": 0,
+      "unknown": false,
+      "overflow": false,
+      "limit_exceeded": false
+    },
+    {
+      "resource": "wall_time_ms",
+      "known_lower_bound": 11416,
+      "unknown": false,
+      "overflow": false,
+      "limit_exceeded": false
+    },
+    {
+      "resource": "simulation_steps",
+      "known_lower_bound": 19754,
+      "unknown": false,
+      "overflow": false,
+      "limit_exceeded": false
+    }
+  ],
+  "combined": [
+    {
+      "resource": "model_calls",
+      "known_lower_bound": 1,
+      "unknown": false,
+      "overflow": false,
+      "limit_exceeded": false
+    },
+    {
+      "resource": "input_tokens",
+      "known_lower_bound": 20798,
+      "unknown": false,
+      "overflow": false,
+      "limit_exceeded": false
+    },
+    {
+      "resource": "output_tokens",
+      "known_lower_bound": 5741,
+      "unknown": false,
+      "overflow": false,
+      "limit_exceeded": false
+    },
+    {
+      "resource": "wall_time_ms",
+      "known_lower_bound": 140640,
+      "unknown": false,
+      "overflow": false,
+      "limit_exceeded": false
+    },
+    {
+      "resource": "simulation_steps",
+      "known_lower_bound": 123113,
+      "unknown": false,
+      "overflow": false,
+      "limit_exceeded": false
+    }
+  ]
+}

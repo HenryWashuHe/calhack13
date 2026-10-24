@@ -67,6 +67,21 @@ enum Command {
         #[arg(long)]
         quota_db: PathBuf,
     },
+    /// Verify a candidate hosted agent for a saved v2 create run using one GET.
+    ReconcileAgent {
+        #[arg(long)]
+        db: PathBuf,
+        #[arg(long)]
+        org: String,
+        #[arg(long)]
+        operation: String,
+        #[arg(long)]
+        account: String,
+        #[arg(long)]
+        quota_db: PathBuf,
+        #[arg(long)]
+        agent_id: String,
+    },
 }
 
 fn read_spec(path: &Path) -> Result<OperationSpec> {
@@ -94,6 +109,7 @@ fn runtime(db: &Path, org: &str, account: &str, quota_db: &Path) -> Result<Runti
     let limiter = AccountLimiter::open(quota_db, account, QuotaLimits::default())?;
     let version = match std::env::var("CREAO_API_VERSION") {
         Err(std::env::VarError::NotPresent) => ApiVersion::V1,
+        Ok(value) if value.trim().is_empty() => ApiVersion::V1,
         Ok(value) if value == "v1" => ApiVersion::V1,
         Ok(value) if value == "v2" => ApiVersion::V2,
         _ => anyhow::bail!("CREAO_API_VERSION must be v1 or v2"),
@@ -147,6 +163,18 @@ async fn main() -> Result<()> {
         } => {
             json!({"recovered":runtime(&db,&org,&account,&quota_db)?.recover_interrupted().await?,"provider_requests":0})
         }
+        Command::ReconcileAgent {
+            db,
+            org,
+            operation,
+            account,
+            quota_db,
+            agent_id,
+        } => summary(
+            &runtime(&db, &org, &account, &quota_db)?
+                .reconcile_creation_agent(&operation, &agent_id)
+                .await?,
+        ),
     };
     println!("{}", serde_json::to_string_pretty(&output)?);
     Ok(())
