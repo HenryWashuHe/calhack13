@@ -103,6 +103,18 @@ impl Mock {
         )
         .unwrap()
     }
+    fn client_v2(&self, namespace: &str) -> CreaoClient {
+        CreaoClient::for_local_testing_v2(
+            "cr_sk_synthetic_test_only",
+            Limits {
+                request_timeout: Duration::from_secs(1),
+                ..Limits::default()
+            },
+            AccountLimiter::in_memory(namespace, QuotaLimits::default()).unwrap(),
+            &self.base.replace("/v1", "/v2"),
+        )
+        .unwrap()
+    }
     fn runtime(&self, store: RuntimeStore) -> Runtime {
         Runtime::new(self.client(ACCOUNT), store, INTERVAL).unwrap()
     }
@@ -184,14 +196,7 @@ fn creation(id: &str) -> OperationSpec {
 async fn api_version_is_frozen_before_submission_and_on_reopen() {
     let mock = Mock::start(vec![]).await;
     let store = RuntimeStore::in_memory(ORG).unwrap();
-    let v2_client = CreaoClient::for_local_testing_v2(
-        "cr_sk_synthetic_test_only",
-        Limits::default(),
-        AccountLimiter::in_memory(ACCOUNT, QuotaLimits::default()).unwrap(),
-        &mock.base.replace("/v1", "/v2"),
-    )
-    .unwrap();
-    let v2 = Runtime::new(v2_client, store.clone(), INTERVAL).unwrap();
+    let v2 = Runtime::new(mock.client_v2(ACCOUNT), store.clone(), INTERVAL).unwrap();
     let old = creation("protocol-frozen");
     assert!(matches!(
         v2.prepare(old.clone()),
@@ -206,6 +211,80 @@ async fn api_version_is_frozen_before_submission_and_on_reopen() {
         Err(RuntimeError::ContextMismatch)
     ));
     assert!(mock.requests().is_empty());
+}
+
+#[tokio::test]
+async fn hosted_v2_creation_without_agent_id_stays_ambiguous_across_restart() {
+    let mock = Mock::start(vec![Reply::accepted(RUN_A, None)]).await;
+    let private = tempfile::tempdir().unwrap();
+    let path = private.path().join("v2-creation.sqlite");
+    let runtime = Runtime::new(
+        mock.client_v2(ACCOUNT),
+        RuntimeStore::open(&path, ORG).unwrap(),
+        INTERVAL,
+    )
+    .unwrap();
+    let mut spec = creation("hosted-no-agent-id");
+    spec.api_version = ApiVersion::V2;
+    runtime.prepare(spec.clone()).unwrap();
+    let unknown = runtime.step(&spec.operation_id, false).await.unwrap();
+    assert_eq!(unknown.phase, OperationPhase::NeedsReconciliation);
+    assert!(unknown.ticket.is_none());
+    assert!(
+        matches!(&unknown.failure, Some(RuntimeFailure::Provider(error))
+        if error.kind == ErrorKind::MalformedResponse && error.post_may_have_run)
+    );
+    assert_eq!(mock.requests().len(), 1);
+    drop(runtime);
+
+    let reopened = Runtime::new(
+        mock.client_v2(ACCOUNT),
+        RuntimeStore::open(&path, ORG).unwrap(),
+        INTERVAL,
+    )
+    .unwrap();
+    assert_eq!(reopened.recover_interrupted().await.unwrap(), 0);
+    assert!(matches!(
+        reopened.step(&spec.operation_id, false).await,
+        Err(RuntimeError::NeedsReconciliation)
+    ));
+    assert_eq!(mock.requests().len(), 1);
+}
+
+#[tokio::test]
+async fn hosted_v2_creation_uses_edit_poll_and_keeps_exact_agent() {
+    let mock = Mock::start(vec![
+        Reply::accepted(RUN_A, Some(AGENT)),
+        Reply::new(
+            200,
+            json!({"run_id":RUN_A,"agent_id":AGENT,
+            "status":"succeeded","result":{"agent_id":AGENT}}),
+        ),
+    ])
+    .await;
+    let runtime = Runtime::new(
+        mock.client_v2(ACCOUNT),
+        RuntimeStore::in_memory(ORG).unwrap(),
+        INTERVAL,
+    )
+    .unwrap();
+    let mut spec = creation("hosted-success");
+    spec.api_version = ApiVersion::V2;
+    runtime.prepare(spec.clone()).unwrap();
+    let submitted = runtime.step(&spec.operation_id, false).await.unwrap();
+    assert_eq!(submitted.phase, OperationPhase::Waiting);
+    assert_eq!(submitted.ticket.as_ref().unwrap().agent_id(), Some(AGENT));
+    due(&submitted).await;
+    let completed = runtime.step(&spec.operation_id, false).await.unwrap();
+    assert_eq!(completed.phase, OperationPhase::NativeCompleted);
+    assert_eq!(
+        completed.observation.as_ref().unwrap().agent_id.as_deref(),
+        Some(AGENT)
+    );
+    let requests = mock.requests();
+    assert_eq!(requests.len(), 2);
+    assert_eq!(requests[0].1, "/v2/agents");
+    assert_eq!(requests[1].1, format!("/v2/agents/{AGENT}/edits/{RUN_A}"));
 }
 fn execution(id: &str, event: u64) -> OperationSpec {
     OperationSpec {
