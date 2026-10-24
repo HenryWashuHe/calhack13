@@ -1058,11 +1058,13 @@ impl<'a> Sim<'a> {
             );
         }
         for url in observed_sources {
-            match http_origin(url) {
+            match acquirable_source(url) {
                 None => self.err(
                     ValidationCode::InvalidInput,
                     Some(i),
-                    format!("observed source {url:?} is not an http(s) URL"),
+                    format!(
+                        "observed source {url:?} must be a canonical https URL with no credentials or fragment, as acquisition requires"
+                    ),
                 ),
                 Some(origin) if !evidence_origins.contains(&origin) => self.err(
                     ValidationCode::UnknownEvidence,
@@ -2056,6 +2058,26 @@ fn http_origin(url: &str) -> Option<String> {
         return None;
     }
     Some(format!("{scheme}://{}", authority.to_ascii_lowercase()))
+}
+
+/// Origin of a source an acquisition can actually use. The same rules as the
+/// forge's synthesis input (`genesis_forge::SynthesisRequest::validate`):
+/// https, a host, no credentials, no fragment, at most 1024 bytes, and already
+/// in canonical form. Anything else would commit a gap no trusted policy can
+/// ever materialize, so it is rejected here, where the planner can repair it.
+fn acquirable_source(source: &str) -> Option<String> {
+    let url = url::Url::parse(source).ok()?;
+    if source.len() > 1024
+        || url.scheme() != "https"
+        || url.host_str().is_none()
+        || !url.username().is_empty()
+        || url.password().is_some()
+        || url.fragment().is_some()
+        || url.as_str() != source
+    {
+        return None;
+    }
+    http_origin(source)
 }
 
 fn valid_capability_name(name: &str) -> bool {
