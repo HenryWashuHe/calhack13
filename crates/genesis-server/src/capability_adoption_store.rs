@@ -780,6 +780,8 @@ fn load(conn: &Connection, id: &str) -> Result<AdoptionRecord> {
 impl Store {
     pub fn init_capability_adoptions(&self) -> Result<()> {
         self.lock().execute_batch("CREATE TABLE IF NOT EXISTS capability_adoptions(ordinal INTEGER PRIMARY KEY AUTOINCREMENT,id TEXT NOT NULL UNIQUE,client_request_id TEXT NOT NULL UNIQUE,requirement_id TEXT NOT NULL,assignment_id TEXT NOT NULL,epoch INTEGER NOT NULL,version INTEGER NOT NULL,phase TEXT NOT NULL,active INTEGER NOT NULL CHECK(active IN(0,1)),next_attempt_at TEXT,installation_id TEXT UNIQUE,record_json TEXT NOT NULL);CREATE UNIQUE INDEX IF NOT EXISTS adoption_active_requirement ON capability_adoptions(requirement_id,assignment_id,epoch) WHERE active=1;CREATE INDEX IF NOT EXISTS adoption_due ON capability_adoptions(active,next_attempt_at,ordinal);")?;
+        self.lock()
+            .execute_batch(crate::capability_adoption_candidates::SCHEMA)?;
         Ok(())
     }
     pub fn create_adoption(

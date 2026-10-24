@@ -144,9 +144,9 @@ impl From<ProviderError> for ApiError {
             ProviderError::Unknown(_) | ProviderError::Timeout => {
                 (StatusCode::BAD_GATEWAY, "unknown_external_outcome")
             }
-            ProviderError::Http { .. } | ProviderError::Rejected(_) => {
-                (StatusCode::BAD_GATEWAY, "provider_error")
-            }
+            ProviderError::Http { .. }
+            | ProviderError::Rejected(_)
+            | ProviderError::RunFailed(_) => (StatusCode::BAD_GATEWAY, "provider_error"),
         };
         ApiError::new(status, code, e.to_string()).with_details(&e)
     }

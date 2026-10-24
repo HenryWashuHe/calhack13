@@ -41,6 +41,13 @@ pub enum ProviderError {
     Timeout,
     #[error("provider rejected the request: {0}")]
     Rejected(String),
+    /// The provider positively reported that this exact run reached a
+    /// terminal failure (for Apify: FAILED, TIMED-OUT or ABORTED after the
+    /// run's identity and build were checked). Unlike `Rejected`, the
+    /// external effect is known to have stopped. Only a provider adapter that
+    /// read that terminal status may produce it.
+    #[error("provider run reached a terminal failure: {0}")]
+    RunFailed(String),
     /// The outcome is unknown (e.g. a dropped connection after submit).
     /// Callers must reconcile before retrying.
     #[error("outcome unknown: {0}")]
