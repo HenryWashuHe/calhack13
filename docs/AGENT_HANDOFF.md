@@ -2,16 +2,22 @@
 
 ## Current merge and ownership checkpoint — October 22, 2026
 
-Capability PRs #8/#9/#10/#13/#14/#15/#16/#17/#18/#19/#24 are merged to `main`
-at `4ecc397`. Their resulting tree matches tested #24 exactly: 594 Rust tests,
-formatting and strict Clippy. The user authorizes merging ready PRs; this does not
-resolve findings on other heads. [Current queue](PR_REVIEW_QUEUE.md).
+Main is `f03ce9b`: the eleven capability PRs through #24, handoff #30, and
+[CREAO execution receipts #32](https://github.com/HenryWashuHe/genesis/pull/32).
+The receipt source `050b099` matches its main merge tree exactly and passes
+598 Rust tests across 65 suites, formatting and strict all-target Clippy.
+[Current queue](PR_REVIEW_QUEUE.md).
 
-Hold #11/#12/#20/#21/#22/#26/#27/#28 for their source fixes, #23 for stale handoff
-content, and drafts #25/#29 for dependencies. Claude/Eric keeps those source fixes;
-Codex keeps capability/provider implementation and narrow integration. No whole-kernel
-credit fallback is active. The combined draft's 699-test evidence is separate from
-main and does not resolve its thirteen reproduced negative review regressions.
+[UI fix #31](https://github.com/HenryWashuHe/genesis/pull/31) is merged into #28
+at `17b6b02`, preserving an Abandon-only action while readiness is pending.
+Its 28 web tests, typecheck and build pass. #28 remains held by #27/#26/#20;
+its own reported UI finding is resolved. Hold #11/#12/#20/#21/#22/#26/#27 for
+their source fixes, #23 for stale handoff content, and drafts #25/#29 for dependencies.
+Henry's Claude has claimed #27/#28 in issue #4; Claude/Eric retains the other
+source fixes. Codex keeps capability/provider implementation and narrow integration.
+No whole-kernel credit fallback is active. The combined draft's earlier 699-test
+evidence is separate from main and does not resolve the thirteen reproduced
+negative Rust review regressions.
 
 [CREAO sponsor evidence](CREAO_SPONSOR_NOTES.md) still needs core mission
 execution, an actual agent ID and run share link. [Apify notes](APIFY_SPONSOR_NOTES.md)
