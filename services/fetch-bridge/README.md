@@ -4,6 +4,14 @@ This process transports GENESIS messages using **native Fetch SDK identities, sc
 
 The organization kernel retains authority over recruitment, grants, leases, epochs, assignments, and result acceptance. A bridge `202 queued`, Fetch HTTP `200`, or `task_result` is not domain success. The private API and `GenesisMessage` protocol are GENESIS interfaces, not Fetch-hosted APIs.
 
+## Optional ASI:One entry point
+
+The separate `genesis_fetch_bridge.acp` entry point implements standard Agent Chat
+Protocol 0.3.0 for operator-configured public recovery cases. It uses a distinct
+identity and does not change this private bridge. See the [sponsor requirements,
+setup and evidence limits](../../docs/FETCH_SPONSOR_NOTES.md). Only its explicit
+`serve-public` command starts an SDK Agent and public registration.
+
 ## Run
 
 Use Python 3.12 (supported runtime range: 3.11–3.13). This package pins `uagents==0.26.1`, `uagents-core==0.4.12`, Pydantic, and aiohttp; `uv.lock` freezes the full installation.
