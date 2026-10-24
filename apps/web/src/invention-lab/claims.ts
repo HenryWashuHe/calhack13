@@ -102,7 +102,7 @@ const EXECUTION: Record<string, Label> = {
   unknown: { text: "execution outcome unknown — do not replay", tone: "warn", limit: "not a failure and not an empty result" },
 };
 export function executionLabel(outcome: string): Label {
-  return EXECUTION[outcome] ?? unrecognized(outcome);
+  return own(EXECUTION, outcome) ?? unrecognized(outcome);
 }
 
 const EVALUATION: Record<string, Label> = {
@@ -112,7 +112,7 @@ const EVALUATION: Record<string, Label> = {
   unknown: { text: "scoring unknown", tone: "warn", limit: "not a rejection" },
 };
 export function evaluationLabel(outcome: string): Label {
-  return EVALUATION[outcome] ?? unrecognized(outcome);
+  return own(EVALUATION, outcome) ?? unrecognized(outcome);
 }
 
 export function purposeText(p: Purpose): string {
