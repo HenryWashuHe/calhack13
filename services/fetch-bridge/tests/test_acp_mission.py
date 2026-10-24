@@ -241,6 +241,101 @@ class GatewayTests(unittest.IsolatedAsyncioTestCase):
                          "re-delivery of the same signed ACP message must not submit another observation")
 
 
+    async def test_org_renders_native_tagged_capability_gap_status(self):
+        # genesis-core::CapabilityGapStatus uses serde(tag = "state"), not a
+        # string status. This is the public /organization wire representation.
+        self.state = state(with_lead=True)
+        self.state["capability_gaps"]["gap_1"]["status"] = {
+            "state": "installed", "acquisition_id": "acq_1",
+            "capability": {"capability_id": "room-matrix-reader", "version": "1.0.0"},
+            "installation_id": "ins_1",
+        }
+        text = "\n".join(await self.collect("org"))
+        self.assertIn("room-matrix-reader installed", text)
+
+    def test_event_relay_renders_native_tagged_capability_gap_status(self):
+        # EventKind::CapabilityGapStatusChanged embeds the same tagged enum.
+        changed = event(7, "capability_gap_status_changed", gap_id="gap_1", **{
+            "from": {"state": "open"},
+            "to": {"state": "acquiring", "acquisition_id": "acq_1"},
+        })
+        text = acp_mission.describe(changed, acp_mission.RoleNames(state()))
+        self.assertIn("acquiring", text)
+
+    async def test_status_event_pagination_preserves_later_outcome(self):
+        self.gateway.close()
+        self.gateway = MissionGateway(
+            config=config(follow_seconds=0), url=self.url, token=TOKEN,
+            identity="agent1test", db=str(Path(self.temp.name) / "pages.sqlite"),
+        )
+        await self.collect("report the main hall is closed on Nov 14")
+        # These are legitimate, unrendered intermediate job events, so the
+        # first page stays below MAX_REPLY: this isolates the page boundary.
+        self.events.extend(event(i, "job_status_changed", job_id=f"job_{i}", **{
+            "from": "SUBMITTING", "to": "RUNNING",
+        }) for i in range(2, 202))
+        self.events.append(event(202, "installation_accepted", installation_id="ins_1", report_ref="proof:accepted"))
+        replies = []
+        for _ in range(5):
+            replies.extend(await self.collect("status"))
+        self.assertIn("Local acceptance checks passed", "\n".join(replies),
+                      "bounded status reads must eventually expose outcomes beyond the first event page")
+
+    async def test_status_reply_bound_does_not_permanently_discard_outcome(self):
+        self.gateway.close()
+        self.gateway = MissionGateway(
+            config=config(follow_seconds=0), url=self.url, token=TOKEN,
+            identity="agent1test", db=str(Path(self.temp.name) / "chunks.sqlite"),
+        )
+        await self.collect("report the main hall is closed on Nov 14")
+        # Fewer than 200 events, but more than one chat reply of readable text.
+        self.events.extend(event(i, "job_dispatched", job_id=f"job_{i}", role_id=COORD,
+                                 responsibility_id="rsp_1", epoch=1,
+                                 task=f"Review candidate {i}: " + "venue facts " * 12)
+                           for i in range(2, 32))
+        self.events.append(event(32, "installation_accepted", installation_id="ins_1", report_ref="proof:accepted"))
+        replies = []
+        for _ in range(5):
+            replies.extend(await self.collect("status"))
+        self.assertTrue(all(len(reply) <= acp_mission.MAX_REPLY for reply in replies))
+        self.assertIn("Local acceptance checks passed", "\n".join(replies),
+                      "reply truncation must leave later outcomes reachable in this or a subsequent status response")
+
+    async def test_unrelated_planner_decision_does_not_end_current_report_follow(self):
+        # The runner may still be processing an older observation when this
+        # report arrives. Native decisions identify the observation explicitly.
+        self.events = [event(1, "observation_recorded", observation_id="obs_old",
+                             source="monitor", summary="An earlier venue update")]
+        original_http = self.gateway._http
+        follow_reads = 0
+
+        async def interleaved_planner(method, path, **kwargs):
+            nonlocal follow_reads
+            response = await original_http(method, path, **kwargs)
+            if method == "POST":
+                older = event(3, "planner_decision", planner="p", model="fixture",
+                              observation_id="obs_old", verdict="no_change",
+                              summary="Earlier observation needs no change", kernel_errors=[])
+                older.update(mission_id=MISSION, causation_id="obs_old")
+                self.events.append(older)
+            elif path.startswith("/events/log") and any(c["method"] == "POST" for c in self.calls):
+                follow_reads += 1
+                if follow_reads == 2:
+                    # The current decision arrives just after an empty read,
+                    # within follow_seconds. No wall-clock scheduling race.
+                    current = event(4, "planner_decision", planner="p", model="fixture",
+                                    observation_id="obs_1", verdict="no_change",
+                                    summary="Current report independently evaluated", kernel_errors=[])
+                    current.update(mission_id=MISSION, causation_id="obs_1")
+                    self.events.append(current)
+            return response
+
+        with patch.object(self.gateway, "_http", side_effect=interleaved_planner):
+            replies = await self.collect("report the main hall is closed on Nov 14")
+        self.assertIn("Current report independently evaluated", "\n".join(replies),
+                      "an older observation's decision must not terminate the current report's follow window")
+
+
 class ProtocolTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         from uagents import Model
