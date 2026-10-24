@@ -8,9 +8,11 @@ binaries. Standard library only.
 
 The spec (schema `lab-receive-spec/1`) names the receiving organization, the
 sandbox, equal per-arm grants, the method packages by path *and* expected
-SHA-256, and the trials (family, candidate, control). Its own SHA-256 is printed
-before anything runs and recorded in the summary, so the declaration can be
-posted first and checked afterwards. Every trial is a fresh two-slot plan from
+SHA-256, and the trials (family, candidate, control). The spec and every
+package are read once: those exact bytes are checked, retained in the output
+directory and used for everything after, so later edits to the input files
+change nothing. Printing the spec's SHA-256 does not by itself establish a
+prior declaration; publish the spec (or its hash) before invoking the run. Every trial is a fresh two-slot plan from
 `lab-exec example-plan`, with the control slot's method, the slots'
 organization and the plan id rewritten; every slot runs once, is scored by
 `lab-score score`, decided by `lab-score verdict`, and the candidate gets
@@ -23,6 +25,7 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 
 SCHEMA = "lab-receive-spec/1"
 SPEC_KEYS = {"schema", "org_id", "sandbox", "instances", "simulation_steps",
@@ -65,12 +68,13 @@ def load_spec(path, base):
             die(f"{k} must be a positive integer")
     packages = {}
     for name, p in spec["packages"].items():
-        if set(p) != {"path", "sha256"}:
-            die(f"package {name} needs exactly path and sha256")
-        full = os.path.join(base, p["path"])
-        if sha256(full) != p["sha256"]:
+        if set(p) != {"path", "sha256"} or not name.replace("-", "").isalnum():
+            die(f"package {name!r} needs a plain name and exactly path and sha256")
+        with open(os.path.join(base, p["path"]), "rb") as f:
+            data = f.read()
+        if hashlib.sha256(data).hexdigest() != p["sha256"]:
             die(f"package {name} bytes differ from the declared sha256")
-        packages[name] = full
+        packages[name] = data
     ids = set()
     for t in spec["trials"]:
         if set(t) != TRIAL_KEYS:
@@ -94,7 +98,11 @@ def method_ref(path):
 
 
 def trial(spec, packages, t, d, lab_exec, lab_score):
+    """`packages` maps names to retained snapshot paths in the output directory."""
     cand, ctrl = packages[t["candidate"]], packages[t["control"]]
+    for name in (t["candidate"], t["control"]):
+        if sha256(packages[name]) != spec["packages"][name]["sha256"]:
+            return {"trial": t["id"], "error": f"retained package {name} changed"}
     code, _ = run([lab_exec, "example-plan", spec["sandbox"], str(spec["instances"]),
                    str(spec["simulation_steps"]), str(spec["wall_time_ms"]), d,
                    t["family"], cand], os.path.join(d, "example-plan.json"))
@@ -142,6 +150,21 @@ def trial(spec, packages, t, d, lab_exec, lab_score):
     return result
 
 
+def write_summary(out, spec_sha, runtime, results, stopped=None):
+    summary = {"schema": "lab-receive-summary/1", "spec_sha256": spec_sha,
+               "host_runtime": runtime, "trials": results,
+               "authority": "receiving-side observations; not adoption or improvement"}
+    if stopped:
+        summary["stopped"] = stopped
+    tmp = os.path.join(out, "summary.json.tmp")
+    with open(tmp, "w") as f:
+        json.dump(summary, f, indent=2, sort_keys=True)
+        f.write("\n")
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp, os.path.join(out, "summary.json"))
+
+
 def main():
     if len(sys.argv) != 3:
         die(__doc__.strip().splitlines()[2].strip())
@@ -149,27 +172,41 @@ def main():
     lab_exec, lab_score = os.environ.get("LAB_EXEC"), os.environ.get("LAB_SCORE")
     if not lab_exec or not lab_score:
         die("set LAB_EXEC and LAB_SCORE to the built binaries")
-    spec, packages = load_spec(spec_path, os.path.dirname(os.path.abspath(spec_path)))
-    spec_sha = sha256(spec_path)
-    print(f"spec sha256 {spec_sha}", flush=True)
     if os.path.lexists(out):
         die(f"{out} already exists; results are never overwritten")
-    os.makedirs(out)
-    shutil.copyfile(spec_path, os.path.join(out, "spec.json"))
+    # One read of the spec: these bytes are parsed, hashed and retained.
+    with open(spec_path, "rb") as f:
+        spec_bytes = f.read()
+    spec_sha = hashlib.sha256(spec_bytes).hexdigest()
+    with tempfile.TemporaryDirectory(prefix="receive-spec-") as tmp:
+        snapshot = os.path.join(tmp, "spec.json")
+        with open(snapshot, "wb") as f:
+            f.write(spec_bytes)
+        spec, package_bytes = load_spec(snapshot, os.path.dirname(os.path.abspath(spec_path)))
+    print(f"spec sha256 {spec_sha}", flush=True)
+    os.makedirs(os.path.join(out, "packages"))
+    with open(os.path.join(out, "spec.json"), "wb") as f:
+        f.write(spec_bytes)
+    packages = {}
+    for name, data in package_bytes.items():
+        packages[name] = os.path.join(out, "packages", name + ".package.json")
+        with open(packages[name], "wb") as f:
+            f.write(data)
     code, runtime = run([lab_exec, "ref", "runtime"])
     results = []
+    write_summary(out, spec_sha, runtime, results)
     for t in spec["trials"]:
         d = os.path.join(out, t["id"])
-        os.makedirs(d)
-        results.append(trial(spec, packages, t, d, lab_exec, lab_score))
-        v = results[-1].get("verdict") or {}
-        print(f"{t['id']}: {v.get('verdict', v)}", flush=True)
-    summary = {"schema": "lab-receive-summary/1", "spec_sha256": spec_sha,
-               "host_runtime": runtime, "trials": results,
-               "authority": "receiving-side observations; not adoption or improvement"}
-    with open(os.path.join(out, "summary.json"), "w") as f:
-        json.dump(summary, f, indent=2, sort_keys=True)
-        f.write("\n")
+        try:
+            os.makedirs(d)
+            results.append(trial(spec, packages, t, d, lab_exec, lab_score))
+        except Exception as e:  # recorded once, never retried
+            results.append({"trial": t["id"], "error": f"{type(e).__name__}: {e}"})
+            write_summary(out, spec_sha, runtime, results, stopped=t["id"])
+            die(f"stopped at trial {t['id']}: {type(e).__name__}")
+        write_summary(out, spec_sha, runtime, results)
+        v = results[-1].get("verdict") or results[-1].get("error")
+        print(f"{t['id']}: {v.get('verdict', v) if isinstance(v, dict) else v}", flush=True)
 
 
 if __name__ == "__main__":
