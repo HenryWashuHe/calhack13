@@ -1,0 +1,16 @@
+{
+  "source_commit": "07c098ca56b1f87c29a0d9d0e12365be8519fd69",
+  "operation_id": "live-a-method-20261024t160859z-75cdf274",
+  "previous_failed_operations": [
+    "live-a-method-20261024t152819z-2a3e0b5a",
+    "live-a-method-20261024t155248z-397f41fb"
+  ],
+  "attempt_number": 3,
+  "model": "claude-sonnet-5-5",
+  "transport": "anthropic_https",
+  "provider_call_limit": 1,
+  "output_token_limit": 8192,
+  "request_timeout_ms": 120000,
+  "source_execution": "not_performed",
+  "intent": "fresh attempt after parser compatibility fix; both failed reservations and usage remain retained"
+}
