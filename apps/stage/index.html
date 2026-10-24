@@ -432,7 +432,7 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
   // One chapter per scene: its name on the rail, and what is real versus a stand-in in that scene.
   const CHAPTERS = [
     ["Thesis", [["real", "kernel: governed state, 27 invariants"], ["fixture", "this replay: the venue regression workload"]]],
-    ["Evidence", [["real", "agent token can only record evidence"], ["fixture", "observation posted by the scenario script"]]],
+    ["Evidence", [["real", "agent token cannot commit changes directly"], ["fixture", "observation posted by the scenario script"]]],
     ["Decision", [["real", "validation, saga, commit"], ["fixture", "proposal written by the scenario script, not a model"]]],
     ["New role", [["real", "role creation, provisioning saga, contract states"], ["fixture", "Elastic binding and specialist address are dev stubs"]]],
     ["Capability", [["real", "install, local acceptance, attach, ledger commitment"], ["fixture", "manifest is a dev fixture; no Apify build or oracle run"]]],
@@ -709,10 +709,10 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
           app.cursors[org] = Math.max(app.cursors[org], e.seq); app.seen += 1;
           const f = describe[e.type]; const [t, d] = f ? f(e.payload) : [String(e.type).replace(/_/g, " "), ""]; app.tail.push([id, t, d, e.timestamp]);
           const p = e.payload || {};
-          if (e.type === "observation_recorded" && p.observation_id) app.obsAt.set(p.observation_id, Date.parse(e.timestamp));
+          if (e.type === "observation_recorded" && p.observation_id) app.obsAt.set(org + ":" + p.observation_id, Date.parse(e.timestamp)); // timing is scoped to the organization whose log it came from
           if (e.type === "planner_decision") {
             // The card shows the kernel's own timestamps: decision minus the observation it answers, when both are in the log.
-            const at = app.obsAt.get(p.observation_id), decided = Date.parse(e.timestamp);
+            const at = app.obsAt.get(org + ":" + p.observation_id), decided = Date.parse(e.timestamp);
             const seconds = Number.isFinite(at) && Number.isFinite(decided) && decided >= at ? (decided - at) / 1000 : undefined;
             const verdict = String(p.verdict || "").replace(/_/g, " ");
             showDecision({ verdict, why: p.summary, source: "live kernel " + (org === "A" ? (sa.org_id || "A") : (sb.org_id || "B")), model: p.model || "model unknown", when: seconds === undefined ? "" : `decided ${seconds.toFixed(1)} s after the evidence` });
