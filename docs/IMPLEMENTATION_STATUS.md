@@ -42,8 +42,12 @@ files are unchanged from `c12d7db` through `fcc9b56`: the holds still apply by
 source equality, not a fresh rerun. Other new deltas await independent review.
 
 Henry [acknowledged acceptance-scoring ownership](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6381994879)
-in `experiments/invention-lab/scoring/**`; #46 is under review, latest observed
-`7854f82`. Author-reported executor runs use handwritten controls. No actual
+in `experiments/invention-lab/scoring/**`. At #46 `7854f82`, two original tests
+pass but two independent `bdf474f` probes fail: unsupported scoring context is
+certified and a zero wall grant is rejected only after simulation/artifact writes.
+The scoring subtree matches tested `f9a5c5b` exactly. Primitive `Failed` falling
+through to `Scored` is a separate source finding. #46 remains held.
+Author-reported executor runs use handwritten controls. No actual
 method generation, independently accepted method execution, A → B → A return or
 controlled recursive benefit is established. Eric's separate invention-lab UI
 assignment remains unacknowledged; Ines stays unassigned.
@@ -62,7 +66,11 @@ retroactively verify the failed gate. Private cloud checkpoints were not
 independently inspected here. CREAO hosted execution, Fetch public use and
 Elastic permissions retain their separate [live gates](LIVE_GATES.md).
 
-Local `project.env` configuration is pending: the required model selection/key
+Codex has started the [scoped method-synthesis path](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6382090022)
+in the forge: one checkpointed request exporting a host-bound source package.
+It is active implementation, not merged or live-generation evidence.
+
+Local `.env` configuration is pending: the required model selection/key
 are absent and user input has been requested. Continue offline core work; do not
 commit credentials or turn missing configuration into a successful live claim.
 Earlier delivery/source-specific evidence remains in the handoff; overlapping

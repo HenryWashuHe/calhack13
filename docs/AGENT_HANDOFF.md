@@ -24,10 +24,10 @@ organizing remains superseded.
 | --- | --- | --- |
 | Henry's core Claude | Adoption/planner acknowledged; #8/#10/#11/#12/#14/#15 merged | Retain method-adoption wiring and existing console UI. Proposal compatibility and three evidence-display regressions are corrected; this does not establish method acceptance. |
 | Henry's core Claude | Evaluator/executor [acknowledged and active](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6381504911); simulator #37–#39 merged; executor #42–#45 held for review | Own `experiments/invention-lab/evaluator/**` and `executor/**`. Resolve durable finalization, calls after finish, bounded pipe I/O and exclusive slot admission; preserve independent regressions. Integrate the existing package/plan/ledger contracts. |
-| Henry's core Claude | Trusted acceptance-scoring adapter [acknowledged](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6381994879), #46 under review | Own `experiments/invention-lab/scoring/**`; separate scoring grants and frozen execution/output bindings. No hidden-comparison orchestration or accepted runtime is implied. |
+| Henry's core Claude | Trusted acceptance-scoring adapter [acknowledged](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6381994879), #46 held at `7854f82` | Own `experiments/invention-lab/scoring/**`; correct independently reproduced context substitution and late wall-budget checks (`bdf474f`), plus source-reviewed Failed-to-Scored mapping. No hidden-comparison orchestration or accepted runtime is implied. |
 | Eric / Eric's Claude | Audit #9 merged; separate invention-lab UI assignment still unacknowledged | `docs/invention-lab/ui.md`, then `apps/web/src/invention-lab/**` after receipts settle. `EricZhu-31` has write access; do not silently transfer this lane. |
 | ACP Claude session | Acknowledged bridge #3/#4/#5; stage #20 merged | Migrate old journal constraints using preserved `bb5a841`; correct #4 routing/status. #5's own bounds/fixture holds are cleared but it depends on #3. Historical fixture remains secondary. |
-| Codex main chat | Shared method/receipt/trial/experiment/source contracts merged; #47 Apify follow-up merged | Continue independent executor/scoring integration review and scoped core work toward generated methods. Preserve runtime-owner files; no duplicate executor or implicit ABI selection. |
+| Codex main chat | Shared method/receipt/trial/experiment/source contracts merged; #47 Apify follow-up merged | Continue independent executor/scoring review; [method synthesis](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6382090022) is acknowledged/active in the forge, with one checkpointed request and exact package export. No implementation claim until reviewed. Preserve runtime-owner files; no duplicate executor or implicit ABI selection. |
 | EricZhu-31 / Codex provider session | Existing provider lane; #47 bounded metadata-lag reread correction merged | Rerun the already authorized live gate from preserved checkpoints and report exact artifacts/outcomes. No duplicate cloud run here. Elastic permissions remain with key owner. |
 | Ines | Unassigned by explicit user instruction | Do not infer identity from another collaborator handle. |
 
@@ -57,7 +57,7 @@ Latest observed unmerged heads are #42 `67e1aa3`, #43 `3dc44be`, #44 `fcc9b56`,
 #45 `0d21ff7` and #46 `7854f82`. The reviewed `run.rs`, `session.rs`, `store.rs`
 and `sandbox.rs` are unchanged from `c12d7db` through `fcc9b56`, so the runtime
 findings still apply by source equality, not a fresh test run. Other new deltas
-and #46 remain under review. The [issue checkpoint](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6382070700)
+remain under review. #46 `7854f82` has the same scoring subtree as tested `f9a5c5b`: two original tests pass, two independent `bdf474f` cases fail (context substitution and late wall-budget enforcement). Its Failed-to-Scored mapping is a separate source finding. The [issue checkpoint](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6382070700)
 records this scope. Author-reported local namespace/control runs do not clear
 the holds. Source-specific test counts overlap and are not one main
 test run. Current PR heads/reviews supersede this checkpoint.
@@ -74,7 +74,7 @@ Private cloud checkpoints were not independently inspected here.
 
 No hosted v2 CREAO agent/run completed through the merged adapter. Fetch
 discovery and Elastic permission failure are separate evidence. Provider
-configuration in local `project.env` remains pending; the needed model selection
+configuration in local `.env` remains pending; the needed model selection
 and key are absent and the user has been asked for configuration. Continue
 independent offline work. Credentials stay ignored/local and out of commits.
 

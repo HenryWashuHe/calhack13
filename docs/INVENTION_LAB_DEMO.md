@@ -5,7 +5,7 @@ GENESIS is infrastructure for **networked recursive capability improvement with
 fixed model weights**. The current [implementation inventory](IMPLEMENTATION_STATUS.md)
 includes the source/receipt/ledger foundations and #37–#39's local simulator,
 validated by 22 evaluator tests. Executor #42–#45 remains held and trusted
-acceptance-scoring #46 is under review. Handwritten controls are not generated
+acceptance-scoring #46 also has open independent review holds. Handwritten controls are not generated
 methods; no independent method acceptance, A → B → A loop or recursive-benefit
 result is established. The [ongoing goal](ONGOING_GOAL.md#completion-gates-and-evidence)
 defines the authoritative G0–G4 completion criteria. The event-organizer
