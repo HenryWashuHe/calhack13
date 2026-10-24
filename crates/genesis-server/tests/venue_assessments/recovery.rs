@@ -20,6 +20,7 @@ struct BridgeWorld {
     inbox: Vec<InboxItem>,
     bad_output: bool,
     offline: bool,
+    release_failures_remaining: u32,
 }
 struct Bridge {
     server: Server,
@@ -36,8 +37,27 @@ impl Bridge {
         .await;
         Self { server, world }
     }
+    // Contract work and terminal cleanup are independently counted: retiring
+    // a grant must not be mistaken for re-recruiting or rerunning selection.
     fn sends(&self) -> Vec<SendRequest> {
-        self.world.lock().unwrap().sends.clone()
+        self.world
+            .lock()
+            .unwrap()
+            .sends
+            .iter()
+            .filter(|send| !matches!(send.message.body, FetchBody::ReleaseContract { .. }))
+            .cloned()
+            .collect()
+    }
+    fn release_sends(&self) -> Vec<SendRequest> {
+        self.world
+            .lock()
+            .unwrap()
+            .sends
+            .iter()
+            .filter(|send| matches!(send.message.body, FetchBody::ReleaseContract { .. }))
+            .cloned()
+            .collect()
     }
     async fn attach(&self, f: &mut Fixture) -> Arc<FetchStore> {
         f.server.stop().await;
@@ -163,7 +183,7 @@ async fn bridge_reply(
             json!(send),
             "bridge retries must preserve the complete immutable request"
         );
-    } else {
+    } else if !matches!(send.message.body, FetchBody::ReleaseContract { .. }) {
         let body = match &send.message.body {
             FetchBody::RecruitRequest {
                 capabilities,
@@ -206,6 +226,18 @@ async fn bridge_reply(
         });
     }
     world.sends.push(send.clone());
+    // A queue response never manufactures a peer ContractReleased message.
+    // Failed cleanup responses model uncertain POST outcomes with an exact
+    // request retained by this idempotent private bridge fixture.
+    if matches!(send.message.body, FetchBody::ReleaseContract { .. })
+        && world.release_failures_remaining > 0
+    {
+        world.release_failures_remaining -= 1;
+        return (
+            StatusCode::SERVICE_UNAVAILABLE,
+            Json(json!({"error":"unknown cleanup outcome"})),
+        );
+    }
     (
         StatusCode::ACCEPTED,
         Json(
@@ -284,8 +316,11 @@ async fn recovery_uses_exact_fetch_receipt_then_one_creao_child_across_restart()
     bridge.attach(&mut f).await;
     let (source, reopened) = reopened(&f).await;
     let body = recovery_request(&source, &reopened);
+    f.mutate(|state| state.constitution.max_active_contracts = 1)
+        .await;
     let before = f.side_effect_counts();
     let (path, registered) = register(&f, body.clone()).await;
+    assert_eq!(f.app.current_state().unwrap().active_contracts(), 1);
     assert_eq!(registered["phase"], "recruiting");
     assert!(bridge.sends().is_empty());
     assert_ne!(registered["responsibility_id"], f.responsibility);
@@ -381,6 +416,24 @@ async fn recovery_uses_exact_fetch_receipt_then_one_creao_child_across_restart()
     assert_eq!(proof(&accepted)["provider_agent_id"], AGENT);
     let completed = step(&f, &path).await;
     assert_eq!(completed["phase"], "completed");
+    assert_eq!(completed["retirement"]["reason"], "completed");
+    assert_eq!(completed["retirement"]["local_contract_state"], "RELEASED");
+    assert_eq!(completed["retirement"]["delivery"], "bridge_queued");
+    assert_eq!(bridge.release_sends().len(), 1);
+    assert_eq!(f.app.current_state().unwrap().active_contracts(), 0);
+    assert_eq!(
+        f.app.current_state().unwrap().contracts
+            [&ContractId::new(registered["contract_id"].as_str().unwrap())]
+            .state,
+        genesis_core::lifecycle::ContractState::Released
+    );
+    assert!(!bridge
+        .world
+        .lock()
+        .unwrap()
+        .inbox
+        .iter()
+        .any(|item| matches!(item.message.body, FetchBody::ContractReleased { .. })));
     assert_eq!(
         completed["assessment_proof_ref"],
         proof(&accepted)["proof_ref"]
@@ -399,7 +452,34 @@ async fn recovery_uses_exact_fetch_receipt_then_one_creao_child_across_restart()
     );
     assert_eq!(receipt(&journal, &bridge).receipt_sha256(), native_hash);
     assert_eq!(bridge.sends().len(), 3);
+    assert_eq!(bridge.release_sends().len(), 1);
     assert_eq!(f.providers.execution_posts().len(), 2);
+
+    // A genuinely new verified invocation and accepted Reopen produce a second
+    // requirement; no old proof or requirement is relabeled to test capacity.
+    let second_source = f.source("second-recovery-cut", 3).await;
+    let second_assessment = f
+        .create(f.request_body("second-recovery-reopen", &second_source))
+        .await;
+    f.collected(&second_assessment).await;
+    let second_reopen = f.verify(&second_assessment).await;
+    assert_eq!(proof(&second_reopen)["output"]["verdict"], "reopen");
+    assert_ne!(
+        proof(&second_reopen)["requirement_id"],
+        proof(&reopened)["requirement_id"]
+    );
+    let mut second_request = recovery_request(&second_source, &second_reopen);
+    second_request["client_request_id"] = json!("second-genuine-recovery");
+    let (_, second) = register(&f, second_request).await;
+    assert_ne!(second["contract_id"], registered["contract_id"]);
+    assert_ne!(second["responsibility_id"], registered["responsibility_id"]);
+    assert_eq!(f.app.current_state().unwrap().active_contracts(), 1);
+    assert_eq!(
+        bridge.sends().len(),
+        3,
+        "registration must not dispatch the second contract"
+    );
+    assert_eq!(bridge.release_sends().len(), 1);
 }
 
 #[tokio::test]
@@ -625,4 +705,200 @@ async fn corrupt_full_worker_page_is_deferred_without_starving_the_next_genuine_
         f.get(&path).await["receipt_sha256"].is_null(),
         "a queue receipt is not native task completion"
     );
+}
+
+fn cleanup_window(record: &Value) {
+    let retired: chrono::DateTime<Utc> =
+        serde_json::from_value(record["retirement"]["retired_at"].clone()).unwrap();
+    let expires: chrono::DateTime<Utc> =
+        serde_json::from_value(record["retirement"]["release_expires_at"].clone()).unwrap();
+    assert_eq!(expires - retired, ChronoDuration::minutes(30));
+    assert_ne!(
+        record["retirement"]["release_message_id"],
+        record["recruit_message_id"]
+    );
+    assert_ne!(
+        record["retirement"]["release_message_id"],
+        record["task_message_id"]
+    );
+}
+async fn expiring_recovery(f: &Fixture) -> (String, Value, chrono::DateTime<Utc>) {
+    let (source, reopened) = reopened(f).await;
+    f.mutate(|state| state.constitution.max_active_contracts = 1)
+        .await;
+    let deadline = chrono::DateTime::from_timestamp_micros(
+        (Utc::now() + ChronoDuration::seconds(3)).timestamp_micros(),
+    )
+    .unwrap();
+    let mut body = recovery_request(&source, &reopened);
+    body["deadline"] = json!(deadline);
+    let (path, record) = register(f, body).await;
+    assert_eq!(f.app.current_state().unwrap().active_contracts(), 1);
+    let pending = step(f, &path).await; // Persist and queue exactly one recruit.
+    assert_eq!(pending["phase"], "recruiting");
+    assert!(pending["attention"].is_null(), "{pending}");
+    (path, record, deadline)
+}
+async fn wait_until_expired(deadline: chrono::DateTime<Utc>) {
+    let wait = (deadline - Utc::now()).to_std().unwrap_or_default() + Duration::from_millis(20);
+    tokio::time::sleep(wait).await;
+}
+
+#[tokio::test]
+async fn paused_expired_recovery_retires_without_runtime_then_retries_exact_cleanup_after_restart()
+{
+    let mut f = Fixture::start().await;
+    let bridge = Bridge::start().await;
+    bridge.attach(&mut f).await;
+    let (path, registered, deadline) = expiring_recovery(&f).await;
+    bridge.world.lock().unwrap().offline = true;
+    let paused = step(&f, &path).await;
+    assert!(paused["attention"].is_string(), "{paused}");
+    assert_eq!(bridge.sends().len(), 1);
+    // Expired cleanup is not a fresh delegation and must not need renewed role
+    // authority or provider configuration merely to retire the local grant.
+    f.mutate(|state| {
+        let authority = &mut state
+            .roles
+            .get_mut(&RoleId::new(&f.monitor))
+            .unwrap()
+            .authority;
+        authority.scopes.remove("contract.logistics");
+        authority.scopes.remove("monitor.venue");
+    })
+    .await;
+    f.server.stop().await;
+    f.app.fetch_recovery = None;
+    f.server = Server::org(f.app.clone(), false).await;
+    let effects = f.side_effect_counts();
+    wait_until_expired(deadline).await;
+    genesis_server::venue_recovery::drain_once(&f.app)
+        .await
+        .unwrap();
+    let retired = f.get(&path).await;
+    assert_eq!(retired["phase"], "retired");
+    assert_eq!(retired["retirement"]["reason"], "expired");
+    assert_eq!(retired["retirement"]["local_contract_state"], "DECLINED");
+    assert_eq!(retired["retirement"]["delivery"], "needs_attention");
+    assert_eq!(retired["retirement"]["send_attempts"], 0);
+    assert_eq!(f.app.current_state().unwrap().active_contracts(), 0);
+    assert_eq!(
+        f.app.current_state().unwrap().contracts
+            [&ContractId::new(registered["contract_id"].as_str().unwrap())]
+            .state,
+        genesis_core::lifecycle::ContractState::Declined
+    );
+    assert_eq!(
+        f.app
+            .store
+            .get_job(&JobId::new(registered["job_id"].as_str().unwrap()))
+            .unwrap()
+            .status,
+        JobStatus::Failed
+    );
+    assert!(retired["assessment_id"].is_null());
+    cleanup_window(&retired);
+    assert_eq!(assessment_count(&f), 1);
+    assert_eq!(bridge.sends().len(), 1);
+    assert!(bridge.release_sends().is_empty());
+    assert_eq!(f.providers.execution_posts().len(), 1);
+    assert_eq!(f.side_effect_counts(), effects);
+
+    f.restart(false).await;
+    bridge.world.lock().unwrap().offline = false;
+    bridge.world.lock().unwrap().release_failures_remaining = 1;
+    bridge.attach(&mut f).await;
+    let uncertain = step(&f, &path).await;
+    assert_eq!(uncertain["retirement"]["delivery"], "pending");
+    assert_eq!(uncertain["retirement"]["send_attempts"], 1);
+    assert_eq!(
+        uncertain["retirement"]["release_message_id"],
+        retired["retirement"]["release_message_id"]
+    );
+    let exact = bridge.release_sends()[0].clone();
+    assert_eq!(
+        json!(exact.message.expires_at),
+        retired["retirement"]["release_expires_at"]
+    );
+    f.restart(false).await;
+    let journal = bridge.attach(&mut f).await;
+    let queued = step(&f, &path).await;
+    assert_eq!(queued["retirement"]["delivery"], "bridge_queued");
+    assert_eq!(queued["retirement"]["send_attempts"], 2);
+    assert_eq!(
+        queued["retirement"]["release_message_id"],
+        retired["retirement"]["release_message_id"]
+    );
+    assert_eq!(
+        queued["retirement"]["release_expires_at"],
+        retired["retirement"]["release_expires_at"]
+    );
+    assert_eq!(json!(bridge.release_sends()[1]), json!(exact));
+    assert_eq!(
+        journal.outgoing_queued(PEER, &exact.message).unwrap(),
+        Some(true)
+    );
+    assert!(
+        !bridge
+            .world
+            .lock()
+            .unwrap()
+            .inbox
+            .iter()
+            .any(|item| matches!(item.message.body, FetchBody::ContractReleased { .. })),
+        "bridge queue acknowledgment must not be mistaken for peer release evidence"
+    );
+    assert_eq!(step(&f, &path).await, queued);
+    assert_eq!(bridge.release_sends().len(), 2);
+    assert_eq!(bridge.sends().len(), 1);
+    assert_eq!(f.app.current_state().unwrap().active_contracts(), 0);
+    assert_eq!(f.side_effect_counts(), effects);
+}
+
+#[tokio::test]
+async fn cleanup_lifetime_attempt_bound_survives_explicit_retry_and_restart() {
+    let mut f = Fixture::start().await;
+    let bridge = Bridge::start().await;
+    bridge.attach(&mut f).await;
+    let (path, _, deadline) = expiring_recovery(&f).await;
+    bridge.world.lock().unwrap().release_failures_remaining = 10;
+    wait_until_expired(deadline).await;
+    let first = step(&f, &path).await;
+    assert_eq!(first["phase"], "retired");
+    assert_eq!(first["retirement"]["send_attempts"], 1);
+    assert_eq!(first["retirement"]["delivery"], "pending");
+    cleanup_window(&first);
+    let second = step(&f, &path).await;
+    assert_eq!(second["retirement"]["send_attempts"], 2);
+    let third = step(&f, &path).await;
+    assert_eq!(third["retirement"]["send_attempts"], 3);
+    assert_eq!(third["retirement"]["delivery"], "needs_attention");
+    assert_eq!(bridge.release_sends().len(), 3);
+    let exact = bridge.release_sends()[0].clone();
+    assert!(bridge
+        .release_sends()
+        .iter()
+        .all(|request| json!(request) == json!(exact)));
+    f.restart(false).await;
+    bridge.attach(&mut f).await;
+    for _ in 0..3 {
+        let (status, retried) = f.post(&format!("{path}/retry"), json!({})).await;
+        assert_eq!(status, StatusCode::OK, "{retried}");
+        let bounded = step(&f, &path).await;
+        assert_eq!(bounded["retirement"]["send_attempts"], 3);
+        assert_eq!(bounded["retirement"]["delivery"], "needs_attention");
+        assert_eq!(
+            bounded["retirement"]["release_message_id"],
+            first["retirement"]["release_message_id"]
+        );
+        assert_eq!(
+            bounded["retirement"]["release_expires_at"],
+            first["retirement"]["release_expires_at"]
+        );
+    }
+    assert_eq!(bridge.release_sends().len(), 3);
+    assert_eq!(bridge.sends().len(), 1);
+    assert_eq!(f.app.current_state().unwrap().active_contracts(), 0);
+    assert_eq!(assessment_count(&f), 1);
+    assert_eq!(f.providers.execution_posts().len(), 1);
 }
