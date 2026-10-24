@@ -437,11 +437,18 @@ pub fn spawn(app: AppState) -> JoinHandle<()> {
     tokio::spawn(async move {
         let mut interval = tokio::time::interval(Duration::from_secs(1));
         interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+        let mut failures: u32 = 0;
         loop {
             interval.tick().await;
-            if drain_once(&app).await.is_err() {
-                tracing::error!("capability gap intake stopped after storage failure");
-                break;
+            match drain_once(&app).await {
+                Ok(_) => failures = 0,
+                Err(error) => {
+                    failures = failures.saturating_add(1);
+                    let wait = Duration::from_millis(250u64 << failures.min(7))
+                        .min(Duration::from_secs(30));
+                    tracing::error!(%error, retry_in_ms = wait.as_millis() as u64, "capability gap intake pass failed; retrying");
+                    tokio::time::sleep(wait).await;
+                }
             }
         }
     })

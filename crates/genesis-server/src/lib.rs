@@ -403,15 +403,21 @@ pub fn parse_publishers(spec: &str) -> HashMap<String, OrgId> {
 fn capability_worker(app: AppState) -> tokio::task::JoinHandle<()> {
     tokio::spawn(async move {
         let mut interval = tokio::time::interval(Duration::from_millis(250));
+        let mut failures: u32 = 0;
         loop {
             interval.tick().await;
             let records = match app.store.recoverable_capability_runs() {
                 Ok(records) => records,
                 Err(error) => {
-                    tracing::error!(%error, "capability recovery scan failed");
-                    break;
+                    failures = failures.saturating_add(1);
+                    let wait = Duration::from_millis(250u64 << failures.min(7))
+                        .min(Duration::from_secs(30));
+                    tracing::error!(%error, retry_in_ms = wait.as_millis() as u64, "capability recovery scan failed; retrying");
+                    tokio::time::sleep(wait).await;
+                    continue;
                 }
             };
+            failures = 0;
             for record in records {
                 if record.failure.is_none()
                     && matches!(
