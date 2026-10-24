@@ -1,0 +1,214 @@
+//! Offline G1 rehearsal: every seam from method generation to the acceptance
+//! verdict, with the real code on each side, and nothing live.
+//!
+//! The executor builds the genesis-forge `MethodSynthesisPlan`; the forge
+//! session persists its intent and gets one completion over loopback HTTP
+//! from a local fixture server (not a model); the exported package bytes are
+//! frozen as the candidate slot; both slots run as real child processes
+//! (sandbox mode `none`, so this is not namespace evidence); both outputs are
+//! scored by the trusted adapter and the verdict decides.
+//!
+//! The "generated" source is the hand-written random-search control. This
+//! checks plumbing only: no generated method, no live provider, no benefit.
+use genesis_core::development_evaluation::EvaluationOutcome;
+use genesis_core::development_method::{ExactContentRef, ExecutionOutcome, ResourceGrant};
+use genesis_core::development_package::{MethodPackage, MethodSourceFile};
+use genesis_forge::method_synthesis::{
+    MethodSynthesisPhase, MethodSynthesisPlan, MethodSynthesisSession,
+};
+use genesis_forge::text_generation::GenerationTransport;
+use genesis_forge::AnthropicGenerator;
+use genesis_lab_eval::family::Family;
+use genesis_lab_exec::store::Store;
+use genesis_lab_exec::{example, refs, run, sandbox::Mode};
+use genesis_lab_score::score_slot;
+use genesis_lab_score::verdict::{decide, SlotEvidence, Verdict};
+use std::path::{Path, PathBuf};
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+const MODEL: &str = "rehearsal-fixture-model";
+const STAND_IN: &str = include_str!("../../executor/methods/random-search/random_search.py");
+const FIXED_CART: &str = include_str!("../../executor/methods/fixed-cart/fixed_cart.py");
+
+/// Serves exactly one HTTP response and returns the request body it received.
+async fn serve_once(body: Vec<u8>) -> (String, tokio::task::JoinHandle<Vec<u8>>) {
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let endpoint = format!("http://{}/v1/messages", listener.local_addr().unwrap());
+    let task = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+        let mut bytes = vec![];
+        let body_start = loop {
+            let mut buf = [0; 8192];
+            let n = socket.read(&mut buf).await.unwrap();
+            assert!(n > 0, "request cut short");
+            bytes.extend_from_slice(&buf[..n]);
+            if let Some(b) = bytes.windows(4).position(|w| w == b"\r\n\r\n") {
+                let len: usize = String::from_utf8_lossy(&bytes[..b])
+                    .lines()
+                    .find_map(|l| {
+                        l.to_ascii_lowercase()
+                            .strip_prefix("content-length: ")
+                            .and_then(|s| s.parse().ok())
+                    })
+                    .unwrap();
+                if bytes.len() >= b + 4 + len {
+                    break b + 4;
+                }
+            }
+        };
+        let head = format!(
+            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+            body.len()
+        );
+        socket.write_all(head.as_bytes()).await.unwrap();
+        socket.write_all(&body).await.unwrap();
+        bytes.split_off(body_start)
+    });
+    (endpoint, task)
+}
+
+fn tmp(name: &str) -> PathBuf {
+    let d = std::env::temp_dir().join(format!("lab-g1-rehearsal-{name}-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&d);
+    d
+}
+
+fn output(dir: &Path, receipt: &genesis_core::development_method::ExecutionReceipt) -> Vec<u8> {
+    std::fs::read(dir.join("artifacts").join(&receipt.outputs[0].sha256)).unwrap()
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn generation_to_verdict_runs_end_to_end_offline() {
+    let interpreter = run::interpreter_version("python3");
+    let family = Family::RavineCrossing;
+
+    // 1. Generation, through the forge's own session and transport.
+    let plan: MethodSynthesisPlan = serde_json::from_value(example::synthesis_plan(
+        family,
+        MODEL,
+        "rehearsal-1",
+        &interpreter,
+    ))
+    .unwrap();
+    let mut session = MethodSynthesisSession::new(plan).unwrap();
+    let request = session.begin().unwrap();
+    // The intent is persisted (and reloadable) before the one POST.
+    let pending: MethodSynthesisSession =
+        serde_json::from_slice(&serde_json::to_vec(&session).unwrap()).unwrap();
+    assert_eq!(pending.phase(), MethodSynthesisPhase::Requesting);
+    let reply = serde_json::json!({
+        "id": "msg_rehearsal_1", "type": "message", "role": "assistant", "model": MODEL,
+        "content": [{"type": "text", "text": serde_json::json!({"source": STAND_IN}).to_string()}],
+        "stop_reason": "end_turn", "stop_sequence": null,
+        "usage": {"input_tokens": 1000, "output_tokens": 900},
+    });
+    let (endpoint, server) = serve_once(serde_json::to_vec(&reply).unwrap()).await;
+    let completion = AnthropicGenerator::with_test_endpoint(&endpoint, "fixture-key")
+        .unwrap()
+        .generate_text(&request)
+        .await
+        .unwrap();
+    assert_eq!(server.await.unwrap(), request.wire_bytes().unwrap());
+    assert_eq!(completion.transport, GenerationTransport::LoopbackFixture);
+    session.complete(completion).unwrap();
+    assert_eq!(session.phase(), MethodSynthesisPhase::Generated);
+    let generated = session.package().unwrap().artifact_json().unwrap();
+
+    // 2. Freeze the exported bytes as the candidate, beside the fixed-cart control.
+    let control = MethodPackage::new(
+        "fixed-cart".into(),
+        "0.1.0".into(),
+        refs::runtime(&interpreter),
+        refs::protocol(),
+        "fixed_cart.py".into(),
+        vec![],
+        vec![MethodSourceFile {
+            path: "fixed_cart.py".into(),
+            content: FIXED_CART.into(),
+        }],
+    )
+    .unwrap();
+    let control_bytes = control.artifact_json().unwrap();
+    let methods = example::ExampleMethods {
+        candidate: ExactContentRef {
+            domain: "genesis".into(),
+            schema: "development-method-source/1".into(),
+            id: "generated-method".into(),
+            version: "0.1.0".into(),
+            sha256: refs::sha256_hex(generated.as_bytes()),
+        },
+        control: control.reference().unwrap(),
+    };
+    let grant = ResourceGrant {
+        model_calls: 0,
+        input_tokens: 0,
+        output_tokens: 0,
+        wall_time_ms: 60_000,
+        simulation_steps: 6 * 2400,
+    };
+    let mut trial =
+        example::acceptance_plan_for(family, &methods, Mode::None, &interpreter, 3, grant);
+    // This sandbox can't establish zero model use, so model usage is unknown;
+    // the frozen criterion says so explicitly instead of the verdict guessing.
+    let ids: Vec<String> = trial
+        .development_instances
+        .iter()
+        .map(|r| r.id.clone())
+        .collect();
+    let criterion = genesis_core::digest::canonical_json(&serde_json::json!({
+        "rule": "success-count-margin",
+        "min_margin": 1,
+        "instances": ids,
+        "unknown_usage_allowed": ["model_calls", "input_tokens", "output_tokens"],
+    }))
+    .into_bytes();
+    trial.criterion = refs::content("lab-criterion/1", "success-count-margin", "1", &criterion);
+    trial.validate().unwrap();
+
+    // 3. Both slots as real child processes, then trusted scoring.
+    let cfg = run::Config {
+        sandbox: Mode::None,
+        interpreter_version: interpreter.clone(),
+        stage_root: tmp("stage"),
+    };
+    let mut evidence = vec![];
+    for (slot, bytes) in [
+        ("candidate", generated.as_bytes()),
+        ("control", control_bytes.as_bytes()),
+    ] {
+        let state = tmp(slot);
+        let done = run::execute(&trial, slot, bytes, &state, &cfg).unwrap();
+        assert_eq!(
+            done.receipt.outcome,
+            ExecutionOutcome::OutputGenerated,
+            "{slot}"
+        );
+        let score = tmp(&format!("{slot}-score"));
+        let store = Store::open(&score).unwrap();
+        let scored = score_slot(
+            &trial,
+            slot,
+            &done.receipt,
+            &output(&state, &done.receipt),
+            &store,
+        )
+        .unwrap();
+        let EvaluationOutcome::Scored { metrics } = &scored.outcome else {
+            panic!("{slot}: {:?}", scored.outcome)
+        };
+        let metrics = std::fs::read(score.join("artifacts").join(&metrics.sha256)).unwrap();
+        evidence.push(SlotEvidence {
+            execution: done.receipt,
+            scoring: Some(scored),
+            metrics: Some(metrics),
+        });
+    }
+
+    // 4. A real decision, not Insufficient: every input was known or allowed.
+    let verdict = decide(&trial, &criterion, &evidence[0], &evidence[1]).unwrap();
+    eprintln!("rehearsal verdict (controls only): {verdict:?}");
+    assert!(
+        matches!(verdict, Verdict::Accepted { .. } | Verdict::Rejected { .. }),
+        "{verdict:?}"
+    );
+}
