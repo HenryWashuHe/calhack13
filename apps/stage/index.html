@@ -487,8 +487,11 @@ details.live summary { cursor: pointer; color: var(--chalk-dim); }
       else if (accepted(inst) && aAccepted.has(k) && aAccepted.get(k) && aAccepted.get(k) === inst.source_digest) {
         try {
           const m = await getJson(`${cfg.urlB}/capabilities/${encodeURIComponent(inst.capability.capability_id)}/versions/${encodeURIComponent(inst.capability.version)}`, cfg.tokB);
-          if (m && m.publisher === a.state.org_id && (!m.source_digest || m.source_digest === inst.source_digest)) { who = "Org B · adopted"; mark = "b"; text = `${k}, digest ${String(inst.source_digest).slice(0, 12)}…, published by ${m.publisher}, B's own acceptance`; adopted = adopted || k; }
-          else { text = `${k}; the registry manifest does not identify Org A's exact artifact, so this is not inheritance from A`; }
+          // The manifest must bind the same label, the same version and the same source digest to Org A.
+          const bound = m && m.publisher === a.state.org_id && m.capability_id === inst.capability.capability_id && m.version === inst.capability.version
+            && typeof m.source_digest === "string" && m.source_digest === inst.source_digest;
+          if (bound) { who = "Org B · adopted"; mark = "b"; text = `${k}, digest ${String(inst.source_digest).slice(0, 12)}…, published by ${m.publisher}, B's own acceptance`; adopted = adopted || k; }
+          else { text = `${k}; the registry manifest does not bind this exact label, version and source digest to Org A, so this is not inheritance from A`; }
         } catch (err) { text = `${k}; registry manifest unreadable (${err.message}), inheritance not shown`; }
       } else if (accepted(inst) && aAccepted.has(k)) { text = `${k}; same label as Org A but a different source digest, so not the same executable`; }
       else if (accepted(inst)) { text = `${k}; Org A has no accepted installation of this exact version`; }
