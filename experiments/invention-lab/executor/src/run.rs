@@ -24,6 +24,10 @@ pub const KILL_MARGIN_MS: u64 = 250;
 /// Replies waiting for a method that isn't reading them; past this the loop
 /// waits for room, never beyond the deadline.
 pub const MAX_QUEUED_REPLIES: usize = 64;
+/// Requests read from the method but not yet handled; past this the reader
+/// stops reading, so the method blocks on its own output instead of the host
+/// buffering it (at most this many lines of up to `MAX_LINE` bytes).
+pub const MAX_QUEUED_REQUESTS: usize = 64;
 
 /// `<interpreter> --version`, pinned in the environment reference.
 pub fn interpreter_version(interpreter: &str) -> String {
@@ -235,7 +239,7 @@ pub fn execute(
     };
     let stdin = child.stdin.take().expect("piped stdin");
     let stdout = child.stdout.take().expect("piped stdout");
-    let (tx, rx) = mpsc::channel::<Option<String>>();
+    let (tx, rx) = mpsc::sync_channel::<Option<String>>(MAX_QUEUED_REQUESTS);
     std::thread::spawn(move || {
         let mut reader = BufReader::new(stdout);
         loop {
