@@ -92,10 +92,12 @@ every milestone. All lower checkpoints are historical.
   Henry still needs to consume the retained binding before runtime intent.
   Project credentials now work; the first [live method attempt](docs/invention-lab/evidence/live-method-20261024/README.md)
   failed protocol validation with no package or source execution. Its reservation
-  remains spent; do not replay it. [Closed stop/rejection diagnostics](docs/invention-lab/contracts/generation.md)
-  are implemented and locally validated at `f4fa271e603d3b38be1b8d9caeb2215bda2f04fd`;
-  they establish no new live result or cause for the old failure. Next: separately
-  declare a fresh bounded attempt, then hand a valid package to Henry if produced.
+  remains spent; do not replay it. The [separate second attempt](docs/invention-lab/evidence/live-method-20261024-diagnostic/README.md)
+  on `7d6119d` also failed, now retaining `content_shape` / `end_turn`, with no
+  package or execution. Both costs remain recorded; the first failure is unchanged.
+  Codex's strict reasoning-prefix/one-text parser compatibility fix is active,
+  not yet merged or validated here; a thinking-block cause remains an inference.
+  Any later attempt must be separately declared before a valid-package handoff.
   Finite whole-chain
   ceilings remain proposed behind the genuine method run; hashes prove no timing.
   Retain input-token/wall, billing, global enforcement and history limits.
