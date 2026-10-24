@@ -4,13 +4,16 @@ mod acquisition_history;
 mod acquisitions;
 mod adoptions;
 pub(crate) mod capabilities;
+mod capability_gaps;
 mod changes;
 mod events;
+mod gateway;
 mod jobs;
 mod org;
 mod search;
 
 use crate::app::AppState;
+use axum::extract::DefaultBodyLimit;
 use axum::routing::{get, post};
 use axum::Router;
 use tower_http::cors::{Any, CorsLayer};
@@ -38,6 +41,10 @@ pub fn router(state: AppState) -> Router {
             "/org-changes/{id}/operations/{role_key}/abandon",
             post(changes::abandon_operation),
         )
+        .route(
+            "/org-changes/{id}/operations/{role_key}/attach",
+            post(changes::attach_operation),
+        )
         .route("/jobs/{id}/results", post(jobs::submit_result))
         .route("/ledger", get(jobs::ledger))
         .route("/outbox", get(jobs::outbox))
@@ -52,6 +59,10 @@ pub fn router(state: AppState) -> Router {
             get(capabilities::manifest),
         )
         .route("/capability-installations", post(capabilities::install))
+        .route(
+            "/capability-gaps/{id}/acquisition",
+            get(capability_gaps::acquisition),
+        )
         .route(
             "/capability-adoptions",
             post(adoptions::create).get(adoptions::list),
@@ -97,7 +108,15 @@ pub fn router(state: AppState) -> Router {
             "/capability-acquisitions/{id}/step",
             post(acquisitions::step),
         )
-        .route("/capability-runs", post(capabilities::run));
+        .route("/capability-runs", post(capabilities::run))
+        .route(
+            "/gateway/readiness-receipts",
+            post(gateway::readiness_receipt).layer(DefaultBodyLimit::max(4096)),
+        )
+        .route(
+            "/gateway/readiness-challenges/{id}",
+            get(gateway::readiness_challenge),
+        );
 
     Router::new()
         .nest("/api/v1", api)

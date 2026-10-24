@@ -6,6 +6,10 @@
 //! step/verify calls and low-level discovery/installation/acceptance requests.
 //! B submits one durable adoption intent; its server chooses and verifies the
 //! foreign capability using B's own requirement and trusted suite.
+//! The repaired success case also routes real ElasticClient traffic through a
+//! recording proxy to fake Elasticsearch: shared registry retrieval and each
+//! organization's evidence projection. This checks HTTP contracts and tenant
+//! filtering, not cloud credentials or Elasticsearch relevance.
 
 use axum::body::{to_bytes, Body};
 use axum::extract::{Request, State};
@@ -15,6 +19,7 @@ use genesis_apify::{ApifyClient, RunLimits};
 use genesis_core::ids::{InstallationId, JobId, RoleId};
 use genesis_core::lifecycle::{InstallationStatus, JobStatus, RoleState};
 use genesis_core::model::{Owner, Provider};
+use genesis_elastic::{ElasticClient, ElasticConfig};
 use genesis_forge::{
     AcquisitionPhase, AnthropicGenerator, CandidateIdentity, ModelConfig, PublicExample,
 };
@@ -44,6 +49,7 @@ const ORACLE_CANARY: &str = "PRIVATE_SCENARIO_ORACLE_568ab";
 const EXAMPLE_CANARY: &str = "PUBLIC_SCENARIO_HTML_NOT_IN_REPORT_784be";
 const SOURCE_CANARY: &str = "CANNED_GENERATED_SOURCE_NOT_IN_REPORT_20b43";
 const PROVIDER_CANARY: &str = "PRIVATE_FAILED_PROVIDER_BODY_a58df";
+const ELASTIC_KEY: &str = "scenario-elastic-fixture-key";
 
 struct Server {
     url: String,
@@ -148,6 +154,105 @@ async fn guarded_proxy(State(proxy): State<GuardedProxy>, request: Request) -> R
         .header("content-type", "application/json")
         .body(Body::from(bytes))
         .unwrap()
+}
+
+#[derive(Debug)]
+struct ElasticSearch {
+    path: String,
+    body: Value,
+    status: StatusCode,
+    response: Value,
+}
+
+#[derive(Clone)]
+struct ElasticProxy {
+    upstream: String,
+    client: reqwest::Client,
+    searches: Arc<Mutex<Vec<ElasticSearch>>>,
+}
+
+async fn elastic_proxy(State(proxy): State<ElasticProxy>, request: Request) -> Response {
+    let (mut parts, body) = request.into_parts();
+    let body = to_bytes(body, 2 * 1024 * 1024).await.unwrap();
+    let search = (parts.method == "POST" && parts.uri.path().ends_with("/_search")).then(|| {
+        (
+            parts.uri.path().to_owned(),
+            serde_json::from_slice::<Value>(&body).unwrap(),
+        )
+    });
+    assert_eq!(
+        parts.headers["authorization"].to_str().unwrap(),
+        format!("ApiKey {ELASTIC_KEY}")
+    );
+    parts.headers.remove("host");
+    // Bulk indexing is NDJSON. Forward its bytes/content-type unchanged and
+    // record only the JSON search calls that establish retrieval actually ran.
+    let response = proxy
+        .client
+        .request(parts.method, format!("{}{}", proxy.upstream, parts.uri))
+        .headers(parts.headers)
+        .body(body)
+        .send()
+        .await
+        .unwrap();
+    let status = response.status();
+    let bytes = response.bytes().await.unwrap();
+    assert!(bytes.len() <= 2 * 1024 * 1024);
+    if let Some((path, body)) = search {
+        proxy.searches.lock().unwrap().push(ElasticSearch {
+            path,
+            body,
+            status,
+            response: serde_json::from_slice(&bytes).unwrap(),
+        });
+    }
+    Response::builder()
+        .status(status)
+        .header("content-type", "application/json")
+        .body(Body::from(bytes))
+        .unwrap()
+}
+
+struct ElasticFixture {
+    _proxy: Server,
+    client: ElasticClient,
+    shared: genesis_elastic::fake::Shared,
+    searches: Arc<Mutex<Vec<ElasticSearch>>>,
+}
+
+impl ElasticFixture {
+    async fn start() -> Self {
+        let (upstream, shared) = genesis_elastic::fake::start().await;
+        let searches = Arc::default();
+        let proxy = Server::start(
+            Router::new()
+                .fallback(elastic_proxy)
+                .with_state(ElasticProxy {
+                    upstream: upstream.elasticsearch_url().to_owned(),
+                    client: reqwest::Client::builder()
+                        .timeout(Duration::from_secs(5))
+                        .redirect(reqwest::redirect::Policy::none())
+                        .no_proxy()
+                        .build()
+                        .unwrap(),
+                    searches: Arc::clone(&searches),
+                }),
+        )
+        .await;
+        let client = ElasticClient::new(ElasticConfig {
+            elasticsearch_url: proxy.url.clone(),
+            api_key: ELASTIC_KEY.into(),
+            index_prefix: "scenario".into(),
+            timeout: Duration::from_secs(5),
+        })
+        .unwrap();
+        Self {
+            _proxy: proxy,
+            client,
+            shared,
+            searches,
+        }
+    }
 }
 
 fn suite(side: &str) -> OracleSuite {
@@ -444,14 +549,19 @@ struct Org {
     app: AppState,
     config: OrgConfig,
     requests: Arc<Mutex<Vec<OrgRequest>>>,
+    elastic: Option<ElasticClient>,
 }
 impl Org {
     async fn start(
         config: OrgConfig,
         providers: ProviderSet,
         requests: Arc<Mutex<Vec<OrgRequest>>>,
+        elastic: Option<ElasticClient>,
     ) -> Self {
-        let app = build_org(&config, Some(providers)).unwrap();
+        let mut app = build_org(&config, Some(providers)).unwrap();
+        if let Some(client) = &elastic {
+            app = app.with_elastic(client.clone());
+        }
         let backend = Server::start_org(app.clone()).await;
         let server = Server::start(
             Router::new()
@@ -474,12 +584,19 @@ impl Org {
             app,
             config,
             requests,
+            elastic,
         }
     }
     async fn restart(&mut self, providers: ProviderSet) {
         self.server.stop().await;
         self.backend.stop().await;
-        *self = Self::start(self.config.clone(), providers, self.requests.clone()).await;
+        *self = Self::start(
+            self.config.clone(),
+            providers,
+            self.requests.clone(),
+            self.elastic.clone(),
+        )
+        .await;
     }
     fn adoption_request(&self) -> Value {
         let requests = self.requests.lock().unwrap();
@@ -547,21 +664,34 @@ struct Fixture {
     providers: Providers,
     a: Org,
     b: Org,
+    elastic: Option<ElasticFixture>,
 }
 impl Fixture {
     async fn start(behavior: Behavior) -> Self {
         Self::start_with_automation(behavior, true).await
     }
     async fn start_with_automation(behavior: Behavior, automatic: bool) -> Self {
+        Self::start_configured(behavior, automatic, false).await
+    }
+    async fn start_with_elastic(behavior: Behavior) -> Self {
+        Self::start_configured(behavior, true, true).await
+    }
+    async fn start_configured(behavior: Behavior, automatic: bool, with_elastic: bool) -> Self {
         let directory = tempfile::tempdir().unwrap();
-        let registry = Server::start(registry::router(
-            RegistryState::open_in_memory(
-                parse_publishers("scenario_a:scenario_a-registry,scenario_b:scenario_b-registry"),
-                vec![],
-            )
-            .unwrap(),
-        ))
-        .await;
+        let elastic = if with_elastic {
+            Some(ElasticFixture::start().await)
+        } else {
+            None
+        };
+        let mut registry_state = RegistryState::open_in_memory(
+            parse_publishers("scenario_a:scenario_a-registry,scenario_b:scenario_b-registry"),
+            vec![],
+        )
+        .unwrap();
+        if let Some(elastic) = &elastic {
+            registry_state = registry_state.with_elastic(elastic.client.clone());
+        }
+        let registry = Server::start(registry::router(registry_state)).await;
         let providers = Providers::start(behavior).await;
         let mut orgs = Vec::new();
         for side in [Side::A, Side::B] {
@@ -593,7 +723,15 @@ impl Fixture {
                     apify: Some(Arc::new(providers.apify(side))),
                 });
             }
-            orgs.push(Org::start(config, providers.set(side), Arc::default()).await);
+            orgs.push(
+                Org::start(
+                    config,
+                    providers.set(side),
+                    Arc::default(),
+                    elastic.as_ref().map(|elastic| elastic.client.clone()),
+                )
+                .await,
+            );
         }
         let b = orgs.pop().unwrap();
         let a = orgs.pop().unwrap();
@@ -603,6 +741,7 @@ impl Fixture {
             providers,
             a,
             b,
+            elastic,
         }
     }
     fn spec(&self) -> ScenarioSpec {
@@ -702,9 +841,54 @@ async fn wait_for_proof(org: &Org, id: &str) -> Value {
     .expect("the actual server must collect and finalize the invocation without a manual request")
 }
 
+async fn assert_own_evidence_is_searchable(org: &Org, requirement_id: &str, foreign_mission: &str) {
+    let state = org.app.current_state().unwrap();
+    let doc_id = format!("{}:requirement:{requirement_id}", state.org_id);
+    tokio::time::timeout(Duration::from_secs(30), async {
+        loop {
+            let (status, projection) = get(org, "/projection").await;
+            assert_eq!(status, StatusCode::OK, "{projection}");
+            assert_eq!(projection["configured"], true);
+            if projection["projected_revision"] == state.revision {
+                assert!(projection["last_error"].is_null(), "{projection}");
+                assert!(projection["documents"]
+                    .as_u64()
+                    .is_some_and(|count| count > 0));
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(25)).await;
+        }
+    })
+    .await
+    .expect("the actual organization worker must project its committed revision");
+    let (status, result) = get(org, "/search/evidence?q=venue&kinds=requirement&limit=50").await;
+    assert_eq!(status, StatusCode::OK, "{result}");
+    assert_eq!(result["projected_revision"], state.revision);
+    let hits = result["hits"].as_array().unwrap();
+    assert!(
+        hits.iter().any(|hit| hit["doc"]["doc_id"] == doc_id),
+        "{result}"
+    );
+    assert!(
+        hits.iter()
+            .all(|hit| hit["doc"]["org_id"] == state.org_id.as_str()),
+        "{result}"
+    );
+    let (status, foreign) = get(
+        org,
+        &format!("/search/evidence?q=venue&kinds=requirement&mission_id={foreign_mission}"),
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK, "{foreign}");
+    assert!(
+        foreign["hits"].as_array().unwrap().is_empty(),
+        "an org token must not search the other organization's projected mission: {foreign}"
+    );
+}
+
 #[tokio::test]
 async fn repaired_acquisition_survives_independent_adoption_and_both_role_handoffs() {
-    let mut fixture = Fixture::start(Behavior::RepairOnce).await;
+    let mut fixture = Fixture::start_with_elastic(Behavior::RepairOnce).await;
     let report = fixture
         .driver()
         .run(&fixture.spec())
@@ -818,6 +1002,99 @@ async fn repaired_acquisition_survives_independent_adoption_and_both_role_handof
     );
     let a = fixture.a.app.current_state().unwrap();
     let b = fixture.b.app.current_state().unwrap();
+    // Registry retrieval is part of B's actual adoption, not a separate direct
+    // client search in this test. A successful recorded response proves the
+    // integration did not silently use the registry's keyword fallback.
+    let elastic = fixture.elastic.as_ref().unwrap();
+    let b_query = &b.requirements[&report.requirement_b_id.clone().into()].summary;
+    let cap_index = elastic.client.capability_index();
+    let canonical_response = reqwest::Client::builder()
+        .no_proxy()
+        .build()
+        .unwrap()
+        .get(format!(
+            "{}/registry/v1/capabilities/{}/versions/{}",
+            fixture._registry.url,
+            report.artifact.capability_id,
+            report.artifact.capability_version
+        ))
+        .bearer_auth(fixture.b.config.registry_token.as_ref().unwrap())
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(canonical_response.status(), StatusCode::OK);
+    let canonical: genesis_core::capability::CapabilityManifest =
+        canonical_response.json().await.unwrap();
+    assert_eq!(canonical.publisher.as_str(), report.org_a_id);
+    assert_eq!(canonical.source_digest, report.artifact.source_sha256);
+    assert_eq!(canonical.artifact.actor_id, report.artifact.actor_id);
+    assert_eq!(canonical.artifact.build_id, report.artifact.build_id);
+    assert_eq!(
+        canonical.artifact.build_number,
+        report.artifact.build_number
+    );
+    let projected = serde_json::to_value(genesis_elastic::capability_doc(&canonical)).unwrap();
+    {
+        let shared = elastic.shared.lock().unwrap();
+        let published = shared.docs[&cap_index]
+            .values()
+            .find(|doc| {
+                doc["capability_id"] == report.artifact.capability_id
+                    && doc["version"] == report.artifact.capability_version
+            })
+            .expect("the canonical repaired version must exist in the shared capability index");
+        assert_eq!(published, &projected);
+        assert_eq!(published["state"], "PUBLISHED");
+    }
+    {
+        let searches = elastic.searches.lock().unwrap();
+        let retrieval: Vec<_> = searches
+            .iter()
+            .filter(|search| search.path == format!("/{cap_index}/_search"))
+            .collect();
+        assert!(
+            !retrieval.is_empty(),
+            "B adoption must execute Elastic retrieval"
+        );
+        assert!(
+            retrieval
+                .iter()
+                .all(|search| search.status == StatusCode::OK
+                    && search.body["query"]["bool"]["must"][0]["multi_match"]["query"] == *b_query),
+            "{retrieval:?}"
+        );
+        assert!(
+            retrieval
+                .iter()
+                .any(|search| search.response["hits"]["hits"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .any(|hit| hit["_source"] == projected
+                        && hit["_score"].as_f64().is_some_and(|score| score > 0.0))),
+            "successful Elastic search must return A's canonical repaired version: {retrieval:?}"
+        );
+    }
+    assert_own_evidence_is_searchable(&fixture.a, &report.requirement_a_id, &report.mission_b_id)
+        .await;
+    assert_own_evidence_is_searchable(&fixture.b, &report.requirement_b_id, &report.mission_a_id)
+        .await;
+    {
+        let index_a = elastic.client.evidence_index(&report.org_a_id);
+        let index_b = elastic.client.evidence_index(&report.org_b_id);
+        assert_ne!(index_a, index_b);
+        assert_ne!(index_a, cap_index);
+        assert_ne!(index_b, cap_index);
+        let shared = elastic.shared.lock().unwrap();
+        for (index, org_id, requirement_id) in [
+            (&index_a, &report.org_a_id, &report.requirement_a_id),
+            (&index_b, &report.org_b_id, &report.requirement_b_id),
+        ] {
+            let documents = &shared.docs[index];
+            assert!(documents.contains_key(&format!("{org_id}:requirement:{requirement_id}")));
+            assert!(documents.values().all(|doc| doc["org_id"] == *org_id));
+        }
+    }
     assert!(fixture.a.app.store.commitments().unwrap().is_empty());
     assert!(fixture.b.app.store.commitments().unwrap().is_empty());
     assert_eq!(a.roles.len(), 3);
@@ -985,6 +1262,7 @@ async fn repaired_acquisition_survives_independent_adoption_and_both_role_handof
         MODEL_KEY,
         A_KEY,
         B_KEY,
+        ELASTIC_KEY,
         ORACLE_CANARY,
         EXAMPLE_CANARY,
         SOURCE_CANARY,
@@ -1066,6 +1344,12 @@ async fn repaired_acquisition_survives_independent_adoption_and_both_role_handof
     // existing DB/config. No imported A checkpoint or acquisition client exists.
     fixture.b.restart(fixture.providers.set(Side::B)).await;
     let restarted = &fixture.b;
+    assert!(
+        restarted.app.projection.client.is_some(),
+        "restart must retain Elastic projection configuration"
+    );
+    assert_own_evidence_is_searchable(restarted, &report.requirement_b_id, &report.mission_a_id)
+        .await;
     let (status, restored_adoption) =
         get(restarted, &format!("/capability-adoptions/{adoption_id}")).await;
     assert_eq!(status, StatusCode::OK, "{restored_adoption}");

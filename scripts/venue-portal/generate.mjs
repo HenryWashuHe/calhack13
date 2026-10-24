@@ -14,9 +14,9 @@
 // set: organizations bind the exact page bytes and suite digest of a run, so
 // changing served pages under an existing run breaks its evidence.
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { parseArgs } from "node:util";
-import { build, indexPage, namespaceIndex, presetSpec } from "./lib.mjs";
+import { build, indexPage, namespaceIndex, presetSpec, withHoldoutExamples } from "./lib.mjs";
 
 export function writeVariant({ spec, baseUrl, out, namespace = spec?.suite_id, replace = false }) {
   const root = resolve(out);
@@ -33,6 +33,7 @@ export function writeVariant({ spec, baseUrl, out, namespace = spec?.suite_id, r
   }
   rmSync(nsDir, { recursive: true, force: true });
   mkdirSync(join(nsDir, "venues"), { recursive: true });
+  for (const p of result.pages) mkdirSync(dirname(join(pub, p.path)), { recursive: true });
   mkdirSync(suites, { recursive: true });
   mkdirSync(manifests, { recursive: true });
   mkdirSync(join(root, "fragments"), { recursive: true });
@@ -59,20 +60,25 @@ function main() {
       attendees: { type: "string" },
       namespace: { type: "string" },
       replace: { type: "boolean" },
+      holdout: { type: "boolean" },
       help: { type: "boolean", short: "h" },
     },
   });
   if (values.help || (!values.preset && !values.spec)) {
     console.log(`usage: generate.mjs (--preset baseline|capacity-cut|layout-drift [--seed S] | --spec file.json)
                     [--base-url URL] [--out DIR] [--suite-id ID] [--attendees N]
-                    [--namespace NS] [--replace]`);
+                    [--namespace NS] [--replace] [--holdout]
+  --holdout  serve separate example pages (same layouts, new venues) for synthesis;
+             the oracle suite keeps the original pages, so checks are held out`);
     process.exit(values.help ? 0 : 2);
   }
   const spec = values.spec ? JSON.parse(readFileSync(values.spec, "utf8")) : presetSpec(values.preset, values.seed);
   if (values["suite-id"]) spec.suite_id = values["suite-id"];
   if (values.attendees) spec.attendees = Number(values.attendees);
-  const r = writeVariant({ spec, baseUrl: values["base-url"], out: values.out, namespace: values.namespace ?? spec.suite_id, replace: values.replace });
-  for (const p of r.pages) console.log(`${p.sha256.slice(0, 12)}  ${p.layout.padEnd(10)} ${p.url}`);
+  const final = values.holdout ? withHoldoutExamples(spec, values.seed) : spec;
+  const r = writeVariant({ spec: final, baseUrl: values["base-url"], out: values.out, namespace: values.namespace ?? spec.suite_id, replace: values.replace });
+  for (const p of r.pages) console.log(`${p.sha256.slice(0, 12)}  ${p.layout.padEnd(10)} ${p.role.padEnd(7)} ${p.url}`);
+  console.log(`\nexamples: ${r.manifest.held_out_examples ? "held out (not suite cases)" : "suite pages (reproducibility, not held out); use --holdout for held-out checks"}`);
   console.log(`\npublic : ${r.publicDir}`);
   console.log(`suite  : ${r.suitePath}   (trusted; pass to --oracle-suite, never serve)`);
   console.log(`mission: ${r.fragmentPath}   (combine A and B with combine-fragments.mjs)`);

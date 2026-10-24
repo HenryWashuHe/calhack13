@@ -71,6 +71,7 @@ pub struct AppState {
     pub capability_runtime: Arc<crate::capability_runtime::CapabilityRuntime>,
     pub acquisition_policy: Option<Arc<crate::capability_acquisition_store::AcquisitionPolicy>>,
     pub automatic_acquisition: bool,
+    pub gap_acquisition_policy: Option<Arc<crate::capability_gap_policy::GapAcquisitionPolicy>>,
     pub acquisition_runtime: Arc<crate::capability_acquisition_runtime::AcquisitionRuntime>,
     pub(crate) adoption_gate: Arc<Mutex<()>>,
 }

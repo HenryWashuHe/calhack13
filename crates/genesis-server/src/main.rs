@@ -6,6 +6,7 @@ use genesis_core::model::Constitution;
 use genesis_providers::{ApifyCapabilityExecutor, DevStub, ProviderSet};
 use genesis_server::auth::Tokens;
 use genesis_server::capability_acquisition_store::AcquisitionPolicy;
+use genesis_server::capability_gap_policy::GapAcquisitionPolicy;
 use genesis_server::capability_scenario::{
     ScenarioDriver, ScenarioEndpoint, ScenarioLimits, ScenarioSpec,
 };
@@ -109,6 +110,10 @@ struct OrgArgs {
     /// This does not create acquisition intents from requirements.
     #[arg(long, requires = "acquisition_policy")]
     auto_acquire: bool,
+    /// Trusted JSON rules permitting committed capability gaps to create acquisition intents.
+    /// Contains fixed public examples; requires automatic acquisition and its quota policy.
+    #[arg(long, value_name = "FILE", requires_all = ["auto_acquire", "acquisition_policy"])]
+    gap_acquisition_policy: Option<PathBuf>,
     #[arg(long, env = "GENESIS_REGISTRY_URL")]
     registry_url: Option<String>,
     #[arg(long, env = "GENESIS_REGISTRY_TOKEN")]
@@ -149,10 +154,24 @@ fn token_or_dev(value: Option<String>, org: &str, kind: &str, dev: bool) -> anyh
 }
 
 const MAX_CONFIG_BYTES: u64 = 8 * 1024 * 1024;
+const MAX_GAP_POLICY_BYTES: u64 = 4 * 1024 * 1024;
 
 /// Startup files are backend-trusted context, not claims accepted through an API.
 /// Bound reads themselves, then reject duplicate keys and malformed typed JSON.
 fn load_trusted_json<T: DeserializeOwned>(path: &Path) -> anyhow::Result<T> {
+    load_bounded_trusted_json(path, MAX_CONFIG_BYTES)
+}
+
+fn load_gap_policy(path: &Path) -> anyhow::Result<GapAcquisitionPolicy> {
+    let policy: GapAcquisitionPolicy = load_bounded_trusted_json(path, MAX_GAP_POLICY_BYTES)?;
+    policy.validate()?;
+    Ok(policy)
+}
+
+fn load_bounded_trusted_json<T: DeserializeOwned>(
+    path: &Path,
+    max_bytes: u64,
+) -> anyhow::Result<T> {
     let file = File::open(path).with_context(|| format!("opening {}", path.display()))?;
     let metadata = file
         .metadata()
@@ -163,18 +182,20 @@ fn load_trusted_json<T: DeserializeOwned>(path: &Path) -> anyhow::Result<T> {
         path.display()
     );
     anyhow::ensure!(
-        metadata.len() <= MAX_CONFIG_BYTES,
-        "{} exceeds 8 MiB",
-        path.display()
+        metadata.len() <= max_bytes,
+        "{} exceeds {} MiB",
+        path.display(),
+        max_bytes / (1024 * 1024)
     );
     let mut bytes = Vec::new();
-    file.take(MAX_CONFIG_BYTES + 1)
+    file.take(max_bytes + 1)
         .read_to_end(&mut bytes)
         .with_context(|| format!("reading {}", path.display()))?;
     anyhow::ensure!(
-        bytes.len() as u64 <= MAX_CONFIG_BYTES,
-        "{} exceeds 8 MiB",
-        path.display()
+        bytes.len() as u64 <= max_bytes,
+        "{} exceeds {} MiB",
+        path.display(),
+        max_bytes / (1024 * 1024)
     );
     genesis_verification::decode_json(&bytes)
         .with_context(|| format!("decoding {}", path.display()))
@@ -244,6 +265,7 @@ async fn main() -> anyhow::Result<()> {
                 forge_checkpoint,
                 acquisition_policy,
                 auto_acquire,
+                gap_acquisition_policy,
                 registry_url,
                 registry_token,
                 operator_token,
@@ -268,6 +290,10 @@ async fn main() -> anyhow::Result<()> {
                 .map(|path| load_trusted_json::<AcquisitionPolicy>(path))
                 .transpose()?
                 .map(AcquisitionConfig::offline);
+            let gap_acquisition_policy = gap_acquisition_policy
+                .as_deref()
+                .map(load_gap_policy)
+                .transpose()?;
             let tokens = Tokens {
                 operator: token_or_dev(operator_token, &org_id, "operator", dev_stub)?,
                 agent: token_or_dev(agent_token, &org_id, "agent", dev_stub)?,
@@ -287,6 +313,7 @@ async fn main() -> anyhow::Result<()> {
                 oracle_suites,
                 forge_checkpoints,
                 acquisition,
+                gap_acquisition_policy,
             };
             if dev_stub {
                 tracing::warn!(
@@ -612,6 +639,163 @@ mod cli_tests {
             if args.auto_acquire && args.acquisition_policy.as_deref() == Some(Path::new("policy.json")))
         );
         assert!(Cli::try_parse_from(["genesis", "dev", "--auto-acquire"]).is_err());
+    }
+
+    #[test]
+    fn gap_acquisition_requires_both_explicit_acquisition_options() {
+        let base = ["genesis", "org", "--org-id", "test-org", "--name", "Test"];
+        assert!(
+            matches!(Cli::try_parse_from(base).unwrap().command, Command::Org(args)
+            if args.gap_acquisition_policy.is_none())
+        );
+        for extra in [
+            vec![],
+            vec!["--auto-acquire"],
+            vec!["--acquisition-policy", "acquisition.json"],
+        ] {
+            let mut args = base.to_vec();
+            args.extend(["--gap-acquisition-policy", "gaps.json"]);
+            args.extend(extra);
+            assert!(Cli::try_parse_from(args).is_err());
+        }
+        let mut args = base.to_vec();
+        args.extend([
+            "--gap-acquisition-policy",
+            "gaps.json",
+            "--auto-acquire",
+            "--acquisition-policy",
+            "acquisition.json",
+        ]);
+        assert!(
+            matches!(Cli::try_parse_from(args).unwrap().command, Command::Org(args)
+            if args.auto_acquire && args.gap_acquisition_policy.as_deref() == Some(Path::new("gaps.json")))
+        );
+        assert!(
+            Cli::try_parse_from(["genesis", "dev", "--gap-acquisition-policy", "gaps.json"])
+                .is_err()
+        );
+    }
+
+    fn gap_policy_value() -> Value {
+        serde_json::json!({"rules": [{
+            "capability_id": "venue-reader", "suite_id": "trusted-suite",
+            "actor_name_prefix": "genesis-venue",
+            "allowed_source_urls": ["https://venues.example/a"],
+            "examples": [{"url":"https://venues.example/a", "html":"<html>private-debug-marker</html>"}],
+            "repair": true,
+        }]})
+    }
+
+    #[test]
+    fn gap_policy_loader_bounds_files_and_sanitizes_schema_errors() {
+        let mut file = tempfile::NamedTempFile::new().unwrap();
+        file.write_all(&serde_json::to_vec(&gap_policy_value()).unwrap())
+            .unwrap();
+        assert_eq!(load_gap_policy(file.path()).unwrap().rules.len(), 1);
+        let large = tempfile::NamedTempFile::new().unwrap();
+        large.as_file().set_len(MAX_GAP_POLICY_BYTES + 1).unwrap();
+        assert!(load_gap_policy(large.path())
+            .err()
+            .unwrap()
+            .to_string()
+            .contains("exceeds 4 MiB"));
+        assert!(load_gap_policy(tempfile::tempdir().unwrap().path()).is_err());
+
+        let mut unknown = gap_policy_value();
+        unknown["private-field-marker"] = serde_json::json!("private-value-marker");
+        let mut invalid_type = gap_policy_value();
+        invalid_type["rules"][0]["repair"] = serde_json::json!("private-value-marker");
+        let mut invalid_policy = gap_policy_value();
+        invalid_policy["rules"][0]["actor_name_prefix"] =
+            serde_json::json!("private-value-marker!");
+        for value in [unknown, invalid_type, invalid_policy] {
+            let mut file = tempfile::NamedTempFile::new().unwrap();
+            file.write_all(&serde_json::to_vec(&value).unwrap())
+                .unwrap();
+            let error = format!("{:#}", load_gap_policy(file.path()).err().unwrap());
+            assert!(!error.contains("private-field-marker"));
+            assert!(!error.contains("private-value-marker"));
+            assert!(!error.contains("private-debug-marker"));
+        }
+        let mut duplicate = tempfile::NamedTempFile::new().unwrap();
+        duplicate
+            .write_all(
+                br#"{"rules": [], "rules": [], "private-field-marker": "private-value-marker"}"#,
+            )
+            .unwrap();
+        let error = format!("{:#}", load_gap_policy(duplicate.path()).err().unwrap());
+        assert!(!error.contains("private-"));
+    }
+
+    #[test]
+    fn gap_configuration_requires_automatic_clients_before_opening_the_store() {
+        let mut config = OrgConfig::dev("gap-startup", "Gap startup");
+        config.gap_acquisition_policy = Some(serde_json::from_value(gap_policy_value()).unwrap());
+        let directory = tempfile::tempdir().unwrap();
+        let db = directory.path().join("should-not-exist.sqlite");
+        config.db = Some(db.clone());
+        let valid_policy = config.gap_acquisition_policy.take().unwrap();
+        config.gap_acquisition_policy = Some(GapAcquisitionPolicy { rules: vec![] });
+        assert!(build_org(&config, None)
+            .err()
+            .unwrap()
+            .to_string()
+            .contains("invalid trusted gap acquisition policy"));
+        assert!(!db.exists());
+        config.gap_acquisition_policy = Some(valid_policy);
+        assert!(build_org(&config, None)
+            .err()
+            .unwrap()
+            .to_string()
+            .contains("requires automatic acquisition"));
+        assert!(!db.exists());
+        config.acquisition = Some(AcquisitionConfig::offline(AcquisitionPolicy {
+            model: genesis_forge::ModelConfig {
+                model: "test-model".into(),
+                max_tokens: 1024,
+            },
+            quotas: Default::default(),
+            max_duration_seconds: 3600,
+        }));
+        assert!(build_org(&config, None)
+            .err()
+            .unwrap()
+            .to_string()
+            .contains("requires automatic acquisition"));
+        config.acquisition.as_mut().unwrap().automatic = true;
+        assert!(build_org(&config, None)
+            .err()
+            .unwrap()
+            .to_string()
+            .contains("requires configured model and Apify clients"));
+        assert!(!db.exists());
+        let acquisition = config.acquisition.as_mut().unwrap();
+        acquisition.model = Some(Arc::new(
+            genesis_forge::AnthropicGenerator::new("synthetic-no-network-model").unwrap(),
+        ));
+        acquisition.apify = Some(Arc::new(
+            ApifyClient::new("synthetic-no-network-apify", RunLimits::default()).unwrap(),
+        ));
+        let app = build_org(&config, None).unwrap();
+        assert!(app.automatic_acquisition);
+        assert!(app.gap_acquisition_policy.is_some());
+        assert!(db.exists());
+    }
+
+    #[test]
+    fn org_config_debug_redacts_gap_examples_and_default_stays_disabled() {
+        let mut config = OrgConfig::dev("gap-debug", "Gap debug");
+        assert!(config.gap_acquisition_policy.is_none());
+        assert!(build_org(&config, None)
+            .unwrap()
+            .gap_acquisition_policy
+            .is_none());
+        config.gap_acquisition_policy = Some(serde_json::from_value(gap_policy_value()).unwrap());
+        let debug = format!("{config:?}");
+        assert!(debug.contains("gap_acquisition_configured: true"));
+        assert!(!debug.contains("private-debug-marker"));
+        assert!(!debug.contains("<html>"));
+        assert!(!debug.contains("https://venues.example/a"));
     }
 
     #[test]
