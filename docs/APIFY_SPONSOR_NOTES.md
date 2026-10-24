@@ -1,5 +1,8 @@
 # Apify sponsor announcement and demo implications
 
+The later [CREAO sponsor notes](CREAO_SPONSOR_NOTES.md) complement this record;
+both sponsors need meaningful mission work, with their evidence kept distinct.
+
 Source: Petros Hong's Cal Hacks announcement, supplied by the team in chat on
 October 21, 2026. These are notes from that announcement, not independently
 confirmed competition rules or a guarantee of coupon availability.

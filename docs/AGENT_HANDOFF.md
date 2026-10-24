@@ -1,5 +1,9 @@
 # GENESIS implementation handoff
 
+The October 22 [CREAO sponsor note](CREAO_SPONSOR_NOTES.md) records the required
+core agent work, agent ID/run share link, API-family distinction and missing
+mission-execution evidence. Keep this separate from readiness and Apify receipts.
+
 Current priority: [review queue and merge dependencies](PR_REVIEW_QUEUE.md).
 The user requested a backlog review; capability stack review found no new blockers,
 while #11/#12/#20/#21/#22/#26/#27/#28 retain source findings. No PR was merged in this pass.

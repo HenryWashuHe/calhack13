@@ -1,5 +1,10 @@
 # GENESIS agent coordination
 
+Sponsor submission evidence: [CREAO notes](docs/CREAO_SPONSOR_NOTES.md) and
+[Apify notes](docs/APIFY_SPONSOR_NOTES.md). CREAO requires core agent work plus an
+agent ID and genuine run share link. The current Apify monitor invocation and
+CREAO readiness probe do not close that mission-execution gap.
+
 Latest assembled checkpoint: [draft PR #25](https://github.com/HenryWashuHe/genesis/pull/25),
 `codex/combined-integration`, source merge `1004934`.
 It combines capability #24, Claude #11/#12/#20/#21/#22/#23/#26/#27/#28 and Codex
