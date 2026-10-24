@@ -34,12 +34,7 @@ fn main() -> ExitCode {
                 let store = Store::open(Path::new(out)).map_err(|e| e.to_string())?;
                 let scored = genesis_lab_score::score_slot(&plan, slot, &receipt, &bytes, &store)
                     .map_err(|e| format!("{e:?}"))?;
-                store
-                    .write(
-                        "evaluation.json",
-                        &serde_json::to_vec_pretty(&scored).unwrap(),
-                    )
-                    .map_err(|e| e.to_string())?;
+                // score_slot already retained <score-dir>/evaluation.json.
                 let metrics = match &scored.outcome {
                     EvaluationOutcome::Scored { metrics } => {
                         let m: serde_json::Value =

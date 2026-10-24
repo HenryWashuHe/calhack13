@@ -280,10 +280,11 @@ call({'op':'submit','design':CART})
     );
     assert!(!Path::new("/var/lib/lab-exec-probe/escape").exists());
     assert_eq!(done.receipt.outcome, ExecutionOutcome::OutputGenerated);
-    assert_eq!(
+    // No network is not proof of no model: model use stays unknown.
+    assert!(matches!(
         done.receipt.usage.model_calls,
-        ResourceUsage::Measured { value: 0 }
-    );
+        ResourceUsage::Unknown { .. }
+    ));
 }
 
 fn unsafe_euid() -> u32 {
@@ -342,4 +343,49 @@ fn a_stop_after_sealing_still_recovers_with_the_call_pending() {
         ResourceUsage::Unknown { .. }
     ));
     ledger.validate_execution(f.scope(), &done.receipt).unwrap();
+}
+
+#[test]
+fn concurrent_runners_admit_exactly_one_execution() {
+    let f = fixture(
+        "concurrent",
+        "import time\ntime.sleep(0.5)\ncall({'op':'submit','design':CART})",
+        Mode::None,
+        7200,
+        20_000,
+    );
+    let barrier = std::sync::Barrier::new(2);
+    let results: Vec<_> = std::thread::scope(|s| {
+        let handles: Vec<_> = (0..2)
+            .map(|_| {
+                s.spawn(|| {
+                    barrier.wait();
+                    f.run()
+                })
+            })
+            .collect();
+        handles.into_iter().map(|h| h.join().unwrap()).collect()
+    });
+    let admitted = results.iter().filter(|r| r.is_ok()).count();
+    let refused = results
+        .iter()
+        .filter(|r| matches!(r, Err(RunError::AlreadyStarted)))
+        .count();
+    assert_eq!(
+        (admitted, refused),
+        (1, 1),
+        "{:?}",
+        results.iter().map(|r| r.as_ref().err()).collect::<Vec<_>>()
+    );
+    // The surviving evidence is the admitted run's, intact.
+    let done = results.into_iter().find_map(Result::ok).unwrap();
+    f.ledger()
+        .validate_execution(f.scope(), &done.receipt)
+        .unwrap();
+    assert_eq!(done.receipt.outputs.len(), 1);
+    // A recover racing nothing still refuses a finished slot.
+    assert!(matches!(
+        run::recover(&f.plan, "candidate", &f.dir.join("slot"), &f.cfg),
+        Err(RunError::AlreadyStarted)
+    ));
 }
