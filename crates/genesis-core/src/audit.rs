@@ -41,6 +41,7 @@ pub const INVARIANTS: &[&str] = &[
     "installed_gap_has_installation",
     "live_gap_limit",
     "requirement_evidence",
+    "map_key_identity",
 ];
 
 fn dead(state: RoleState) -> bool {
@@ -162,7 +163,7 @@ pub fn audit(st: &OrgState) -> Vec<Violation> {
             continue;
         }
         if let Owner::Role(o) = &r.owner {
-            if !st.roles.get(o).is_some_and(|x| !dead(x.state)) {
+            if st.roles.get(o).is_none_or(|x| dead(x.state)) {
                 v(
                     "live_owner",
                     format!(
@@ -195,6 +196,28 @@ pub fn audit(st: &OrgState) -> Vec<Violation> {
             ),
         );
     }
+
+    macro_rules! keyed {
+        ($map:ident, $field:ident, $what:literal) => {
+            for (key, item) in &st.$map {
+                if key != &item.$field {
+                    v(
+                        "map_key_identity",
+                        format!("{} stored under {key} names {}", $what, item.$field),
+                    );
+                }
+            }
+        };
+    }
+    keyed!(missions, mission_id, "mission");
+    keyed!(observations, observation_id, "observation");
+    keyed!(requirements, requirement_id, "requirement");
+    keyed!(responsibilities, responsibility_id, "responsibility");
+    keyed!(roles, role_id, "role");
+    keyed!(assignments, assignment_id, "assignment");
+    keyed!(contracts, contract_id, "contract");
+    keyed!(installations, installation_id, "installation");
+    keyed!(capability_gaps, gap_id, "capability gap");
 
     let mut live_gaps = 0;
     for g in st.capability_gaps.values() {
@@ -297,7 +320,8 @@ fn gap_rank(s: &CapabilityGapStatus) -> u8 {
 /// Check that `next` is a legal later state of `prev`, possibly several
 /// commits later: nothing recorded disappears, observations never change,
 /// every lifecycle only moves along its transition table, epochs never go
-/// back, and a gap keeps its acquisition and final outcome.
+/// back, and a gap keeps its whole frozen binding, its verified capability
+/// version, a confirmed publication reference and its final outcome.
 pub fn audit_transition(prev: &OrgState, next: &OrgState) -> Vec<Violation> {
     let mut out = Vec::new();
     let mut v = |invariant: &'static str, detail: String| out.push(Violation { invariant, detail });
@@ -380,7 +404,31 @@ pub fn audit_transition(prev: &OrgState, next: &OrgState) -> Vec<Violation> {
             .acquisition_id()
             .is_some_and(|a| after.status.acquisition_id() != Some(a));
         let terminal_changed = before.status.is_terminal() && after.status != before.status;
-        if gap_rank(&after.status) < gap_rank(&before.status) || terminal_changed {
+        // Once verified, the exact capability version is fixed through
+        // installation, and a confirmed publication reference is set at most once.
+        let verified_changed = match (&before.status, &after.status) {
+            (
+                CapabilityGapStatus::Acquired {
+                    capability: c0,
+                    publication_ref: p0,
+                    ..
+                },
+                CapabilityGapStatus::Acquired {
+                    capability: c1,
+                    publication_ref: p1,
+                    ..
+                },
+            ) => c0 != c1 || (p0.is_some() && p0 != p1),
+            (
+                CapabilityGapStatus::Acquired { capability: c0, .. },
+                CapabilityGapStatus::Installed { capability: c1, .. },
+            ) => c0 != c1,
+            _ => false,
+        };
+        if gap_rank(&after.status) < gap_rank(&before.status)
+            || terminal_changed
+            || verified_changed
+        {
             v(
                 "lifecycle_reachable",
                 format!(
@@ -389,11 +437,19 @@ pub fn audit_transition(prev: &OrgState, next: &OrgState) -> Vec<Violation> {
                 ),
             );
         }
+        // Everything but the status is the frozen binding.
         if rebound
+            || after.gap_id != before.gap_id
+            || after.mission_id != before.mission_id
             || after.requirement_id != before.requirement_id
             || after.requirement_digest != before.requirement_digest
-            || after.capability_id != before.capability_id
+            || after.triggering_evidence != before.triggering_evidence
             || after.role_id != before.role_id
+            || after.responsibility_id != before.responsibility_id
+            || after.capability_id != before.capability_id
+            || after.purpose != before.purpose
+            || after.observed_sources != before.observed_sources
+            || after.opened_in_revision != before.opened_in_revision
         {
             v(
                 "gap_binding_stable",

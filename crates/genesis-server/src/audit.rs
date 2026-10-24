@@ -76,6 +76,14 @@ pub fn audit_database(path: &std::path::Path, org_id: &OrgId) -> StoreResult<His
 }
 
 fn audit_connection(conn: &Connection, org_id: &OrgId) -> StoreResult<HistoryAudit> {
+    // One read transaction: snapshots and events come from the same database
+    // snapshot even while the server keeps committing (WAL readers are not
+    // blocked and do not block). Dropped without commit; nothing is written.
+    let tx = conn.unchecked_transaction()?;
+    audit_snapshot(&tx, org_id)
+}
+
+fn audit_snapshot(conn: &Connection, org_id: &OrgId) -> StoreResult<HistoryAudit> {
     let org_id = org_id.to_string();
     let mut report = HistoryAudit {
         org_id: org_id.clone(),
