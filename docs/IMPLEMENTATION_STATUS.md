@@ -247,9 +247,12 @@ Prepared checkpoint. Henry retains receiver adoption and role/grant work.
 Henry [acknowledged the vertical product slice](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388913830):
 recompute retained acceptance, bind the selected method to requirement/responsibility
 and current owner grant, then check pinned invocation, decline/revocation and an
-existing-owner control. This server connection is not implemented; Henry keeps
-ownership, with [pure core verdict #146 now merged](https://github.com/HenryWashuHe/genesis-history-experiment/pull/146)
-as a prerequisite. Execution under the grant and justified specialist creation
+existing-owner control. New [server acceptance #154](https://github.com/HenryWashuHe/genesis-history-experiment/pull/154)
+`cc099833` and [adoption-store #155](https://github.com/HenryWashuHe/genesis-history-experiment/pull/155)
+`df286ad4` are unmerged under independent review, without clearance. Henry keeps
+ownership; retarget the stacked branches to main as dependencies merge and check
+the resulting composition. [Pure core verdict #146](https://github.com/HenryWashuHe/genesis-history-experiment/pull/146)
+is already merged as a prerequisite. Execution under the grant and justified specialist creation
 remain later completion work. The W/F pilot alone cannot close organizational evolution.
 Codex [has claimed the intake integration](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6389431891):
 source-free exact selection and receiver-owned need are to be retained atomically

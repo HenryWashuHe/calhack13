@@ -79,8 +79,10 @@ every milestone. All lower checkpoints are historical.
   connects selected method/receiver acceptance to requirement/responsibility/current
   owner grant, pinned invocation, decline/revocation and an existing-owner control.
   [Pure core verdict #146](https://github.com/HenryWashuHe/genesis-history-experiment/pull/146)
-  is merged at `c6870504`; the server connection, execution under its grant and justified
-  specialist creation remain future work in Henry's lane.
+  is merged at `c6870504`. New acceptance #154 `cc099833` and adoption-store
+  #155 `df286ad4` are unmerged and under independent review in Henry's lane.
+  Their stacked bases need retargeting to main as dependencies merge; no
+  clearance is claimed. Execution under the grant remains later work.
   #116 B-task records are now checked; local adoption and an accepted fresh
   A return remain unestablished. Receiving wrapper #118 `68bc82d0` merged at
   `ec23efb5`: frozen package/spec bytes and atomic failure summaries clear all
@@ -215,8 +217,9 @@ every milestone. All lower checkpoints are historical.
   bounded revision bundle and ordinary Prepared checkpoint. Receiver inputs and
   legacy identities are preserved; local HTTP/pure preparation only, no new
   generation, execution, adoption or G2/G3 closure.
-  Henry's acknowledged authority slice now has its pure verdict prerequisite
-  merged in #146; none of the server adoption/invocation connection is merged.
+  Henry's authority slice has pure verdict #146 merged; new server acceptance
+  #154 and adoption-store #155 remain unmerged under review, without clearance
+  or a completed invocation connection.
   Eric's [MethodOffer UI intake increment](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388858370)
   is requested, not acknowledged. CREAO Trigger #137 is separately held on
   durability, bounded response reads and concurrent reconciliation; no live run.
