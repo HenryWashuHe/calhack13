@@ -451,7 +451,7 @@ async fn lost_trusted_run_must_not_promote_a_mismatched_early_receipt() {
 // Henry's Claude: tables from before this fix gain the new columns; a row
 // that had already left `dispatching` keeps its readiness.
 #[tokio::test]
-async fn legacy_challenge_tables_migrate_without_losing_readiness() {
+async fn legacy_challenge_tables_migrate_failing_closed_on_unproven_receipts() {
     let directory = tempfile::tempdir().unwrap();
     let db = directory.path().join("legacy.sqlite");
     let mut config = OrgConfig::dev("org_a", "Org A");
@@ -467,6 +467,8 @@ async fn legacy_challenge_tables_migrate_without_losing_readiness() {
                 expires_at TEXT NOT NULL, received_at TEXT, UNIQUE(subject, attempt));
              INSERT INTO readiness_challenges VALUES ('rc-old', 's', 1, 'h', 'creao', 'r', 'k', 'a', 'd',
                 'received', 'run-1', NULL, '2026-10-22T00:00:00Z', '2099-01-01T00:00:00Z', '2026-10-22T00:00:01Z');
+             INSERT INTO readiness_challenges VALUES ('rc-sent', 's3', 1, 'h', 'creao', 'r', 'k', 'a', 'd',
+                'dispatched', 'run-2', NULL, '2026-10-22T00:00:00Z', '2099-01-01T00:00:00Z', NULL);
              INSERT INTO readiness_challenges VALUES ('rc-inflight', 's2', 1, 'h', 'creao', 'r', 'k', 'a', 'd',
                 'dispatching', NULL, NULL, '2026-10-22T00:00:00Z', '2099-01-01T00:00:00Z', NULL);",
         )
@@ -474,13 +476,21 @@ async fn legacy_challenge_tables_migrate_without_losing_readiness() {
     }
     let app = build_org(&config, None).unwrap();
     genesis_server::gateway_readiness::ensure_schema(&app.store).unwrap();
+    // A legacy receipt cannot prove which run the dispatch trusted: its run is
+    // kept as the receipt's claim only, and the challenge stays unresolved.
     let old = get_challenge(&app.store, "rc-old").unwrap().unwrap();
     assert!(
-        old.dispatch_resolved_at.is_some(),
-        "a recorded outcome stays recorded"
+        old.dispatch_resolved_at.is_none(),
+        "a legacy receipt is not a recorded dispatch outcome"
     );
-    assert_eq!(old.probe_ref.as_deref(), Some("run-1"));
-    assert_eq!(old.receipt_probe_ref, None);
+    assert_eq!(old.probe_ref, None);
+    assert_eq!(old.receipt_probe_ref.as_deref(), Some("run-1"));
+    let sent = get_challenge(&app.store, "rc-sent").unwrap().unwrap();
+    assert!(
+        sent.dispatch_resolved_at.is_some(),
+        "a dispatched challenge recorded its outcome under the old code"
+    );
+    assert_eq!(sent.probe_ref.as_deref(), Some("run-2"));
     let inflight = get_challenge(&app.store, "rc-inflight").unwrap().unwrap();
     assert!(
         inflight.dispatch_resolved_at.is_none(),

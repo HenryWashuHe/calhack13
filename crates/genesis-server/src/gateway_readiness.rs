@@ -67,9 +67,13 @@ CREATE TABLE IF NOT EXISTS readiness_challenges (
 "#;
 
 /// Create the challenge table if needed. Idempotent. Tables created before
-/// `receipt_probe_ref`/`dispatch_resolved_at` gain them; rows that had already
-/// left `dispatching` recorded their dispatch outcome under the old code, so
-/// they count as resolved.
+/// `receipt_probe_ref`/`dispatch_resolved_at` gain them in one transaction.
+/// Rows in `dispatched`, `dispatch_failed` or `expired` recorded their dispatch
+/// outcome under the old code, so they count as resolved. A legacy `received`
+/// row proves nothing about correlation: the old code let an early receipt
+/// overwrite `probe_ref` with its own run, and a failed retirement could leave
+/// that behind. Its stored run moves to `receipt_probe_ref` and it stays
+/// unresolved, so it is never Ready; it waits out its expiry and is reissued.
 pub fn ensure_schema(store: &Store) -> rusqlite::Result<()> {
     let conn = store.lock();
     conn.execute_batch(SCHEMA)?;
@@ -77,15 +81,27 @@ pub fn ensure_schema(store: &Store) -> rusqlite::Result<()> {
         conn.prepare("SELECT 1 FROM pragma_table_info('readiness_challenges') WHERE name = ?1")?
             .exists(params![col])
     };
+    if has("receipt_probe_ref")? && has("dispatch_resolved_at")? {
+        return Ok(());
+    }
+    let mut batch = String::from("BEGIN IMMEDIATE;");
     if !has("receipt_probe_ref")? {
-        conn.execute_batch("ALTER TABLE readiness_challenges ADD COLUMN receipt_probe_ref TEXT")?;
+        batch.push_str("ALTER TABLE readiness_challenges ADD COLUMN receipt_probe_ref TEXT;");
     }
     if !has("dispatch_resolved_at")? {
-        conn.execute_batch(
+        batch.push_str(
             "ALTER TABLE readiness_challenges ADD COLUMN dispatch_resolved_at TEXT; \
              UPDATE readiness_challenges SET dispatch_resolved_at = issued_at \
-             WHERE status != 'dispatching';",
-        )?;
+             WHERE status IN ('dispatched', 'dispatch_failed', 'expired'); \
+             UPDATE readiness_challenges \
+             SET receipt_probe_ref = COALESCE(receipt_probe_ref, probe_ref), probe_ref = NULL \
+             WHERE status = 'received';",
+        );
+    }
+    batch.push_str("COMMIT;");
+    if let Err(e) = conn.execute_batch(&batch) {
+        let _ = conn.execute_batch("ROLLBACK;");
+        return Err(e);
     }
     Ok(())
 }

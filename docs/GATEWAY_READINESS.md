@@ -87,6 +87,12 @@ restart can never promote a provisional receipt:
 - outcome never recorded (crash or failed write between dispatch and the
   write): wait; once the challenge expires it is retired and a new one issued.
 
+Tables from before this rule are migrated in one transaction. Challenges that
+were `dispatched`, `dispatch_failed` or `expired` count as resolved. A legacy
+`received` challenge does not: the old code let an early receipt overwrite the
+trusted run, so its stored run becomes the receipt's claim and the challenge
+stays unresolved. It is never ready; it expires and a new one is issued.
+
 | Response | Meaning |
 | --- | --- |
 | `200 {"challenge_id": "rc-…", "duplicate": false}` | Accepted. A repeat of the same receipt returns `duplicate: true` and changes nothing. |
