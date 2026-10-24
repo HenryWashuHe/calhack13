@@ -1,6 +1,6 @@
 # GENESIS implementation handoff
 
-## Current checkpoint: admitted generation and trial costs joined
+## Current checkpoint: stage allocation and retained trial binding merged
 
 **Networked recursive capability improvement with fixed model weights** remains
 the chosen direction. Work in
@@ -11,7 +11,7 @@ issue #4/task numbers below are historical. Preserve rewritten ancestry.
 
 The [ongoing goal](ONGOING_GOAL.md) and hourly continuation are active; the stale
 app Goal remains paused and must not be falsely completed. Main
-through `613bdca69eed5b502c7ccd358a85890d12e78574` includes the experimental core
+through `a90ad14e7495be1ef5066234f84bddba1ac431b9` includes the experimental core
 contracts, source loader, corrected adoption proposal/UI, simulator primitives,
 #50–#52 method-source generation, #42/#43 executor foundations/session and #56
 accounting identity checks plus #58/#59 declared combined-cost assessment and
@@ -26,6 +26,9 @@ CLI rehearsal #70, exact-parent revision rehearsal #72 and the generation roster
 assessment and its optional CLI flag (#81/#82) are also merged; they join one
 entire original roster to later observations and an optional trial read-only.
 Independent historical-session and CLI-boundary tests are preserved in #83.
+Structural stage allocation and retained trial-binding CLI #85/#86 are merged,
+with independent overflow and pending-recovery guards in #87. Optional allocation
+checks use the existing generation/cost paths; runtime entry checks remain open.
 ACP corrections/commands #3/#5 are also merged with all original regression
 files preserved.
 #57/#65 remain unmerged pending namespace lifecycle assurance,
@@ -44,18 +47,19 @@ superseded.
 | Henry's core Claude | #46/#48/#64/#70/#72 merged | Own scoring and adoption. Retained-file CLI cost assessment and exact-parent revision rehearsals are integrated; continue the scoped method loop and #57 closure assurance without relabeling fixture source as model development. |
 | Eric / Eric's Claude | Audit #9 merged; separate invention-lab UI assignment still unacknowledged | `docs/invention-lab/ui.md`, then `apps/web/src/invention-lab/**` after receipts settle. `EricZhu-31` has write access; do not silently transfer this lane. |
 | ACP Claude session | #3 `f64e131` / #5 `e95a286` merged; stage #20 merged | Migration holds cleared with all eight independent cases unchanged. Reconcile held #4 routing/status/demo docs with merged #3/#5, local executor/scorer and issue #1; preserve the superseded event-organizer boundary. Bridge ownership remains with ACP. |
-| Codex main chat | Shared contracts/generation/accounting/revision, roster/admission and admitted trial/cost join #81/#82 merged | Next: pre-generation stage resource envelopes and later exact trial binding through existing paths. Whole-chain budgets also need finite stage ceilings declared before A begins. Scope interfaces in issue #1 before edits; preserve no-refund reservations and cost limits without duplicating Henry's runtime or ACP work. |
+| Codex main chat | Shared contracts/generation/accounting, stage allocation/CLI #85/#86 and independent guards #87 merged | Prioritize one genuinely generated method's retained-file handoff into Henry's runner once credentials are available. Independent next contract: finite whole-chain ceilings, proposed/unstarted, including trial-only inherited/control/decline stages without dummy generation. Scope interfaces in issue #1; preserve Henry's runtime and ACP ownership. |
 | EricZhu-31 / Codex provider session | Existing provider lane; reports the post-#47 Apify baseline gate passed three cases | Preserve/share sanitized exact evidence for independent inspection; no duplicate cloud run here. This handwritten parser run does not establish model synthesis. Elastic permissions remain with key owner. |
 | Ines | Unassigned by explicit user instruction | Do not infer identity from another collaborator handle. |
 
 Ownership is by session and exact files, even when sessions share a GitHub
-account. Claim shared interfaces in issue #1 before overlapping. The next core
-boundary is allocating stage resources before generation and binding the exact
-later trial/cost scope before execution, then integrating source/revision,
-execution, scoring and receiver-local adoption into the governed method loop.
-Henry retains runtime/adoption, and ACP retains bridge/documentation work.
-The allocation/binding contracts and finite whole-chain stage ceilings are
-proposed next work, not implemented guarantees; hashes alone prove no timing.
+account. Claim shared interfaces in issue #1 before overlapping. The allocation
+and retained-binding contracts are merged; Henry still owns consuming the binding
+before runtime intent, scoring and receiver-local adoption. The next visible
+mechanism milestone is genuine generated source handed to that existing runner.
+Finite whole-chain ceilings are independent proposed work, not implemented:
+permit generation-bearing development/revision and trial-only acceptance,
+return, control or decline stages. Hashes alone prove no timing. ACP retains its
+bridge/documentation lane.
 #57/#65 namespace lifecycle evidence remains incomplete; do not infer assurance
 from portable tests. Actual model-developed source and a recorded accepted return
 remain to be demonstrated. Source identity and fixture acceptance do not establish
@@ -86,6 +90,9 @@ improved development or budget compliance.
 | Admitted trial/cost join #81 source `3d66d78606e6d1b26ba5846acb45993fddd7d594`, merge `0cfa80b626229c6340a17c4da539a14084f40d62` | Reviewed/merged tree `186aad7ffe3b7be3c2c75ceac8764433a53565b0`: 25 focused cases independently pass. The [read-only join](invention-lab/contracts/admitted-costs.md) checks the entire original roster and historical identities, requires reservations for advanced observations, and retains original generation and combined grants separately. One optional trial; no pre-spend allocation or exhaustive adaptive-chain accounting. |
 | Admission-aware cost CLI #82 source `132b99a295a50d8fa692f09219044b97570e5476`, merge `95a0ce6c9dff52cde40bb7306697ebfa20457e17` | Exact reviewed/merged tree `40df89a27e10863c1d65e12a39a65f1ed81f5f0f`: author full default-parallel forge 188 passed, zero failed/ignored across 31 targets; independently 15 focused CLI cases and strict all-target Clippy/fmt pass. Optional [`--admission`](invention-lab/contracts/admitted-costs.md#cli) rejects invalid named evidence without fallback and preserves all inputs and legacy behavior. No provider calls/source execution. |
 | Independent admitted-cost guards #83 source `9a47daf0da39eeecf70ccc12e141c6128ba5c203`, merge `613bdca69eed5b502c7ccd358a85890d12e78574` | Historical Failed-session guard `e3e8bdb62e46905610749084f3ac5a4c82af61cb` (125 lines) and CLI boundary guard `bc0288879477fe9d581200dc1dec9b47f9e92b03` (158 lines) are preserved byte-for-byte. Both tests rerun and pass; fmt/diff clean. Final forge subtree `88326cba69b0ec61958e56fdcd01a4ffc49d6daa` matches the tested source. These are separate checks; the full 188-test run belongs to #82, with no full 190-test main-run claim. |
+| Stage allocation #85 source `e468179e2d9ffce0ec0af1a883dc3f2a511dbcc1`, merge `1226ff1b6d326eaed72f0e4cc01b634f2cca56b6` | Tree `d6778aba80b5a512f1abbb50b760673a8cf11fab` matches the reviewed source: 21 focused tests independently pass, strict Clippy/fmt. Full-generation and bounded per-slot grants fit each stage ceiling by checked arithmetic; exact trial/scope binding is structural, with no library IO or runtime gate. [Contract](invention-lab/contracts/stage-allocation.md). |
+| Stage CLI #86 final source `ba3a1e2a498441b7ed08480e2e38fed8213d2065`, merge `10b77d48172571c1b1b7aff7a1c48b40973ca2b5` | Reviewed/merged tree `ca9f058995e7b5277222ba3dd56884294c8334b8`; final delta is formatting only. Original behavioral source `4c34b0b7d4955cfe198bd5e9a6c7f34fa57db8d1`: author full forge 198 passed, zero failed/ignored across 35 targets; independent 19 focused cases and strict all-target Clippy pass. Final fmt/diff clean. [Retained commands/guards](invention-lab/contracts/stage-allocation.md#cli-and-retained-files) do not add runtime entry enforcement. |
+| Independent stage guards #87 source `249fcdf7e30229af6724f4e65ff858d6d1c01fa0`, merge `a90ad14e7495be1ef5066234f84bddba1ac431b9` | `ae493f2c94aa0077ad12fb6fd136e726b4b8cb93` (66 lines) and `327c960edccbf094f1a04d1e9a57206600979d1f` (143 lines) preserved unchanged. Final-addition overflow and allocation-before-recovery cases separately rerun and pass; fmt clean. Forge subtree `2c1dac57cb2ef489f42d4baec286e81f1f715082` matches tested #87. Full 198 belongs to original #86; these separate results are not a full 200-test run. |
 | #53 source `c614bb13d03c2f9d8550358f86b1ba79683156e8`, merge `761eb2bce0a93728ccd54078e992d191475499e6` | Henry's `eacfe0f` test file preserved byte-for-byte with authorship: 173 lines, blob `c537e1e9755284ad9b51a79058e19f2ee469a197`. Reviewed composition passes 130 core tests and strict Clippy/fmt; the five new cases also pass in a separate independent run. The author's 89-mutant campaign was not independently rerun; no production change. |
 | #56 source `245cbadef63cc3051ef71bc24554234534275f8e`, merge `2b69c2533f4c6b8dd03e97887855158faf88fa41` | Author-validated 134 core tests and strict Clippy/fmt; four new regressions independently pass. Identity-only checks retain overrun evidence without relaxing existing budget validators or changing valid identity hashes. Invalid usage cannot hide behind an early overrun. |
 | #58 source `b27ae8a1f504d53effef42d3c12b1141d3299577`, merge `04029c56b8578b9cb67cd1f85dcf2611489e0f5d` | Author full 128 forge tests and strict Clippy/fmt; source and three new accounting cases independently reviewed. Exact declared generation/checkpoint/trial links, unsuccessful or unused generation, cross-organization package matches and combined known/unknown/overflow/overrun accounting. No exhaustive-history, controller or acceptance claim. |
@@ -238,6 +245,16 @@ The optional CLI assessment performs no writes, locks, recovery, reservations,
 refunds or execution and never falls back on an invalid supplied journal. Use
 retained immutable snapshots; read-only access is not an atomic multi-writer view.
 
+The merged [stage allocation/CLI](invention-lab/contracts/stage-allocation.md#cli-and-retained-files)
+checks full-generation plus bounded per-slot grants against all five resource
+ceilings. Preparation holds the unused admission journal's lock and retains the
+exact Prepared roster create-only. Binding stores one exact trial/cost-scope
+companion per canonical allocation path. Optional generation checks run before
+recovery/credentials/reservation; optional cost assessment uses the retained
+binding without writes or fallback. Runtime consumption remains Henry's scope.
+Copies, rollback, stale snapshots and work outside cooperating commands remain
+outside these bounds. No trusted chronology or whole-chain allocation is implied.
+
 ACP #3 source `f64e131516281d6bb1dc5f41abd8425cc42c77d1` merged
 `5b2615f0918f0e96d9b6f94135737ab1e8b2e98c`; #5 source
 `e95a2862e055eaba39ca040737093274fc25cc51` merged
@@ -273,12 +290,15 @@ Provider/settings reproducibility, exhaustive history, admission/enforcement and
 comparison remain open for G4; neither a generated package nor unknown usage
 establishes compliance. See the [generation contract](invention-lab/contracts/generation.md).
 
-No hosted v2 CREAO agent/run completed through the merged adapter. Fetch
-discovery and Elastic permission failure are separate evidence. Provider
-configuration was last checked in the ignored local `.env`, which lacked a
-nonempty model/API key. No new live-model run is claimed and no repeated
-credential request is needed. Coordinate with the provider owner while continuing
-offline work; credentials stay local and out of commits.
+No hosted v2 CREAO agent/run completed through the merged adapter. The
+[ACP update at 14:01Z](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6385121979)
+repeats existing operator-reported Apify 3/3 and Fetch discovery; public ASI
+still waits for the owner's Agentverse login. This is not new independently
+validated cloud evidence. A presence-only check of the ignored project `.env`
+found a declared provider but no `GENESIS_LLM_MODEL`, `GENESIS_LLM_API_KEY` or
+`ANTHROPIC_API_KEY`. No new cloud calls occurred and no repeated credential
+request is needed. Coordinate with the provider owner while continuing offline
+work; credentials stay local and out of commits.
 
 Repair WIP remains draft #7 `110a107` on matching forge base `f488eef`; all twelve
 files were compared byte-for-byte and original uncommitted files remain untouched.

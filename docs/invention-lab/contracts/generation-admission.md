@@ -17,6 +17,12 @@ The [admission-aware cost assessment](admitted-costs.md) binds this journal and
 its full original roster to later observations and one optional trial, without
 reserving, refunding or rewriting evidence.
 
+The [stage-allocation CLI](stage-allocation.md#cli-and-retained-files) can retain
+a resource envelope while this journal is unused. Optional `--allocation` on the
+existing generation step validates the exact roster before recovery, credentials
+or reservations; legacy behavior without it remains unchanged. Later trial
+binding and stage assessment use the same retained allocation.
+
 This API performs no IO. An integrating host must exclusively lock the journal
 and session, persist the reservation durably, then persist Requesting intent
 before using the existing one-attempt provider path. A crash between writes can

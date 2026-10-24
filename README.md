@@ -92,7 +92,7 @@ The research goal is measurable improvement on a declared mix of tasks, with fai
 | Cross-organization inheritance | Immutable versioned manifests, shared discovery, adopt-before-acquire, and organization-local acceptance are implemented. A two-organization integration exercises A creating/publishing a capability and B adopting it without B synthesizing another copy. |
 | Persistent specialist work | Fetch supplies independent signed specialist exchanges; CREAO supplies persistent operational agents; Elastic supports organizational evidence, retrieval, and Agent Builder integrations. End-to-end live sponsor evidence remains a separate gate. |
 | Recovery and control | SQLite journals, exact artifact/request identities, authority checks, bounded attempts, and reconciliation states protect the tested workflows. Ambiguous external effects can require operator attention; recovery does not mean every operation can safely be replayed. |
-| Development-method foundations | Exact packages/trial plans/accounting, source generation/revision, pre-result rosters and optional generation reservations are merged. Read-only assessment now binds one complete admitted roster to a declared trial/cost scope, retaining unsuccessful and unknown observations. Local runtime, public scoring and receiver-bound adoption mechanics have fixture evidence; two rehearsals return Rejected. Pre-spend trial allocation, provider billing/input-token/wall enforcement, authenticated chronology, complete history and recursive benefit remain open. |
+| Development-method foundations | Exact packages/trial plans/accounting, source generation/revision, pre-result rosters, optional generation reservations and structural stage allocations are merged. Offline commands retain an exact trial binding and assess costs without dropping unsuccessful or unknown observations. Local runtime, public scoring and receiver-bound adoption mechanics have fixture evidence; two rehearsals return Rejected. Runtime entry checks, whole-chain budgets, provider billing/input-token/wall enforcement, authenticated chronology, complete history and recursive benefit remain open. |
 | Recursive composition and network healing | Enforced method execution, selective method inheritance, genuine method revision and measured improvement remain open. Shared repair advisories and controlled upgrades are separate future work. |
 
 A manifest already carries schemas, permissions, provenance, verification evidence, and optional role/workflow descriptions. Those descriptions do not yet constitute a general executable workflow package or dependency resolver. The network currently uses a shared registry service; it is not a decentralized peer-to-peer capability protocol.
@@ -127,8 +127,12 @@ The [admission-aware cost assessment](docs/invention-lab/contracts/admitted-cost
 adds `--admission` to the existing `method-cost-assess` command. It checks the
 entire original roster and later observations, then joins generation and optional
 trial costs while retaining unknown usage and overruns. It makes no writes or
-provider calls. This is one declared stage's evidence, not a budget allocated
-before generation or complete accounting for an adaptive A → B → A chain.
+provider calls. The [stage-allocation CLI](docs/invention-lab/contracts/stage-allocation.md#cli-and-retained-files)
+can also retain an allocation from unused Prepared attempts, followed by one
+exact trial binding. Optional `--allocation` checks that retained context during
+generation and cost assessment. These are cooperating local-file mechanisms;
+runtime consumption and complete budget allocation for an adaptive A → B → A
+chain remain open.
 
 ### Run the local inheritance rehearsal
 
