@@ -113,7 +113,9 @@ pub fn classify(
             .copied()
             .unwrap_or(0);
         if rows.is_empty() {
-            "the registry search answered with no candidates".to_owned()
+            // No recorded decisions: either an empty answer or an adoption
+            // from before the decision log. Don't claim which.
+            "no eligible candidate was found in the bounded registry search".to_owned()
         } else {
             format!(
                 "none of {} candidates was eligible ({own} published by this organization, {scope} needing permissions the role doesn't hold)",

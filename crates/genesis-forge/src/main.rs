@@ -3,7 +3,7 @@ mod storage;
 mod synthesis_commands;
 
 use genesis_apify::{ApifyClient, RunLimits};
-use genesis_forge::{venue_source, CandidateSpec, ForgeSession, Phase};
+use genesis_forge::{venue_source_for_actor, CandidateSpec, ForgeSession, Phase};
 use genesis_verification::OracleSuite;
 use serde::Deserialize;
 use serde_json::json;
@@ -197,7 +197,13 @@ async fn run() -> Result<u8, String> {
                 .iter()
                 .map(|case| case.source.url.clone())
                 .collect::<Vec<_>>();
-            venue_source(&parser, &urls).map_err(|error| error.to_string())?
+            venue_source_for_actor(
+                &parser,
+                &urls,
+                &metadata.actor_name,
+                &metadata.source_version,
+            )
+            .map_err(|error| error.to_string())?
         };
         let spec = CandidateSpec {
             operation_id: metadata.operation_id,

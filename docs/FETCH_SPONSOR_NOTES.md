@@ -23,7 +23,7 @@ GENESIS organization bridge and venue specialist. The Rust coordinator continues
 to own authority, verification, durable effects, child assessment and retirement.
 No kernel, planner or UI transition is implemented by the chat adapter.
 
-The adapter supports exact single-text commands:
+The recovery adapter supports exact single-text commands:
 
 | Command | Action |
 | --- | --- |
@@ -43,6 +43,54 @@ This slice enables the recovery subworkflow in a conversation. It does **not** y
 start a new mission, discover/invoke candidate Actors, set up either organization,
 or conduct the entire two-organization capability inheritance workflow through
 ASI:One. Those are remaining product and sponsor gates, not demonstrated features.
+
+## Primary workflow in ASI:One: report, watch, inherit
+
+`genesis_fetch_bridge.acp_mission` is a second, separate ACP agent that makes the
+organization itself usable from an ASI:One conversation. It holds only the
+organization's restricted **agent** token: it can record evidence and read state
+and events, never commit, provision, publish, book or reset a hold.
+
+| You say | What happens |
+| --- | --- |
+| `org` | Reads `GET /organization` and summarizes the mission, active and retired roles, what each owns, and requested capabilities. Dev-stub bindings are labeled. |
+| `report <what happened>` | Records one observation (`POST /missions/{active}/observations`) with a **fixed** `source` and `evidence_ref` from the agent's configuration; the text is quoted as data. The organization's own planner and kernel decide what changes. The agent then follows the event log for up to `follow_seconds`, relaying planner verdicts, proposed and committed changes, roles created and activated, provisioning (with `DEV STUB` labels), recruitment, capability requests and installations, handoffs and retirements, and ends the session with how to follow up. |
+| `status` | Everything after the last report from this agent. |
+| anything else | The command list. Nothing is recorded. |
+
+Limits: one in-flight conversation per gateway (others get a busy reply and
+nothing is recorded), `max_reports_per_hour` from a 0600 SQLite journal that
+also binds identity, backend URL and configuration, 512-byte messages,
+loopback-only backend, 10-second HTTP deadline, no redirects, no raw backend
+errors in chat. An unconfirmed `POST` is reported, never repeated. The journal
+records each report's event cursor so `status` reads only what followed it.
+
+Configuration (`services/fetch-bridge/acp-mission.example.json`): `public_demo`,
+`evidence_ref` (the exact https portal page the observation cites, matching the
+gap policy allowlist), `source`, `max_reports_per_hour`, `follow_seconds`.
+Environment: `GENESIS_ACP_MISSION_SEED` (its own secret, not the recovery
+gateway's), `GENESIS_ACP_BACKEND_URL`, `GENESIS_ACP_AGENT_TOKEN`.
+
+```sh
+uv run --project services/fetch-bridge --frozen python -m genesis_fetch_bridge.acp_mission identity
+uv run --project services/fetch-bridge --frozen python -m genesis_fetch_bridge.acp_mission serve-public \
+  --config .local/acp-mission.json --db .local/acp-mission.sqlite \
+  --readme services/fetch-bridge/ACP_MISSION_AGENT_README.md --port 8104
+```
+
+Then connect it through Inspector → Mailbox exactly as below, confirm it in
+ASI:One, and record the profile and shared-conversation URLs. For the planner
+to act on a report, `genesis-planner run` must be watching the same
+organization with a model configured; without it the chat relays only the
+recorded evidence. Tests: `tests/test_acp_mission.py` (loopback backend
+fixture, protocol streaming, CLI boundary); no public registration is
+performed by tests.
+
+The two-organization inheritance beat is visible from the same conversation
+when the second organization's gateway is registered too: `org` on Org B
+shows the adopted capability and its version. Multi-agent collaboration is
+native to the workflow: the organization recruits an independent Fetch
+specialist under a signed contract while the chat relays the contract events.
 
 ## Public demo authorization and configuration
 

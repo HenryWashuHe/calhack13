@@ -98,7 +98,9 @@ allowed for it.` Both are clipped to the kernel's 400 characters, never include
 similarity scores or expected values, and fall back to the fixed sentence if
 the decision log can't be read. Authority refusals keep their fixed sentence.
 The planner's rules tell it a `Not applicable here` refusal won't change by
-requesting the same capability again for the same need. A requirement that changed before anything
+requesting the same capability again for the same need with the same
+candidates and evidence; a newly published version or changed evidence can
+be worth a new request. A requirement that changed before anything
 was frozen is refused too (no record is written). A role still waiting for
 activation is not a refusal: the gap waits, deferred from the driver.
 
@@ -119,7 +121,7 @@ changes no fallback and grants nothing.
 | `adopted` | installed after this organization's own suite accepted it | exact id, version, publisher, `acceptance_ref` |
 | `not_applicable` | the suite rejected the selection (`refused: rejected`); `reason` is the oracle-free failed-case summary | the rejected candidate and its rejection reference |
 | `insufficient_evidence` | a candidate was offered but couldn't reach a verdict: invalid/unusable manifest or score (`attention: candidate`), or checks that all definitely ended without evidence (`attention: checks` with settled runs) | the candidate, if one was reached |
-| `no_candidate` | the search answered and nothing was eligible, or it was empty (`released` or `refused: no_candidate`); `reason` counts own publications and missing permissions | none |
+| `no_candidate` | the bounded search found nothing eligible (`released` or `refused: no_candidate`); `reason` counts own publications and missing permissions when decisions were recorded, and otherwise says only that no eligible candidate was found | none |
 | `unknown` | the registry or a manifest couldn't be read, or a check's provider outcome is unresolved | the selected candidate, still `selected` |
 | `stopped` | authority, configuration, conflict or an inconsistent record | the candidate, if one was reached; never a verdict |
 
@@ -141,20 +143,24 @@ Whatever the code, a retry also needs every native check run of the stopped
 adoption to carry terminal provider evidence or never to have been accepted
 by the provider: `collected`; `failed` with no receipt (the submission never
 reached the provider, or its response already reported a terminal failure);
-or `prepared` under an adoption that left checking. Anything else answers 409
+`failed` with a receipt whose failure is `RunFailed` (a status read of that
+exact run and build reported Apify `FAILED`, `TIMED-OUT` or `ABORTED`); or
+`prepared` under an adoption that left checking. Anything else answers 409
 `adoption_checks_unresolved` and leaves the record untouched: an unknown
 outcome (`needs_reconciliation`, e.g. a restart mid-POST), a run in flight,
 `rejected` (a local verdict that can overwrite a submitted or still-running
-run without polling it), and `failed` with a receipt (the provider accepted
-the run and it later failed locally; the stored failure can't tell a
-terminal provider result from a failed status read). There is no
-reconciliation of such runs yet, so the gap stays at attention. In practice
-retry recovers registry, candidate and conflict stops (no checks yet) and
-checks with collected evidence or a definite failure before submission or in
-the submission response; it does not recover a check that failed after a
-receipt was saved, or a stop that
-interrupted one. Automatic paths never retry. `invalid_record` is never
-retryable. A retry never releases the gap to
+run without polling it, including one that also lost its authority), and any
+other `failed` with a receipt (an HTTP status-read failure such as 401, or
+output evidence that didn't match the saved request: neither says the
+provider run ended). `RunFailed` is a distinct provider error that the
+capability runtime keeps through sanitization; `Rejected` is not evidence of
+termination. There is no reconciliation of the blocked runs yet, so the gap
+stays at attention. In practice retry recovers registry, candidate and
+conflict stops (no checks yet) and checks with collected evidence or a
+confirmed terminal failure (before submission, in the submission response, or
+from a later read of the saved ticket); it does not recover a check whose
+status read failed, or a stop that interrupted one. Automatic paths never
+retry. `invalid_record` is never retryable. A retry never releases the gap to
 synthesis; only a definitive empty search does. Status shows `attempt`,
 `previous_adoption_ids` and whether a retry is allowed now (`retryable`).
 

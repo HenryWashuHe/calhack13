@@ -528,9 +528,14 @@ fn validate_forge_binding(
     parent: Option<&ForgeSession>,
 ) -> Result<(), AcquisitionError> {
     forge.validate(suite)?;
-    let expected = generated_candidate(generation)?;
+    let mut expected = generated_candidate(generation)?;
     if expected.fingerprint()? != forge.spec().fingerprint()? {
-        return Err(AcquisitionError::CorruptCheckpoint);
+        // Preserve exact v1 packages already frozen in durable records. This
+        // validates old bytes; it does not repack, upgrade or retry their effects.
+        expected = crate::synthesis_source::legacy_generated_candidate(generation)?;
+        if expected.fingerprint()? != forge.spec().fingerprint()? {
+            return Err(AcquisitionError::CorruptCheckpoint);
+        }
     }
     let expected_lineage = if let Some(parent) = parent {
         parent.repair(expected, suite)?
