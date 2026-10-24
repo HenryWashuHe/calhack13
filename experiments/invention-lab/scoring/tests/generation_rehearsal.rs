@@ -6,13 +6,18 @@
 //! from a local fixture server (not a model); the exported package bytes are
 //! frozen as the candidate slot; both slots run as real child processes
 //! (sandbox mode `none`, so this is not namespace evidence); both outputs are
-//! scored by the trusted adapter and the verdict decides.
+//! scored by the trusted adapter, the verdict decides and the combined cost
+//! report accounts for generation, execution and scoring together.
 //!
 //! The "generated" source is the hand-written random-search control. This
 //! checks plumbing only: no generated method, no live provider, no benefit.
 use genesis_core::development_evaluation::EvaluationOutcome;
-use genesis_core::development_method::{ExactContentRef, ExecutionOutcome, ResourceGrant};
+use genesis_core::development_method::{ExecutionOutcome, ResourceGrant};
 use genesis_core::development_package::{MethodPackage, MethodSourceFile};
+use genesis_core::development_trial::TrialEvidence;
+use genesis_forge::method_accounting::{
+    assess_costs, CostScope, GeneratedMethodLink, GenerationExpectation, TrialExpectation,
+};
 use genesis_forge::method_synthesis::{
     MethodSynthesisPhase, MethodSynthesisPlan, MethodSynthesisSession,
 };
@@ -130,13 +135,7 @@ async fn generation_to_verdict_runs_end_to_end_offline() {
     .unwrap();
     let control_bytes = control.artifact_json().unwrap();
     let methods = example::ExampleMethods {
-        candidate: ExactContentRef {
-            domain: "genesis".into(),
-            schema: "development-method-source/1".into(),
-            id: "generated-method".into(),
-            version: "0.1.0".into(),
-            sha256: refs::sha256_hex(generated.as_bytes()),
-        },
+        candidate: session.package().unwrap().reference().unwrap(),
         control: control.reference().unwrap(),
     };
     let grant = ResourceGrant {
@@ -211,4 +210,64 @@ async fn generation_to_verdict_runs_end_to_end_offline() {
         matches!(verdict, Verdict::Accepted { .. } | Verdict::Rejected { .. }),
         "{verdict:?}"
     );
+
+    // 5. The combined cost report over the same retained evidence: one
+    // generation counted once, linked to the candidate slot by exact package.
+    let scope = CostScope {
+        id: "rehearsal-cost".into(),
+        generations: vec![GenerationExpectation {
+            org_id: session.plan().org_id.clone(),
+            operation_id: session.plan().operation_id.clone(),
+            plan_sha256: session.plan().sha256().unwrap(),
+            request_sha256: session.request_sha256().into(),
+            checkpoint_sha256: session.checkpoint_sha256().into(),
+        }],
+        trial: Some(TrialExpectation {
+            plan: trial.reference().unwrap(),
+            slots: vec!["candidate".into(), "control".into()],
+        }),
+        generated_links: vec![GeneratedMethodLink {
+            org_id: session.plan().org_id.clone(),
+            operation_id: session.plan().operation_id.clone(),
+            slot_id: "candidate".into(),
+        }],
+        total_grant: ResourceGrant {
+            model_calls: 1,
+            input_tokens: 100_000,
+            output_tokens: 8192,
+            wall_time_ms: 10 * 60_000,
+            simulation_steps: 2 * 6 * 2400 + 2 * 3 * 2400,
+        },
+    };
+    let rows: Vec<TrialEvidence> = ["candidate", "control"]
+        .into_iter()
+        .zip(&evidence)
+        .map(|(slot, e)| TrialEvidence {
+            slot_id: slot.into(),
+            execution: e.execution.clone(),
+            scoring: e.scoring.clone(),
+        })
+        .collect();
+    let report = assess_costs(
+        &scope,
+        std::slice::from_ref(&session),
+        Some((&trial, &rows)),
+    )
+    .unwrap();
+    assert_eq!(report.matched_package_links, [true]);
+    let total = |stage: &[genesis_forge::method_accounting::ResourceTotal], name: &str| {
+        let t = stage.iter().find(|t| t.resource == name).unwrap();
+        (t.known_lower_bound, t.unknown, t.limit_exceeded)
+    };
+    // Generation: one measured call and its reported tokens.
+    assert_eq!(total(&report.generation, "model_calls"), (1, false, false));
+    assert_eq!(
+        total(&report.generation, "output_tokens"),
+        (900, false, false)
+    );
+    // Execution can't establish zero model use here, so the combined model
+    // count is a known lower bound of 1 with unknown on top, never "1".
+    assert_eq!(total(&report.combined, "model_calls"), (1, true, false));
+    let (steps, unknown, over) = total(&report.combined, "simulation_steps");
+    assert!(steps > 0 && !unknown && !over, "{steps} {unknown} {over}");
 }
