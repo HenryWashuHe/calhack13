@@ -1,7 +1,11 @@
 //! Operator source exchange through the existing registry client; never executes methods.
 use anyhow::Context;
 use clap::{Args, Subcommand};
-use genesis_core::ids::OrgId;
+use genesis_core::{development_method::ExactContentRef, digest, ids::OrgId};
+use genesis_forge::{
+    method_revision::{MethodRevisionInput, MethodRevisionSpec},
+    method_synthesis::PublicDocument,
+};
 use genesis_server::registry::{
     methods::{MethodCandidate, MethodPublication, MethodSearch},
     RegistryClient,
@@ -41,6 +45,62 @@ enum MethodCommand {
         #[arg(long)]
         input: PathBuf,
     },
+    /// Fetch a selected parent and emit bounded input for source-only revision preparation.
+    RevisionInput {
+        /// Strict MethodCandidate JSON deliberately selected by the receiver.
+        #[arg(long)]
+        input: PathBuf,
+        /// Receiver-owned MethodRevisionSpec; runtime, task and model settings remain local choices.
+        #[arg(long)]
+        plan: PathBuf,
+    },
+}
+
+const SELECTION_DOMAIN: &str = "genesis.method_registry_selection";
+
+async fn revision_input(
+    url: &str,
+    candidate: MethodCandidate,
+    mut spec: MethodRevisionSpec,
+) -> anyhow::Result<Vec<u8>> {
+    // Reject incompatible local requests before credentials or HTTP. Neither the
+    // registry nor the selected source may choose the receiver's runtime/plan.
+    spec.sha256()
+        .map_err(|_| anyhow::anyhow!("invalid revision specification"))?;
+    anyhow::ensure!(
+        spec.parent == candidate.reference
+            && spec.generation.runtime == candidate.runtime
+            && spec.generation.protocol.reference == candidate.protocol
+            && spec.generation.dependencies == candidate.dependencies
+            && spec.generation.public_inputs.len() <= 14
+            && !spec.generation.public_inputs.iter().any(|input| {
+                input.reference.domain == SELECTION_DOMAIN || input.reference == spec.parent
+            }),
+        "revision specification is incompatible with selected parent or added public inputs"
+    );
+    let offer = client(url)?
+        .fetch_method_candidate(&candidate)
+        .await
+        .map_err(|e| anyhow::anyhow!("{}: {}", e.error, e.message))?;
+    // The client checked every selected field against the fetched canonical
+    // bytes. Retain that selection in the ordinary immutable generation plan.
+    // This local document is not a signature or proof of adopted authority.
+    let selection = serde_json::json!({
+        "schema": "genesis-method-selection/1", "candidate": candidate
+    });
+    spec.generation.public_inputs.push(PublicDocument {
+        reference: ExactContentRef {
+            domain: SELECTION_DOMAIN.into(),
+            schema: "genesis-method-selection/1".into(),
+            id: "selected-parent".into(),
+            version: "1".into(),
+            sha256: digest::canonical_sha256(&selection),
+        },
+        text: digest::canonical_json(&selection),
+    });
+    let input = MethodRevisionInput::new(spec, offer.publication.package_json)
+        .map_err(|_| anyhow::anyhow!("selected parent cannot form a bounded revision input"))?;
+    Ok(serde_json::to_vec(&input)?)
 }
 
 fn read<T: DeserializeOwned>(path: &std::path::Path) -> anyhow::Result<T> {
@@ -90,6 +150,9 @@ impl MethodArgs {
                         .fetch_method_candidate(&candidate)
                         .await,
                 )?
+            }
+            MethodCommand::RevisionInput { input, plan } => {
+                revision_input(&self.registry_url, read(&input)?, read(&plan)?).await?
             }
         };
         // Serialize fully before touching stdout. A later pipe error still cannot undo a write.

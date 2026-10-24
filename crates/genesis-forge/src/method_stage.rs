@@ -56,9 +56,17 @@ fn amounts(g: &ResourceGrant) -> [u64; 5] {
 pub(crate) fn validate_limits(
     limits: &StageLimits,
     generation: &ResourceGrant,
+    allow_generation_only: bool,
 ) -> Result<(), AccountingError> {
-    if !identifier(&limits.id, 128) || !(1..=64).contains(&limits.max_trial_slots) {
+    if !identifier(&limits.id, 128) || limits.max_trial_slots > 64 {
         return Err(invalid("stage allocation identity or slot count"));
+    }
+    if limits.max_trial_slots == 0
+        && (!allow_generation_only
+            || amounts(&limits.development_grant) != [0; 5]
+            || amounts(&limits.scoring_grant) != [0; 5])
+    {
+        return Err(invalid("generation-only stage requires zero trial grants"));
     }
     for (((generation, development), scoring), ceiling) in amounts(generation)
         .into_iter()
@@ -111,7 +119,7 @@ impl StageAllocation {
         if self.0.schema_version != 1 {
             return Err(invalid("stage allocation version"));
         }
-        validate_limits(&self.0.limits, self.0.roster.total_grant())
+        validate_limits(&self.0.limits, self.0.roster.total_grant(), true)
     }
 
     pub fn limits(&self) -> &StageLimits {
@@ -147,6 +155,9 @@ impl StageAllocation {
         scope: &CostScope,
     ) -> Result<StageTrialBinding, AccountingError> {
         let allocation_sha256 = self.sha256()?;
+        if self.0.limits.max_trial_slots == 0 {
+            return Err(invalid("generation-only stage cannot bind a trial"));
+        }
         let cost_scope_sha256 = scope.sha256()?;
         let reference = trial.reference()?;
         let limits = &self.0.limits;

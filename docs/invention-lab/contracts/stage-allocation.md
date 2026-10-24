@@ -14,11 +14,18 @@ full generation grant
   ≤ total stage grant
 ```
 
-Overflow is an error. Slots are bounded to 1–64 and count every candidate,
+Overflow is an error. Trial-bearing stages have 1–64 slots and count every candidate,
 control and repetition, not just successful treatments. Grants are not multiplied
 again by instance count: they already cover each slot's entire execution/scoring.
 The full generation grant is included even when attempts fail or remain unused.
 Unused capacity does not increase another grant or erase unknown usage.
+
+An explicitly generation-only stage uses `max_trial_slots: 0` with all five
+dimensions of both development and scoring grants set to zero. It retains the
+full generation grant and original roster, and cannot bind a trial later. Declare
+later evaluations as separate `TrialOnly` stages in the finite chain; do not
+invent dummy trials or charge generation again. Existing nonzero-slot records,
+serialization and hash domains remain unchanged.
 
 After the generated method identity becomes available, `allocation.bind(trial,
 scope)` constructs a `StageTrialBinding`. It pins the allocation, full exact trial
@@ -97,6 +104,10 @@ malformed or substituted allocation/binding/evidence fails with no fallback.
 This mode is read-only and retains unknown usage and overruns. Exit 0 means
 report construction, not budget compliance. Use immutable snapshots: reading
 several mutable files does not provide an atomic multi-writer view.
+
+For an explicit zero-slot stage use the [whole-chain cost assessment](chain-allocation.md#whole-chain-observed-costs)
+with generation evidence and no trial. The bound-stage cost command above still
+requires a trial; it does not manufacture a binding for generation-only work.
 
 Henry's executor/scorer still needs to consume the retained binding before
 runtime intent. This increment adds no runtime gate or whole-chain allocation.

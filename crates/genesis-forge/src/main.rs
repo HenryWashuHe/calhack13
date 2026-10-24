@@ -41,6 +41,8 @@ const HELP: &str = "Usage:
   genesis-forge method-roster-assess --manifest snapshots.json --roster roster.json
   genesis-forge method-revise-prepare --plan revision.json --parent parent.package.json --checkpoint generation.json
   genesis-forge method-revise-observe --plan revision.json --parent parent.package.json --checkpoint generation.json
+  genesis-forge method-revise-prepare --input revision-input.json --checkpoint generation.json
+  genesis-forge method-revise-observe --input revision-input.json --checkpoint generation.json
   genesis-forge generate-prepare --request public-request.json --model-config model.json --checkpoint generation.json
   genesis-forge generate-step --checkpoint generation.json
   genesis-forge generate-status --checkpoint generation.json
@@ -121,7 +123,7 @@ impl Arguments {
             "method-admission-status" => &["--admission"],
             "method-roster-prepare" | "method-roster-assess" => &["--manifest", "--roster"],
             "method-revise-prepare" | "method-revise-observe" => {
-                &["--plan", "--parent", "--checkpoint"]
+                &["--plan", "--parent", "--input", "--checkpoint"]
             }
             "method-generate-step" => &["--checkpoint", "--admission", "--allocation", "--chain"],
             "method-generate-status" | "method-generate-export" => &["--checkpoint"],
@@ -178,6 +180,13 @@ impl Arguments {
             }
         }
         for flag in allowed {
+            if matches!(
+                command.as_str(),
+                "method-revise-prepare" | "method-revise-observe"
+            ) && matches!(*flag, "--input" | "--plan" | "--parent")
+            {
+                continue;
+            }
             if command == "method-generate-step" && *flag == "--chain" {
                 continue;
             }
@@ -190,6 +199,20 @@ impl Arguments {
             }
             if !paths.contains_key(*flag) {
                 return Err(format!("missing {flag}"));
+            }
+        }
+        if matches!(
+            command.as_str(),
+            "method-revise-prepare" | "method-revise-observe"
+        ) {
+            let input = paths.contains_key("--input");
+            let plan = paths.contains_key("--plan");
+            let parent = paths.contains_key("--parent");
+            if !matches!(
+                (input, plan, parent),
+                (true, false, false) | (false, true, true)
+            ) {
+                return Err("revision requires either --input or both --plan and --parent".into());
             }
         }
         if matches!(

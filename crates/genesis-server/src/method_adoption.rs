@@ -13,7 +13,7 @@ use genesis_core::development_method::{AcceptanceRole, ExactContentRef, Executio
 use genesis_core::development_package::MethodPackage;
 use genesis_core::development_trial::{TrialPlan, TrialPurpose};
 use genesis_core::development_verdict::{decide, SlotEvidence, Verdict};
-use genesis_core::ids::OrgId;
+use genesis_core::ids::{OrgId, RequirementId};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
@@ -32,6 +32,30 @@ pub struct MethodReceiver {
     pub evaluators: Vec<ExactContentRef>,
     pub allowed_dependencies: Vec<ExactContentRef>,
     pub records_root: PathBuf,
+    /// The receiver's own exact acceptance plan for each requirement it may
+    /// adopt a method for. A requirement without a pin can't adopt; a trial
+    /// under any other plan can't stand in for it.
+    #[serde(default)]
+    pub acceptance_plans: Vec<AcceptancePin>,
+}
+
+/// Requirement → the exact `development-trial-plan/1` reference (task,
+/// criterion, instances, control, candidate, environment, settings and grants
+/// are all inside it) that decides adoption for that requirement.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AcceptancePin {
+    pub requirement_id: RequirementId,
+    pub plan: ExactContentRef,
+}
+
+impl MethodReceiver {
+    pub fn acceptance_plan(&self, requirement: &RequirementId) -> Option<&ExactContentRef> {
+        self.acceptance_plans
+            .iter()
+            .find(|p| p.requirement_id == *requirement)
+            .map(|p| &p.plan)
+    }
 }
 
 /// One deliberately selected registry offer and its exact canonical bytes.
@@ -68,6 +92,9 @@ pub enum Acceptance {
 #[serde(deny_unknown_fields)]
 pub struct AcceptanceEvidence {
     pub trial: String,
+    /// The exact selection the trial's candidate slot was checked against.
+    pub publisher: OrgId,
+    pub method: ExactContentRef,
     pub plan: ExactContentRef,
     pub criterion: ExactContentRef,
     pub public_task: ExactContentRef,
@@ -285,6 +312,8 @@ pub fn assess_selected(
     }
     Ok(AcceptanceEvidence {
         trial: trial.into(),
+        publisher: selected.publisher.clone(),
+        method: selected.reference.clone(),
         plan: plan
             .reference()
             .map_err(|e| E::Binding(format!("plan: {e:?}")))?,

@@ -92,5 +92,39 @@ Each command invokes the existing bounded client once. Failure prints sanitized
 diagnostics and exits nonzero, with no successful record. Publication may already
 have committed when any error occurs, including a response-identity or stdout
 write error. Reconcile before another attempt; do not automatically retry or
-interpret missing output as no publication. These commands transfer public source;
-they never execute it, prepare a revision, grant authority or adopt a method.
+interpret missing output as no publication. These three commands transfer public
+source; they never execute it, prepare a revision, grant authority or adopt a method.
+
+### Selected parent to revision input
+
+After deliberate selection, `revision-input` connects the exact network fetch to
+the existing [source revision CLI](revision.md#bundled-input):
+
+```sh
+genesis method revision-input --input selected-candidate.json --plan revision.json > received-revision.json
+genesis-forge method-revise-prepare --input received-revision.json --checkpoint generation.json
+```
+
+Use new output paths; shell redirection can overwrite an earlier file. The first
+command reads the receiver's `MethodRevisionSpec`, requires its exact parent,
+runtime, protocol and ordered dependencies to match the selection, and fetches
+through `fetch_method_candidate` once. It keeps the receiver's organization,
+operation, task, settings and revision instruction. It adds the full selected
+metadata as a canonical, hash-bound `genesis-method-selection/1` public document
+under `genesis.method_registry_selection`, then emits a bounded
+`MethodRevisionInput` containing that augmented spec and exact parent bytes.
+The original spec and candidate files remain unchanged. The source reference
+and selected publisher are retained together; the registry token is never added.
+
+The two added documents (selection and parent) count against the existing plan
+limits. An input that already contains the parent or registry-selection document,
+or has more than 14 public inputs, is refused before HTTP; all remaining package,
+metadata and plan bounds are checked before emitting the bundle. Errors have no
+successful JSON output. The bundle contains the public source and full local
+revision spec: retain it as input evidence, not a public registry publication.
+
+The network command writes no checkpoint and performs no model request. The
+offline forge command creates the ordinary Prepared checkpoint; its exact
+request binds both the selection document and parent source. Use the augmented
+bundle for later observation. Saved files are trusted-host records, not signed
+retrieval receipts, proof of authorship, local acceptance or invocation authority.
