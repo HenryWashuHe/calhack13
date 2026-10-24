@@ -5,7 +5,7 @@ This is an assembled development checkpoint
 for both machines. It is draft because the source reviews below still have open
 findings. Passing the existing suite does not resolve those findings.
 
-The [PR review queue](PR_REVIEW_QUEUE.md) records the review of all 21 open
+The [PR review queue](PR_REVIEW_QUEUE.md) records the review of all 22 open
 PRs, dependency order, exact heads and source-fix ownership.
 
 ## Included snapshots
@@ -22,6 +22,7 @@ PRs, dependency order, exact heads and source-fix ownership.
 | #26 `feat/creao-gateway-readiness` | `3dc95d6b` | Kernel gateway readiness challenges and receipts |
 | #27 `feat/creao-attach` | `95a33a0e` | Operator attachment of uncertain native agent creations |
 | #28 `feat/attention-ui` | `de0f5bc0` | Attention panel and development failure drills |
+| #29 `codex/creao-readiness-probe` | `c1e6ba4` | Durable provider challenge dispatch and explicit CREAO gateway registration |
 
 Merge resolutions preserve acquisition model/Apify configuration before Elastic
 attachment, both Cargo dependency registrations, and every capability, adoption,
@@ -32,12 +33,22 @@ The later snapshot `dde0682` adds #26–#28. Its only manual conflict resolution
 unions gateway routes with the existing acquisition/adoption/invocation routes.
 A separate merge review confirmed that all routes, startup recovery and workers
 remain registered, and incoming source behavior was preserved.
+Snapshot `1004934` adds #29. Its three manual conflicts were documentation only;
+it retains the newer operator-attachment flow and the receipt proof limits.
+Provider/runtime/config sources match #29; the only server module change is
+registration of `creao_readiness`. No route or worker changed in this merge.
 
 ## Validation
 
-The assembled source snapshot `dde0682` passes **684 Rust tests across 86 suites** with
-`serde_json/preserve_order`, strict default-feature all-target Clippy and formatting.
-The console passes **33 tests** and its TypeScript/Vite production build. The Rust-exported schemas and generated TypeScript types regenerate without drift.
+The assembled source snapshot `1004934` passes **699 Rust tests across 87 suites**
+with `serde_json/preserve_order`, zero failed or ignored, strict default-feature
+all-target Clippy and formatting. This includes #29's concurrent dispatch,
+cancellation, restart, callback, purpose-isolation and failed-checkpoint cases.
+
+Web/schema sources are unchanged by #29. Their prior `dde0682` evidence remains:
+**33 console tests**, TypeScript/Vite production build, and Rust-exported schema
+plus generated TypeScript regeneration without drift. Those unaffected checks
+were not repeated for the provider-only merge.
 
 The full run includes the strengthened scenario fixture (`9d63cc0`). A recording
 proxy proves B's actual automatic adoption sends
@@ -49,18 +60,21 @@ configuration after restart. Fresh invocation proofs and both role handoffs rema
 required. Gateway receipt and operator-attachment tests also run in the assembled
 workspace. The passing suite does not contain the separate negative review probes.
 
-A fresh development stack also completes `scripts/dev-scenario.mjs` followed by
+At the earlier `dde0682` snapshot, a fresh development stack also completed `scripts/dev-scenario.mjs` followed by
 all eleven checks in `scripts/dev-failures.mjs`. The process used separate temporary
 databases and loopback ports, with Elastic environment configuration removed, and
 was stopped afterward. These drill results exercise the real kernel with explicit
 development stubs; they do not cover native asynchronous provider execution or
 browser interaction with the Attention panel.
 
-These are local fixtures: canned model/Apify responses, loopback Elastic APIs and
-explicit development role bindings. CREAO now has a kernel gateway verifier, but
-its production probe and registration are still absent. Fetch's signed local recruitment proof remains separate from
-kernel role activation. No live sponsor execution or cross-account Actor access
-is established by this branch.
+These are local fixtures: canned model/Apify responses, loopback Elastic/CREAO
+APIs and explicit development role bindings. CREAO now has both the kernel gateway
+verifier and durable provider probe, registered with complete runtime settings and
+`GENESIS_PUBLIC_URL`. No live CREAO account or installed gateway skill has been
+exercised. A valid callback proves challenge reachability, not skill installation,
+effective agent configuration or mission competence. Fetch's signed local
+recruitment proof remains separate from kernel role activation. No live sponsor
+execution or cross-account Actor access is established by this branch.
 
 ## Open source reviews
 

@@ -67,8 +67,9 @@ Tests: `crates/genesis-server/tests/specialist_jobs.rs`.
 - **Registration is done** (`creao_config::attach_creao_from_env`, called at the
   start of `serve_org`). Set all four of `GENESIS_CREAO_DB`,
   `GENESIS_CREAO_ACCOUNT`, `GENESIS_CREAO_QUOTA_DB` and `CREAO_ACCOUNT_API_KEY`
-  in the git-ignored `.env`; none set means CREAO stays unconfigured, a partial
-  set refuses to start and names the missing variables (never the key).
+  in the backend environment; the server does not implicitly load `.env`.
+  Leaving all settings unset keeps CREAO unconfigured. A partial set refuses
+  startup and names the missing variables (never the key).
   Startup runs `recover_interrupted()` before serving. `/health` lists
   `configured_specialists`. Being registered is not being ready: without a
   readiness verifier a created CREAO agent stays `awaiting_readiness`.
@@ -96,7 +97,8 @@ Tests: `crates/genesis-server/tests/specialist_jobs.rs`.
     `409 agent_already_bound` if the ID is bound to any role or to another
     change. A receipt proves a holder of the run's challenge reached GENESIS
     and named that agent. It does not prove the installed skill or effective
-    configuration matches the role. That stays the operator's assertion, recorded with the reason.
+    configuration matches the role. That stays the operator's assertion,
+    recorded with the reason.
   - **abandon** it:
     `POST /api/v1/org-changes/{id}/operations/{role_key}/abandon` with
     `{"reason": "..."}` marks the operation failed and ends the change FAILED,

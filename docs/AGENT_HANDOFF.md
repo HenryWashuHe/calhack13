@@ -5,12 +5,14 @@ The user requested a backlog review; capability stack review found no new blocke
 while #11/#12/#20/#21/#22/#26/#27/#28 retain source findings. No PR was merged in this pass.
 
 Latest assembled checkpoint: [draft PR #25](https://github.com/HenryWashuHe/genesis/pull/25),
-`codex/combined-integration`, source merge `dde0682`.
-It combines capability #24 and Claude #11/#12/#20/#21/#22/#23/#26/#27/#28 at their
-recorded heads. The full assembled suite passes 684 Rust tests (86 suites), 33 web
-tests, production web build, strict Clippy and formatting; schemas/types regenerate
-without drift. This includes the Elastic-backed independent-adoption scenario,
-gateway receipt and operator-attachment fixtures. No live sponsor evidence is claimed.
+`codex/combined-integration`, source merge `1004934`.
+It combines capability #24, Claude #11/#12/#20/#21/#22/#23/#26/#27/#28 and Codex
+provider readiness #29 at their recorded heads. The assembled source passes
+699 Rust tests (87 suites), strict Clippy and formatting. The unchanged web/schema
+files retain the earlier `dde0682` evidence: 33 web tests, production build and
+schema/type regeneration without drift. Rust coverage includes independent
+adoption through Elastic, gateway receipts, operator attachment and durable CREAO
+probe recovery. No live sponsor evidence is claimed.
 See [the full integration matrix](COMBINED_INTEGRATION.md) and [the review queue](PR_REVIEW_QUEUE.md).
 
 This branch remains draft: thirteen reproduced failing regressions across
@@ -27,9 +29,9 @@ adds the challenge-bound durable CREAO run, submission-only runtime path,
 purpose isolation, redacted Debug output, and `GENESIS_PUBLIC_URL` registration.
 The focused branch passed 407 Rust tests, formatting and strict Clippy. See
 [CREAO_READINESS.md](CREAO_READINESS.md) for configuration and evidence limits.
-The prior combined validation above predates this addition; integration checks
-are pending. No live account or installed skill was exercised. Existing source
-review findings and ownership remain unchanged.
+The combined checks above include this addition. No live account or installed
+skill was exercised. Existing source review findings and ownership remain
+unchanged.
 
 ### Previous capability checkpoint
 

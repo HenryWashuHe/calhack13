@@ -1,6 +1,6 @@
 # PR review queue — October 22, 2026
 
-This checkpoint reviews all 21 open PRs, including newly arrived #26–#28. It records exact source heads, not a
+This checkpoint covers all 22 open PRs, including #26–#29. It records exact source heads, not a
 blanket approval of later pushes. No PR was merged during this review. The fresh
 capability review inspected each diff against its declared base and the relevant
 test coverage; it did not rerun the already-passing suites or exercise live accounts.
@@ -64,17 +64,35 @@ losing valid early receipts. #28 should preserve abandonment without exposing
 Attach for an already-bound operation. These findings are additions to the
 earlier source review, not evidence that the earlier blockers were fixed.
 
+## Provider readiness bridge: draft and dependent on kernel fixes
+
+[Draft #29](https://github.com/HenryWashuHe/genesis/pull/29),
+`c1e6ba4427203eb30e04019a42e997cdf6d6f393`, is based on #26 at `3dc95d6`.
+The separate code review checked immutable challenge binding, submission-only
+concurrency, cancellation/restart, successful POST followed by a failed receipt
+save, and privacy. Both requested follow-ups are fixed and tested: provider model
+metadata cannot expose a nonce through Debug, and a failed completion checkpoint
+stays uncertain without replay. No new blocker was found in this provider slice.
+Its focused workspace passed 407 Rust tests, formatting and strict Clippy.
+
+Keep it draft while the parent #26 correlation and #20 authority findings remain.
+It does not authorize readiness from native completion or establish actual skill
+installation. No live provider run was made. This is source review and loopback
+validation, not a GitHub approval or evidence that the inherited defects are fixed.
+
 ## Documentation and combined checkpoint
 
 - [#23](https://github.com/HenryWashuHe/genesis/pull/23), `665aab42177098330ac5bff71656ebf201fad5a9`:
   refresh after the source fixes. Replace the three "to open" cells with #20/#21/#22,
   qualify the #11/#12 review-fixed claims, and correct CREAO registration status:
-  registration exists in #20; a real readiness verifier remains pending. Reconcile
-  these docs with the newer handoff already in the integration branch.
+  specialist registration exists in #20, the kernel gateway verifier is in #26,
+  and the durable provider probe/registration is in draft #29. Live skill/account
+  proof remains pending. Reconcile these docs with the newer integration handoff.
 - [Draft #25](https://github.com/HenryWashuHe/genesis/pull/25): keep draft. Reviewed
-  integration snapshot `dde0682` now includes #26–#28 as well as the earlier heads.
-  It passes 684 Rust tests across 86 suites, 33 web tests, production web build,
-  strict Clippy, formatting and schema/type regeneration without drift.
+  integration snapshot `1004934` includes #26–#29 as well as the earlier heads.
+  It passes 699 Rust tests across 87 suites, strict Clippy and formatting.
+  Unchanged web/schema sources retain the earlier `dde0682` validation: 33 web
+  tests, production build and schema/type regeneration without drift.
   The thirteen failing source-review probes are separate and are not in that
   passing baseline. [Full validation scope](COMBINED_INTEGRATION.md).
 
@@ -86,5 +104,6 @@ land, reconcile #25 against `main` rather than merging duplicate history wholesa
 
 Codex owns capability code/review and narrow integration. Claude/Eric retains
 planner, general kernel/lifecycle/saga/outbox, asynchronous role activation, Elastic
-and UI. The immediate work is draining this queue and verifying the fixes; no new
-feature branch or whole-kernel ownership transfer is part of this checkpoint.
+and UI. Codex completed the previously claimed provider readiness gap in #29;
+the immediate priority remains verifying source fixes and draining this queue.
+No whole-kernel ownership transfer is active.
