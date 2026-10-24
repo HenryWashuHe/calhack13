@@ -5,6 +5,7 @@ use chrono::Utc;
 use genesis_core::capability::StaticCatalog;
 use genesis_core::change::*;
 use genesis_core::engine::*;
+use genesis_core::engine::{MAX_LIVE_CAPABILITY_GAPS, MAX_LIVE_GAPS_PER_REQUIREMENT};
 use genesis_core::events::EventKind;
 use genesis_core::ids::*;
 use genesis_core::lifecycle::CapabilityState;
@@ -552,4 +553,254 @@ fn proposals_without_the_new_field_still_deserialize() {
     v.as_object_mut().unwrap().remove("capability_gaps");
     let back: OrgState = serde_json::from_value(v).unwrap();
     assert!(back.capability_gaps.is_empty());
+}
+
+#[test]
+fn live_gaps_are_bounded_per_requirement_and_per_organization() {
+    let mut d = demo(Some(PORTAL));
+    // One responsibility, then requests under distinct names for the same requirement.
+    let out = run(&d, vec![assign(&d)], &StaticCatalog::default()).unwrap();
+    let rsp = out
+        .state
+        .responsibilities
+        .values()
+        .find(|r| r.purpose == "Relocate the event")
+        .unwrap()
+        .responsibility_id
+        .clone();
+    d.state = out.state;
+    let ask = |d: &Demo, name: &str, requirement: &RequirementId| OrgOp::RequestCapability {
+        key: format!("k-{name}"),
+        requirement_id: requirement.clone(),
+        role: RoleRef::existing(d.lead.clone()),
+        responsibility: ResponsibilityRef::Existing {
+            responsibility_id: rsp.clone(),
+        },
+        capability_id: CapabilityId::new(name),
+        purpose: "p".into(),
+        observed_sources: vec![PORTAL.into()],
+    };
+    for n in 0..MAX_LIVE_GAPS_PER_REQUIREMENT {
+        let req = d.requirement.clone();
+        d.state = run(
+            &d,
+            vec![ask(&d, &format!("cap-{n}"), &req)],
+            &StaticCatalog::default(),
+        )
+        .unwrap()
+        .state;
+    }
+    let req = d.requirement.clone();
+    assert_eq!(
+        codes(run(
+            &d,
+            vec![ask(&d, "cap-extra", &req)],
+            &StaticCatalog::default()
+        )),
+        vec![ValidationCode::CapabilityGapLimitExceeded]
+    );
+    // A refused gap no longer counts.
+    let first = d.state.capability_gaps.keys().next().unwrap().clone();
+    d.state = update_capability_gap(
+        &d.state,
+        &first,
+        CapabilityGapStatus::Refused {
+            reason: "no policy".into(),
+            acquisition_id: None,
+        },
+    )
+    .unwrap()
+    .state;
+    d.state = run(
+        &d,
+        vec![ask(&d, "cap-extra", &req)],
+        &StaticCatalog::default(),
+    )
+    .unwrap()
+    .state;
+
+    // Organization-wide limit across many requirements, each with its own
+    // responsibility created in the same change.
+    let mission = d.state.missions.keys().next().unwrap().clone();
+    let pair = |d: &Demo, n: usize, r: &RequirementId| {
+        vec![
+            OrgOp::AssignResponsibility {
+                target: ResponsibilityTarget::FromRequirement {
+                    key: format!("rsp-{n}"),
+                    requirement_id: r.clone(),
+                    purpose: format!("Need {n}"),
+                    trigger: "t".into(),
+                    termination: "e".into(),
+                },
+                owner: RoleRef::existing(d.lead.clone()),
+            },
+            OrgOp::RequestCapability {
+                key: format!("gap-{n}"),
+                requirement_id: r.clone(),
+                role: RoleRef::existing(d.lead.clone()),
+                responsibility: ResponsibilityRef::New {
+                    key: format!("rsp-{n}"),
+                },
+                capability_id: CapabilityId::new(format!("org-cap-{n}")),
+                purpose: "p".into(),
+                observed_sources: vec![PORTAL.into()],
+            },
+        ]
+    };
+    let mut created = d
+        .state
+        .capability_gaps
+        .values()
+        .filter(|g| !g.status.is_terminal())
+        .count();
+    let new_requirement = |d: &mut Demo, label: &str| {
+        let (o, r) = record_requirement(
+            &d.state,
+            &mission,
+            label,
+            std::slice::from_ref(&d.observation),
+            "ok",
+        )
+        .unwrap();
+        d.state = o.state;
+        r
+    };
+    while created < MAX_LIVE_CAPABILITY_GAPS {
+        let r = new_requirement(&mut d, &format!("need {created}"));
+        d.state = run(&d, pair(&d, created, &r), &StaticCatalog::default())
+            .unwrap()
+            .state;
+        created += 1;
+    }
+    let r = new_requirement(&mut d, "one more");
+    let errs = codes(run(&d, pair(&d, 999, &r), &StaticCatalog::default()));
+    assert_eq!(errs, vec![ValidationCode::CapabilityGapLimitExceeded]);
+}
+
+// Codex review regressions (b6aeb07 on codex/review-capability-gap49).
+
+#[test]
+fn review_gap_must_reference_the_responsibility_for_its_requirement() {
+    let d = demo(Some(PORTAL));
+    let unrelated = d.state.responsibilities.keys().next().unwrap().clone();
+    assert!(d.state.responsibilities[&unrelated]
+        .requirement_id
+        .is_none());
+    let mut gap = request(&d, &[PORTAL]);
+    let OrgOp::RequestCapability { responsibility, .. } = &mut gap else {
+        unreachable!()
+    };
+    *responsibility = ResponsibilityRef::Existing {
+        responsibility_id: unrelated,
+    };
+    // The same change legitimately assigns the requirement, but the gap names
+    // the pre-existing bootstrap responsibility rather than that assignment.
+    let result = run(&d, vec![assign(&d), gap], &StaticCatalog::default());
+    assert!(
+        result.is_err(),
+        "a gap for an unrelated responsibility can never pass acquisition authority"
+    );
+}
+
+#[test]
+fn review_verified_gap_can_record_later_publication_without_rebinding() {
+    let d = demo(Some(PORTAL));
+    let state = run(
+        &d,
+        vec![assign(&d), request(&d, &[PORTAL])],
+        &StaticCatalog::default(),
+    )
+    .unwrap()
+    .state;
+    let id = state.capability_gaps.keys().next().unwrap().clone();
+    let state = update_capability_gap(
+        &state,
+        &id,
+        CapabilityGapStatus::Acquiring {
+            acquisition_id: "acq-1".into(),
+        },
+    )
+    .unwrap()
+    .state;
+    let acquired = |publication_ref| CapabilityGapStatus::Acquired {
+        acquisition_id: "acq-1".into(),
+        capability: CapabilityRef {
+            capability_id: CapabilityId::new("venue-availability"),
+            version: "1".into(),
+        },
+        publication_ref,
+    };
+    let state = update_capability_gap(&state, &id, acquired(None))
+        .unwrap()
+        .state;
+    assert!(
+        update_capability_gap(
+            &state,
+            &id,
+            acquired(Some("registry:venue-availability@1".into())),
+        )
+        .is_ok(),
+        "verification precedes publication; a later confirmed reference must be recordable"
+    );
+}
+
+#[test]
+fn publication_enrichment_is_once_and_never_rebinds() {
+    let d = demo(Some(PORTAL));
+    let s = run(
+        &d,
+        vec![assign(&d), request(&d, &[PORTAL])],
+        &StaticCatalog::default(),
+    )
+    .unwrap()
+    .state;
+    let id = s.capability_gaps.keys().next().unwrap().clone();
+    let s = update_capability_gap(
+        &s,
+        &id,
+        CapabilityGapStatus::Acquiring {
+            acquisition_id: "acq-1".into(),
+        },
+    )
+    .unwrap()
+    .state;
+    let acq = |name: &str, v: &str, p: Option<&str>| CapabilityGapStatus::Acquired {
+        acquisition_id: "acq-1".into(),
+        capability: CapabilityRef {
+            capability_id: CapabilityId::new(name),
+            version: v.into(),
+        },
+        publication_ref: p.map(String::from),
+    };
+    let s = update_capability_gap(&s, &id, acq("venue-availability", "1", None))
+        .unwrap()
+        .state;
+    // Cannot change the verified version while recording publication.
+    assert!(update_capability_gap(&s, &id, acq("venue-availability", "2", Some("reg:x"))).is_err());
+    let s = update_capability_gap(&s, &id, acq("venue-availability", "1", Some("reg:x")))
+        .unwrap()
+        .state;
+    // Recorded references are immutable: no replacement, no removal.
+    assert_eq!(
+        update_capability_gap(&s, &id, acq("venue-availability", "1", Some("reg:y")))
+            .unwrap_err()
+            .code,
+        ValidationCode::InvalidTransition
+    );
+    assert_eq!(
+        update_capability_gap(&s, &id, acq("venue-availability", "1", None))
+            .unwrap_err()
+            .code,
+        ValidationCode::InvalidTransition
+    );
+    // A different acquisition cannot be recorded either.
+    let other = CapabilityGapStatus::Acquired {
+        acquisition_id: "acq-2".into(),
+        capability: CapabilityRef {
+            capability_id: CapabilityId::new("venue-availability"),
+            version: "1".into(),
+        },
+        publication_ref: Some("reg:x".into()),
+    };
+    assert!(update_capability_gap(&s, &id, other).is_err());
 }

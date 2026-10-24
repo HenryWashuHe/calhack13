@@ -15,6 +15,8 @@ path = "src/lib.rs"
 
 [dependencies]
 genesis-core.workspace = true
+genesis-elastic.workspace = true
+genesis-providers.workspace = true
 anyhow.workspace = true
 async-trait.workspace = true
 chrono.workspace = true
@@ -29,4 +31,5 @@ tracing.workspace = true
 tracing-subscriber.workspace = true
 
 [dev-dependencies]
+genesis-elastic = { workspace = true, features = ["fake"] }
 genesis-server = { path = "../genesis-server" }
