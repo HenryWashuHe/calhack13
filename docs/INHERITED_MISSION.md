@@ -8,9 +8,10 @@ discovers a foreign capability, collects its own acceptance evidence and uses it
 Both temporary roles then retire with explicit responsibility handoffs. B's successor uses the
 same accepted artifact without generating another tool.
 
-With optional `venue_monitoring`, that successor also performs CREAO mission work:
-it assesses the verified baseline venue, then assesses a second verified source
-snapshot with the same event constraints. The driver requires an accepted
+With optional `venue_monitoring`, that successor also performs CREAO mission work
+through one bounded, durable subscription. It assesses the verified baseline venue,
+then assesses a second verified source snapshot with the same event constraints.
+The driver requires an accepted
 `feasible` result followed by an accepted `reopen` result and its evidence-backed
 replacement requirement. The same active CREAO agent and responsibility serve both
 cycles. A successful capability invocation alone does not establish this work.
@@ -32,8 +33,9 @@ loopback providers. Canned model and provider replies make the evidence repeatab
 they do not execute a cloud build or prove model-generated parser quality. The
 scenario has no direct database access and cannot insert verification receipts.
 The fixture runs both organizations through the actual `serve_org` workers, behind
-recording HTTP proxies that reject every `/step` and `/verify` POST, as well as the
-legacy search, installation, checks and acceptance writes. Automatic adoption uses
+recording HTTP proxies that reject every `/step` and `/verify` POST, direct
+assessment creation, and the legacy search, installation, checks and acceptance
+writes. Automatic adoption uses
 one intent creation request and status reads. The full scenario test requires one
 semantic repair (two model calls, Actors and builds; six A verification runs),
 four B acceptance checks, initial and successor invocations, an updated-source
@@ -48,11 +50,12 @@ while fresh invocation jobs become `SUCCEEDED` only after backend semantic verif
 The same success fixture also uses the real CREAO client, creation adapter,
 specialist runtime and private journal against a loopback API. A clearly labeled
 fixture readiness verifier checks the completed creation journal; it does not
-exercise the native gateway callback. One created monitor performs two distinct
-assessment executions. The first is feasible; the second detects capacity 100
+exercise the native gateway callback. One subscription registration causes the
+created monitor to perform two distinct assessment executions. The first is
+feasible; the second detects capacity 100
 below 121 attendees and creates exactly one cited replacement requirement. Both
-assessment proofs and the same agent binding survive B's restart without another
-CREAO creation or execution request.
+assessment proofs, the completed subscription and the same agent binding survive
+B's restart without another CREAO creation or execution request.
 
 Negative fixtures confirm incorrect fresh data stops the scenario before handoffs,
 an ambiguous Actor creation remains unreplayed after restarting A, and disabled
@@ -266,16 +269,30 @@ may still permit other roles to use labeled stubs; it cannot substitute a stub
 for this monitor. Runtime configuration is checked before creating missions,
 and the committed active CREAO binding is checked before assessment.
 
-The driver submits one assessment for the existing post-handoff invocation,
-waits for its saved accepted feasible proof, invokes the updated input, and
-submits one further assessment. It observes server-owned finalization in both
-progression modes. The saved native receipt, exact source proof, policy, job,
-assignment, observation and replacement requirement must agree. Failed or unknown
-work stops the narrative; no POST is automatically retried. An interrupted
-scenario remains fresh-only, while the server retains its durable recovery state.
+The driver registers one [venue monitor subscription](VENUE_MONITORS.md) for the
+existing post-handoff invocation, with a limit of two assessments and an expiry
+30 minutes after that invocation's verified timestamp. It waits for the saved
+accepted feasible proof and the subscription's baseline checkpoint before invoking
+the updated input. The subscription discovers that new verified proof and creates
+its second assessment. The driver only reads assessment status; it does not POST
+either child assessment or manually advance verification, in either progression
+mode. The saved native receipt, exact source proof, policy, job, assignment,
+observation and replacement requirement must agree. It also checks the subscription's
+frozen binding, count and final replacement requirement. Subscription completion
+here means a verified replacement requirement was created, not mission completion.
 
-The optional report section contains native agent/run IDs, assessment and source
-job IDs, proof and receipt digests, verdicts and mission effect IDs. It omits raw
+Failed or unknown work stops the narrative; no POST is automatically retried.
+After a timeout or lost registration response, authorized server work may still
+continue within the subscription's bounds. An interrupted scenario remains
+fresh-only: replaying it against populated organizations is not a recovery path.
+Inspect the retained subscription and child IDs when available; a missing
+registration response requires operator reconciliation, not a fresh registration.
+The driver does not automatically stop the subscription. An explicit operator stop
+prevents new child creation and does not cancel an already-created child.
+
+The optional report section contains the subscription ID, native agent/run IDs,
+assessment and source job IDs, proof and receipt digests, verdicts and mission
+effect IDs. It omits raw
 outputs and event-policy contents. A genuine CREAO Share link still has to be
 obtained from the provider and included with the agent ID in the submission;
 the driver does not fabricate one. Omitting `venue_monitoring` preserves the
