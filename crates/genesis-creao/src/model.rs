@@ -6,6 +6,27 @@ use std::{fmt, io::Write, time::Duration};
 pub(crate) const MAX_INPUT: usize = 256 * 1024;
 pub(crate) const MAX_RESPONSE: usize = 1024 * 1024;
 
+/// The account API and hosted Developer Platform use different credentials,
+/// request shapes and creation-poll endpoints. Persist this with every intent.
+#[derive(Clone, Copy, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum ApiVersion {
+    #[default]
+    V1,
+    V2,
+}
+impl ApiVersion {
+    pub fn is_v1(&self) -> bool {
+        *self == Self::V1
+    }
+    pub(crate) fn path(self) -> &'static str {
+        match self {
+            Self::V1 => "v1",
+            Self::V2 => "v2",
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct Limits {
     /// Includes the account quota wait, HTTP transfer, and response decoding.
@@ -73,12 +94,22 @@ impl OperationRequest {
         self.payload(MAX_INPUT).map(|_| ())
     }
 
-    /// Versioned fingerprint of the exact HTTP operation, including forced
+    /// Versioned fingerprint of the exact v1 HTTP operation, including forced
     /// notification suppression. A digest is not authentication of its author.
     pub fn request_sha256(&self) -> Result<String, Error> {
-        let payload = self.payload(MAX_INPUT)?;
+        self.request_sha256_for(ApiVersion::V1)
+    }
+
+    pub(crate) fn request_sha256_for(&self, version: ApiVersion) -> Result<String, Error> {
+        let payload = self.payload_for(version, MAX_INPUT)?;
         Ok(json_sha256(&json!({
-            "schema_version": 1, "path": self.path(), "payload": payload
+            "schema_version": if version.is_v1() { 1 } else { 2 },
+            "path": if version.is_v1() {
+                self.path().to_owned()
+            } else {
+                format!("/{}/{}", version.path(), self.path())
+            },
+            "payload": payload
         })))
     }
 
@@ -101,6 +132,9 @@ impl OperationRequest {
         }
     }
     pub(crate) fn payload(&self, max: usize) -> Result<Value, Error> {
+        self.payload_for(ApiVersion::V1, max)
+    }
+    pub(crate) fn payload_for(&self, version: ApiVersion, max: usize) -> Result<Value, Error> {
         let invalid = || error(ErrorKind::InvalidRequest, Stage::Configuration);
         if self.model().is_some_and(|v| !plain(v, 100))
             || self.conversation_id().is_some_and(|v| !uuid(v))
@@ -117,15 +151,18 @@ impl OperationRequest {
             Self::CreateRun(r) => {
                 if !uuid(&r.agent_id)
                     || r.workspace_id.as_deref().is_some_and(|v| !uuid(v))
+                    || (version == ApiVersion::V2 && r.workspace_id.is_some())
                     || !bounded_tree(&r.input, max)
                 {
                     return Err(invalid());
                 }
                 let mut value = serde_json::to_value(r).map_err(|_| invalid())?;
-                value
-                    .as_object_mut()
-                    .ok_or_else(invalid)?
-                    .insert("should_notify".into(), Value::Bool(false));
+                if version.is_v1() {
+                    value
+                        .as_object_mut()
+                        .ok_or_else(invalid)?
+                        .insert("should_notify".into(), Value::Bool(false));
+                }
                 value
             }
         };
@@ -140,6 +177,8 @@ impl OperationRequest {
 #[serde(deny_unknown_fields)]
 pub struct RunTicket {
     pub(crate) schema_version: u32,
+    #[serde(default, skip_serializing_if = "ApiVersion::is_v1")]
+    pub(crate) api_version: ApiVersion,
     pub(crate) account_namespace: String,
     pub(crate) request_sha256: String,
     pub(crate) run_id: String,
@@ -152,6 +191,7 @@ impl fmt::Debug for RunTicket {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("RunTicket")
             .field("schema_version", &self.schema_version)
+            .field("api_version", &self.api_version)
             .field("account_namespace", &self.account_namespace)
             .field("request_sha256", &self.request_sha256)
             .field("run_id", &self.run_id)
@@ -185,7 +225,8 @@ impl RunTicket {
                 .iter()
                 .any(|id| id.as_deref().is_some_and(|v| !uuid(v)))
             || self.model.as_deref().is_some_and(|v| !plain(v, 100))
-            || self.request_sha256 != account_fingerprint(request, &self.account_namespace)?
+            || self.request_sha256
+                != account_fingerprint_for(request, &self.account_namespace, self.api_version)?
             || request
                 .model()
                 .is_some_and(|v| Some(v) != self.model.as_deref())
@@ -332,11 +373,12 @@ impl RunObservation {
         ticket.validate_for(request)?;
         if !bounded_tree(&self.raw_response, MAX_RESPONSE)
             || bounded_serialize(&self.raw_response, MAX_RESPONSE).is_err()
-            || observation(
+            || observation_for(
                 self.raw_response.clone(),
                 request,
                 Some(ticket),
                 Stage::Poll,
+                ticket.api_version,
             )? != *self
         {
             return Err(error(ErrorKind::ProvenanceMismatch, Stage::Poll));
@@ -470,12 +512,13 @@ pub(crate) fn error(kind: ErrorKind, stage: Stage) -> Error {
     }
 }
 
-pub(crate) fn account_fingerprint(
+pub(crate) fn account_fingerprint_for(
     request: &OperationRequest,
     namespace: &str,
+    version: ApiVersion,
 ) -> Result<String, Error> {
     Ok(json_sha256(
-        &json!({"schema_version":1,"account_namespace":namespace,"request_sha256":request.request_sha256()?}),
+        &json!({"schema_version":1,"account_namespace":namespace,"request_sha256":request.request_sha256_for(version)?}),
     ))
 }
 
@@ -645,6 +688,78 @@ pub(crate) fn observation(
         conversation_id,
         workspace_id,
         model,
+        result,
+        raw_response: raw,
+    })
+}
+
+pub(crate) fn observation_for(
+    raw: Value,
+    request: &OperationRequest,
+    ticket: Option<&RunTicket>,
+    stage: Stage,
+    version: ApiVersion,
+) -> Result<RunObservation, Error> {
+    if version == ApiVersion::V2
+        && stage == Stage::Poll
+        && matches!(request, OperationRequest::CreateAgent(_))
+    {
+        return hosted_creation_observation(raw, request, ticket);
+    }
+    observation(raw, request, ticket, stage)
+}
+
+/// Hosted-agent creation is an edit run, not a normal `/v2/runs/{id}` run.
+/// Its response has different status words and omits conversation/model.
+fn hosted_creation_observation(
+    raw: Value,
+    request: &OperationRequest,
+    ticket: Option<&RunTicket>,
+) -> Result<RunObservation, Error> {
+    let malformed = || error(ErrorKind::MalformedResponse, Stage::Poll);
+    let mismatch = || error(ErrorKind::ProvenanceMismatch, Stage::Poll);
+    let ticket = ticket.ok_or_else(malformed)?;
+    ticket.validate_for(request)?;
+    let object = raw.as_object().ok_or_else(malformed)?;
+    let run_id = object
+        .get("run_id")
+        .and_then(Value::as_str)
+        .filter(|id| uuid(id))
+        .ok_or_else(malformed)?;
+    let agent_id = object
+        .get("agent_id")
+        .and_then(Value::as_str)
+        .filter(|id| uuid(id))
+        .ok_or_else(malformed)?;
+    if run_id != ticket.run_id || Some(agent_id) != ticket.agent_id.as_deref() {
+        return Err(mismatch());
+    }
+    let status = match object.get("status").and_then(Value::as_str) {
+        Some("queued") => NativeRunStatus::Pending,
+        Some("running") => NativeRunStatus::Running,
+        Some("succeeded") => NativeRunStatus::Completed,
+        Some("failed") => NativeRunStatus::Failed,
+        Some("cancelled") => NativeRunStatus::Cancelled,
+        Some(s) if plain(s, 128) => NativeRunStatus::Unknown(s.to_owned()),
+        _ => return Err(malformed()),
+    };
+    let result = match object.get("result") {
+        None | Some(Value::Null) => None,
+        Some(Value::Object(_)) => object.get("result").cloned(),
+        _ => return Err(malformed()),
+    };
+    if let Some(nested_id) = result.as_ref().and_then(|r| r.get("agent_id")) {
+        if nested_id.as_str() != Some(agent_id) {
+            return Err(mismatch());
+        }
+    }
+    Ok(RunObservation {
+        run_id: run_id.to_owned(),
+        status,
+        agent_id: Some(agent_id.to_owned()),
+        conversation_id: ticket.conversation_id.clone(),
+        workspace_id: None,
+        model: ticket.model.clone(),
         result,
         raw_response: raw,
     })
