@@ -13,8 +13,8 @@ use genesis_forge::{
 };
 use genesis_server::capability_acquisition_runtime::{AcquisitionRuntime, AcquisitionRuntimeError};
 use genesis_server::capability_acquisition_store::{
-    AcquisitionPolicy, AcquisitionQuotas, AcquisitionRecord, AcquisitionStoreError,
-    CreateAcquisition,
+    AcquisitionFence, AcquisitionPolicy, AcquisitionQuotas, AcquisitionRecord,
+    AcquisitionStoreError, CreateAcquisition,
 };
 use genesis_server::capability_evidence::EvidencePolicy;
 use genesis_server::store::{EventMeta, Store};
@@ -346,6 +346,27 @@ impl Fixture {
             )
             .unwrap();
     }
+    async fn expire_assignment(&self) {
+        let _guard = self.kernel.lock().await;
+        let previous = self.store.current_state().unwrap();
+        let mut next = previous.clone();
+        let assignment_id = self.saved().binding().grant.assignment_id.clone();
+        next.assignments
+            .get_mut(&assignment_id)
+            .unwrap()
+            .lease_expires_at = Some(Utc::now() - chrono::Duration::seconds(1));
+        next.revision += 1;
+        self.store
+            .commit_state(
+                previous.revision,
+                &next,
+                vec![],
+                &EventMeta::default(),
+                vec![],
+                |_| Ok(()),
+            )
+            .unwrap();
+    }
     async fn prepare_forge(&self) -> CandidateSpec {
         let mock = Mock::serve(vec![Reply::json(generated())]).await;
         let runtime = self.runtime(Some(mock.model()), None);
@@ -409,6 +430,157 @@ async fn unconfigured_providers_and_invalid_retry_never_mutate_intent_or_quota()
         Err(AcquisitionRuntimeError::Unconfigured("apify"))
     ));
     assert_eq!(serde_json::to_value(f.saved()).unwrap(), before);
+}
+
+#[tokio::test]
+async fn stale_scheduled_work_cannot_mutate_debit_or_call_a_provider() {
+    let f = Fixture::new(AcquisitionQuotas::default());
+    let mock = Mock::serve(vec![Reply::json(generated())]).await;
+    let runtime = f.runtime(Some(mock.model()), None);
+    let initial = f.saved();
+    let before = serde_json::to_value(&initial).unwrap();
+    let counters = f.store.acquisition_counters().unwrap();
+    assert!(matches!(
+        runtime.step_if_current(&f.id, initial.version() + 1).await,
+        Err(AcquisitionRuntimeError::StaleSchedule)
+    ));
+    assert!(matches!(
+        runtime
+            .reconcile_if_current(&f.id, initial.version() + 1)
+            .await,
+        Err(AcquisitionRuntimeError::StaleSchedule)
+    ));
+    let reconciled = runtime
+        .reconcile_if_current(&f.id, initial.version())
+        .await
+        .unwrap();
+    assert_eq!(serde_json::to_value(reconciled).unwrap(), before);
+    assert_eq!(serde_json::to_value(f.saved()).unwrap(), before);
+    assert_eq!(f.store.acquisition_counters().unwrap(), counters);
+    assert!(mock.requests.lock().unwrap().is_empty());
+    let generated = runtime
+        .step_if_current(&f.id, initial.version())
+        .await
+        .unwrap();
+    assert_eq!(
+        generated.session().generation().phase(),
+        SynthesisPhase::Generated
+    );
+    assert_eq!(f.store.acquisition_counters().unwrap().model_calls, 1);
+    assert_eq!(mock.finish().await.len(), 1);
+}
+
+#[tokio::test]
+async fn scheduled_version_is_checked_after_waiting_for_the_manual_driver_gate() {
+    for local_only in [false, true] {
+        let f = Fixture::new(AcquisitionQuotas::default());
+        let mock = Mock::serve(vec![Reply::paused(generated())]).await;
+        let runtime = f.runtime(Some(mock.model()), None);
+        let manual = tokio::spawn({
+            let runtime = runtime.clone();
+            let id = f.id.clone();
+            async move { runtime.step(&id, false).await }
+        });
+        mock.entered.notified().await;
+        // This version is current while the manual request is in flight. A
+        // check outside the driver gate would pass and later advance new work.
+        let selected_version = f.saved().version();
+        let scheduled = tokio::spawn({
+            let runtime = runtime.clone();
+            let id = f.id.clone();
+            async move {
+                if local_only {
+                    runtime.reconcile_if_current(&id, selected_version).await
+                } else {
+                    runtime.step_if_current(&id, selected_version).await
+                }
+            }
+        });
+        tokio::task::yield_now().await;
+        assert!(!scheduled.is_finished());
+        mock.release.notify_one();
+        let completed = manual.await.unwrap().unwrap();
+        assert!(matches!(
+            scheduled.await.unwrap(),
+            Err(AcquisitionRuntimeError::StaleSchedule)
+        ));
+        assert_eq!(
+            serde_json::to_value(f.saved()).unwrap(),
+            serde_json::to_value(completed).unwrap()
+        );
+        assert_eq!(
+            f.saved().session().generation().phase(),
+            SynthesisPhase::Generated
+        );
+        assert!(
+            f.saved().session().forge().is_none(),
+            "stale schedule must not perform even a local advance"
+        );
+        assert_eq!(f.store.acquisition_counters().unwrap().model_calls, 1);
+        assert_eq!(mock.finish().await.len(), 1);
+    }
+}
+
+#[tokio::test]
+async fn local_reconcile_marks_interrupted_posts_without_network_or_refunding_counts() {
+    for actor_effect in [false, true] {
+        let f = Fixture::new(AcquisitionQuotas::default());
+        let spec = if actor_effect {
+            Some(f.prepare_forge().await)
+        } else {
+            None
+        };
+        let mock = Mock::serve(vec![Reply::paused(
+            spec.as_ref().map(actor).unwrap_or_else(generated),
+        )])
+        .await;
+        let runtime = if actor_effect {
+            f.runtime(None, Some(mock.apify()))
+        } else {
+            f.runtime(Some(mock.model()), None)
+        };
+        let worker = tokio::spawn({
+            let runtime = runtime.clone();
+            let id = f.id.clone();
+            async move { runtime.step(&id, false).await }
+        });
+        mock.entered.notified().await;
+        worker.abort();
+        assert!(worker.await.unwrap_err().is_cancelled());
+        let pending = f.saved();
+        let before = serde_json::to_value(&pending).unwrap();
+        let counts = f.store.acquisition_counters().unwrap();
+        assert!(matches!(
+            runtime
+                .reconcile_if_current(&f.id, pending.version() - 1)
+                .await,
+            Err(AcquisitionRuntimeError::StaleSchedule)
+        ));
+        assert_eq!(serde_json::to_value(f.saved()).unwrap(), before);
+        let reconciled = runtime
+            .reconcile_if_current(&f.id, pending.version())
+            .await
+            .unwrap();
+        assert_eq!(
+            reconciled.session().phase(),
+            AcquisitionPhase::NeedsReconciliation
+        );
+        assert_eq!(reconciled.version(), pending.version() + 1);
+        let mut expected_counts = counts;
+        expected_counts.active = 0;
+        assert_eq!(f.store.acquisition_counters().unwrap(), expected_counts);
+        let again = runtime
+            .reconcile_if_current(&f.id, reconciled.version())
+            .await
+            .unwrap();
+        assert_eq!(
+            serde_json::to_value(again).unwrap(),
+            serde_json::to_value(reconciled).unwrap()
+        );
+        assert_eq!(mock.requests.lock().unwrap().len(), 1);
+        mock.release.notify_one();
+        assert_eq!(mock.finish().await.len(), 1);
+    }
 }
 
 #[tokio::test]
@@ -592,6 +764,20 @@ async fn cancelled_get_resumes_same_build_and_charges_only_a_new_read() {
         Some(genesis_forge::ActionKind::PollBuild)
     );
     let restarted = f.restart(None, Some(mock.apify()));
+    let before = serde_json::to_value(&pending).unwrap();
+    let counts = f.store.acquisition_counters().unwrap();
+    let requests = mock.requests.lock().unwrap().len();
+    let local = restarted
+        .reconcile_if_current(&f.id, pending.version())
+        .await
+        .unwrap();
+    assert_eq!(
+        serde_json::to_value(local).unwrap(),
+        before,
+        "local reconciliation must retain the exact interrupted GET ticket and intent"
+    );
+    assert_eq!(f.store.acquisition_counters().unwrap(), counts);
+    assert_eq!(mock.requests.lock().unwrap().len(), requests);
     let recovered = restarted.step(&f.id, false).await.unwrap();
     assert_eq!(
         recovered
@@ -632,7 +818,26 @@ async fn only_saved_failed_gets_allow_retry_and_failed_posts_remain_reconciliati
     for _ in 0..3 {
         runtime.step(&f.id, false).await.unwrap();
     }
-    let before = serde_json::to_value(f.saved()).unwrap();
+    let paused = f.saved();
+    let before = serde_json::to_value(&paused).unwrap();
+    let counts = f.store.acquisition_counters().unwrap();
+    let requests = mock.requests.lock().unwrap().len();
+    assert_eq!(
+        serde_json::to_value(
+            runtime
+                .reconcile_if_current(&f.id, paused.version())
+                .await
+                .unwrap()
+        )
+        .unwrap(),
+        before
+    );
+    assert_eq!(f.store.acquisition_counters().unwrap(), counts);
+    assert_eq!(mock.requests.lock().unwrap().len(), requests);
+    assert!(matches!(
+        runtime.step_if_current(&f.id, paused.version()).await,
+        Err(AcquisitionRuntimeError::RetryRequired)
+    ));
     assert!(matches!(
         runtime.step(&f.id, false).await,
         Err(AcquisitionRuntimeError::RetryRequired)
@@ -697,6 +902,69 @@ async fn exhausted_model_quota_survives_restart_and_stops_before_new_intent() {
         before
     );
     assert_eq!(f.store.acquisition_counters().unwrap().model_calls, 1);
+    f.expire_assignment().await;
+    assert!(matches!(
+        restarted
+            .reconcile_if_current(second.id(), second.version() + 1)
+            .await,
+        Err(AcquisitionRuntimeError::StaleSchedule)
+    ));
+    assert_eq!(
+        serde_json::to_value(restarted.status(second.id()).unwrap()).unwrap(),
+        before
+    );
+    let fenced = restarted
+        .reconcile_if_current(second.id(), second.version())
+        .await
+        .unwrap();
+    assert_eq!(fenced.fence_reason(), Some(AcquisitionFence::LeaseExpired));
+    assert_eq!(fenced.version(), second.version() + 1);
+    assert_eq!(f.store.acquisition_counters().unwrap().model_calls, 1);
+    assert_eq!(f.store.acquisition_counters().unwrap().active, 0);
+}
+
+#[tokio::test]
+async fn local_reconcile_fences_an_expired_failed_read_without_reissuing_it() {
+    let f = Fixture::new(AcquisitionQuotas::default());
+    let spec = f.prepare_forge().await;
+    let mut replies = build_replies(&spec);
+    replies.push(Reply::unavailable());
+    let mock = Mock::serve(replies).await;
+    let runtime = f.runtime(None, Some(mock.apify()));
+    for _ in 0..3 {
+        runtime.step(&f.id, false).await.unwrap();
+    }
+    let paused = f.saved();
+    let calls = mock.requests.lock().unwrap().len();
+    let mut expected_counts = f.store.acquisition_counters().unwrap();
+    assert!(matches!(
+        runtime.step_if_current(&f.id, paused.version()).await,
+        Err(AcquisitionRuntimeError::RetryRequired)
+    ));
+    f.expire_assignment().await;
+    assert!(matches!(
+        runtime
+            .reconcile_if_current(&f.id, paused.version() - 1)
+            .await,
+        Err(AcquisitionRuntimeError::StaleSchedule)
+    ));
+    assert!(
+        !f.saved().is_fenced(),
+        "stale local work must not fence a newer checkpoint"
+    );
+    let fenced = runtime
+        .reconcile_if_current(&f.id, paused.version())
+        .await
+        .unwrap();
+    assert_eq!(fenced.fence_reason(), Some(AcquisitionFence::LeaseExpired));
+    assert_eq!(
+        serde_json::to_value(fenced.session()).unwrap(),
+        serde_json::to_value(paused.session()).unwrap()
+    );
+    expected_counts.active = 0;
+    assert_eq!(f.store.acquisition_counters().unwrap(), expected_counts);
+    assert_eq!(mock.requests.lock().unwrap().len(), calls);
+    assert_eq!(mock.finish().await.len(), calls);
 }
 
 #[tokio::test]
