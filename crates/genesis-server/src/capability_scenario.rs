@@ -15,7 +15,9 @@ use genesis_forge::{CandidateIdentity, PublicExample, SynthesisRequest};
 use genesis_verification::{
     json_sha256, validate_artifact, ArtifactPin, ExecutionEvidence, SourceSnapshot,
 };
-use observation::{acquisition_observation, ObservationDecision};
+use observation::{
+    acquisition_observation, adoption_observation, AdoptionExpected, ObservationDecision,
+};
 use reqwest::{Client, Method, Url};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -169,6 +171,10 @@ pub struct ScenarioReport {
     pub acquisition_attempt: u8,
     pub artifact: ArtifactPin,
     pub acquisition_usage: AcquisitionCounters,
+    #[serde(default)]
+    pub adoption_b_id: Option<String>,
+    #[serde(default)]
+    pub adoption_b_publisher: Option<String>,
     pub installation_b_id: String,
     pub acceptance_b_ref: String,
     pub acceptance_b_jobs: Vec<String>,
@@ -182,7 +188,9 @@ pub struct ScenarioReport {
     pub monitor_role_id: String,
     pub responsibility_a_id: String,
     pub responsibility_b_id: String,
-    /// Synthesis count returned by this run's B installation operation.
+    /// No synthesis operation is requested from B in this scenario. Manual mode
+    /// also checks the installation response counter; automatic mode observes
+    /// B's adoption and disabled acquisition configuration. Not a billing audit.
     pub synthesis_calls_b: u64,
     /// This B server reported acquisition disabled before and after the workflow.
     /// This is not an account-wide claim about unrelated processes.
@@ -203,6 +211,14 @@ struct Work {
     requirement: String,
     role: String,
     responsibility: String,
+}
+
+struct AdoptionResult {
+    id: Option<String>,
+    publisher: Option<String>,
+    installation: String,
+    jobs: Vec<String>,
+    reference: String,
 }
 
 struct InvocationContext<'a> {
@@ -694,6 +710,18 @@ impl ScenarioDriver {
         acceptance: Option<(&str, &str)>,
         progression: ScenarioProgression,
     ) -> Result<CollectedBinding> {
+        self.collect_bound(id, artifact, acceptance, progression, None)
+            .await
+    }
+
+    async fn collect_bound(
+        &self,
+        id: &str,
+        artifact: &ArtifactPin,
+        acceptance: Option<(&str, &str)>,
+        progression: ScenarioProgression,
+        adoption_id: Option<&str>,
+    ) -> Result<CollectedBinding> {
         for _ in 0..self.limits.max_polls {
             let status = self
                 .get(
@@ -708,7 +736,14 @@ impl ScenarioDriver {
                 return Err(ScenarioError::Response("run artifact mismatch"));
             }
             if let Some((installation, suite)) = acceptance {
-                if status["purpose"]["kind"] != "local_acceptance"
+                let kind = if adoption_id.is_some() {
+                    "adoption_acceptance"
+                } else {
+                    "local_acceptance"
+                };
+                if status["purpose"]["kind"] != kind
+                    || adoption_id
+                        .is_some_and(|adoption| status["purpose"]["adoption_id"] != adoption)
                     || status["purpose"]["installation_id"] != installation
                     || status["purpose"]["suite_id"] != suite
                 {
@@ -923,6 +958,219 @@ impl ScenarioDriver {
         Ok(successor)
     }
 
+    async fn adopt_automatic(
+        &self,
+        spec: &ScenarioSpec,
+        work: &Work,
+        org_b_id: &str,
+        org_a_id: &str,
+        artifact: &ArtifactPin,
+    ) -> Result<AdoptionResult> {
+        // The producer identity and artifact are intentionally absent. The
+        // organization selects from its own requirement and current authority.
+        let mut status = self
+            .post(
+                &self.b,
+                "/capability-adoptions",
+                json!({
+                    "client_request_id":format!("{}-adopt",spec.run_id),
+                    "mission_id":work.mission,"requirement_id":work.requirement,
+                    "role_id":work.role,"responsibility_id":work.responsibility,
+                    "suite_id":spec.suite_b_id,
+                    "provider_access_acknowledged":spec.provider_access_acknowledged,
+                }),
+                "request independent capability adoption",
+            )
+            .await?;
+        let id = field_id(&status, "id", "adoption identity")?;
+        let expected = AdoptionExpected {
+            id: &id,
+            org_id: org_b_id,
+            mission_id: &work.mission,
+            requirement_id: &work.requirement,
+            role_id: &work.role,
+            responsibility_id: &work.responsibility,
+            suite_id: &spec.suite_b_id,
+        };
+        let mut previous = None;
+        for _ in 0..self.limits.max_polls {
+            match adoption_observation(&status, previous.as_ref(), &expected).map_err(|reason| {
+                ScenarioError::Observation {
+                    kind: "adoption",
+                    id: id.clone(),
+                    reason,
+                }
+            })? {
+                ObservationDecision::Complete => {
+                    let selected: ArtifactPin =
+                        decode(status["artifact"].clone(), "selected adoption artifact")?;
+                    let publisher = status["selection"]["publisher"]
+                        .as_str()
+                        .filter(|value| !value.is_empty() && value.len() <= 256)
+                        .ok_or(ScenarioError::Response("selected publisher"))?
+                        .to_owned();
+                    if selected != *artifact || publisher != org_a_id {
+                        return Err(ScenarioError::Observation {
+                            kind: "adoption",
+                            id: id.clone(),
+                            reason: "independently selected capability differs from the published mission artifact",
+                        });
+                    }
+                    let installation =
+                        field_id(&status, "installation_id", "adoption installation")?;
+                    let jobs: Vec<String> =
+                        decode(status["job_ids"].clone(), "adoption acceptance jobs")?;
+                    let reference = status["acceptance_ref"]
+                        .as_str()
+                        .ok_or(ScenarioError::Response("adoption acceptance reference"))?
+                        .to_owned();
+                    let state = self.state(&self.b).await?;
+                    let installed = state
+                        .installations
+                        .values()
+                        .find(|item| item.installation_id.as_str() == installation)
+                        .ok_or(ScenarioError::Response("adoption installation is absent"))?;
+                    if state.org_id.as_str() != org_b_id
+                        || installed.status != InstallationStatus::Accepted
+                        || installed.acceptance_report_ref.as_deref() != Some(&reference)
+                        || installed.source_digest != artifact.source_sha256
+                        || installed.capability.capability_id.as_str() != artifact.capability_id
+                        || installed.capability.version != artifact.capability_version
+                    {
+                        return Err(ScenarioError::Response(
+                            "adoption installation proof binding mismatch",
+                        ));
+                    }
+                    for job in &jobs {
+                        self.collect_bound(
+                            job,
+                            artifact,
+                            Some((&installation, &spec.suite_b_id)),
+                            ScenarioProgression::Automatic,
+                            Some(&id),
+                        )
+                        .await?;
+                    }
+                    // Observation is not a backend proof token. Fresh invocations
+                    // below still require and re-read their immutable verifier proof.
+                    return Ok(AdoptionResult {
+                        id: Some(id),
+                        publisher: Some(publisher),
+                        installation,
+                        jobs,
+                        reference,
+                    });
+                }
+                ObservationDecision::Attention(reason) => {
+                    return Err(ScenarioError::Observation {
+                        kind: "adoption",
+                        id,
+                        reason,
+                    })
+                }
+                ObservationDecision::Wait => {}
+            }
+            tokio::time::sleep(self.limits.poll_interval).await;
+            previous = Some(status);
+            status = self
+                .get(
+                    &self.b,
+                    &format!("/capability-adoptions/{id}"),
+                    "observe independent adoption",
+                )
+                .await
+                .map_err(|_| ScenarioError::Observation {
+                    kind: "adoption",
+                    id: id.clone(),
+                    reason: "adoption status could not be observed",
+                })?;
+        }
+        Err(ScenarioError::Observation {
+            kind: "adoption",
+            id,
+            reason: "observation polling limit reached",
+        })
+    }
+
+    async fn adopt_manual(
+        &self,
+        spec: &ScenarioSpec,
+        work: &Work,
+        org_a_id: &str,
+        artifact: &ArtifactPin,
+        published: &Value,
+    ) -> Result<AdoptionResult> {
+        let hits = self.post(&self.b,"/capabilities/search",json!({"query":"venue capacity price availability portal","limit":100,"available_scopes":["capability.venue_lookup"]}),"discover inherited capability").await?;
+        let hits = hits
+            .as_array()
+            .ok_or(ScenarioError::Response("capability search"))?;
+        if !hits.iter().any(|hit| {
+            hit["capability_id"] == artifact.capability_id
+                && hit["version"] == artifact.capability_version
+                && hit["publisher"] == org_a_id
+                && hit["source_digest"] == artifact.source_sha256
+        }) {
+            return Err(ScenarioError::Stopped(
+                "exact published capability not discovered",
+            ));
+        }
+        let installed = self.post(&self.b,"/capability-installations",json!({"capability_id":artifact.capability_id,"version":artifact.capability_version}),"install inherited capability").await?;
+        let installation = field_id(&installed, "installation_id", "installation identity")?;
+        if installed["synthesis_calls"] != 0
+            || installed["manifest_source_digest"] != artifact.source_sha256
+            || installed["artifact"] != published["artifact"]
+        {
+            return Err(ScenarioError::Response(
+                "installation regenerated or changed artifact",
+            ));
+        }
+        let checks = self.post(&self.b,&format!("/capability-installations/{installation}/checks"),json!({"client_request_id":format!("{}-checks",spec.run_id),"role_id":work.role,"responsibility_id":work.responsibility,"suite_id":spec.suite_b_id}),"start independent local acceptance").await?;
+        let jobs: Vec<String> =
+            decode(checks["job_ids"].clone(), "local acceptance job identities")?;
+        let unique: BTreeSet<_> = jobs.iter().collect();
+        if jobs.len() < 3
+            || jobs.len() > 64
+            || unique.len() != jobs.len()
+            || jobs.iter().any(|id| !safe_id(id))
+        {
+            return Err(ScenarioError::Response("local acceptance job identities"));
+        }
+        for id in &jobs {
+            self.collect(
+                id,
+                artifact,
+                Some((&installation, &spec.suite_b_id)),
+                spec.progression,
+            )
+            .await?;
+        }
+        let accepted = self
+            .post(
+                &self.b,
+                &format!("/capability-installations/{installation}/acceptance"),
+                json!({"suite_id":spec.suite_b_id,"job_ids":jobs}),
+                "accept independent local proof",
+            )
+            .await?;
+        let reference = accepted["installation"]["acceptance_report_ref"]
+            .as_str()
+            .filter(|s| !s.is_empty() && !s.contains("dev-assertion"))
+            .ok_or(ScenarioError::Response("local acceptance reference"))?
+            .to_owned();
+        if accepted["installation"]["status"] != "ACCEPTED"
+            || accepted["installation"]["source_digest"] != artifact.source_sha256
+        {
+            return Err(ScenarioError::Response("local acceptance mismatch"));
+        }
+        Ok(AdoptionResult {
+            id: None,
+            publisher: Some(org_a_id.to_owned()),
+            installation,
+            jobs,
+            reference,
+        })
+    }
+
     async fn run_inner(&self, spec: &ScenarioSpec) -> Result<ScenarioReport> {
         let (org_a_id, org_b_id) = self.preflight(spec).await?;
         let a = self.seed(&self.a, spec, true).await?;
@@ -979,68 +1227,22 @@ impl ScenarioDriver {
             return Err(ScenarioError::Response("publication proof mismatch"));
         }
         let b = self.seed(&self.b, spec, false).await?;
-        let hits = self.post(&self.b,"/capabilities/search",json!({"query":"venue capacity price availability portal","limit":100,"available_scopes":["capability.venue_lookup"]}),"discover inherited capability").await?;
-        let hits = hits
-            .as_array()
-            .ok_or(ScenarioError::Response("capability search"))?;
-        if !hits.iter().any(|hit| {
-            hit["capability_id"] == artifact.capability_id
-                && hit["version"] == artifact.capability_version
-                && hit["publisher"] == org_a_id
-                && hit["source_digest"] == artifact.source_sha256
-        }) {
-            return Err(ScenarioError::Stopped(
-                "exact published capability not discovered",
-            ));
-        }
-        let installed = self.post(&self.b,"/capability-installations",json!({"capability_id":artifact.capability_id,"version":artifact.capability_version}),"install inherited capability").await?;
-        let installation = field_id(&installed, "installation_id", "installation identity")?;
-        if installed["synthesis_calls"] != 0
-            || installed["manifest_source_digest"] != artifact.source_sha256
-            || installed["artifact"] != published["artifact"]
-        {
-            return Err(ScenarioError::Response(
-                "installation regenerated or changed artifact",
-            ));
-        }
-        let checks = self.post(&self.b,&format!("/capability-installations/{installation}/checks"),json!({"client_request_id":format!("{}-checks",spec.run_id),"role_id":b.role,"responsibility_id":b.responsibility,"suite_id":spec.suite_b_id}),"start independent local acceptance").await?;
-        let jobs: Vec<String> =
-            decode(checks["job_ids"].clone(), "local acceptance job identities")?;
-        let unique: BTreeSet<_> = jobs.iter().collect();
-        if jobs.len() < 3
-            || jobs.len() > 64
-            || unique.len() != jobs.len()
-            || jobs.iter().any(|id| !safe_id(id))
-        {
-            return Err(ScenarioError::Response("local acceptance job identities"));
-        }
-        for id in &jobs {
-            self.collect(
-                id,
-                &artifact,
-                Some((&installation, &spec.suite_b_id)),
-                spec.progression,
-            )
-            .await?;
-        }
-        let accepted = self
-            .post(
-                &self.b,
-                &format!("/capability-installations/{installation}/acceptance"),
-                json!({"suite_id":spec.suite_b_id,"job_ids":jobs}),
-                "accept independent local proof",
-            )
-            .await?;
-        let reference = accepted["installation"]["acceptance_report_ref"]
-            .as_str()
-            .filter(|s| !s.is_empty() && !s.contains("dev-assertion"))
-            .ok_or(ScenarioError::Response("local acceptance reference"))?
-            .to_owned();
-        if accepted["installation"]["status"] != "ACCEPTED"
-            || accepted["installation"]["source_digest"] != artifact.source_sha256
-        {
-            return Err(ScenarioError::Response("local acceptance mismatch"));
-        }
+        let AdoptionResult {
+            id: adoption_b_id,
+            publisher: adoption_b_publisher,
+            installation,
+            jobs,
+            reference,
+        } = match spec.progression {
+            ScenarioProgression::Manual => {
+                self.adopt_manual(spec, &b, &org_a_id, &artifact, &published)
+                    .await?
+            }
+            ScenarioProgression::Automatic => {
+                self.adopt_automatic(spec, &b, &org_b_id, &org_a_id, &artifact)
+                    .await?
+            }
+        };
         self.propose(&self.b,format!("{}-attach",spec.run_id),&b.observation,json!([{"op":"AttachCapability","role":{"kind":"existing","role_id":b.role},"capability":{"capability_id":artifact.capability_id,"version":artifact.capability_version}}]),"attach locally accepted capability").await?;
         let invocation = InvocationContext {
             spec,
@@ -1126,6 +1328,8 @@ impl ScenarioDriver {
             acquisition_attempt: attempt,
             artifact,
             acquisition_usage: usage,
+            adoption_b_id,
+            adoption_b_publisher,
             installation_b_id: installation,
             acceptance_b_ref: reference,
             acceptance_b_jobs: jobs,

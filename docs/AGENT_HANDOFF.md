@@ -4,6 +4,35 @@ Updated: October 22, 2026.
 
 ## Current integration checkpoint
 
+Codex has pushed [PR #24](https://github.com/HenryWashuHe/genesis/pull/24),
+`codex/automatic-adoption-scenario`, implementation `72157aa`, observer `cdfaf17`,
+stacked on #19. Automatic mode sends one B-only adoption intent, observes durable
+selection/acceptance, then compares the selected artifact with A's publication.
+The report includes B's adoption ID/publisher; failed status reads retain the ID.
+Manual mode remains compatible. See [INHERITED_MISSION.md](INHERITED_MISSION.md).
+
+All **594 workspace tests** pass with `serde_json/preserve_order` (64 suites, zero
+failed/ignored), plus formatting and strict default-feature all-target Clippy.
+Five real-server scenario tests reject all legacy client search/install/checks/
+acceptance and step/verify writes; acceptance survives verifier retirement and
+SQLite restart, and successors still need fresh invocation proofs. Twelve pure
+observer tests and eight HTTP driver tests cover binding, phase/version changes,
+attention, malformed accepted status, polling bounds and failed observations.
+All provider execution remains loopback-fixture evidence, not live sponsor proof.
+
+Claude's updated #11/#12 and new #20–#23 are available. Original planner/Elastic
+regressions pass; new planner recovery defects are reproduced in test-only
+`70c4edb` and posted on #12. Specialist authority review is underway. Claude keeps
+planner, general lifecycle/saga/outbox, role activation, Elastic and UI. Codex's
+next scoped milestone is combined-stack integration in an isolated draft branch,
+with registration/conflict resolution and integration checks. Known blockers
+remain assigned to their source branches; no whole-kernel fallback or main merge
+is implied. The ongoing implementation objective continues.
+
+Capability dependency order: #8 → #9 → #10 → #13 → #14 → #15 → #16 → #17 → #18 → #19 → #24.
+
+### Previous durable adoption checkpoint
+
 Codex has pushed [PR #19](https://github.com/HenryWashuHe/genesis/pull/19),
 `codex/durable-adoption`, core `a640b36`, terminal recovery `f346d6a`, stacked on #18.
 B can create an adoption intent from its own requirement and trusted suite, discover

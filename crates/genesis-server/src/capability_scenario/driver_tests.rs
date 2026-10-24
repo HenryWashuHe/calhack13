@@ -10,6 +10,7 @@ use tokio::net::TcpListener;
 
 const ACQUISITION: &str = "acq-observer-test";
 const JOB: &str = "job-observer-test";
+const ADOPTION: &str = "adopt_0123456789abcdef0123456789abcdef";
 const PRIVATE: &str = "PRIVATE_PROVIDER_BODY_MUST_NOT_REACH_ERROR";
 
 #[derive(Clone)]
@@ -70,6 +71,56 @@ impl Server {
 
     fn requests(&self) -> Vec<(String, String, Value)> {
         self.state.seen.lock().unwrap().clone()
+    }
+
+    fn assert_only_adoption_requests(&self, spec: &ScenarioSpec) {
+        let seen = self.requests();
+        let creates: Vec<_> = seen
+            .iter()
+            .filter(|(method, _, _)| method == "POST")
+            .collect();
+        assert_eq!(
+            creates.len(),
+            1,
+            "observation must not recreate or fall back"
+        );
+        assert_eq!(creates[0].1, "/api/v1/capability-adoptions");
+        let request = creates[0].2.as_object().unwrap();
+        let fields: BTreeSet<_> = request.keys().map(String::as_str).collect();
+        let required = BTreeSet::from([
+            "client_request_id",
+            "mission_id",
+            "requirement_id",
+            "role_id",
+            "responsibility_id",
+            "suite_id",
+            "provider_access_acknowledged",
+        ]);
+        assert!(required.is_subset(&fields));
+        assert!(fields.is_subset(
+            &required
+                .union(&BTreeSet::from(["deadline"]))
+                .copied()
+                .collect()
+        ));
+        assert_eq!(request["mission_id"], "mission");
+        assert_eq!(request["requirement_id"], "requirement");
+        assert_eq!(request["role_id"], "role");
+        assert_eq!(request["responsibility_id"], "responsibility");
+        assert_eq!(request["suite_id"], spec.suite_b_id);
+        assert_eq!(request["provider_access_acknowledged"], true);
+        assert!(request["client_request_id"]
+            .as_str()
+            .is_some_and(|id| !id.is_empty()));
+        assert!(
+            seen.iter().all(|(method, path, _)| {
+                (method == "POST" && path == "/api/v1/capability-adoptions")
+                    || (method == "GET"
+                        && path == &format!("/api/v1/capability-adoptions/{ADOPTION}"))
+            }),
+            "unexpected request: {seen:?}"
+        );
+        self.assert_no_manual_effects();
     }
 
     fn assert_no_manual_effects(&self) {
@@ -289,6 +340,188 @@ async fn completed_finalization_cannot_replace_an_absent_or_malformed_proof() {
         assert_eq!(b.requests().len(), 2);
         assert!(b.requests().iter().all(|(method, _, _)| method == "GET"));
         b.assert_no_manual_effects();
+        assert!(a.requests().is_empty());
+    }
+}
+
+fn adoption_pin() -> ArtifactPin {
+    ArtifactPin {
+        capability_id: "venue".into(),
+        capability_version: "1".into(),
+        source_sha256: "a".repeat(64),
+        actor_id: "actor".into(),
+        build_id: "build".into(),
+        build_number: "0.1.0".into(),
+    }
+}
+
+fn adoption_status(spec: &ScenarioSpec, phase: &str, version: u64) -> Value {
+    let mut status = json!({
+        "id":ADOPTION,"version":version,"org_id":"org-b","mission_id":"mission",
+        "requirement_id":"requirement","role_id":"role","responsibility_id":"responsibility",
+        "assignment_id":"assignment","epoch":1,"suite_id":spec.suite_b_id,"phase":phase,
+        "created_at":"2026-10-22T00:00:00Z","updated_at":"2026-10-22T00:00:01Z",
+        "deadline":"2026-10-22T00:30:00Z","next_attempt_at":null,"discovery_attempts":1,
+        "selection":null,"artifact":null,"installation_id":null,"job_ids":[],
+        "acceptance_ref":null,"rejection_ref":null,"attention":null,"fence_reason":null,
+        "authority":"observational: local acceptance does not attach capabilities or satisfy a mission"
+    });
+    match phase {
+        "discovering" => status["next_attempt_at"] = json!("2026-10-22T00:00:02Z"),
+        "attention" => status["attention"] = json!("provider_unavailable"),
+        "accepted" => {
+            status["selection"] =
+                json!({"capability_id":"venue","version":"1","publisher":"org-a"});
+            status["artifact"] = json!(adoption_pin());
+            status["installation_id"] = json!("installation");
+            status["job_ids"] = json!(["check-a", "check-b", "check-c"]);
+            status["acceptance_ref"] = json!(format!("verification:{}", "c".repeat(64)));
+        }
+        _ => panic!("unsupported fixture phase"),
+    }
+    status
+}
+
+#[tokio::test]
+async fn automatic_adoption_attention_is_terminal_and_redacted() {
+    let mut spec = legacy_spec();
+    spec.progression = ScenarioProgression::Automatic;
+    spec.provider_access_acknowledged = true;
+    for code in ["provider_unavailable", "registry_unavailable", PRIVATE] {
+        let a = Server::start(vec![]).await;
+        let mut stopped = adoption_status(&spec, "attention", 2);
+        stopped["attention"] = json!(code);
+        let b = Server::start(vec![
+            (
+                "POST",
+                "/api/v1/capability-adoptions".into(),
+                adoption_status(&spec, "discovering", 1),
+            ),
+            (
+                "GET",
+                format!("/api/v1/capability-adoptions/{ADOPTION}"),
+                stopped,
+            ),
+        ])
+        .await;
+        let error = driver(&a, &b)
+            .adopt_automatic(&spec, &work(), "org-b", "org-a", &adoption_pin())
+            .await
+            .err()
+            .expect("attention must stop without a replacement intent");
+        assert!(
+            matches!(&error, ScenarioError::Observation { kind:"adoption", id, .. } if id == ADOPTION),
+            "{error}"
+        );
+        assert!(!error.to_string().contains(PRIVATE));
+        assert_eq!(b.requests().len(), 2);
+        b.assert_only_adoption_requests(&spec);
+        assert!(a.requests().is_empty());
+    }
+}
+
+#[tokio::test]
+async fn automatic_adoption_failed_read_keeps_the_id_without_recreating_work() {
+    let mut spec = legacy_spec();
+    spec.progression = ScenarioProgression::Automatic;
+    spec.provider_access_acknowledged = true;
+    let a = Server::start(vec![]).await;
+    let b = Server::start(vec![(
+        "POST",
+        "/api/v1/capability-adoptions".into(),
+        adoption_status(&spec, "discovering", 1),
+    )])
+    .await;
+    let error = driver(&a, &b)
+        .adopt_automatic(&spec, &work(), "org-b", "org-a", &adoption_pin())
+        .await
+        .err()
+        .expect("a failed observation must retain the committed intent identity");
+    assert!(matches!(&error, ScenarioError::Observation {
+        kind: "adoption", id, reason: "adoption status could not be observed"
+    } if id == ADOPTION));
+    assert!(!error.to_string().contains(PRIVATE));
+    assert_eq!(b.requests().len(), 2);
+    b.assert_only_adoption_requests(&spec);
+    assert!(a.requests().is_empty());
+}
+
+#[tokio::test]
+async fn automatic_adoption_polling_limit_keeps_the_intent_without_manual_fallback() {
+    let mut spec = legacy_spec();
+    spec.progression = ScenarioProgression::Automatic;
+    spec.provider_access_acknowledged = true;
+    let a = Server::start(vec![]).await;
+    let waiting = adoption_status(&spec, "discovering", 1);
+    let b = Server::start(vec![
+        (
+            "POST",
+            "/api/v1/capability-adoptions".into(),
+            waiting.clone(),
+        ),
+        (
+            "GET",
+            format!("/api/v1/capability-adoptions/{ADOPTION}"),
+            waiting,
+        ),
+    ])
+    .await;
+    let error = driver(&a, &b)
+        .adopt_automatic(&spec, &work(), "org-b", "org-a", &adoption_pin())
+        .await
+        .err()
+        .expect("waiting must hit the observation bound");
+    assert!(
+        matches!(&error, ScenarioError::Observation {
+        kind:"adoption", id, reason:"observation polling limit reached"
+    } if id == ADOPTION),
+        "{error}"
+    );
+    assert_eq!(b.requests().len(), 3);
+    b.assert_only_adoption_requests(&spec);
+    assert!(a.requests().is_empty());
+}
+
+#[tokio::test]
+async fn automatic_adoption_accepted_label_cannot_hide_a_binding_mismatch() {
+    let mut spec = legacy_spec();
+    spec.progression = ScenarioProgression::Automatic;
+    spec.provider_access_acknowledged = true;
+    for mismatched in ["suite", "publisher", "artifact", "reference"] {
+        let a = Server::start(vec![]).await;
+        let mut accepted = adoption_status(&spec, "accepted", 2);
+        match mismatched {
+            "suite" => accepted["suite_id"] = json!("wrong-local-suite"),
+            "publisher" => accepted["selection"]["publisher"] = json!("unrelated-publisher"),
+            "artifact" => accepted["artifact"]["source_sha256"] = json!("b".repeat(64)),
+            "reference" => accepted["acceptance_ref"] = json!(PRIVATE),
+            _ => unreachable!(),
+        }
+        let b = Server::start(vec![
+            (
+                "POST",
+                "/api/v1/capability-adoptions".into(),
+                adoption_status(&spec, "discovering", 1),
+            ),
+            (
+                "GET",
+                format!("/api/v1/capability-adoptions/{ADOPTION}"),
+                accepted,
+            ),
+        ])
+        .await;
+        let error = driver(&a, &b)
+            .adopt_automatic(&spec, &work(), "org-b", "org-a", &adoption_pin())
+            .await
+            .err()
+            .expect("accepted metadata cannot replace exact local proof bindings");
+        assert!(
+            matches!(&error, ScenarioError::Observation { kind:"adoption", id, .. } if id == ADOPTION),
+            "{mismatched}: {error}"
+        );
+        assert!(!error.to_string().contains(PRIVATE));
+        assert_eq!(b.requests().len(), 2);
+        b.assert_only_adoption_requests(&spec);
         assert!(a.requests().is_empty());
     }
 }
