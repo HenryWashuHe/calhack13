@@ -76,9 +76,10 @@ every milestone. All lower checkpoints are historical.
   `8ad9d645` regressions are unchanged. This supplies feedback, not adoption.
   Retain B's explicit selection/local acceptance decision and intended responsibility;
   #116 B-task records are now checked; local adoption and an accepted fresh
-  A return remain unestablished. Receiving wrapper #118 remains held at last
-  reviewed `5cf77828`: mutable input/spec binding and lost failure-history cases
-  persist in `e3f3779` (four failures/two controls). Newer pushes are unreviewed.
+  A return remain unestablished. Receiving wrapper #118 `68bc82d0` merged at
+  `ec23efb5`: frozen package/spec bytes and atomic failure summaries clear all
+  six original `e3f3779` mocked-process cases, retained unchanged. No runtime or
+  namespace rerun was performed here; storage remains trusted-host scope.
 - Eric (`EricZhu-31`) [acknowledged](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6386421464)
   the lab UI lane: `docs/invention-lab/ui.md` and `apps/web/src/invention-lab/**`,
   without shared routes. #93/#94 label/organization corrections and #99/#100
@@ -159,8 +160,11 @@ every milestone. All lower checkpoints are historical.
   merged at `70a00d51`: supported Sonnet 5.5 adaptive effort is frozen into
   client requests; historical identities stay unchanged. This is locally tested,
   not a live request, fixed hosted weights or G4 result. No generation is declared.
-  A fixed-candidate-pool policy experiment is only a proposed follow-up awaiting
-  interface agreement; it is not assigned work or a restriction on the moonshot.
+  Codex is implementing a pure retained-reference candidate-catalogue audit in
+  `genesis-core`; Henry retains runtime enforcement. The fixed-pool policy
+  experiment remains a separate proposed mechanism diagnostic, not a restriction
+  on the moonshot. Henry is preparing a K=3 workflow-versus-fresh protocol with
+  public fresh-task assessment; no additional model request is declared.
   Retain input-token/wall, billing, global enforcement and history limits.
   Preserve Henry's runtime files; provider/settings reproducibility, complete
   history, enforcement and end-to-end comparison remain open.
