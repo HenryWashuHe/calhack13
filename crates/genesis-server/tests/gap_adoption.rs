@@ -123,6 +123,8 @@ struct World {
     /// Next run submissions that are created but finish FAILED (definite).
     failing_runs: usize,
     failed: BTreeSet<usize>,
+    /// Collected outputs disagree with B's suite (same domain, incompatible).
+    wrong_outputs: bool,
     /// Next submissions whose POST response already reports the run FAILED
     /// (a definite terminal result, recorded with no receipt).
     failing_submits: usize,
@@ -195,10 +197,14 @@ impl World {
             }
             ("GET", ["v2", "datasets", dataset, "items"]) => {
                 let run: usize = dataset.strip_prefix("b-dataset-").unwrap().parse().unwrap();
-                (
-                    StatusCode::OK,
-                    json!([receipts()[self.runs[&run]].output.clone()]),
-                )
+                let mut output = receipts()[self.runs[&run]].output.clone();
+                if self.wrong_outputs {
+                    // Same shape, different facts: B's own suite must reject it.
+                    if let Some(venue) = output["venues"].get_mut(0) {
+                        venue["capacity"] = json!(venue["capacity"].as_u64().unwrap_or(0) + 7);
+                    }
+                }
+                (StatusCode::OK, json!([output]))
             }
             _ => (
                 StatusCode::NOT_FOUND,
@@ -283,6 +289,9 @@ impl Providers {
     }
     fn runs(&self) -> usize {
         self.count("POST", &format!("/v2/actors/{}/runs", pin().actor_id))
+    }
+    fn wrong_outputs(&self) {
+        self.world.lock().unwrap().wrong_outputs = true;
     }
     fn fail_submits(&self, n: usize) {
         self.world.lock().unwrap().failing_submits = n;
@@ -2445,4 +2454,397 @@ async fn a_check_failed_after_submission_still_blocks_retry_without_terminal_evi
     assert_eq!(body["error"], "adoption_checks_unresolved", "{body}");
     assert_eq!(f.record().unwrap().adoption_id.as_deref(), Some(first.id()));
     assert_eq!(f.providers.runs(), posts);
+}
+
+// ---------------------------------------------------------------------------
+// Henry's Claude: why each registry candidate was or wasn't used.
+// ---------------------------------------------------------------------------
+
+fn decisions(
+    f: &Fixture,
+) -> Vec<genesis_server::capability_adoption_candidates::CandidateDecision> {
+    let id = f
+        .record()
+        .and_then(|r| r.adoption_id)
+        .expect("an adoption was dispatched");
+    f.app.store.adoption_candidates(&id).unwrap()
+}
+
+fn kinds(f: &Fixture) -> Vec<(String, &'static str)> {
+    decisions(f)
+        .iter()
+        .map(|d| (d.publisher.to_string(), d.decision.as_str()))
+        .collect()
+}
+
+#[tokio::test]
+async fn an_adopted_candidate_records_why_and_the_local_acceptance_that_decided_it() {
+    let mut f = Fixture::new(Options::default()).await;
+    f.serve().await;
+    f.wait_for("installed", |f| installed(&f.gap_status()).is_some())
+        .await;
+    f.stop();
+    let ds = decisions(&f);
+    let adopted: Vec<_> = ds
+        .iter()
+        .filter(|d| d.decision.as_str() == "adopted")
+        .collect();
+    assert_eq!(adopted.len(), 1, "{ds:#?}");
+    let adopted = adopted[0];
+    let status = f.gap_status();
+    let (id, _, installation) = installed(&status).unwrap();
+    assert_eq!(adopted.capability_id.as_str(), FOREIGN);
+    assert_eq!(adopted.version, "1.0.0");
+    assert_ne!(adopted.publisher.as_str(), ORG);
+    let acceptance = f.state().installations[installation]
+        .acceptance_report_ref
+        .clone()
+        .unwrap();
+    assert_eq!(adopted.acceptance_ref.as_deref(), Some(acceptance.as_str()));
+    assert!(adopted.reason.contains("accepted"));
+    // B's own publication is never inherited: skipped as its own when it
+    // ranks first, otherwise never evaluated after the selection.
+    for d in ds.iter().filter(|d| d.publisher.as_str() == ORG) {
+        assert!(
+            matches!(d.decision.as_str(), "own_publication" | "not_evaluated"),
+            "{d:#?}"
+        );
+    }
+    for d in ds.iter().filter(|d| d.rank > adopted.rank) {
+        assert_eq!(d.decision.as_str(), "not_evaluated", "{d:#?}");
+    }
+    assert_eq!(f.record().unwrap().adoption_id.as_deref(), Some(id));
+    assert_eq!(f.providers.model_calls(), 0);
+}
+
+#[tokio::test]
+async fn an_incompatible_candidate_is_rejected_with_a_reason_and_not_regenerated() {
+    // Same domain, different facts: B's own suite rejects A's capability.
+    let mut f = Fixture::new(Options::default()).await;
+    f.providers.wrong_outputs();
+    f.serve().await;
+    f.wait_for("refused or attention", |f| {
+        f.record().is_some_and(|r| {
+            matches!(
+                r.state,
+                GapAdoptionState::Refused | GapAdoptionState::Attention
+            )
+        })
+    })
+    .await;
+    f.stop();
+    let ds = decisions(&f);
+    let rejected: Vec<_> = ds
+        .iter()
+        .filter(|d| d.decision.as_str() == "not_applicable")
+        .collect();
+    assert_eq!(rejected.len(), 1, "{ds:#?}");
+    let rejected = rejected[0];
+    assert!(
+        rejected.reason.contains("acceptance suite rejected it")
+            && rejected.reason.contains("cases failed"),
+        "{}",
+        rejected.reason
+    );
+    assert!(rejected
+        .acceptance_ref
+        .as_deref()
+        .is_some_and(|r| r.starts_with("adoption-rejection:")));
+    // No expected (oracle) value leaks into the reason.
+    let expected = receipts()[0].output["venues"][0]["capacity"].to_string();
+    assert!(!rejected.reason.contains(&expected), "{}", rejected.reason);
+    assert!(installed(&f.gap_status()).is_none());
+    assert_eq!(
+        f.providers.model_calls(),
+        0,
+        "a rejection is not regeneration"
+    );
+    assert!(!f.driver_bound());
+}
+
+#[tokio::test]
+async fn an_empty_search_records_each_skipped_candidate_and_no_selection() {
+    let f = Fixture::new(Options {
+        foreign: false,
+        fallback: false,
+        ..Options::default()
+    })
+    .await;
+    assert_eq!(f.drain().await, Some(Step::Frozen));
+    assert_eq!(f.drain().await, Some(Step::Dispatched));
+    f.adoption_step().await;
+    let k = kinds(&f);
+    assert!(
+        !k.is_empty(),
+        "B's own publication was returned by the search"
+    );
+    assert!(k.iter().all(|(_, d)| *d == "own_publication"), "{k:?}");
+    assert_eq!(
+        f.adoptions()[0].attention_code(),
+        Some(AdoptionAttention::NoCandidate)
+    );
+}
+
+#[tokio::test]
+async fn an_unreachable_registry_records_no_decision_and_stays_unknown() {
+    let f = Fixture::new(Options {
+        registry_up: false,
+        ..Options::default()
+    })
+    .await;
+    assert_eq!(f.drain().await, Some(Step::Frozen));
+    assert_eq!(f.drain().await, Some(Step::Dispatched));
+    f.adoption_step().await;
+    assert!(decisions(&f).is_empty(), "nothing was evaluated");
+    assert_eq!(
+        f.adoptions()[0].attention_code(),
+        Some(AdoptionAttention::RegistryUnavailable)
+    );
+    assert!(!f.driver_bound(), "an unknown search is never an empty one");
+    assert_eq!(f.providers.model_calls(), 0);
+}
+
+#[tokio::test]
+async fn candidate_decisions_survive_restart_and_repeated_passes_unchanged() {
+    let mut f = Fixture::new(Options::default()).await;
+    assert_eq!(f.drain().await, Some(Step::Frozen));
+    assert_eq!(f.drain().await, Some(Step::Dispatched));
+    f.adoption_step().await;
+    let before = decisions(&f);
+    assert!(before.iter().any(|d| d.decision.as_str() == "selected"));
+    f.reopen();
+    f.adoption_step().await;
+    f.drain().await;
+    let after = decisions(&f);
+    // The selected row may only have been concluded; nothing else changes.
+    assert_eq!(before.len(), after.len());
+    for (b, a) in before.iter().zip(&after) {
+        assert_eq!(
+            (b.rank, &b.capability_id, &b.version),
+            (a.rank, &a.capability_id, &a.version)
+        );
+        if b.decision.as_str() != "selected" {
+            assert_eq!(b, a);
+        }
+    }
+}
+
+#[tokio::test]
+async fn candidate_decisions_are_operator_only_and_carry_no_private_text() {
+    let mut f = Fixture::new(Options::default()).await;
+    f.serve().await;
+    f.wait_for("installed", |f| installed(&f.gap_status()).is_some())
+        .await;
+    f.stop();
+    let id = f.record().unwrap().adoption_id.unwrap();
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let url = format!("http://{}", listener.local_addr().unwrap());
+    let router = f.app.clone().router();
+    let server = tokio::spawn(async move { axum::serve(listener, router).await.unwrap() });
+    let http = reqwest::Client::builder().no_proxy().build().unwrap();
+    let get = |token: String| {
+        http.get(format!("{url}/api/v1/capability-adoptions/{id}/candidates"))
+            .bearer_auth(token)
+            .send()
+    };
+    let agent = get(format!("{ORG}-agent")).await.unwrap();
+    assert!(agent.status().is_client_error(), "{}", agent.status());
+    let operator = get(format!("{ORG}-operator")).await.unwrap();
+    assert_eq!(operator.status(), reqwest::StatusCode::OK);
+    let body: Value = operator.json().await.unwrap();
+    server.abort();
+    assert_eq!(body["adoption_id"], json!(id));
+    let items = body["items"].as_array().unwrap();
+    assert!(items.iter().any(|d| d["decision"] == "adopted"), "{body}");
+    let text = body.to_string();
+    for case in &b_suite().cases {
+        let expected = serde_json::to_string(&case.expected).unwrap();
+        assert!(!text.contains(&expected), "oracle leaked: {text}");
+    }
+    assert!(!text.contains("\"intent\""), "{text}");
+}
+
+// Independent PR116 checks: logging must stay readable for refused answers and
+// must not change first-eligible selection merely by examining later ranks.
+async fn review_registry_answer(f: &mut Fixture, candidates: Value) -> tokio::task::JoinHandle<()> {
+    let router = Router::new().fallback(move |request: Request| {
+        let candidates = candidates.clone();
+        async move {
+            if request.uri().path().ends_with("/search") {
+                Json(candidates)
+            } else {
+                Json(manifest(FOREIGN, "org-a"))
+            }
+        }
+    });
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let url = format!("http://{}", listener.local_addr().unwrap());
+    let task = tokio::spawn(async move { axum::serve(listener, router).await.unwrap() });
+    f.app.registry = Some(genesis_server::registry::RegistryClient::new(
+        url,
+        "fixture-reader",
+    ));
+    task
+}
+
+fn review_search_candidate(score: f64) -> Value {
+    let m = manifest(FOREIGN, "org-a");
+    json!({"capability_id":m["capability_id"],"version":m["version"],
+        "publisher":m["publisher"],"source_digest":m["source_digest"],
+        "intent":m["intent"],"applicability_conditions":m["applicability_conditions"],
+        "required_permissions":m["required_permissions"],"score":score})
+}
+
+#[tokio::test]
+async fn review_candidate_log_preserves_first_eligible_selection() {
+    let mut f = Fixture::new(Options::default()).await;
+    let registry = review_registry_answer(
+        &mut f,
+        json!([review_search_candidate(2.0), review_search_candidate(0.0)]),
+    )
+    .await;
+    f.drain().await;
+    f.drain().await;
+    let id = f.record().unwrap().adoption_id.unwrap();
+    let record = capability_adoption::step(&f.app, &id).await.unwrap();
+    registry.abort();
+    assert_eq!(
+        record.phase(),
+        AdoptionPhase::Selected,
+        "observability-only logging must preserve selection before an unevaluated later candidate"
+    );
+}
+
+#[tokio::test]
+async fn review_overflow_score_refusal_keeps_candidate_log_readable() {
+    let mut f = Fixture::new(Options::default()).await;
+    // This is a valid finite JSON number, but it exceeds f32's range.
+    let registry = review_registry_answer(&mut f, json!([review_search_candidate(1e39)])).await;
+    f.drain().await;
+    f.drain().await;
+    let id = f.record().unwrap().adoption_id.unwrap();
+    let record = capability_adoption::step(&f.app, &id).await.unwrap();
+    registry.abort();
+    assert_eq!(record.phase(), AdoptionPhase::Attention);
+    let recorded = f.app.store.adoption_candidates(&id);
+    assert!(
+        recorded.is_ok(),
+        "a refused registry score must not persist an unreadable decision: {recorded:?}"
+    );
+}
+
+#[tokio::test]
+async fn review_zero_score_refusal_is_readable_control() {
+    let mut f = Fixture::new(Options::default()).await;
+    let registry = review_registry_answer(&mut f, json!([review_search_candidate(0.0)])).await;
+    f.drain().await;
+    f.drain().await;
+    let id = f.record().unwrap().adoption_id.unwrap();
+    let record = capability_adoption::step(&f.app, &id).await.unwrap();
+    registry.abort();
+    assert_eq!(record.phase(), AdoptionPhase::Attention);
+    assert_eq!(
+        record.attention_code(),
+        Some(AdoptionAttention::InvalidCandidate)
+    );
+    let recorded = f.app.store.adoption_candidates(&id).unwrap();
+    assert_eq!(recorded.len(), 1);
+    assert_eq!(recorded[0].decision.as_str(), "invalid_response");
+}
+
+#[tokio::test]
+async fn a_valid_first_candidate_is_adopted_and_a_later_overflowing_score_stays_readable() {
+    // Henry's Claude, for Codex's #116 review: rank 0 is eligible and is
+    // selected before rank 1's out-of-range score is ever examined. The
+    // unevaluated row keeps no score (JSON can't hold infinity), so the log
+    // stays readable through local acceptance and its conclusion.
+    let mut f = Fixture::new(Options::default()).await;
+    let registry = review_registry_answer(
+        &mut f,
+        json!([review_search_candidate(2.0), review_search_candidate(1e39)]),
+    )
+    .await;
+    assert_eq!(f.drain().await, Some(Step::Frozen));
+    assert_eq!(f.drain().await, Some(Step::Dispatched));
+    f.adoption_step().await;
+    assert_eq!(f.adoptions()[0].phase(), AdoptionPhase::Selected);
+    let selected = decisions(&f);
+    assert_eq!(selected.len(), 2);
+    assert_eq!(selected[0].decision.as_str(), "selected");
+    assert_eq!(selected[0].score, Some(2.0));
+    assert_eq!(selected[1].decision.as_str(), "not_evaluated");
+    assert_eq!(selected[1].score, None);
+    f.serve().await;
+    f.wait_for("installed", |f| installed(&f.gap_status()).is_some())
+        .await;
+    f.stop();
+    registry.abort();
+    let done = decisions(&f);
+    assert_eq!(done[0].decision.as_str(), "adopted");
+    assert!(done[0].acceptance_ref.is_some());
+    assert_eq!(done[1], selected[1]);
+}
+
+#[tokio::test]
+async fn an_already_installed_version_records_an_installation_conflict_without_checks() {
+    // Henry's Claude, for Codex's #116 review: a separate intent that selects
+    // a version this organization already accepted stops at
+    // `installation_conflict`, with the reason committed alongside the stop.
+    // It never claims to have run acceptance checks.
+    let mut f = Fixture::new(Options::default()).await;
+    f.serve().await;
+    f.wait_for("installed", |f| installed(&f.gap_status()).is_some())
+        .await;
+    f.stop();
+    let posts = f.providers.runs();
+    let gap = f.record().unwrap();
+    let suite = f.app.evidence_policy.suite(&gap.suite_id).unwrap();
+    let (second, created) = f
+        .app
+        .store
+        .create_adoption(
+            &genesis_server::capability_adoption_store::CreateAdoption {
+                client_request_id: "operator-second-intent".into(),
+                mission_id: gap.mission_id.clone(),
+                requirement_id: gap.requirement_id.clone(),
+                role_id: gap.role_id.clone(),
+                responsibility_id: gap.responsibility_id.clone(),
+                suite_id: gap.suite_id.clone(),
+                provider_access_acknowledged: true,
+                deadline: None,
+            },
+            suite,
+            Utc::now(),
+        )
+        .unwrap();
+    assert!(created);
+    let stopped = capability_adoption::step(&f.app, second.id())
+        .await
+        .unwrap();
+    assert_eq!(stopped.phase(), AdoptionPhase::Attention);
+    assert_eq!(
+        stopped.attention_code(),
+        Some(AdoptionAttention::InstallationConflict)
+    );
+    let rows = f.app.store.adoption_candidates(second.id()).unwrap();
+    let conflict: Vec<_> = rows
+        .iter()
+        .filter(|d| d.decision.as_str() == "installation_conflict")
+        .collect();
+    assert_eq!(conflict.len(), 1, "{rows:?}");
+    assert!(conflict[0].acceptance_ref.is_none());
+    assert!(conflict[0]
+        .reason
+        .contains("without running acceptance checks"));
+    assert!(rows.iter().all(|d| !matches!(
+        d.decision.as_str(),
+        "selected" | "adopted" | "not_applicable"
+    )));
+    // Repeating the step changes nothing and submits nothing.
+    capability_adoption::step(&f.app, second.id())
+        .await
+        .unwrap();
+    assert_eq!(f.app.store.adoption_candidates(second.id()).unwrap(), rows);
+    assert_eq!(f.providers.runs(), posts);
+    assert_eq!(f.state().installations.len(), 1);
 }
