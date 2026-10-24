@@ -4,6 +4,8 @@
 //! source fetch, conversation memory, booking or sponsor evidence is claimed.
 #[path = "venue_assessments/intake.rs"]
 mod intake;
+#[path = "venue_assessments/monitor_mutants.rs"]
+mod monitor_mutants;
 #[path = "venue_assessments/recovery.rs"]
 mod recovery;
 #[path = "venue_assessments/review_monitors.rs"]
