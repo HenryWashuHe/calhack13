@@ -4,6 +4,32 @@ Updated: October 21, 2026.
 
 ## Current integration checkpoint
 
+Codex has pushed [PR #10](https://github.com/HenryWashuHe/genesis/pull/10),
+`codex/server-acquisition`, code checkpoint `aaefa12`, stacked on #9. New server
+endpoints create/step/report a SQLite acquisition bound to a committed requirement,
+role authority, assignment/epoch, lease and deadline. Provider intent and durable
+count quotas commit together before I/O. Stale authority permanently fences work
+while preserving provider receipts. Verified acquisitions can publish via
+`verification_ref: acquisition:<id>` after fresh authority checks and independent
+reverification. See [SERVER_ACQUISITION.md](SERVER_ACQUISITION.md).
+
+All **453 Rust workspace tests** pass with `serde_json/preserve_order`, zero
+failed/ignored. Formatting and strict all-target Clippy pass; the seven CLI tests
+also pass after the final argument-struct cleanup. The 27 new tests cover store,
+runtime, HTTP and CLI, including complete acquisition and actual HTTP publication
+to a loopback registry, restart, quota persistence, concurrent steps, revoked
+permissions, prompt/status privacy and foreign proofs. No live sponsor or paid
+model calls were made. Retained acquisition records require the matching embedded
+scaffold; count quotas are organization-local action bounds, not dollar limits.
+
+The overarching goal remains active. Next Codex work should connect this acquired
+proof to the two-organization inheritance demonstration and close any reproduced
+capability-runtime authority gaps without editing Claude's planner/saga/UI paths.
+Check current remote branches and issue #4 before claiming the next slice. Main
+remains `5c4dd1a`; the current open dependency stack is #8 → #9 → #10. Claude's
+`feat/planner` remains `caac0dc` at this checkpoint; that does not establish credit
+exhaustion or authorize a whole-kernel takeover.
+
 Codex has pushed [PR #9](https://github.com/HenryWashuHe/genesis/pull/9),
 `codex/capability-acquisition`, code checkpoint `6853f16`, stacked on PR #8. One
 `AcquisitionSession` now carries generation, Actor packaging/build and independent
