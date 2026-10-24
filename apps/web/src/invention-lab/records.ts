@@ -93,12 +93,27 @@ export interface GenerationStatus {
   usage: Record<UsageDimension, Usage> | null;
   package: ExactRef | null;
   authority: string;
+  /** Optional enum-only protocol rejection diagnostic (#90); absent in older records. */
+  diagnostic: { rejection: string; stop_reason: string | null } | null;
+  /** Top-level fields this decoder does not know, listed rather than dropped. */
+  unrecognized_fields: string[];
 }
+const STATUS_FIELDS = new Set([
+  "operation_id", "org_id", "phase", "settings", "plan_sha256", "request_sha256", "wire_sha256",
+  "transport", "actual_model", "usage", "package", "authority", "diagnostic",
+]);
 export function decodeGenerationStatus(v: unknown): GenerationStatus {
   const at = "status";
   const o = obj(v, at);
   const s = obj(o.settings, `${at}.settings`);
+  let diagnostic: GenerationStatus["diagnostic"] = null;
+  if (o.diagnostic != null) {
+    const d = obj(o.diagnostic, `${at}.diagnostic`);
+    diagnostic = { rejection: str(d, "rejection", `${at}.diagnostic`), stop_reason: optStr(d, "stop_reason", `${at}.diagnostic`) };
+  }
   return {
+    diagnostic,
+    unrecognized_fields: Object.keys(o).filter((k) => !STATUS_FIELDS.has(k)).sort(),
     operation_id: str(o, "operation_id", at),
     org_id: str(o, "org_id", at),
     phase: str(o, "phase", at),
