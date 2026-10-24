@@ -677,6 +677,13 @@ fn step_locked(app: &AppState, state: &OrgState, gap_id: &CapabilityGapId) -> St
         AdoptionPhase::Rejected => refuse(app, state, gap, Some(&r), GapAdoptionCode::Rejected),
         AdoptionPhase::Fenced => refuse(app, state, gap, Some(&r), GapAdoptionCode::Authority),
         AdoptionPhase::Attention => match adoption.attention_code() {
+            // An empty search answered the frozen grant only. A changed grant
+            // (even the same role under a new assignment or epoch) must not
+            // inherit it: neither the synthesis fallback nor a NoCandidate
+            // refusal, so refuse on authority before either.
+            Some(A::NoCandidate) if !authorized(state, &r) => {
+                refuse(app, state, gap, Some(&r), GapAdoptionCode::Authority)
+            }
             Some(A::NoCandidate)
                 if r.synthesis_fallback && gap.status == CapabilityGapStatus::Open =>
             {

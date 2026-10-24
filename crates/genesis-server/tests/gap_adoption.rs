@@ -1826,3 +1826,224 @@ async fn stored_records_that_disagree_with_their_row_or_gap_are_not_trusted() {
     assert_eq!(f.record().unwrap(), rewritten);
     assert_eq!(installed(&f.gap_status()).unwrap().0, id);
 }
+
+#[tokio::test]
+async fn review_empty_search_cannot_release_a_gap_after_public_same_owner_delegation() {
+    let f = Fixture::new(Options {
+        foreign: false,
+        ..Options::default()
+    })
+    .await;
+    assert_eq!(f.drain().await, Some(Step::Frozen));
+    assert_eq!(f.drain().await, Some(Step::Dispatched));
+    f.adoption_step().await;
+    assert_eq!(
+        f.adoptions()[0].attention_code(),
+        Some(AdoptionAttention::NoCandidate)
+    );
+    let frozen = f.record().unwrap();
+    let state = f.state();
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let url = format!("http://{}", listener.local_addr().unwrap());
+    let router = f.app.clone().router();
+    let server = tokio::spawn(async move { axum::serve(listener, router).await.unwrap() });
+    let response = reqwest::Client::builder()
+        .no_proxy()
+        .build()
+        .unwrap()
+        .post(format!("{url}/api/v1/org-changes"))
+        .bearer_auth(format!("{ORG}-operator"))
+        .json(&json!({
+            "client_request_id":"review-adoption-fallback-public-delegation",
+            "proposal":{
+                "expected_org_revision":state.revision,
+                "trigger_evidence_ids":state.capability_gaps[&f.gap_id].triggering_evidence,
+                "rationale":"Make the accountable role the explicit executor under a fresh grant",
+                "budget_limit_cents":0,
+                "operations":[{"op":"DelegateTask",
+                    "responsibility":{"kind":"existing","responsibility_id":frozen.responsibility_id},
+                    "executor":{"kind":"role","role":{"kind":"existing","role_id":frozen.role_id}},
+                    "task":"Continue work under the new explicit executor grant"}]
+            }
+        }))
+        .send()
+        .await
+        .unwrap();
+    let status = response.status();
+    let body: Value = response.json().await.unwrap();
+    server.abort();
+    assert!(status.is_success(), "{status}: {body}");
+    let state = f.state();
+    let grant = state.active_assignment(&frozen.responsibility_id).unwrap();
+    assert_ne!(grant.assignment_id, frozen.assignment_id);
+    assert!(grant.epoch > frozen.epoch);
+    // The search belonged to the revoked grant. A new owner's grant cannot
+    // inherit its permission to synthesize, even when it is the same role.
+    let outcome = f.drain().await;
+    capability_gap_driver::drain_once(&f.app).await.unwrap();
+    assert!(
+        !f.driver_bound(),
+        "stale empty-search result handed the gap to synthesis under a new grant: {outcome:?}, {:?}",
+        f.record()
+    );
+    assert_eq!(outcome, Some(Step::Refused(GapAdoptionCode::Authority)));
+    assert_eq!(f.providers.model_calls(), 0);
+    assert_eq!(f.adoptions().len(), 1);
+}
+
+#[tokio::test]
+async fn review_unknown_native_check_cannot_be_replayed_through_a_fresh_adoption() {
+    use genesis_server::capability_runtime::CapabilityRunPhase;
+    let f = Fixture::new(Options {
+        ambiguous_runs: true,
+        ..Options::default()
+    })
+    .await;
+    assert_eq!(f.drain().await, Some(Step::Frozen));
+    assert_eq!(f.drain().await, Some(Step::Dispatched));
+    f.adoption_step().await;
+    f.adoption_step().await;
+    let first = f.adoptions()[0].clone();
+    assert_eq!(first.phase(), AdoptionPhase::Checking);
+    let old_job = first.job_ids()[0].clone();
+    // The provider creates a real loopback run but responds 503; the native
+    // POST therefore has an unknown outcome, retained for reconciliation.
+    for _ in 0..10 {
+        let _ = f.app.capability_runtime.step(&old_job, false).await;
+        if f.app.store.get_capability_run(&old_job).unwrap().phase
+            == CapabilityRunPhase::NeedsReconciliation
+        {
+            break;
+        }
+    }
+    assert_eq!(
+        f.app.store.get_capability_run(&old_job).unwrap().phase,
+        CapabilityRunPhase::NeedsReconciliation
+    );
+    let posts = f.providers.runs();
+    assert_eq!(posts, 1);
+    f.adoption_step().await;
+    assert_eq!(
+        f.drain().await,
+        Some(Step::Attention(GapAdoptionCode::Checks))
+    );
+    let (status, body) = retry(&f, "operator").await;
+    if status == reqwest::StatusCode::CONFLICT {
+        assert_eq!(f.record().unwrap().adoption_id.as_deref(), Some(first.id()));
+        assert_eq!(f.adoptions().len(), 1);
+        assert_eq!(f.providers.runs(), posts);
+        return;
+    }
+    assert_eq!(status, reqwest::StatusCode::OK, "{body}");
+    assert_eq!(f.drain().await, Some(Step::Dispatched));
+    let second_id = f.record().unwrap().adoption_id.unwrap();
+    assert_ne!(second_id, first.id());
+    f.adoption_step().await;
+    f.adoption_step().await;
+    let second = f.app.store.get_adoption(&second_id).unwrap();
+    assert_eq!(second.phase(), AdoptionPhase::Checking);
+    let new_job = second.job_ids()[0].clone();
+    assert_ne!(new_job, old_job);
+    for _ in 0..10 {
+        let _ = f.app.capability_runtime.step(&new_job, false).await;
+        if f.app.store.get_capability_run(&new_job).unwrap().phase
+            == CapabilityRunPhase::NeedsReconciliation
+        {
+            break;
+        }
+    }
+    assert_eq!(
+        f.app.store.get_capability_run(&old_job).unwrap().phase,
+        CapabilityRunPhase::NeedsReconciliation,
+        "the original native effect is still unresolved"
+    );
+    assert_eq!(
+        f.providers.runs(),
+        posts,
+        "new adoption {second_id} submitted the same native check again while {} still has an unknown outcome",
+        first.id()
+    );
+}
+
+#[tokio::test]
+async fn review_configuration_retry_cannot_replay_an_unknown_native_check() {
+    use genesis_server::capability_runtime::CapabilityRunPhase;
+    let mut f = Fixture::new(Options {
+        ambiguous_runs: true,
+        ..Options::default()
+    })
+    .await;
+    assert_eq!(f.drain().await, Some(Step::Frozen));
+    assert_eq!(f.drain().await, Some(Step::Dispatched));
+    f.adoption_step().await;
+    f.adoption_step().await;
+    let first = f.adoptions()[0].clone();
+    assert_eq!(first.phase(), AdoptionPhase::Checking);
+    let old_job = first.job_ids()[0].clone();
+    // The provider creates a real loopback run but responds 503; the native
+    // POST therefore has an unknown outcome, retained for reconciliation.
+    for _ in 0..10 {
+        let _ = f.app.capability_runtime.step(&old_job, false).await;
+        if f.app.store.get_capability_run(&old_job).unwrap().phase
+            == CapabilityRunPhase::NeedsReconciliation
+        {
+            break;
+        }
+    }
+    assert_eq!(
+        f.app.store.get_capability_run(&old_job).unwrap().phase,
+        CapabilityRunPhase::NeedsReconciliation
+    );
+    let posts = f.providers.runs();
+    assert_eq!(posts, 1);
+    // Ordinary restart configuration drift is observed before the adoption
+    // inspects its child run. Restoring configuration cannot erase that run.
+    let mut suite = b_suite();
+    suite.cases[0].input["attendees"] =
+        json!(suite.cases[0].input["attendees"].as_u64().unwrap() + 1);
+    f.config.oracle_suites = vec![suite];
+    f.reopen();
+    f.adoption_step().await;
+    assert_eq!(
+        f.drain().await,
+        Some(Step::Attention(GapAdoptionCode::Configuration))
+    );
+    f.config.oracle_suites = vec![b_suite()];
+    f.reopen();
+    let (status, body) = retry(&f, "operator").await;
+    if status == reqwest::StatusCode::CONFLICT {
+        assert_eq!(f.record().unwrap().adoption_id.as_deref(), Some(first.id()));
+        assert_eq!(f.adoptions().len(), 1);
+        assert_eq!(f.providers.runs(), posts);
+        return;
+    }
+    assert_eq!(status, reqwest::StatusCode::OK, "{body}");
+    assert_eq!(f.drain().await, Some(Step::Dispatched));
+    let second_id = f.record().unwrap().adoption_id.unwrap();
+    assert_ne!(second_id, first.id());
+    f.adoption_step().await;
+    f.adoption_step().await;
+    let second = f.app.store.get_adoption(&second_id).unwrap();
+    assert_eq!(second.phase(), AdoptionPhase::Checking);
+    let new_job = second.job_ids()[0].clone();
+    assert_ne!(new_job, old_job);
+    for _ in 0..10 {
+        let _ = f.app.capability_runtime.step(&new_job, false).await;
+        if f.app.store.get_capability_run(&new_job).unwrap().phase
+            == CapabilityRunPhase::NeedsReconciliation
+        {
+            break;
+        }
+    }
+    assert_eq!(
+        f.app.store.get_capability_run(&old_job).unwrap().phase,
+        CapabilityRunPhase::NeedsReconciliation,
+        "the original native effect is still unresolved"
+    );
+    assert_eq!(
+        f.providers.runs(),
+        posts,
+        "new adoption {second_id} submitted the same native check again while {} still has an unknown outcome",
+        first.id()
+    );
+}
