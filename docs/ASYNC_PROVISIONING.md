@@ -70,11 +70,15 @@ Tests: `crates/genesis-server/tests/specialist_jobs.rs`.
   in the git-ignored `.env`; none set means CREAO stays unconfigured, a partial
   set refuses to start and names the missing variables (never the key).
   Startup runs `recover_interrupted()` before serving. `/health` lists
-  `configured_specialists`. Being registered is not being ready: without the
-  verifier below a CREAO role stays PROVISIONING after collection.
-- **A readiness verifier** for CREAO: a saved bridge-readiness run whose
-  gateway receipt the backend observes, registered with
-  `AppState::with_readiness_verifier(Provider::Creao, …)`.
+  `configured_specialists`. Being registered is not being ready: without a
+  readiness verifier a created CREAO agent stays `awaiting_readiness`.
+- **The readiness verifier's kernel side is done**: `GatewayReadiness` issues a
+  one-time challenge and accepts the agent's receipt at
+  `POST /api/v1/gateway/readiness-receipts` (see
+  [GATEWAY_READINESS.md](GATEWAY_READINESS.md)). Still needed: the CREAO
+  `ReadinessProbe` that runs the created agent's gateway skill with the
+  challenge (a readiness run purpose in the CREAO runtime), its registration
+  with `GENESIS_PUBLIC_URL`, and a live skill install.
 - **Attaching a found native agent** to a `needs_reconciliation` operation.
   Today an operator can only abandon it:
   `POST /api/v1/org-changes/{id}/operations/{role_key}/abandon` with
