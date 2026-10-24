@@ -21,8 +21,9 @@ Event organization is discarded as the product/demo. Preserve existing venue
 code/tests as historical integration fixtures; do not expand that product story
 or use its completion as the new gate. The [invention-lab A → B → A demonstration](docs/INVENTION_LAB_DEMO.md)
 is proposed, not complete. Its simulator primitives (#37–#39) are merged;
-the executor/scoring stack (#42–#46) has open review holds, method synthesis
-is active in the forge, and the recursive-benefit experiment remains open.
+the executor/scoring/verdict stack (#42–#46 and #48) has open review holds. The forge's
+single-attempt method-generation path (#50–#52) is merged, but no live generated
+method, accepted method execution or recursive-benefit result is established.
 
 **Ongoing work is resumed under [the repository goal](docs/ONGOING_GOAL.md).**
 The existing hourly continuation is active. At this checkpoint the older app Goal
@@ -39,12 +40,18 @@ every milestone. All lower checkpoints are historical.
 
 - Henry's core Claude owns the acknowledged evaluator/executor/scoring and
   method-adoption lanes. Preserve independent regressions while correcting
-  #42–#46; exact heads and findings are in the current handoff and PR reviews.
+  #42–#46 and #48; exact heads and corrected findings are in the current handoff and PR
+  reviews. Confirmed failed execution with independently scoreable output is
+  allowed by the adopted contract; unknown execution/accounting remains distinct.
 - Eric (`EricZhu-31`) owns the separately assigned lab UI design/subtree;
   acknowledgment remains outstanding. Do not transfer it implicitly.
 - ACP Claude owns #3–#5 bridge/journal corrections.
-- Codex owns shared contracts, the scoped forge method-synthesis path and
-  independent integration review. The provider session retains live reruns.
+- Codex owns shared contracts, the merged forge method-generation path and
+  independent integration review. Next, coordinate its existing source-package
+  seam with Henry's executor and close explicit-settings/combined-cost gaps.
+  The provider session retains live reruns and reports; its Apify baseline pass
+  is operator-reported and uses a handwritten parser; it is not model-generation
+  evidence.
 - Ines remains unassigned by explicit user instruction.
 
 Legacy task numbers are historical references in the migration map. Current
