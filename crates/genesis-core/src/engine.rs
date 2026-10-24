@@ -48,7 +48,14 @@ pub enum ValidationCode {
     NotProvisioned,
     InvalidTransition,
     InvalidInput,
+    CapabilityGapLimitExceeded,
 }
+
+/// Live (non-terminal) capability gaps an organization may hold at once.
+/// Each can become an acquisition; the agent must not be able to flood it.
+pub const MAX_LIVE_CAPABILITY_GAPS: usize = 16;
+/// Live capability gaps one requirement may hold at once.
+pub const MAX_LIVE_GAPS_PER_REQUIREMENT: usize = 3;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, thiserror::Error)]
 #[error("{code:?}{}: {message}", op_index.map(|i| format!(" (operation {i})")).unwrap_or_default())]
@@ -981,10 +988,30 @@ impl<'a> Sim<'a> {
                 format!("requirement {requirement_id} is already satisfied"),
             );
         }
-        let (resp_mission, resp_owner) = {
+        let (resp_mission, resp_owner, resp_requirement) = {
             let r = &self.st.responsibilities[&responsibility_id];
-            (r.mission_id.clone(), r.owner.clone())
+            (
+                r.mission_id.clone(),
+                r.owner.clone(),
+                r.requirement_id.clone(),
+            )
         };
+        // The gap serves the responsibility created for this exact
+        // requirement; acquisition authority checks the same link.
+        if resp_requirement.as_ref() != Some(requirement_id) {
+            self.err(
+                ValidationCode::InvalidInput,
+                Some(i),
+                format!("responsibility {responsibility_id} was not created for requirement {requirement_id}"),
+            );
+        }
+        if requirement.owner != Owner::Role(role_id.clone()) {
+            self.err(
+                ValidationCode::AccountabilityConflict,
+                Some(i),
+                format!("requirement {requirement_id} is not owned by {role_id}"),
+            );
+        }
         if resp_mission != requirement.mission_id {
             self.err(
                 ValidationCode::InvalidInput,
@@ -1063,6 +1090,30 @@ impl<'a> Sim<'a> {
                 ValidationCode::DuplicateKey,
                 Some(i),
                 format!("{capability_id} is already requested for requirement {requirement_id}"),
+            );
+        }
+        let live: Vec<_> = self
+            .st
+            .capability_gaps
+            .values()
+            .filter(|g| !g.status.is_terminal())
+            .collect();
+        if live.len() >= MAX_LIVE_CAPABILITY_GAPS {
+            self.err(
+                ValidationCode::CapabilityGapLimitExceeded,
+                Some(i),
+                format!("the organization already has {MAX_LIVE_CAPABILITY_GAPS} live capability requests"),
+            );
+        } else if live
+            .iter()
+            .filter(|g| g.requirement_id == *requirement_id)
+            .count()
+            >= MAX_LIVE_GAPS_PER_REQUIREMENT
+        {
+            self.err(
+                ValidationCode::CapabilityGapLimitExceeded,
+                Some(i),
+                format!("requirement {requirement_id} already has {MAX_LIVE_GAPS_PER_REQUIREMENT} live capability requests"),
             );
         }
         if !self.errors.is_empty() {
@@ -2028,6 +2079,23 @@ pub fn update_capability_gap(
     gap_id: &CapabilityGapId,
     to: CapabilityGapStatus,
 ) -> Result<Outcome, ValidationError> {
+    update_capability_gap_at(state, gap_id, to, Utc::now())
+}
+
+/// Source of the observation a final gap transition records.
+pub const CAPABILITY_GAP_SOURCE: &str = "kernel.capability_gap";
+
+/// [`update_capability_gap`] at a given time. A final transition (`installed`
+/// or `refused`) also records one observation on the gap's mission, in the
+/// same outcome, so the planner gets its next pass: attach the installed
+/// capability, or decide what to do without it. The observation carries no
+/// public URL, so it cannot itself justify another `RequestCapability`.
+pub fn update_capability_gap_at(
+    state: &OrgState,
+    gap_id: &CapabilityGapId,
+    to: CapabilityGapStatus,
+    now: DateTime<Utc>,
+) -> Result<Outcome, ValidationError> {
     use CapabilityGapStatus as S;
     let invalid = |msg: String| ValidationError::new(ValidationCode::InvalidInput, None, msg);
     let mut st = state.clone();
@@ -2043,6 +2111,9 @@ pub fn update_capability_gap(
             | (S::Acquiring { .. }, S::Refused { .. })
             | (S::Acquired { .. }, S::Installed { .. })
             | (S::Acquired { .. }, S::Refused { .. })
+            // Publication is a separate effect: a verified gap may gain its
+            // confirmed reference once, without rebinding (checked below).
+            | (S::Acquired { publication_ref: None, .. }, S::Acquired { publication_ref: Some(_), .. })
     );
     if !allowed {
         return Err(ValidationError::new(
@@ -2072,6 +2143,17 @@ pub fn update_capability_gap(
             capability,
             publication_ref,
         } => {
+            if let S::Acquired {
+                capability: verified,
+                ..
+            } = &gap.status
+            {
+                if capability != verified {
+                    return Err(invalid(
+                        "recording publication cannot change the verified capability".into(),
+                    ));
+                }
+            }
             if !same_acquisition(acquisition_id) || !exact(capability) {
                 return Err(invalid(
                     "acquired needs the claimed acquisition and this gap's capability at an exact version".into(),
@@ -2127,15 +2209,48 @@ pub fn update_capability_gap(
     }
     let gap = st.capability_gaps.get_mut(gap_id).expect("checked");
     let from = std::mem::replace(&mut gap.status, to.clone());
+    let note = match &to {
+        S::Installed {
+            capability,
+            installation_id,
+            ..
+        } => Some(format!(
+            "Requested capability {}@{} is installed and approved ({installation_id}); role {} may attach it for requirement {}",
+            capability.capability_id, capability.version, gap.role_id, gap.requirement_id
+        )),
+        S::Refused { reason, .. } => Some(format!(
+            "Requested capability {} for role {} was refused: {reason}",
+            gap.capability_id, gap.role_id
+        )),
+        _ => None,
+    };
+    let mission_id = gap.mission_id.clone();
+    let mut effects = vec![EventKind::CapabilityGapStatusChanged {
+        gap_id: gap_id.clone(),
+        from,
+        to,
+    }];
+    if let Some(summary) = note {
+        let observation_id = ObservationId::generate();
+        st.observations.insert(
+            observation_id.clone(),
+            Observation {
+                observation_id: observation_id.clone(),
+                mission_id,
+                source: CAPABILITY_GAP_SOURCE.to_owned(),
+                summary: summary.clone(),
+                evidence_ref: Some(format!("genesis://capability-gaps/{gap_id}")),
+                observed_at: now,
+            },
+        );
+        effects.push(EventKind::ObservationRecorded {
+            observation_id,
+            source: CAPABILITY_GAP_SOURCE.to_owned(),
+            summary,
+        });
+    }
     st.revision += 1;
-    Ok(Outcome {
-        state: st,
-        effects: vec![EventKind::CapabilityGapStatusChanged {
-            gap_id: gap_id.clone(),
-            from,
-            to,
-        }],
-    })
+    Ok(Outcome { state: st, effects })
 }
 
 // ---------------------------------------------------------------------------
