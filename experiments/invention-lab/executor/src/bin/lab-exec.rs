@@ -2,7 +2,7 @@
 //!
 //!   lab-exec ref evaluator | environment <namespaces|none> | runtime | protocol
 //!   lab-exec package <source-dir> <id> <version> <entry> <out.json>
-//!   lab-exec example-plan <namespaces|none> <instances> <sim-steps> <wall-ms> <out-dir>
+//!   lab-exec example-plan <namespaces|none> <instances> <sim-steps> <wall-ms> <out-dir> [family]
 //!     (writes plan.json, criterion.json and both control packages)
 //!   lab-exec run <plan.json> <slot> <package.json> <state-dir> <namespaces|none>
 //!   lab-exec recover <plan.json> <slot> <state-dir> <namespaces|none>
@@ -108,7 +108,12 @@ fn main() -> ExitCode {
                 Path::new(out),
             )?)
             .unwrap(),
-            ["example-plan", m, n, steps, wall, out] => {
+            ["example-plan", m, n, steps, wall, out, rest @ ..] if rest.len() <= 1 => {
+                let family = match rest.first() {
+                    Some(f) => genesis_lab_eval::family::Family::parse(f)
+                        .ok_or_else(|| format!("unknown family {f}"))?,
+                    None => genesis_lab_eval::family::Family::RavineCrossing,
+                };
                 let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("methods");
                 let out = Path::new(out);
                 std::fs::create_dir_all(out).map_err(|e| format!("{}: {e}", out.display()))?;
@@ -139,7 +144,8 @@ fn main() -> ExitCode {
                     wall_time_ms: num(wall)?,
                     simulation_steps: num(steps)?,
                 };
-                let plan = example::acceptance_plan(
+                let plan = example::acceptance_plan_for(
+                    family,
                     &methods,
                     mode(m)?,
                     &interpreter_version(),
