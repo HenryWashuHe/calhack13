@@ -2,7 +2,8 @@
 //! verdict, with the real code on each side, and nothing live.
 //!
 //! The executor builds the genesis-forge `MethodSynthesisPlan`; the forge
-//! session persists its intent and gets one completion over loopback HTTP
+//! session records its requesting intent (round-tripped through JSON in memory;
+//! the forge's CLI tests cover the durable file) and gets one completion over loopback HTTP
 //! from a local fixture server (not a model); the exported package bytes are
 //! frozen as the candidate slot; both slots run as real child processes
 //! (sandbox mode `none`, so this is not namespace evidence); both outputs are
@@ -97,7 +98,8 @@ async fn generation_to_verdict_runs_end_to_end_offline() {
     .unwrap();
     let mut session = MethodSynthesisSession::new(plan).unwrap();
     let request = session.begin().unwrap();
-    // The intent is persisted (and reloadable) before the one POST.
+    // Serialized requesting-intent roundtrip, in memory, before the one POST.
+    // The original session continues; durable intent is the forge CLI's job.
     let pending: MethodSynthesisSession =
         serde_json::from_slice(&serde_json::to_vec(&session).unwrap()).unwrap();
     assert_eq!(pending.phase(), MethodSynthesisPhase::Requesting);
