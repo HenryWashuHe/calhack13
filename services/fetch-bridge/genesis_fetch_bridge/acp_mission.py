@@ -343,6 +343,10 @@ class MissionGateway:
             for name, decl in (("sender", "TEXT NOT NULL DEFAULT ''"), ("message_id", "TEXT"), ("summary", "TEXT NOT NULL DEFAULT ''"), ("visible_seq", "INTEGER NOT NULL DEFAULT 0")):
                 if name not in columns:
                     self.db.execute(f"ALTER TABLE reports ADD COLUMN {name} {decl}")
+                    if name == "visible_seq":
+                        # A row written before the cursor existed starts where its report did, like a new row;
+                        # otherwise status would replay events from before that report.
+                        self.db.execute("UPDATE reports SET visible_seq = after_seq")
             self.db.execute("CREATE UNIQUE INDEX IF NOT EXISTS reports_message ON reports(message_id)")
             binding = canonical({"identity": identity, "url": self.url, "config": self.config})
             self.db.execute("BEGIN IMMEDIATE")
