@@ -57,7 +57,7 @@ fn unknown_usage(execution: &ExecutionReceipt) -> Vec<&'static str> {
     .collect()
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "verdict", rename_all = "snake_case")]
 pub enum Verdict {
     Accepted {
