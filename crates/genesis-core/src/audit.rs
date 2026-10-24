@@ -288,6 +288,7 @@ pub const TRANSITION_INVARIANTS: &[&str] = &[
     "lifecycle_reachable",
     "epoch_monotonic",
     "gap_binding_stable",
+    "constitution_unchanged",
 ];
 
 /// Whether `to` is `from` or reachable from it through the transition table.
@@ -320,8 +321,9 @@ fn gap_rank(s: &CapabilityGapStatus) -> u8 {
 /// Check that `next` is a legal later state of `prev`, possibly several
 /// commits later: nothing recorded disappears, observations never change,
 /// every lifecycle only moves along its transition table, epochs never go
-/// back, and a gap keeps its whole frozen binding, its verified capability
-/// version, a confirmed publication reference and its final outcome.
+/// back, a gap keeps its whole frozen binding, its verified capability
+/// version, a confirmed publication reference and its final outcome, and the
+/// constitution never changes.
 pub fn audit_transition(prev: &OrgState, next: &OrgState) -> Vec<Violation> {
     let mut out = Vec::new();
     let mut v = |invariant: &'static str, detail: String| out.push(Violation { invariant, detail });
@@ -329,6 +331,52 @@ pub fn audit_transition(prev: &OrgState, next: &OrgState) -> Vec<Violation> {
         v(
             "revision_advances",
             format!("r{} follows r{}", next.revision, prev.revision),
+        );
+    }
+    // No organization change rewrites the constitution: it is fixed when the
+    // organization is created. Every state check (budget, scopes, limits)
+    // compares against the stored constitution, so a rewritten one would let
+    // a tampered history pass them.
+    let (c0, c1) = (&prev.constitution, &next.constitution);
+    if c0 != c1 {
+        let mut changed = Vec::new();
+        if c0.budget_cents != c1.budget_cents {
+            changed.push(format!(
+                "budget_cents {} -> {}",
+                c0.budget_cents, c1.budget_cents
+            ));
+        }
+        if c0.max_active_roles != c1.max_active_roles {
+            changed.push(format!(
+                "max_active_roles {} -> {}",
+                c0.max_active_roles, c1.max_active_roles
+            ));
+        }
+        if c0.max_active_contracts != c1.max_active_contracts {
+            changed.push(format!(
+                "max_active_contracts {} -> {}",
+                c0.max_active_contracts, c1.max_active_contracts
+            ));
+        }
+        let added: Vec<_> = c1
+            .scopes
+            .difference(&c0.scopes)
+            .map(String::as_str)
+            .collect();
+        let removed: Vec<_> = c0
+            .scopes
+            .difference(&c1.scopes)
+            .map(String::as_str)
+            .collect();
+        if !added.is_empty() {
+            changed.push(format!("scopes added: {}", added.join(", ")));
+        }
+        if !removed.is_empty() {
+            changed.push(format!("scopes removed: {}", removed.join(", ")));
+        }
+        v(
+            "constitution_unchanged",
+            format!("constitution changed: {}", changed.join("; ")),
         );
     }
     macro_rules! lifecycle {
