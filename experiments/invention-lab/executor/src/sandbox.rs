@@ -8,9 +8,13 @@
 //! `no_new_privs` and gets a copy of its package's source files in `/tmp/work`. Killing the
 //! namespace's first process ends every process in it.
 //!
+//! Resource limits (prlimit, applied before the privilege drop): 1 GiB address
+//! space, 64 processes for the `nobody` user, 64 MiB per written file, 256 open
+//! files; CPU time is bounded by the wall-time kill.
+//!
 //! Not enforced: read access to the rest of the (read-only) system (`/usr`,
-//! `/etc`, other mounts such as `/var` subtrees not listed), any syscall filter,
-//! CPU or memory quotas beyond the wall-time kill and the tmpfs sizes. A method can
+//! `/etc`, other mounts such as `/var` subtrees not listed) and any syscall
+//! filter. The process limit is per user, so concurrent runs share it. A method can
 //! still compute its own physics inside its wall time; `simulation_steps`
 //! meters evaluator calls only.
 //!
@@ -39,7 +43,8 @@ cp -R "$LAB_STAGE/files/." /tmp/work/
 chmod -R a+rX /tmp/work
 mount -t tmpfs -o size=1m,mode=755 none /run
 cd /tmp/work
-exec setpriv --reuid 65534 --regid 65534 --clear-groups --no-new-privs -- "$LAB_INTERPRETER" "/tmp/work/$LAB_ENTRY"
+exec prlimit --as=1073741824 --nproc=64 --fsize=67108864 --nofile=256 -- \
+  setpriv --reuid 65534 --regid 65534 --clear-groups --no-new-privs -- "$LAB_INTERPRETER" "/tmp/work/$LAB_ENTRY"
 "#;
 
 impl Mode {
@@ -59,7 +64,8 @@ impl Mode {
                 "root_filesystem": "read-only bind",
                 "hidden": ["/home", "/root", "/tmp", "/var/tmp", "/dev/shm", "/run"],
                 "pid": "new namespace, killed as a whole at the wall-time limit",
-                "not_enforced": ["reads of the rest of the read-only system", "syscall filter", "cpu/memory quota beyond tmpfs sizes"],
+                "limits": {"address_space_bytes": 1073741824u64, "nproc_user": 64, "file_size_bytes": 67108864u64, "open_files": 256},
+                "not_enforced": ["reads of the rest of the read-only system", "syscall filter"],
                 "setup": SETUP,
             }),
             Self::None => serde_json::json!({"mode": "none", "isolation": "none"}),
