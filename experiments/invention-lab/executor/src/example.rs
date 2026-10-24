@@ -78,7 +78,9 @@ pub fn acceptance_plan_for(
 /// As [`acceptance_plan_for`], on seeds `first_seed..first_seed + instances`:
 /// a separate split (for example an assessment split never shown during
 /// development) is just another seed range. Seed 0 gives exactly the plan
-/// `acceptance_plan_for` builds. Panics if the range overflows `u64`.
+/// `acceptance_plan_for` builds. Panics if the range overflows `u64` or reaches
+/// the reserved hidden-seed domain (top bit set), so a public plan can never
+/// name an instance `refs::resolve_instance` refuses.
 pub fn acceptance_plan_from(
     family: Family,
     methods: &ExampleMethods,
@@ -91,6 +93,10 @@ pub fn acceptance_plan_from(
     let end = first_seed
         .checked_add(instances)
         .expect("seed range overflows u64");
+    assert!(
+        instances == 0 || !genesis_lab_eval::score::is_hidden_seed(end - 1),
+        "seed range reaches the reserved hidden-seed domain"
+    );
     let development_instances: Vec<_> = (first_seed..end)
         .map(|s| refs::instance_ref(family, s))
         .collect();
