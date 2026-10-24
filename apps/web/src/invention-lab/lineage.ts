@@ -12,7 +12,9 @@ import {
   type ExactRef,
   type ExecutionReceipt,
   type GenerationStatus,
+  type PackageFile,
   type RevisionObservation,
+  type StaticInspection,
 } from "./records";
 
 export interface AdoptionInput {
@@ -29,6 +31,9 @@ export interface LabRecords {
   adoptions?: AdoptionInput[];
   executions?: ExecutionReceipt[];
   evaluations?: EvaluationReceipt[];
+  /** Exported package files; identity computed from their exact bytes. */
+  packages?: PackageFile[];
+  inspections?: StaticInspection[];
 }
 
 export interface Execution {
@@ -52,6 +57,9 @@ export interface Attempt {
 export interface MethodNode {
   key: string;
   ref: ExactRef;
+  /** A supplied package file whose computed hash is exactly this ref. */
+  package?: PackageFile;
+  inspections: StaticInspection[];
 }
 
 export type Edge =
@@ -81,7 +89,7 @@ export function buildLineage(records: LabRecords): Lineage {
   const problems: string[] = [];
   const node = (ref: ExactRef): string => {
     const key = refKey(ref);
-    if (!nodes.has(key)) nodes.set(key, { key, ref });
+    if (!nodes.has(key)) nodes.set(key, { key, ref, inspections: [] });
     return key;
   };
 
@@ -158,6 +166,31 @@ export function buildLineage(records: LabRecords): Lineage {
       problems.push(
         `evaluation ${ev.request_id} matches ${matches.length} executions by output and purpose; not attached`,
       );
+  }
+
+  for (const p of records.packages ?? []) {
+    const n = nodes.get(refKey(p.ref));
+    if (n) {
+      n.package = p;
+      continue;
+    }
+    const same = [...nodes.values()].find((x) => x.ref.id === p.ref.id && x.ref.version === p.ref.version);
+    if (same)
+      problems.push(
+        `package file for ${p.ref.id}@${p.ref.version} hashes to ${p.ref.sha256.slice(0, 12)}, not the recorded ${same.ref.sha256.slice(0, 12)}`,
+      );
+    nodes.get(node(p.ref))!.package = p;
+  }
+  for (const i of records.inspections ?? []) {
+    const n = [...nodes.values()].find((x) => x.ref.sha256 === i.method_package_sha256);
+    if (!n) {
+      problems.push(`static inspection names package ${i.method_package_sha256.slice(0, 12)}, which no supplied record contains`);
+      continue;
+    }
+    n.inspections.push(i);
+    const entry = n.package?.files.find((f) => f.path === i.entrypoint);
+    if (n.package && (!entry || entry.sha256 !== i.source_sha256))
+      problems.push(`static inspection of ${i.entrypoint} names different source bytes than the supplied package`);
   }
 
   return { attempts, nodes: [...nodes.values()], edges, executions, problems };
