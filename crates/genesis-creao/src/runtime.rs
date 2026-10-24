@@ -127,12 +127,17 @@ impl OperationSpec {
         }
     }
 
-    pub fn fingerprint(&self) -> Result<String, RuntimeError> {
+    /// Digest of the native request this saved operation will send, using its
+    /// frozen API version. A receipt must identify this exact wire contract.
+    pub fn request_sha256(&self) -> Result<String, RuntimeError> {
         self.validate()?;
-        let request_sha256 = self
-            .request
+        self.request
             .request_sha256_for(self.api_version)
-            .map_err(|_| RuntimeError::Invalid)?;
+            .map_err(|_| RuntimeError::Invalid)
+    }
+
+    pub fn fingerprint(&self) -> Result<String, RuntimeError> {
+        let request_sha256 = self.request_sha256()?;
         Ok(json_sha256(
             &json!({"schema_version": 1, "spec": self, "request_sha256": request_sha256}),
         ))
