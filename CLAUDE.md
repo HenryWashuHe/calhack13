@@ -83,8 +83,8 @@ every milestone. All lower checkpoints are historical.
   Eric also [claimed a separate CREAO nullable-ticket reconciliation slice](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6387513389):
   exact saved run/account/version binding and operator read-only reconciliation,
   no duplicate create or name/time-window matching. The old lost run ID cannot
-  be recovered retroactively. Its implementation is open as #104 `5023a48` for
-  review, not completed recovery.
+  be recovered retroactively. Its implementation #104 `5023a48` merged as `62a2f009`; independent
+  guards are retained in #106. No hosted recovery or readiness is established.
 - ACP Claude owns the bridge and held #4 documentation proposal. #3 `f64e131`
   and #5 `e95a286` are merged; all eight `bb5a841`/`0705ecd`/`b60a755` cases
   remain unchanged and pass. Reconcile #4 with those merges, the local
