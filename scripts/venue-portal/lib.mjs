@@ -428,8 +428,17 @@ export function build(spec, baseUrl, namespace = spec.suite_id) {
 }
 
 /** Root index listing namespaces (directory names only). */
+// The index sits at `${namespace}/index.html`; each link is the page's own
+// emitted path relative to it, so case and held-out example pages both resolve
+// to the file whose digest the index shows.
 export function namespaceIndex(pages) {
-  const items = pages.map((p) => `    <li><a href="venues/${esc(p.slug)}.html">${esc(p.slug)}</a> <code>${p.sha256.slice(0, 12)}</code></li>`).join("\n");
+  const items = pages
+    .map((p) => {
+      const href = p.path.split("/").slice(1).join("/");
+      const label = p.role === "example" ? `${p.slug} (example)` : p.slug;
+      return `    <li><a href="${esc(href)}">${esc(label)}</a> <code>${p.sha256.slice(0, 12)}</code></li>`;
+    })
+    .join("\n");
   return `<!doctype html>
 <html lang="en">
 <head><meta charset="utf-8"><meta name="robots" content="noindex"><title>GENESIS synthetic venue test portal</title></head>
