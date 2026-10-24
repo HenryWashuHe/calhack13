@@ -802,7 +802,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn failure_to_persist_disposition_preserves_claim_and_stops_worker() {
+    async fn failure_to_persist_disposition_preserves_claim_for_recovery() {
         let app = build_org(&OrgConfig::dev("storage", "Storage"), None).unwrap();
         let id = seed(&app.store, "failed-write", true);
         app.store
@@ -813,10 +813,11 @@ mod tests {
             )
             .unwrap();
         let worker = spawn(app.clone());
-        tokio::time::timeout(Duration::from_secs(1), worker)
-            .await
-            .unwrap()
-            .unwrap();
+        tokio::time::sleep(Duration::from_secs(1)).await;
+        // The worker keeps its schedule (other jobs still finalize); the
+        // running claim is never re-claimed in process, only by `recover`.
+        assert!(!worker.is_finished());
+        worker.abort();
         let status = app.store.capability_finalization_status(&id).unwrap();
         assert_eq!(
             (status.state, status.attempts),
