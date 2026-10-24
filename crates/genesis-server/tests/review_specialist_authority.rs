@@ -476,3 +476,79 @@ async fn dispatch_cannot_route_a_creao_role_around_its_specialist() {
     let job = org.get(&format!("/jobs/{job_id}")).await;
     assert_eq!(job["provider"], "creao");
 }
+
+// A handoff is not the only way a grant can expire while a provider read is
+// pending. These probes leave the role/owner/epoch unchanged and use the real
+// persisted mission deadline or assignment lease as the revocation boundary.
+async fn retry_is_fenced_when_time_authority_expires(expire_lease: bool) {
+    use genesis_core::ids::{JobId, OrgId};
+    use genesis_server::store::{EventMeta, Store};
+
+    let dir = tempfile::tempdir().unwrap();
+    let db = dir.path().join("org.db");
+    let fake = Fake::new(&[Step::Collected]);
+    fake.block_first_read_error.store(true, Ordering::SeqCst);
+    let org = start_in(fake.clone(), Some(db.clone())).await;
+    let job_id = org.dispatch("review-expired-time-authority").await;
+    tokio::time::timeout(Duration::from_secs(5), fake.first_entered.notified())
+        .await
+        .unwrap();
+
+    // The fixture models time expiry using an ordinary state commit while the
+    // first provider read is held. No job record or provider evidence is forged.
+    let store = Store::open(db, OrgId::new("org_a")).unwrap();
+    let job = store.get_job(&JobId::new(&job_id)).unwrap();
+    assert!(job.deadline.is_none());
+    let mut state = store.current_state().unwrap();
+    let revision = state.revision;
+    let expired = chrono::Utc::now() - chrono::Duration::seconds(1);
+    if expire_lease {
+        state
+            .assignments
+            .get_mut(&job.assignment_id)
+            .unwrap()
+            .lease_expires_at = Some(expired);
+    } else {
+        state.missions.get_mut(&job.mission_id).unwrap().deadline = Some(expired);
+    }
+    state.revision += 1;
+    store
+        .commit_state(
+            revision,
+            &state,
+            Vec::new(),
+            &EventMeta::default(),
+            Vec::new(),
+            |_| Ok(()),
+        )
+        .unwrap();
+
+    fake.release_first.notify_one();
+    let completed = org
+        .wait(&format!("/jobs/{job_id}"), |job| {
+            job["status"] == "RESULT_REJECTED" || job["status"] == "VERIFYING"
+        })
+        .await;
+    let flags = fake.retry_flags.lock().unwrap().clone();
+    assert_eq!(
+        (flags, completed["status"].as_str().unwrap()),
+        (vec![false], "RESULT_REJECTED"),
+        "expired {} must prevent the retry and fence collection; job={completed}",
+        if expire_lease {
+            "assignment lease"
+        } else {
+            "mission deadline"
+        }
+    );
+    assert!(org.get("/ledger").await.as_array().unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn automatic_read_retry_reauthorizes_expired_mission_deadline() {
+    retry_is_fenced_when_time_authority_expires(false).await;
+}
+
+#[tokio::test]
+async fn automatic_read_retry_reauthorizes_expired_assignment_lease() {
+    retry_is_fenced_when_time_authority_expires(true).await;
+}
