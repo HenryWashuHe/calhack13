@@ -2,10 +2,18 @@
 //! Persist a prepared action's checkpoint BEFORE executing that action, then
 //! persist its completion. Lost POST outcomes require reconciliation; reads can
 //! resume. The kernel owns storage, leases, grants, publication and installation.
+mod acquisition;
 mod scaffold;
 mod session;
 mod source;
+pub mod synthesis;
+pub mod synthesis_http;
+mod synthesis_source;
 
+pub use acquisition::*;
 pub use scaffold::venue_source;
 pub use session::*;
 pub use source::*;
+pub use synthesis::*;
+pub use synthesis_http::AnthropicGenerator;
+pub use synthesis_source::generated_candidate;

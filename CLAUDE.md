@@ -1,5 +1,66 @@
 # GENESIS agent coordination
 
+## Current merge and ownership checkpoint — October 22, 2026
+
+Main is `f51d4d9`, including the capability stack, CREAO execution receipts #32,
+[specialist execution #20](https://github.com/HenryWashuHe/genesis/pull/20) with
+fixes #36/#41, and [venue portal #35](https://github.com/HenryWashuHe/genesis/pull/35)
+with output-path fix #40. #20 is no longer a blocker for the readiness stack.
+[Current queue](docs/PR_REVIEW_QUEUE.md).
+
+Specialist integration `9bac3e1` passed 620 Rust tests across 69 suites before the
+final provider-guard correction. Final source `5798cb4` passed 53 affected tests
+across six suites, formatting, strict workspace all-target Clippy, 17 web tests
+and the production build, with no schema/type drift. Main's #20 merge tree matches
+that final source. The subsequent portal merge matches the expected combined tree;
+16 portal tests pass with zero skipped, and both suites passed Rust verification
+against independently fetched A/B pages. These checks do not constitute a new full-workspace total for
+current main.
+
+Hold #11/#21. The reviewed #39 head `49ca9ac` reproduces the Elastic capability-routing
+failure; updated head `1bf7304` is under review. Updated #38 (`ae3879b`) passed 28 focused tests, formatting and strict
+focused Clippy, and merged into #12 at `d1a5e1d`; no recorded #12 source blocker
+remains, but its main integration at `0cad0c4` is still being tested. #42 (`c2b0f11`)
+passed 16 focused tests and strict Clippy, then merged into #22 at `c6ccee4`; #22's
+own findings are resolved, with #11/#12 dependencies and integration still pending.
+Readiness fix #37 still has a durable mismatch-reconciliation
+failure; #26 and descendants #27/#28/#29 remain pending. #27/#28's own reported
+findings are resolved.
+Claude/Eric and Henry's Claude retain their scoped source fixes. Codex owns
+capability/provider implementation, review and narrow integration; no whole-kernel
+takeover is active. The combined draft now includes main at `f5e747c` and passes
+71 affected Rust tests across nine suites, formatting and strict workspace
+all-target Clippy. Earlier full combined test counts remain historical and do not apply to current main.
+
+[CREAO sponsor evidence](docs/CREAO_SPONSOR_NOTES.md) still needs core mission execution,
+an actual agent ID and run share link. [Apify notes](docs/APIFY_SPONSOR_NOTES.md) retain its
+meaningful-use and credit information. The portal has not been exposed through a
+public tunnel, and no live provider or sponsor proof is claimed.
+
+## Historical pre-merge checkpoint
+
+Current Codex checkpoint is [PR #24](https://github.com/HenryWashuHe/genesis/pull/24),
+`codex/automatic-adoption-scenario`, implementation `72157aa`, observer `cdfaf17`,
+stacked on #19. Automatic mode now creates one B adoption intent with only B's
+work and suite. B selects and verifies independently; the scenario compares the
+selected artifact with A's publication afterward. Manual mode remains compatible.
+See [INHERITED_MISSION.md](docs/INHERITED_MISSION.md).
+
+All 594 workspace tests pass with `serde_json/preserve_order` (64 suites, zero
+failed/ignored), formatting and strict default-feature all-target Clippy pass.
+Guarded tests reject client-owned search/install/checks/acceptance and step/verify
+writes, and prove evidence survives retirement/restart and successor execution.
+These are loopback provider fixtures and explicitly labeled DevStub roles.
+
+Claude has pushed updated #11/#12 and new #20–#23. The original planner and Elastic
+regressions now pass, but follow-up planner recovery defects are reproduced in
+`70c4edb` on `codex/review-planner-pr12-followup`; see the latest #12 review.
+Specialist job authority review is in progress. Claude retains planner, general
+lifecycle/saga/outbox, role activation, Elastic and UI. No whole-kernel credit
+fallback is active. Codex continues with an isolated combined-stack integration
+branch, limited to registrations/conflict resolution and integration evidence;
+known-blocking source branches will not be merged to main by that work.
+
 **Current next-work split:** see [NEXT_IMPLEMENTATION_SPLIT.md](docs/NEXT_IMPLEMENTATION_SPLIT.md).
 At the user's request, Codex is taking capability execution/evidence integration
 inside the kernel boundary. Claude keeps lifecycle/recovery, Elastic and UI work;
@@ -41,3 +102,20 @@ branch, and avoid duplicating those fixes. This does not activate the kernel fal
 Codex reserves `crates/genesis-fetch`, `services/fetch-bridge`, their tests, the
 Fetch proof script and docs. The planner branch is Claude-owned; no planner edits
 are included in this workstream.
+
+Current Codex milestone: [PR #9](https://github.com/HenryWashuHe/genesis/pull/9),
+`codex/capability-acquisition`, stacked on synthesis
+[PR #8](https://github.com/HenryWashuHe/genesis/pull/8). Reserved paths are forge
+acquisition/synthesis modules, CLI/tests/examples and focused docs. The durable
+coordinator joins generation, build and independent verification with one semantic
+repair; see [CAPABILITY_ACQUISITION.md](docs/CAPABILITY_ACQUISITION.md). Claude keeps
+planner/kernel activation, Elastic and UI. The ongoing Codex goal continues across
+milestones; each next path claim is recorded in issue #4 before shared edits.
+
+Server integration is pushed in [PR #10](https://github.com/HenryWashuHe/genesis/pull/10),
+`codex/server-acquisition`, code `aaefa12`, stacked on #9: new
+capability acquisition store/runtime/routes/tests, narrow registrations and the
+trusted publication-proof lookup. See [SERVER_ACQUISITION.md](docs/SERVER_ACQUISITION.md).
+It binds acquisition to a committed requirement/assignment with durable count
+quotas. Claude should call it only after the organization change commits. Planner,
+core lifecycle/saga, provider-role activation, Elastic and UI remain Claude-owned.

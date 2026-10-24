@@ -2,6 +2,7 @@
 //! transport evidence only: this module never grants semantic success or writes
 //! a commitment. One organization process owns each database in the demo.
 
+use crate::capability_authority::authorize_job;
 use crate::store::{put_job, EventMeta, Store, StoreError, StoreResult};
 use chrono::Utc;
 use genesis_apify::RunRequest;
@@ -72,6 +73,28 @@ pub enum ExecutionPurpose {
         installation_id: InstallationId,
         suite_id: String,
     },
+    AdoptionAcceptance {
+        adoption_id: String,
+        installation_id: InstallationId,
+        suite_id: String,
+    },
+}
+
+impl ExecutionPurpose {
+    pub(crate) fn is_acceptance_for(&self, id: &InstallationId, suite: &str) -> bool {
+        match self {
+            Self::LocalAcceptance {
+                installation_id,
+                suite_id,
+            }
+            | Self::AdoptionAcceptance {
+                installation_id,
+                suite_id,
+                ..
+            } => installation_id == id && suite_id == suite,
+            Self::Invocation => false,
+        }
+    }
 }
 
 /// Private backend record; deserialization does not authenticate external claims.
@@ -120,7 +143,7 @@ impl CapabilityRunRecord {
         )
     }
 
-    fn new_with_purpose(
+    pub(crate) fn new_with_purpose(
         job: &Job,
         request: RunRequest,
         required_scope: Option<String>,
@@ -222,8 +245,9 @@ impl CapabilityRunRecord {
                 .is_some_and(|s| !valid_label(s))
             || self.required_permissions.len() > 64
             || self.required_permissions.iter().any(|s| !valid_label(s))
-            || matches!(&self.purpose, ExecutionPurpose::LocalAcceptance { installation_id, suite_id }
+            || matches!(&self.purpose, ExecutionPurpose::LocalAcceptance { installation_id, suite_id } | ExecutionPurpose::AdoptionAcceptance { installation_id, suite_id, .. }
                 if !valid_label(installation_id.as_str()) || !valid_label(suite_id))
+            || matches!(&self.purpose, ExecutionPurpose::AdoptionAcceptance { adoption_id, .. } if !valid_label(adoption_id))
             || self.request_sha256 != self.fingerprint(job)
         {
             return Err(invalid());
@@ -494,6 +518,7 @@ pub struct CapabilityRuntime {
     kernel: Arc<Mutex<()>>,
     gate: Arc<Mutex<()>>,
     events: Option<broadcast::Sender<DomainEvent>>,
+    adoption_policy: Option<Arc<crate::capability_evidence::EvidencePolicy>>,
 }
 
 impl CapabilityRuntime {
@@ -509,7 +534,16 @@ impl CapabilityRuntime {
             kernel,
             gate,
             events: None,
+            adoption_policy: None,
         }
+    }
+
+    pub(crate) fn with_adoption_policy(
+        mut self,
+        policy: Arc<crate::capability_evidence::EvidencePolicy>,
+    ) -> Self {
+        self.adoption_policy = Some(policy);
+        self
     }
 
     pub fn with_events(mut self, events: broadcast::Sender<DomainEvent>) -> Self {
@@ -549,7 +583,13 @@ impl CapabilityRuntime {
                 return Err(CapabilityRuntimeError::UnexpectedRetry);
             }
             let before = record.phase;
-            if !authorized(&self.store.current_state()?, &job, &record) {
+            if !authorized(
+                &self.store,
+                self.adoption_policy.as_deref(),
+                &self.store.current_state()?,
+                &job,
+                &record,
+            ) {
                 reject(&mut record);
                 self.persist(before, &record, &mut job)?;
                 return Ok(record);
@@ -600,7 +640,13 @@ impl CapabilityRuntime {
         }
         let mut job = self.store.get_job(job_id)?;
         let before = record.phase;
-        let still_authorized = authorized(&self.store.current_state()?, &job, &record);
+        let still_authorized = authorized(
+            &self.store,
+            self.adoption_policy.as_deref(),
+            &self.store.current_state()?,
+            &job,
+            &record,
+        );
         match completion {
             Completed::Submission(Ok(receipt)) => {
                 if receipt.provider != Provider::Apify
@@ -749,24 +795,19 @@ impl CapabilityRuntime {
     }
 }
 
-fn authorized(state: &OrgState, job: &Job, record: &CapabilityRunRecord) -> bool {
-    if job.org_id != state.org_id || job.deadline.is_some_and(|deadline| deadline <= Utc::now()) {
-        return false;
-    }
-    let Ok(grant) = engine::authorize_dispatch(
-        state,
-        &job.role_id,
-        &job.responsibility_id,
-        record.required_scope.as_deref(),
-    ) else {
-        return false;
-    };
-    if grant.assignment_id != job.assignment_id
-        || grant.epoch != job.epoch
-        || record.required_permissions.iter().any(|scope| {
-            engine::authorize_dispatch(state, &job.role_id, &job.responsibility_id, Some(scope))
-                .is_err()
-        })
+fn authorized(
+    store: &Store,
+    adoption_policy: Option<&crate::capability_evidence::EvidencePolicy>,
+    state: &OrgState,
+    job: &Job,
+    record: &CapabilityRunRecord,
+) -> bool {
+    let now = Utc::now();
+    if authorize_job(state, job, record.required_scope.as_deref(), now).is_err()
+        || record
+            .required_permissions
+            .iter()
+            .any(|scope| authorize_job(state, job, Some(scope), now).is_err())
     {
         return false;
     }
@@ -777,6 +818,9 @@ fn authorized(state: &OrgState, job: &Job, record: &CapabilityRunRecord) -> bool
         ExecutionPurpose::Invocation => {
             engine::authorize_capability(state, &job.role_id, capability).is_ok()
         }
+        ExecutionPurpose::AdoptionAcceptance { .. } => adoption_policy.is_some_and(|policy| {
+            crate::capability_adoption::authorized_job(store, policy, state, job, record)
+        }),
         ExecutionPurpose::LocalAcceptance {
             installation_id, ..
         } => state
