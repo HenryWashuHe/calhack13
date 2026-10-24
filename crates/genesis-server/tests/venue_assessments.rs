@@ -470,7 +470,7 @@ impl Fixture {
         assert_eq!(status, StatusCode::CREATED, "{published}");
         let (status, mission) = f.post("/missions", json!({"goal":"Keep the same event feasible after venue updates","roles":[
             {"key":"producer","name":"Producer","charter":"Establish local capability","authority":{"scopes":["mission.coordinate","capability.venue_lookup"],"budget_cents":10000}},
-            {"key":"monitor","name":"Monitor","charter":"Own continuing venue assessment","authority":{"scopes":["mission.coordinate","capability.venue_lookup"],"budget_cents":10000}},
+            {"key":"monitor","name":"Monitor","charter":"Own continuing venue assessment","authority":{"scopes":["mission.coordinate","capability.venue_lookup","monitor.venue"],"budget_cents":10000}},
             {"key":"backup","name":"Backup","charter":"Receive later handoff","authority":{"scopes":["mission.coordinate","capability.venue_lookup"],"budget_cents":10000}}],
             "responsibilities":[{"purpose":"Keep venue operation feasible","owner":"producer"}]})).await;
         assert_eq!(status, StatusCode::CREATED, "{mission}");
@@ -951,7 +951,7 @@ async fn current_scope_lease_and_mission_are_rechecked_before_acceptance() {
                     .unwrap()
                     .authority
                     .scopes
-                    .clear();
+                    .remove("monitor.venue");
             }
             "lease" => {
                 state
