@@ -1,10 +1,38 @@
-# B's feedback-driven source revision — preparation
+# B's feedback-driven source revision — generated
 
 This is one exploratory source-generation attempt assigned by the operator to
 `org_example_b`. It uses A's exact generated parent and B's checked public
 feedback to develop a reusable method for the **distinct rough-transport task**.
 It does not assert local adoption, autonomous organizational authorship, runtime
 success, accepted return to A or improved capability development.
+
+## Result
+
+Preparation commit `163e952696e62a9bcb937e22ef1b96e327427dad` was pushed,
+independently checked, and merged in #112 at `dec357f91a33083ab50e73c23508ccbc13162d46`
+before the single guarded request. It returned Generated:
+
+- Child package: `4f455dc6e625bdaf554d567bdd7f0bc0c7b601a1ea6332d4e7a13e02005db14d`.
+- Child source: `4adde0d840bcb733166c3db7f587fd295f1f986369433ea3db58e40be1d76de5`,
+  6044 bytes / 192 lines; AST parsing succeeds. Source was not executed here.
+- Final checkpoint: `38382a7b7f016c38afc0022c5f685b9610f732d39a5ffce670b5f7ae3104fae5`.
+- Measured generation usage: **1 call, 20,798 input tokens, 5,741 output tokens,
+  40,223 ms**, zero simulation steps. All reported values fit this source-only
+  grant. One reservation is spent; none remain. No retry or second request.
+- The exact-parent observation reports changed source bytes. Static reading shows
+  an initial spread across instances followed by adaptive candidate evaluation;
+  this is a source observation, not a scored improvement claim.
+
+All 23 immutable input manifest entries are unchanged. `SHA256SUMS` covers the
+final retained bundle except this narrative file and the manifest itself.
+Provider usage/authentication are operator-observed; retained consistency checks
+are separate from independently witnessing the provider request.
+
+Across the four observed generation attempts, arithmetic totals are 4 calls,
+32,825 input / 24,056 output tokens and 181,342 ms summed request wall time.
+These totals are neither a predeclared combined grant nor exhaustive project
+billing, and omit receiver execution/scoring costs. Both failed attempts remain
+unchanged. No B execution, acceptance or return-to-A result is asserted here.
 
 ## Before the request
 
@@ -40,8 +68,8 @@ a valid revision; that attempt and its reservation must remain retained.
 snapshots. `IMMUTABLE_INPUT_SHA256SUMS` covers all prepared inputs and receipts,
 excluding the two operational files `generation.json` and `admission.json`.
 Those operational files can advance once through the existing durable guarded
-step. This manifest will not be rewritten after the request. A later final
-manifest will cover the retained result. Host records and a prior pushed commit
+step. This manifest will not be rewritten after the request. The separate final
+manifest covers the retained result. Host records and a prior pushed commit
 are operator-observed ordering, not provider-signed or universal chronology.
 
 Read-only checks use `method-chain-check`, `method-roster-assess` and
