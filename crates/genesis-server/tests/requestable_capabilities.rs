@@ -67,7 +67,7 @@ async fn agent_and_operator_see_policy_names_only() {
                     "https://portal.example/capacity-checker/a.html","https://portal.example/capacity-checker/b.html"]},
                 {"capability_id":"venue-reader","observed_sources":[
                     "https://portal.example/venue-reader/a.html","https://portal.example/venue-reader/b.html"]}
-            ]})
+            ], "required_scope":"capability.acquire"})
         );
         assert!(!body.to_string().contains("PRIVATE"));
     }
@@ -81,5 +81,8 @@ async fn without_a_policy_the_list_is_empty() {
     let url = serve(build_org(&cfg, None).unwrap()).await;
     let (status, body) = get(&url, &cfg.tokens.agent).await;
     assert_eq!(status, StatusCode::OK);
-    assert_eq!(body, json!({"capabilities":[]}));
+    assert_eq!(
+        body,
+        json!({"capabilities":[], "required_scope":"capability.acquire"})
+    );
 }

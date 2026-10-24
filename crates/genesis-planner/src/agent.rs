@@ -150,14 +150,14 @@ impl Planner {
             .observations
             .get(observation)
             .ok_or_else(|| PlanError::UnknownObservation(observation.clone()))?;
-        let requestable = self
+        let policy = self
             .kernel
             .requestable_capabilities()
             .await
             .unwrap_or_default();
         Ok((
             prompt::SYSTEM_PROMPT.to_owned(),
-            prompt::user_message_with(&state, obs, &self.specialists, &requestable),
+            prompt::user_message_with(&state, obs, &self.specialists, &policy),
         ))
     }
 
@@ -213,7 +213,7 @@ impl Planner {
         }
         // Names the server's gap policy accepts; unreadable means no hint,
         // exactly as before this route existed.
-        let requestable = self
+        let policy = self
             .kernel
             .requestable_capabilities()
             .await
@@ -222,7 +222,7 @@ impl Planner {
             &state,
             &obs,
             &self.specialists,
-            &requestable,
+            &policy,
         ))];
         // Resume after attempts an interrupted run already spent on
         // rejections, and tell the model what the kernel said about them.
