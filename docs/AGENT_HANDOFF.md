@@ -14,17 +14,20 @@ branch `codex/capability-kernel-integration`, initial server checkpoint `0cfae06
 It includes the real Apify provider, durable request/ticket recovery, backend forge
 proofs, immutable local installation pins, independent acceptance runs and API
 forgery/idempotency guards. See [CAPABILITY_EXECUTION.md](CAPABILITY_EXECUTION.md).
-Full workspace tests, formatting and strict Clippy pass. Live sponsor smoke tests
-and the separate PR #3 findings remain open. Final follow-up commits add batch/pin
-regressions and automatic-worker/database-restart validation.
+The branches now include Claude's review-fix checkpoint `efa3b4f`: PR #5 merge
+`9d9e6f0` and PR #6 merge `c66cc0e`. The combined capability workspace passes with
+`serde_json/preserve_order`. Follow-up review reproduced a remaining A→B→A
+executor-reassignment fence gap, posted on PR #3. Claude retains that core fix,
+concurrent saga-drive guard, CREAO pending/readiness integration, Elastic, planner
+and UI. No whole-kernel takeover is active.
 
-Claude should fix PR #3 first, merge main (PR #2 is merged), then integrate the
-capability branch and implement Elastic/UI evidence. Repository assignments are
-posted; they do not prove the other machine has read them. No whole-kernel takeover
-has been activated. Fetch remains unassigned. Codex has taken the CREAO client/runtime on
-`codex/creao-runtime`; [CREAO_RUNTIME.md](CREAO_RUNTIME.md) records the implemented
-provider boundary, offline CLI and pending kernel/readiness hook. Native completion
-is not role activation, and the live-account smoke gate is still open.
+Codex's CREAO implementation is in PR #6; [CREAO_RUNTIME.md](CREAO_RUNTIME.md)
+records its durable provider boundary and pending readiness hook. Codex also owns
+Fetch on `codex/fetch-recruitment`: `genesis-fetch`, `services/fetch-bridge` and the
+signed three-process/two-organization proof. [FETCH_RUNTIME.md](FETCH_RUNTIME.md)
+documents exact commands, recovery, release isolation and the next kernel hook.
+All live-account smoke gates remain open. Repository assignments communicate the
+split but do not prove the other machine has read them.
 
 ## Ownership before the scoped integration handoff
 

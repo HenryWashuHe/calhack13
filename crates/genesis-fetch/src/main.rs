@@ -152,7 +152,15 @@ async fn main() -> Result<()> {
                 {
                     continue;
                 }
-                let receipt = client.send(&request).await?;
+                let receipt = client
+                    .send_guarded(&request, || {
+                        store.pending(chrono::Utc::now()).is_ok_and(|pending| {
+                            pending
+                                .iter()
+                                .any(|r| r.message.message_id == request.message.message_id)
+                        })
+                    })
+                    .await?;
                 store.acknowledge(&receipt)?;
                 queued.push(request.message.message_id);
             }
