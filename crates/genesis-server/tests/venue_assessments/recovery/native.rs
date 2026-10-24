@@ -425,7 +425,7 @@ async fn run_native_recovery() {
 
     // Restart both signed transports and the Rust organization/private journal
     // at the durable selection boundary, before creating its CREAO child.
-    fixture.server.stop().await;
+    // Fixture::restart owns shutdown of its current server/JoinHandle.
     pair.org.stop();
     pair.specialist.stop();
     fixture.restart(false).await;
