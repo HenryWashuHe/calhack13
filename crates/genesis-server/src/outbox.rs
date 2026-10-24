@@ -53,6 +53,17 @@ async fn deliver(app: &AppState, item: &OutboxItem) -> Result<(), String> {
         (_, "job_dispatch") if crate::specialist_jobs::handles(app, item) => {
             crate::specialist_jobs::deliver(app, item).await
         }
+        // A restart without CREAO configuration must keep the same assessment
+        // dispatch pending. A development acknowledgement would consume the
+        // outbox item and strand a Running job without its native operation.
+        (_, "job_dispatch")
+            if item.payload["job_id"]
+                .as_str()
+                .and_then(|id| app.store.get_job(&JobId::new(id)).ok())
+                .is_some_and(|job| crate::venue_assessments::managed(&job)) =>
+        {
+            Err("CREAO runtime unavailable for the saved venue assessment".into())
+        }
         ("internal", _) => Ok(()),
         ("elastic", "job_dispatch") if app.elastic_agents.is_some() => {
             crate::elastic_jobs::deliver(app, item).await
