@@ -440,7 +440,12 @@ fn describe(app: &AppState, gap: &CapabilityGapId) -> String {
         .gap_adoption(gap)
         .ok()
         .flatten()
-        .map(|r| format!(" adoption={:?}/{:?} id={:?}", r.state, r.code, r.adoption_id))
+        .map(|r| {
+            format!(
+                " adoption={:?}/{:?} id={:?}",
+                r.state, r.code, r.adoption_id
+            )
+        })
         .unwrap_or_default();
     let finalizer = app
         .store
@@ -621,4 +626,71 @@ async fn org_b_survives_restarts_at_any_point_of_adoption() {
         report.lines().all(|l| l.ends_with("-> installed")),
         "the beat did not finish after some restarts:\n{report}"
     );
+}
+
+/// A restart during B's adoption checks stops the gap in attention; one
+/// operator retry must still get it installed, with no synthesis.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn org_b_operator_retry_recovers_a_restart_during_checks() {
+    let provider = Provider::start().await;
+    let registry = registry().await;
+    let dir = tempfile::tempdir().unwrap();
+    let a = a_config(&dir, &registry, &provider);
+    let (_a, _, a_outcome) = run_with_crashes(
+        &a,
+        &provider,
+        KEY_A,
+        "venue-reader",
+        gap_policy(&a_suite()).rules[0].allowed_source_urls.clone(),
+        &[],
+    )
+    .await;
+    a_outcome.expect("A installs");
+    let b = b_config(&dir, &registry, &provider);
+    std::env::set_var("CHAOS_TIMEOUT_S", "30");
+    let (app, gap, outcome) = run_with_crashes(
+        &b,
+        &provider,
+        KEY_B,
+        "capacity-checker",
+        b_gap_policy().rules[0].allowed_source_urls.clone(),
+        &[600; 5],
+    )
+    .await;
+    let stalled = match outcome {
+        Ok(_) => return eprintln!("schedule did not stall this time; nothing to retry"),
+        Err(e) => e,
+    };
+    assert!(
+        stalled.contains("adoption=Attention/Some(Checks)"),
+        "{stalled}"
+    );
+    let retried = genesis_server::capability_gap_adoption::retry_route(
+        axum::extract::State(app.clone()),
+        genesis_server::auth::Principal::Operator,
+        axum::extract::Path(gap.to_string()),
+    )
+    .await;
+    assert!(
+        retried.is_ok(),
+        "operator retry refused: {:?}",
+        retried.err().map(|e| e.message)
+    );
+    let _server = serve(&app).await;
+    let installed = tokio::time::timeout(Duration::from_secs(60), async {
+        loop {
+            if matches!(
+                app.current_state().unwrap().capability_gaps[&gap].status,
+                CapabilityGapStatus::Installed { .. }
+            ) {
+                return;
+            }
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+    })
+    .await;
+    assert!(installed.is_ok(), "after retry: {}", describe(&app, &gap));
+    assert_eq!(provider.model_calls(Org::B), 0);
+    assert_eq!(provider.actor_creations(Org::B), 0);
+    assert!(genesis_core::audit::audit(&app.current_state().unwrap()).is_empty());
 }
