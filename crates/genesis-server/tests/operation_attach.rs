@@ -226,6 +226,10 @@ async fn attached_agent_commits_only_after_readiness() {
         r.provisioned["monitor"].config_digest,
         expected_digest(&app, &r)
     );
+    assert_eq!(
+        r.operations["monitor"].native_status.as_deref(),
+        Some(saga::OPERATOR_ATTACHED)
+    );
     assert!(monitor_agent(&app).is_none(), "not active before readiness");
 
     let r = drive(&app, &id).await;
@@ -241,7 +245,10 @@ async fn attached_agent_commits_only_after_readiness() {
 
     let log = serde_json::to_string(&app.store.events_after(0, 1000).unwrap()).unwrap();
     assert!(log.contains("attached by operator (found in CREAO console)"));
-    assert!(log.contains("role_provisioned"));
+    assert!(
+        !log.contains("role_provisioned"),
+        "the provider never reported this agent"
+    );
 }
 
 #[tokio::test]
@@ -417,4 +424,40 @@ async fn attach_over_http_then_prove_with_a_gateway_receipt() {
     let r = drive(&app, &id).await;
     assert_eq!(r.status, ChangeStatus::Committed);
     assert_eq!(monitor_agent(&app).as_deref(), Some(FOUND));
+}
+
+#[tokio::test]
+async fn an_agent_already_bound_elsewhere_cannot_be_attached() {
+    let rt = Arc::new(Ambiguous::default());
+    let app = org(rt).with_readiness_verifier(
+        Provider::Creao,
+        fixed(Readiness::Ready {
+            evidence_ref: "x".into(),
+        }),
+    );
+    // First change: attach and commit, so the agent is bound to an active role.
+    let first = ambiguous_change(&app).await;
+    saga::attach_operation(&app, &first, "monitor", FOUND, "found")
+        .await
+        .unwrap();
+    assert_eq!(drive(&app, &first).await.status, ChangeStatus::Committed);
+
+    // A second lost creation cannot claim the same agent.
+    let second = ambiguous_change(&app).await;
+    let e = saga::attach_operation(&app, &second, "monitor", FOUND, "same agent")
+        .await
+        .unwrap_err();
+    assert_eq!(
+        (e.status.as_u16(), e.error.as_str()),
+        (409, "agent_already_bound")
+    );
+    // Nor an agent bound by another change that is still provisioning.
+    let third = ambiguous_change(&app).await;
+    saga::attach_operation(&app, &second, "monitor", "agent-two", "found")
+        .await
+        .unwrap();
+    let e = saga::attach_operation(&app, &third, "monitor", "agent-two", "again")
+        .await
+        .unwrap_err();
+    assert_eq!(e.error, "agent_already_bound");
 }
