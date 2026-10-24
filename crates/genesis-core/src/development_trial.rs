@@ -172,10 +172,7 @@ impl TrialPlan {
         }
         match &self.scoring_instances {
             ScoringInstances::Development {}
-                if trials.is_empty() && acceptance.len() == 2 && acceptance_orgs.len() == 1 =>
-            {
-                ()
-            }
+                if trials.is_empty() && acceptance.len() == 2 && acceptance_orgs.len() == 1 => {}
             ScoringInstances::HiddenCommitment { protocol }
                 if acceptance.is_empty() && !trials.is_empty() =>
             {
