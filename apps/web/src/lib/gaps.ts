@@ -2,6 +2,7 @@
 import type { CapabilityGap, CapabilityGapStatus, OrgState } from "./contracts";
 import { intakeDetail, type GapIntakeStatus } from "./gapIntake";
 import { finalizationDetail, type GapFinalizationStatus } from "./gapFinalization";
+import { adoptionDetail, type GapAdoptionStatus } from "./gapAdoption";
 type Tone = "ok" | "warn" | "bad";
 
 export interface GapView {
@@ -51,6 +52,7 @@ export function gapsForRole(
   roleId: string,
   intake: Record<string, GapIntakeStatus> = {},
   finalization: Record<string, GapFinalizationStatus> = {},
+  adoption: Record<string, GapAdoptionStatus> = {},
 ): GapView[] {
   return Object.values(state?.capability_gaps ?? {})
     .filter((g: CapabilityGap) => g.role_id === roleId)
@@ -64,7 +66,12 @@ export function gapsForRole(
         label: l.label,
         tone: l.tone,
         version: l.version,
-        detail: intakeDetail(g, intake[g.gap_id]) ?? finalizationDetail(g, finalization[g.gap_id]) ?? l.detail,
+        // Adoption first: while it owns an open gap the driver is deferred.
+        detail:
+          adoptionDetail(g, adoption[g.gap_id]) ??
+          intakeDetail(g, intake[g.gap_id]) ??
+          finalizationDetail(g, finalization[g.gap_id]) ??
+          l.detail,
         sources: g.observed_sources,
       };
     });
