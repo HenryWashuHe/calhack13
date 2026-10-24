@@ -5,6 +5,8 @@ use genesis_core::development_method::ExecutionReceipt;
 use genesis_core::development_trial::{TrialEvidence, TrialPlan};
 use genesis_forge::{
     method_accounting::{assess_costs, CostScope},
+    method_admission::GenerationAdmission,
+    method_admitted_costs::assess_admitted_costs,
     method_synthesis::MethodSynthesisSession,
 };
 use serde::Deserialize;
@@ -70,13 +72,16 @@ pub fn run(args: &Arguments) -> Result<u8, String> {
             ))
         })
         .transpose()?;
-    let report = assess_costs(
-        &scope,
-        &generations,
-        trial.as_ref().map(|(p, e)| (p, e.as_slice())),
-    )
-    .map_err(|e| e.to_string())?;
-    emit(&report)?;
+    let trial = trial.as_ref().map(|(p, e)| (p, e.as_slice()));
+    if let Some(path) = args.paths.get("--admission") {
+        let admission: GenerationAdmission = storage::read_json(path)?;
+        emit(
+            &assess_admitted_costs(&admission, &scope, &generations, trial)
+                .map_err(|e| e.to_string())?,
+        )?;
+    } else {
+        emit(&assess_costs(&scope, &generations, trial).map_err(|e| e.to_string())?)?;
+    }
     // Successful assessment can include failed outcomes, unknown usage and overruns.
     // Exit zero is not authorization, budget compliance or a positive verdict.
     Ok(0)
