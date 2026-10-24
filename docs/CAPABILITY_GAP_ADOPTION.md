@@ -157,4 +157,16 @@ loopback provider:
   waits for the slot, then reports its own installation conflict; an
   acceptance that lands before the adoption ID was saved still links.
 
+`tests/two_org_inheritance.rs` runs both organizations end to end with real
+`serve_org` and no operator calls: A's gap is synthesized, verified,
+published and installed (#66, #78); B's later gap for the same need, under a
+different capability name, installs A's exact version after B's own suite
+accepts it. Provider calls are attributed per organization by key: B makes
+zero model calls and zero Actor creations, and runs only its own suite
+inputs.
+
+Timing matters: if B's need is committed before A publishes, B's search is
+empty. With `synthesis_fallback` B then synthesizes its own; without it B's
+gap is refused (`no_candidate`) and the planner may request again later.
+
 No live provider was contacted.
