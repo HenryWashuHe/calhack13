@@ -43,7 +43,7 @@ split but do not prove the other machine has read them.
 ## Claude checkpoint (issue #4)
 
 Recorded October 22, 2026. Each branch is based on main `5c4dd1a`; together they
-merge cleanly in the order below (verified: 436 Rust tests, clippy `-D warnings`,
+merge cleanly in the order below (verified: 437 Rust tests, clippy `-D warnings`,
 26 web tests, regenerated schemas/types identical). All provider integration is
 tested against in-process fakes only; no live sponsor or model calls were made.
 
