@@ -311,10 +311,11 @@ plan around them:
 - **Org B while adoption is checking:** a restart mid-check stops adoption at
   `attention / checks`, and on main there is no recovery path: no retry
   endpoint is merged. An operator retry is proposed in #86, still under
-  review; as proposed it refuses (409 `adoption_checks_unresolved`) whenever
-  any check run lacks terminal provider evidence, which includes every
-  restart that interrupted a check, so it would not recover this case either.
-  Don't stop B between its `RequestCapability` and INSTALLED.
+  review. Its checks must distinguish terminal provider outcomes from local
+  failures, including failed status reads while a provider run is still active.
+  The current proposal has a reproduced duplicate-run path and is not a
+  supported recovery procedure. Don't stop B between its `RequestCapability`
+  and INSTALLED; preserve the stopped record for reconciliation.
 - `rehearse_autonomy` does not rehearse a restart: each launch creates fresh
   temporary databases, so stopping and relaunching it starts both orgs over
   rather than resuming them. Only the crash test above resumes the same
