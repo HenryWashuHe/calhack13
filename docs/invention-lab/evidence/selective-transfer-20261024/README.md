@@ -47,6 +47,45 @@ discarded a method that, on B's task, beats seeded random search on fresh
 instances with about an eighth of its simulation steps. On rough-transport the
 parent converges to one design that solves all twelve instances.
 
+## Hidden-set check: the submitted design generalizes
+
+The trial above scores each method on the instances it developed on. A second,
+predeclared check asks whether the design each method submits also works on
+instances it never saw. Each arm develops on fresh public seeds and is then
+scored on 12 hidden instances per family, using the #57 hidden-commitment path.
+The descriptors were published before any run. The salt stayed private until
+scoring finished and is now revealed (`salt-revealed.txt`), so anyone can check
+the commitment opens and re-score.
+
+**Attempt 2 (`hidden-2/`) is the one that counts**
+([declaration](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6390731621)).
+It developed on seeds 5000..5005 and ran on local composition `b59d1eb` (#57 + #65 + #167).
+
+| Hidden, 12 instances each | Parent | Random search | Margin rule |
+| --- | ---: | ---: | --- |
+| **rough-transport** | **12/12** | 9/12 | met (+3) |
+| ravine-crossing | 1/12 | **10/12** | not met |
+
+All four slots are eligible under the same rule as above: every execution is
+`output_generated` with all usage known (model calls measured 0), and every
+scoring is `scored` within its grant. So the predeclared reading holds: the
+parent's design generalizes to hidden rough-transport instances, and the
+ravine-crossing result stays a rejection.
+
+**Attempt 1 (`hidden/`): reading unavailable by construction.**
+[Declared here](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6390526420)
+and [corrected before running](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6390540809).
+- It ran on #57's head, which has #65's stop fix but not #65's minimal method
+  root. Every execution therefore recorded model use as unknown, every slot is
+  ineligible, and no reading is allowed.
+- Observed only: rough-transport 12/12 vs 5/12, ravine-crossing 1/12 vs 7/12.
+- An earlier try of attempt 1 was refused before creating any state, because
+  its plans named the wrong interpreter. That stderr and those plans are kept
+  in `refused-attempt/`.
+- Composing #57 with #65 for attempt 2 exposed a stage-directory collision
+  between concurrent runs in one process, which is also on main. It's fixed in
+  #167. No published trial was affected: each `lab-exec` run is its own process.
+
 ## What this is not
 
 - **Not adoption.** B has a retained, eligible, accepted trial. Turning that
