@@ -1,13 +1,15 @@
-import { useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import type { Api } from "../lib/api";
 import type { OrgChangeRecord, OrgState } from "../lib/contracts";
 import { buildTree, executedBy, ownedBy, pendingRoles, RoleNode, short } from "../lib/graph";
 import { HistoryEntry, historyView } from "../lib/snapshot";
 import { ProviderBadge, StateChip } from "./Chips";
 import { gapsForRole } from "../lib/gaps";
+import { GapIntakeContext } from "../lib/gapIntake";
 
 function RequestedCapabilities({ state, roleId }: { state: OrgState; roleId: string }) {
-  const gaps = gapsForRole(state, roleId);
+  const intake = useContext(GapIntakeContext);
+  const gaps = gapsForRole(state, roleId, intake);
   if (gaps.length === 0) return null;
   return (
     <ul className="duties gaps">
