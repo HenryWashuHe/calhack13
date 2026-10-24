@@ -46,10 +46,10 @@ exists and none is invented here.
 | `report <what happened>` (`challenge <…>` is a proposed alias, not implemented) | records one observation with a fixed `source` and `evidence_ref`, then relays this report's own planner decision, proposed and committed changes, roles, provisioning (DEV STUB labeled), recruitment, capability requests and installations, handoffs, retirements; ends with how to follow up | `POST /missions/{active}/observations`, then `GET /events/log` | exists |
 | `status` | everything after your last report, paged from a durable per-sender cursor, bounded per reply | `GET /events/log`, `GET /organization` | per-sender paged cursor is in open PR #3 (was genesis#132); on main, status rereads the first page |
 | `methods` (also `capabilities`) | installed capabilities and methods by exact `id@version`, their acceptance state and the role holding them; offers one `lineage <id>` button per id | `GET /organization` (`installations`, `roles[].capabilities`) | open PR #5 (ACP commands), not on main; a **method** artifact kind requires #124 |
-| `lineage <id>` | the chain for one capability or method: who published which version, derived from what, who adopted or declined it and why | `GET /capabilities/{id}/versions/{version}` (manifest, provenance, verification); per-candidate decisions `GET /capability-gaps/{id}/adoption` | open PR #5 renders manifest, verification and this organization's installation state; candidate decision log is open PR (genesis#116, here #15); `derived_from` / dependency digests **require #124** |
+| `lineage <id>` | the chain for one capability or method: who published which exact version (`ExactContentRef`: domain, schema, id, version, SHA-256), derived from what, who adopted or declined it and why | `GET /capabilities/{id}/versions/{version}` (manifest, provenance, verification); per-candidate decisions `GET /capability-gaps/{id}/adoption` | open PR #5 renders manifest, verification and this organization's installation state; candidate decision log is open PR (genesis#116, here #15); `derived_from` / dependency digests **require #124** |
 | `outcome <id>` (also `why`) | an adoption's conclusion: `adopted`, `not_applicable`, `insufficient_evidence`, `no_candidate`, `unknown`, `pending`, `stopped`, with the oracle-free reason | `GET /capability-gaps/{id}/adoption` | open PR #128 (vocabulary from [adoption.md](adoption.md)) |
-| `experiment <id>` | one experiment's task, method version, consumed budget, outcome and evidence reference | — | **requires contract** (#124 receipt, #126 evaluator); no route |
-| `compare <id>` | the declared comparison for a return challenge: treatments, budgets, scores, "improved" only when the predeclared criterion holds | — | **requires contract** (#124 comparison protocol); no route |
+| `experiment <id>` | one development run: its `DevelopmentRunBinding` (exact method and dependencies as `ExactContentRef`s, public task, evaluator, model settings, purpose), the `ExecutionReceipt` outcome (`output_generated`, failed, interrupted, unknown) and measured-or-unknown usage against the grant | — | names from the merged experimental contracts #18 (`contracts/identity-and-execution.md`); **no route and no executor**; the trusted ledger for calls is Codex's next claim |
+| `compare <id>` | a frozen trial plan's arms and slots with each scoring outcome (`Scored`, `Invalid`, `Failed`, `Unknown`) and `EvaluationAccounting`; "improved" never appears unless the predeclared criterion in the plan holds | — | names from merged #22 (`contracts/evaluation.md`) and draft #28 (trial plans); **no route**; the roster starts after outputs exist, so no-output trials come from the pre-execution plan, not from this view |
 | `declined` / `unknown` | the most recent declined or unresolved adoptions for this organization, so non-reuse and uncertainty are visible, not hidden | `GET /capability-gaps/{id}/adoption` per gap; a list needs a route | partial: per-gap exists in #128; a list **requires a route** (not proposed here) |
 
 Anything else returns the command list and records nothing.
@@ -120,10 +120,15 @@ Inheritance is visible because each organization reports its own installations.
 - No route is added by this document. `experiment`, `compare` and a `declined`
   list wait for #124/#126 contracts and a scoped route claim in issue #4.
 
-## Reconciliation with #124 and #126
+## Reconciliation with the merged contracts
 
-When Codex's contract lands under `docs/invention-lab/contracts/**`, this
-document is updated to its names (artifact kind, identity and digest fields,
-receipt fields, comparison treatments) in a docs-only PR, and the change is
-posted in #125. Until then every field above that is not on main is labeled
-"requires contract".
+#18 (`contracts/identity-and-execution.md`) and #22 (`contracts/evaluation.md`)
+are merged as experimental typed records: `ExactContentRef`, `DevelopmentRunBinding`,
+`ExecutionReceipt` with purposes `ordinary` / `acceptance` / `comparison` and a
+per-dimension grant, `EvaluationRequest` and scoring outcomes `Scored` / `Invalid`
+/ `Failed` / `Unknown`, `EvaluationAccounting`, and the request roster. The rows
+above use those names. None of them has a route, an executor, an evaluator or a
+trial-plan runtime yet (draft #28 freezes plans; the executor lane is Henry's
+Claude's `experiments/invention-lab/executor/**`; the call ledger is Codex's next
+claim). A chat view of them is read-only projection of records the kernel will
+hold; it is not proposed here as a route.
