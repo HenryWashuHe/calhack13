@@ -1,6 +1,6 @@
 # GENESIS implementation handoff
 
-## Current checkpoint: stage allocation and retained trial binding merged
+## Current checkpoint: first live generated package awaits runtime acceptance
 
 **Networked recursive capability improvement with fixed model weights** remains
 the chosen direction. Work in
@@ -9,8 +9,8 @@ and coordinate in [issue #1](https://github.com/HenryWashuHe/genesis-history-exp
 The [migration map](REPOSITORY_MIGRATION.md) preserves old/new routing; legacy
 issue #4/task numbers below are historical. Preserve rewritten ancestry.
 
-The [ongoing goal](ONGOING_GOAL.md) and hourly continuation are active; the stale
-app Goal remains paused and must not be falsely completed. Main
+The [ongoing goal](ONGOING_GOAL.md), revised app Goal and hourly continuation are
+active. The stale app record was cleared and replaced on October 24, 2026. Main
 through `a90ad14e7495be1ef5066234f84bddba1ac431b9` includes the experimental core
 contracts, source loader, corrected adoption proposal/UI, simulator primitives,
 #50–#52 method-source generation, #42/#43 executor foundations/session and #56
@@ -32,11 +32,11 @@ checks use the existing generation/cost paths; runtime entry checks remain open.
 ACP corrections/commands #3/#5 are also merged with all original regression
 files preserved.
 #57/#65 remain unmerged pending namespace lifecycle assurance,
-and ACP's #4 documentation proposal remains held. G0–G4 remain open: no live
-generated method, accepted model-developed A → B → A return or
-recursive benefit is established. Handwritten controls, including the separately
-reported live Apify baseline, do not close those gates. Event organizing remains
-superseded.
+and ACP's #4 documentation proposal remains held. The third attempt on `07c098c`
+produced a genuine model-generated package with static inspection only. G0–G4
+remain open: its execution/scoring/adoption, an accepted A → B → A return and
+recursive benefit are unproved. Handwritten controls and the separately reported
+Apify baseline do not close those gates. Event organizing remains superseded.
 
 ### Current ownership and next work
 
@@ -45,11 +45,14 @@ superseded.
 | Henry's core Claude | Adoption/planner acknowledged; prior foundations and #64 merged | Retain method-adoption wiring and existing console UI. Receiver/offer binding and create-only installation records are corrected; retain supporting acceptance receipts separately. Fixture acceptance does not close G2. |
 | Henry's core Claude | Evaluator/executor active; simulator and #42–#45 executor stack merged | Own evaluator/executor. #57/#65 portable fixes clear their prior findings; namespace lifecycle assurance remains unverified after interrupted review. Preserve exact evidence limits and avoid claiming Linux enforcement. |
 | Henry's core Claude | #46/#48/#64/#70/#72 merged | Own scoring and adoption. Retained-file CLI cost assessment and exact-parent revision rehearsals are integrated; continue the scoped method loop and #57 closure assurance without relabeling fixture source as model development. |
-| Eric / Eric's Claude | Audit #9 merged; separate invention-lab UI assignment still unacknowledged | `docs/invention-lab/ui.md`, then `apps/web/src/invention-lab/**` after receipts settle. `EricZhu-31` has write access; do not silently transfer this lane. |
+| Eric / Eric's Claude | [UI lane acknowledged](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6386421464); open #93 `cca56b48c3e9978c985aa048ce98dbac742105fd`, stacked #94 `a56cea8c8a6216659758d1e8e9864f3bc28d80e3` | `docs/invention-lab/ui.md` and `apps/web/src/invention-lab/**`, no shared routes. Current PRs are under review; `EricZhu-31` retains this lane. |
 | ACP Claude session | #3 `f64e131` / #5 `e95a286` merged; stage #20 merged | Migration holds cleared with all eight independent cases unchanged. Reconcile held #4 routing/status/demo docs with merged #3/#5, local executor/scorer and issue #1; preserve the superseded event-organizer boundary. Bridge ownership remains with ACP. |
-| Codex main chat | Shared foundations/diagnostics merged; two separate live attempts failed without a package; second on `7d6119d` retained `content_shape` / `end_turn` | Strict thinking-prefix parser implemented/tested at `054b105` (211 full forge tests/40 targets, five focused independently pass). Next: one fresh bounded attempt and valid-package handoff; neither spent operation may replay. Valid-package handoff to Henry remains next; finite chain ceilings stay proposed, allowing trial-only inherited/control/decline stages without dummy generation. Preserve Henry's runtime and ACP ownership. |
+| Codex main chat | Third live attempt on `07c098c` produced the first model-generated package after merged parser compatibility; AST-only inspection | Preserve the exact package and all three attempts' costs; Henry owns runtime/acceptance, with no retagging to fit another host. No execution/adoption/inheritance yet. Finite chain ceilings remain proposed, allowing trial-only inherited/control/decline stages without dummy generation. Preserve Henry's runtime and ACP ownership. |
 | EricZhu-31 / Codex provider session | Existing provider lane; reports the post-#47 Apify baseline gate passed three cases | Preserve/share sanitized exact evidence for independent inspection; no duplicate cloud run here. This handwritten parser run does not establish model synthesis. Elastic permissions remain with key owner. |
 | Ines | Unassigned by explicit user instruction | Do not infer identity from another collaborator handle. |
+
+Henry [acknowledged the receiving-side execution/scoring/verdict/adoption handoff](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6386515979)
+within his existing lane; the exact generated package is now available below.
 
 Ownership is by session and exact files, even when sessions share a GitHub
 account. Claim shared interfaces in issue #1 before overlapping. The allocation
@@ -61,8 +64,8 @@ permit generation-bearing development/revision and trial-only acceptance,
 return, control or decline stages. Hashes alone prove no timing. ACP retains its
 bridge/documentation lane.
 #57/#65 namespace lifecycle evidence remains incomplete; do not infer assurance
-from portable tests. Actual model-developed source and a recorded accepted return
-remain to be demonstrated. Source identity and fixture acceptance do not establish
+from portable tests. Actual model-generated source is retained; its execution and
+a recorded accepted return remain unproved. Source identity does not establish
 improved development or budget compliance.
 
 ### Evidence for this checkpoint
@@ -160,6 +163,11 @@ source-level concern is whether reaping the spawned wrapper establishes that the
 namespace's first process and complete tree ended on normal and forced-stop
 paths. Do not use the portable results as hidden-scoring closure or hard wall-limit
 evidence. See the [current coordination checkpoint](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6383718962).
+
+Later heads #57 `81722b5abff4d9dd5fcbf5e303a9d4d505bf64b1` and #65
+`635fd3b5178b6cdf0adff92c7ff21a09ebfd638a` remain unreviewed here. Henry
+[reports a deadline-lifecycle fix and 24/24 Linux executor tests](https://github.com/HenryWashuHe/genesis-history-experiment/pull/65#issuecomment-6386513037).
+That is author-reported evidence; independent review and the holds remain open.
 
 Method-adoption #64 source `45938be45ddd47a4b1e4d713c4f9f05e50464089` merged
 `181b81644eb2c795f0cc154501626d102219f926`; retained-file cost rehearsal #70
@@ -304,6 +312,10 @@ It preserves #89 without recovering its missing reason. The [second live attempt
 on `7d6119d` separately retained `content_shape` / `end_turn`: 1 call, 4,028 input /
 4,892 output tokens, 36,790 ms; no package or execution. Its raw response is absent,
 so a thinking-block cause is inference. Both attempts remain in cost accounting; no replay.
+The [third attempt](invention-lab/evidence/live-method-20261024-generated/README.md) on `07c098c`
+produced package `8215c3679a06724069759bcbdaa576b64ec0ef1251c5238a797c0cb34962b944`:
+AST-only inspection, no execution/scoring/adoption. Usage: 1 call, 4,028 input /
+5,231 output tokens, 42,198 ms. Henry owns the exact runtime/protocol-bound handoff.
 
 Repair WIP remains draft #7 `110a107` on matching forge base `f488eef`; all twelve
 files were compared byte-for-byte and original uncommitted files remain untouched.

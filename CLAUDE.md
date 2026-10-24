@@ -41,17 +41,17 @@ use handwritten fixture sources and return Rejected; they establish no actual
 model generation or recursive benefit.
 #57/#65 clear their portable findings but remain unmerged because namespace
 lifecycle validation is incomplete; an automated safety filter interrupted that
-review. No Linux validation or failure reproduction is claimed. ACP #3/#5's
+review. No independent Linux validation or failure reproduction is claimed here. ACP #3/#5's
 migration atomicity and intermediate-schema index-name holds are cleared;
 #4's stale routing/status/demo documentation remains held. Best-effort namespace
 mounts and trusted-directory storage remain experimental boundaries.
 
 **Ongoing work is resumed under [the repository goal](docs/ONGOING_GOAL.md).**
-The existing hourly continuation is active. At this checkpoint the older app Goal
-card remains paused because the goal tool cannot replace an unfinished record;
-never falsely complete it to work around that limitation. The user's renewed
-instruction authorizes scoped work under the revised goal, not the discarded
-venue objective. Preserve local deployed-repair WIP until separately scoped.
+The revised app Goal and existing hourly continuation are active. The stale Goal
+was cleared and replaced on October 24, 2026. The owner delegated direction while
+sleeping and reaffirmed the full moonshot. Preserve the G0–G4 completion contract,
+including selective transfer and honest null results. Preserve local repair WIP.
+
 
 Read the [goal's working cycle](docs/ONGOING_GOAL.md#working-cycle),
 [current ownership map](docs/AGENT_HANDOFF.md#current-ownership-and-next-work)
@@ -65,8 +65,9 @@ every milestone. All lower checkpoints are historical.
   compilation checks do not establish whole-tree stopping. Existing receipts
   and installation records do not authenticate an organization's identity or
   replace independently retained acceptance evidence.
-- Eric (`EricZhu-31`) owns the separately assigned lab UI design/subtree;
-  acknowledgment remains outstanding. Do not transfer it implicitly.
+- Eric (`EricZhu-31`) [acknowledged](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6386421464)
+  the lab UI lane: `docs/invention-lab/ui.md` and `apps/web/src/invention-lab/**`,
+  without shared routes. #93/#94 are open; do not transfer this lane implicitly.
 - ACP Claude owns the bridge and held #4 documentation proposal. #3 `f64e131`
   and #5 `e95a286` are merged; all eight `bb5a841`/`0705ecd`/`b60a755` cases
   remain unchanged and pass. Reconcile #4 with those merges, the local
@@ -97,8 +98,10 @@ every milestone. All lower checkpoints are historical.
   package or execution. Both costs remain recorded; the first failure is unchanged.
   Strict reasoning-prefix/one-text compatibility is implemented at `054b105`: full
   forge 211 tests/40 targets pass, plus five independently rerun focused cases.
-  The old response shape remains unknown. Next: separately declare one new bounded
-  attempt, then hand its valid package to Henry if produced; no source execution here.
+  The old response shape remains unknown. The [third live attempt](docs/invention-lab/evidence/live-method-20261024-generated/README.md)
+  on `07c098c` produced the first actual model-generated package, statically parsed
+  but not executed. Henry owns the exact-bound runtime/acceptance handoff; never
+  retag its runtime to fit another host. G0–G4 remain open.
   Finite whole-chain
   ceilings remain proposed behind the genuine method run; hashes prove no timing.
   Retain input-token/wall, billing, global enforcement and history limits.
