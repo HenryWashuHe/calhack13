@@ -24,10 +24,17 @@ Both endpoints accept `after` and `limit`. `after` defaults to `0` and must be a
 integer between `0` and `9223372036854775807`. `limit` defaults to `25` and must be
 between `1` and `100`. The collection endpoint also accepts exact `mission_id` and
 `requirement_id` filters; use the existing identifiers returned by the organization.
-When both filters are supplied, both must match. Filter IDs must be nonempty,
-contain only ASCII letters, digits, `-`, `_`, `.`, or `:`, and cannot exceed 256
-characters. Unknown query parameters, duplicate fields, malformed numbers and
+When both filters are supplied, both must match. These filters accept nonempty
+UTF-8 identifiers of at most 256 bytes, including spaces and Unicode. Matching is
+exact, without case folding or Unicode normalization. Percent-encode the identifier
+as a query value: for example, `Mission A` becomes `Mission%20A`, and a literal `+`
+becomes `%2B`. The limit applies to the decoded UTF-8 bytes, not the encoded URL
+length. Unknown query parameters, duplicate fields, malformed numbers and
 out-of-range values are rejected.
+
+Stored organizational identifiers have the same nonempty, 256-byte limit.
+Acquisition IDs used in the history path retain their restricted format: ASCII
+letters, digits, `-`, `_`, `.`, and `:`, with at most 256 bytes.
 
 For example:
 
@@ -43,6 +50,13 @@ provider credentials are removed or automatic progression is disabled. If the
 journal is not fully initialized, including an existing acquisition awaiting a
 validated migration baseline, the endpoints return `503` rather than imply that
 an unavailable history is empty. A fresh organization has an empty ready journal.
+
+Use one current server process and version per organization database. Running an
+older writer alongside the current server is unsupported. Startup checks for
+acquisition rows missing from the journal or with a mismatched version; each page
+does not rescan every acquisition. In particular, unknown rows inserted by an older
+writer are detected at the next startup, so the journal cannot promise complete
+coverage while such a writer is running.
 
 ## Pages and cursors
 
@@ -91,6 +105,11 @@ observations; an attention entry does not invalidate an earlier receipt or autho
 a retry. Use the current acquisition and automation endpoints to inspect what the
 runtime can do next.
 
+A checkpoint transition to a new version automatically supersedes attention for
+the old version. That transition clears current catalog attention while preserving
+the old attention entry in history. Clearing attention at the same checkpoint
+version instead appends an explicit `attention_cleared` entry.
+
 Entry kinds are `created`, `transition`, `baseline_observed`, `attention`, and
 `attention_cleared`. A recorded quota debit is one of `model_call`, `actor_create`,
 `build`, `test_submit`, or `read`; it records reservation of an effect intent, not
@@ -98,9 +117,11 @@ proof that a provider completed the effect. Attention codes are `retry_read`,
 `quota`, `configuration`, `invalid_record`, `conflict`, and `internal`.
 
 When an existing acquisition predates the journal, initialization records only a
-baseline of the metadata available at migration. It does not reconstruct earlier
-provider calls, transition times, errors, or a complete creation history. A baseline
-must not be presented as evidence that every preceding step was observed.
+baseline of its validated current checkpoint. It does not recover prior scheduler
+errors or reconstruct earlier provider calls, transition times, or a complete
+creation history. Baseline attention is empty; this does not mean the scheduler
+never encountered an error or currently has none. A baseline must not be presented
+as evidence that every preceding step was observed.
 
 History excludes generated parser/source contents, public HTML examples, oracle
 answers, provider response bodies, credentials, and native Actor/build/run/dataset/message
