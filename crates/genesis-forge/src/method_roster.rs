@@ -39,6 +39,14 @@ pub struct RosterCostReport {
 }
 
 impl GenerationRoster {
+    pub fn attempts(&self) -> &[GenerationExpectation] {
+        &self.0.attempts
+    }
+
+    pub fn settings(&self) -> &TextModelSettings {
+        &self.0.settings
+    }
+
     /// Freeze only unused attempts under one host-selected settings policy.
     /// Input order is part of identity. The roster contains no source/prompt.
     pub fn freeze(
