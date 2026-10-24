@@ -855,3 +855,180 @@ async fn serve_org_takes_a_committed_gap_all_the_way_to_installed() {
     assert_eq!(f.providers.count("POST", "/actors"), 1);
     assert_eq!(f.providers.count("POST", "/runs"), 3 + suite().cases.len());
 }
+
+/// Review fixture: establish genuine local acceptance through the public API,
+/// before the finalizer has selected an installation. The native run receipts
+/// come from the real Rust Apify client; no accepted checkpoint is fabricated.
+async fn review_accept_published_artifact(f: &Fixture, suite_id: &str) -> InstallationId {
+    let record = f.app.store.gap_finalization(&f.gap_id).unwrap().unwrap();
+    assert!(record.publication_ref.is_some());
+    assert!(record.installation_id.is_none());
+    let base = serve_url(f).await;
+    let http = reqwest::Client::new();
+    let response = http
+        .post(format!("{base}/api/v1/capability-installations"))
+        .bearer_auth(format!("{ORG}-operator"))
+        .json(&json!({"capability_id":record.capability.capability_id,
+            "version":record.capability.version,"configuration":{}}))
+        .send()
+        .await
+        .unwrap();
+    let status = response.status();
+    let body: Value = response.json().await.unwrap();
+    assert_eq!(status.as_u16(), 201, "{body}");
+    let id = InstallationId::new(body["installation_id"].as_str().unwrap());
+    let response = http
+        .post(format!(
+            "{base}/api/v1/capability-installations/{id}/checks"
+        ))
+        .bearer_auth(format!("{ORG}-operator"))
+        .json(&json!({"client_request_id":"review-preexisting-acceptance",
+            "role_id":record.role_id,"responsibility_id":record.responsibility_id,
+            "suite_id":suite_id}))
+        .send()
+        .await
+        .unwrap();
+    let status = response.status();
+    let checks: Value = response.json().await.unwrap();
+    assert_eq!(status.as_u16(), 202, "{checks}");
+    let jobs: Vec<JobId> = serde_json::from_value(checks["job_ids"].clone()).unwrap();
+    assert_eq!(jobs.len(), suite().cases.len());
+    for job in &jobs {
+        for _ in 0..10 {
+            if f.app.store.get_capability_run(job).unwrap().phase
+                == genesis_server::capability_runtime::CapabilityRunPhase::Collected
+            {
+                break;
+            }
+            f.app.capability_runtime.step(job, false).await.unwrap();
+        }
+        assert_eq!(
+            f.app.store.get_capability_run(job).unwrap().phase,
+            genesis_server::capability_runtime::CapabilityRunPhase::Collected
+        );
+    }
+    let response = http
+        .post(format!(
+            "{base}/api/v1/capability-installations/{id}/acceptance"
+        ))
+        .bearer_auth(format!("{ORG}-operator"))
+        .json(&json!({"suite_id":suite_id,"job_ids":jobs}))
+        .send()
+        .await
+        .unwrap();
+    let status = response.status();
+    let accepted: Value = response.json().await.unwrap();
+    assert_eq!(status.as_u16(), 200, "{accepted}");
+    assert_eq!(accepted["installation"]["status"], "ACCEPTED");
+    let proof = f.app.store.capability_acceptance(&id).unwrap().unwrap();
+    assert_eq!(proof.suite_id, suite_id);
+    assert_eq!(proof.job_ids, jobs);
+    assert_eq!(
+        f.app.current_state().unwrap().installations[&id]
+            .acceptance_report_ref
+            .as_deref(),
+        Some(proof.report_ref.as_str())
+    );
+    assert!(f
+        .app
+        .store
+        .gap_finalization(&f.gap_id)
+        .unwrap()
+        .unwrap()
+        .installation_id
+        .is_none());
+    id
+}
+
+#[tokio::test]
+async fn review_acceptance_from_a_weaker_suite_cannot_complete_the_frozen_finalizer_suite() {
+    let mut f = Fixture::new(&["capability.acquire", PERMISSION]).await;
+    // Both suites are trusted before any provider work. The finalizer requires
+    // an additional exact input; the independently accepted installation covers
+    // only the original three cases. The new source remains in the allowlist.
+    let mut stronger = suite();
+    stronger.suite_id = "review-finalizer-four-case-suite".into();
+    stronger.scope = "Original three cases plus a distinct attendee input".into();
+    let mut extra = stronger.cases[0].clone();
+    extra.case_id = "review-additional-attendee-input".into();
+    extra.input["attendees"] = json!(121);
+    stronger.cases.push(extra);
+    genesis_verification::validate_suite(&stronger).unwrap();
+    f.config.oracle_suites.push(stronger.clone());
+    f.config.gap_finalization_policy.as_mut().unwrap().rules[0].suite_id =
+        stronger.suite_id.clone();
+    f.reopen();
+    f.acquire().await;
+    assert_eq!(f.finalize_step().await, Step::Frozen);
+    assert_eq!(f.finalize_step().await, Step::Published);
+    let installation = review_accept_published_artifact(&f, &suite().suite_id).await;
+    let accepted = f
+        .app
+        .store
+        .capability_acceptance(&installation)
+        .unwrap()
+        .unwrap();
+    let before = f.providers.count("POST", "/runs");
+    let first = f.finalize_step().await;
+    let next = if first == Step::Installing {
+        f.finalize_step().await
+    } else {
+        first
+    };
+    let record = f.app.store.gap_finalization(&f.gap_id).unwrap().unwrap();
+    assert_eq!(record.suite_id, stronger.suite_id);
+    assert_ne!(accepted.suite_id, record.suite_id);
+    assert_eq!(accepted.job_ids.len(), 3);
+    assert_eq!(stronger.cases.len(), 4);
+    assert_eq!(f.providers.count("POST", "/runs"), before);
+    assert_ne!(
+        next,
+        Step::Installed,
+        "the finalizer must require its frozen four-case suite, not reuse a three-case acceptance of the same pin"
+    );
+    assert!(!matches!(
+        f.gap().status,
+        CapabilityGapStatus::Installed { .. }
+    ));
+    // Blocking at attention or preparing a fresh matching batch is safe. Any
+    // new checks must explicitly belong to the frozen suite.
+    for job in &record.job_ids {
+        assert!(matches!(
+            f.app.store.get_capability_run(job).unwrap().purpose,
+            genesis_server::capability_runtime::ExecutionPurpose::LocalAcceptance {
+                installation_id,
+                suite_id,
+            } if installation_id == installation && suite_id == stronger.suite_id
+        ));
+    }
+}
+
+#[tokio::test]
+async fn review_acceptance_for_the_exact_frozen_suite_can_be_reused() {
+    let f = Fixture::new(&["capability.acquire", PERMISSION]).await;
+    f.acquire().await;
+    assert_eq!(f.finalize_step().await, Step::Frozen);
+    assert_eq!(f.finalize_step().await, Step::Published);
+    let installation = review_accept_published_artifact(&f, &suite().suite_id).await;
+    let proof = f
+        .app
+        .store
+        .capability_acceptance(&installation)
+        .unwrap()
+        .unwrap();
+    let before = f.providers.count("POST", "/runs");
+    assert_eq!(f.finish().await, Step::Installed);
+    let record = f.app.store.gap_finalization(&f.gap_id).unwrap().unwrap();
+    assert_eq!(record.installation_id, Some(installation.clone()));
+    assert_eq!(record.suite_id, proof.suite_id);
+    assert_eq!(f.providers.count("POST", "/runs"), before);
+    assert_eq!(
+        f.app
+            .store
+            .capability_acceptance(&installation)
+            .unwrap()
+            .unwrap()
+            .report_ref,
+        proof.report_ref
+    );
+}
