@@ -1,21 +1,27 @@
-# Domain-free iteration (experimental)
+# Domain-free iteration (proposed, exploratory)
 
-How a method gets better across generations without touching any model weights, in a way that
-does not depend on the task domain and can be passed from one organization to another with its
-evidence. This contract names the roles, the loop and the rules; `scripts/iteration/engine.mjs`
-is its executable reference, exercised only on a synthetic family in `engine.test.mjs`. Nothing
-here claims the loop ran on a real task family; binding it to the lab tools is the last section.
+**Status: a proposal under interface review.** This document and `scripts/iteration/engine.mjs`
+describe one way a method could get better across generations without touching any model
+weights, independent of the task domain, and be passed from one organization to another with its
+evidence. The reference engine is an executable spec for discussing the algorithm, exercised only
+on a synthetic family in `engine.test.mjs`. It is **not** a second orchestrator, its ledger and
+score objects are **not** substitutes for the retained contracts named below, and nothing here
+changes the invention-lab completion gates, authorizes live provider requests, or claims the loop
+ran on a real task family. Integrating it as a runtime needs a shared-interface agreement first.
 
-## Roles a domain must provide
+## Roles a domain must provide, and what they are on main
 
-| Role | What it is | Real-lab counterpart |
+| Role here | What the reference expects | The retained contract it must bind to |
 | --- | --- | --- |
-| **Family** | `id`, `root()` (a baseline package source), `instances(seed, n)` (deterministic, hidden until frozen), `score(package, instance)` returning `{ success, progress, cost, detail }` with no randomness | `lab-task` + `lab-instance` generator; `lab-exec` then `lab-score` (`evaluation.json` → `scoring.instances[]`) |
-| **Mutator** | `propose({ parent, feedback, k, generation })` → up to `k` `{ source, note }`; sees the parent and attributed feedback, never an instance id | `method-generate-step` / parent-bound revision with `lab-receiver-feedback/1` as input |
-| **Controls** | fixed packages the candidate must beat (a fixed design, a hand-written baseline) | the fixed-cart and seeded random-search methods |
-| **Criterion** | `success-count-margin` with `min_margin >= 1`, declared in the plan | `lab-criterion/1` `success-count-margin` |
+| **Package** | `{ sha256, source, parent, origin, generation }` | `MethodPackage` with its exact dependency identities (`ExactContentRef`: domain, schema, id, version, sha256) from [packages](packages.md) and [identity-and-execution](identity-and-execution.md); the engine's `sha256(source)` is a stand-in for that identity, not a replacement |
+| **Family** | `id`, `root()`, `instances(seed, n)` deterministic and hidden until frozen, `score(package, instance)` → `{ success, progress, cost, detail }` with no randomness | `lab-task` / `lab-instance` generator; **separate** execution and scoring records: a `DevelopmentRunBinding` + `ExecutionReceipt`, then an `EvaluationRequest` whose `Scored` outcome yields `scoring.instances[]` ([evaluation](evaluation.md)); the engine's `score` collapses two receipts into one call only in the synthetic reference |
+| **Mutator** | `propose({ parent, feedback, k, generation })` → up to `k` `{ source, note }`; sees the parent and attributed feedback, never an instance id | a guarded generation step or parent-bound [revision](revision.md), admitted under [generation-admission](generation-admission.md) and a [finite chain allocation](chain-allocation.md) with its cost records; the accepted receiver decision (`lab-receiver-feedback/1`) is the feedback |
+| **Controls** | fixed packages the candidate must beat | the fixed-cart and seeded random-search arms of a trial |
+| **Plan** | arms, criterion, held-out instances, hashed before any score | a `TrialPlan` (`development-trial-plan/1`, [trials](trials.md)): ordered slots, one attempt and at most one retained output per slot, criterion `success-count-margin`, hidden-set commitment; the engine's `plan.sha256` is the analogue of the plan's exact identity |
+| **Ledger** | append-only chain-hashed records of proposals, plans, evaluations, verdicts, promotions, adoptions | the retained receipts, `evaluation.json`, `verdict.json`, `ledger.json` and chain cost records already on main; the engine's ledger is a discussion aid and must not bypass them |
 
-The engine owns everything else: the frontier, the plan, the ledger and inheritance.
+The engine owns the loop, the frontier and inheritance as described below; it owns none of the
+identities, receipts or cost accounting above.
 
 ## The loop (one generation, one family)
 
@@ -47,16 +53,40 @@ The engine owns everything else: the frontier, the plan, the ledger and inherita
   never receives; the next generation's feedback is about the previous generation's instances, which
   are disclosed only after their plan was frozen and scored.
 
+## What a frontier is, and is not
+
+A frontier is a **scoped, receiver-owned selection**: the package this organization currently
+prefers for this task distribution, under this criterion, these controls and this budget. It is not
+a claim of universal verified superiority, and it is not transferable as a claim. Declining to
+promote is a valid outcome of every generation; no task is ever required to promote something, and
+a loop that ends with the root as its incumbent is a complete, honest run.
+
+## Selection data versus a final fresh panel
+
+Every held-out draw the engine makes during the loop is **selection data**: the moment a
+generation's instances are scored, their results feed the next generation's attribution, so
+repeatedly selecting against them leaks the panel into the method. The reference therefore draws a
+new panel per generation, and `confirm` scores the frontier once more on a **final fresh panel**
+drawn from a seed never used for selection and never fed back. A confirmation is recorded, never
+used to choose anything, and is the only number a frontier claim should quote. In the lab this is
+the separately held hidden-scoring path (`HiddenCommitment` in [trials](trials.md)), which this
+reference does not replace.
+
 ## Known limits of v1
 
 - A promotion is a margin on the same frozen instances. Counts from different generations are not
   comparable, so a frontier can move on a lucky draw; raise `heldout` or `min_margin` to resist
-  noise, or add a second family as a check. The ledger makes any such move visible.
+  noise, add a second family as a check, and quote only the confirmation.
 - One family per loop. Running the same candidates across several families and promoting only a
   package that wins on all of them is a policy on top of this contract, not inside it yet.
-- The engine counts evaluations and mutator calls; it does not price them.
+- The engine counts evaluations and mutator calls; it does not price them and does not replace
+  the chain allocation and cost records.
 
 ## Passing on (inheritance)
+
+Transfer preserves the receiver's **independent choice** (it may decline), **pinned versions** (the
+exact package and dependency identities travel, nothing floats) and **authority** (adoption is an
+act of the receiving organization under its own constitution and budget, never of the sender).
 
 `exportBundle` packs the frontier package, its ancestry (hashes, origins, generations), the whole
 ledger and the ledger's hash. `adopt` on another organization first verifies the bundle's ledger
