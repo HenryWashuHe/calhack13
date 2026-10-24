@@ -592,6 +592,7 @@ dependencies = [
  "async-trait",
  "axum",
  "chrono",
+ "dotenvy",
  "genesis-core",
  "genesis-elastic",
  "genesis-providers",

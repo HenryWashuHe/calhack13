@@ -230,6 +230,11 @@ impl ElasticClient {
         Ok(Self { cfg, http })
     }
 
+    /// The Elasticsearch URL this client talks to.
+    pub fn elasticsearch_url(&self) -> &str {
+        &self.cfg.elasticsearch_url
+    }
+
     /// Index holding one organization's evidence.
     pub fn evidence_index(&self, org_id: &str) -> String {
         evidence_index_name(&self.cfg.index_prefix, org_id)

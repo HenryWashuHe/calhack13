@@ -33,18 +33,28 @@ ELASTIC_KIBANA_SPACE=genesis-demo
 GENESIS_ELASTIC_INDEX_PREFIX=genesis
 ```
 
-`genesis org` picks these up through `attach_elastic_from_env`. Either half can
-be configured alone.
+`genesis org`, `genesis registry` and `genesis dev` read these from the process
+environment (load a `.env` with `set -a; source .env; set +a`); the smoke-test
+binary and the planner also read `.env` directly. Either half can be
+configured alone.
 
 ## Live smoke test (still to do)
 
-1. With both keys set, start one organization and create a mission and an
-   observation; `GET /api/v1/projection` should report the current revision.
-2. `GET /api/v1/search/evidence?q=<words from the observation>` returns it.
-3. Commit a change with a `provider: elastic` role; the role's binding shows
-   the Agent Builder agent ID, and the agent and tool exist in Kibana.
-4. Converse with the agent and confirm it called the evidence tool.
-5. Confirm Org B's key cannot read Org A's evidence index.
+With the four variables set (in `.env` or the shell), run:
+
+```sh
+cargo run -p genesis-elastic --bin genesis-elastic-smoke -- --org genesis-smoke --converse --cleanup --report smoke.json
+```
+
+It indexes and searches a unique evidence document and capability document,
+creates an Agent Builder specialist, re-provisions it to confirm
+reconciliation (no duplicate), checks readiness, holds one converse turn and
+confirms the agent called its evidence tool, then deletes the agent. It prints
+`PASS`/`FAIL` per step with IDs (never keys) and exits non-zero on failure.
+The same binary passes against the in-process fakes
+(`tests/smoke_binary.rs`). After it passes, also check in the console that a
+`provider: elastic` role shows the Agent Builder agent ID, and confirm that
+Org B's key cannot read Org A's evidence index.
 
 Unverified assumptions to check during the smoke test: `index_search` accepts
 `row_limit` on Serverless; Kibana answers an existing ID with 409 (the client
