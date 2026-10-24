@@ -551,3 +551,141 @@ async fn assessment_budget_stops_after_one_accepted_feasible_cycle() {
     assert_eq!(assessment_rows(&f), 1);
     assert_eq!(f.providers.execution_posts().len(), 1);
 }
+
+#[tokio::test]
+async fn committed_child_recovers_after_link_save_failure_without_renewing_its_request() {
+    for stop_before_recovery in [false, true] {
+        let mut f = Fixture::start().await;
+        let source = f.source("lost-link-source", 0).await;
+        let saved = subscribe(
+            &f,
+            subscription_request(&f, "lost-link-monitor", &source, 1),
+        )
+        .await;
+        let path = monitor_path(&saved);
+        let monitor_id = saved["monitor_id"].as_str().unwrap();
+        let db = sqlite(&f);
+        let stored = |connection: &rusqlite::Connection| -> Value {
+            let text: String = connection
+                .query_row(
+                    "SELECT record_json FROM venue_monitors WHERE monitor_id=?1",
+                    [monitor_id],
+                    |row| row.get(0),
+                )
+                .unwrap();
+            serde_json::from_str(&text).unwrap()
+        };
+        let original = stored(&db);
+        let exact_request = original["intents"][0]["request"].clone();
+        assert_eq!(exact_request["source_job_id"], source);
+        assert!(original["intents"][0]["assessment_id"].is_null());
+        db.execute_batch(
+            "CREATE TRIGGER fail_monitor_child_link BEFORE UPDATE OF record_json ON venue_monitors
+             WHEN json_extract(OLD.record_json,'$.intents[0].assessment_id') IS NULL
+              AND json_extract(NEW.record_json,'$.intents[0].assessment_id') IS NOT NULL
+             BEGIN SELECT RAISE(ABORT,'fixture rejects child link commit'); END;",
+        )
+        .unwrap();
+        assert!(
+            genesis_server::venue_monitors::drain_once(&f.app)
+                .await
+                .is_err(),
+            "the child must commit before the injected subscription write failure"
+        );
+        assert_eq!(assessment_rows(&f), 1);
+        assert_eq!(
+            stored(&db),
+            original,
+            "failed row update cannot change the frozen intent"
+        );
+        let child_id: String = db
+            .query_row("SELECT assessment_id FROM venue_assessments", [], |row| {
+                row.get(0)
+            })
+            .unwrap();
+        let child = f.get(&format!("/venue-assessments/{child_id}")).await;
+        f.collected(&child).await;
+        let native_job = f
+            .app
+            .store
+            .get_job(&JobId::new(child["job_id"].as_str().unwrap()))
+            .unwrap();
+        let receipt = f
+            .specialist
+            .execution_receipt(&native_job, &binding())
+            .unwrap();
+        assert_eq!(native_job.status, JobStatus::Verifying);
+        assert_eq!(
+            native_job.deadline,
+            Some(serde_json::from_value(exact_request["deadline"].clone()).unwrap())
+        );
+        assert_eq!(f.providers.execution_posts().len(), 1);
+        let effects = f.side_effect_counts();
+        if stop_before_recovery {
+            let (status, stopped) = f.post(&format!("{path}/stop"), json!({})).await;
+            assert_eq!(status, StatusCode::OK, "{stopped}");
+            assert_eq!(stopped["status"], "stopped");
+            assert!(stopped["pending_assessment_id"].is_null());
+        }
+        db.execute_batch("DROP TRIGGER fail_monitor_child_link")
+            .unwrap();
+        drop(db);
+
+        // The new AppState has no in-memory child ID. Its only recovery input
+        // is the saved exact request, whose deadline/key must never be renewed.
+        f.restart(false).await;
+        let calls_before = f.providers.world.lock().unwrap().seen.len();
+        genesis_server::venue_monitors::drain_once(&f.app)
+            .await
+            .unwrap();
+        let recovered = f.get(&path).await;
+        assert_eq!(recovered["assessment_count"], 1);
+        assert_eq!(recovered["pending_assessment_id"], child_id);
+        assert_eq!(recovered["pending_source_job_id"], source);
+        if stop_before_recovery {
+            assert_eq!(
+                recovered["status"], "stopped",
+                "historical lookup cannot reactivate a stopped subscription"
+            );
+        }
+        let persisted = stored(&sqlite(&f));
+        assert_eq!(persisted["intents"][0]["request"], exact_request);
+        assert_eq!(persisted["intents"][0]["assessment_id"], child_id);
+        assert_eq!(persisted["binding_sha256"], original["binding_sha256"]);
+        assert_eq!(assessment_rows(&f), 1);
+        assert_eq!(
+            f.providers.world.lock().unwrap().seen.len(),
+            calls_before,
+            "link recovery is local and read-only toward providers"
+        );
+        assert_eq!(f.app.store.get_job(&native_job.job_id).unwrap(), native_job);
+        assert_eq!(f.side_effect_counts(), effects);
+
+        genesis_server::venue_assessments::drain_once(&f.app)
+            .await
+            .unwrap();
+        genesis_server::venue_monitors::drain_once(&f.app)
+            .await
+            .unwrap();
+        let accepted = f.get(&format!("/venue-assessments/{child_id}")).await;
+        assert_eq!(proof(&accepted)["decision"], "accepted");
+        assert_eq!(proof(&accepted)["run_id"], receipt.run_id);
+        let final_monitor = f.get(&path).await;
+        assert_eq!(
+            final_monitor["status"],
+            if stop_before_recovery {
+                "stopped"
+            } else {
+                "completed"
+            }
+        );
+        assert_eq!(final_monitor["last_assessment_id"], child_id);
+        assert_eq!(final_monitor["assessment_count"], 1);
+        let (status, replay) = f.post("/venue-assessments", exact_request).await;
+        assert_eq!(status, StatusCode::OK, "{replay}");
+        assert_eq!(replay, accepted);
+        assert_eq!(assessment_rows(&f), 1);
+        assert_eq!(f.providers.execution_posts().len(), 1);
+        assert_eq!(f.side_effect_counts(), (effects.0 + 1, effects.1));
+    }
+}
