@@ -58,19 +58,21 @@ The private cloud checkpoints remain local to the reporting machine and were
 not independently inspected for this documentation update.
 
 [PR #26](https://github.com/HenryWashuHe/genesis-history-experiment/pull/26)
-proposes a bounded reread of an empty dataset page after a successful run.
+merged at `f153f58`, adding a bounded reread of an empty dataset page after a
+successful run. Independent cases are preserved by #29 (`b69f2ba`).
 Its passing loopback checks do not confirm the cause of the live failure or a
 successful forge rerun. CREAO v2 metadata reads authenticated but returned no
 hosted agents; [PR #25](https://github.com/HenryWashuHe/genesis-history-experiment/pull/25)
-adds opt-in v2 handling with offline checks, and a live v2 agent/run is still
-unproven. Fetch discovery has partial authenticated evidence; Elastic's data
+merged at `0d6d96d`, adding opt-in v2 handling and protocol-correct receipt
+hashing with offline checks. A live v2 agent/run is still unproven. Fetch discovery has partial authenticated evidence; Elastic's data
 index permission issue is still pending.
 
 ## Apify needs reachable pages
 
 The checked-in suite points at `fixtures.genesis.example`, which does not
-resolve. Without `--portal-suite` the Apify gate can at best show a created
-Actor and a build (**partial**). For case runs, host the
+resolve. Without a reachable `--portal-suite`, Actor creation and build may
+succeed but attempted case execution fails; a terminal failure remains **failed**.
+For case runs, host the
 [venue portal](VENUE_PORTAL.md) behind a tunnel and pass its suite:
 
 ```sh
