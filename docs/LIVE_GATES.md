@@ -15,7 +15,14 @@ node scripts/live-gates/run.mjs --allow-billable \
 
 Output: `data/live-gates/gates-<run>.json` (full sanitized record) and
 `gates-<run>.md` (a table to paste into issue #4 or the Devpost write-up). The
-process exits 1 if any gate failed or needs reconciliation.
+process exits 1 if any gate failed or needs reconciliation. An explicit
+terminal failure (Apify `rejected`/`failed`, CREAO `failed`) is `failed` even
+when earlier build or run IDs exist; `partial` means unfinished evidence.
+
+Each run works in its own directory, `data/live-gates/apify/<run>/` and
+`data/live-gates/creao/<run>/`, so earlier checkpoints are never touched.
+The result records the exact `resume` command (`genesis-forge step …` or
+`genesis-creao step …`) for a run that stopped at the step limit.
 
 | Gate | Credentials | What runs | Evidence recorded | Pass means |
 | --- | --- | --- | --- | --- |
@@ -52,8 +59,9 @@ and layout drift is the variant that should force a semantic repair.
 ## Safety
 
 The kit only drives the CLIs. It never edits a checkpoint, never replays a
-POST, passes `--retry-read` only when the last record reports a retryable
-read, and stops at the first unknown outcome (`needs_reconciliation`). Resume
+POST, passes `--retry-read` only when the last record reports a retryable,
+non-ambiguous read (Forge reports that with exit 1, which does not stop the
+gate), and stops at the first unknown outcome (`needs_reconciliation`). Resume
 or reconcile with the CLI named in the result. Stdout is parsed into
 allow-listed fields; credential values are scrubbed from everything written.
 The Apify checkpoint holds private source and outputs and stays local.
@@ -70,4 +78,6 @@ The Apify checkpoint holds private source and outputs and stays local.
 Tests: `node --test scripts/live-gates/gates.test.mjs` drives stub CLIs
 (no network): missing credentials, billable consent, evidence parsing and
 scrubbing, CREAO polling with an explicit read retry, Apify stopping at an
-unknown outcome, and build-only versus verified.
+unknown outcome, partial versus rejected; plus Codex's review47 regressions
+(exit-1 read retry, terminal failures after earlier IDs, repeated runs in one
+output directory).

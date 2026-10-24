@@ -132,7 +132,10 @@ async function stepLoop({ ctx, bin, stepArgs, statusOf, terminal, pollMs, maxSte
     log.push({ at: now(), exit: r.code, phase: s?.phase ?? null, ms: r.ms });
     if (!r.json) return { log, last, exit: r.code, error: r.stderr };
     last = r.json;
-    if (terminal(s) || r.code !== 0) return { log, last, exit: r.code };
+    if (terminal(s)) return { log, last, exit: r.code };
+    // A nonzero exit stops the gate unless the CLI's own record explicitly
+    // allows a read retry (Forge reports a retryable GET failure with exit 1).
+    if (r.code !== 0 && !(retryRead && retryRead(r.json))) return { log, last, exit: r.code };
     await sleep((typeof pollMs === "function" ? pollMs(r.json) : pollMs) * (ctx.pollScale ?? 1));
   }
   return { log, last, exit: 0, limit: true };
@@ -141,7 +144,9 @@ async function stepLoop({ ctx, bin, stepArgs, statusOf, terminal, pollMs, maxSte
 export async function apifyGate(ctx) {
   const bin = join(ctx.binDir, "genesis-forge");
   if (!existsSync(bin)) return { status: "not_tested", reason: `no ${bin}` };
-  const work = join(ctx.out, "apify");
+  // One directory per run: Forge never overwrites a checkpoint, and earlier
+  // runs' evidence must stay intact and resumable.
+  const work = join(ctx.out, "apify", ctx.stamp);
   mkdirSync(work, { recursive: true });
   // Hand-authored baseline parser (not AI-generated), adjusted to the scaffold layout.
   const parser = join(work, "parser.ts");
@@ -169,14 +174,18 @@ export async function apifyGate(ctx) {
   });
   const last = res.last ?? {};
   const phase = last.phase ?? null;
+  // An explicit terminal outcome takes precedence over partial evidence: an
+  // oracle rejection after a good build is a failed verification gate.
   const status =
     phase === "needs_reconciliation"
       ? "needs_reconciliation"
       : phase === "verified"
         ? "passed"
-        : last.artifact?.build_id || last.failure?.build_id
-          ? "partial"
-          : "failed";
+        : phase === "rejected" || phase === "failed"
+          ? "failed"
+          : last.artifact?.build_id || last.failure?.build_id
+            ? "partial"
+            : "failed";
   return {
     status,
     duration_ms: Date.now() - started,
@@ -188,7 +197,8 @@ export async function apifyGate(ctx) {
       failed_run_id: last.failure?.run_id ?? null,
       completed_cases: last.completed_cases ?? null,
       total_cases: last.total_cases ?? null,
-      checkpoint: "apify/forge.json (private: contains source and outputs; do not share)",
+      checkpoint: `apify/${ctx.stamp}/forge.json (private: contains source and outputs; do not share)`,
+      resume: `genesis-forge step --suite ${suite} --checkpoint ${checkpoint}`,
     },
     steps: res.log,
     note: reachable
@@ -202,7 +212,7 @@ export async function apifyGate(ctx) {
 export async function creaoGate(ctx) {
   const bin = join(ctx.binDir, "genesis-creao");
   if (!existsSync(bin)) return { status: "not_tested", reason: `no ${bin}` };
-  const work = join(ctx.out, "creao");
+  const work = join(ctx.out, "creao", ctx.stamp);
   mkdirSync(work, { recursive: true });
   const spec = JSON.parse(readFileSync(join(ctx.repo, "crates/genesis-creao/examples/create-monitor.json"), "utf8"));
   spec.operation_id = `live-gate-${ctx.stamp}`;
@@ -231,9 +241,11 @@ export async function creaoGate(ctx) {
       ? "passed"
       : last.phase === "needs_reconciliation"
         ? "needs_reconciliation"
-        : last.run_id
-          ? "partial"
-          : "failed";
+        : last.phase === "failed"
+          ? "failed"
+          : last.run_id
+            ? "partial"
+            : "failed";
   return {
     status,
     duration_ms: Date.now() - started,
@@ -244,6 +256,7 @@ export async function creaoGate(ctx) {
       run_id: last.run_id ?? null,
       provider_agent_id: last.provider_agent_id ?? null,
       readiness_verified: false,
+      resume: `genesis-creao step --db ${db} --org ${spec.org_id} --operation ${spec.operation_id} --account ${spec.account_namespace} --quota-db ${join(work, "quota.sqlite")}`,
     },
     steps: res.log,
     note: "Creates one real, billable CREAO agent (no delete endpoint). Native completion is not readiness; the gateway skill/receipt gate is separate.",
@@ -291,7 +304,7 @@ export async function runGates(opts) {
 export function summary(report) {
   const rows = Object.values(report.results).map((r) => {
     const ids = Object.entries(r.evidence ?? {})
-      .filter(([k, v]) => v !== null && v !== undefined && !["steps", "checkpoint", "readiness_verified"].includes(k) && !Array.isArray(v))
+      .filter(([k, v]) => v !== null && v !== undefined && !["steps", "checkpoint", "readiness_verified", "resume"].includes(k) && !Array.isArray(v))
       .map(([k, v]) => `${k}=\`${v}\``)
       .join(", ");
     const secs = r.duration_ms !== undefined ? `${(r.duration_ms / 1000).toFixed(1)} s` : "—";
