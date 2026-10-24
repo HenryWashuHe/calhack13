@@ -74,8 +74,10 @@ export function describe(ev: DomainEvent, state: OrgState | null): Described {
         failed: "Provider operation failed",
       };
       const p = ev.payload;
+      // The kernel's attach note: the agent ID came from an operator, not the provider.
+      const attached = p.state === "awaiting_readiness" && (p.attention ?? "").includes("attached by operator");
       return {
-        title: labels[p.state] ?? `Provider operation ${p.state}`,
+        title: attached ? "Agent ID attached by operator, awaiting readiness" : labels[p.state] ?? `Provider operation ${p.state}`,
         detail:
           `${p.role_key} on ${p.provider} · ${p.operation_id}` +
           (p.run_id ? ` · run ${p.run_id}` : "") +
@@ -83,7 +85,7 @@ export function describe(ev: DomainEvent, state: OrgState | null): Described {
         category: "organization",
         refs: [p.change_id],
         tone:
-          p.state === "ready" ? "ok" : p.state === "failed" || p.state === "needs_reconciliation" ? "bad" : p.attention ? "warn" : undefined,
+          p.state === "ready" ? "ok" : p.state === "failed" || p.state === "needs_reconciliation" ? "bad" : attached || p.attention ? "warn" : undefined,
       };
     }
     case "provisioning_failed":
