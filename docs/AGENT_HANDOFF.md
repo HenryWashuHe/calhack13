@@ -1,5 +1,9 @@
 # GENESIS implementation handoff
 
+Current priority: [review queue and merge dependencies](PR_REVIEW_QUEUE.md).
+The user requested a backlog review; capability stack review found no new blockers,
+while #11/#12/#20/#21/#22 retain source findings. No PR was merged in this pass.
+
 Latest assembled checkpoint: [draft PR #25](https://github.com/HenryWashuHe/genesis/pull/25),
 `codex/combined-integration`, source merge `ac00764`, cross-stack scenario `9d63cc0`.
 It combines capability #24 and Claude #11/#12/#20/#21/#22/#23 at their recorded heads.

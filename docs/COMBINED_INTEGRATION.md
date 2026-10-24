@@ -5,6 +5,9 @@ This is an assembled development checkpoint
 for both machines. It is draft because the source reviews below still have open
 findings. Passing the existing suite does not resolve those findings.
 
+The [PR review queue](PR_REVIEW_QUEUE.md) records the fresh review of all 18 open
+PRs, dependency order, exact heads and source-fix ownership.
+
 ## Included snapshots
 
 | Source | Exact head | Purpose |

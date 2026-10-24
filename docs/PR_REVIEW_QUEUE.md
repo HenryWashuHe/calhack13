@@ -1,0 +1,83 @@
+# PR review queue — October 22, 2026
+
+This checkpoint reviews all 18 open PRs. It records exact source heads, not a
+blanket approval of later pushes. No PR was merged during this review. The fresh
+capability review inspected each diff against its declared base and the relevant
+test coverage; it did not rerun the already-passing suites or exercise live accounts.
+
+## Capability stack: no new blocking findings
+
+Review and land in this dependency order. Each later PR depends on the earlier
+branches; these are not eleven independent changes against `main`.
+
+| Order | PR | Reviewed head | Main review focus |
+| --- | --- | --- | --- |
+| 1 | [#8](https://github.com/HenryWashuHe/genesis/pull/8) | `2a006e2a85dd237ac9f37320704ee7e19707a478` | Persisted model intent before POST, prompt/receipt binding, bounded transport, no ambiguous replay |
+| 2 | [#9](https://github.com/HenryWashuHe/genesis/pull/9) | `3af3551718c9f678fb667a9ebdae625449141b40` | Repair lineage, semantic-only repair gate, atomic transitions and completion capacity |
+| 3 | [#10](https://github.com/HenryWashuHe/genesis/pull/10) | `343789f22d1db3286bd945cd0d8e1da33a2d0c06` | Authority/version checks, atomic quota debit and saved effect intent, post-call fencing |
+| 4 | [#13](https://github.com/HenryWashuHe/genesis/pull/13) | `248e8af33d3c53241a37417985530a9f9818dec4` | Mission/lease deadlines, saved assignment identity, acceptance surviving retirement, bounded manual scenario |
+| 5 | [#14](https://github.com/HenryWashuHe/genesis/pull/14) | `b364226e27d1b74cb9cc79d90238fa805935e502` | Fresh invocation evidence, historical proof restoration, atomic proof/job/event commit |
+| 6 | [#15](https://github.com/HenryWashuHe/genesis/pull/15) | `11c76d122518ea5d3cd8b44d3709da556c77a233` | Transactional finalizer claims, bounded restart recovery, manual/worker convergence |
+| 7 | [#16](https://github.com/HenryWashuHe/genesis/pull/16) | `4c428ca01ba6a3e3d403797cdf5444505fa30824` | Scheduled-version fencing, local paused-work reconciliation, unknown POST and failed-read gates |
+| 8 | [#17](https://github.com/HenryWashuHe/genesis/pull/17) | `6d089be417c70f12b967ef9347ecd7c3a6d2ade2` | Automatic observation without manual fallback, version-skew handling, immutable proof requirement |
+| 9 | [#18](https://github.com/HenryWashuHe/genesis/pull/18) | `4e37944db99d87aca7d3e040b1359ac0523d07d9` | Atomic history, resumable baseline migration, stable pagination, redaction |
+| 10 | [#19](https://github.com/HenryWashuHe/genesis/pull/19) | `7df90de6cd8b81e5b095ba5ffec050be5e4a9593` | Requirement-bound selection, atomic installation/check batch/acceptance, child authorization, terminal recovery |
+| 11 | [#24](https://github.com/HenryWashuHe/genesis/pull/24) | `9e7939a0f060784db282a8269ce2e5acbbe6554a` | Independent B-only adoption intent, frozen selection checks, adoption-bound evidence and fresh invocation proofs |
+
+The stacked head has prior local evidence of 594 passing Rust tests across 64
+suites with `serde_json/preserve_order`, formatting and strict default-feature
+all-target Clippy. That evidence does not substitute for a human approval or
+apply automatically to a changed head. GitHub's CodeRabbit summary status is not
+a build/test CI result or a comprehensive code review.
+
+Known boundaries remain: one process owns each organization database; retained
+checkpoints require compatible trusted configuration; invocation verification
+uses trusted inputs; failed reads and ambiguous POSTs require explicit recovery.
+The scenario is an operator-driven demonstration of structural evolution, not
+proof that the planner independently discovered and solved the entire mission.
+Cloud execution and cross-account provider access remain separate evidence gates.
+
+## Claude/Eric source fixes: hold these PRs
+
+The original #11/#12 regressions pass on the updated heads. The follow-up findings
+below remain open. Keep fixes on their source branches so other machines can
+consume them without duplicating implementation in the integration branch.
+
+| PR / reviewed head | Required correction | Review evidence |
+| --- | --- | --- |
+| [#11](https://github.com/HenryWashuHe/genesis/pull/11) / `aa94d1006e6bad4833f5a9aef7989e4c1e763790` | Check mission deadline and assignment lease before/after Elastic calls; prevent generic adapter results from finalizing backend-managed jobs | [Review](https://github.com/HenryWashuHe/genesis/pull/11#pullrequestreview-5615583092), five reproduced failures in test-only `b2037e5` |
+| [#12](https://github.com/HenryWashuHe/genesis/pull/12) / `22fefe62a91bae948179267bd9a13cd9943b6482` | Persist requirement-create uncertainty/identity across restart; handle reconciled or cached REJECTED changes as rejection | [Review](https://github.com/HenryWashuHe/genesis/pull/12#pullrequestreview-5614141053), three reproduced failures in test-only `70c4edb` |
+| [#20](https://github.com/HenryWashuHe/genesis/pull/20) / `e8cad2054e1b2961d061bed432c9389b1c45af39` | Apply the managed-job result guard to specialists; reauthorize before a retry after handoff | [Review](https://github.com/HenryWashuHe/genesis/pull/20#pullrequestreview-5614181896), three reproduced failures and a passing control in test-only `faf3d8b` |
+| [#21](https://github.com/HenryWashuHe/genesis/pull/21) / `2c987193892da94e4110179362f2ef2aa052779c` | Bind acceptance runs to installation ID, support adoption acceptance purpose, and refresh changed/failed evidence reads | [Source review](https://github.com/HenryWashuHe/genesis/pull/21#pullrequestreview-5615620684); no new browser reproduction |
+| [#22](https://github.com/HenryWashuHe/genesis/pull/22) / `8a23273ccbf97b611ed73ddfc43646b31dffbcca` | Revalidate effective remote planner configuration; disable redirects in the shared Agent Builder client | [Source review](https://github.com/HenryWashuHe/genesis/pull/22#pullrequestreview-5615620695); no new drift/redirect reproduction |
+
+Prioritize the shared backend-managed result guard across #11/#20 first, then
+time-sensitive authority/retry checks and planner restart behavior. Put the shared
+Agent Builder transport correction in #11 and absorb it into #22. Finish #21's
+installation/adoption evidence bindings against the current capability contracts.
+
+## Documentation and combined checkpoint
+
+- [#23](https://github.com/HenryWashuHe/genesis/pull/23), `665aab42177098330ac5bff71656ebf201fad5a9`:
+  refresh after the source fixes. Replace the three "to open" cells with #20/#21/#22,
+  qualify the #11/#12 review-fixed claims, and correct CREAO registration status:
+  registration exists in #20; a real readiness verifier remains pending. Reconcile
+  these docs with the newer handoff already in the integration branch.
+- [Draft #25](https://github.com/HenryWashuHe/genesis/pull/25): keep draft. Reviewed
+  integration snapshot `c5916af6885099a1171225db0ca729a5bf1cbed1` combines the heads
+  above. Its baseline passed 666 Rust tests, 26 web tests, production web build,
+  strict Clippy, formatting and schema/type regeneration without drift. A subsequent
+  test-only Elastic/adoption enhancement passed all five affected scenario tests.
+  The eleven failing source-review probes are separate and are not in that passing
+  baseline. [Full validation scope](COMBINED_INTEGRATION.md).
+
+Before landing a stack item, confirm its head/base still match this review. Preserve
+the dependency ancestry and retarget the next PR as needed; do not squash/rebase
+parents blindly while descendants still depend on their commit identities. Rerun
+affected checks after source changes or conflict resolution. After the source PRs
+land, reconcile #25 against `main` rather than merging duplicate history wholesale.
+
+Codex owns capability code/review and narrow integration. Claude/Eric retains
+planner, general kernel/lifecycle/saga/outbox, asynchronous role activation, Elastic
+and UI. The immediate work is draining this queue and verifying the fixes; no new
+feature branch or whole-kernel ownership transfer is part of this checkpoint.
