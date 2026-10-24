@@ -565,6 +565,10 @@ impl Fixture {
     }
 
     async fn start() -> Self {
+        Self::start_with_role_binding(None).await
+    }
+
+    async fn start_with_role_binding(binding: Option<genesis_core::model::AgentBinding>) -> Self {
         let registry = registry().await;
         let mock = ApifyMock::start().await;
         let database = tempfile::tempdir().unwrap();
@@ -577,6 +581,31 @@ impl Fixture {
         let org = Org::open(&config, &mock).await;
         org.publish().await;
         let installed = org.seed_and_install().await;
+        if let Some(binding) = binding {
+            // Trusted fixture setup models an already active specialist. It does
+            // not provision a native agent or claim native CREAO readiness.
+            let _kernel = org.app.kernel.lock().await;
+            let state = org.app.current_state().unwrap();
+            let mut changed = state.clone();
+            let role = changed
+                .roles
+                .get_mut(&genesis_core::ids::RoleId::new(&installed.role))
+                .unwrap();
+            assert_eq!(role.state, genesis_core::lifecycle::RoleState::Active);
+            role.binding = Some(binding);
+            changed.revision += 1;
+            org.app
+                .store
+                .commit_state(
+                    state.revision,
+                    &changed,
+                    vec![],
+                    &Default::default(),
+                    vec![],
+                    |_| Ok(()),
+                )
+                .unwrap();
+        }
         let acceptance_jobs = org.checks(&installed).await;
         org.collect(&acceptance_jobs).await;
         let accepted = org.accept(&installed, &acceptance_jobs).await;
@@ -717,6 +746,64 @@ fn assert_redacted(proof: &Value) {
     ] {
         assert!(!encoded.contains(secret), "proof leaked {secret}: {proof}");
     }
+}
+
+#[tokio::test]
+async fn creao_bound_role_uses_backend_apify_capabilities_but_cannot_override_generic_jobs() {
+    let f = Fixture::start_with_role_binding(Some(genesis_core::model::AgentBinding {
+        provider: genesis_core::model::Provider::Creao,
+        provider_agent_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa".into(),
+        config_digest: "c".repeat(64),
+        conversation_ref: None,
+    }))
+    .await;
+    // The CREAO binding predates all three local acceptance checks. Actual
+    // execution here uses the backend Apify client against the loopback fixture;
+    // no CREAO runtime is registered and no native CREAO request is made.
+    let state = f.org.get("/organization").await;
+    assert_eq!(state["roles"][&f.installed.role]["state"], "ACTIVE");
+    assert_eq!(
+        state["roles"][&f.installed.role]["binding"]["provider"],
+        "creao"
+    );
+    assert_eq!(f.mock.submissions(), suite().cases.len());
+    for id in &f.acceptance_jobs {
+        assert_eq!(f.org.get(&format!("/jobs/{id}")).await["provider"], "apify");
+        assert_eq!(
+            f.org.get(&format!("/capability-runs/{id}")).await["phase"],
+            "collected"
+        );
+    }
+
+    let jobs_before = f.org.app.store.list_jobs().unwrap().len();
+    for provider in ["internal", "apify"] {
+        let (status, body) = f
+            .org
+            .post(
+                "/jobs",
+                json!({
+                    "client_request_id":format!("forbidden-generic-{provider}"),
+                    "role_id":f.installed.role,
+                    "responsibility_id":f.installed.responsibility,
+                    "task":"Read venue availability", "input":{},
+                    "required_scope":"capability.venue_lookup", "provider":provider
+                }),
+            )
+            .await;
+        assert_eq!(status, StatusCode::CONFLICT, "{body}");
+        assert_eq!(body["error"], "provider_mismatch");
+    }
+    assert_eq!(f.org.app.store.list_jobs().unwrap().len(), jobs_before);
+    assert_eq!(f.mock.submissions(), suite().cases.len());
+
+    let id = f.collected("creao-role-apify-invocation", 0).await;
+    let proof = f.verify(&id).await;
+    assert_proof(&proof, &id, "verified", Some("supported"));
+    let job = f.org.get(&format!("/jobs/{id}")).await;
+    assert_eq!(job["provider"], "apify");
+    assert_eq!(job["status"], "SUCCEEDED");
+    assert_eq!(f.mock.submissions(), suite().cases.len() + 1);
+    f.assert_no_commitment().await;
 }
 
 #[tokio::test]
