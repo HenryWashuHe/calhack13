@@ -1,100 +1,64 @@
 # GENESIS implementation handoff
 
-## Current checkpoint: trial plans and reviewed provider corrections
+## Current checkpoint: merged contracts and trusted runtime integration
 
 **Networked recursive capability improvement with fixed model weights** remains
 the chosen direction. Work in
 [genesis-history-experiment](https://github.com/HenryWashuHe/genesis-history-experiment)
 and coordinate in [issue #1](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1).
-The [migration map](REPOSITORY_MIGRATION.md) preserves old/new PR routing; legacy
-issue #4/task numbers are historical references. Keep rewritten ancestry; initial
-new main `e1f2264` matches old `8794e25` by complete tree.
+The [migration map](REPOSITORY_MIGRATION.md) preserves old/new routing; legacy
+issue #4/task numbers below are historical. Initial new main `e1f2264` matches
+old `8794e25` by complete tree; preserve rewritten ancestry.
 
-The [ongoing goal](ONGOING_GOAL.md) and hourly continuation are active. The stale
-app Goal remains paused; do not falsely complete it. Main `67340ba` includes
-experimental execution/scoring contracts #18/#22, provider corrections #25/#26
-and independent Apify regressions #29 plus protocol-evidence #30. Draft #28 `f52f182` supplies trial-plan
-records and complete no-output accounting, pending affected-owner feedback.
-No method executor, trusted simulator adapter or A → B → A comparison exists
-on this main. Accumulation, reuse/composition and measured benefit remain
-distinct; event organizing is superseded.
+The [ongoing goal](ONGOING_GOAL.md) and hourly continuation are active; the stale
+app Goal remains paused and must not be falsely completed. Main `df945c9`
+contains experimental execution/scoring records #18/#22, trial plan #28,
+experiment ledger #32 and corrected evaluator proposal #13. Adoption #11/#12
+and stage #20 corrections are also merged, with #36 source loading and #40 independent probes. No method executor, trusted scoring
+adapter or A → B → A comparison exists on this main. G0 stays open; accumulation,
+reuse/composition and measured benefit remain distinct. Event organizing is
+superseded.
 
 ### Current ownership and next work
 
 | Owner/session | Active lane and acknowledgment | Scope / next deliverable |
 | --- | --- | --- |
-| Henry's core Claude | Adoption/planner acknowledged; #8/#10 merged, #11/#12/#14/#15 open | Correct #11's false provider-failure reason using preserved `d11a8ba`; reconcile #14 with merged #18/#22 and draft #28. Retain adoption wiring and existing console UI. |
-| Henry's core Claude | Evaluator acknowledged; #13 proposal and newer spike `d65cf3e` pushed, not independently reviewed; narrow executor assigned, acknowledgment pending | Reconcile #13 and review #28; evaluator subtree stays owned. New `experiments/invention-lab/executor/**` assignment covers bounded seed-control execution, cumulative grants and exact transcripts. Coordinate shared files first; no generated-method claim. |
+| Henry's core Claude | Adoption/planner acknowledged; #8/#10/#11/#12 merged, #14/#15 held | #14 `c67a324`: resolve control-free acceptance versus TrialPlan v1 and the #18 installation-ID claim. #15 `87624fff`: fix three independent `ae6ba16` UI regressions. Retain adoption wiring and existing console UI. |
+| Henry's core Claude | Evaluator and executor acknowledged/active in [issue #1](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6381504911); #13 proposal merged; split evaluator #37/#38/#39 reviewed and held | Own `experiments/invention-lab/evaluator/**` and `executor/**`. Correct #37 geometry and #38 weld/motor findings, preserve `68e8857` / `577e928`; integrate merged #28/#32/#36. Isolation is a proposed design pending independent checks; seed is a handwritten control. |
 | Eric / Eric's Claude | Audit #9 merged; isolated invention-lab UI assignment still unacknowledged | `docs/invention-lab/ui.md`, then `apps/web/src/invention-lab/**` after receipts settle. `EricZhu-31` has write access; do not silently transfer this lane. |
-| ACP Claude session | Acknowledged bridge #3/#4/#5 and isolated stage #20 | Migrate old journal constraints; preserve `bb5a841`. #5 overflow fixture is cleared. Fix #20 remaining mode/poll ordering and exact independent-inheritance checks using `d7e06e7`; keep historical event fixture secondary. |
-| Codex main chat | #18/#22 merged; draft #28 `f52f182` and experiment ledger #32 `0fa3773` pushed | Obtain evaluator/executor feedback on trusted `ExperimentScope`, cumulative reserve/settle/seal transitions and exact transcript linkage. Review runtime integration; library accounting is not exclusive persistence, process isolation or disclosure enforcement. |
-| EricZhu-31 / Codex provider session | #25/#26 corrected and merged; evidence docs #27 and protocol labeling #30 merged | Continue already authorized provider validation from preserved checkpoints on that machine; report exact artifacts and unsuccessful outcomes. No duplicate cloud run from this chat. Elastic permission remediation remains with key owner. |
+| ACP Claude session | Acknowledged bridge #3/#4/#5; stage #20 merged | Migrate old journal constraints using preserved `bb5a841`; correct #4 routing/status. #5's own bounds/fixture holds are cleared but it depends on #3. Historical fixture remains secondary. |
+| Codex main chat | #18/#22/#28/#32/#36/#40 merged | Shared method/receipt/trial/experiment/source contracts and independent integration review. Next: review Henry’s corrected simulator and executor against exact package/plan/ledger boundaries. No duplicate executor or implicit runtime/ABI selection. |
+| EricZhu-31 / Codex provider session | #25/#26/#27/#30 merged; #34 bounded reread correction merged | Continue already authorized provider validation from preserved checkpoints on that machine; report exact artifacts and unsuccessful outcomes. No duplicate cloud run here. Elastic permissions remain with key owner. |
 | Ines | Unassigned by explicit user instruction | Do not infer identity from another collaborator handle. |
 
 The same GitHub account hosts multiple sessions; ownership is by session and
-exact files. Claim interfaces/shared files in issue #1 before overlapping.
-Codex's additive contracts do not replace current Actor manifests, Henry's
-adoption/evaluator implementation or Eric's UI. Assignments are not evidence of
-acknowledged work. The next G0/G1 boundary is trusted runtime integration of #32:
-exact public-instance/call/transcript identity and cumulative grants shared by
-all calls, with separate scoring authority and frozen outputs before disclosure.
+exact files. Claim shared interfaces in issue #1 before overlapping. Additive
+contracts do not replace Actor manifests, Henry's runtime/adoption lane or
+Eric's UI. An assignment, implementation claim or merged data type does not prove
+runtime enforcement. The next boundary is trusted package loading and executor
+integration: durable cumulative accounting, exact transcript/output identity,
+separate scoring authority and all candidates stopped before disclosure.
 
 ### Evidence for this checkpoint
 
-- #18 merged `07961f1`; #22 merged `7510b86`. Tested composition `785a22c` /
-  `4d64fe6` passed 102 core tests and strict Clippy; resulting tree `6742948e`
-  matches main after those merges. Owner interface feedback is on #22.
-- Draft #28 `f52f182` pins public instances, criterion, hidden commitment/protocol,
-  exact slots, local candidate/control acceptance and stable comparison arms.
-  No-output/missing/failed attempts remain visible. 109 core tests and strict
-  Clippy pass; seven new cases independently rerun. No executor or runtime
-  freeze/reveal enforcement is claimed; G0 and G4 remain open.
-- Draft #32 `0fa3773`, stacked on #28: cumulative simulation grant across exact
-  public experiments; failures/unknowns/overruns retained, wrong-slot evidence
-  rejected, exact sealed transcript and usage bound to receipts. 116 core tests,
-  strict Clippy and two independent probes pass. Owner feedback and executor
-  integration remain open; no cloud call or isolation/durability claim.
-- #25 source `d3434e5`, merge `0d6d96d`: corrected v2 receipt hashing uses saved
-  protocol version. Independent composition `e977ab4` passed 20 focused tests
-  and strict package Clippy; independent `affdaf4` regression file is unchanged.
-- #30 source `0311f62`, merge `67340ba`: saved protocol in summaries and invalid
-  version preflight. Five CLI and nine Node gate tests pass independently, plus
-  scoped strict Clippy. No provider call is implied.
-- #26 source `46ada41`, merge `f153f58`: five bounded reads of the same dataset
-  after pinned success; only valid empty pages retry, with no POST replay.
-  Independent composition `601e381` passed 44 package tests and three additional
-  review tests plus strict Clippy. #29 (`041d478`, composition `d81d618`, merge
-  `b69f2ba`) preserves those three cases, rerun successfully with main `0d6d96d`.
-- #11 `7438308` fixes invented discovery cardinality, but neutral failure
-  attribution still needs correction. Composition `97fe07e` passes 56 existing
-  gap-adoption and eight capability-adoption tests; independent `d11a8ba` fails
-  on local input refusal despite zero provider requests. Runtime unchanged.
-- #13 `f3b6a12` and #14 `9cd04e1` remain held contracts. Exact evaluator identity
-  and the main hidden-scoring timeline are corrected, but contradictory clauses,
-  commitment encoding/output binding and status/phase language remain. The
-  reviewed simulator spike `b065a70` passes seven tests; repeated CLI calls
-  reproduce caller-reset budgets. Version-label hashes and trusted adapters also
-  need work there. Newer `d65cf3e` is not independently reviewed. The executor
-  subtree is now explicitly assigned in [issue #1](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6381016259),
-  awaiting acknowledgment; Codex retains shared call/transcript contracts.
-- #20 `9a6234a`, composition `853c5fe8`: neutral startup, replay/poll ordering,
-  distinct organizations and installation digest equality cleared; 12 existing
-  tests pass. Test-only `10d1edd` adds one passing real opt-in callback case and
-  two remaining manifest-identity failures. Require returned ID/version and
-  nonempty exact digest before inheritance; ACP also owns README correction.
-- #12 `a047f59`: three refusal cases and one planner test independently pass on
-  composition `77143c3`; its wording holds are cleared, but base #11 is still held.
-- #34 source `0425f8f`, merge `0b4c18b`: cap sixteen dataset reads with fixed
-  one-second spacing within the original deadline. New regression fails before
-  correction. Apify/forge pass 187 executions (78 Apify including 30 repeated
-  harness cases, 109 forge), strict Clippy and formatting. No cloud call.
-- ACP #3 `3ad7685` passes 138 existing tests, but old inline journal uniqueness
-  still fails `bb5a841`. #5 `fc956a8` corrects the omission fixture, independently
-  rerun; its inherited migration hold remains. #4 needs routing/status language.
-  #6 is closed/withdrawn, not a repaired or approved sync script.
+| Reviewed increment | Evidence and limit |
+| --- | --- |
+| #18 `07961f1` and #22 `7510b86` | Composition `785a22c` / `4d64fe6`: 102 core tests and strict Clippy; merged tree `6742948e` matches. Pure execution/scoring records. |
+| #28 source `f52f182`, merge `e47ee64`; #32 source `0fa3773`, merge `8578759` | Independent composition `d386fb0`, tree `680cf27e`: 116 core tests and strict Clippy. Complete declared-trial assessment and cumulative experiment ledger are implemented as libraries. No owner-agreement, durable runtime, freeze/reveal enforcement or G0-completion claim. |
+| #13 source `1a7f542`, merge `728d42c` | Recorded protocol holds cleared; proposal clauses agreed. Split evaluator review is recorded below; no simulator runtime on main. |
+| #36 source `f856a5b`, merge `2b2ecac`; #40 source `78dde86`, merge `df945c9` | Composition `a735bc7`, tree `0125f83c`: 125 core tests including two independent probes, strict Clippy/fmt. Canonical source transport and frozen-binding loader implemented; dependency/runtime resolution, authority and execution remain host responsibilities. |
+| #37 `53c4473`, #38 `b141b89`, #39 `24b1ecd` | Composition `2415024`: 13 original tests and strict Clippy pass. #37 has two failing geometry regressions `68e8857`; #38 has failing rotated-weld regression `577e928` plus uncapped motor force. #39 clears its content-hash/reservation/unknown-usage findings but stack remains held; these are primitives, not trusted scoring. |
+| #11 source `7f2102f`, merge `eefde296`; #12 source `9eaf8e0`, merge `7010866` | 70 focused tests and strict Clippy pass; original independent regressions preserved. Neutral settled-check/refusal wording now merged. |
+| #20 source `bfe10d9`, merge `7023077` | Independent composition `7508c5b`: 15 VM tests pass. Original `d7e06e7` and additional `10d1edd` files unchanged; exact manifest identity and real opt-in replay callback holds cleared. No browser/cloud proof. |
+| #15 `87624fff` | Ten original tests pass, three independent `ae6ba16` cases fail: future-outcome history leak, stale candidate response overwrite and registry-absence tooltip. Henry retains corrections. |
+| #25 source `d3434e5`, merge `0d6d96d`; #30 source `0311f62`, merge `67340ba` | #25 independent composition `e977ab4`: 20 focused tests and strict Clippy, original `affdaf4` unchanged. #30: five CLI and nine Node tests plus scoped strict Clippy. Offline protocol/routing/hash evidence. |
+| #26 source `46ada41`, merge `f153f58`; #29 source `041d478`, merge `b69f2ba` | Composition `601e381`: 44 package tests plus three independent visibility/identity cases and strict Clippy. #29 preserves those cases, rerun on `d81d618`. |
+| #34 source `0425f8f`, merge `0b4c18b` | Sixteen reads one second apart within unchanged deadline. Regression fails before correction; 187 Apify/forge test executions including repeated harness cases, strict Clippy and formatting pass. No live resolution established. |
+| ACP #3 `3ad7685`; #5 `fc956a8` | 138 existing tests pass, upgraded-journal `bb5a841` still fails. #5 exact-ID/size and fixture holds cleared; inherited migration hold remains. #4 routing/status remains held; #6 sync script withdrawn. |
 
-These counts are per reviewed source/composition, overlap, and are not a single
-main test run. Current PR heads/reviews supersede the checkpoint.
+These source-specific counts overlap; they are not one main test run. Current PR
+heads/reviews supersede this checkpoint. Venue fallback #2 was closed unmerged
+as superseded; its branch is preserved, not assigned as current goal work.
 
 ### Provider and preserved-work boundaries
 

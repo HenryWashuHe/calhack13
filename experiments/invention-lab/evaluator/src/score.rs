@@ -79,7 +79,8 @@ pub enum Purpose {
     Experiment,
     /// An organization's local acceptance check; development instances only.
     Acceptance,
-    /// Declared comparison; hidden instances after reveal only.
+    /// Declared comparison on hidden instances, scored privately by the salt
+    /// holder after candidates stop and before public disclosure.
     Comparison,
 }
 
