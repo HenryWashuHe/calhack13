@@ -48,13 +48,17 @@ async fn provisions_a_scoped_specialist_and_checks_readiness() {
     assert!(ab.check_ready(&binding).await.unwrap());
 
     let f = kib.lock().unwrap();
-    let tool = &f.tools["genesis-org_a-evidence-search"];
+    let tool_id = ab.evidence_tool_id("org_a");
+    let tool = &f.tools[&tool_id];
     assert_eq!(tool["type"], "index_search");
-    assert_eq!(tool["configuration"]["pattern"], "genesis-evidence-org_a");
+    assert_eq!(
+        tool["configuration"]["pattern"],
+        genesis_elastic::evidence_index_name("genesis", "org_a")
+    );
     let agent = &f.agents[&binding.provider_agent_id];
     assert_eq!(
         agent["configuration"]["tools"][0]["tool_ids"][0],
-        "genesis-org_a-evidence-search"
+        tool_id.as_str()
     );
     let instructions = agent["configuration"]["instructions"].as_str().unwrap();
     assert!(instructions.contains("Secure a replacement venue"));
@@ -145,10 +149,7 @@ async fn converse_returns_message_and_tool_calls_and_refuses_prompts() {
         .unwrap();
     assert_eq!(r.status, "completed");
     assert_eq!(r.message, "answer to: Which venues are open?");
-    assert_eq!(
-        r.tool_calls,
-        vec!["genesis-org_a-evidence-search".to_owned()]
-    );
+    assert_eq!(r.tool_calls, vec![ab.evidence_tool_id("org_a")]);
     let r2 = ab
         .converse(
             &binding.provider_agent_id,
