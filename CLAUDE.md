@@ -175,8 +175,13 @@ every milestone. All lower checkpoints are historical.
   cost assembly #127 `f5fad35` merged at `f335cc6`: full forge 243 tests across
   47 targets and strict all-target Clippy/fmt pass, including three independent
   cases. Original records are counted once; unknowns and local overruns remain.
-  Codex's [next scoped slice](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388541662)
-  is a read-only retained-file chain-cost CLI, not yet merged. The fixed-pool
+  [Read-only chain-cost CLI #130](docs/invention-lab/contracts/chain-allocation.md#read-only-chain-cost-cli)
+  is merged at `fc16ba14`, source `04e22315`: 21 focused tests/6 targets and scoped
+  strict Clippy/fmt/diff pass. No provider/runtime calls or gate closure.
+  Codex is [implementing method publication/discovery](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388691194)
+  in the existing registry, with authenticated publication, bounded metadata
+  search and full-reference fetch. It is not merged; Henry retains acceptance,
+  role/grant and invocation authority. The fixed-pool
   policy experiment remains a separate proposed mechanism diagnostic, not a restriction
   on the moonshot. Henry is preparing a K=3 workflow-versus-fresh protocol with
   public fresh-task assessment; the corrected protocol awaits freezing and no
