@@ -8,7 +8,7 @@ use crate::capability_acquisition_store::AcquisitionStoreError;
 use crate::store::{Store, StoreError, StoreResult};
 use chrono::{DateTime, Duration as ChronoDuration, SecondsFormat, Utc};
 use rusqlite::{params, Connection, OptionalExtension};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::time::Duration;
 use tokio::task::JoinHandle;
 
@@ -16,7 +16,7 @@ pub const ACQUISITION_BATCH_LIMIT: usize = 4;
 const ADVANCE_DELAY_SECONDS: i64 = 1;
 const RECONCILE_DELAY_SECONDS: i64 = 5;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum DriverErrorCode {
     RetryRead,
@@ -256,6 +256,8 @@ fn save_schedule(
          next_check_at=excluded.next_check_at,error_code=excluded.error_code",
         params![id, i64::try_from(observed).map_err(|_| invalid("acquisition version overflow"))?, stamp(now), next, error.map(DriverErrorCode::label)],
     )?;
+    crate::capability_acquisition_history::append_attention(&tx, id, observed, error, now)
+        .map_err(|_| invalid("acquisition history could not record scheduling state"))?;
     tx.commit()?;
     Ok(true)
 }
