@@ -120,6 +120,7 @@ describe("retained receiving run and B revision", () => {
     expect(n.inspections).toEqual([
       {
         method_package_sha256: "4f455dc6e625bdaf554d567bdd7f0bc0c7b601a1ea6332d4e7a13e02005db14d",
+        package_ref: bInspection.package,
         entrypoint: null,
         source_sha256: "4adde0d840bcb733166c3db7f587fd295f1f986369433ea3db58e40be1d76de5",
         parse: "ast_parse true",
@@ -158,6 +159,16 @@ describe("retained receiving run and B revision", () => {
 });
 
 describe("verdict pairing", () => {
+  it("counts an identical verdict copy once within its folder, and the inspection names its exact package", () => {
+    const i = intake([file("t/plan.json", plan), file("t/verdict.json", verdict), file("t/verdict-copy.json", verdict)]);
+    expect(i.skipped).toEqual([{ file: "t/verdict-copy.json", note: "identical to t/verdict.json; counted once" }]);
+    expect(i.records.trials!.map((t) => t.verdict?.verdict)).toEqual(["accepted"]);
+    const foreign = { ...structuredClone(bInspection), package: { ...bInspection.package, id: "foreign-package" } };
+    expect(buildLineage(intake([file("m.json", bPackage), file("i.json", foreign)]).records).problems).toEqual([
+      "static inspection names foreign-package@0.1.0 4f455dc6e625, but the supplied records with that hash are receiver-revised-method@0.1.0; not attached",
+    ]);
+  });
+
   it("does not guess a plan for a verdict with none or several in its folder", () => {
     const none = intake([file("x/verdict.json", verdict)]);
     const two = intake([file("y/a.json", plan), file("y/b.json", rsPlan), file("y/verdict.json", verdict)]);

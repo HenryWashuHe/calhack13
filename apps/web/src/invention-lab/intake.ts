@@ -2,7 +2,7 @@
 // (docs/invention-lab/ui.md#preview). Each file is recognized by shape or
 // listed with the reason it was not used; nothing is guessed or fetched.
 
-import { canonicalSha256 } from "./digest";
+import { canonicalSha256, sha256Hex } from "./digest";
 import type { LabRecords } from "./lineage";
 import {
   decodeAdoptionOutcome,
@@ -55,8 +55,11 @@ export function intake(files: { name: string; text: string; bytes?: Uint8Array }
   const plans: { file: string; plan: TrialPlan }[] = [];
   const verdicts: { file: string; verdict: Verdict }[] = [];
   // Identical records (e.g. a status saved as both step-result.json and
-  // final-status.json) are one record: counted once, the copy listed.
+  // final-status.json) are one record: counted once, the copy listed. A
+  // package's identity is its raw bytes, so only byte-identical copies merge;
+  // a standalone verdict names no trial, so copies merge only within a folder.
   const firstFile = new Map<string, string>();
+  const folder = (f: string) => (f.includes("/") ? f.slice(0, f.lastIndexOf("/")) : "");
 
   for (const { name, text, bytes } of files) {
     let v: unknown;
@@ -71,7 +74,13 @@ export function intake(files: { name: string; text: string; bytes?: Uint8Array }
       continue;
     }
     const o = v as Record<string, unknown>;
-    const identity = canonicalSha256(o);
+    const isVerdict = typeof o.verdict === "string" && !("outcome" in o);
+    const identity =
+      o.domain === PACKAGE_DOMAIN
+        ? `bytes ${sha256Hex(bytes ?? new TextEncoder().encode(text))}`
+        : isVerdict
+          ? `verdict ${folder(name)} ${canonicalSha256(o)}`
+          : canonicalSha256(o);
     const first = firstFile.get(identity);
     if (first !== undefined) {
       skipped.push({ file: name, note: `identical to ${first}; counted once` });
@@ -102,7 +111,7 @@ export function intake(files: { name: string; text: string; bytes?: Uint8Array }
       } else if (has(o, ...TRIAL_PLAN_FIELDS)) {
         plans.push({ file: name, plan: decodeTrialPlan(o) });
         used.push({ file: name, note: "trial plan (reference computed here)" });
-      } else if (typeof o.verdict === "string" && !("outcome" in o)) {
+      } else if (isVerdict) {
         verdicts.push({ file: name, verdict: decodeVerdict(o) });
       } else if (typeof o.outcome === "string") {
         const outcome = decodeAdoptionOutcome(o);
@@ -142,7 +151,6 @@ export function intake(files: { name: string; text: string; bytes?: Uint8Array }
   }
   // A standalone verdict names no plan. Pair it with the single trial plan in the
   // same folder; otherwise list it unused rather than guess.
-  const folder = (f: string) => (f.includes("/") ? f.slice(0, f.lastIndexOf("/")) : "");
   const paired = new Set<string>();
   for (const { file, verdict } of verdicts) {
     const here = plans.filter((p) => folder(p.file) === folder(file));
