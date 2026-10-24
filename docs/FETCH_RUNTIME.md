@@ -67,6 +67,15 @@ therefore survives expiry and release; it does not authorize new work under an
 expired or revoked grant. A missing or inconsistent chain returns an error without
 preparing a request, retrying delivery or changing kernel state.
 
+JSON floats retain their exact binary value through journal decoding. Canonical
+request identity distinguishes `0.0` from `-0.0`; receipts hash the authenticated
+stored messages rather than an equal-looking caller replacement. Eligible sends
+also verify their original outbox digest and cached request. Legacy rows whose
+float values already drifted fail closed instead of being rehashed or replayed.
+Expired or fenced tasks are skipped before those send checks, so historical drift
+cannot block a contract release or unrelated eligible work. No hash-domain or
+journal-schema migration is performed.
+
 The returned Rust types have private construction and serialization support,
 without deserialization into a trusted receipt. Debug formatting hides task input,
 output and offer terms. Serialized receipts contain evidence for trusted backend
