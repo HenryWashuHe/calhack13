@@ -403,5 +403,5 @@ td .sub { display: block; color: var(--ink-3); font-size: 12px; }
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--muted, #666);
+  color: var(--ink-3);
 }
