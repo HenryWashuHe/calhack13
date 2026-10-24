@@ -9,7 +9,11 @@ import {
   decodeEvaluationReceipt,
   decodeExecutionReceipt,
   decodeGenerationStatus,
+  decodePackageFile,
   decodeRevisionObservation,
+  decodeStaticInspection,
+  INSPECTION_SCHEMA,
+  PACKAGE_DOMAIN,
   REVISION_SCHEMA,
   type CheckpointOutcome,
 } from "./records";
@@ -26,13 +30,23 @@ export interface Intake {
 
 const has = (o: Record<string, unknown>, ...keys: string[]) => keys.every((k) => k in o);
 
-export function intake(files: { name: string; text: string }[]): Intake {
-  const records: LabRecords = { generations: [], revisions: [], adoptions: [], executions: [], evaluations: [] };
+/** `bytes` are the exact file bytes when available (a package's identity is
+ * their hash); otherwise the text is UTF-8 encoded. */
+export function intake(files: { name: string; text: string; bytes?: Uint8Array }[]): Intake {
+  const records: LabRecords = {
+    generations: [],
+    revisions: [],
+    adoptions: [],
+    executions: [],
+    evaluations: [],
+    packages: [],
+    inspections: [],
+  };
   const used: Note[] = [];
   const skipped: Note[] = [];
   const checkpoints: { file: string; c: CheckpointOutcome }[] = [];
 
-  for (const { name, text } of files) {
+  for (const { name, text, bytes } of files) {
     let v: unknown;
     try {
       v = JSON.parse(text);
@@ -46,7 +60,13 @@ export function intake(files: { name: string; text: string }[]): Intake {
     }
     const o = v as Record<string, unknown>;
     try {
-      if (has(o, "authority", "phase", "plan_sha256", "operation_id")) {
+      if (o.domain === PACKAGE_DOMAIN) {
+        records.packages!.push(decodePackageFile(bytes ?? new TextEncoder().encode(text)));
+        used.push({ file: name, note: "method package (identity hashed from the file bytes here)" });
+      } else if (o.schema === INSPECTION_SCHEMA) {
+        records.inspections!.push(decodeStaticInspection(o));
+        used.push({ file: name, note: "static source inspection" });
+      } else if (has(o, "authority", "phase", "plan_sha256", "operation_id")) {
         records.generations.push({ status: decodeGenerationStatus(o) });
         used.push({ file: name, note: "generation status" });
       } else if (has(o, "plan", "request", "request_sha256", "output_contract", "phase")) {
