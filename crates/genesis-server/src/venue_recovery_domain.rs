@@ -382,6 +382,15 @@ fn evaluations(context: &RecoveryContext) -> Result<Vec<CandidateEvaluation>, Re
         .collect()
 }
 
+/// Intake may wait for useful evidence before freezing a recovery. This boolean
+/// preflight grants no authority and supplies no ranking or answer to Fetch.
+pub(crate) fn has_feasible_alternative(context: &RecoveryContext) -> Result<bool, RecoveryError> {
+    validate_context(context)?;
+    Ok(evaluations(context)?
+        .iter()
+        .any(|candidate| candidate.eligible))
+}
+
 /// Validate the actual immutable Fetch task receipt's output. A caller must not
 /// substitute generic job.result, a copied HTTP body, or an unauthenticated reply.
 pub fn verify_output(
@@ -565,6 +574,25 @@ mod tests {
     }
 
     #[test]
+    fn feasibility_preflight_requires_a_replacement_not_just_a_feasible_failed_venue() {
+        let (original, _, _) = vector();
+        assert!(has_feasible_alternative(&original).unwrap());
+        let mut context = original.clone();
+        context.candidates = vec![original.candidates[0].clone()];
+        assert!(evaluations(&context).unwrap()[0].checks.all());
+        assert!(!has_feasible_alternative(&context).unwrap());
+
+        // Each remaining candidate fails a different real policy predicate.
+        context.candidates = [0, 4, 5, 6, 7, 8, 9]
+            .iter()
+            .map(|index| original.candidates[*index].clone())
+            .collect();
+        assert!(!has_feasible_alternative(&context).unwrap());
+        context.candidates.push(original.candidates[2].clone());
+        assert!(has_feasible_alternative(&context).unwrap());
+    }
+
+    #[test]
     fn a_feasible_but_nonminimal_selection_or_false_no_match_is_rejected() {
         let (context, _, output) = vector();
         for selected in [
@@ -674,6 +702,11 @@ mod tests {
                 validate_context(&context),
                 Err(RecoveryError::InvalidContext)
             );
+            assert_eq!(
+                has_feasible_alternative(&context),
+                Err(RecoveryError::InvalidContext),
+                "invalid evidence cannot become a negative or positive feasibility result"
+            );
         }
         let mut too_many_jobs = original;
         for (index, candidate) in too_many_jobs.candidates.iter_mut().enumerate() {
@@ -681,6 +714,10 @@ mod tests {
         }
         assert_eq!(
             validate_context(&too_many_jobs),
+            Err(RecoveryError::InvalidContext)
+        );
+        assert_eq!(
+            has_feasible_alternative(&too_many_jobs),
             Err(RecoveryError::InvalidContext)
         );
     }
@@ -767,6 +804,10 @@ mod tests {
             })
             .collect();
         assert_eq!(provider_input(&context), Err(RecoveryError::InputTooLarge));
+        assert_eq!(
+            has_feasible_alternative(&context),
+            Err(RecoveryError::InputTooLarge)
+        );
         let (context, _, _) = vector();
         let mut oversized = output;
         oversized["extra"] = json!("é".repeat(MAX_WIRE_BYTES / 2));

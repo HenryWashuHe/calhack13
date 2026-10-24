@@ -8,6 +8,14 @@ use axum::{
     Json,
 };
 
+pub async fn intakes(
+    State(app): State<AppState>,
+    principal: Principal,
+) -> ApiResult<Json<Vec<crate::venue_recovery_intake::IntakeRecord>>> {
+    principal.require(&[Principal::Operator, Principal::Agent])?;
+    Ok(Json(crate::venue_recovery_intake::list(&app).await?))
+}
+
 pub async fn create(
     State(app): State<AppState>,
     principal: Principal,

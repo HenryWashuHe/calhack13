@@ -92,6 +92,8 @@ pub struct AppState {
     pub elastic_agents: Option<Arc<genesis_elastic::AgentBuilder>>,
     /// Opt-in, independently journaled Fetch replacement specialist exchange.
     pub fetch_recovery: Option<Arc<crate::venue_recovery::FetchRecoveryRuntime>>,
+    /// Explicit opt-in to recruiting recovery specialists from accepted Reopens.
+    pub automatic_venue_recovery: bool,
     pub provision_timeout: Duration,
     /// Readiness verifiers for asynchronously created agents, by provider.
     pub readiness: crate::specialist::ReadinessRegistry,
