@@ -11,7 +11,7 @@ use chrono::{Duration as ChronoDuration, Utc};
 use genesis_apify::{ApifyClient, RunLimits};
 use genesis_core::change::{KeyAllocation, OrgChangeProposal};
 use genesis_core::engine::{self, MissionBootstrap};
-use genesis_core::ids::RoleId;
+use genesis_core::ids::{InstallationId, RoleId};
 use genesis_core::lifecycle::{InstallationStatus, RoleState};
 use genesis_providers::{ApifyCapabilityExecutor, DevStub, ProviderSet};
 use genesis_server::app::AppState;
@@ -897,10 +897,16 @@ async fn ambiguous_run_submission_requires_attention_and_is_not_replayed_after_r
     assert!((1..=3).contains(&posts));
     let jobs = f.app.store.list_jobs().unwrap();
     assert_eq!(jobs.len(), 3);
-    assert!(jobs.iter().any(
-        |job| f.app.store.get_capability_run(&job.job_id).unwrap().phase
-            == CapabilityRunPhase::NeedsReconciliation
-    ));
+    let ambiguous: Vec<_> = jobs
+        .iter()
+        .filter_map(|job| {
+            let run = f.app.store.get_capability_run(&job.job_id).unwrap();
+            (run.phase == CapabilityRunPhase::NeedsReconciliation)
+                .then(|| (job.job_id.clone(), serde_json::to_value(run).unwrap()))
+        })
+        .collect();
+    assert!(!ambiguous.is_empty());
+    let stopped_installation = assert_stopped_installation(&f, &attention);
     f.restart(true).await;
     assert_eq!(f.get(&format!("{BASE}/{}", id(&created))).await, attention);
     for _ in 0..3 {
@@ -916,7 +922,78 @@ async fn ambiguous_run_submission_requires_attention_and_is_not_replayed_after_r
         .installations
         .values()
         .all(|i| i.status != InstallationStatus::Accepted));
+    for (job_id, saved) in &ambiguous {
+        assert_eq!(
+            serde_json::to_value(f.app.store.get_capability_run(job_id).unwrap()).unwrap(),
+            *saved,
+            "unknown submissions remain reconciliation evidence, not retryable work"
+        );
+    }
+    assert_stopped_installation(&f, &attention);
     f.assert_private_inputs();
+    // A fresh explicit intent can reconsider the same candidate. It neither
+    // resumes the unknown native request nor submits any child jobs yet.
+    f.restart(false).await;
+    let mut fresh_body = f.body.clone();
+    fresh_body["client_request_id"] = json!("explicit-new-adoption-after-attention");
+    let (status, fresh) = f.post(BASE, fresh_body).await;
+    assert_eq!(status, StatusCode::CREATED, "{fresh}");
+    assert_ne!(id(&fresh), id(&attention));
+    let selected = f.step(id(&fresh)).await;
+    assert_eq!(selected["phase"], "selected", "{selected}");
+    assert_eq!(selected["selection"]["capability_id"], CAPABILITY);
+    let next_installation = InstallationId::new(selected["installation_id"].as_str().unwrap());
+    assert_ne!(next_installation, stopped_installation);
+    let state = f.app.current_state().unwrap();
+    assert_eq!(state.installations.len(), 2);
+    assert_eq!(
+        state.installations[&next_installation].status,
+        InstallationStatus::Checking
+    );
+    assert_eq!(
+        state.installations[&stopped_installation].status,
+        InstallationStatus::Rejected
+    );
+    assert_eq!(f.posts(), posts);
+    assert_eq!(f.app.store.list_jobs().unwrap().len(), 3);
+    for (job_id, saved) in ambiguous {
+        assert_eq!(
+            serde_json::to_value(f.app.store.get_capability_run(&job_id).unwrap()).unwrap(),
+            saved
+        );
+    }
+}
+
+fn assert_stopped_installation(f: &Fixture, status: &Value) -> InstallationId {
+    assert!(matches!(
+        status["phase"].as_str(),
+        Some("attention" | "fenced")
+    ));
+    assert!(status["acceptance_ref"].is_null());
+    assert!(
+        status["rejection_ref"].is_null(),
+        "stopping work is not a semantic oracle rejection"
+    );
+    let installation_id = InstallationId::new(status["installation_id"].as_str().unwrap());
+    let state = f.app.current_state().unwrap();
+    let installation = &state.installations[&installation_id];
+    assert_eq!(installation.status, InstallationStatus::Rejected);
+    let expected = format!(
+        "adoption-stopped:{}:{}",
+        id(status),
+        status["version"].as_u64().unwrap()
+    );
+    assert_eq!(
+        installation.acceptance_report_ref.as_deref(),
+        Some(expected.as_str())
+    );
+    assert!(f
+        .app
+        .store
+        .capability_acceptance(&installation_id)
+        .unwrap()
+        .is_none());
+    installation_id
 }
 
 #[tokio::test]
@@ -926,11 +1003,37 @@ async fn revoked_requirement_executor_cannot_prepare_or_run_acceptance_checks() 
     let selected = f.step(id(&created)).await;
     assert_eq!(selected["phase"], "selected");
     f.expire().await;
+    let before = f.app.current_state().unwrap();
+    let installation_id = InstallationId::new(selected["installation_id"].as_str().unwrap());
+    let sql = rusqlite::Connection::open(f.config.db.as_ref().unwrap()).unwrap();
+    sql.execute_batch("CREATE TRIGGER fail_fenced BEFORE UPDATE ON capability_adoptions WHEN NEW.phase='fenced' BEGIN SELECT RAISE(ABORT,'fixture terminal commit failure'); END;").unwrap();
+    let (status, _) = f
+        .post(&format!("{BASE}/{}/step", id(&created)), json!({}))
+        .await;
+    assert!(status.is_server_error() || status.is_client_error());
+    assert_eq!(
+        f.app.current_state().unwrap(),
+        before,
+        "failed terminal save must roll back installation closure"
+    );
+    assert_eq!(
+        f.app.current_state().unwrap().installations[&installation_id].status,
+        InstallationStatus::Checking
+    );
+    assert_eq!(f.get(&format!("{BASE}/{}", id(&created))).await, selected);
+    sql.execute_batch("DROP TRIGGER fail_fenced;").unwrap();
     let fenced = f.step(id(&created)).await;
     assert_eq!(fenced["phase"], "fenced", "{fenced}");
+    assert_stopped_installation(&f, &fenced);
+    let committed = f.app.current_state().unwrap();
     assert!(f.app.store.list_jobs().unwrap().is_empty());
     assert_eq!(f.posts(), 0);
     assert_eq!(f.step(id(&created)).await, fenced);
+    assert_eq!(
+        f.app.current_state().unwrap(),
+        committed,
+        "terminal replay must not close installation twice"
+    );
 }
 
 #[tokio::test]

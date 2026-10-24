@@ -33,6 +33,10 @@ same intent; changing its binding returns a conflict. An organization retains at
 most 32 intents, allows at most four active intents, and limits their lifetime to
 30 minutes. The backend must have a registry, an Apify executor, and the selected
 trusted suite configured. Acquisition and model credentials are unnecessary.
+The record bounds are 256 KiB per intent, 128 KiB for the selected manifest,
+4096 bytes for the requirement query, and 256 bytes for exact UTF-8 domain IDs.
+The suite uses the verifier's existing limits; the intent retains its digest.
+The current role scopes are part of the frozen authority binding.
 
 ## Execution and recovery
 
@@ -62,6 +66,22 @@ requiring attention; it does not imply that a provider effect failed to occur.
 Current requirement, assignment, epoch, lease, mission, and declared permissions
 are checked before live work and when collecting its result. Revoked authority
 cannot create a new acceptance.
+
+Terminal attention or fencing also closes that intent's still-checking
+installation as `Rejected`, in the same transaction as the terminal intent.
+Its reference is `adoption-stopped:<id>:<version>`, and its static reason records
+that verification stopped without acceptance while provider effects may still
+exist. This is not an oracle verdict about
+the parser: the intent stays `Attention` or `Fenced`, its semantic `rejection_ref`
+is empty, and no local acceptance proof is stored. Already accepted installations
+are never closed by this path. Replaying the terminal intent changes nothing.
+
+Child records and known provider tickets remain retained. An unknown earlier
+POST may still have taken effect; closing the installation neither cancels nor
+reconciles it. An operator can explicitly create a new intent with a new request
+key and current authority. It may select the same capability into a distinct
+installation and authorize fresh work. This is not an automatic retry of the old
+submission, and it does not discard the old reconciliation evidence.
 
 Committed acceptance belongs to the receiving organization. It remains available
 after the verifier retires or the process restarts. A successor still needs its
@@ -104,4 +124,8 @@ rejection, an ambiguous provider POST across restart, revoked execution authorit
 and a changed requirement or trusted suite before the adoption worker can react.
 SQLite abort triggers verify that installation, all child jobs, and local
 acceptance each roll back if saving the corresponding intent stage fails. A
-separate acceptance request cannot bypass the adoption transaction.
+separate acceptance request cannot bypass the adoption transaction. Terminal
+closure has its own rollback check. The ambiguous-POST case also preserves its
+old child record across restart and a fresh explicit selection of the same
+capability into a different installation, with no additional provider submission
+until new jobs are authorized.
