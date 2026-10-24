@@ -773,6 +773,66 @@ async fn a_publication_whose_reply_was_lost_is_confirmed_not_duplicated() {
 }
 
 #[tokio::test]
+async fn a_conflicting_manifest_at_the_same_pin_does_not_confirm_publication() {
+    let f = Fixture::new(&["capability.acquire", PERMISSION]).await;
+    f.acquire().await;
+    assert_eq!(f.finalize_step().await, Step::Frozen);
+    let record = f.app.store.gap_finalization(&f.gap_id).unwrap().unwrap();
+    // A legitimate earlier publication shares the exact artifact and scopes,
+    // but its operator-authored promise differs from this frozen intent.
+    let mut earlier = record.manifest.clone();
+    earlier.intent = "An earlier, different promise for this same parser".into();
+    let url = format!("{}/api/v1/capabilities/publish", serve_url(&f).await);
+    let client = reqwest::Client::new();
+    let verification_ref = format!("acquisition:{}", record.acquisition_id);
+    let published = client
+        .post(&url)
+        .bearer_auth(format!("{ORG}-operator"))
+        .json(&json!({"manifest": earlier, "verification_ref": verification_ref}))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(published.status().as_u16(), 201);
+    let published: Value = published.json().await.unwrap();
+    assert_eq!(published["intent"], earlier.intent);
+    assert_eq!(published["artifact"], json!(record.manifest.artifact));
+    assert_eq!(published["source_digest"], record.manifest.source_digest);
+    assert_eq!(published["publisher"], json!(record.manifest.publisher));
+    assert_eq!(
+        published["required_permissions"],
+        json!(record.manifest.required_permissions)
+    );
+    assert_eq!(published["verification"]["passed"], true);
+
+    // Confirm this is a definite immutable-manifest conflict, not a lost reply.
+    let conflict = client
+        .post(&url)
+        .bearer_auth(format!("{ORG}-operator"))
+        .json(&json!({"manifest": record.manifest, "verification_ref": verification_ref}))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(conflict.status().as_u16(), 409);
+    assert!(conflict.text().await.unwrap().contains("immutable_version"));
+
+    assert_eq!(
+        f.finalize_step().await,
+        Step::Attention(FinalizerCode::Publication),
+        "a same-pin read must not replace the frozen publication contract"
+    );
+    let record = f.app.store.gap_finalization(&f.gap_id).unwrap().unwrap();
+    assert!(record.publication_ref.is_none());
+    assert!(record.installation_id.is_none());
+    let CapabilityGapStatus::Acquired {
+        publication_ref, ..
+    } = f.gap().status
+    else {
+        panic!("{:?}", f.gap().status)
+    };
+    assert!(publication_ref.is_none());
+}
+
+#[tokio::test]
 async fn a_reassignment_after_installation_refuses_and_closes_it() {
     let f = Fixture::new(&["capability.acquire", PERMISSION]).await;
     f.acquire().await;
