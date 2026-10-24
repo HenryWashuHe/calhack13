@@ -5,7 +5,7 @@ use genesis_apify::{RunRequest, RunTicket};
 use genesis_core::engine::{bootstrap_mission, MissionBootstrap};
 use genesis_core::ids::*;
 use genesis_core::jobs::Job;
-use genesis_core::lifecycle::{InstallationStatus, JobStatus, RoleState};
+use genesis_core::lifecycle::{InstallationStatus, JobStatus, MissionStatus, RoleState};
 use genesis_core::model::{CapabilityRef, Installation, OrgState, Provider};
 use genesis_providers::{CapabilityExecutor, CapabilityRunReceipt, ProviderError, ProviderSet};
 use genesis_server::capability_runtime::{
@@ -589,6 +589,89 @@ async fn authorization_is_rechecked_after_collection_before_output_is_applied() 
     assert_eq!(task.await.unwrap().unwrap().phase, Phase::Rejected);
     assert!(f.store.get_job(&f.job.job_id).unwrap().result.is_none());
     assert!(f.store.commitments().unwrap().is_empty());
+}
+
+fn invalidate_time_authority(f: &Fixture, reason: &str) {
+    mutate_state(f, |state| match reason {
+        "lease" => {
+            state
+                .assignments
+                .get_mut(&f.job.assignment_id)
+                .unwrap()
+                .lease_expires_at = Some(Utc::now());
+        }
+        "mission_deadline" => {
+            state.missions.get_mut(&f.job.mission_id).unwrap().deadline = Some(Utc::now());
+        }
+        "mission_closed" => {
+            state.missions.get_mut(&f.job.mission_id).unwrap().status = MissionStatus::Succeeded;
+        }
+        _ => unreachable!(),
+    });
+}
+
+#[tokio::test]
+async fn expired_assignment_or_mission_blocks_both_post_and_collection() {
+    for purpose in ["invocation", "acceptance"] {
+        for reason in ["lease", "mission_deadline", "mission_closed"] {
+            for collect in [false, true] {
+                let f = Fixture::new(false);
+                let record = if purpose == "acceptance" {
+                    acceptance_record(&f)
+                } else {
+                    f.record.clone()
+                };
+                insert_record(&f, &record);
+                if collect {
+                    f.runtime.step(&f.job.job_id, false).await.unwrap();
+                }
+                invalidate_time_authority(&f, reason);
+                assert_eq!(
+                    f.runtime.step(&f.job.job_id, false).await.unwrap().phase,
+                    Phase::Rejected,
+                    "{purpose}/{reason}/{collect}"
+                );
+                assert_eq!(
+                    f.executor.submits.load(Ordering::SeqCst),
+                    usize::from(collect)
+                );
+                assert_eq!(f.executor.reads.load(Ordering::SeqCst), 0);
+                assert!(f.store.commitments().unwrap().is_empty());
+            }
+        }
+    }
+}
+
+#[tokio::test]
+async fn expiry_during_provider_await_retains_ticket_without_accepting_output() {
+    for reason in ["lease", "mission_deadline", "mission_closed"] {
+        for collect in [false, true] {
+            let f = Fixture::new(true);
+            if collect {
+                f.runtime.step(&f.job.job_id, false).await.unwrap();
+                *f.executor.read_mode.lock().unwrap() = ReadMode::Pause;
+            } else {
+                *f.executor.submit_mode.lock().unwrap() = SubmitMode::Pause;
+            }
+            let runtime = f.runtime.clone();
+            let id = f.job.job_id.clone();
+            let task = tokio::spawn(async move { runtime.step(&id, false).await });
+            f.executor.entered.notified().await;
+            invalidate_time_authority(&f, reason);
+            f.executor.release.notify_one();
+            let rejected = task.await.unwrap().unwrap();
+            assert_eq!(rejected.phase, Phase::Rejected, "{reason}/{collect}");
+            assert!(rejected.receipt.is_some());
+            assert!(rejected.evidence.is_none());
+            assert!(f.store.get_job(&f.job.job_id).unwrap().result.is_none());
+            assert_eq!(f.executor.submits.load(Ordering::SeqCst), 1);
+            assert_eq!(
+                f.executor.reads.load(Ordering::SeqCst),
+                usize::from(collect)
+            );
+            assert!(f.store.commitments().unwrap().is_empty());
+        }
+    }
 }
 
 #[tokio::test]

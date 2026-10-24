@@ -30,6 +30,8 @@ pub struct RunLimits {
     pub memory_mbytes: u32,
     pub max_total_charge_usd: f64,
     pub max_input_bytes: usize,
+    /// Bounds each HTTP response and the compact serialized ExecutionEvidence,
+    /// including normalized dataset values and trusted receipt metadata.
     pub max_response_bytes: usize,
 }
 
@@ -432,7 +434,7 @@ impl ApifyClient {
                 }
             }
         }
-        Ok(ExecutionEvidence {
+        let evidence = ExecutionEvidence {
             case_id: request.case_id.clone(),
             artifact: request.artifact.clone(),
             input_sha256: json_sha256(&request.input),
@@ -441,7 +443,18 @@ impl ApifyClient {
             dataset_id: dataset_id.clone(),
             status: RunStatus::Succeeded,
             output: items.remove(0),
-        })
+        };
+        // JSON normalization can expand a response (for example, exponent
+        // numbers become longer decimal values). Bound the actual evidence a
+        // caller must persist, without allocating another expanded JSON buffer.
+        serde_json::to_writer(
+            BoundedCounter {
+                remaining: self.limits.max_response_bytes,
+            },
+            &evidence,
+        )
+        .map_err(|_| error(ErrorKind::ResponseTooLarge, Stage::Dataset))?;
+        Ok(evidence)
     }
 
     fn validate_request(&self, request: &RunRequest) -> Result<Vec<u8>, Error> {
@@ -624,6 +637,24 @@ fn after_submission(mut error: Error, run_id: Option<&str>) -> Error {
     error.run_id = run_id.map(str::to_owned);
     error.submission_may_have_occurred = true;
     error
+}
+
+struct BoundedCounter {
+    remaining: usize,
+}
+impl std::io::Write for BoundedCounter {
+    fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+        if bytes.len() > self.remaining {
+            return Err(std::io::Error::other(
+                "normalized evidence size limit exceeded",
+            ));
+        }
+        self.remaining -= bytes.len();
+        Ok(bytes.len())
+    }
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
 }
 
 struct BoundedWriter {

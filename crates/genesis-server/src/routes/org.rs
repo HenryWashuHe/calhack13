@@ -22,6 +22,9 @@ pub async fn health(State(app): State<AppState>) -> ApiResult<Json<Value>> {
         "dev_stub_enabled": app.providers.dev_stub_enabled(),
         "configured_providers": app.providers.configured(),
         "registry_configured": app.registry.is_some(),
+        "acquisition_enabled": app.acquisition_policy.is_some(),
+        // Configuration, not a worker heartbeat or semantic readiness claim.
+        "automatic_acquisition_enabled": app.automatic_acquisition,
     })))
 }
 
