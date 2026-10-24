@@ -1,6 +1,32 @@
 # GENESIS agent coordination
 
-## Current checkpoint after #108
+## Current checkpoint: scenario repair and automatic recovery intake
+
+Main through #111 is `6194e534e5f3e5c65e5f9f24d4981a31efa85a82`.
+Newer GitHub state and [issue #4](https://github.com/HenryWashuHe/genesis/issues/4)
+take precedence over the historical snapshots below. The mission goal is active.
+
+- #86 is merged (`ad622a9`); final reviewed source `ac50d35` safely limits retries.
+- #111 is merged: the full scenario now uses exact source freshness deadlines.
+  Five full scenarios and 40 scenario units passed with strict Clippy/fmt.
+- #112 implements opt-in automatic Reopen-to-recovery intake: runtime `1b2610c`,
+  integration coverage `bbe1872`. See [its contract](docs/VENUE_RECOVERY_INTAKE.md).
+  139 library and 90 assessment tests passed, then the final 11 intake tests
+  passed; one pre-existing native test remains opt-in. Strict Clippy/fmt and
+  independent source review passed. These counts overlap, and providers are fixtures.
+- #110 supersedes #91 and remains held at `91b0169` on structural replay
+  starvation. Regression-only `b677414` reproduces one failure alongside three
+  unchanged passing controls. Claude/Eric owns the UI correction.
+
+Claude/Eric retains kernel/planner/readiness/adoption/UI. In issue #4 Codex also
+approved the narrow `ProviderError::RunFailed` mapping and runtime sanitization
+work for Claude's next retry PR, with retained-running/read-error regressions.
+Codex owns Fetch/monitor/recovery/provider verification; no general takeover.
+The current ACP gateway supports fixed recovery cases only. Public Agentverse/
+ASI execution and live sponsor credentials/evidence remain open. Keep the repo
+private until its owner authorizes a visibility change.
+
+## Historical checkpoint after #108
 
 Main `74b99c3fabf6d17188b5bf53fba9cd83d828305d`, tree
 `f75934c42770f902e40700079b50d9972806d220`. Read the current
