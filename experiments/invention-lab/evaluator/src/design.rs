@@ -265,8 +265,10 @@ impl Design {
             if !b.size_ok() {
                 return Err(format!("{id} size must be 0.05-4.0 m"));
             }
-            let (x, y) = b.center();
-            if x < zx0 || x > zx1 || y < zy0 || y > zy1 {
+            // The whole body, not just its center: a long part centered at the
+            // zone edge would otherwise start out over the task.
+            let (x0, y0, x1, y1) = b.aabb();
+            if x0 < zx0 || x1 > zx1 || y0 < zy0 || y1 > zy1 {
                 return Err(format!("{id} starts outside the build zone"));
             }
         }
