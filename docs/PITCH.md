@@ -1,161 +1,160 @@
-# GENESIS: the 3-minute pitch
+# GENESIS: pitch and demonstration direction
 
-Cal Hacks 13.0. Three minutes to pitch, two for questions. One presenter talks,
-one drives the console and the ASI:One chat. Every beat below names what is
-on screen and whether it is live, a fixture, or recorded. Say the label out
-loud. The honesty table in [DEMO_RUNBOOK.md](DEMO_RUNBOOK.md) is the source
-of truth; if a beat has not passed its live gate by demo time, read its
-fixture clause instead of the live one.
+**Networked recursive capability improvement with fixed model weights.**
 
-**Recorded-segment label (say it, and show it as a caption):**
-`Recorded Oct 25 02:10 PT, one unedited run, same build as the live stack.`
+Status: revised pitch draft. Codex's previous implementation Goal and recurring work remain paused; colleagues' existing scoped claims continue. The
+invention-lab scene below is a proposed demonstration, not an implemented or
+recorded result. Read [implementation status](IMPLEMENTATION_STATUS.md) before
+making a claim and [the invention-lab design](INVENTION_LAB_DEMO.md) for the
+proposed experiment. Historical venue fixtures test infrastructure; event
+organizing is no longer the product direction or required demo.
 
-## The script
+## The three-minute story
 
-**0:00 to 0:20. Hook. Screen: console, Org A tree with three roles.**
+This script explains the proposed experience in the future tense. A presenter
+may describe a beat as completed only after its execution and independent
+evaluation are recorded. Until then, any storyboard or animation must visibly
+say **PROPOSED DEMONSTRATION**.
 
-Every AI agent product ships a fixed org chart. Real organizations survive
-because they change shape. They hire, build tools, hand work off, dissolve
-teams, and keep what they learned. GENESIS is the operating system that lets
-an AI organization do that safely. This is Org A. It runs a campus event for
-120 people. Three roles, a budget, a constitution. Nothing in the code knows
-what happens next.
+**0:00 to 0:25 — The idea. Screen: two independent invention labs.**
 
-**0:20 to 0:40. The disruption. Screen: ASI:One chat on the left, evidence log on the right.**
+What if an AI organization could invent a better way to invent, and another
+organization could inherit it? GENESIS is infrastructure for networked
+recursive capability improvement with fixed model weights. The models stay
+the same. Executable tools, experimental methods, knowledge and organizational
+responsibilities can change. Our ambition is a network where one lab's
+discovery improves how another lab makes its next discovery.
 
-We talk to the organization through ASI:One. "The main hall is closed for
-November 14." That one sentence becomes an observation in the evidence log.
-[LIVE if the ACP gateway is registered; otherwise: "we post the same
-observation from the operator script".] The evidence cites the venue portal.
-No human writes a plan.
+**0:25 to 1:00 — A develops an ability. Proposed screen: cargo crossing a ravine.**
 
-**0:40 to 1:15. The organization changes shape. Screen: Changes panel, then the tree.**
+Lab A needs to carry a payload across a ravine in a simulated physics world.
+It can design mechanisms and run experiments within a budget. When its
+existing approach is insufficient, it assigns the missing work, recruits a
+specialist if justified, and develops an executable experiment-search method.
+The method helps it propose designs, choose experiments and learn from failed
+trials. A publishes a verified version of that method with its scope and
+limits. The thing another lab can inherit is the method, not just the vehicle.
 
-The planner reads the evidence and the constitution and proposes the smallest
-valid change. The kernel validates it. Watch the tree: a Relocation lead
-appears. It did not exist thirty seconds ago. It owns one responsibility,
-"relocate the event", with a budget and scopes the constitution allows. It
-recruits an independent logistics specialist over Fetch.ai, under a signed
-contract. Then it says: I cannot read this venue portal. That is a
-capability gap. The chip says REQUESTED. [Planner LIVE with a model key;
-Elastic specialist LIVE with Elastic keys; otherwise labeled DEV STUB on
-screen, and we say so.]
+**1:00 to 1:40 — B improves the way capabilities are developed. Proposed screen: a robot on uneven ground in gusting wind.**
 
-**1:15 to 1:45. The organization grows an ability. Screen: gap chip ACQUIRING to INSTALLED, Apify IDs.**
+Lab B has its own state, mission and acceptance checks. It discovers A's
+method and decides whether it fits. B's task exposes a possible weakness:
+success on a few nominal trials can hide failures when terrain and gusts
+interact. B can develop a revised method that retains counterexamples and
+searches for designs robust across relevant scenarios. That is one hypothesis
+for an improvement, not a prewritten upgrade the demo inserts. The system
+must produce the executable change and establish whether it helps.
 
-GENESIS writes an Apify Actor for that portal, builds it, and runs it against
-pages the model never saw. The oracle says 3 of 3. The chip moves to
-INSTALLED, pinned to an exact build. Here is the Actor ID, the build number,
-the run ID. [LIVE with Apify and model keys and the tunnel up; cold build
-time decides live versus recorded, see the label.] The lead runs it and
-reserves Hall B in the ledger.
+**1:40 to 2:20 — The improvement returns. Proposed screen: A faces a new judge-selected perturbation.**
 
-**1:45 to 2:10. A second disruption, a different answer. Screen: Venue monitor role, Attention panel.**
+Freeze B's candidate method before revealing A's return challenge. The judge
+then changes a permitted condition, such as payload or wind. A independently
+checks and adopts the method if justified, then uses it to develop a new
+solution. Beside it, a control starts from the same A state with the previous
+method and the same resource budget. Neither receives the hidden evaluation
+answers. The audience sees whether the inherited method actually improves
+the next invention, including failures and costs.
 
-Relocation is done, so the lead hands monitoring to a persistent CREAO agent
-and retires. Now the judge cuts the new hall's capacity. No new role this
-time. The existing monitor reassesses, cites the facts, and opens one
-replacement requirement. Two disruptions, two different organizational
-responses. That is reasoning, not a script. [CREAO LIVE with the account key
-and gateway callback; fixture otherwise.]
+**2:20 to 2:45 — What exists today. Screen: implementation status and real evidence.**
 
-**2:10 to 2:40. Another organization inherits. Screen: switch to Org B tab.**
+We have built foundations: a Rust authority kernel, durable organizational
+changes, versioned capabilities, bounded acquisition and independent local
+acceptance. A two-organization integration uses loopback providers to exercise
+A creating and publishing an extraction capability and B checking and
+installing it without B synthesizing another copy. Local signed Fetch
+processes also exercise specialist work and retirement. These establish
+specific mechanisms; they do not establish the proposed physics experiment
+or measured recursive improvement.
 
-Org B is a different company with its own mission, database and keys. It
-hits the same kind of portal. It searches the registry, finds A's verified
-capability, runs A's exact pinned build against its own acceptance suite, and
-installs it. Model calls by B: zero. Synthesis calls by B: zero. What one
-organization learned became an ability another one owns. [Registry and
-adoption LIVE in-process; B's Apify run of A's Actor needs B's own token.]
+**2:45 to 3:00 — The ambition. Screen: A → B → A, with exact method versions.**
 
-**2:40 to 3:00. Proof and close. Screen: Evolution view, then the Audit strip.**
+The long-term product is a network of autonomous research and engineering
+organizations that retain and exchange better ways to develop capabilities.
+Organizational evolution supplies accountable teams; capability evolution
+supplies executable improvements. The question GENESIS makes testable is:
+can one organization's experience make another organization better at
+producing its next improvement?
 
-Replay shows every generation of this organization and why it happened. The
-audit strip checks every revision ever stored against 27 kernel invariants.
-A late result from the retired role's epoch arrives and is rejected. Every
-state this organization ever held is still well formed. GENESIS: the
-organization a mission needs, and the abilities it leaves behind.
+## What the demonstration must establish
 
-## Timing notes
+- **A real method change:** executable versions and derivation evidence show
+  what GENESIS produced. A supplied method is a baseline; relabeling it as
+  discovered is not evidence.
+- **Independent B:** B has separate state and authority, checks applicability,
+  and may reject the method. The network does not force adoption or spawning.
+- **A closed return loop:** A executes the inherited development method on a
+  fresh task. Copying B's finished robot, sharing a prompt, or increasing a
+  capability counter alone does not meet this gate.
+- **An external evaluator:** agents may improve search and development
+  programs, but cannot edit hidden acceptance criteria, the evaluator, or the
+  declared resource limits.
+- **A fair comparison:** model version/settings and initial resources stay
+  fixed. Compare methods under the same declared budget, disclose the cost of
+  creating the inherited method, and report unsuccessful candidates.
+- **Selective transfer:** include a task where the method is unsuitable and
+  the organization completes the task through another authorized approach.
+- **Honest scope:** simulated success is evidence about that environment.
+  Real engineering reliability, general transfer and broad scientific progress
+  require additional evidence.
 
-- Rehearse to 2:45. Q&A eats overrun.
-- If the cold Actor build runs long, keep it building in the background and
-  play the recorded segment with its caption. Never call a prebuilt Actor
-  fresh.
-- If `needs_reconciliation` shows, say it: "GENESIS refused to guess whether
-  the provider acted." Then show the Attention panel.
+A single successful chain demonstrates a mechanism. The controlled protocol
+in [the recursive roadmap](RECURSIVE_CAPABILITY_IMPROVEMENT.md#controlled-evaluation)
+is needed to support a measured improvement claim. A null or negative result
+must remain visible.
 
-## Q&A prep: the ten hardest questions
+## Sponsor roles in the proposed lab
 
-**1. What did you build during the hackathon?**
-The repository started two days before doors opened, as research, the
-technical specification and the first kernel code. We disclose that on the
-Devpost page. During the event we built the ASI:One conversation path, ran the
-live sponsor gates, fixed and landed the provenance console, wrote the pitch,
-and did the end-to-end runs. The commit log in the repository shows exactly
-when each piece landed.
+These are integration proposals, not claims that the current APIs or GENESIS
+runtime already implement the lab workflow.
 
-**2. What is live right now and what is a fixture?**
-The kernel, saga, fencing, retirement, registry, adoption and console are
-always live. The planner is live when a model key is set. Apify synthesis,
-build and verification are live with a token and a reachable portal. Elastic,
-Fetch and CREAO are live when their keys are set and their gate in
-`scripts/live-gates` has passed. Anything else is labeled DEV STUB on screen.
-We never show a fixture as live.
+| Platform | Proposed substantive role | Evidence needed |
+| --- | --- | --- |
+| Fetch.ai | Discover and recruit independently running specialists; expose the complete primary workflow through an ACP agent in ASI:One | Agentverse registration/discovery, actual signed work, and a conversation that completes the primary workflow |
+| Elastic Agent Builder on Serverless | Retrieve experimental evidence and candidate methods; supply specialist agents with scoped access | Real agent/tool execution and evidence that retrieved material affected a decision |
+| Apify | Build and run generated software Actors for a compatible bounded experiment worker or development tool | A validated new scaffold/executor, pinned Actor/build/run receipts, checked output, and evidence that the lab used it |
+| CREAO | Maintain an operational research responsibility, such as experiment analysis and follow-up across iterations | An agent built on agent.creao.ai doing core work, its agent ID, and a genuine run share link |
 
-**3. Why not one agent with tools?**
-One agent has no durable ownership. When it dies, who is accountable for the
-event? GENESIS gives every requirement exactly one accountable owner, with
-scopes, a budget and an epoch. A late result from a retired owner is rejected
-with `stale_epoch`. Try that with a prompt.
+The current generated Actor path is web extraction. A physics executor,
+development-method package contract and domain evaluator remain new work.
+Calling a sponsor once or showing its logo does not establish substantive use.
+See the [submission evidence checklist](DEVPOST.md#sponsor-evidence).
 
-**4. How is this different from CrewAI, AutoGen, or AG2 CaptainAgent?**
-Those build a team for a task and throw it away. Roles, agents, tools and
-responsibilities are not separate durable objects, and nothing survives the
-run. GENESIS has a constitution, an append-only history, provisioning sagas,
-verification gates, and inheritance across independent organizations. The
-closest research systems, CaptainAgent, MegaAgent, EvoAgent, describe
-evolution offline and inside one process.
+## Presenter guardrails and questions
 
-**5. How does Org B trust Org A's capability?**
-It does not trust A. It trusts its own checks. The registry carries a pinned
-build, a verification report and required permissions. B runs the exact pin
-against B's own held-out suite before installing. A's secrets, conversations
-and mission data never leave A.
+**Is this model training?** No. The proposed experiment freezes the model
+weights. Programs, workflows, retained evidence and responsibilities can
+evolve; no model-weight improvement is claimed.
 
-**6. What happens when the model is wrong?**
-The planner cannot commit anything. The kernel rejects invalid proposals with
-exact error codes, feeds them back, and allows three attempts. Scopes outside
-the constitution, budget overruns, unknown IDs and missing owners are all
-rejected. If no valid proposal exists, the planner escalates to a human and
-the Attention panel shows why.
+**Is recursive improvement already proven?** No. Current tests cover governed
+creation, verification, inheritance and selected recovery mechanisms. The
+invention-lab loop and comparative benefit remain proposed and unproven.
 
-**7. Who pays for this? What is the business?**
-The buyer is a small company that wants to run on agents without hiring an
-ops team: event agencies, property managers, clinics. They pay per active
-role per month, plus a share of every capability inherited through the
-registry. The registry is the moat: verified capabilities with provenance,
-not prompts.
+**Why organizations?** Separate organizations retain their own goals,
+permissions, budgets and adoption decisions. New responsibility can justify a
+new role; an adequate existing owner should remain in place. The organization
+is the authority boundary, not a requirement to maximize agent count.
 
-**8. Why Rust?**
-The kernel is a state machine with authority, budgets and fencing. We wanted
-the compiler to enforce the type boundaries and the runtime to be cheap to
-host per organization. Axum and Tokio handle the saga and SSE. The result
-passes 600 tests and a full-history invariant audit.
+**How does this differ from ordinary tool reuse?** Reuse transfers an ability.
+The proposed return loop transfers an improved method for developing future
+abilities and measures its effect on a new task. That is the distinction we
+intend to demonstrate, not a claim that no other system studies it.
 
-**9. What stops the organization from spawning roles forever?**
-The constitution caps active roles and contracts and total budget. Every new
-role needs a distinct continuing responsibility and a stated justification.
-Reuse and retirement are preferred in the planner's decision order.
+**Who might use it?** Autonomous research labs, robotics teams and engineering
+organizations are candidate users for a network of verified development
+methods. Customer demand, deployment economics and real-world reliability
+are hypotheses to validate, not established outcomes.
 
-**10. What is the moonshot?**
-A network of organizations that change shape as missions change, and that
-inherit each other's verified abilities with provenance. The event agency is
-day one. The platform is the kernel plus the registry.
+**What can we show now?** Use the exact source and evidence listed in
+[implementation status](IMPLEMENTATION_STATUS.md). Distinguish local runtime
+execution, simulated provider responses, native signed processes and
+authenticated cloud runs. Credentials alone do not prove a successful run.
+The merged ACP mission adapter has outstanding review regressions; do not
+present the public workflow as ready until they are resolved and validated.
 
-## One-liners to keep in your pocket
+**What if the new method fails?** Show the failed result and retain the prior
+accepted method. The kernel and verification process govern what may run;
+they do not guarantee a better invention or a correct scientific conclusion.
 
-- "The role you just saw was not in the code."
-- "Zero model calls for Org B."
-- "Every state this organization ever held is still well formed."
-- "GENESIS refused to guess."
+If a recorded segment is used, label it with the actual recording time,
+source revision, execution mode and any edits. Do not invent these details
+or present a prepared resource as newly generated.
