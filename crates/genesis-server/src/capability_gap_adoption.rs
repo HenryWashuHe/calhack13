@@ -905,6 +905,11 @@ pub struct GapAdoptionStatus {
     pub previous_adoption_ids: Vec<String>,
     /// Whether `POST .../adoption/retry` would start a fresh adoption now.
     pub retryable: bool,
+    /// What the current adoption concluded, from this organization's own
+    /// candidate decisions and stop code. Read-only: it changes no fallback.
+    /// Absent without a record, or if the decision log can't be read.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub outcome: Option<crate::capability_adoption_outcome::OutcomeView>,
 }
 
 pub async fn status_route(
@@ -937,7 +942,30 @@ pub async fn status_route(
             Some(r) => retryable_now(&app, r)?,
             None => false,
         },
+        outcome: match r.as_ref() {
+            Some(r) => outcome(&app, r)?,
+            None => None,
+        },
     }))
+}
+
+/// Classify the current adoption. A decision log that can't be read gives
+/// no outcome rather than a misleading "no candidates".
+pub fn outcome(
+    app: &AppState,
+    r: &GapAdoptionRecord,
+) -> StoreResult<Option<crate::capability_adoption_outcome::OutcomeView>> {
+    let rows = match r.adoption_id.as_deref() {
+        Some(id) => match app.store.adoption_candidates(id) {
+            Ok(rows) => rows,
+            Err(_) => return Ok(None),
+        },
+        None => Vec::new(),
+    };
+    let settled = r.code == Some(GapAdoptionCode::Checks) && checks_settled(app, r)?;
+    Ok(Some(crate::capability_adoption_outcome::classify(
+        r.state, r.code, &rows, settled,
+    )))
 }
 
 fn can_retry(r: &GapAdoptionRecord) -> bool {
