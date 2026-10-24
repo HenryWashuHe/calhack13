@@ -804,3 +804,179 @@ fn publication_enrichment_is_once_and_never_rebinds() {
     };
     assert!(update_capability_gap(&s, &id, other).is_err());
 }
+
+#[test]
+fn final_transitions_wake_the_planner_with_one_observation() {
+    use CapabilityGapStatus as S;
+    let d = demo(Some(PORTAL));
+    let out = run(
+        &d,
+        vec![assign(&d), request(&d, &[PORTAL])],
+        &StaticCatalog::default(),
+    )
+    .unwrap();
+    let id = out.state.capability_gaps.keys().next().unwrap().clone();
+    let mission = out.state.capability_gaps[&id].mission_id.clone();
+    let cap = CapabilityRef {
+        capability_id: CapabilityId::new("venue-availability"),
+        version: "1".into(),
+    };
+    let observations = |s: &OrgState| s.observations.len();
+    let base = observations(&out.state);
+
+    // Intermediate states do not wake the planner.
+    let s1 = update_capability_gap(
+        &out.state,
+        &id,
+        S::Acquiring {
+            acquisition_id: "acq-1".into(),
+        },
+    )
+    .unwrap();
+    assert_eq!(s1.effects.len(), 1);
+    let s2 = update_capability_gap(
+        &s1.state,
+        &id,
+        S::Acquired {
+            acquisition_id: "acq-1".into(),
+            capability: cap.clone(),
+            publication_ref: None,
+        },
+    )
+    .unwrap();
+    assert_eq!(s2.effects.len(), 1);
+    assert_eq!(observations(&s2.state), base);
+
+    // Installed: one observation on the gap's mission, in the same outcome.
+    let inst = InstallationId::new("inst_1");
+    let mut st = s2.state.clone();
+    st.installations.insert(
+        inst.clone(),
+        Installation {
+            installation_id: inst.clone(),
+            capability: cap.clone(),
+            status: genesis_core::lifecycle::InstallationStatus::Accepted,
+            configuration: serde_json::Value::Null,
+            acceptance_report_ref: None,
+            source_digest: "sha256:x".into(),
+            installed_at: Utc::now(),
+        },
+    );
+    let at = Utc::now();
+    let done = update_capability_gap_at(
+        &st,
+        &id,
+        S::Installed {
+            acquisition_id: "acq-1".into(),
+            capability: cap.clone(),
+            installation_id: inst.clone(),
+        },
+        at,
+    )
+    .unwrap();
+    assert_eq!(done.state.revision, st.revision + 1);
+    assert_eq!(observations(&done.state), base + 1);
+    let EventKind::ObservationRecorded {
+        observation_id,
+        source,
+        summary,
+    } = &done.effects[1]
+    else {
+        panic!("expected an observation, got {:?}", done.effects);
+    };
+    assert_eq!(done.effects.len(), 2);
+    assert_eq!(source, CAPABILITY_GAP_SOURCE);
+    assert!(summary.contains("venue-availability@1") && summary.contains("inst_1"));
+    let o = &done.state.observations[observation_id];
+    assert_eq!(o.mission_id, mission);
+    assert_eq!(o.observed_at, at);
+    assert_eq!(
+        o.evidence_ref.as_deref(),
+        Some(format!("genesis://capability-gaps/{id}").as_str())
+    );
+
+    // Refused also wakes it, with the reason.
+    let refused = update_capability_gap(
+        &s1.state,
+        &id,
+        S::Refused {
+            reason: "operator policy declined".into(),
+            acquisition_id: Some("acq-1".into()),
+        },
+    )
+    .unwrap();
+    assert_eq!(observations(&refused.state), base + 1);
+    assert!(matches!(
+        &refused.effects[1],
+        EventKind::ObservationRecorded { summary, .. } if summary.contains("operator policy declined")
+    ));
+}
+
+#[test]
+fn a_kernel_gap_observation_cannot_justify_another_request() {
+    // The refusal note carries no public URL, so a fresh requirement
+    // triggered only by it cannot back a RequestCapability: no re-request
+    // loop driven by the kernel's own notes.
+    use CapabilityGapStatus as S;
+    let d = demo(Some(PORTAL));
+    let out = run(
+        &d,
+        vec![assign(&d), request(&d, &[PORTAL])],
+        &StaticCatalog::default(),
+    )
+    .unwrap();
+    let id = out.state.capability_gaps.keys().next().unwrap().clone();
+    let refused = update_capability_gap(
+        &out.state,
+        &id,
+        S::Refused {
+            reason: "declined".into(),
+            acquisition_id: None,
+        },
+    )
+    .unwrap()
+    .state;
+    let (note, mission) = refused
+        .observations
+        .values()
+        .find(|o| o.source == CAPABILITY_GAP_SOURCE)
+        .map(|o| (o.observation_id.clone(), o.mission_id.clone()))
+        .unwrap();
+    let (rec, requirement) = record_requirement(
+        &refused,
+        &mission,
+        "Read venue availability another way",
+        std::slice::from_ref(&note),
+        "Availability is read",
+    )
+    .unwrap();
+    let d2 = Demo {
+        state: rec.state,
+        lead: d.lead.clone(),
+        observation: note,
+        requirement,
+    };
+    let mut retry = request(&d2, &[PORTAL]);
+    if let OrgOp::RequestCapability {
+        key, capability_id, ..
+    } = &mut retry
+    {
+        *key = "venue-reader-2".into();
+        *capability_id = CapabilityId::new("venue-availability-alt");
+    }
+    let mut again = assign(&d2);
+    if let OrgOp::AssignResponsibility {
+        target: ResponsibilityTarget::FromRequirement { key, .. },
+        ..
+    } = &mut again
+    {
+        *key = "relocate".into();
+    }
+    let rejected = run(&d2, vec![again, retry], &StaticCatalog::default());
+    let errs = rejected.expect_err("kernel note justified a new request");
+    assert!(
+        errs.iter()
+            .any(|e| e.message.contains("origin") || e.message.contains("http")),
+        "{errs:?}"
+    );
+}
