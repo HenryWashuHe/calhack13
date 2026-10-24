@@ -252,8 +252,17 @@ failed protocol validation: no package or source execution, with one reservation
 retained and no replay. Usage was 1 call, 3,971 input / 8,192 output tokens and
 62,131 ms. Reaching the output cap does not prove truncation: the stop reason was
 not retained. Independent retained-file consistency checks are not cloud-source
-authentication. Next: bounded allowlisted stop/rejection diagnostics before a new
-declared attempt. Finite-chain ceilings remain proposed; G0–G4 remain open.
+authentication. [Closed diagnostics](invention-lab/contracts/generation.md) are now
+implemented at source `f4fa271e603d3b38be1b8d9caeb2215bda2f04fd`: 206 forge tests
+across 38 targets pass, zero failed/ignored; strict all-target Clippy/fmt/diff pass.
+Those local checks preserve #89 unchanged. The [separate second cloud attempt](invention-lab/evidence/live-method-20261024-diagnostic/README.md)
+on `7d6119d` failed with `content_shape` / `end_turn`: 1 call, 4,028 input / 4,892
+output tokens, 36,790 ms; no package/execution and no reservation refund.
+The [strict thinking-prefix parser](invention-lab/contracts/generation.md) is implemented
+at `054b10508713095ee3bbac97eb1d9d953956596b`: full forge 211 tests/40 targets, zero
+failed/ignored; strict all-target Clippy/fmt/diff and five independent focused tests pass.
+This is local compatibility evidence; neither old failure is reinterpreted. Next is
+one separately declared bounded attempt and a valid-package handoff if produced. Henry's package handoff and G0–G4 remain open; chain ceilings proposed.
 Earlier delivery/source-specific evidence remains in the handoff; overlapping
 test counts must not be summed. Repair WIP is isolated in draft #7 and its
 original files remain untouched. Follow current
