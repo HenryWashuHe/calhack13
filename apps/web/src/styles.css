@@ -396,4 +396,3 @@ td .sub { display: block; color: var(--ink-3); font-size: 12px; }
 @media (prefers-reduced-motion: no-preference) {
   .role.fresh { transition: box-shadow 0.6s ease; }
 }
-
