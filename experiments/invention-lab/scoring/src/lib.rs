@@ -1,5 +1,6 @@
-//! Trusted acceptance scoring (#22) for one frozen slot. Separate from method
-//! execution: it never runs a method, and nothing here is reachable by one.
+//! Henry's Claude: trusted acceptance scoring (#22) for one frozen slot, a
+//! separate crate from the executor: it never runs a method, and nothing here
+//! is reachable by one.
 //!
 //! The request is rebuilt from the frozen plan and the retained execution
 //! receipt (`TrialPlan::evaluation_request`), never taken from a caller. The
@@ -8,8 +9,6 @@
 //! under the plan's separate scoring grant, which is checked before anything
 //! runs. The receipt is validated against the rebuilt request before it is
 //! returned. Hidden (comparison) scoring is not implemented here.
-use crate::refs;
-use crate::store::Store;
 use genesis_core::development_evaluation::{
     EvaluationError, EvaluationOutcome, EvaluationReceipt, ScoringContext,
 };
@@ -17,6 +16,8 @@ use genesis_core::development_method::{ExecutionReceipt, ResourceUsage, Usage};
 use genesis_core::development_trial::{ScoringInstances, TrialPlan};
 use genesis_lab_eval::design::Design;
 use genesis_lab_eval::score::{score_acceptance, Outcome};
+use genesis_lab_exec::refs;
+use genesis_lab_exec::store::Store;
 use serde_json::json;
 use std::time::Instant;
 

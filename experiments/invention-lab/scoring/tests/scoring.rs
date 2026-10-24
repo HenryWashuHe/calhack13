@@ -6,10 +6,10 @@ use genesis_core::development_method::{
     ExecutionOutcome, ExecutionReceipt, ResourceGrant, ResourceUsage,
 };
 use genesis_core::development_trial::{assess_trials, TrialEvidence, TrialPlan};
-use genesis_lab_exec::scoring::{score_slot, ScoringError};
 use genesis_lab_exec::session::{finish, RunState, Session};
 use genesis_lab_exec::store::Store;
 use genesis_lab_exec::{example, refs, sandbox::Mode};
+use genesis_lab_score::{score_slot, ScoringError};
 use serde_json::json;
 
 const REFERENCE: &str = include_str!("../../evaluator/designs/reference-five-wheel.json");

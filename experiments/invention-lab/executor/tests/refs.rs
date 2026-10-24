@@ -95,9 +95,8 @@ fn the_environment_digest_covers_every_runtime_source_file() {
     let covered = refs::source_files();
     for entry in std::fs::read_dir(Path::new(env!("CARGO_MANIFEST_DIR")).join("src")).unwrap() {
         let name = entry.unwrap().file_name().into_string().unwrap();
-        // example.rs only builds plans and scoring.rs runs after execution;
-        // neither is part of the environment a method runs in.
-        if name.ends_with(".rs") && name != "example.rs" && name != "scoring.rs" {
+        // example.rs only builds plans; it never runs during an execution.
+        if name.ends_with(".rs") && name != "example.rs" {
             assert!(
                 covered.contains(&format!("src/{name}").as_str()),
                 "src/{name} not covered"
