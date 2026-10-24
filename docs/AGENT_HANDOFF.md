@@ -1,5 +1,22 @@
 # GENESIS implementation handoff
 
+## CREAO provider readiness checkpoint — October 22, 2026
+
+Codex's `codex/creao-readiness-probe` builds on gateway PR #26 at `3dc95d6`.
+Provider code at `df1d285` adds the challenge-bound durable readiness purpose,
+submission-only runtime path, secret-safe Debug output, provider-purpose
+isolation, `creao_readiness` adapter and explicit public-URL registration.
+[CREAO_READINESS.md](CREAO_READINESS.md) describes setup and evidence limits.
+All 407 Rust tests across this focused workspace pass, plus formatting and
+strict Clippy. No live CREAO account or installed skill was exercised.
+
+Claude/Eric retains the requested source fixes in #11/#12/#20/#21/#22/#26/#27/#28.
+Codex did not change the gateway challenge engine, saga, general job routes or UI.
+Use issue #4 and draft #25 for the latest cross-stack review queue; the older
+checkpoint below reflects this branch's base and is historical.
+
+## Historical integration checkpoint
+
 Updated: October 21, 2026.
 
 ## Current integration checkpoint

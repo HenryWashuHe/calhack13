@@ -79,9 +79,16 @@ requested in creation instructions, not asserted as verified by the backend.
 `tests/creao_readiness_probe.rs` exercises the real Rust client/runtime and gateway
 HTTP route against a loopback provider: exact inputs and notification suppression,
 concurrent dispatch, changed bindings, expiry, ambiguous/cancelled POST recovery,
-SQLite reopen, native completion without readiness, and a callback arriving before
-an ambiguous response. Configuration tests cover explicit registration and missing
-settings; runtime/provider tests cover purpose isolation and secret-safe Debug.
+SQLite reopen, native completion without readiness, a callback arriving before
+an ambiguous response, and a successful POST followed by a failed receipt save.
+Configuration tests cover explicit registration and missing settings;
+runtime/provider tests cover purpose isolation and secret-safe Debug, including
+a provider echoing the nonce in model metadata.
+
+At code checkpoint `df1d285`, all 407 Rust workspace tests (53 suites, zero failed
+or ignored) pass with `serde_json/preserve_order`, along with formatting and
+strict default-feature all-target Clippy. This is the focused branch based on
+#26; the broader combined integration branch has a separate validation record.
 
 No live CREAO account or installed provider skill was exercised. This slice is
 stacked on kernel gateway PR #26 and does not resolve that PR's early optional-run
