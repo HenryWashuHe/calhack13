@@ -63,6 +63,27 @@ export function describe(ev: DomainEvent, state: OrgState | null): Described {
         devStub: ev.payload.dev_stub,
         tone: ev.payload.dev_stub ? "warn" : "ok",
       };
+    case "provisioning_progress": {
+      const labels: Record<string, string> = {
+        pending: "Provider creating agent",
+        awaiting_readiness: "Agent created, awaiting readiness",
+        ready: "Agent readiness proven",
+        needs_reconciliation: "Provider outcome unknown",
+        failed: "Provider operation failed",
+      };
+      const p = ev.payload;
+      return {
+        title: labels[p.state] ?? `Provider operation ${p.state}`,
+        detail:
+          `${p.role_key} on ${p.provider} · ${p.operation_id}` +
+          (p.run_id ? ` · run ${p.run_id}` : "") +
+          (p.attention ? ` — ${p.attention}` : ""),
+        category: "organization",
+        refs: [p.change_id],
+        tone:
+          p.state === "ready" ? "ok" : p.state === "failed" || p.state === "needs_reconciliation" ? "bad" : p.attention ? "warn" : undefined,
+      };
+    }
     case "provisioning_failed":
       return {
         title: "Provisioning failed",

@@ -61,6 +61,8 @@ pub struct AppState {
     pub(crate) saga_gates: SagaGates,
     pub registry: Option<RegistryClient>,
     pub provision_timeout: Duration,
+    /// Readiness verifiers for asynchronously created agents, by provider.
+    pub readiness: crate::specialist::ReadinessRegistry,
     pub evidence_policy: Arc<crate::capability_evidence::EvidencePolicy>,
     pub capability_runtime: Arc<crate::capability_runtime::CapabilityRuntime>,
 }
@@ -82,6 +84,17 @@ impl AppState {
 
     pub fn current_state(&self) -> ApiResult<OrgState> {
         Ok(self.store.current_state()?)
+    }
+
+    /// Register the readiness check for agents created asynchronously by
+    /// `provider` (see [`crate::specialist`]).
+    pub fn with_readiness_verifier(
+        mut self,
+        provider: genesis_core::model::Provider,
+        verifier: Arc<dyn crate::specialist::ReadinessVerifier>,
+    ) -> Self {
+        self.readiness = self.readiness.clone().with(provider, verifier);
+        self
     }
 
     /// Run a pure engine step under the kernel lock and persist its outcome.
