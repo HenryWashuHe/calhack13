@@ -28,7 +28,7 @@ missing or unreadable newer proof evidence cannot silently authorize an older
 selection. See [configuration and bounds](VENUE_RECOVERY_INTAKE.md).
 
 Validation: 139 library and 90 assessment integration tests passed; final
-11 intake tests (including two subsequently added regressions) passed, with
+12 intake tests (including three subsequently added regressions) passed, with
 strict server all-target Clippy/fmt and clean independent source review. Counts
 overlap. The native-process integration stays opt-in; these new tests use
 loopback providers/transport. No cloud or completed-live-mission claim follows.
