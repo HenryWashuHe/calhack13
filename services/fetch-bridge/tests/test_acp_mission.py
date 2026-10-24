@@ -209,6 +209,38 @@ class GatewayTests(unittest.IsolatedAsyncioTestCase):
             MissionGateway(config=config(source="other"), url=self.url, token=TOKEN, identity="agent1test", db=db)
 
 
+    async def test_confirmed_report_follow_failure_keeps_effect_visible(self):
+        original_http = self.gateway._http
+        async def failed_follow(method, path, **kwargs):
+            if method == "GET" and path.startswith("/events/log") and any(c["method"] == "POST" for c in self.calls):
+                raise Invalid("fixture follow read failed")
+            return await original_http(method, path, **kwargs)
+        with patch.object(self.gateway, "_http", side_effect=failed_follow):
+            chunks = await self.collect("report the main hall is closed on Nov 14")
+        self.assertEqual(sum(c["method"] == "POST" for c in self.calls), 1)
+        self.assertIn("Recorded as evidence", chunks[0])
+        self.assertNotIn("Nothing was changed by this message", "\n".join(chunks))
+
+    async def test_same_acp_message_after_restart_records_one_observation(self):
+        from uagents import Model
+        from uagents_core.contrib.protocols.chat import ChatMessage, TextContent
+        self.gateway.close()
+        args = dict(config=config(follow_seconds=0), url=self.url, token=TOKEN,
+                    identity="agent1test", db=str(Path(self.temp.name) / "replay.sqlite"))
+        self.gateway = MissionGateway(**args)
+        message = ChatMessage(timestamp=datetime.now(UTC), msg_id=uuid4(),
+                              content=[TextContent(type="text", text="report the main hall is closed on Nov 14")])
+        ctx = MagicMock()
+        ctx.send = AsyncMock()
+        digest = Model.build_schema_digest(ChatMessage)
+        await make_protocol(self.gateway).signed_message_handlers[digest](ctx, "agent1sender", message)
+        self.gateway.close()
+        self.gateway = MissionGateway(**args)
+        await make_protocol(self.gateway).signed_message_handlers[digest](ctx, "agent1sender", message)
+        self.assertEqual(sum(c["method"] == "POST" for c in self.calls), 1,
+                         "re-delivery of the same signed ACP message must not submit another observation")
+
+
 class ProtocolTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         from uagents import Model
