@@ -5,4 +5,5 @@
 pub mod example;
 pub mod refs;
 pub mod sandbox;
+pub mod session;
 pub mod store;

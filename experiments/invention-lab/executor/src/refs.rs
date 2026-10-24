@@ -95,12 +95,13 @@ pub fn method_ref(manifest_bytes: &[u8], entry_bytes: &[u8]) -> Result<ExactCont
 }
 
 /// Executor sources, so the environment digest changes when they do.
-const SOURCES: [(&str, &[u8]); 5] = [
+const SOURCES: [(&str, &[u8]); 6] = [
     ("Cargo.toml", include_bytes!("../Cargo.toml")),
     ("src/lib.rs", include_bytes!("lib.rs")),
     ("src/refs.rs", include_bytes!("refs.rs")),
     ("src/sandbox.rs", include_bytes!("sandbox.rs")),
     ("src/store.rs", include_bytes!("store.rs")),
+    ("src/session.rs", include_bytes!("session.rs")),
 ];
 
 pub fn source_files() -> Vec<&'static str> {
