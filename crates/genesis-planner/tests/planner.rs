@@ -303,3 +303,58 @@ async fn agent_token_cannot_commit_or_create_missions() {
         .unwrap();
     assert_eq!(resp.status(), reqwest::StatusCode::FORBIDDEN);
 }
+
+/// A run that died after its change was accepted but before its decision
+/// was recorded is recovered on restart without another model call.
+#[tokio::test]
+async fn restart_after_accepted_change_records_decision_without_model_call() {
+    let org = Org::start().await;
+    let (lead, obs) = seed(&org, "Main hall closed on the event date").await;
+    // First run: the model proposes, the change is accepted.
+    let first = Planner::new(
+        org.kernel(),
+        Arc::new(ReplayClient::new([new_role_output(
+            &lead,
+            &["ledger.reserve_venue"],
+        )])),
+    );
+    let PlanOutcome::Proposed { change, .. } = first.plan(&obs).await.unwrap() else {
+        panic!("expected a proposal");
+    };
+    org.wait_committed(change.change_id.as_str()).await;
+    // Simulate the crash window: the change exists under the planner's
+    // deterministic request ID, so a fresh planner must find it.
+    let found = org
+        .kernel()
+        .change_by_request(&format!("planner:{obs}:a1:s0"))
+        .await
+        .unwrap()
+        .expect("change is found by its request ID");
+    assert_eq!(found.change_id, change.change_id);
+
+    let model = Arc::new(ReplayClient::new(Vec::<String>::new()));
+    let second = Planner::new(org.kernel(), model.clone());
+    let outcome = second.plan(&obs).await.unwrap();
+    assert!(matches!(outcome, PlanOutcome::Proposed { attempts: 0, .. }));
+    assert!(model.requests().is_empty(), "no new model call");
+    // The terminal decision is recorded once, even though both runs sent one.
+    let decisions = org.events_of("planner_decision").await;
+    assert_eq!(decisions.len(), 1, "{decisions:?}");
+    assert_eq!(
+        decisions[0]["payload"]["change_id"],
+        change.change_id.as_str()
+    );
+    let state = org.get("/organization").await;
+    assert_eq!(state["requirements"].as_object().unwrap().len(), 1);
+}
+
+#[tokio::test]
+async fn unknown_request_id_is_not_found() {
+    let org = Org::start().await;
+    assert!(org
+        .kernel()
+        .change_by_request("planner:missing:a1:s0")
+        .await
+        .unwrap()
+        .is_none());
+}

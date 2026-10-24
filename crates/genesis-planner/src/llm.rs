@@ -55,8 +55,11 @@ pub struct LlmRequest {
 pub enum LlmError {
     #[error("model is not configured: {0}")]
     NotConfigured(String),
-    #[error("model API returned HTTP {status}: {body}")]
-    Http { status: u16, body: String },
+    /// Non-success status. `kind` is the provider's error type/code when it
+    /// is a short identifier; the provider's message text is never kept (it
+    /// can echo credentials or prompt content).
+    #[error("model API returned HTTP {status} ({kind})")]
+    Http { status: u16, kind: String },
     #[error("model request failed: {0}")]
     Transport(String),
     #[error("unexpected model response: {0}")]
@@ -72,25 +75,65 @@ pub trait LlmClient: Send + Sync {
     async fn complete(&self, req: &LlmRequest) -> Result<String, LlmError>;
 }
 
+/// HTTP client for model calls. Redirects are never followed: a redirect
+/// would resend the credential header and the private prompt to another
+/// origin. reqwest performs no automatic retries.
 fn http() -> reqwest::Client {
     reqwest::Client::builder()
         .timeout(Duration::from_secs(120))
+        .redirect(reqwest::redirect::Policy::none())
         .build()
         .expect("reqwest client")
 }
 
+/// A short identifier-like error category from a provider error body, or
+/// `unknown`. Anthropic: `error.type`; OpenAI-compatible: `error.code` or
+/// `error.type`.
+fn error_kind(text: &str) -> String {
+    let v: serde_json::Value = serde_json::from_str(text).unwrap_or_default();
+    let raw = ["/error/type", "/error/code", "/type"]
+        .iter()
+        .find_map(|p| v.pointer(p).and_then(|x| x.as_str()))
+        .unwrap_or("unknown");
+    let ok = !raw.is_empty()
+        && raw.len() <= 48
+        && raw
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-' || c == '.');
+    if ok {
+        raw.to_owned()
+    } else {
+        "unknown".into()
+    }
+}
+
+fn transport(e: reqwest::Error) -> LlmError {
+    // Category only; reqwest's message is not needed and may carry URLs.
+    LlmError::Transport(
+        if e.is_timeout() {
+            "timeout"
+        } else if e.is_connect() {
+            "connect"
+        } else {
+            "request"
+        }
+        .into(),
+    )
+}
+
 async fn read_json(resp: reqwest::Response) -> Result<serde_json::Value, LlmError> {
     let status = resp.status();
-    let text = resp
-        .text()
-        .await
-        .map_err(|e| LlmError::Transport(e.to_string()))?;
-    if !status.is_success() {
-        // Never echo request bodies or keys; the response body is the provider's.
-        let body: String = text.chars().take(600).collect();
+    let text = resp.text().await.map_err(transport)?;
+    if status.is_redirection() {
         return Err(LlmError::Http {
             status: status.as_u16(),
-            body,
+            kind: "redirect_not_followed".into(),
+        });
+    }
+    if !status.is_success() {
+        return Err(LlmError::Http {
+            status: status.as_u16(),
+            kind: error_kind(&text),
         });
     }
     serde_json::from_str(&text).map_err(|e| LlmError::Malformed(e.to_string()))
@@ -143,7 +186,7 @@ impl LlmClient for AnthropicClient {
             .json(&body)
             .send()
             .await
-            .map_err(|e| LlmError::Transport(e.to_string()))?;
+            .map_err(transport)?;
         let v = read_json(resp).await?;
         let text: String = v["content"]
             .as_array()
@@ -215,7 +258,7 @@ impl LlmClient for OpenAiCompatClient {
             .json(&body)
             .send()
             .await
-            .map_err(|e| LlmError::Transport(e.to_string()))?;
+            .map_err(transport)?;
         let v = read_json(resp).await?;
         v["choices"][0]["message"]["content"]
             .as_str()

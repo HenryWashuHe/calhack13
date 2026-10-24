@@ -72,21 +72,59 @@ impl Planner {
         change: Option<&OrgChangeRecord>,
         errors: Vec<String>,
     ) -> Result<(), KernelError> {
-        self.kernel
-            .record_decision(&DecisionRecord {
-                planner: self.name.clone(),
-                model: self.llm.model(),
-                observation_id: obs.clone(),
-                verdict,
-                summary: truncate(summary, 400),
-                rationale: truncate(rationale, 1200),
-                attempt,
-                latency_ms,
-                requirement_id: requirement.cloned(),
-                change_id: change.map(|c| c.change_id.clone()),
-                kernel_errors: errors,
-            })
-            .await
+        let record = DecisionRecord {
+            planner: self.name.clone(),
+            model: self.llm.model(),
+            observation_id: obs.clone(),
+            verdict,
+            summary: truncate(summary, 400),
+            rationale: truncate(rationale, 1200),
+            attempt,
+            latency_ms,
+            requirement_id: requirement.cloned(),
+            change_id: change.map(|c| c.change_id.clone()),
+            kernel_errors: errors,
+        };
+        // The kernel records a terminal decision at most once per
+        // observation, so retrying after an ambiguous failure is safe.
+        let mut tries = 0;
+        loop {
+            tries += 1;
+            match self.kernel.record_decision(&record).await {
+                Err(e) if e.is_ambiguous() && tries < 3 => {
+                    tokio::time::sleep(std::time::Duration::from_millis(100 * tries)).await;
+                }
+                other => return other,
+            }
+        }
+    }
+
+    /// Request ID for the `submission`-th change submission of model attempt
+    /// `attempt`. Independent of the revision, so it can be reconciled.
+    fn request_key(obs: &ObservationId, attempt: u32, submission: u32) -> String {
+        format!("planner:{obs}:a{attempt}:s{submission}")
+    }
+
+    /// A change already accepted for this observation by an earlier,
+    /// interrupted run (its decision was never recorded).
+    async fn existing_change(
+        &self,
+        obs: &ObservationId,
+    ) -> Result<Option<OrgChangeRecord>, KernelError> {
+        for attempt in 1..=self.max_attempts {
+            for submission in 0..3 {
+                if let Some(c) = self
+                    .kernel
+                    .change_by_request(&Self::request_key(obs, attempt, submission))
+                    .await?
+                {
+                    if c.status != genesis_core::lifecycle::ChangeStatus::Rejected {
+                        return Ok(Some(c));
+                    }
+                }
+            }
+        }
+        Ok(None)
     }
 
     /// Prompt the model would receive for this observation. Works without a
@@ -113,12 +151,34 @@ impl Planner {
             .get(observation)
             .cloned()
             .ok_or_else(|| PlanError::UnknownObservation(observation.clone()))?;
+        // A requirement recorded for this observation by an earlier run is
+        // reused, never duplicated.
+        let mut requirement: Option<RequirementId> = existing_requirement(&state, &obs);
+        // An interrupted run may already have an accepted change: record the
+        // decision without asking the model again.
+        if let Some(change) = self.existing_change(observation).await? {
+            self.decide(
+                observation,
+                PlannerVerdict::ChangeProposed,
+                "Recovered an accepted change",
+                "A change for this observation was accepted by an earlier, interrupted run; its decision is recorded now without a new model call.",
+                0,
+                0,
+                requirement.as_ref(),
+                Some(&change),
+                vec![],
+            )
+            .await?;
+            return Ok(PlanOutcome::Proposed {
+                change: Box::new(change),
+                attempts: 0,
+            });
+        }
         let mut messages = vec![Message::user(prompt::user_message(
             &state,
             &obs,
             &self.specialists,
         ))];
-        let mut requirement: Option<RequirementId> = None;
 
         for attempt in 1..=self.max_attempts {
             let started = Instant::now();
@@ -222,7 +282,9 @@ impl Planner {
                         attempts: attempt,
                     });
                 }
-                Err(SubmitError::Kernel(e)) if e.code().is_some() => {
+                // Only a definite rejection enters repair. An ambiguous
+                // outcome (transport, 5xx) is never turned into a new mutation.
+                Err(SubmitError::Kernel(e)) if e.is_rejection() => {
                     let reasons = e.reasons();
                     self.decide(
                         observation,
@@ -283,7 +345,7 @@ impl Planner {
         // Record the requirement once per observation; reuse it on repairs.
         if requirement.is_none() {
             if let Some(draft) = &parsed.requirement {
-                let id = self
+                match self
                     .kernel
                     .record_requirement(
                         &obs.mission_id,
@@ -291,35 +353,82 @@ impl Planner {
                         std::slice::from_ref(&obs.observation_id),
                         &draft.acceptance,
                     )
-                    .await?;
-                *requirement = Some(id);
+                    .await
+                {
+                    Ok(id) => *requirement = Some(id),
+                    Err(e) if e.is_ambiguous() => {
+                        // It may have been recorded: look before retrying.
+                        *requirement = Some(self.reconcile_requirement(obs).await.ok_or(e)?);
+                    }
+                    Err(e) => return Err(e.into()),
+                }
             }
         }
         // A revision conflict means state moved under us: rebuild against the
-        // fresh revision once without spending another model call.
-        for _ in 0..2 {
+        // fresh revision without spending another model call. Each submission
+        // has its own deterministic request ID.
+        let mut last = None;
+        for submission in 0..3 {
             let revision = self.kernel.state().await?.revision;
             let proposal =
                 output::proposal(parsed, requirement.as_ref(), &obs.observation_id, revision)
                     .map_err(SubmitError::Output)?;
-            let request_id = format!("planner:{}:{}:r{}", obs.observation_id, attempt, revision);
+            let request_id = Self::request_key(&obs.observation_id, attempt, submission);
             match self.kernel.submit_change(&request_id, &proposal).await {
-                Err(e) if e.code() == Some("revision_conflict") => continue,
-                other => return other.map_err(SubmitError::Kernel),
+                Ok(c) => return Ok(c),
+                Err(e) if e.code() == Some("revision_conflict") => last = Some(e),
+                Err(e) if e.is_ambiguous() => {
+                    // It may have been accepted: reconcile by request ID and
+                    // never resubmit an unknown outcome.
+                    return match self.reconcile_change(&request_id).await {
+                        Some(c) => Ok(c),
+                        None => Err(e.into()),
+                    };
+                }
+                Err(e) => return Err(e.into()),
             }
         }
-        let revision = self.kernel.state().await?.revision;
-        let proposal =
-            output::proposal(parsed, requirement.as_ref(), &obs.observation_id, revision)
-                .map_err(SubmitError::Output)?;
-        self.kernel
-            .submit_change(
-                &format!("planner:{}:{}:final", obs.observation_id, attempt),
-                &proposal,
-            )
-            .await
-            .map_err(SubmitError::Kernel)
+        Err(SubmitError::Kernel(last.expect("loop ran")))
     }
+
+    async fn reconcile_requirement(
+        &self,
+        obs: &genesis_core::model::Observation,
+    ) -> Option<RequirementId> {
+        for tries in 1..=3u64 {
+            if let Ok(state) = self.kernel.state().await {
+                if let Some(id) = existing_requirement(&state, obs) {
+                    return Some(id);
+                }
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(100 * tries)).await;
+        }
+        None
+    }
+
+    async fn reconcile_change(&self, request_id: &str) -> Option<OrgChangeRecord> {
+        for tries in 1..=3u64 {
+            match self.kernel.change_by_request(request_id).await {
+                Ok(found) => return found,
+                Err(_) => tokio::time::sleep(std::time::Duration::from_millis(100 * tries)).await,
+            }
+        }
+        None
+    }
+}
+
+/// The requirement recorded from exactly this observation, if any.
+fn existing_requirement(
+    state: &genesis_core::model::OrgState,
+    obs: &genesis_core::model::Observation,
+) -> Option<RequirementId> {
+    state
+        .requirements
+        .values()
+        .find(|r| {
+            r.mission_id == obs.mission_id && r.triggering_evidence == [obs.observation_id.clone()]
+        })
+        .map(|r| r.requirement_id.clone())
 }
 
 #[derive(Debug, thiserror::Error)]

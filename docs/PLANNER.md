@@ -40,6 +40,27 @@ With no model configured, `run` and `once` exit with a clear message; `prompt` s
 
 For the demo, show a second disruption that should **not** create a role (for example a capacity change that the existing monitoring role owns). Two different pieces of evidence producing two different organizational responses is the evidence that the planner reasons rather than follows a script.
 
+## Recovery and trust
+
+- **No duplicate effects after lost responses or restarts.** A requirement is
+  reused if one was already recorded from the same observation. Each change
+  submission uses a deterministic request ID (`planner:<observation>:a<attempt>:s<n>`,
+  independent of the revision). After an ambiguous kernel response (transport
+  error or 5xx) the planner reconciles by reading
+  (`GET /api/v1/org-changes/requests/{id}`, the organization state) and never
+  resubmits an unknown outcome. On start, a planner that finds an accepted
+  change for the observation records the decision without a new model call.
+  Only a definite 4xx rejection enters model repair.
+- **Decisions are idempotent.** The kernel records at most one terminal
+  planner decision per observation; a retried decision returns the existing one.
+- **Model HTTP.** Model clients never follow redirects (a redirect would resend
+  the API key and prompt to another origin) and do not retry. Provider error
+  bodies are reduced to the HTTP status and a short error type; their text
+  never reaches errors, logs or `planner_decision` events.
+
+Regression tests: `tests/review_recovery.rs`, `tests/review_http.rs` (from the
+Codex review of PR #12) and the restart test in `tests/planner.rs`.
+
 ## Files
 
 | Path | Purpose |
