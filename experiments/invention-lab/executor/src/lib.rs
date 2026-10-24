@@ -6,5 +6,6 @@ pub mod example;
 pub mod refs;
 pub mod run;
 pub mod sandbox;
+pub mod scoring;
 pub mod session;
 pub mod store;

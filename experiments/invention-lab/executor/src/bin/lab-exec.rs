@@ -5,12 +5,15 @@
 //!   lab-exec example-plan <namespaces|none> <instances> <sim-steps> <wall-ms> <out-dir>
 //!   lab-exec run <plan.json> <slot> <package.json> <state-dir> <namespaces|none>
 //!   lab-exec recover <plan.json> <slot> <state-dir> <namespaces|none>
-//!   lab-exec check <plan.json> <slot> <state-dir>
+//!   lab-exec score <plan.json> <slot> <state-dir> <score-dir>
+//!   lab-exec check <plan.json> <slot> <state-dir> [score-dir]
+use genesis_core::development_evaluation::{EvaluationOutcome, EvaluationReceipt};
 use genesis_core::development_experiment::{ExperimentLedger, ExperimentScope};
 use genesis_core::development_method::{ExactContentRef, ExecutionReceipt, ResourceGrant};
 use genesis_core::development_package::{MethodPackage, MethodSourceFile};
 use genesis_core::development_trial::{assess_trials, TrialEvidence, TrialPlan};
-use genesis_lab_exec::{example, refs, run, sandbox::Mode};
+use genesis_lab_exec::store::Store;
+use genesis_lab_exec::{example, refs, run, sandbox::Mode, scoring};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
@@ -165,8 +168,40 @@ fn main() -> ExitCode {
                         .map_err(|e| format!("{e:?}"))?,
                 )
             }
-            ["check", plan, slot, dir] => {
+            ["score", plan, slot, dir, out] => {
                 let plan: TrialPlan = json(plan)?;
+                let receipt: ExecutionReceipt = json(&format!("{dir}/receipt.json"))?;
+                let output = receipt
+                    .outputs
+                    .first()
+                    .ok_or("no retained output to score")?;
+                let bytes = std::fs::read(format!("{dir}/artifacts/{}", output.sha256))
+                    .map_err(|e| format!("read output: {e}"))?;
+                let store = Store::open(Path::new(out)).map_err(|e| e.to_string())?;
+                let scored = scoring::score_slot(&plan, slot, &receipt, &bytes, &store)
+                    .map_err(|e| format!("{e:?}"))?;
+                store
+                    .write(
+                        "evaluation.json",
+                        &serde_json::to_vec_pretty(&scored).unwrap(),
+                    )
+                    .map_err(|e| e.to_string())?;
+                let metrics = match &scored.outcome {
+                    EvaluationOutcome::Scored { metrics } => {
+                        let m: serde_json::Value =
+                            json(&format!("{out}/artifacts/{}", metrics.sha256))?;
+                        serde_json::json!({"success_count": m["success_count"], "of": m["of"]})
+                    }
+                    other => serde_json::json!({"outcome": other}),
+                };
+                serde_json::json!({"slot": slot, "result": metrics, "usage": scored.usage})
+            }
+            ["check", plan, slot, dir, rest @ ..] if rest.len() <= 1 => {
+                let plan: TrialPlan = json(plan)?;
+                let scoring: Option<EvaluationReceipt> = match rest.first() {
+                    Some(out) => Some(json(&format!("{out}/evaluation.json"))?),
+                    None => None,
+                };
                 let ledger: ExperimentLedger = json(&format!("{dir}/ledger.json"))?;
                 let receipt: ExecutionReceipt = json(&format!("{dir}/receipt.json"))?;
                 let scope = ExperimentScope {
@@ -181,7 +216,7 @@ fn main() -> ExitCode {
                     &[TrialEvidence {
                         slot_id: slot.to_string(),
                         execution: receipt,
-                        scoring: None,
+                        scoring,
                     }],
                 )
                 .map_err(|e| format!("trial: {e:?}"))?;
