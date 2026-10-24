@@ -9,6 +9,7 @@ import { EvolutionView } from "./EvolutionView";
 import { generations, timeline } from "../lib/evolution";
 import { AuditStrip } from "./AuditStrip";
 import { downloadStory } from "../lib/story";
+import type { HistoryAudit } from "../lib/audit";
 import { gapsForRole } from "../lib/gaps";
 import { GapIntakeContext } from "../lib/gapIntake";
 
@@ -305,7 +306,10 @@ export function OrgPanel({
             <button
               className="btn"
               title="Download a self-contained HTML record of this organization's evolution"
-              onClick={() => downloadStory(state, changes, events)}
+              onClick={async () => {
+                const audit = await api.get<HistoryAudit>("/organization/audit").catch(() => null);
+                downloadStory(state, changes, events, audit);
+              }}
             >
               Export story
             </button>
@@ -364,7 +368,7 @@ export function OrgPanel({
         {shown && (
           <AuditStrip
             api={api}
-            state={shown}
+            shown={shown.revision}
             current={current}
             onSelect={(rev) => {
               stopReplay();

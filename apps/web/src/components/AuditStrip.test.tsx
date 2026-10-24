@@ -1,25 +1,36 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import type { Api } from "../lib/api";
-import type { OrgState } from "../lib/contracts";
-import { AuditStrip } from "./AuditStrip";
+import type { HistoryAudit } from "../lib/audit";
+import { AuditView } from "./AuditStrip";
 
-const state: OrgState = {
-  org_id: "o",
-  name: "O",
-  revision: 2,
-  constitution: { scopes: [], budget_cents: 100, max_active_roles: 1, max_active_contracts: 0 },
-  roles: {
-    a: { role_id: "a", name: "A", charter: "", authority: { budget_cents: 50 }, state: "ACTIVE", created_in_revision: 1 },
-    b: { role_id: "b", name: "B", charter: "", authority: { budget_cents: 80 }, state: "ACTIVE", created_in_revision: 2 },
-  },
+const clean: HistoryAudit = {
+  org_id: "org_a",
+  snapshots_checked: 3,
+  first_revision: 0,
+  last_revision: 2,
+  events_checked: 9,
+  invariants: ["role_limit", "budget_limit", "live_owner"],
+  violation_count: 0,
+  violations: [],
 };
 
-describe("AuditStrip", () => {
-  it("summarizes failing rules at the shown revision", () => {
-    const html = renderToStaticMarkup(<AuditStrip api={{} as Api} state={state} current={2} onSelect={() => {}} />);
-    expect(html).toContain("6/8 rules hold at r2");
+const noop = () => {};
+
+describe("AuditView", () => {
+  it("states what the kernel checked when history is clean", () => {
+    const html = renderToStaticMarkup(<AuditView audit={clean} shown={2} current={2} onSelect={noop} open onToggle={noop} />);
+    expect(html).toContain("every revision r0–r2 passes 3 invariants");
+    expect(html).toContain("3 snapshots · 9 events");
+    expect(html).toContain("budget limit");
+    expect(html).toContain("audit-cell ok here");
+  });
+
+  it("names violations on the revision shown", () => {
+    const bad = { ...clean, violation_count: 1, violations: [{ revision: 1, invariant: "budget_limit", detail: "live roles hold 120 cents" }] };
+    const html = renderToStaticMarkup(<AuditView audit={bad} shown={1} current={2} onSelect={noop} open onToggle={noop} />);
+    expect(html).toContain("1 violation in stored history");
     expect(html).toContain("audit bad");
-    expect(html).toContain("Audit all 3 revisions");
+    expect(html).toContain("r1 budget limit: live roles hold 120 cents");
+    expect(html).toContain("audit-cell bad here");
   });
 });

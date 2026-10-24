@@ -3,7 +3,7 @@
 // now, and the constitution audit of the current snapshot. Built only from
 // the records the console already holds. DevStub bindings stay labeled.
 
-import { auditSnapshot } from "./audit";
+import { type HistoryAudit, ruleName } from "./audit";
 import type { DomainEvent, OrgChangeRecord, OrgState } from "./contracts";
 import { TimelineEntry, timeline } from "./evolution";
 import { roleProvenance } from "./provenance";
@@ -32,15 +32,30 @@ function entryHtml(e: TimelineEntry): string {
   )}</small></div></li>`;
 }
 
+function auditHtml(a: HistoryAudit | null): string {
+  if (!a) return "<h2>Kernel audit</h2><p>The kernel audit was not available when this page was exported.</p>";
+  const head =
+    a.violation_count === 0
+      ? `every stored revision r${a.first_revision ?? 0}–r${a.last_revision ?? 0} passes ${a.invariants.length} invariants`
+      : `${a.violation_count} violation(s) in stored history`;
+  const list = a.violations
+    .map((v) => `<li class="bad">r${v.revision} <b>${esc(ruleName(v.invariant))}</b> — ${esc(v.detail)}</li>`)
+    .join("");
+  return `<h2>Kernel audit: ${esc(head)}</h2>
+<p>${a.snapshots_checked} snapshots and ${a.events_checked} events checked by genesis_core::audit. Rules: ${a.invariants
+    .map((n) => esc(ruleName(n)))
+    .join(", ")}.</p>${list ? `<ul class="audit">${list}</ul>` : ""}
+<p><small>A clean audit means every stored state is well formed and every step was a legal move; it does not show that providers acted or that evidence is true.</small></p>`;
+}
+
 export function storyHtml(
   state: OrgState,
   changes: OrgChangeRecord[],
   events: DomainEvent[],
+  audit: HistoryAudit | null,
   generatedAt: Date = new Date(),
 ): string {
   const entries = timeline(events, changes, state);
-  const audit = auditSnapshot(state);
-  const held = audit.filter((c) => c.holds).length;
   const roles = Object.values(state.roles ?? {}).sort((a, b) => a.created_in_revision - b.created_in_revision);
   const devStubs = roles.some((r) => r.binding?.provider === "dev_stub");
   const roleHtml = roles
@@ -85,18 +100,19 @@ footer{margin-top:40px;font-size:12px;color:var(--ink3)}
 <p>How the organization rewrote itself, from founding to r${state.revision}. Every line cites recorded kernel evidence.</p>
 ${devStubs ? '<div class="notice">Development stubs stood in for some providers. Roles labeled DEV STUB are not live Elastic, Fetch or CREAO agents.</div>' : ""}
 <h2>Evolution</h2><ol class="tl">${entries.map(entryHtml).join("") || "<li>No structural changes.</li>"}</ol>
-<h2>Constitution audit at r${state.revision}: ${held}/${audit.length} rules hold</h2>
-<ul class="audit">${audit
-    .map((c) => `<li class="${c.holds ? "ok" : "bad"}"><b>${esc(c.title)}</b> — ${esc(c.rule)}${c.violations.map((v) => `<br><span style="color:var(--bad)">${esc(v)}</span>`).join("")}</li>`)
-    .join("")}</ul>
-<p><small>Re-checked in the browser against the kernel's stored snapshot; the kernel enforces these rules at commit.</small></p>
+${auditHtml(audit)}
 <h2>Why each role exists</h2>${roleHtml}
 <footer>Exported from the GENESIS console at ${esc(generatedAt.toISOString())} · org ${esc(state.org_id)} · r${state.revision}</footer>
 </main></body></html>`;
 }
 
-export function downloadStory(state: OrgState, changes: OrgChangeRecord[], events: DomainEvent[]): void {
-  const blob = new Blob([storyHtml(state, changes, events)], { type: "text/html" });
+export function downloadStory(
+  state: OrgState,
+  changes: OrgChangeRecord[],
+  events: DomainEvent[],
+  audit: HistoryAudit | null,
+): void {
+  const blob = new Blob([storyHtml(state, changes, events, audit)], { type: "text/html" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
