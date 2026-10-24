@@ -24,8 +24,10 @@ whether to adopt, adapt, or decline them.
 **Implemented foundations are not a demonstrated recursive-improvement system.**
 The current code supports governed organization changes, web-extraction Actor
 acquisition and verification, and independently checked inheritance between two
-organizations. General executable development methods, the proposed invention
-labs, and measured recursive benefit are not implemented. See the
+organizations. Experimental simulator primitives, exact method-source packages
+and bounded method generation are also merged. The isolated executor and trusted
+scoring adapter remain under review; the A → B → A method loop and measured
+recursive benefit are not demonstrated. See the
 [evidence-backed implementation status](docs/IMPLEMENTATION_STATUS.md).
 
 ## The proposed demonstration: invention labs
@@ -42,9 +44,10 @@ Moving machines make the result visible; method lineage and independent
 comparisons establish what happened.
 
 This is a **proposed demo, not existing functionality or a promised positive
-result**. Its simulator, development-method executor and evaluation loop still
-need implementation. The [demo design](docs/INVENTION_LAB_DEMO.md) specifies the
-missing pieces and falsifiable gates. The former event-organizer demo is
+result**. Simulator primitives and method-source generation have local test
+evidence. Enforced method execution, independent adoption, recursive return and
+the controlled evaluation remain open. The [demo design](docs/INVENTION_LAB_DEMO.md)
+specifies the missing pieces and falsifiable gates. The former event-organizer demo is
 superseded; its runtime code remains a historical integration fixture.
 
 ## How the capability network develops
@@ -87,7 +90,8 @@ The research goal is measurable improvement on a declared mix of tasks, with fai
 | Cross-organization inheritance | Immutable versioned manifests, shared discovery, adopt-before-acquire, and organization-local acceptance are implemented. A two-organization integration exercises A creating/publishing a capability and B adopting it without B synthesizing another copy. |
 | Persistent specialist work | Fetch supplies independent signed specialist exchanges; CREAO supplies persistent operational agents; Elastic supports organizational evidence, retrieval, and Agent Builder integrations. End-to-end live sponsor evidence remains a separate gate. |
 | Recovery and control | SQLite journals, exact artifact/request identities, authority checks, bounded attempts, and reconciliation states protect the tested workflows. Ambiguous external effects can require operator attention; recovery does not mean every operation can safely be replayed. |
-| Recursive composition and network healing | Typed capability dependencies, executable builder/repair packages, shared failure advisories, controlled upgrade/rollback, and measured improvement of the improvement process remain next milestones. |
+| Development-method foundations | Exact source/dependency records, frozen trial plans, experiment accounting and a single-attempt method-generation CLI are merged. Generation exports a host-bound source package; it does not execute, verify or adopt it. Simulator primitives have local tests. |
+| Recursive composition and network healing | Enforced method execution, selective method inheritance, genuine method revision and measured improvement remain open. Shared repair advisories and controlled upgrades are separate future work. |
 
 A manifest already carries schemas, permissions, provenance, verification evidence, and optional role/workflow descriptions. Those descriptions do not yet constitute a general executable workflow package or dependency resolver. The network currently uses a shared registry service; it is not a decentralized peer-to-peer capability protocol.
 
@@ -104,6 +108,13 @@ through every organization or planner path.
 
 This fixture demonstrates capability inheritance. It does not execute the
 proposed invention-lab demo or establish measured recursive improvement.
+
+The forge also provides offline preparation/status/export and one bounded model
+request for method source; see the [method-generation CLI contract](docs/invention-lab/contracts/generation.md).
+Its exact request survives restart, uncertain submissions never replay, and
+source validity is separate from provider accounting. This path has fixture
+evidence only. Provider-default sampling and separate generation costs are
+explicit limitations until the comparison settings and total budget are enforced.
 
 ### Run the local inheritance rehearsal
 
@@ -127,8 +138,8 @@ These checks use loopback provider simulations and the actual Apify SDK with loc
 
 ## The most valuable next improvements
 
-1. **Close one network repair loop.** Persist a failure against an exact capability version, open a bounded repair intent, independently verify a replacement, and let another organization adopt it under its own policy. Keep uncertain effects in reconciliation; make withdrawal and rollback explicit rather than silently replacing installed versions.
-2. **Make capabilities composable.** Add typed, pinned dependency and derivation relationships, then an executable contract for reusable workflows such as builders, test generators, and repair strategies. Preserve existing verification and permission boundaries as artifact types expand.
+1. **Execute a genuinely developed method.** Connect the merged generation/source contracts to an independently reviewed executor and evaluator. Enforce isolation and budgets, retain immutable evidence, and include generation costs. Handwritten seeds remain labeled controls.
+2. **Close an independent A → B → A method loop.** Let B check and use A's exact method, develop its own executable revision, then let A independently accept and run that frozen revision on a fresh task. Preserve each organization's authority and valid non-reuse outcomes.
 3. **Measure selective and recursive benefit.** Compare the same base system without cross-task accumulation, with task capabilities, and with task capabilities plus inherited development workflows on held-out tasks. Freeze the model and trusted evaluation, count creation/verification/retrieval costs as well as execution, report regressions by task family, and gate promotion on criteria fixed before evaluation. Generated tests can supplement the evaluation; they cannot replace its trusted acceptance criteria.
 
 These are proposed implementation priorities, not completed features. Live sponsor validation proceeds alongside them; neither a passing fixture nor a larger capability count alone establishes recursive improvement.
