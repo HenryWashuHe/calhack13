@@ -1,6 +1,7 @@
 // Requested capabilities (capability gaps) for the console. Pure helpers.
 import type { CapabilityGap, CapabilityGapStatus, OrgState } from "./contracts";
 import { intakeDetail, type GapIntakeStatus } from "./gapIntake";
+import { finalizationDetail, type GapFinalizationStatus } from "./gapFinalization";
 type Tone = "ok" | "warn" | "bad";
 
 export interface GapView {
@@ -49,6 +50,7 @@ export function gapsForRole(
   state: OrgState | null,
   roleId: string,
   intake: Record<string, GapIntakeStatus> = {},
+  finalization: Record<string, GapFinalizationStatus> = {},
 ): GapView[] {
   return Object.values(state?.capability_gaps ?? {})
     .filter((g: CapabilityGap) => g.role_id === roleId)
@@ -62,7 +64,7 @@ export function gapsForRole(
         label: l.label,
         tone: l.tone,
         version: l.version,
-        detail: intakeDetail(g, intake[g.gap_id]) ?? l.detail,
+        detail: intakeDetail(g, intake[g.gap_id]) ?? finalizationDetail(g, finalization[g.gap_id]) ?? l.detail,
         sources: g.observed_sources,
       };
     });

@@ -74,7 +74,9 @@ Operators can inspect redacted progress at
 organization's Operator token and does not expose frozen HTML or oracle answers.
 `Acquired` means a verified exact version, not publication or installation.
 This driver does not publish a manifest, grant provider access, accept an
-installation or attach a capability to a role. Those remain separate steps.
+installation or attach a capability to a role. The opt-in gap finalizer
+([CAPABILITY_GAP_FINALIZER.md](CAPABILITY_GAP_FINALIZER.md)) can take a verified
+gap to `installed`; attachment stays a planner decision.
 
 Tests cover strict decoding, bounds, source narrowing, missing examples,
 deterministic identities across serialization/restart, independent organization

@@ -75,6 +75,14 @@ pub fn router(state: AppState) -> Router {
             get(capability_gaps::acquisition),
         )
         .route(
+            "/capability-gaps/{id}/finalization",
+            get(crate::capability_gap_finalizer::status_route),
+        )
+        .route(
+            "/capability-gaps/{id}/finalization/retry",
+            post(crate::capability_gap_finalizer::retry_route),
+        )
+        .route(
             "/capability-adoptions",
             post(adoptions::create).get(adoptions::list),
         )
