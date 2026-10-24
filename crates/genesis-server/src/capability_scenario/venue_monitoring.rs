@@ -313,6 +313,42 @@ struct AssessmentTarget {
     deadline: DateTime<Utc>,
 }
 
+async fn source_deadline(
+    driver: &ScenarioDriver,
+    monitor: &Monitor,
+    source: &InvocationProofResponse,
+    expires_at: DateTime<Utc>,
+) -> Result<DateTime<Utc>> {
+    let job: Job = decode(
+        driver
+            .get(
+                &driver.b,
+                &format!("/jobs/{}", source.job_id),
+                "read monitoring source job",
+            )
+            .await?,
+        "monitoring source job",
+    )?;
+    if job.job_id.as_str() != source.job_id
+        || job.org_id.as_str() != monitor.org_id
+        || job.mission_id.as_str() != monitor.mission_id
+        || job.role_id.as_str() != monitor.role_id
+        || job.responsibility_id.as_str() != monitor.responsibility_id
+        || job.assignment_id.as_str() != monitor.assignment_id
+        || job.epoch != monitor.epoch
+        || job.provider != Some(Provider::Apify)
+        || job.status != JobStatus::Succeeded
+        || job.created_at > source.verified_at
+    {
+        return Err(bad("monitoring source job binding mismatch"));
+    }
+    // Both source timestamps precede intent preparation, so their freshness
+    // caps also bound the runtime's preparation-time + 30 minute cap.
+    Ok(expires_at
+        .min(job.created_at + chrono::Duration::minutes(30))
+        .min(source.verified_at + chrono::Duration::minutes(30)))
+}
+
 struct Monitor {
     org_id: String,
     mission_id: String,
@@ -767,13 +803,13 @@ pub(super) async fn run(
     let ledger = driver
         .get(&driver.b, "/ledger", "read pre-assessment commitments")
         .await?;
-    // A timestamp from this backend avoids using client clock skew to infer
-    // the child deadline. Both intents are prepared later, so their capped
-    // deadline must equal this one common subscription expiration.
+    // Anchor the subscription lifetime to a backend timestamp. Each child also
+    // has its own source-age caps, which can precede this common expiration.
     let expires_at = baseline.verified_at + chrono::Duration::minutes(30);
     if expires_at <= Utc::now() {
         return Err(bad("baseline is too old to register monitoring"));
     }
+    let baseline_deadline = source_deadline(driver, &frozen, baseline, expires_at).await?;
     let request = SubscriptionRequest {
         client_request_id: format!("{}-venue-monitor", spec.run_id),
         role_id: frozen.role_id.clone(),
@@ -816,7 +852,7 @@ pub(super) async fn run(
         AssessmentVerdict::Feasible,
         &AssessmentTarget {
             id: baseline_id,
-            deadline: expires_at,
+            deadline: baseline_deadline,
         },
     )
     .await?;
@@ -834,6 +870,7 @@ pub(super) async fn run(
             Some(&suite_sha256),
         )
         .await?;
+    let updated_deadline = source_deadline(driver, &frozen, &updated_source, expires_at).await?;
     let updated_id = await_child(
         driver,
         &mut subscription,
@@ -850,7 +887,7 @@ pub(super) async fn run(
         AssessmentVerdict::Reopen,
         &AssessmentTarget {
             id: updated_id,
-            deadline: expires_at,
+            deadline: updated_deadline,
         },
     )
     .await?;
@@ -1302,6 +1339,14 @@ mod tests {
         let mut job = f.job();
         job.result.as_mut().unwrap()["proof"]["execution_receipt_sha256"] = json!("9".repeat(64));
         assert!(validate_job(&job, &record, &expected, deadline).is_err());
+        for offset in [-1, 1] {
+            let mut job = f.job();
+            job.deadline = Some(deadline + chrono::Duration::seconds(offset));
+            assert!(
+                validate_job(&job, &record, &expected, deadline).is_err(),
+                "a changed deadline must not pass merely because it is still in the future"
+            );
+        }
     }
 
     #[test]

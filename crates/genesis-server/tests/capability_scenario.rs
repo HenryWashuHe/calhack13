@@ -1198,6 +1198,8 @@ async fn assert_native_monitoring(fixture: &Fixture, report: &ScenarioReport) ->
     assert_eq!(binding.provider, Provider::Creao);
     assert_eq!(monitoring["provider_agent_id"], binding.provider_agent_id);
     let specialist = fixture.providers.specialist();
+    let expires_at: chrono::DateTime<chrono::Utc> =
+        serde_json::from_value(subscription["request"]["expires_at"].clone()).unwrap();
     let mut records = vec![subscription.clone()];
     let mut assignment = None;
     let mut native_runs = BTreeSet::new();
@@ -1236,7 +1238,6 @@ async fn assert_native_monitoring(fixture: &Fixture, report: &ScenarioReport) ->
             .get_job(&JobId::new(summary["job_id"].as_str().unwrap()))
             .unwrap();
         assert_eq!(job.role_id, role.role_id);
-        assert_eq!(json!(job.deadline), subscription["request"]["expires_at"]);
         let current = (job.assignment_id.clone(), job.epoch);
         if let Some(previous) = &assignment {
             assert_eq!(previous, &current)
@@ -1264,6 +1265,24 @@ async fn assert_native_monitoring(fixture: &Fixture, report: &ScenarioReport) ->
         .await;
         assert_eq!(status, StatusCode::OK);
         assert_eq!(source_proof["decision"], "verified");
+        let verified_at: chrono::DateTime<chrono::Utc> =
+            serde_json::from_value(source_proof["verified_at"].clone()).unwrap();
+        let expected_deadline = expires_at
+            .min(source.created_at + chrono::Duration::minutes(30))
+            .min(verified_at + chrono::Duration::minutes(30));
+        assert_eq!(job.deadline, Some(expected_deadline));
+        if index == 0 {
+            assert!(source.created_at < verified_at);
+            assert!(
+                expected_deadline < expires_at,
+                "the baseline source's age, not subscription expiry, caps its child"
+            );
+        } else {
+            assert_eq!(
+                expected_deadline, expires_at,
+                "the later source is capped by the original subscription expiry"
+            );
+        }
         assert_eq!(source_proof["proof_ref"], summary["invocation_proof_ref"]);
         assert_eq!(
             source_proof["case_report"]["artifact"],
