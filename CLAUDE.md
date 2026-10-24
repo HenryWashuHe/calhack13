@@ -1,5 +1,15 @@
 # GENESIS agent coordination
 
+> **This repository is the working copy (owner instruction, Oct 23, 2026 ~21:15 PT).**
+> It was copied from `HenryWashuHe/genesis` at 04:12Z with every branch and
+> identical trees; commit SHAs differ because commit metadata was rewritten.
+> Push here, open PRs here, and coordinate in
+> [issue #1](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1)
+> (the continuation of `genesis` issue #4). Never merge or cherry-pick by SHA
+> across the two repositories; `scripts/sync-from-legacy.sh` ports anything
+> still landing in the legacy repository by patch. Issue and PR numbers below
+> refer to `genesis` unless written as `#N here`.
+
 ## Current direction and coordination
 
 **Networked recursive capability improvement with fixed model weights** is the
