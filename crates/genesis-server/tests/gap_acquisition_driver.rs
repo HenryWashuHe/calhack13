@@ -33,11 +33,17 @@ use std::{
     sync::{Arc, Mutex},
     time::Duration,
 };
-use tower::ServiceExt;
 
 const MODEL: &str = "claude-sonnet-4-6";
 const KEY: &str = "gap-driver-loopback-key";
 const PUBLIC_HTML: &str = "<html>FIXED_PUBLIC_GAP_EXAMPLE</html>";
+
+struct RunningServer(tokio::task::JoinHandle<()>);
+impl Drop for RunningServer {
+    fn drop(&mut self) {
+        self.0.abort();
+    }
+}
 
 fn suite() -> OracleSuite {
     decode_json(include_bytes!(
@@ -257,7 +263,21 @@ async fn disabled_driver_does_not_claim_a_genuine_committed_gap() {
 async fn status_is_operator_only_and_omits_frozen_inputs() {
     let f = Fixture::new("gap-status", None).await;
     drain_once(&f.app).await.unwrap();
-    let path = format!("/api/v1/capability-gaps/{}/acquisition", f.gap_id);
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let path = format!(
+        "http://{}/api/v1/capability-gaps/{}/acquisition",
+        listener.local_addr().unwrap(),
+        f.gap_id
+    );
+    let router = f.app.clone().router();
+    let _server = RunningServer(tokio::spawn(async move {
+        axum::serve(listener, router).await.unwrap();
+    }));
+    let http = reqwest::Client::builder()
+        .timeout(Duration::from_secs(5))
+        .no_proxy()
+        .build()
+        .unwrap();
     for (token, expected) in [
         (None, StatusCode::UNAUTHORIZED),
         (Some(f.config.tokens.agent.as_str()), StatusCode::FORBIDDEN),
@@ -267,19 +287,14 @@ async fn status_is_operator_only_and_omits_frozen_inputs() {
         ),
         (Some(f.config.tokens.operator.as_str()), StatusCode::OK),
     ] {
-        let mut request = axum::http::Request::builder().uri(&path);
+        let mut request = http.get(&path);
         if let Some(token) = token {
-            request = request.header("authorization", format!("Bearer {token}"));
+            request = request.bearer_auth(token);
         }
-        let response = f
-            .app
-            .clone()
-            .router()
-            .oneshot(request.body(axum::body::Body::empty()).unwrap())
-            .await
-            .unwrap();
+        let response = request.send().await.unwrap();
         assert_eq!(response.status(), expected);
-        let bytes = to_bytes(response.into_body(), 8192).await.unwrap();
+        let bytes = response.bytes().await.unwrap();
+        assert!(bytes.len() < 8192);
         let text = std::str::from_utf8(&bytes).unwrap();
         for private in [
             PUBLIC_HTML,
