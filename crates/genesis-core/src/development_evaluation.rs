@@ -94,6 +94,16 @@ pub fn execution_receipt_hash(
     Ok(hash("genesis.development_execution_receipt", execution))
 }
 
+/// Hash fully bound evidence even when usage exceeds its grant. This is for
+/// accounting; the existing execution_receipt_hash still enforces ceilings.
+pub fn execution_receipt_identity_hash(
+    execution: &ExecutionReceipt,
+    binding: &DevelopmentRunBinding,
+) -> Result<String, EvaluationError> {
+    execution.validate_identity_against(binding)?;
+    Ok(hash("genesis.development_execution_receipt", execution))
+}
+
 impl EvaluationRequest {
     pub fn validate_against(
         &self,
@@ -115,6 +125,37 @@ impl EvaluationRequest {
             return Err(EvaluationError::OutputNotProduced);
         }
         Ok(accounting)
+    }
+
+    /// Accounting-only validation; does not admit scoring an over-budget run.
+    pub fn validate_identity_against(
+        &self,
+        execution: &ExecutionReceipt,
+        binding: &DevelopmentRunBinding,
+    ) -> Result<(), EvaluationError> {
+        nonblank(&self.request_id)?;
+        self.context.validate()?;
+        self.output.validate()?;
+        if self.execution_sha256 != execution_receipt_identity_hash(execution, binding)?
+            || self.purpose != binding.purpose
+            || self.context.public_task != binding.public_task
+            || self.context.evaluator != binding.evaluator
+        {
+            return Err(EvaluationError::BindingMismatch);
+        }
+        if !execution.outputs.contains(&self.output) {
+            return Err(EvaluationError::OutputNotProduced);
+        }
+        Ok(())
+    }
+
+    pub fn identity_hash(
+        &self,
+        execution: &ExecutionReceipt,
+        binding: &DevelopmentRunBinding,
+    ) -> Result<String, EvaluationError> {
+        self.validate_identity_against(execution, binding)?;
+        Ok(hash("genesis.development_evaluation_request", self))
     }
 
     pub fn canonical_hash(
@@ -164,9 +205,31 @@ impl EvaluationReceipt {
         binding: &DevelopmentRunBinding,
     ) -> Result<EvaluationAccounting, EvaluationError> {
         let development = expected.validate_against(execution, binding)?;
-        if self.request != *expected
-            || self.request_sha256 != expected.canonical_hash(execution, binding)?
-        {
+        self.validate_identity_fields(expected, &expected.canonical_hash(execution, binding)?)?;
+        Ok(EvaluationAccounting {
+            development,
+            scoring: self.usage.assess(&expected.budget)?,
+        })
+    }
+
+    /// All identity and usage-shape checks, without treating ceilings as identity.
+    pub fn validate_identity_against(
+        &self,
+        expected: &EvaluationRequest,
+        execution: &ExecutionReceipt,
+        binding: &DevelopmentRunBinding,
+    ) -> Result<(), EvaluationError> {
+        self.validate_identity_fields(expected, &expected.identity_hash(execution, binding)?)?;
+        self.usage.validate()?;
+        Ok(())
+    }
+
+    fn validate_identity_fields(
+        &self,
+        expected: &EvaluationRequest,
+        expected_hash: &str,
+    ) -> Result<(), EvaluationError> {
+        if self.request != *expected || self.request_sha256 != expected_hash {
             return Err(EvaluationError::BindingMismatch);
         }
         if let Some(context) = &self.observed_context {
@@ -189,10 +252,7 @@ impl EvaluationReceipt {
             | EvaluationOutcome::Unknown { reason } => nonblank(reason)?,
         }
         self.trace.validate()?;
-        Ok(EvaluationAccounting {
-            development,
-            scoring: self.usage.assess(&expected.budget)?,
-        })
+        Ok(())
     }
 }
 
