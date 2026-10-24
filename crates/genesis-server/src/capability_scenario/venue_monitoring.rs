@@ -230,8 +230,12 @@ fn observe(record: &AssessmentResponse, expected: &Expected<'_>) -> Result<bool>
         });
     }
     if let Some(attention) = &record.attention {
-        if attention != "local_verification_pending"
-            || record.status != JobStatus::Verifying
+        // The backend retries either local checkpoint while attempts remain.
+        // Continuing to observe does not authorize another native request.
+        if !matches!(
+            attention.as_str(),
+            "local_verification_pending" | "local_verification_failed"
+        ) || record.status != JobStatus::Verifying
             || !(1..3).contains(&record.finalization_attempts)
         {
             return Err(ScenarioError::Observation {
@@ -433,7 +437,9 @@ async fn assess(
         source,
         verdict,
     };
-    for _ in 0..driver.limits.max_polls {
+    // The initial POST response costs no poll. Observe every permitted GET,
+    // including the last one, before reporting exhaustion.
+    for polls in 0..=driver.limits.max_polls {
         if observe(&record, &expected)? {
             let persisted: AssessmentResponse = decode(
                 driver
@@ -491,6 +497,9 @@ async fn assess(
                 requirement_id: proof.requirement_id.clone(),
                 verdict,
             });
+        }
+        if polls == driver.limits.max_polls {
+            break;
         }
         tokio::time::sleep(driver.limits.poll_interval).await;
         record = decode(
@@ -842,12 +851,15 @@ mod tests {
         let mut record = f.response();
         record.proof = None;
         record.status = JobStatus::Verifying;
-        record.attention = Some("local_verification_pending".into());
-        assert!(!observe(&record, &expected).unwrap());
-        record.finalization_attempts = 2;
-        assert!(!observe(&record, &expected).unwrap());
-        record.finalization_attempts = 3;
-        assert!(observe(&record, &expected).is_err());
+        for attention in ["local_verification_pending", "local_verification_failed"] {
+            record.attention = Some(attention.into());
+            for attempt in [1, 2] {
+                record.finalization_attempts = attempt;
+                assert!(!observe(&record, &expected).unwrap());
+            }
+            record.finalization_attempts = 3;
+            assert!(observe(&record, &expected).is_err());
+        }
         record.finalization_attempts = 0;
         record.attention = None;
         for status in [
@@ -967,5 +979,201 @@ mod tests {
         let mut state = f.state.clone();
         state.requirements = reopened.state.requirements;
         assert!(validate_effects(&state, f.response().proof.as_ref().unwrap(), &expected).is_err());
+    }
+
+    /// Script only the organization HTTP API. This exercises the production
+    /// assess loop and its persisted job/history reads, not native verification.
+    async fn poll_sequence(
+        f: &Fixture,
+        observations: Vec<Value>,
+        max_polls: usize,
+    ) -> (Result<ScenarioAssessmentReport>, Vec<(String, String)>) {
+        use axum::body::to_bytes;
+        use axum::extract::{Request, State};
+        use axum::{Json, Router};
+        use std::collections::VecDeque;
+        use std::sync::{Arc, Mutex};
+        struct Replies {
+            queued: Value,
+            observations: VecDeque<Value>,
+            last: Value,
+            job: Value,
+            org: Value,
+            seen: Vec<(String, String)>,
+        }
+        async fn reply(
+            State(shared): State<Arc<Mutex<Replies>>>,
+            request: Request,
+        ) -> (axum::http::StatusCode, Json<Value>) {
+            let method = request.method().to_string();
+            let path = request.uri().path().to_owned();
+            assert_eq!(
+                request.headers()["authorization"],
+                "Bearer fixture-operator"
+            );
+            let bytes = to_bytes(request.into_body(), 64 * 1024).await.unwrap();
+            let body: Value = if bytes.is_empty() {
+                Value::Null
+            } else {
+                serde_json::from_slice(&bytes).unwrap()
+            };
+            let mut state = shared.lock().unwrap();
+            state.seen.push((method.clone(), path.clone()));
+            let value = match (method.as_str(), path.as_str()) {
+                ("POST", "/api/v1/venue-assessments") => {
+                    state.job["deadline"] = body["deadline"].clone();
+                    state.queued.clone()
+                }
+                ("GET", "/api/v1/venue-assessments/assessment_test") => {
+                    if let Some(next) = state.observations.pop_front() {
+                        state.last = next;
+                    }
+                    state.last.clone()
+                }
+                ("GET", "/api/v1/jobs/assessment_job") => state.job.clone(),
+                ("GET", "/api/v1/organization" | "/api/v1/organization/revisions/11") => {
+                    state.org.clone()
+                }
+                _ => return (axum::http::StatusCode::NOT_FOUND, Json(Value::Null)),
+            };
+            (axum::http::StatusCode::OK, Json(value))
+        }
+        let mut queued = f.record.clone();
+        queued["status"] = json!("QUEUED");
+        queued["proof"] = Value::Null;
+        queued["finalization_attempts"] = json!(0);
+        let shared = Arc::new(Mutex::new(Replies {
+            last: queued.clone(),
+            queued,
+            observations: observations.into(),
+            job: json!(f.job()),
+            org: json!(f.state),
+            seen: vec![],
+        }));
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        let router = Router::new().fallback(reply).with_state(shared.clone());
+        let server = tokio::spawn(async move { axum::serve(listener, router).await.unwrap() });
+        let driver = ScenarioDriver::new(
+            ScenarioEndpoint::new("https://unused.example", "fixture-operator").unwrap(),
+            ScenarioEndpoint::new(&format!("http://{address}"), "fixture-operator").unwrap(),
+            ScenarioLimits {
+                request_timeout: Duration::from_secs(2),
+                poll_interval: Duration::from_millis(1),
+                max_polls,
+                total_timeout: Duration::from_secs(5),
+                ..ScenarioLimits::default()
+            },
+        )
+        .unwrap();
+        let spec: ScenarioSpec =
+            serde_json::from_slice(include_bytes!("../../examples/scenario/mission.json")).unwrap();
+        let frozen = f.frozen();
+        let result = assess(
+            &driver,
+            &spec,
+            &f.work,
+            &frozen,
+            &f.source,
+            &f.policy,
+            AssessmentVerdict::Feasible,
+        )
+        .await;
+        server.abort();
+        let seen = shared.lock().unwrap().seen.clone();
+        assert_eq!(
+            seen.iter().filter(|(method, _)| method == "POST").count(),
+            1,
+            "observation must never recreate the assessment or manually verify it"
+        );
+        (result, seen)
+    }
+
+    #[tokio::test]
+    async fn success_on_the_last_allowed_poll_checks_persisted_job_and_effects() {
+        let f = Fixture::new(AssessmentVerdict::Feasible);
+        let (result, seen) = poll_sequence(&f, vec![f.record.clone()], 1).await;
+        assert!(
+            result.is_ok(),
+            "last allowed observation was discarded: {result:?}"
+        );
+        assert_eq!(
+            seen.iter()
+                .filter(|(method, path)| method == "GET"
+                    && path == "/api/v1/venue-assessments/assessment_test")
+                .count(),
+            2,
+            "one observation GET plus a persisted-proof reread"
+        );
+        assert!(seen
+            .iter()
+            .any(|(_, path)| path == "/api/v1/jobs/assessment_job"));
+        assert!(seen
+            .iter()
+            .any(|(_, path)| path == "/api/v1/organization/revisions/11"));
+    }
+
+    #[tokio::test]
+    async fn local_failures_recover_within_the_backend_retry_budget_without_another_post() {
+        let f = Fixture::new(AssessmentVerdict::Feasible);
+        let failures: Vec<_> = [1, 2]
+            .into_iter()
+            .map(|attempt| {
+                let mut record = f.record.clone();
+                record["status"] = json!("VERIFYING");
+                record["proof"] = Value::Null;
+                record["attention"] = json!("local_verification_failed");
+                record["finalization_attempts"] = json!(attempt);
+                record
+            })
+            .collect();
+        let mut success = f.record.clone();
+        success["finalization_attempts"] = json!(3);
+        let (result, seen) =
+            poll_sequence(&f, failures.into_iter().chain([success]).collect(), 3).await;
+        assert!(
+            result.is_ok(),
+            "backend still has automatic retries: {result:?}"
+        );
+        assert_eq!(
+            seen.iter()
+                .filter(|(method, path)| method == "GET"
+                    && path == "/api/v1/venue-assessments/assessment_test")
+                .count(),
+            4
+        );
+    }
+
+    #[tokio::test]
+    async fn unknown_malformed_and_exhausted_responses_stop_without_further_polls() {
+        let f = Fixture::new(AssessmentVerdict::Feasible);
+        for case in ["unknown", "malformed", "exhausted", "still_running"] {
+            let mut record = f.record.clone();
+            record["status"] = json!("VERIFYING");
+            record["proof"] = Value::Null;
+            match case {
+                "unknown" => record["status"] = json!("UNKNOWN"),
+                "malformed" => record["caller_verified"] = json!(true),
+                "exhausted" => {
+                    record["attention"] = json!("local_verification_failed");
+                    record["finalization_attempts"] = json!(3);
+                }
+                _ => {}
+            }
+            let budget = if case == "still_running" { 1 } else { 3 };
+            let (result, seen) = poll_sequence(&f, vec![record, f.record.clone()], budget).await;
+            assert!(result.is_err(), "{case} must not be reported as completed");
+            assert_eq!(
+                seen.iter()
+                    .filter(|(method, path)| method == "GET"
+                        && path == "/api/v1/venue-assessments/assessment_test")
+                    .count(),
+                1,
+                "{case}: no extra poll, retry or fabricated completion"
+            );
+            assert!(!seen
+                .iter()
+                .any(|(_, path)| path == "/api/v1/jobs/assessment_job"));
+        }
     }
 }
