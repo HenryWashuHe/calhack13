@@ -4,6 +4,7 @@
 //! for what is and isn't enforced.
 pub mod example;
 pub mod refs;
+pub mod run;
 pub mod sandbox;
 pub mod session;
 pub mod store;
