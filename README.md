@@ -1,10 +1,49 @@
 # GENESIS
 
-**A self-expanding operating system for autonomous organizations.**
+![tag:innovationlab](https://img.shields.io/badge/innovationlab-3D8BD3)
+![tag:hackathon](https://img.shields.io/badge/hackathon-5F43F1)
 
-GENESIS changes the organization a mission needs: it creates and recruits specialist agents, transfers responsibilities, develops missing executable capabilities, and lets independent organizations inherit verified capabilities.
+**The operating system that lets an AI organization change shape, and keep what it learns.**
 
-The Rust capability implementation now creates source-bearing Actors, resumes pinned builds and runs, verifies results against an independent oracle, and checkpoints the forge across process restarts. A runnable TypeScript scaffold supplies the extraction runtime. The organization API now uses backend-owned proofs and durable execution for independent capability adoption in [PR #5](https://github.com/HenryWashuHe/genesis/pull/5). Claude’s kernel/UI fixes and the follow-up delegation and concurrent saga guards are integrated into the provider branches. The Fetch milestone adds independently signed specialist negotiation with durable Rust journals and a runnable two-organization proof. Asynchronous provider activation and authenticated provider smoke tests remain open.
+Every agent framework ships a fixed org chart. GENESIS runs an organization as
+durable state instead: roles, responsibilities, authority, budgets, contracts
+and a constitution. When evidence arrives, a planner proposes the smallest
+valid change and the kernel decides. Roles are created, specialists are
+recruited, missing abilities are built and verified, work is handed off, and
+temporary teams retire. Every revision is kept, and every state is audited.
+
+What one organization builds, another can inherit. A verified capability is
+published with its exact build, its acceptance suite and its provenance. A
+second organization checks it against its own suite and installs it without
+a single model call.
+
+## Why it matters
+
+- **Accountability survives change.** Every requirement has exactly one
+  accountable owner with scopes, a budget and an epoch. A late result from a
+  retired owner is rejected, not applied.
+- **Abilities outlive teams.** The relocation team disbands; the venue
+  capability stays, pinned and verified, for anyone the registry trusts.
+- **The model proposes, the kernel decides.** Invalid proposals are rejected
+  with exact error codes. The organization never acts on a guess.
+
+## 60-second tour
+
+1. A venue closes. The organization grows a Relocation lead that was not in
+   the code, recruits an independent logistics specialist over Fetch.ai, and
+   requests a capability it lacks.
+2. GENESIS writes an Apify Actor for the unfamiliar portal, builds it, and
+   verifies it against pages the model never saw.
+3. A second disruption is handled by the existing CREAO monitor. No new role.
+4. Org B, a separate organization, inherits the capability with zero
+   synthesis calls.
+5. The temporary role retires after handoff, and the audit strip shows every
+   revision still satisfies the kernel invariants.
+
+Sponsor integrations are real code with live gates; see the honesty table in
+[docs/DEMO_RUNBOOK.md](docs/DEMO_RUNBOOK.md) for what is live, fixture or
+pending at any moment. Fixture runs are labeled on screen and are never
+presented as live.
 
 ## Start here
 
