@@ -8,6 +8,7 @@ use std::time::{Duration, Instant};
 
 pub const MAX_PROMPT_BYTES: usize = 512 * 1024;
 pub const MAX_TEXT_BYTES: usize = 800 * 1024;
+pub const MAX_CONTENT_BLOCKS: usize = 16;
 pub const API_VERSION: &str = crate::synthesis_http::ANTHROPIC_VERSION;
 
 pub(crate) fn hash(bytes: &[u8]) -> String {
@@ -312,6 +313,31 @@ struct Block {
     text: String,
     citations: Option<Vec<serde_json::Value>>,
 }
+
+// Single-turn source generation never returns these blocks to a provider.
+// Validate their documented shape, then discard prose and opaque payloads.
+#[derive(Deserialize)]
+#[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
+enum ThinkingBlock {
+    Thinking { thinking: String, signature: String },
+    RedactedThinking { data: String },
+}
+fn valid_thinking(value: serde_json::Value) -> bool {
+    match serde_json::from_value::<ThinkingBlock>(value) {
+        Ok(ThinkingBlock::Thinking {
+            thinking,
+            signature,
+        }) => {
+            thinking.len() <= MAX_TEXT_BYTES
+                && !signature.is_empty()
+                && signature.len() <= MAX_TEXT_BYTES
+        }
+        Ok(ThinkingBlock::RedactedThinking { data }) => {
+            !data.is_empty() && data.len() <= MAX_TEXT_BYTES
+        }
+        Err(_) => false,
+    }
+}
 fn reported(value: Option<u64>) -> ResourceUsage {
     value.map_or_else(unknown, |value| ResourceUsage::Measured { value })
 }
@@ -400,16 +426,37 @@ impl AnthropicGenerator {
         {
             return Ok(completion.rejected(TextRejection::OutputLimit, stop));
         }
-        let Ok(mut blocks) = serde_json::from_value::<Vec<Block>>(response.content) else {
+        let Ok(blocks) = serde_json::from_value::<Vec<serde_json::Value>>(response.content) else {
             return Ok(completion.rejected(TextRejection::ContentShape, stop));
         };
-        if blocks.len() != 1 {
+        if blocks.is_empty() || blocks.len() > MAX_CONTENT_BLOCKS {
             return Ok(completion.rejected(TextRejection::ContentCount, stop));
         }
-        let block = blocks.remove(0);
-        if block.kind != "text" {
-            return Ok(completion.rejected(TextRejection::ContentType, stop));
+        let mut text = None;
+        for value in blocks {
+            match value.get("type").and_then(serde_json::Value::as_str) {
+                Some("thinking" | "redacted_thinking") => {
+                    if text.is_some() || !valid_thinking(value) {
+                        return Ok(completion.rejected(TextRejection::ContentShape, stop));
+                    }
+                }
+                Some("text") => {
+                    if text.is_some() {
+                        return Ok(completion.rejected(TextRejection::ContentCount, stop));
+                    }
+                    let Ok(block) = serde_json::from_value::<Block>(value) else {
+                        return Ok(completion.rejected(TextRejection::ContentShape, stop));
+                    };
+                    text = Some(block);
+                }
+                Some(_) => return Ok(completion.rejected(TextRejection::ContentType, stop)),
+                None => return Ok(completion.rejected(TextRejection::ContentShape, stop)),
+            }
         }
+        let Some(block) = text else {
+            return Ok(completion.rejected(TextRejection::ContentCount, stop));
+        };
+        debug_assert_eq!(block.kind, "text");
         if block.text.len() > MAX_TEXT_BYTES {
             return Ok(completion.rejected(TextRejection::TextLimit, stop));
         }
