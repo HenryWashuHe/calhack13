@@ -44,3 +44,30 @@ behavior. A fixture transport remains a fixture. The actual B-developed and
 A-accepted executable return, independent evaluation and G3/G4 results remain
 open. Keep each source generation, execution, scoring and adoption record
 distinct.
+
+## CLI
+
+Save a revision spec (`generation` plus `parent`) and the exact canonical parent
+package locally. These commands are offline:
+
+```sh
+cargo run -p genesis-forge -- method-revise-prepare \
+  --plan revision.json --parent parent.package.json --checkpoint generation.json
+cargo run -p genesis-forge -- method-revise-observe \
+  --plan revision.json --parent parent.package.json --checkpoint generation.json
+```
+
+Preparation refuses to overwrite an existing checkpoint and emits only status
+and identity hashes. The checkpoint contains the authorized public parent source
+and prompt. Use the existing `method-generate-step --checkpoint generation.json`
+for the single configured provider request, then `method-generate-export` to
+export the child. Preparation itself makes no provider call. The new attempt
+belongs in the normal cost roster, including when unsuccessful.
+
+Observation reads the saved checkpoint without locking, recovering, writing or
+calling a provider. It requires a validated generated child; a prepared, pending,
+failed or uncertain checkpoint returns exit 2 with no observation and remains
+unchanged. It also refuses an unrelated spec or parent. Existing lock files are
+left untouched. Read-only observation is a snapshot, not an exclusive execution
+or acceptance transaction. Exit 0 means the source observation was constructed,
+not that its `source_changed` flag is true or the revision is better.
