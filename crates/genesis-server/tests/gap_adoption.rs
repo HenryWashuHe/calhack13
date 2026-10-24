@@ -1196,3 +1196,67 @@ async fn an_acceptance_before_the_adoption_id_is_saved_still_links_the_gap() {
     assert_eq!(record.adoption_id.as_deref(), Some(id.as_str()));
     assert_eq!(f.drain().await, None);
 }
+
+#[tokio::test]
+async fn review_empty_search_cannot_release_a_gap_after_public_same_owner_delegation() {
+    let f = Fixture::new(Options {
+        foreign: false,
+        ..Options::default()
+    })
+    .await;
+    assert_eq!(f.drain().await, Some(Step::Frozen));
+    assert_eq!(f.drain().await, Some(Step::Dispatched));
+    f.adoption_step().await;
+    assert_eq!(
+        f.adoptions()[0].attention_code(),
+        Some(AdoptionAttention::NoCandidate)
+    );
+    let frozen = f.record().unwrap();
+    let state = f.state();
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let url = format!("http://{}", listener.local_addr().unwrap());
+    let router = f.app.clone().router();
+    let server = tokio::spawn(async move { axum::serve(listener, router).await.unwrap() });
+    let response = reqwest::Client::builder()
+        .no_proxy()
+        .build()
+        .unwrap()
+        .post(format!("{url}/api/v1/org-changes"))
+        .bearer_auth(format!("{ORG}-operator"))
+        .json(&json!({
+            "client_request_id":"review-adoption-fallback-public-delegation",
+            "proposal":{
+                "expected_org_revision":state.revision,
+                "trigger_evidence_ids":state.capability_gaps[&f.gap_id].triggering_evidence,
+                "rationale":"Make the accountable role the explicit executor under a fresh grant",
+                "budget_limit_cents":0,
+                "operations":[{"op":"DelegateTask",
+                    "responsibility":{"kind":"existing","responsibility_id":frozen.responsibility_id},
+                    "executor":{"kind":"role","role":{"kind":"existing","role_id":frozen.role_id}},
+                    "task":"Continue work under the new explicit executor grant"}]
+            }
+        }))
+        .send()
+        .await
+        .unwrap();
+    let status = response.status();
+    let body: Value = response.json().await.unwrap();
+    server.abort();
+    assert!(status.is_success(), "{status}: {body}");
+    let state = f.state();
+    let grant = state.active_assignment(&frozen.responsibility_id).unwrap();
+    assert_ne!(grant.assignment_id, frozen.assignment_id);
+    assert!(grant.epoch > frozen.epoch);
+    // The search belonged to the revoked grant. A new owner's grant cannot
+    // inherit its permission to synthesize, even when it is the same role.
+    let outcome = f.drain().await;
+    capability_gap_driver::drain_once(&f.app).await.unwrap();
+    assert!(
+        !f.driver_bound(),
+        "stale empty-search result handed the gap to synthesis under a new grant: {outcome:?}, {:?}",
+        f.record()
+    );
+    assert_eq!(outcome, Some(Step::Refused(GapAdoptionCode::Authority)));
+    assert_eq!(f.providers.model_calls(), 0);
+    assert_eq!(f.adoptions().len(), 1);
+}
