@@ -50,13 +50,20 @@ steps 5–6 on the kernel side:
   deterministic per job attempt). Redelivery is a no-op: it never causes a
   second POST.
 - The specialist poller advances each running job at most once per pass.
-  Live authority (active role, open responsibility, current epoch, deadline,
-  matching binding) is checked **before each advance** and again **before a
-  collected result is applied**. Losing authority stops advancing
+  The full current grant (active role, open responsibility, the exact
+  assignment and epoch, active mission before its deadline, unexpired
+  assignment lease and job deadline, the same agent binding) is checked
+  **before each provider call**, including the
+  single automatic read retry, and again **before a collected result is
+  applied**. Losing authority stops advancing
   (`RESULT_REJECTED`, "authority lost before advance"); a result collected
   after a handoff is archived (`RESULT_REJECTED`, "late result fenced").
 - Collected output is stored with `domain_verified: false` and the job moves
-  to `VERIFYING`, never `SUCCEEDED`; no commitment is recorded. An unknown
+  to `VERIFYING`, never `SUCCEEDED`; no commitment is recorded. The generic
+  `POST /jobs/{id}/results` route refuses these jobs from creation onward
+  (`409 managed_specialist_result`, keyed on the job's durable provider, so it
+  holds across restarts and while CREAO is not configured): a caller cannot
+  report or verify backend-collected output. An unknown
   submission outcome moves the job to `UNKNOWN`; a failed operation to
   `FAILED`, keeping the run ID.
 
