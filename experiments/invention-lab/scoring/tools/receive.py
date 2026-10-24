@@ -124,8 +124,14 @@ def trial(spec, packages, t, d, lab_exec, lab_score):
         plan = json.load(f)
     plan["id"] = f"receive-{t['id']}"
     plan["slots"][1]["method"] = method_ref(ctrl)
-    for slot in plan["slots"]:
+    # Run, attempt and scoring IDs are namespaced by the predeclared trial, so
+    # two trials of one organization never share an execution or scoring
+    # identity, and preparing the same trial again yields the same IDs.
+    for slot, name in zip(plan["slots"], ("candidate", "control")):
         slot["org_id"] = spec["org_id"]
+        slot["run_id"] = f"run-{plan['id']}-{name}"
+        slot["attempt_id"] = f"att_{plan['id']}_{name}"
+        slot["scoring_request_id"] = f"score-{plan['id']}-{name}"
     with open(os.path.join(d, "plan.json"), "w") as f:
         json.dump(plan, f, separators=(",", ":"))
     shutil.copyfile(cand, os.path.join(d, "candidate.package.json"))
