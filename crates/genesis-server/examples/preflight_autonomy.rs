@@ -419,6 +419,33 @@ mod tests {
     }
 
     #[test]
+    fn review_preflight_rejects_empty_adoption_policy_that_server_refuses() {
+        let mut input = good();
+        input.b_adopt.as_mut().unwrap().rules.clear();
+
+        // Check the real startup boundary, not a duplicated local predicate.
+        let mut config = genesis_server::OrgConfig::dev("review-b", "Review B");
+        config.registry_url = Some("http://127.0.0.1:7100".into());
+        config.oracle_suites = input.b_suites.clone();
+        config.gap_adoption_policy = input.b_adopt.clone();
+        let startup = genesis_server::build_org(&config, None)
+            .err()
+            .expect("the server must refuse an empty adoption policy before starting");
+        assert!(
+            startup
+                .to_string()
+                .contains("gap adoption policy needs 1-32 rules"),
+            "unexpected startup refusal: {startup}"
+        );
+
+        let report = check(&input);
+        assert!(
+            !fails(&report).is_empty(),
+            "preflight must fail a supplied policy that startup rejects: {report:#?}"
+        );
+    }
+
+    #[test]
     fn each_silent_misconfiguration_is_a_failure() {
         let cases: Vec<(&str, Box<dyn Fn(&mut Inputs)>)> = vec![
             (
