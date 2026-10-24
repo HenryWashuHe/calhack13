@@ -67,7 +67,7 @@ Tests: `crates/genesis-server/tests/specialist_jobs.rs`.
 - **Registration is done** (`creao_config::attach_creao_from_env`, called at the
   start of `serve_org`). Set all four of `GENESIS_CREAO_DB`,
   `GENESIS_CREAO_ACCOUNT`, `GENESIS_CREAO_QUOTA_DB` and `CREAO_ACCOUNT_API_KEY`
-  in the git-ignored `.env`; none set means CREAO stays unconfigured, a partial
+  in the backend environment; the server does not implicitly load `.env`. None set means CREAO stays unconfigured, a partial
   set refuses to start and names the missing variables (never the key).
   Startup runs `recover_interrupted()` before serving. `/health` lists
   `configured_specialists`. Being registered is not being ready: without a
@@ -75,10 +75,11 @@ Tests: `crates/genesis-server/tests/specialist_jobs.rs`.
 - **The readiness verifier's kernel side is done**: `GatewayReadiness` issues a
   one-time challenge and accepts the agent's receipt at
   `POST /api/v1/gateway/readiness-receipts` (see
-  [GATEWAY_READINESS.md](GATEWAY_READINESS.md)). Still needed: the CREAO
-  `ReadinessProbe` that runs the created agent's gateway skill with the
-  challenge (a readiness run purpose in the CREAO runtime), its registration
-  with `GENESIS_PUBLIC_URL`, and a live skill install.
+  [GATEWAY_READINESS.md](GATEWAY_READINESS.md)). The CREAO provider probe and its
+  distinct durable readiness purpose are implemented. Set `GENESIS_PUBLIC_URL`
+  along with the complete CREAO configuration to register it. Actual skill
+  installation and a live-account receipt remain unverified; see
+  [CREAO_READINESS.md](CREAO_READINESS.md).
 - **Attaching a found native agent** to a `needs_reconciliation` operation.
   Today an operator can only abandon it:
   `POST /api/v1/org-changes/{id}/operations/{role_key}/abandon` with
