@@ -172,7 +172,9 @@ genesis audit --db data/dev/org_a.db --org-id org_a
 genesis audit --db data/dev/org_b.db --org-id org_b
 ```
 
-Read-only. It checks every stored snapshot, every consecutive pair and every
+Start the stack with `GENESIS_AUDIT_COMMITS=1` so the kernel also refuses any
+commit that would break an invariant while it runs. The audit itself is
+read-only. It checks every stored snapshot, every consecutive pair and every
 event against the kernel invariants (limits, reporting tree, single active
 assignment, append-only history, legal lifecycle moves, installed gaps backed
 by accepted installations; full list in [KERNEL_AUDIT.md](KERNEL_AUDIT.md)) and

@@ -47,6 +47,20 @@ The database is opened read-only; a running server can stay up.
 and organization, revisions are contiguous, and every event names this
 organization and a stored revision.
 
+## Refusing ill-formed commits
+
+With `GENESIS_AUDIT_COMMITS=1`, every `Store::commit_state` audits the new
+state and the step from the stored previous revision inside the same
+transaction, and refuses the commit (`InvariantViolation`, HTTP 500, nothing
+written) if anything breaks. Off by default; recommended for `genesis dev` and
+the demo. `Store::with_commit_audit` sets it per handle.
+
+Measured on this branch with it on: all server and workspace tests' real
+commits pass. The only refusals came from test fixtures that tamper with state
+on purpose (setting a role back to `Active`, an installation back to
+`Checking`, retiring without a revision), which is what they simulate. A full
+`genesis dev` + dev-scenario run commits all 12 steps with zero refusals.
+
 ## Where it runs
 
 - `crates/genesis-core/tests/engine_fuzz.rs`: 8 seeds × 1000 random steps
