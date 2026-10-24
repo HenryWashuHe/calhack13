@@ -1,8 +1,10 @@
 //! Henry's Claude: the planner learns which capability names and public
 //! sources the operator's trusted gap policy can act on, and nothing else.
+use genesis_core::ids::CapabilityId;
 use genesis_forge::PublicExample;
 use genesis_server::{
     build_org,
+    capability_gap_adoption::{GapAdoptionPolicy, GapAdoptionRule},
     capability_gap_policy::{GapAcquisitionPolicy, GapAcquisitionRule},
     OrgConfig,
 };
@@ -81,8 +83,61 @@ async fn without_a_policy_the_list_is_empty() {
     let url = serve(build_org(&cfg, None).unwrap()).await;
     let (status, body) = get(&url, &cfg.tokens.agent).await;
     assert_eq!(status, StatusCode::OK);
+    // No acquisition policy: no scope to hold.
+    assert_eq!(body, json!({"capabilities":[]}));
+}
+
+fn adopt(capability: &str) -> GapAdoptionRule {
+    GapAdoptionRule {
+        capability_id: CapabilityId::new(capability),
+        suite_id: "PRIVATE_ADOPTION_SUITE".into(),
+        synthesis_fallback: false,
+    }
+}
+
+#[tokio::test]
+async fn adoption_only_names_are_listed_without_sources_or_scope() {
+    // Org B: adopt-first only. Without these names B's planner had no list,
+    // and a request under any other name is never adopted.
+    let cfg = OrgConfig::dev("org_adopt", "Adopt");
+    let mut app = build_org(&cfg, None).unwrap();
+    app.gap_adoption_policy = Some(Arc::new(GapAdoptionPolicy {
+        rules: vec![adopt("venue-lookup"), adopt("capacity-check")],
+    }));
+    let url = serve(app).await;
+    let (status, body) = get(&url, &cfg.tokens.agent).await;
+    assert_eq!(status, StatusCode::OK, "{body}");
     assert_eq!(
         body,
-        json!({"capabilities":[], "required_scope":"capability.acquire"})
+        json!({"capabilities":[
+            {"capability_id":"capacity-check","observed_sources":[],"adoption_only":true},
+            {"capability_id":"venue-lookup","observed_sources":[],"adoption_only":true}
+        ]})
+    );
+    assert!(!body.to_string().contains("PRIVATE"));
+}
+
+#[tokio::test]
+async fn a_name_with_both_rules_is_listed_once_as_acquirable() {
+    // Synthesis fallback needs the acquisition rule's sources and scope, so
+    // the acquisition entry wins; adoption-only names keep their flag.
+    let cfg = OrgConfig::dev("org_both", "Both");
+    let mut app = build_org(&cfg, None).unwrap();
+    app.gap_acquisition_policy = Some(Arc::new(GapAcquisitionPolicy {
+        rules: vec![rule("venue-reader")],
+    }));
+    app.gap_adoption_policy = Some(Arc::new(GapAdoptionPolicy {
+        rules: vec![adopt("venue-reader"), adopt("capacity-check")],
+    }));
+    let url = serve(app).await;
+    let (status, body) = get(&url, &cfg.tokens.agent).await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    assert_eq!(
+        body,
+        json!({"capabilities":[
+            {"capability_id":"capacity-check","observed_sources":[],"adoption_only":true},
+            {"capability_id":"venue-reader","observed_sources":[
+                "https://portal.example/venue-reader/a.html","https://portal.example/venue-reader/b.html"]}
+        ], "required_scope":"capability.acquire"})
     );
 }

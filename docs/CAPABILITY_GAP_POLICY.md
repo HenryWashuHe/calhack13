@@ -98,6 +98,12 @@ each rule's `capability_id` and `observed_sources` (its allowed public URLs)
 plus `required_scope`, and the planner lists them in its prompt. Suite IDs,
 oracle answers, example HTML and model settings are not exposed. The source
 URLs already reach the synthesis model in the acquisition request.
+Adopt-first names with no acquisition rule
+([CAPABILITY_GAP_ADOPTION.md](CAPABILITY_GAP_ADOPTION.md)) are listed too, as
+`{"capability_id": …, "observed_sources": [], "adoption_only": true}`: adoption
+ignores sources and needs no extra scope, so the planner is told to use the
+observation's own public pages, which the kernel still requires.
+`required_scope` is present only when an acquisition policy is configured.
 
 For a demo, give the role that will own the capability `capability.acquire`
 in the mission's role authority (the planner can also create a new role with

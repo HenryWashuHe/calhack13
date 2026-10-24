@@ -17,7 +17,9 @@ prebuilt artifact must never be presented as freshly generated.
 | --- | --- | --- | --- |
 | Kernel: changes, saga, fencing, retirement | real | always | event log, revisions, stale-epoch rejection |
 | Planner proposes changes | real code; model needs `GENESIS_LLM_*` or `GENESIS_LLM_PROVIDER=elastic` | model key set | decision events, kernel rejections fed back |
-| Capability need → acquisition | `RequestCapability`, trusted policy and opt-in durable driver merged (#49/#56/#66); publication and installation remain separate | acquisition options and keys configured, **https portal evidence** | `capability_gap_opened` → `…status_changed` (`acquiring`, `acquired`), independent verification proof |
+| Capability need → acquisition | `RequestCapability`, trusted policy and opt-in durable driver merged (#49/#56/#66) | acquisition options and keys configured, **https portal evidence** | `capability_gap_opened` → `…status_changed` (`acquiring`, `acquired`), independent verification proof |
+| Verified → published + installed (A) | opt-in finalizer, #78 (+ console #80) | `--gap-finalization-policy` + registry | gap `installed`, `registry:<id>@<version>`, local acceptance runs |
+| B adopts before synthesizing | opt-in adopt-first, #82; two-org test #83 | `--gap-adoption-policy` + registry, B's Apify access to A's Actor | B gap `installed` as A's exact version, 0 B model/Actor calls |
 | Source generation, Actor build, verification | real code; needs `ANTHROPIC_API_KEY` + `APIFY_TOKEN` | keys + reachable portal | actor/build/run IDs, oracle verdict |
 | Venue portal (judge varies it) | real, merged | tunnel up | lab variant, page hashes |
 | Org B independent adoption | real code (loopback-proven) | both orgs + registry | B's own acceptance runs, 0 synthesis calls |
@@ -77,10 +79,12 @@ genesis org --org-id org_a --name "Org A" --db data/a.db --bind 127.0.0.1:7101 \
   --registry-url http://127.0.0.1:7100 --registry-token $REG_A \
   --oracle-suite data/portal/trusted/suites/portal-a-v1.json \
   --acquisition-policy runtime/acquisition-policy.json --auto-acquire \
-  --gap-acquisition-policy runtime/gap-policy.json
+  --gap-acquisition-policy runtime/gap-policy.json \
+  --gap-finalization-policy runtime/finalize-a.json        # #78
 genesis org --org-id org_b --name "Org B" --db data/b.db --bind 127.0.0.1:7102 \
   --registry-url http://127.0.0.1:7100 --registry-token $REG_B \
-  --oracle-suite data/portal/trusted/suites/portal-b-v1.json
+  --oracle-suite data/portal/trusted/suites/portal-b-v1.json \
+  --gap-adoption-policy runtime/adopt-b.json               # #82
 
 # 3. Console and planner
 (cd apps/web && npm run dev)                          # http://127.0.0.1:5173
@@ -109,6 +113,83 @@ callback URL. A provider run ID or completion is insufficient: the matching
 gateway receipt is required. This readiness check is separate from persistent
 CREAO mission work and its genuine run share link.
 
+### Autonomous capability path (#78, #82)
+
+With both flags above, neither organization needs an operator call for the
+capability beat:
+
+1. A's planner commits `RequestCapability`. The gap driver synthesizes and
+   verifies (`acquired`); the finalizer publishes that exact pin with
+   recomputed proof, installs it and runs A's local acceptance checks
+   (`installed`); the kernel note wakes A's planner to attach it.
+2. B's planner later commits its own `RequestCapability` (any capability
+   name). Adopt-first searches the registry, skips B's own publications,
+   installs A's version and accepts it only with B's suite; the gap records
+   A's exact version as `installed`. B makes no model or Actor-creation call.
+
+`runtime/finalize-a.json` ([CAPABILITY_GAP_FINALIZER.md](CAPABILITY_GAP_FINALIZER.md)):
+one rule per capability ID with A's suite and the publication text.
+`runtime/adopt-b.json` ([CAPABILITY_GAP_ADOPTION.md](CAPABILITY_GAP_ADOPTION.md)):
+`{"rules":[{"capability_id":"<B's requested ID>","suite_id":"portal-b-v1","synthesis_fallback":false}]}`.
+
+Two honesty points. The adoption policy is B's provider-access
+acknowledgement: write it only after B's own Apify credentials can run A's
+Actor (same rule as `provider_access_acknowledged` below). And order matters:
+B's need must be committed after A's publication, or B's search is empty;
+with `synthesis_fallback: false` B's gap is then refused (`no_candidate`;
+status at `GET /api/v1/capability-gaps/{id}/adoption`).
+
+Evidence, and its limits: `tests/two_org_inheritance.rs` runs both orgs on
+real `serve_org` against loopback providers, but it seeds each
+`RequestCapability` change directly instead of running a planner. That a
+planner proposes the request and later attaches the installed capability is
+separate evidence: the replayed planner eval case `adopted-capability-attach`
+for attaching, and with a model key the `REHEARSAL_PLANNER=1` rehearsal for
+the request itself. The test only shows each kernel waking its planner once.
+No live run yet.
+
+Live preflight for this path (each of these fails silently into a refusal or
+attention if missed; loopback tests set them by hand):
+
+- [ ] A's owning role holds `capability.acquire` and every scope in A's
+      finalization rule `required_permissions` (e.g. `capability.venue_lookup`).
+- [ ] B's owning role holds the adopted manifest's `required_permissions`.
+- [ ] A's gap policy rule, A's finalization rule and B's adoption rule use the
+      capability names the planners will request. With #89 the planner sees the
+      policy's names, sources and required scope; without it, pre-agree names.
+- [ ] Gap policy `allowed_source_urls` are the exact https tunnel pages and
+      include every suite page plus one example page.
+- [ ] Both orgs share one registry; A's publisher token and B's reader token
+      are configured.
+- [ ] B's own Apify credentials can run A's Actor before writing `adopt-b.json`.
+- [ ] Start A's planner before A's observation; start B's planner only after
+      A's gap shows INSTALLED.
+
+Most of this list is checked by one offline command, which parses the real
+files with the server's own types, runs the same policy validation as
+startup for all three policies, and cross-checks them (suite pages inside
+the source allowlist and on the tunnel host, `capability.acquire` and the
+finalization permissions held by a starting role and inside the constitution,
+B's adoption suite present and B holding A's manifest permissions, fallback
+off, `ANTHROPIC_API_KEY`/`APIFY_TOKEN`/`GENESIS_AUDIT_COMMITS=1` set). It
+prints PASS/WARN/FAIL, never a secret, and exits 1 on any FAIL:
+
+```sh
+cargo run -p genesis-server --example preflight_autonomy -- --tunnel https://<host> \
+  --a-mission … --a-constitution … --a-suite … --a-gaps … --a-finalize … \
+  --b-mission … --b-constitution … --b-suite … --b-adopt …
+```
+
+It can't check registry tokens or that B's Apify account can run A's Actor;
+those stay manual.
+
+Rehearse it without keys: `cargo run -p genesis-server --example
+rehearse_autonomy` starts the registry and both orgs on the console's default
+ports with a slowed fixture provider (`REHEARSAL_DELAY_MS`), then runs A's and
+B's requests in order while the console shows the chips move. Every external
+effect is a fixture; it is for timing and narration practice only, never a
+recording to present as live.
+
 ## The 3 minutes
 
 Targets from the research report §10, with what each beat actually shows today.
@@ -118,9 +199,9 @@ Targets from the research report §10, with what each beat actually shows today.
 | 0:00–0:20 | Mission, starting org, budget | console org tree | ready |
 | 0:20–0:40 | Judge closes the venue / changes the portal in the lab | lab → new namespace; observation with `evidence_ref` = portal URL | ready |
 | 0:40–1:15 | Planner: new requirement → CreateRole / AssignResponsibility / **RequestCapability**; Elastic specialist; Fetch offer | decision event, gap chip REQUESTED (#54) | planner, gap chip, lifecycle wake-up and opt-in driver merged (#49/#54/#57/#66) |
-| 1:15–1:45 | Acquisition: generated parser, pinned build, oracle checks pass: **held out** only if A was generated with `--holdout` (#60); otherwise call them reproducibility checks, since A's examples would be suite cases | gap ACQUIRING → ACQUIRED; actor/build/run IDs (publication and installation are separate) | needs keys + trusted policy; driver stops at ACQUIRED; full scenario path below is operator-directed |
+| 1:15–1:45 | Acquisition: generated parser, pinned build, oracle checks pass: **held out** only if A was generated with `--holdout` (#60); otherwise call them reproducibility checks, since A's examples would be suite cases | gap ACQUIRING → ACQUIRED → INSTALLED; actor/build/run IDs, `registry:` ref | needs keys + trusted policy; INSTALLED needs the finalizer (#78) |
 | 1:45–2:10 | Second disruption (capacity cut) handled by the existing owner, **no new role** | distinct frozen capacity-cut source; one subscription, same CREAO monitor, accepted reassessment and linked replacement requirement | bounded two-cycle scenario; native run evidence pending |
-| 2:10–2:40 | Org B: own requirement, discovers A's capability, own acceptance, different input | B adoption intent, B's acceptance runs, 0 synthesis calls | ready (loopback-proven) |
+| 2:10–2:40 | Org B: own requirement, discovers A's capability, own acceptance, different input | B gap INSTALLED as A's version, B's acceptance runs, 0 synthesis calls | operator scenario ready; no-operator path needs #82 (loopback-proven, #83) |
 | 2:40–3:00 | Temporary role retires after handoff; capability remains | retirement event, stale epoch fenced | ready |
 
 The planner doc's best evidence of reasoning: two disruptions, two different
@@ -131,9 +212,9 @@ way to force a repair: the hand-written baseline parser matches the oracle
 ## Operator-directed full scenario
 
 The existing scenario coordinates acquisition, publication and independent
-adoption under an operator request. Label that path explicitly. The automatic
-`RequestCapability` → policy-driver path reaches verified `Acquired`; it does
-not automatically invoke publication or installation.
+adoption under an operator request. Label that path explicitly. Without the
+finalizer and adopt-first flags, the automatic `RequestCapability` →
+policy-driver path stops at verified `Acquired`.
 
 ```sh
 GENESIS_ORG_A_OPERATOR_TOKEN=… GENESIS_ORG_B_OPERATOR_TOKEN=… \
@@ -208,6 +289,41 @@ and 67 events, Org B 6 and 23, 0 violations. Use it as the closing line:
 | Tunnel URL changed | Regenerate into a **new** namespace for the new URL; never replace one a run used |
 | Planner rejected | Show the kernel's exact errors fed back and the repaired proposal |
 | A sponsor API is down | Fall back to that sponsor's recorded gate evidence (`data/live-gates`), labeled |
+
+### Don't restart an org mid-capability
+
+The crash test (`tests/chaos_two_org.rs`, on `henry-claude/chaos-two-org`)
+restarts each org on the same database at fixed points of the capability
+beat: 9 kill schedules per org (no kill, seven repeated kill intervals and one
+mixed one). In those schedules it asserted at most one model call and one
+Actor creation for A, no model call, Actor creation or second A run for B,
+at most one run per B suite case, and a clean kernel audit. That is the
+tested evidence, not a guarantee for every interleaving. Liveness has holes;
+plan around them:
+
+- **Org A while its gap is `acquiring`:** a restart during any provider call
+  (the synthesis model call takes tens of seconds live) leaves the gap at
+  driver `attention / unknown_outcome`, which has no recovery path today.
+  Don't stop A from the gap commit until the gap reads `acquired`. If it
+  happens anyway, say it plainly: GENESIS refused to guess whether the
+  provider acted. Then switch to the labeled recording. Once `acquired`,
+  restarts during finalization were recovered in every run.
+- **Org B while adoption is checking:** a restart mid-check can stop adoption at
+  `attention / checks`. The bounded operator retry endpoint rejects unknown,
+  running or locally rejected effects, and rejects failed checks that retain a
+  native receipt. A failed status read cannot authorize a second submission.
+  Retry is available for eligible registry/candidate/configuration/conflict
+  stops and checks with collected evidence or `failed` without a receipt
+  (a pre-submission refusal or terminal submission response). At most two
+  retries preserve the previous adoption IDs.
+  A terminal failure learned after submission remains blocked because its
+  sanitized record cannot yet distinguish it from a failed read. Preserve that
+  record for reconciliation; do not use retry as generic restart recovery.
+  See [the exact retry gates](CAPABILITY_GAP_ADOPTION.md).
+- `rehearse_autonomy` does not rehearse a restart: each launch creates fresh
+  temporary databases, so stopping and relaunching it starts both orgs over
+  rather than resuming them. Only the crash test above resumes the same
+  databases.
 
 ## Open human decisions
 

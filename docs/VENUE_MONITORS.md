@@ -88,10 +88,13 @@ To stop intake, use `POST /api/v1/venue-monitors/{monitor_id}/stop`. Stopping or
 expiration prevents new child creation. It does not cancel an already-created
 child: exact historical lookup and read-only observation of that child's result
 continue. Retained pending IDs must not be interpreted as a new dispatch. There
-may be a pending source with no child ID if intake stopped before creation. That
-saved intent can remain recorded indefinitely; it will not create a child after
-stop or expiration. This differs from an existing child whose native outcome
-remains unresolved.
+may initially be a pending source with no child ID if intake stopped before
+creation. The worker first looks up the exact frozen request in the assessment
+journal. Only a definitive absence lets it mark that intent skipped as
+`monitor_stopped` and remove it from the pending queue. Its original request and
+assessment count remain recorded. An already-created child, a missing provider
+journal or inconsistent evidence cannot be retired by that shortcut; historical
+reconciliation continues without creating replacement work.
 
 There is no resume endpoint in this version. Authority, binding and other
 preparation failures put the monitor in `attention` and do not automatically retry
@@ -193,7 +196,9 @@ Registration is explicit and bounded: at most 16 open subscriptions per
 organization, counting both `active` and `attention`, a requested assessment limit
 of 1 through 16, and expiration within 24 hours. `completed` and `stopped` records
 do not consume the open-subscription limit. Stopped records with pending intents
-remain eligible for read-only child lookup.
+remain eligible for read-only child lookup. Once a stopped intent is proven to
+have no child, it no longer consumes worker passes. This also cleans up stopped
+intents saved by earlier versions on their next pass, without rewriting history.
 
 Each worker pass visits at most 16 subscriptions, rotating by their last checked
 time. For an eligible subscription with no unresolved child, it reads at most 16

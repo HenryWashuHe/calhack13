@@ -49,7 +49,11 @@ function RequestedCapabilities({ state, roleId }: { state: OrgState; roleId: str
     <ul className="duties gaps">
       {gaps.map((g) => (
         <li key={g.gapId} title={`Requested by this organization's change; sources: ${g.sources.join(", ")}`}>
-          <span className="chip provider dashed" style={{ ["--pc" as string]: "var(--p-apify)" }}>
+          <span
+            className="chip provider dashed"
+            style={{ ["--pc" as string]: "var(--p-apify)" }}
+            title={g.version ?? g.capabilityId}
+          >
             {shortLabel(g.version ?? g.capabilityId)}
           </span>
           <span className={`chip ${g.tone}`}>{g.label}</span>
