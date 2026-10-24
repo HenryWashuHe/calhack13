@@ -33,10 +33,19 @@ pub(crate) fn new_job(
     }
     let resp = &state.responsibilities[&req.responsibility_id];
     let role = &state.roles[&req.role_id];
-    let provider = req
-        .provider
-        .or_else(|| role.binding.as_ref().map(|b| b.provider))
-        .unwrap_or(Provider::Internal);
+    let bound = role.binding.as_ref().map(|b| b.provider);
+    // A caller-chosen provider must not route a backend-managed role's job
+    // around its backend path (and so around the managed-result guard).
+    if let (Some(b), Some(asked)) = (bound, req.provider) {
+        if b != asked && b == Provider::Elastic {
+            return Err(ApiError::new(
+                StatusCode::CONFLICT,
+                "provider_mismatch",
+                format!("role is bound to {b:?}; its jobs cannot be dispatched as {asked:?}"),
+            ));
+        }
+    }
+    let provider = req.provider.or(bound).unwrap_or(Provider::Internal);
     let now = Utc::now();
     let job = Job {
         job_id: JobId::generate(),
@@ -176,6 +185,13 @@ pub async fn submit_result(
     let state = app.current_state()?;
     let mut job = app.store.get_job(&JobId::new(id))?;
     super::capabilities::reject_managed_result(&app, &job)?;
+    if crate::elastic_jobs::backend_managed(&job) {
+        return Err(ApiError::new(
+            StatusCode::CONFLICT,
+            "managed_elastic_result",
+            "Elastic answers are collected by the backend; caller result flags cannot verify them",
+        ));
+    }
     if sub.attempt_id != job.attempt_id {
         return Err(ApiError::new(
             StatusCode::CONFLICT,
