@@ -109,6 +109,10 @@ pub fn router(state: AppState) -> Router {
             post(adoptions::create).get(adoptions::list),
         )
         .route("/capability-adoptions/{id}", get(adoptions::status))
+        .route(
+            "/capability-adoptions/{id}/candidates",
+            get(adoptions::candidates),
+        )
         .route("/capability-adoptions/{id}/step", post(adoptions::step))
         .route(
             "/capability-installations/{id}/acceptance",

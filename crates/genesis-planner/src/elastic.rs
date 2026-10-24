@@ -23,7 +23,9 @@ fn map_error(e: ProviderError) -> LlmError {
         },
         ProviderError::Timeout => LlmError::Transport("timeout".into()),
         ProviderError::Unknown(_) => LlmError::Transport("agent_builder".into()),
-        ProviderError::Rejected(_) | ProviderError::NotConfigured { .. } => {
+        ProviderError::Rejected(_)
+        | ProviderError::RunFailed(_)
+        | ProviderError::NotConfigured { .. } => {
             LlmError::Malformed("agent builder refused the turn".into())
         }
     }
