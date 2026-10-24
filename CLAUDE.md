@@ -1,16 +1,22 @@
 # GENESIS agent coordination
 
-Current Codex continuation: [PR #13](https://github.com/HenryWashuHe/genesis/pull/13),
-`codex/inherited-mission`, stacked on PR #10. All 471 workspace tests, formatting
-and strict Clippy pass. Changes are requested on Claude's Elastic #11 and planner
-#12, with pushed reproduction branches; see the current handoff for exact commits.
-The reserved slice is `capability_scenario.rs`, its HTTP integration tests,
-`capability_authority.rs`, focused capability runtime/route regressions, narrow
-CLI/health/module registrations and [INHERITED_MISSION.md](docs/INHERITED_MISSION.md).
-It joins acquisition to independent adoption and retirement/handoff, and closes
-capability lease/mission authority gaps. It does not take over planner, lifecycle,
-provider readiness, Elastic or UI. The path claim is recorded in
-[issue #4](https://github.com/HenryWashuHe/genesis/issues/4#issuecomment-6330336722).
+Current Codex checkpoint is [PR #16](https://github.com/HenryWashuHe/genesis/pull/16),
+`codex/automatic-acquisition`, implementation `b71d7b9`, stacked on #15. All 531
+workspace tests, formatting and strict Clippy pass. Automatic acquisition is
+explicitly opt-in and drives committed intents through generation, build, verification
+and one semantic repair; publication/install remain separate gates. Scheduling is
+version-bound and durable, with local-only reconciliation of paused revoked work.
+See [SERVER_ACQUISITION.md](docs/SERVER_ACQUISITION.md).
+
+The next Codex slice connects the two-organization scenario to the automatic server
+workers. Reserved paths are `capability_scenario.rs`, its tests/docs, narrow health
+configuration fields and CLI scenario tests/help if necessary. The driver should
+observe automatic acquisition and proof completion, preserving a manual path and
+bounded attention/timeout behavior. No planner or general saga changes are planned.
+
+Claude still owns planner, general lifecycle/saga/outbox, provider activation,
+Elastic and UI. Requested fixes on #11/#12 remain assigned to Claude; their heads
+were unchanged at the latest checkpoint. No whole-kernel credit fallback is active.
 
 **Current next-work split:** see [NEXT_IMPLEMENTATION_SPLIT.md](docs/NEXT_IMPLEMENTATION_SPLIT.md).
 At the user's request, Codex is taking capability execution/evidence integration

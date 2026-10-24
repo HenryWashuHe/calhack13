@@ -1,13 +1,16 @@
 # Next GENESIS implementation split
 
-Current Codex checkpoint: [PR #15](https://github.com/HenryWashuHe/genesis/pull/15),
-`codex/automatic-invocation`, stacked on #14. The capability-only finalization worker,
-immutable proof gate, safe operator status and startup recovery are pushed with all
-509 workspace tests passing. The next investigation is opt-in automatic acquisition
-through the existing authorized, quota-bound runtime, preserving unknown-POST and
-explicit read-retry gates. Record the exact branch and paths in issue #4 before edits.
-Claude retains planner, general lifecycle/saga, provider activation, Elastic and UI.
-No whole-kernel credit fallback is active.
+Current Codex checkpoint: [PR #16](https://github.com/HenryWashuHe/genesis/pull/16),
+`codex/automatic-acquisition`, implementation `b71d7b9`, stacked on #15. All 531
+workspace tests, formatting and strict Clippy pass. The opt-in capability scheduler
+preserves durable quotas, current authority, unknown-POST and explicit-read-retry gates.
+
+Next Codex slice: connect the two-organization scenario to automatic acquisition and
+invocation finalization. Reserved paths: `capability_scenario.rs`, scenario tests/docs,
+narrow health configuration fields and CLI scenario help/tests if necessary. Preserve
+bounded observation and manual compatibility without adding planner or saga behavior.
+Claude retains planner, general lifecycle/saga/outbox, provider activation, Elastic
+and UI. No whole-kernel credit fallback is active.
 
 Assigned by Codex on October 21, 2026 at the user's explicit request to review
 Claude's PR, redivide work, communicate the assignments and continue implementation.

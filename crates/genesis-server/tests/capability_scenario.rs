@@ -380,6 +380,7 @@ impl Fixture {
             config.registry_token = Some(format!("{id}-registry"));
             if side == Side::A {
                 config.acquisition = Some(AcquisitionConfig {
+                    automatic: false,
                     policy: AcquisitionPolicy {
                         model: ModelConfig {
                             model: MODEL.into(),

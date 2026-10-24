@@ -39,6 +39,8 @@ pub enum AcquisitionRuntimeError {
     Fenced,
     #[error("the acquisition checkpoint changed during provider execution")]
     ConcurrentChange,
+    #[error("the acquisition changed after it was scheduled")]
+    StaleSchedule,
 }
 
 enum Effect {
@@ -107,12 +109,72 @@ impl AcquisitionRuntime {
         id: &str,
         retry_read: bool,
     ) -> Result<AcquisitionRecord, AcquisitionRuntimeError> {
+        self.step_inner(id, retry_read, None).await
+    }
+
+    /// Advance only the version selected by an automatic driver. Check inside
+    /// the shared gate and kernel lock, before even local recovery or fencing,
+    /// so waiting behind a manual step cannot advance a newly changed record.
+    pub async fn step_if_current(
+        &self,
+        id: &str,
+        expected_version: u64,
+    ) -> Result<AcquisitionRecord, AcquisitionRuntimeError> {
+        self.step_inner(id, false, Some(expected_version)).await
+    }
+
+    /// Reconcile saved intent and current authority without executing any model,
+    /// Actor, build, or saved-ticket read. Interrupted POSTs become ambiguous;
+    /// interrupted GETs keep their existing ticket and pending action unchanged.
+    /// Failed reads retain their explicit retry gate. Useful for expiring paused
+    /// work without silently retrying the effect that caused it to pause.
+    pub async fn reconcile_if_current(
+        &self,
+        id: &str,
+        expected_version: u64,
+    ) -> Result<AcquisitionRecord, AcquisitionRuntimeError> {
+        let _driver = self.gate.lock().await;
+        let _kernel = self.kernel.lock().await;
+        let mut record = self.status(id)?;
+        if record.version() != expected_version {
+            return Err(AcquisitionRuntimeError::StaleSchedule);
+        }
+        let suite = self.suite(record.suite_id())?;
+        let mut session = record.session().clone();
+        let recovered = session.recover_interrupted(suite)?;
+        if recovered {
+            record = record.with_session(session)?;
+        }
+        let state = self.store.current_state()?;
+        let fenced = fence_if_unauthorized(&mut record, &state)?;
+        if recovered || fenced {
+            record = self.store.save_acquisition(
+                record.version(),
+                state.revision,
+                &record,
+                suite,
+                None,
+                Utc::now(),
+            )?;
+        }
+        Ok(record)
+    }
+
+    async fn step_inner(
+        &self,
+        id: &str,
+        retry_read: bool,
+        expected_version: Option<u64>,
+    ) -> Result<AcquisitionRecord, AcquisitionRuntimeError> {
         let _driver = self.gate.lock().await;
         let mut record;
         let effect;
         {
             let _kernel = self.kernel.lock().await;
             record = self.status(id)?;
+            if expected_version.is_some_and(|version| record.version() != version) {
+                return Err(AcquisitionRuntimeError::StaleSchedule);
+            }
             let suite = self.suite(record.suite_id())?;
             let state = self.store.current_state()?;
             let mut session = record.session().clone();
