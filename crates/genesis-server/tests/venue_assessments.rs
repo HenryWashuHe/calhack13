@@ -2,6 +2,10 @@
 //! loopback HTTP. Initial publication and monitor provisioning are explicitly
 //! trusted synthetic fixtures; no live provider, agent creation, readiness,
 //! source fetch, conversation memory, booking or sponsor evidence is claimed.
+#[path = "venue_assessments/intake.rs"]
+mod intake;
+#[path = "venue_assessments/review_monitors.rs"]
+mod review_monitors;
 #[path = "venue_assessments/subscriptions.rs"]
 mod subscriptions;
 
