@@ -231,31 +231,31 @@ export function OrgPanel({
     [events, changes, state, mode],
   );
   const replaying = replay !== null ? gens[replay] : undefined;
-  // The replay timer depends on the generation sequence, not on the array:
-  // ordinary event traffic (job status, etc.) re-derives `gens` without
-  // changing it, and must not keep restarting the step's deadline.
+  // The replay timer is keyed to the step being shown, not to the generation
+  // array or sequence: ordinary event traffic re-derives `gens`, and new
+  // structural generations append to it, and neither may restart the step's
+  // deadline. When the timer fires it reads the latest generations, so replay
+  // continues into generations that arrived while it was running.
   const gensRef = useRef(gens);
   gensRef.current = gens;
-  const genKey = useMemo(() => gens.map((g) => g.revision).join(","), [gens]);
+  const stepRevision = replaying?.revision;
 
   useEffect(() => {
     if (replay === null) return;
-    const gens = gensRef.current;
-    const g = gens[replay];
-    if (!g) {
+    if (stepRevision === undefined) {
       setReplay(null);
       return;
     }
-    setViewRevision(g.revision);
+    setViewRevision(stepRevision);
     const t = setTimeout(() => {
-      if (replay + 1 < gens.length) setReplay(replay + 1);
+      if (replay + 1 < gensRef.current.length) setReplay(replay + 1);
       else {
         setReplay(null);
         setViewRevision(null);
       }
     }, 2400);
     return () => clearTimeout(t);
-  }, [replay, genKey]);
+  }, [replay, stepRevision]);
 
   const stopReplay = () => setReplay(null);
 
