@@ -68,12 +68,23 @@ method-adoption wiring or positive comparative result exists in these contracts.
 Henry's adoption/evaluator lanes should review the exact digest/purpose/budget
 bindings before shared integration. G0 and the recursive loop remain open.
 
-#20 introduces `apps/stage/**`, an acknowledged ACP claim. Independent review
+#20 at `b468313` introduces `apps/stage/**`, an acknowledged ACP claim. Independent review
 found replay controls can display fixtures under a Live badge, arbitrary B
 installations can appear as inherited/adopted, and event paging stops at the first
 1,000 entries. Its event-organizer default is superseded; keep any historical
 fixture view secondary and visibly labeled. These are review holds, not a new
 assignment for Eric or permission to duplicate `apps/web`.
+
+Latest ACP review: #3 `3ad7685` clears fresh-database sender identity and
+confirmed-POST error wording, but existing SQLite journals retain their inline
+message-only UNIQUE constraint. Test-only `bb5a841` is pushed and linked in the
+review. #5 `15d4cad` clears exact card-ID/reply-size findings; its new test fixture
+must grow enough to exercise omission, without dropping assertions. Exact #3
+composition `c099fdd` passes 138/138 existing tests; #5 composition `fce5c04` passes
+149/151 including the independent migration failure and the author's failing
+omission test. ACP retains these corrections. #4 still needs current routing and
+pending-vs-existing behavior labels. #6 is closed as superseded by #17; its script
+was withdrawn, not repaired or approved.
 
 Current PR heads and issue #1 supersede this snapshot. Historical evidence below
 retains original repository hashes and links; it does not restore superseded scope.
