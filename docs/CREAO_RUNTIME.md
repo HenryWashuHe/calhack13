@@ -15,6 +15,21 @@ describes the integration boundary; live provider evidence is still required.
   cannot override the endpoint; tests have an explicit literal-loopback constructor.
   Authorization, input size, response size, JSON ambiguity, redirects and timeouts
   are checked. Errors contain structured classifications, not provider text or keys.
+- Hosted Developer Platform `/v2` is an explicit opt-in via
+  `CREAO_API_VERSION=v2` with a project key supplied as `CREAO_ACCOUNT_API_KEY`.
+  The default remains `/v1`. The API version is frozen into each operation
+  intent and run ticket, so a saved `/v1` operation cannot be submitted or
+  polled through `/v2` after a configuration change (or vice versa). Use a
+  separate organization journal, account namespace and quota database when
+  moving between v1 and v2. Saved operations from another protocol cannot be
+  advanced under the new configuration; interrupted records also stop startup
+  recovery until the original protocol is restored.
+  `/v2` run requests omit the `/v1`-only `should_notify` and `workspace_id`
+  fields. Hosted creation polls `GET /v2/agents/{agent_id}/edits/{run_id}`;
+  ordinary runs still poll `GET /v2/runs/{run_id}`. If a creation POST returns
+  no agent ID, the client cannot construct the documented edit URL and keeps
+  the attempted write in `needs_reconciliation` instead of submitting again.
+  These endpoints and response shapes follow the [official v2 API reference](https://developer.creao.ai/docs/v2/agents/create).
 - `submit` makes one POST. `poll` makes one GET. Tickets bind account, operation
   kind and exact native request. Identities learned later during polling are pinned
   monotonically and saved with the observation, so a restart cannot switch agents,
@@ -59,6 +74,13 @@ input, raw responses and extracted output.
 
 Set `CREAO_ACCOUNT_API_KEY` in the backend environment. Advancing a prepared
 operation sends a real, potentially billable request:
+
+For a Developer Platform project key, also set `CREAO_API_VERSION=v2` before
+preparing the operation. A CLI spec must include `"api_version":"v2"`; the
+live-gate script sets this field when the same environment variable is set.
+Do not use a v2 project key with the default v1 protocol. Existing v1 specs,
+tickets and journals keep their original wire identity. The v2 path is covered
+by local protocol tests; it has not yet completed a live hosted-agent run.
 
 ```sh
 cargo run -p genesis-creao -- step --db data/creao-org-a.sqlite --org org_a \

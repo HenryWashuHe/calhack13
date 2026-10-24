@@ -570,6 +570,7 @@ async fn readiness_records_are_never_exposed_or_driven_as_role_or_job_progress()
         runtime
             .prepare(OperationSpec {
                 schema_version: 1,
+                api_version: genesis_creao::ApiVersion::V1,
                 operation_id: "readiness-only".into(),
                 org_id: "org-a".into(),
                 role_id: "role-monitor".into(),

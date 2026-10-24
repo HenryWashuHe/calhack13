@@ -48,8 +48,14 @@ impl Drop for Mock {
 }
 impl Mock {
     async fn serve(replies: Vec<Reply>) -> Self {
+        Self::serve_at(replies, "v1").await
+    }
+    async fn serve_v2(replies: Vec<Reply>) -> Self {
+        Self::serve_at(replies, "v2").await
+    }
+    async fn serve_at(replies: Vec<Reply>, version: &str) -> Self {
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
-        let base = format!("http://{}/v1", listener.local_addr().unwrap());
+        let base = format!("http://{}/{version}", listener.local_addr().unwrap());
         let requests = Arc::new(Mutex::new(Vec::new()));
         let received = requests.clone();
         let task = tokio::spawn(async move {
@@ -106,6 +112,10 @@ impl Mock {
     fn client_with(&self, limits: Limits, namespace: &str) -> CreaoClient {
         CreaoClient::for_local_testing(TOKEN, limits, limiter(namespace), &self.base).unwrap()
     }
+    fn client_v2(&self) -> CreaoClient {
+        CreaoClient::for_local_testing_v2(TOKEN, limits(), limiter("test-account"), &self.base)
+            .unwrap()
+    }
     fn requests(&self) -> Vec<String> {
         self.requests.lock().unwrap().clone()
     }
@@ -154,6 +164,128 @@ fn body(request: &str) -> Value {
 }
 
 #[tokio::test]
+async fn hosted_v2_creation_uses_agent_edit_poll_and_preserves_ticket_version() {
+    let mock = Mock::serve_v2(vec![
+        Reply::json(
+            202,
+            json!({"run_id":RUN,"status":"pending","agent_id":AGENT,
+            "conversation_id":null,"model":null}),
+        ),
+        Reply::json(
+            200,
+            json!({"run_id":RUN,"status":"succeeded","agent_id":AGENT,
+            "result":{"agent_id":AGENT}}),
+        ),
+    ])
+    .await;
+    let client = mock.client_v2();
+    let request = create();
+    let ticket = client.submit(&request).await.unwrap();
+    ticket.validate_for(&request).unwrap();
+    assert_eq!(serde_json::to_value(&ticket).unwrap()["api_version"], "v2");
+    let restored: RunTicket = decode_json(&serde_json::to_vec(&ticket).unwrap()).unwrap();
+    let observation = client.poll(&request, &restored).await.unwrap();
+    assert_eq!(observation.status, NativeRunStatus::Completed);
+    assert_eq!(observation.agent_id.as_deref(), Some(AGENT));
+    observation.validate_for(&request, &restored).unwrap();
+    let requests = mock.requests();
+    assert!(requests[0].starts_with("POST /v2/agents "));
+    assert_eq!(
+        body(&requests[0]),
+        json!({"input":"Create a venue research specialist"})
+    );
+    assert!(requests[1].starts_with(&format!("GET /v2/agents/{AGENT}/edits/{RUN} ")));
+}
+
+#[tokio::test]
+async fn hosted_v2_run_omits_v1_only_fields_and_rejects_cross_protocol_ticket() {
+    let mock = Mock::serve_v2(vec![
+        Reply::json(
+            202,
+            json!({"run_id":RUN,"status":"pending","agent_id":AGENT,
+            "conversation_id":null,"model":null}),
+        ),
+        Reply::json(
+            200,
+            json!({"run_id":RUN,"status":"completed","agent_id":AGENT,
+            "conversation_id":null,"model":null,"result":{"ok":true}}),
+        ),
+    ])
+    .await;
+    let client = mock.client_v2();
+    let mut request = run();
+    if let OperationRequest::CreateRun(r) = &mut request {
+        r.workspace_id = None;
+        r.conversation_id = None;
+        r.model = None;
+    }
+    let ticket = client.submit(&request).await.unwrap();
+    let observation = client.poll(&request, &ticket).await.unwrap();
+    observation.validate_for(&request, &ticket).unwrap();
+    let requests = mock.requests();
+    assert!(requests[0].starts_with("POST /v2/runs "));
+    assert_eq!(
+        body(&requests[0]),
+        json!({"agent_id":AGENT,"input":{"venue":"A"}})
+    );
+    assert!(requests[1].starts_with(&format!("GET /v2/runs/{RUN} ")));
+
+    let v1_base = mock.base.replace("/v2", "/v1");
+    let v1 =
+        CreaoClient::for_local_testing(TOKEN, limits(), limiter("test-account"), &v1_base).unwrap();
+    let mismatch = v1.poll(&request, &ticket).await.unwrap_err();
+    assert_eq!(mismatch.kind, ErrorKind::TicketMismatch);
+    assert_eq!(mock.requests().len(), 2);
+}
+
+#[tokio::test]
+async fn hosted_v2_missing_creation_agent_requires_reconciliation() {
+    let mock = Mock::serve_v2(vec![Reply::json(
+        202,
+        json!({"run_id":RUN,"status":"pending",
+        "agent_id":null,"conversation_id":null,"model":null}),
+    )])
+    .await;
+    let error = mock.client_v2().submit(&create()).await.unwrap_err();
+    assert_eq!(error.kind, ErrorKind::MalformedResponse);
+    assert!(error.post_may_have_run);
+    assert_eq!(mock.requests().len(), 1);
+
+    let mock = Mock::serve_v2(vec![]).await;
+    let error = mock.client_v2().submit(&run()).await.unwrap_err();
+    assert_eq!(error.kind, ErrorKind::InvalidRequest);
+    assert!(!error.post_may_have_run);
+    assert!(mock.requests().is_empty());
+}
+
+#[tokio::test]
+async fn hosted_v2_edit_cannot_switch_agent_or_result_identity() {
+    for edit in [
+        json!({"run_id":RUN,"status":"succeeded","agent_id":OTHER,
+            "result":{"agent_id":OTHER}}),
+        json!({"run_id":RUN,"status":"succeeded","agent_id":AGENT,
+            "result":{"agent_id":OTHER}}),
+    ] {
+        let mock = Mock::serve_v2(vec![
+            Reply::json(
+                202,
+                json!({"run_id":RUN,"status":"pending","agent_id":AGENT,
+                "conversation_id":null,"model":null}),
+            ),
+            Reply::json(200, edit),
+        ])
+        .await;
+        let client = mock.client_v2();
+        let request = create();
+        let ticket = client.submit(&request).await.unwrap();
+        assert_eq!(
+            client.poll(&request, &ticket).await.unwrap_err().kind,
+            ErrorKind::ProvenanceMismatch
+        );
+    }
+}
+
+#[tokio::test]
 async fn creates_agent_and_restores_ticket_for_get_only_completion() {
     let mut completed = response("completed", true);
     completed["result"] = json!({"agent_id":AGENT,"text":"Created","future_field":true});
@@ -167,6 +299,10 @@ async fn creates_agent_and_restores_ticket_for_get_only_completion() {
     let ticket = mock.client().submit(&request).await.unwrap();
     assert_eq!(ticket.agent_id(), None);
     assert_eq!(ticket.run_id(), RUN);
+    assert!(serde_json::to_value(&ticket)
+        .unwrap()
+        .get("api_version")
+        .is_none());
     let restored: RunTicket = decode_json(&serde_json::to_vec(&ticket).unwrap()).unwrap();
     restored.validate_for(&request).unwrap();
     let observation = mock.client().poll(&request, &restored).await.unwrap();

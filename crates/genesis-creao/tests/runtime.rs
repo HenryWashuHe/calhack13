@@ -13,8 +13,8 @@ use genesis_creao::{
         OperationPhase, OperationPurpose, OperationRecord, OperationSpec, Runtime, RuntimeError,
         RuntimeFailure, RuntimeStore,
     },
-    AccountLimiter, CreaoClient, CreateAgentRequest, ErrorKind, Limits, NativeRunStatus,
-    OperationRequest, PreEffectGuard, QuotaLimits, RunRequest,
+    AccountLimiter, ApiVersion, CreaoClient, CreateAgentRequest, ErrorKind, Limits,
+    NativeRunStatus, OperationRequest, PreEffectGuard, QuotaLimits, RunRequest,
 };
 use rusqlite::{params, Connection};
 use serde_json::{json, Value};
@@ -163,6 +163,7 @@ fn run(id: &str, status: &str, agent: Option<&str>) -> Value {
 fn creation(id: &str) -> OperationSpec {
     OperationSpec {
         schema_version: 1,
+        api_version: genesis_creao::ApiVersion::V1,
         operation_id: id.into(),
         org_id: ORG.into(),
         role_id: "role-specialist".into(),
@@ -178,9 +179,38 @@ fn creation(id: &str) -> OperationSpec {
         }),
     }
 }
+
+#[tokio::test]
+async fn api_version_is_frozen_before_submission_and_on_reopen() {
+    let mock = Mock::start(vec![]).await;
+    let store = RuntimeStore::in_memory(ORG).unwrap();
+    let v2_client = CreaoClient::for_local_testing_v2(
+        "cr_sk_synthetic_test_only",
+        Limits::default(),
+        AccountLimiter::in_memory(ACCOUNT, QuotaLimits::default()).unwrap(),
+        &mock.base.replace("/v1", "/v2"),
+    )
+    .unwrap();
+    let v2 = Runtime::new(v2_client, store.clone(), INTERVAL).unwrap();
+    let old = creation("protocol-frozen");
+    assert!(matches!(
+        v2.prepare(old.clone()),
+        Err(RuntimeError::ContextMismatch)
+    ));
+    let mut hosted = old;
+    hosted.api_version = ApiVersion::V2;
+    v2.prepare(hosted).unwrap();
+    let v1 = mock.runtime(store);
+    assert!(matches!(
+        v1.get("protocol-frozen"),
+        Err(RuntimeError::ContextMismatch)
+    ));
+    assert!(mock.requests().is_empty());
+}
 fn execution(id: &str, event: u64) -> OperationSpec {
     OperationSpec {
         schema_version: 1,
+        api_version: genesis_creao::ApiVersion::V1,
         operation_id: id.into(),
         org_id: ORG.into(),
         role_id: "role-specialist".into(),

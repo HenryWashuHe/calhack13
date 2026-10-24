@@ -211,6 +211,7 @@ impl CreaoSpecialist {
         }
         Ok(OperationSpec {
             schema_version: 1,
+            api_version: self.runtime.api_version(),
             operation_id: operation_id(
                 "job",
                 json!({"org_id":job.org_id,"job_id":job.job_id,"attempt_id":job.attempt_id}),
@@ -272,7 +273,7 @@ impl SpecialistRuntime for CreaoSpecialist {
         }
         let context = json!({"org_id":request.org_id,"change_id":request.change_id,"role_id":request.role.role_id});
         let spec = OperationSpec {
-            schema_version:1, operation_id:operation_id("role",context), org_id:request.org_id.to_string(), role_id:request.role.role_id.to_string(),
+            schema_version:1, api_version:self.runtime.api_version(), operation_id:operation_id("role",context), org_id:request.org_id.to_string(), role_id:request.role.role_id.to_string(),
             account_namespace:self.runtime.account_namespace().to_owned(),
             purpose:OperationPurpose::Provision {change_id:request.change_id.to_string(),config_digest:request.config_digest()},
             request:OperationRequest::CreateAgent(CreateAgentRequest {
