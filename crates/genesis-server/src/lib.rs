@@ -23,12 +23,19 @@ pub mod capability_invocation;
 pub mod capability_runtime;
 pub mod capability_scenario;
 pub mod capability_store;
+pub mod elastic_jobs;
 pub mod error;
 pub mod outbox;
+pub mod projection;
 pub mod registry;
 pub mod routes;
 pub mod saga;
+pub mod specialist;
+pub mod specialist_jobs;
 pub mod store;
+
+/// Optional CREAO specialist registration from the backend environment.
+pub mod creao_config;
 
 use app::AppState;
 use auth::Tokens;
@@ -236,13 +243,38 @@ pub fn build_org(cfg: &OrgConfig, providers: Option<ProviderSet>) -> anyhow::Res
         acquisition_runtime,
         adoption_gate: Arc::new(Mutex::new(())),
         registry,
+        projection: projection::Projection::disabled(),
+        elastic_agents: None,
         provision_timeout: cfg.provision_timeout,
+        readiness: specialist::ReadinessRegistry::default(),
     })
+}
+
+/// Enable Elastic integrations configured in the environment:
+/// projection/retrieval when `ELASTICSEARCH_URL` and `ELASTIC_DATA_API_KEY`
+/// are set, and Agent Builder specialists for `provider: elastic` roles when
+/// `ELASTIC_KIBANA_URL` and `ELASTIC_MANAGEMENT_API_KEY` are set. Otherwise
+/// returns `app` unchanged.
+pub fn attach_elastic_from_env(mut app: AppState) -> anyhow::Result<AppState> {
+    if let Some(cfg) = genesis_elastic::AgentBuilderConfig::from_env() {
+        let builder = genesis_elastic::AgentBuilder::new(cfg)
+            .map_err(|e| anyhow::anyhow!("agent builder configuration: {e}"))?;
+        tracing::info!(org = %app.org_id, "elastic agent builder provisioning enabled");
+        app = app.with_elastic_agents(builder);
+    }
+    if let Some(cfg) = genesis_elastic::ElasticConfig::from_env() {
+        let client = genesis_elastic::ElasticClient::new(cfg)?;
+        tracing::info!(org = %app.org_id, index = %client.evidence_index(app.org_id.as_str()), "elastic projection enabled");
+        app = app.with_elastic(client);
+    }
+    Ok(app)
 }
 
 /// Serve an organization on `listener`, with its outbox worker and saga
 /// recovery. Returns when the server stops.
 pub async fn serve_org(app: AppState, listener: TcpListener) -> anyhow::Result<()> {
+    // Registered here because CREAO startup recovery is asynchronous.
+    let app = creao_config::attach_creao_from_env(app).await?;
     let resumed = saga::resume_pending(&app).await.unwrap_or(0);
     if resumed > 0 {
         tracing::info!(resumed, "resumed interrupted organization changes");
@@ -258,7 +290,10 @@ pub async fn serve_org(app: AppState, listener: TcpListener) -> anyhow::Result<(
     let _acquisition_worker = app
         .automatic_acquisition
         .then(|| AbortWorker(capability_acquisition_driver::spawn(app.clone())));
+    let _specialist_worker =
+        specialist::spawn(app.clone(), Duration::from_millis(500)).map(AbortWorker);
     let _outbox_worker = AbortWorker(outbox::spawn(app.clone()));
+    let _projector = projection::spawn(app.clone()).map(AbortWorker);
     let router = app.router();
     let res = axum::serve(listener, router).await;
     res.map_err(Into::into)

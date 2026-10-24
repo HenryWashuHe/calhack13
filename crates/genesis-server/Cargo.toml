@@ -16,9 +16,12 @@ path = "src/lib.rs"
 [dependencies]
 genesis-core.workspace = true
 genesis-providers.workspace = true
+genesis-creao = { path = "../genesis-creao" }
+async-trait.workspace = true
 genesis-apify = { path = "../genesis-apify" }
 genesis-forge = { path = "../genesis-forge" }
 genesis-verification = { path = "../genesis-verification" }
+genesis-elastic.workspace = true
 anyhow.workspace = true
 async-stream = "0.3"
 axum.workspace = true
@@ -39,4 +42,5 @@ tracing-subscriber.workspace = true
 uuid.workspace = true
 
 [dev-dependencies]
+genesis-elastic = { workspace = true, features = ["fake"] }
 tempfile = "3"

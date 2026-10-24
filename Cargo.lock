@@ -389,6 +389,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "dotenvy"
+version = "0.15.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1aaf95b3e5c8f23aa320147307562d361db0ae0d51242340f558153b4eb2439b"
+
+[[package]]
 name = "dyn-clone"
 version = "1.0.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -580,6 +586,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "genesis-elastic"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "axum",
+ "chrono",
+ "dotenvy",
+ "genesis-core",
+ "genesis-elastic",
+ "genesis-providers",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "genesis-fetch"
 version = "0.1.0"
 dependencies = [
@@ -613,6 +638,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "genesis-planner"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "chrono",
+ "clap",
+ "dotenvy",
+ "genesis-core",
+ "genesis-elastic",
+ "genesis-providers",
+ "genesis-server",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "genesis-providers"
 version = "0.1.0"
 dependencies = [
@@ -635,12 +682,15 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-stream",
+ "async-trait",
  "axum",
  "chrono",
  "clap",
  "futures",
  "genesis-apify",
  "genesis-core",
+ "genesis-creao",
+ "genesis-elastic",
  "genesis-forge",
  "genesis-providers",
  "genesis-verification",

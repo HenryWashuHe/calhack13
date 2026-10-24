@@ -1,12 +1,14 @@
 import type { OrgState } from "../lib/contracts";
 import { roleName } from "../lib/graph";
 import { StateChip } from "./Chips";
+import type { Api } from "../lib/api";
+import { EvidenceSearch } from "./EvidenceSearch";
 
 function time(ts: string) {
   return new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 }
 
-export function MissionPanel({ state }: { state: OrgState | null }) {
+export function MissionPanel({ state, api }: { state: OrgState | null; api: Api }) {
   const missions = Object.values(state?.missions ?? {});
   const observations = Object.values(state?.observations ?? {}).sort((a, b) =>
     a.observed_at.localeCompare(b.observed_at),
@@ -86,6 +88,7 @@ export function MissionPanel({ state }: { state: OrgState | null }) {
             ))}
           </ul>
         </div>
+        <EvidenceSearch api={api} revision={state?.revision} />
       </div>
     </section>
   );

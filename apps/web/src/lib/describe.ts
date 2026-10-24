@@ -63,6 +63,27 @@ export function describe(ev: DomainEvent, state: OrgState | null): Described {
         devStub: ev.payload.dev_stub,
         tone: ev.payload.dev_stub ? "warn" : "ok",
       };
+    case "provisioning_progress": {
+      const labels: Record<string, string> = {
+        pending: "Provider creating agent",
+        awaiting_readiness: "Agent created, awaiting readiness",
+        ready: "Agent readiness proven",
+        needs_reconciliation: "Provider outcome unknown",
+        failed: "Provider operation failed",
+      };
+      const p = ev.payload;
+      return {
+        title: labels[p.state] ?? `Provider operation ${p.state}`,
+        detail:
+          `${p.role_key} on ${p.provider} · ${p.operation_id}` +
+          (p.run_id ? ` · run ${p.run_id}` : "") +
+          (p.attention ? ` — ${p.attention}` : ""),
+        category: "organization",
+        refs: [p.change_id],
+        tone:
+          p.state === "ready" ? "ok" : p.state === "failed" || p.state === "needs_reconciliation" ? "bad" : p.attention ? "warn" : undefined,
+      };
+    }
     case "provisioning_failed":
       return {
         title: "Provisioning failed",
@@ -180,6 +201,28 @@ export function describe(ev: DomainEvent, state: OrgState | null): Described {
         category: "capabilities",
         refs: [ev.payload.job_id],
       };
+    case "planner_decision": {
+      const v = ev.payload.verdict;
+      const label: Record<typeof v, string> = {
+        change_proposed: "Planner proposed a change",
+        no_change: "Planner: no change needed",
+        rejected: "Planner proposal rejected",
+        escalated: "Planner escalated to a human",
+      };
+      const tone = v === "change_proposed" ? "ok" : v === "no_change" ? "neutral" : v === "rejected" ? "warn" : "bad";
+      return {
+        title: label[v],
+        detail: `${ev.payload.summary} — ${ev.payload.rationale}`,
+        category: "changes",
+        refs: [
+          `${ev.payload.planner} · ${ev.payload.model}`,
+          `attempt ${ev.payload.attempt} · ${ev.payload.latency_ms} ms`,
+          ...(ev.payload.change_id ? [ev.payload.change_id] : []),
+          ...(ev.payload.kernel_errors ?? []),
+        ],
+        tone,
+      };
+    }
     default: {
       const unknown = ev as { type: string };
       return { title: unknown.type, detail: "", category: "organization", refs: [] };
