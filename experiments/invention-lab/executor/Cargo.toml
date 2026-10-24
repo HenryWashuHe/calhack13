@@ -1,0 +1,17 @@
+[package]
+name = "genesis-lab-exec"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+publish = false
+description = "Invention-lab development-method executor: runs one frozen trial slot through the #32 experiment ledger (experimental)."
+
+# Standalone like the evaluator: not a member of the root workspace.
+[workspace]
+
+[dependencies]
+genesis-core = { path = "../../../crates/genesis-core" }
+genesis-lab-eval = { path = "../evaluator" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
