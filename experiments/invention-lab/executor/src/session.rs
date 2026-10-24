@@ -267,7 +267,7 @@ fn usage(bounds_model_use: bool, wall: ResourceUsage, steps: ResourceUsage) -> U
             ResourceUsage::Measured { value: 0 }
         } else {
             ResourceUsage::Unknown {
-                reason: format!("{what} can't be bounded without the namespace sandbox"),
+                reason: format!("{what}: the sandbox doesn't establish that no model or local service is reachable"),
             }
         }
     };
