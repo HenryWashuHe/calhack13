@@ -86,3 +86,12 @@ validates the whole input before creating a checkpoint or lock; observation
 remains read-only and cannot recover a pending attempt. Unknown fields, schema
 changes, source substitutions and oversized inputs are refused. Existing
 plan/parent invocations and their checkpoint identities are unchanged.
+
+The [registry CLI](method-registry.md#selected-parent-to-revision-input) produces
+this bundle from a deliberately selected fetched parent, with a publisher-qualified
+selection document inside the augmented spec. Retain that exact bundle for
+`method-revise-observe --input received-revision.json --checkpoint generation.json`.
+The observation's spec/request hashes bind the augmented spec, not the original
+pre-fetch spec; it cannot silently discard or substitute the selection. A caller
+can also construct the generic bundle locally, so its presence never proves a
+network fetch, authenticated identity, adoption or behavioral improvement.

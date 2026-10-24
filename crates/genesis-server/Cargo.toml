@@ -44,4 +44,5 @@ uuid.workspace = true
 
 [dev-dependencies]
 genesis-elastic = { workspace = true, features = ["fake"] }
+sha2.workspace = true
 tempfile = "3"
