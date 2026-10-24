@@ -1,6 +1,6 @@
 # GENESIS implementation handoff
 
-## Current checkpoint: scoring contracts and reviewed foundations
+## Current checkpoint: merged scoring contracts and reported Apify run
 
 **Networked recursive capability improvement with fixed model weights** remains
 the owner's chosen direction. Work in
@@ -14,6 +14,19 @@ The stale app Goal remains paused; do not falsely complete it. The initial main
 `e1f2264` has the exact tree of old `8794e25`. Commit identities differ; preserve
 rewritten ancestry and compare complete source trees when porting late work.
 
+Main `7510b86` includes the pure method identity/execution contract (#18) and
+independent scoring contract (#22). Their merge does not supply a method
+executor, evaluator runtime, pre-execution trial plan or measured comparison.
+[Issue #1](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6380843098)
+reports an Apify Actor build and run that succeeded, followed by a forge
+`InvalidDataset` collection failure and 0/3 credited cases. Its private cloud
+checkpoint has not been independently inspected in this documentation update.
+[#26](https://github.com/HenryWashuHe/genesis-history-experiment/pull/26) is an
+offline-tested proposed empty-page retry; no live rerun or verified capability
+has been reported. [#25](https://github.com/HenryWashuHe/genesis-history-experiment/pull/25)
+adds offline-tested opt-in CREAO v2 protocol support; no v2 hosted agent/run
+has been completed through it.
+
 Accumulation, reuse/composition and improved future development remain distinct.
 The invention-lab executor/simulator and A → B → A comparison are not implemented
 on this checkpoint's main. Event organizing remains superseded. No migration,
@@ -24,10 +37,11 @@ authentication check or local test establishes a positive recursive-benefit resu
 | Owner/session | Active lane and acknowledgment | Scope / next deliverable |
 | --- | --- | --- |
 | Henry's core Claude | Adoption/planner acknowledged; #8/#10 merged, #11/#12/#14/#15 open | Fix remaining review findings; retain adoption wiring and existing adoption console UI. No transfer of Eric's invention-lab UI. |
-| Henry's core Claude | Requested evaluator lane assigned in issue #1; implementation acknowledgment pending | New #13 `docs/invention-lab/evaluator.md`; then `experiments/invention-lab/evaluator/**` after method/interface agreement. Correct holdout timing, exact evaluator/task identities and resource/receipt bindings. |
+| Henry's core Claude | Evaluator lane acknowledged in issue #1; #13 and a separate evaluator implementation branch are pushed | Review interface agreement with merged #18/#22, then isolated `experiments/invention-lab/evaluator/**`. Keep holdout timing, exact evaluator/task identities and resource/receipt bindings. |
 | Eric / Eric's Claude | Audit #9 merged at `f8bffa26`; new UI assignment not yet acknowledged | `docs/invention-lab/ui.md`, then isolated `apps/web/src/invention-lab/**` after receipts settle. `EricZhu-31` has write access. |
 | ACP Claude session | Acknowledged bridge lane #3/#4/#5 and new isolated stage #20 | Correct bridge holds plus #20 replay/live, adoption provenance and paging defects. Keep `apps/stage/**` separate from Eric’s UI and the superseded event story secondary. Do not duplicate merged packaging #21 or take CREAO v2 files without a fresh scoped claim. |
-| Codex main chat | Shared method/evaluation contracts active; packaging fix merged | Draft #18 at `1d84587e` and stacked #22 at `0871df6` implement experimental execution and independent scoring records (102 core tests/strict Clippy; nine scoring tests independently rerun). Obtain owner feedback, then freeze a separate pre-execution trial plan. Packaging #21 is merged; no live rerun or CREAO v2 takeover. |
+| Codex main chat | Method/evaluation contracts #18/#22 merged; pre-execution trial plan claimed in issue #1 | Freeze exact development slots and retain no-output/unknown attempts in `development_trial.rs` plus its contract/tests. No executor or comparative-result claim. |
+| EricZhu-31 / Codex provider session | Apify retry #26 and CREAO v2 #25 open, each scoped in issue #1 | Respond to review/CI on those PRs. #26 has local adapter and forge-suite checks; #25 has offline protocol checks. Neither has a new live provider validation. This session's evidence-ledger docs are a separate claimed slice. |
 | Ines | Unassigned by explicit user instruction | Do not infer her identity from another collaborator handle. |
 
 The same GitHub account hosts multiple sessions; ownership is by session and
@@ -47,26 +61,27 @@ validation remains open. Do not merge its historical draft status docs into main
 
 The supplied `.env` stays local, ignored and owner-readable. Apify and CREAO v2
 metadata reads returned 200; there are no hosted CREAO agents in that project.
-The v1 adapter is not compatible by merely renaming the v2 key. These checks
-are separate from ACP's Fetch/Elastic results and do not prove sponsor execution.
+The v1 adapter is not compatible by merely renaming the v2 key; #25 supplies
+an explicit v2 path but is still unmerged and offline-tested. These checks are
+separate from ACP's Fetch/Elastic results and do not prove sponsor execution.
 
-Latest merged main `983f0443` includes #8/#10 adoption foundations and #21
+Earlier merged main `983f0443` includes #8/#10 adoption foundations and #21
 Actor packaging. The adoption composition `015e4fc5` passed 47 adoption + 17
 provider-executor tests and strict Clippy; its tree matched merged `1aed609f`.
 Packaging source `d20cb5e` and reviewed composition `7cc59ee` passed 149 author
 and 58 independent focused tests; main tree `be312625` matches the reviewed tree.
 Fresh source binds intended Actor name/version before hashing. Exact saved v1
 packages remain byte-identical; unresolved POSTs stay in reconciliation. ACP's
-reported Actor creation/name-normalization failure is retained evidence, not a
-successful cloud build/run, and this cycle made no new provider calls.
+earlier Actor creation/name-normalization failure remains a separate checkpoint;
+the later successful live build/run report above does not resolve that operation.
 
-Draft #22 (`0871df6`) adds separate scoring receipts on #18. Its scoring-request
+#22 (earlier source `0871df6`, now merged) adds separate scoring receipts on #18. Its scoring-request
 roster starts after output selection; no-output development failures require a
 separate pre-execution trial ledger. Unknown development/scoring consumption and
 failed development outcomes remain visible. No executor, independent evaluator,
 method-adoption wiring or positive comparative result exists in these contracts.
-Henry's adoption/evaluator lanes should review the exact digest/purpose/budget
-bindings before shared integration. G0 and the recursive loop remain open.
+Henry's adoption/evaluator lane feedback on the exact digest/purpose/budget
+bindings is recorded on #22. G0 and the recursive loop remain open.
 
 #20 at `b468313` introduces `apps/stage/**`, an acknowledged ACP claim. Independent review
 found replay controls can display fixtures under a Live badge, arbitrary B
