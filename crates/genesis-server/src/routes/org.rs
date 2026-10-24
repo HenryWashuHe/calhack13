@@ -203,7 +203,11 @@ pub async fn update_contract(
     let m = app
         .mutate(EventMeta::default(), |s| {
             if app.store.recovery_manages_contract(&contract_id)? {
-                return Err(crate::error::ApiError::new(axum::http::StatusCode::CONFLICT, "managed_fetch_contract", "Fetch recovery contracts require verified native negotiation evidence"));
+                return Err(crate::error::ApiError::new(
+                    axum::http::StatusCode::CONFLICT,
+                    "managed_fetch_contract",
+                    "Fetch recovery contracts require verified native negotiation evidence",
+                ));
             }
             let c = s.contracts.get(&contract_id).ok_or_else(|| {
                 crate::error::ApiError::not_found(format!("contract {contract_id}"))

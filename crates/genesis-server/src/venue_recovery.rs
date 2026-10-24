@@ -23,7 +23,7 @@ use genesis_core::model::{
     AgentBinding, ContractorAgreement, Executor, OrgState, Provider, Requirement,
 };
 use genesis_fetch::client::{BridgeClient, ClientLimits};
-use genesis_fetch::protocol::{self, Body, Message, SendRequest, Task, PROTOCOL_DIGEST};
+use genesis_fetch::protocol::{self, Body, Message, Task, PROTOCOL_DIGEST};
 use genesis_fetch::runtime::{ContractPhase, RuntimeStore, TaskPhase};
 use genesis_verification::{decode_json, json_sha256};
 use rusqlite::{params, OptionalExtension, Transaction};
@@ -371,6 +371,35 @@ fn message(b: &Binding, body: Body) -> Message {
     }
 }
 fn validate_binding(b: &Binding) -> ApiResult<()> {
+    let mut candidates = Vec::new();
+    for source in &b.source.candidates {
+        let genesis_verification::ExtractionOutcome::Supported { venues } = &source.extraction
+        else {
+            return Err(conflict("recovery source facts changed"));
+        };
+        candidates.extend(venues.iter().map(|venue| domain::RecoveryCandidate {
+            source_job_id: source.job_id.clone(),
+            invocation_proof_ref: source.proof_ref.clone(),
+            venue: venue.clone(),
+        }));
+    }
+    if b.request.reopened_assessment_id != b.source.reopened_assessment_id
+        || b.request.candidate_job_ids
+            != b.source
+                .candidates
+                .iter()
+                .map(|source| source.job_id.clone())
+                .collect::<Vec<_>>()
+        || b.context.policy != b.source.policy
+        || b.context.candidates != candidates
+        || b.job.org_id != b.source.org_id
+        || b.job.mission_id != b.source.mission_id
+        || b.requirement.requirement_id != b.source.replacement_requirement_id
+    {
+        return Err(conflict(
+            "recovery context differs from its authenticated source binding",
+        ));
+    }
     if b.context.recovery_id != b.recovery_id
         || b.job != job_spec(&b.job)
         || b.job.task != TASK
@@ -456,7 +485,7 @@ fn authorize(
     expected.state = match record.phase {
         RecoveryPhase::Recruiting => ContractState::Requested,
         RecoveryPhase::Accepting => ContractState::Offered,
-        _ => ContractState::Active,
+        _ => ContractState::Accepted,
     };
     if state.contracts.get(&b.contract.contract_id) != Some(&expected) {
         return Err(conflict("recovery contract changed"));
@@ -753,7 +782,7 @@ fn accept_contract(
     let outcome = engine::update_contract(
         &state,
         &record.binding.contract.contract_id,
-        ContractState::Active,
+        ContractState::Accepted,
     )?;
     record.phase = RecoveryPhase::Selecting;
     commit_record(app, record, state.revision, outcome, None)?;
@@ -900,7 +929,7 @@ pub async fn step(app: &AppState, id: &str) -> ApiResult<RecoveryRecord> {
         .as_ref()
         .ok_or_else(|| conflict("Fetch recovery is not configured; saved work remains pending"))?;
     let _gate = runtime.gate.lock().await;
-    let mut record = {
+    {
         let _kernel = app.kernel.lock().await;
         let mut record = app.store.recovery(id)?;
         if record.phase == RecoveryPhase::Completed {
@@ -912,8 +941,8 @@ pub async fn step(app: &AppState, id: &str) -> ApiResult<RecoveryRecord> {
                 return Ok(record.record());
             }
         }
-        record
-    };
+    }
+    let mut record;
     // Read-only polling retains authenticated late replies even when work has
     // since been paused. It never authorizes their application to the mission.
     let cursor = runtime
@@ -1124,10 +1153,10 @@ pub async fn drain_once(app: &AppState) -> ApiResult<usize> {
     let ids: Vec<String> = {
         let conn = app.store.lock();
         let mut stmt = conn.prepare("SELECT recovery_id FROM venue_recoveries WHERE active=1 AND next_check_at<=?1 ORDER BY next_check_at LIMIT 16").map_err(StoreError::from)?;
-        stmt.query_map([Utc::now().to_rfc3339()], |row| row.get(0))
-            .map_err(StoreError::from)?
-            .collect::<Result<_, _>>()
-            .map_err(StoreError::from)?
+        let ids = stmt
+            .query_map([Utc::now().to_rfc3339()], |row| row.get(0))
+            .map_err(StoreError::from)?;
+        ids.collect::<Result<_, _>>().map_err(StoreError::from)?
     };
     for id in &ids {
         step(app, id).await?;
