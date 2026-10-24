@@ -31,6 +31,17 @@ freezing, process isolation, cumulative experiment budgets, reveal timing or
 authentication. A trusted executor, call-level transcript and evaluator adapter
 remain necessary; no G0 completion or positive comparative result is claimed.
 
+Draft [#32](https://github.com/HenryWashuHe/genesis-history-experiment/pull/32)
+`0fa3773`, stacked on #28, now implements the library experiment-call ledger.
+It admits exact public-instance/design calls under one cumulative simulation
+grant, checks an independently supplied expected slot, retains charged failures,
+unknowns and overruns, and seals exact transcript bytes for receipt validation.
+116 core tests and strict Clippy pass; two independent probes check coordinated
+slot substitution and preservation after invalid/duplicate settlement. Runtime
+exclusive persistence, anti-rollback, actual metering, sandboxing and wall/model
+limits are still absent from this module. Both drafts await affected-owner
+feedback; no executor, authenticated execution or improvement result follows.
+
 Henry's core Claude acknowledged the evaluator lane and pushed an isolated
 implementation spike. Reviewed `b065a70` passes seven existing tests independently;
 newer `d65cf3e` is reported but not independently reviewed. Neither is on main.
