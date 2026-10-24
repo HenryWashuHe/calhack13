@@ -153,6 +153,23 @@ console.log(JSON.stringify({ phase: "native_completed", native_status: "complete
   assert.equal(readdirSync(invalidOut).includes("creao"), false);
 });
 
+test("blank creao protocol uses v1 consistently with the backend", async () => {
+  const bin = mkdtempSync(join(tmpdir(), "bin-"));
+  stub(bin, "genesis-creao", `if (args[0] === "prepare") process.exit(0);
+console.log(JSON.stringify({ phase: "native_completed", native_status: "completed", run_id: "run-blank", provider_agent_id: "agent-blank" }));`);
+  for (const version of ["", "  "]) {
+    const out = mkdtempSync(join(tmpdir(), "out-"));
+    const result = await run(bin, out, {
+      gates: ["creao"],
+      env: { ...fullEnv, CREAO_API_VERSION: version },
+    });
+    assert.equal(result.results.creao.status, "passed");
+    assert.equal(result.results.creao.evidence.api_version, "v1");
+    const spec = JSON.parse(readFileSync(join(out, "creao", "t1", "spec.json"), "utf8"));
+    assert.equal(spec.api_version ?? "v1", "v1");
+  }
+});
+
 test("apify stops at an unknown outcome and never steps again", async () => {
   const bin = mkdtempSync(join(tmpdir(), "bin-"));
   stub(
