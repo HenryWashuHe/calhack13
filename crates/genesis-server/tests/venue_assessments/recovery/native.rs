@@ -1,6 +1,6 @@
 //! Explicit opt-in composition using two real Python processes and native SDK
 //! signed envelopes. Apify/CREAO and initial provisioning remain the parent
-//! loopback fixtures; this is not cloud registration or native sponsor execution.
+//! loopback fixtures; this is not cloud registration or live Apify/CREAO execution.
 //!
 //! Setup from the repository root (no provider credentials):
 //! `uv sync --project services/fetch-bridge --frozen --python 3.12`
