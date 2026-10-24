@@ -116,6 +116,7 @@ struct Intent {
 enum SkippedIntent {
     SourceConsumed,
     SourceExpired,
+    MonitorStopped,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -666,6 +667,12 @@ fn advance(app: &AppState, monitor: &mut Monitor) -> ApiResult<()> {
         };
         if let Some(child) = child {
             observe_child(monitor, child)?;
+        } else if monitor.status == MonitorStatus::Stopped {
+            // Only definitive absence after exact historical lookup retires an
+            // uncreated intent. Stop itself cannot clear pending: a child may
+            // have committed before its link was saved, or its provider journal
+            // may currently be unavailable. Keep the frozen request and count.
+            skip_pending(monitor, SkippedIntent::MonitorStopped);
         } else if monitor.status == MonitorStatus::Active {
             current(app, &app.current_state()?, &monitor.binding, now)?;
             let (job, proof) = source(app, &intent.request.source_job_id)?;
