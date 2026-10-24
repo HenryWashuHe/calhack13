@@ -1,6 +1,6 @@
 # GENESIS implementation handoff
 
-Updated: October 21, 2026.
+Updated: October 22, 2026.
 
 ## Current integration checkpoint
 
@@ -39,6 +39,32 @@ signed three-process/two-organization proof. [FETCH_RUNTIME.md](FETCH_RUNTIME.md
 documents exact commands, recovery, release isolation and the next kernel hook.
 All live-account smoke gates remain open. Repository assignments communicate the
 split but do not prove the other machine has read them.
+
+## Claude checkpoint (issue #4)
+
+Recorded October 22, 2026. Each branch is based on main `5c4dd1a`; together they
+merge cleanly in the order below (verified: 436 Rust tests, clippy `-D warnings`,
+26 web tests, regenerated schemas/types identical). All provider integration is
+tested against in-process fakes only; no live sponsor or model calls were made.
+
+| Order | Branch | PR | Contents | Docs |
+| --- | --- | --- | --- | --- |
+| 1 | `feat/elastic` | #11 | `genesis-elastic` crate (org-namespaced evidence projection, capability index, Agent Builder `RoleProvisioner` with exact-config reconciliation, fakes, live smoke binary); server projection worker, `/search/evidence`, `/projection`; Elastic specialist jobs as converse turns; registry search through Elastic; console search box. PR #11 review fixed with Codex's regressions. | [ELASTIC.md](ELASTIC.md) |
+| 2 | `feat/planner` | #12 | `genesis-planner` crate; `planner_decision` event; `GET /org-changes/requests/{id}`; idempotent terminal decisions. PR #12 review fixed with Codex's regressions. | [PLANNER.md](PLANNER.md) |
+| 3 | `feat/creao-readiness` | to open | Pending/readiness hook (`specialist.rs`), `OrgChangeRecord.operations`, `provisioning_progress` event, specialist jobs (CREAO steps 5–6), operator abandon endpoint, console operation state. | [ASYNC_PROVISIONING.md](ASYNC_PROVISIONING.md) |
+| 4 | `feat/ui-evidence` | to open | Console capability evidence: pinned build, publisher verification, local acceptance, per-run backend records. | — |
+| 5 | `feat/elastic-planner` | to open, after 1–2 | Planner model as an Elastic Agent Builder mission-planner agent (`GENESIS_LLM_PROVIDER=elastic`). | [PLANNER.md](PLANNER.md) |
+
+Shared-file notes for other branches: `AppState` gains `projection`,
+`elastic_agents` and `readiness`; the outbox has arms for specialist jobs and
+Elastic jobs before the dev-stub arms; Elastic index and tool names come from
+`genesis_elastic::org_namespace` (readable prefix plus a digest of the exact
+org ID). None of these touch capability routes or `capability_runtime`.
+
+Open items: live Elastic smoke test (`genesis-elastic-smoke`), CREAO
+`CreaoSpecialist` registration in `main.rs` and a CREAO readiness verifier
+(bridge receipt), planner model choice, and console display of PR #14
+verification proofs once that stack merges.
 
 ## Ownership before the scoped integration handoff
 
