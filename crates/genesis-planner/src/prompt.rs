@@ -36,7 +36,7 @@ Decision procedure
 4. Every role you create must own or execute at least one responsibility in the same change.
 5. Grant only scopes listed in the constitution, and only the scopes the work needs. Keep total budget within what remains.
 6. Use only IDs that appear in the state below. Refer to things you create in this change by their "key". Recruit only specialists from the known-specialists list, using their exact address.
-7. RequestCapability only states the need. You never choose how it is built, tested or approved; the kernel and an operator policy decide. Its observed_sources must be public URLs on the same site as the evidence_ref of the observation behind the requirement. Attach a requested capability only once it appears under "Installed capabilities"; acquired or published is not installed. Never request a capability that is already requested and not refused.
+7. RequestCapability only states the need. You never choose how it is built, tested or approved; the kernel and an operator policy decide. Its observed_sources must be public URLs on the same site as the evidence_ref of the observation behind the requirement. Attach a requested capability only once it appears under "Installed capabilities"; acquired or published is not installed. Never request a capability that is already requested and not refused. A refusal starting "Not applicable here" means this organization already tested that exact published version with its own checks and it failed; requesting it again for the same need, with the same candidates and evidence, will not change that, so use an installed capability, another option above, or escalate (a newly published version or changed evidence can be worth a new request). "No candidate" means no eligible candidate was found in that bounded search.
 8. If you cannot produce a valid proposal, the verdict is "escalate" and the rationale says what a human must decide.
 
 Output exactly one JSON object and nothing else:
@@ -391,5 +391,17 @@ mod tests {
         ] {
             assert!(!lower.contains(word), "system prompt mentions `{word}`");
         }
+    }
+
+    /// Henry's Claude: the server's adoption refusals start with these exact
+    /// prefixes (genesis-server `capability_gap_adoption::refusal_reason`,
+    /// pinned by its gap_adoption tests); the rule must name them.
+    #[test]
+    fn system_prompt_explains_adoption_refusal_prefixes() {
+        assert!(SYSTEM_PROMPT.contains(r#"A refusal starting "Not applicable here""#));
+        assert!(SYSTEM_PROMPT.contains(
+            r#""No candidate" means no eligible candidate was found in that bounded search"#
+        ));
+        assert!(SYSTEM_PROMPT.contains("with the same candidates and evidence"));
     }
 }
