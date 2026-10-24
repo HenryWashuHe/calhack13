@@ -23,6 +23,11 @@ a shared registry, and the actual Rust generation and Apify HTTP clients pointed
 loopback providers. Canned model and provider replies make the evidence repeatable;
 they do not execute a cloud build or prove model-generated parser quality. The
 scenario has no direct database access and cannot insert verification receipts.
+The full fixture exercises one repair (two model calls, Actors and builds; six A
+verification runs), three B acceptance checks, initial and successor invocations,
+then reopens B from its SQLite database and invokes again with the successor. Its
+six B runs share the repaired artifact and consume no model or Actor-create calls.
+Both commitment ledgers remain empty and invocation jobs remain `VERIFYING`.
 
 ## Run against configured organization servers
 
