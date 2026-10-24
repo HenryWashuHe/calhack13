@@ -65,7 +65,7 @@ function Console({ ep }: { ep: OrgEndpoint }) {
       )}
       <main className="layout">
         <MissionPanel state={view.state} api={view.api} />
-        <OrgPanel api={view.api} state={view.state} changes={view.changes} />
+        <OrgPanel api={view.api} state={view.state} changes={view.changes} events={view.events} />
         <EvidencePanel events={view.events} state={view.state} />
         <Deck changes={view.changes} jobs={view.jobs} state={view.state} events={view.events} ledger={view.ledger} />
       </main>
