@@ -30,6 +30,12 @@ development-workflow evaluation. Appropriate non-reuse is valid. Preserve one
 justified organizational change, local acceptance, independent evaluation and
 failed/unknown outcomes; capability counts do not prove improvement.
 
+**Owner decision, October 23, 2026 (evening):** the pitch, README tagline and
+Devpost lead with "an AI organization that changes shape and keeps what it
+learns". The recursive capability network is presented as the long-term goal
+("Where this goes") and in "What's next", not as the headline. Keep the two
+consistent; see [docs/PITCH.md](docs/PITCH.md) and [docs/DEVPOST.md](docs/DEVPOST.md).
+
 Use the [refreshed ownership map](docs/AGENT_HANDOFF.md#current-ownership-and-next-work)
 and newer issue #4 claims before assigning or editing work. Henry's Claude keeps
 candidate decision logging and the narrow terminal-RunFailed retry contract.
