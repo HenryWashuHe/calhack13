@@ -421,6 +421,32 @@ async fn automatic_adoption_attention_is_terminal_and_redacted() {
 }
 
 #[tokio::test]
+async fn automatic_adoption_failed_read_keeps_the_id_without_recreating_work() {
+    let mut spec = legacy_spec();
+    spec.progression = ScenarioProgression::Automatic;
+    spec.provider_access_acknowledged = true;
+    let a = Server::start(vec![]).await;
+    let b = Server::start(vec![(
+        "POST",
+        "/api/v1/capability-adoptions".into(),
+        adoption_status(&spec, "discovering", 1),
+    )])
+    .await;
+    let error = driver(&a, &b)
+        .adopt_automatic(&spec, &work(), "org-b", "org-a", &adoption_pin())
+        .await
+        .err()
+        .expect("a failed observation must retain the committed intent identity");
+    assert!(matches!(&error, ScenarioError::Observation {
+        kind: "adoption", id, reason: "adoption status could not be observed"
+    } if id == ADOPTION));
+    assert!(!error.to_string().contains(PRIVATE));
+    assert_eq!(b.requests().len(), 2);
+    b.assert_only_adoption_requests(&spec);
+    assert!(a.requests().is_empty());
+}
+
+#[tokio::test]
 async fn automatic_adoption_polling_limit_keeps_the_intent_without_manual_fallback() {
     let mut spec = legacy_spec();
     spec.progression = ScenarioProgression::Automatic;
