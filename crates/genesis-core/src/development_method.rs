@@ -206,6 +206,21 @@ pub enum BudgetAssessment {
 }
 
 impl Usage {
+    /// Validate accounting shape without interpreting any resource ceiling.
+    pub fn validate(&self) -> Result<(), ContractError> {
+        for usage in [
+            &self.model_calls,
+            &self.input_tokens,
+            &self.output_tokens,
+            &self.wall_time_ms,
+            &self.simulation_steps,
+        ] {
+            if let ResourceUsage::Unknown { reason } = usage {
+                nonblank(reason, "unknown usage reason")?;
+            }
+        }
+        Ok(())
+    }
     pub fn assess(&self, grant: &ResourceGrant) -> Result<BudgetAssessment, ContractError> {
         let mut assessment = BudgetAssessment::WithinLimits;
         for (name, usage, limit) in [
@@ -264,6 +279,24 @@ impl ExecutionReceipt {
         &self,
         expected: &DevelopmentRunBinding,
     ) -> Result<BudgetAssessment, ContractError> {
+        self.validate_identity_fields(expected)?;
+        self.usage.assess(&expected.budget)
+    }
+
+    /// Accounting-only identity/shape check. An overrun remains valid evidence,
+    /// not permission to execute, score, accept or adopt the result.
+    pub fn validate_identity_against(
+        &self,
+        expected: &DevelopmentRunBinding,
+    ) -> Result<(), ContractError> {
+        self.validate_identity_fields(expected)?;
+        self.usage.validate()
+    }
+
+    fn validate_identity_fields(
+        &self,
+        expected: &DevelopmentRunBinding,
+    ) -> Result<(), ContractError> {
         let expected_hash = expected.canonical_hash()?;
         self.binding.validate()?;
         digest(&self.binding_sha256)?;
@@ -283,6 +316,6 @@ impl ExecutionReceipt {
         if self.outcome == ExecutionOutcome::OutputGenerated && self.outputs.is_empty() {
             return Err(ContractError::Invalid("generated outputs"));
         }
-        self.usage.assess(&expected.budget)
+        Ok(())
     }
 }

@@ -1,11 +1,20 @@
 # Invention labs: proposed GENESIS demonstration
 
-**Status: design proposal, not an implemented demo or an experimental result.**
+**Status: proposed demonstration; simulator primitives are merged, the method loop is not.**
 GENESIS is infrastructure for **networked recursive capability improvement with
 fixed model weights**. The current [implementation inventory](IMPLEMENTATION_STATUS.md)
-does not include the simulator, general development-method executor, or the
-measured improvement loop described here. The event-organizer product/demo is
-superseded; its code remains an integration fixture.
+includes the source/receipt/ledger foundations, #37–#39's local simulator
+(22 evaluator tests) and #50–#52's checkpointed method-source generation
+(125 forge tests on its reviewed tree). The generation path exports a host-bound
+package; no live model generation or method execution is established. Executor
+#42–#45 and scoring/verdict #46/#48 remain held. Handwritten controls, including
+the separately reported live Apify parser baseline, do not demonstrate generated
+methods. No independent method acceptance, A → B → A loop or recursive-benefit
+result is established. Provider-default sampling and separately recorded
+generation costs still need explicit settings and combined accounting for G4.
+The [ongoing goal](ONGOING_GOAL.md#completion-gates-and-evidence)
+defines the authoritative G0–G4 completion criteria. The event-organizer
+product/demo is superseded; its code remains an integration fixture.
 
 ## The visible promise
 
