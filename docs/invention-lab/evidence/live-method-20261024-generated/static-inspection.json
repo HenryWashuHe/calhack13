@@ -1,0 +1,16 @@
+{
+  "schema": "genesis-static-source-inspection/1",
+  "method_package_sha256": "8215c3679a06724069759bcbdaa576b64ec0ef1251c5238a797c0cb34962b944",
+  "entrypoint": "method.py",
+  "source_sha256": "68e990eaebff8a4c69e152aa98743a1f50fd318d031f57b83b78170707b1ab31",
+  "source_bytes": 4027,
+  "source_lines": 137,
+  "python_ast_parse": "passed",
+  "imports": [
+    "json",
+    "math",
+    "sys"
+  ],
+  "execution": "not_performed",
+  "claim": "syntax and observed imports only; not runtime, safety, acceptance or improvement evidence"
+}

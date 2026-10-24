@@ -101,6 +101,11 @@ namespace's first process and complete tree ended on normal and forced-stop
 paths. Do not use the portable results as hidden-scoring closure or hard wall-limit
 evidence. See the [current coordination checkpoint](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6383718962).
 
+Later heads #57 `81722b5abff4d9dd5fcbf5e303a9d4d505bf64b1` and #65
+`635fd3b5178b6cdf0adff92c7ff21a09ebfd638a` remain unreviewed here. Henry
+[reports a deadline-lifecycle fix and 24/24 Linux executor tests](https://github.com/HenryWashuHe/genesis-history-experiment/pull/65#issuecomment-6386513037).
+That is author-reported evidence; independent review and the holds remain open.
+
 Method-adoption #64 source `45938be45ddd47a4b1e4d713c4f9f05e50464089` merged
 `181b81644eb2c795f0cc154501626d102219f926`; retained-file cost rehearsal #70
 source `285472e6ac06d29c7866357de644ba0531600666` merged
@@ -124,10 +129,10 @@ Earlier #61 at `c7027a4` passed its then-current 1/1 rehearsal in 4.97 s;
 intent roundtrip remains distinct from the separate durable-before-POST CLI tests.
 All test counts are source-specific and overlapping, not one aggregate main run.
 
-Author-reported executor runs use handwritten controls. No live generated
-method, accepted model-developed A → B → A return or controlled
-recursive benefit is established. Eric's separate invention-lab UI assignment
-remains unacknowledged; Ines stays unassigned.
+Earlier executor runs use handwritten controls. A live generated package is now
+retained with AST-only inspection; its execution, accepted A → B → A return and
+controlled benefit remain unproved. Eric [acknowledged the lab UI lane](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6386421464);
+#93/#94 are open within that subtree/document scope. Ines stays unassigned.
 
 ACP #3 source `f64e131516281d6bb1dc5f41abd8425cc42c77d1` merged
 `5b2615f0918f0e96d9b6f94135737ab1e8b2e98c`; #5 source
@@ -261,8 +266,12 @@ output tokens, 36,790 ms; no package/execution and no reservation refund.
 The [strict thinking-prefix parser](invention-lab/contracts/generation.md) is implemented
 at `054b10508713095ee3bbac97eb1d9d953956596b`: full forge 211 tests/40 targets, zero
 failed/ignored; strict all-target Clippy/fmt/diff and five independent focused tests pass.
-This is local compatibility evidence; neither old failure is reinterpreted. Next is
-one separately declared bounded attempt and a valid-package handoff if produced. Henry's package handoff and G0–G4 remain open; chain ceilings proposed.
+This is local compatibility evidence; neither old failure is reinterpreted. The
+[third attempt on `07c098c`](invention-lab/evidence/live-method-20261024-generated/README.md)
+produced a canonical package: 4027 source bytes/137 lines, AST parse only. Usage:
+1 call, 4,028 input / 5,231 output tokens, 42,198 ms. Henry owns its exact-bound
+runtime/acceptance handoff; no runtime retagging. Execution/scoring/adoption remain
+unproved; G0–G4 are open and chain ceilings proposed.
 Earlier delivery/source-specific evidence remains in the handoff; overlapping
 test counts must not be summed. Repair WIP is isolated in draft #7 and its
 original files remain untouched. Follow current
