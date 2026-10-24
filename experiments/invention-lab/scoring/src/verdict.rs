@@ -175,6 +175,26 @@ pub fn decide(
     let rows = assess_trials(plan, &evidence).map_err(|e| format!("evidence: {e}"))?;
     let row = |slot: &str| rows.iter().find(|r| r.slot_id == slot).unwrap();
     let (cand_row, ctrl_row) = (row(cand_slot), row(ctrl_slot));
+    // adoption.md: an unknown executor or evaluator outcome on either slot is
+    // never a verdict, not even a rejection of an invalid candidate design.
+    for (name, r) in [("candidate", cand_row), ("control", ctrl_row)] {
+        if matches!(
+            r.development_outcome,
+            None | Some(ExecutionOutcome::Unknown)
+        ) {
+            return Ok(Verdict::Insufficient {
+                reason: format!(
+                    "{name} development outcome {:?} (unknown)",
+                    r.development_outcome
+                ),
+            });
+        }
+        if r.scoring_status == RequestStatus::Unknown {
+            return Ok(Verdict::Insufficient {
+                reason: format!("{name} scoring outcome unknown"),
+            });
+        }
+    }
     if cand_row.scoring_status == RequestStatus::Invalid {
         return Ok(Verdict::Rejected {
             reason: "the candidate's retained output is not a valid design".into(),
@@ -184,20 +204,9 @@ pub fn decide(
         ("candidate", cand_row, candidate),
         ("control", ctrl_row, control),
     ] {
-        // adoption.md: an unknown executor outcome is never a verdict; a
-        // confirmed failure or interruption whose retained output was scored
-        // still counts (one without scoreable output fails the scoring check).
-        match r.development_outcome {
-            None | Some(ExecutionOutcome::Unknown) => {
-                return Ok(Verdict::Insufficient {
-                    reason: format!(
-                        "{name} development outcome {:?} (unknown)",
-                        r.development_outcome
-                    ),
-                })
-            }
-            Some(_) => {}
-        }
+        // A confirmed failure or interruption whose retained output was
+        // scored still counts (one without scoreable output fails the scoring
+        // check below).
         let unknown: Vec<_> = unknown_usage(&e.execution)
             .into_iter()
             .filter(|f| !criterion.unknown_usage_allowed.iter().any(|a| a == f))
