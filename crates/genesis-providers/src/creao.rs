@@ -370,11 +370,7 @@ impl SpecialistRuntime for CreaoSpecialist {
             run_id: ticket.run_id().to_owned(),
             conversation_id: observation.conversation_id.clone(),
             workspace_id: observation.workspace_id.clone(),
-            request_sha256: record
-                .spec
-                .request
-                .request_sha256()
-                .map_err(runtime_error)?,
+            request_sha256: record.spec.request_sha256().map_err(runtime_error)?,
             operation_fingerprint: record.fingerprint.clone(),
             checkpoint_sha256,
             checkpoint_revision: record.revision,
