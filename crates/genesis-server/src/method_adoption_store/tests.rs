@@ -115,6 +115,7 @@ impl Fixture {
         .unwrap();
         records.receiver.acceptance_plans.push(AcceptancePin {
             requirement_id: intent.requirement_id.clone(),
+            publisher: intent.publisher.clone(),
             plan: pinned.reference().unwrap(),
         });
         Self {
