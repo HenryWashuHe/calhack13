@@ -2,6 +2,7 @@ use genesis_core::development_method::ResourceUsage;
 use genesis_forge::{
     text_generation::{
         GenerationTransport, Sampling, TextGenerationRequest, TextModelSettings, TextOutcome,
+        TextRejection, TextStopReason, MAX_TEXT_BYTES,
     },
     AnthropicGenerator,
 };
@@ -53,6 +54,7 @@ async fn exact_wire_settings_and_text_bytes_are_retained() {
     assert_eq!(c.request_sha256, r.sha256().unwrap());
     assert_eq!(c.transport, GenerationTransport::LoopbackFixture);
     assert_eq!(c.outcome, TextOutcome::Returned { text: text.into() });
+    assert!(c.diagnostic.is_none());
     let sent: Value = serde_json::from_slice(&wire[boundary + 4..]).unwrap();
     assert_eq!(sent["model"], "fixture-model-1");
     assert_eq!(sent["max_tokens"], 512);
@@ -100,6 +102,8 @@ async fn duplicate_content_and_malformed_json_are_not_normalized_into_valid_outp
     for body in [br#"{"id":"msg_test","type":"message","role":"assistant","model":"fixture-model-1","content":[{"type":"text","text":"bad","text":"good"}],"stop_reason":"end_turn","usage":{"input_tokens":2,"output_tokens":2}}"#.to_vec(),b"{malformed".to_vec()] {
         let c = call(body).await;
         assert!(matches!(c.outcome, TextOutcome::Failed { .. }));
+        assert_eq!(c.diagnostic.unwrap().rejection, TextRejection::InvalidJson);
+        assert_eq!(c.diagnostic.unwrap().stop_reason, None);
         assert!(matches!(c.usage.output_tokens, ResourceUsage::Unknown { .. }));
     }
 }
@@ -121,4 +125,120 @@ async fn timeout_stays_unknown_and_never_retries() {
     task.await.unwrap();
     assert!(matches!(c.outcome, TextOutcome::Unknown { .. }));
     assert!(matches!(c.usage.model_calls, ResourceUsage::Unknown { .. }));
+    assert!(c.diagnostic.is_none());
+}
+
+#[tokio::test]
+async fn diagnostics_name_first_rejection_without_changing_acceptance_or_usage() {
+    for (pointer, value, rejection) in [
+        (
+            "/model",
+            json!("foreign-model"),
+            TextRejection::ModelMismatch,
+        ),
+        (
+            "/stop_reason",
+            json!("max_tokens"),
+            TextRejection::StopReason,
+        ),
+        (
+            "/stop_sequence",
+            json!("private-stop"),
+            TextRejection::StopSequence,
+        ),
+        (
+            "/usage/output_tokens",
+            json!(513),
+            TextRejection::OutputLimit,
+        ),
+        ("/content", json!({}), TextRejection::ContentShape),
+        ("/content", json!([]), TextRejection::ContentCount),
+        (
+            "/content/0/type",
+            json!("unknown"),
+            TextRejection::ContentType,
+        ),
+        (
+            "/content/0/text",
+            json!("x".repeat(MAX_TEXT_BYTES + 1)),
+            TextRejection::TextLimit,
+        ),
+        (
+            "/content/0/citations",
+            json!([{"private":"citation"}]),
+            TextRejection::Citations,
+        ),
+    ] {
+        let mut body = response("rejected-content");
+        if pointer.ends_with("citations") {
+            body["content"][0]["citations"] = value;
+        } else {
+            *body.pointer_mut(pointer).unwrap() = value;
+        }
+        let c = call(serde_json::to_vec(&body).unwrap()).await;
+        assert!(matches!(c.outcome, TextOutcome::Failed { .. }));
+        assert_eq!(c.diagnostic.unwrap().rejection, rejection);
+        assert_eq!(c.usage.input_tokens, ResourceUsage::Measured { value: 100 });
+        let stored = serde_json::to_string(&c).unwrap();
+        assert!(!stored.contains("rejected-content"));
+        assert!(!stored.contains("private-stop"));
+        assert!(!stored.contains("\"private\""));
+    }
+    let mut body = response("text");
+    body["model"] = json!("foreign-model");
+    body["stop_reason"] = json!("max_tokens");
+    body["content"] = json!([]);
+    let c = call(serde_json::to_vec(&body).unwrap()).await;
+    assert_eq!(
+        c.diagnostic.unwrap().rejection,
+        TextRejection::ModelMismatch
+    );
+    assert_eq!(
+        c.diagnostic.unwrap().stop_reason,
+        Some(TextStopReason::MaxTokens)
+    );
+}
+
+#[tokio::test]
+async fn output_token_count_does_not_infer_the_stop_reason() {
+    let mut body = response("complete");
+    body["usage"]["output_tokens"] = json!(512);
+    let c = call(serde_json::to_vec(&body).unwrap()).await;
+    assert!(matches!(c.outcome, TextOutcome::Returned { .. }));
+    assert!(c.diagnostic.is_none());
+    body["stop_reason"] = json!("max_tokens");
+    body["usage"]["output_tokens"] = json!(32);
+    let c = call(serde_json::to_vec(&body).unwrap()).await;
+    assert!(matches!(c.outcome, TextOutcome::Failed { .. }));
+    assert_eq!(
+        c.diagnostic.unwrap().stop_reason,
+        Some(TextStopReason::MaxTokens)
+    );
+}
+
+#[tokio::test]
+async fn malformed_envelopes_and_http_errors_do_not_invent_stop_or_usage() {
+    for (field, value) in [("role", json!("user")), ("stop_reason", json!(42))] {
+        let mut body = response("private-text");
+        body[field] = value;
+        let c = call(serde_json::to_vec(&body).unwrap()).await;
+        assert_eq!(
+            c.diagnostic.unwrap().rejection,
+            TextRejection::InvalidEnvelope
+        );
+        assert_eq!(c.diagnostic.unwrap().stop_reason, None);
+        assert!(matches!(
+            c.usage.output_tokens,
+            ResourceUsage::Unknown { .. }
+        ));
+    }
+    let (endpoint, task) = serve(b"private-error".to_vec(), 401, Duration::ZERO).await;
+    let c = AnthropicGenerator::with_test_endpoint(&endpoint, "synthetic-key")
+        .unwrap()
+        .generate_text(&request())
+        .await
+        .unwrap();
+    task.await.unwrap();
+    assert!(c.diagnostic.is_none());
+    assert!(!serde_json::to_string(&c).unwrap().contains("private-error"));
 }
