@@ -43,8 +43,8 @@ exists and none is invented here.
 | `org` (also `lab`, `who`) | mission goal, active and retired roles, what each owns, requested capabilities with their real tagged status | `GET /organization` | exists |
 | `report <what happened>` (also `challenge <…>`) | records one observation with a fixed `source` and `evidence_ref`, then relays this report's own planner decision, proposed and committed changes, roles, provisioning (DEV STUB labeled), recruitment, capability requests and installations, handoffs, retirements; ends with how to follow up | `POST /missions/{active}/observations`, then `GET /events/log` | exists |
 | `status` | everything after your last report, paged from a durable per-sender cursor, bounded per reply | `GET /events/log`, `GET /organization` | exists (#132) |
-| `methods` (also `capabilities`) | installed capabilities and methods by exact `id@version`, their acceptance state and the role holding them | `GET /organization` (`installations`, `roles[].capabilities`) | exists for task capabilities; a **method** artifact kind requires #124 |
-| `lineage <id>` | the chain for one capability or method: who published which version, derived from what, who adopted or declined it and why | `GET /capabilities/{id}/versions/{version}` (manifest, provenance, verification); per-candidate decisions `GET /capability-gaps/{id}/adoption` | manifest and provenance exist; candidate decision log is open PR #116; `derived_from` / dependency digests **require #124** |
+| `methods` (also `capabilities`) | installed capabilities and methods by exact `id@version`, their acceptance state and the role holding them; offers one `lineage <id>` button per id | `GET /organization` (`installations`, `roles[].capabilities`) | implemented in open PR (ACP commands) for task capabilities; a **method** artifact kind requires #124 |
+| `lineage <id>` | the chain for one capability or method: who published which version, derived from what, who adopted or declined it and why | `GET /capabilities/{id}/versions/{version}` (manifest, provenance, verification); per-candidate decisions `GET /capability-gaps/{id}/adoption` | manifest, verification and this organization's installation state are implemented in open PR (ACP commands); candidate decision log is open PR #116; `derived_from` / dependency digests **require #124** |
 | `outcome <id>` (also `why`) | an adoption's conclusion: `adopted`, `not_applicable`, `insufficient_evidence`, `no_candidate`, `unknown`, `pending`, `stopped`, with the oracle-free reason | `GET /capability-gaps/{id}/adoption` | open PR #128 (vocabulary from [adoption.md](adoption.md)) |
 | `experiment <id>` | one experiment's task, method version, consumed budget, outcome and evidence reference | — | **requires contract** (#124 receipt, #126 evaluator); no route |
 | `compare <id>` | the declared comparison for a return challenge: treatments, budgets, scores, "improved" only when the predeclared criterion holds | — | **requires contract** (#124 comparison protocol); no route |
@@ -78,12 +78,28 @@ For a development method the same four columns apply: `method v1 → tested by B
 - Publisher claims (scores, applicability) are shown as the publisher's; the
   receiving organization's own acceptance is shown separately.
 
-## Interactive cards (optional, Fetch bonus)
+## Interactive cards (Fetch bonus)
 
-ASI Interactive Cards can offer the next bounded message as a button: after
-`report`, buttons for `status` and `org`; after `methods`, one `lineage <id>`
-per installed id. Buttons send exactly these text commands. No card may expose
-an operator action. This is a presentation choice and is not implemented.
+Replies carry an ASI Interactive Card (`DetailCardPayload` in `MetadataContent`,
+pinned uagents-core 0.4.12) whose buttons are the next bounded commands: after
+`report`, `status` and `org`; after `methods`, one `lineage <id>` per installed
+id. A button press arrives as a card response whose `selection.command` must
+match the read-only command set exactly (`help`, `org`, `status`, `methods`,
+`lineage <id>`); anything else, including `report …`, is ignored. A message
+carrying both text and a card response is ambiguous and ignored. Implemented in
+the open ACP commands PR; rendering in ASI:One is unverified until routing is.
+
+## Rehearsal without ASI:One
+
+`python -m genesis_fetch_bridge.acp_mission chat --config … --db …` drives the
+same gateway, journal and authority boundary from a terminal and prints
+"LOCAL STAND-IN, not ASI:One" first. Use one per organization against
+`genesis dev` (`GENESIS_ACP_BACKEND_URL`, `GENESIS_ACP_AGENT_TOKEN` for A on
+7101 and B on 7102; `acp-mission.example.json` and `acp-mission-org-b.example.json`).
+Script: in A `org`, `report the main hall is closed on Nov 14` (the planner
+must be running with a model for the reply to go beyond the recorded evidence;
+say so otherwise), `methods`, `lineage <id>`; in B `methods` to show the adopted
+exact version. Never present the stand-in as ASI:One routing.
 
 ## Two organizations in one conversation
 
