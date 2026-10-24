@@ -13,6 +13,7 @@ pub mod capability_acquisition_runtime;
 pub mod capability_acquisition_store;
 pub mod capability_authority;
 pub mod capability_evidence;
+pub mod capability_invocation;
 pub mod capability_runtime;
 pub mod capability_scenario;
 pub mod capability_store;
@@ -169,6 +170,7 @@ pub fn build_org(cfg: &OrgConfig, providers: Option<ProviderSet>) -> anyhow::Res
     let kernel = Arc::new(Mutex::new(()));
     store.init_capability_runs()?;
     store.init_capability_pins()?;
+    store.init_capability_invocations()?;
     if let Some(config) = &cfg.acquisition {
         store.init_acquisitions(&config.policy)?;
     }

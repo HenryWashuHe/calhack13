@@ -27,7 +27,10 @@ The full fixture exercises one repair (two model calls, Actors and builds; six A
 verification runs), three B acceptance checks, initial and successor invocations,
 then reopens B from its SQLite database and invokes again with the successor. Its
 six B runs share the repaired artifact and consume no model or Actor-create calls.
-Both commitment ledgers remain empty and invocation jobs remain `VERIFYING`.
+Both commitment ledgers remain empty. Acceptance jobs remain `VERIFYING`, while
+fresh invocation jobs become `SUCCEEDED` only after backend semantic verification.
+A negative fixture returns incorrect fresh data after valid acceptance and confirms
+the scenario stops before retirement despite successful provider transport.
 
 ## Run against configured organization servers
 
@@ -79,7 +82,7 @@ cargo run --locked -p genesis-server -- scenario \
 
 The successful JSON report contains the acquisition ID and counters, exact
 source/Actor/build pin, B's independently collected acceptance job IDs and reference,
-initial and successor invocation IDs, responsibility owners and actual provider
+initial and successor invocation IDs and proof references, responsibility owners and actual provider
 bindings. B's zero-synthesis result is scoped to this scenario and the server's
 disabled acquisition configuration; it is not an account-wide billing audit.
 The report omits generated source, HTML, oracle answers, execution outputs and tokens.
@@ -97,9 +100,9 @@ The report omits generated source, HTML, oracle answers, execution outputs and t
    own proof; the driver supplies no affirmative verification assertion.
 5. Create B's mission and responsibility, search the registry and install the exact
    published artifact. Collect B's own acceptance jobs and commit local acceptance.
-6. Attach and invoke the capability. Retire A's temporary specialist with a handoff,
+6. Attach, invoke and verify a fresh supported result. Retire A's temporary specialist with a handoff,
    then retire B's verifier with a handoff to a persistent monitor. Attach the
-   accepted capability to the monitor and collect another invocation.
+   accepted capability to the monitor and verify another invocation under its grant.
 7. Confirm acceptance and the artifact pin survived retirement, and A incurred no
    additional acquisition effects during B's inheritance.
 
@@ -111,8 +114,11 @@ the databases for inspection instead of deleting evidence to force a rerun. Exis
 acquisition and capability runtimes own restart recovery and effect reconciliation.
 
 Invocation currently accepts only an exact input in B's configured suite. Collected
-output is verification evidence, not a booking, external commitment or generic
-successful job result. This mission proves inherited lookup and continuing ownership.
+output remains evidence until the separate backend verifier issues an immutable
+proof. The driver checks exact job/request/input/artifact/acceptance/suite bindings,
+requires supported extraction, and reads the same persisted proof back. This
+mission proves inherited lookup and continuing ownership; it makes no booking or
+external commitment.
 
 ## Authority after handoff
 

@@ -79,7 +79,8 @@ arbitrary new web inputs. A changed request under the same key is rejected.
 Job, request, idempotency key and dispatch events commit atomically. The runtime
 checks role, assignment, epoch, deadline and required permissions before and after
 provider I/O, without holding the kernel lock across that I/O. Completed collection
-moves the job to `VERIFYING`, **not** `SUCCEEDED`, and never writes a commitment.
+moves the job to `VERIFYING` and never writes a commitment. Semantic finalization
+is a separate backend step described below.
 General `/jobs/<id>/results` submissions cannot use a client boolean to complete
 managed capability jobs. A future domain-action verifier must authorize any real
 reservation or other external commitment separately.
@@ -92,6 +93,49 @@ manual steps use `{"retry_read":false}`. There is currently no operator API for
 resolving an ambiguous POST; investigate it using native provider records before
 any new attempt. One organization process owns a database; this is not a
 multi-process distributed lease implementation.
+
+## Fresh invocation verification
+
+After collection, an operator sends `POST /capability-runs/<job_id>/verify` with
+exactly `{}`. `GET /capability-runs/<job_id>/verification` returns the same proof.
+Both endpoints are operator-only. Finalization makes no network calls and accepts
+no caller-supplied evidence, passed flag, oracle, or proof.
+
+Preparing a new real invocation atomically freezes its installation, complete
+oracle-suite digest, accepted report reference and immutable request fingerprint.
+Finalization rechecks those bindings, locally collected evidence, current executor
+assignment/epoch, lease, mission, deadlines, required permissions and attachment.
+The full suite must still validate, even though this operation evaluates one case.
+Its result type cannot become a full-suite publication or installation acceptance.
+
+| Decision | Job status | Meaning |
+| --- | --- | --- |
+| `verified` | `SUCCEEDED` | Fresh output passes the selected case; `case_report.extraction` distinguishes `supported` from correctly `unsupported`. |
+| `semantic_rejected` | `RESULT_REJECTED` | Output failed the selected oracle case; the report contains coarse issue categories. |
+| `authority_rejected` | `RESULT_REJECTED` | Executor authority was lost before initial finalization; no semantic report is issued. |
+
+The immutable response includes `job_id`, `installation_id`, `request_sha256`,
+`suite_id`, `suite_sha256`, `acceptance_report_ref`, `org_revision`, `verified_at`,
+`decision`, `case_report` and a domain-separated `invocation:<sha256>` proof
+reference. It exposes no expected values, raw output or private oracle scope.
+Terminal status, proof and events commit in one SQLite transaction. A successful
+lookup does not write a ledger entry, book a venue or grant a new capability.
+A correctly unsupported response is truthful extraction, not an available venue;
+the inherited-mission driver requires a supported result before advancing.
+
+Repeated verification is read-only. The server recomputes the proof using saved
+authority revision and verification time, so executor retirement or expiry after
+finalization does not erase historical evidence. Fresh successor jobs still need
+current authority. The original acceptance verifier need not remain active.
+Persisted evidence and the configured full suite must still match; changed oracle
+policy is rejected rather than silently migrating an old proof. Digests detect
+drift in trusted storage; they are not signatures against a hostile database writer.
+
+Legacy runs without a frozen binding remain transport-only. Replaying their
+submission cannot retrofit a binding; create a new invocation with a new request
+key. Acceptance-purpose jobs cannot use this endpoint. Configuration/pin/binding
+drift returns an error without changing status; lost authority on the first valid
+finalization produces the immutable `authority_rejected` result instead.
 
 ## Trust and evidence limits
 
