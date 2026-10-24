@@ -82,9 +82,12 @@ package's link to the candidate slot matches exactly. Every value is known:
 | Scoring (both slots) | 0 | 0 | 0 | 15705 | 26885 |
 | Combined | 1 | 4028 | 5231 | 78386 | 56781 |
 
-The two earlier failed generation attempts (2 calls, 7999 input / 13084 output
-tokens) are not in this scope. They are retained in their own bundles and
-belong in any full cost of getting this method.
+This report covers generation attempt 3 and the **first fixed-cart trial only**.
+It excludes the separate `reference-random-search/` and `vs-random-search/` runs,
+as well as the two earlier failed generation attempts (2 calls, 7999 input /
+13084 output tokens). It is not the total cost of this evidence bundle. Those
+excluded costs remain in their retained records and belong in a full accounting
+of developing and evaluating this method.
 
 ## Reproduce offline
 
