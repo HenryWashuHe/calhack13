@@ -55,7 +55,7 @@ export interface MethodNode {
 }
 
 export type Edge =
-  | { kind: "generated"; operation_id: string; to: string }
+  | { kind: "generated"; org_id: string; operation_id: string; to: string }
   | { kind: "revised_from"; operation_id: string; from: string; to: string; source_changed: boolean }
   | {
       kind: "adoption";
@@ -85,14 +85,22 @@ export function buildLineage(records: LabRecords): Lineage {
     return key;
   };
 
+  // An operation is identified by its organization and operation id together:
+  // two organizations may reuse an operation name.
+  const opKey = (org: string, op: string) => `${org}\u0000${op}`;
   const seen = new Set<string>();
   const attempts = records.generations.map(({ status, checkpoint }): Attempt => {
     const op = status.operation_id;
-    if (seen.has(op)) problems.push(`operation ${op} appears more than once`);
-    seen.add(op);
+    const key = opKey(status.org_id, op);
+    if (seen.has(key)) problems.push(`operation ${op} of ${status.org_id} appears more than once`);
+    seen.add(key);
     let outcome: Attempt["outcome"] = null;
     if (checkpoint) {
-      if (checkpoint.operation_id !== op || checkpoint.request_sha256 !== status.request_sha256) {
+      if (
+        checkpoint.org_id !== status.org_id ||
+        checkpoint.operation_id !== op ||
+        checkpoint.request_sha256 !== status.request_sha256
+      ) {
         problems.push(`checkpoint does not match status for operation ${op}; its outcome is not shown`);
       } else if (checkpoint.phase !== status.phase) {
         problems.push(`checkpoint phase ${checkpoint.phase} differs from status phase ${status.phase} for ${op}`);
@@ -101,7 +109,8 @@ export function buildLineage(records: LabRecords): Lineage {
       }
     }
     if (status.package) {
-      if (status.phase === "generated") edges.push({ kind: "generated", operation_id: op, to: node(status.package) });
+      if (status.phase === "generated")
+        edges.push({ kind: "generated", org_id: status.org_id, operation_id: op, to: node(status.package) });
       else problems.push(`operation ${op} names a package in phase ${status.phase}`);
     }
     const out = status.usage?.output_tokens;
@@ -114,9 +123,9 @@ export function buildLineage(records: LabRecords): Lineage {
   });
 
   for (const r of records.revisions ?? []) {
-    const gen = attempts.find((a) => a.status.operation_id === r.operation_id);
+    const gen = attempts.find((a) => a.status.org_id === r.org_id && a.status.operation_id === r.operation_id);
     if (gen?.status.package && refKey(gen.status.package) !== refKey(r.child))
-      problems.push(`revision child differs from the package of operation ${r.operation_id}`);
+      problems.push(`revision child differs from the package of operation ${r.operation_id} of ${r.org_id}`);
     edges.push({
       kind: "revised_from",
       operation_id: r.operation_id,

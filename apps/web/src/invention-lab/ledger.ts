@@ -9,8 +9,8 @@ import type { Attempt } from "./lineage";
 import { USAGE_DIMENSIONS, type UsageDimension } from "./records";
 
 export interface LedgerTotal {
-  /** Sum of measured values only. */
-  measured: number;
+  /** Exact sum of measured values only (BigInt: individually safe counts can sum past 2^53). */
+  measured: bigint;
   /** Attempts that measured this dimension. */
   measuredCount: number;
   /** Attempts whose value is unknown, unrecognized, not recorded, or that have no completion. */
@@ -27,7 +27,7 @@ export interface Ledger {
 
 export function buildLedger(attempts: Attempt[]): Ledger {
   const totals = {} as Record<UsageDimension, LedgerTotal>;
-  for (const d of USAGE_DIMENSIONS) totals[d] = { measured: 0, measuredCount: 0, missingCount: 0 };
+  for (const d of USAGE_DIMENSIONS) totals[d] = { measured: 0n, measuredCount: 0, missingCount: 0 };
   // Counted in a Map: a recorded phase such as "__proto__" or "constructor" is just a key.
   const phases = new Map<string, number>();
   const tiers: Tier[] = [];
@@ -39,7 +39,7 @@ export function buildLedger(attempts: Attempt[]): Ledger {
     for (const d of USAGE_DIMENSIONS) {
       const u = a.status.usage?.[d];
       if (u?.kind === "measured") {
-        totals[d].measured += u.value;
+        totals[d].measured += BigInt(u.value);
         totals[d].measuredCount += 1;
       } else {
         totals[d].missingCount += 1;

@@ -68,6 +68,13 @@ describe("first live attempt", () => {
     expect(l.edges).toEqual([]);
   });
 
+  it("does not use another organization's checkpoint for the same operation and request", () => {
+    const checkpoint = { ...liveCheckpoint(), org_id: "org_other" };
+    const l = buildLineage({ generations: [{ status: liveStatus(), checkpoint }] });
+    expect(l.attempts[0]!.outcome).toBeNull();
+    expect(l.problems[0]).toMatch(/does not match/);
+  });
+
   it("does not use a checkpoint that belongs to a different request", () => {
     const checkpoint = { ...liveCheckpoint(), request_sha256: "other" };
     const l = buildLineage({ generations: [{ status: liveStatus(), checkpoint }] });
