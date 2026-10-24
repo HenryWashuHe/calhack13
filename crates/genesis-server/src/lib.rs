@@ -42,6 +42,7 @@ pub mod venue_assessment_domain;
 pub mod venue_assessments;
 pub mod venue_monitors;
 pub mod venue_recovery;
+pub mod venue_recovery_domain;
 mod venue_recovery_sources;
 
 /// Optional CREAO specialist registration from the backend environment.
