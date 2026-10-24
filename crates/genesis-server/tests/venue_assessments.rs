@@ -6,6 +6,8 @@
 mod intake;
 #[path = "venue_assessments/monitor_mutants.rs"]
 mod monitor_mutants;
+#[path = "venue_assessments/monitor_retirement.rs"]
+mod monitor_retirement;
 #[path = "venue_assessments/recovery.rs"]
 mod recovery;
 #[path = "venue_assessments/review_monitors.rs"]
