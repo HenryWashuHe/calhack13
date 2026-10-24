@@ -20,3 +20,5 @@ pub use synthesis_source::generated_candidate;
 
 pub mod method_synthesis;
 pub mod text_generation;
+
+pub mod method_accounting;
