@@ -24,11 +24,20 @@ and await independent review. #114 is merged with the reported ACP follow-up
 regressions still outstanding. See [review queue](PR_REVIEW_QUEUE.md) and newer
 [issue #4](https://github.com/HenryWashuHe/genesis/issues/4) updates before acting.
 
-**Pause boundary:** Codex's previous implementation Goal and recurring automation
-remain paused. This bounded documentation/task-routing update does not resume
-them or authorize a whole-kernel takeover. Colleagues' existing scoped work and
-new design assignments are tracked below; a GitHub assignment is not evidence
-that a remote session has acknowledged or started it.
+**Resumption boundary:** the user has resumed ongoing GENESIS work. Use the
+[durable goal and completion gates](ONGOING_GOAL.md); the existing hourly
+continuation is active. The old app Goal card is still paused at this checkpoint
+because its tool cannot replace an unfinished record. Do not falsely complete
+it or revive its superseded venue scope. Existing scoped claims continue; new
+runtime work still requires a bounded ownership claim. Local deployed-repair WIP
+remains preserved until separately scoped. Assignment is not acknowledgment.
+
+**Latest coordination:** Henry acknowledged #122 and opened #128 (`546fb65`,
+classifier stacked on #116) and #129 (`d8fa531`, proposed method adoption).
+He is waiting for #124's shared contract before runtime wiring. Codex's next
+milestone is that contract pack, using #129's required inputs. #123/#125 have no
+recorded acknowledgment yet; #126 and Ines remain unassigned. Verify newer heads
+and comments before review or reassignment.
 
 ### Current ownership and next work
 
@@ -37,7 +46,7 @@ that a remote session has acknowledged or started it.
 | Henry's core Claude | [#122](https://github.com/HenryWashuHe/genesis/issues/122) | Preserve #116/#121 and review follow-up. Retain the newly claimed adoption-outcome classifier stacked on #116: status/types, small classifier, focused tests/docs; conservative fallback unchanged. Next: `docs/invention-lab/adoption.md` for independent method acceptance. |
 | Eric / Eric's Claude | [#123](https://github.com/HenryWashuHe/genesis/issues/123) | Finish the bounded #120 constitution-audit lane. Next: `docs/invention-lab/ui.md`, then an isolated `apps/web/src/invention-lab/**` evidence view after receipts/contracts settle. No shared UI wiring without a claim. |
 | Claude ACP session (author of `claude/asi-one-workflow`) | [#125](https://github.com/HenryWashuHe/genesis/issues/125) | Preserve the seven regressions and correct `acp_mission.py` with adjacent tests/config. Next: `docs/invention-lab/acp.md` mapping product-neutral commands to agreed contracts. No new venue features or public-live claims. |
-| Codex, main GENESIS chat | [#124](https://github.com/HenryWashuHe/genesis/issues/124) | Current framing and coordination. Next bounded lane: `docs/invention-lab/contracts/**` for executable methods, exact identity/dependencies, independent receipts and controlled comparison. Preserve paused deployed-repair WIP; runtime resumption is separate. |
+| Codex, main GENESIS chat | [#124](https://github.com/HenryWashuHe/genesis/issues/124) | Active goal #124; next bounded lane: `docs/invention-lab/contracts/**` for executable methods, exact identity/dependencies, independent receipts and controlled comparison. Preserve paused deployed-repair WIP; repair resumption needs a separate scoped claim. |
 | Unassigned evaluator lane | [#126](https://github.com/HenryWashuHe/genesis/issues/126) | `docs/invention-lab/evaluator.md`, then a separately claimed `experiments/invention-lab/evaluator/**` simulator/evaluator after contract agreement. No owner or implementation is inferred. |
 | Ines | Unassigned by explicit user instruction | Do not identify `i-nix` as Ines or assign her work without new confirmation. |
 

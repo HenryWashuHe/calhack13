@@ -2,7 +2,7 @@
 
 **Networked recursive capability improvement with fixed model weights.**
 
-Status: revised pitch draft. Codex's previous implementation Goal and recurring work remain paused; colleagues' existing scoped claims continue. The
+Status: revised pitch draft. Ongoing work is governed by [the repository goal](ONGOING_GOAL.md). The
 invention-lab scene below is a proposed demonstration, not an implemented or
 recorded result. Read [implementation status](IMPLEMENTATION_STATUS.md) before
 making a claim and [the invention-lab design](INVENTION_LAB_DEMO.md) for the

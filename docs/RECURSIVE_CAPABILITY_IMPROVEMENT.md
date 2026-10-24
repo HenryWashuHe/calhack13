@@ -2,9 +2,10 @@
 
 **Networked recursive capability improvement with fixed model weights** is the
 canonical product and research framing. Status: open implementation and evaluation
-roadmap, not completed behavior or a demonstrated positive result. Codex's previous
-implementation Goal and recurring continuation are **paused**. This documentation
-and task-routing update does not resume them. Current [ownership](AGENT_HANDOFF.md#current-ownership-and-next-work)
+roadmap, not completed behavior or a demonstrated positive result. The user has resumed ongoing work under the [repository goal](ONGOING_GOAL.md)
+and its active hourly continuation. The older app Goal card remains paused until
+it can be replaced through the user-controlled lifecycle; it does not define the
+new product scope. Current [ownership](AGENT_HANDOFF.md#current-ownership-and-next-work)
 supersedes the earlier side-chat proposal. See [implementation status](IMPLEMENTATION_STATUS.md)
 for the evidence boundary and [invention labs](INVENTION_LAB_DEMO.md) for the proposed
 demonstration. Event organization is no longer a product or completion requirement.
@@ -15,16 +16,17 @@ demonstration. Event organization is no longer a product or completion requireme
 
 The moonshot is a network whose useful experience compounds across organizations, including experience about how to produce further improvements. Universal infrastructure means admitting different domains and their evaluators; it does not mean every tool helps every task.
 
-The implementation target is complete when the following evidence is reviewable:
+The authoritative current completion contract is [G0–G4 and delivery in the ongoing goal](ONGOING_GOAL.md#completion-gates-and-evidence). The following summarizes its research evidence; it does not add a separate venue or deployed-repair prerequisite:
 
 - [ ] A mission requirement triggers a justified responsibility or role change, with accountable ownership and a recorded handoff or retirement. A separate case retains an existing owner when sufficient; agent count is not the success criterion.
-- [ ] A records a failure against an exact installed version, performs a bounded repair, verifies and publishes a distinct replacement, and resumes its mission. Ambiguous effects enter reconciliation.
-- [ ] B independently discovers, verifies, and adopts that replacement using its own state, grants, and inputs. Its installation remains pinned; publication alone never upgrades it.
+- [ ] A develops an executable method, B independently accepts and improves it, and A independently accepts and executes the frozen revision to develop a later capability on a fresh task in at least one recorded chain. Non-reuse remains valid for controls but cannot substitute for this transfer evidence.
 - [ ] GENESIS creates or improves a development capability through its governed development process, records that derivation, and publishes an executable version with pinned dependencies and provenance. Another organization actually uses it to build or repair a later capability, with execution evidence identifying the inherited method and its outputs. Packaging a hand-authored seed alone is a control, not this recursive-development gate.
 - [ ] Direct reuse, related transfer/composition, and an irrelevant-capability case all have reproducible traces with independently scored task results. The irrelevant capability is not forced into execution.
 - [ ] The controlled evaluation below produces per-family quality, cost, latency, intervention, and regression results, including unsuccessful runs. Provider fixtures and authenticated live runs are labeled separately.
 
-These gates complete the mechanism and evaluation milestone. A **positive recursive-improvement claim** additionally requires the development-workflow treatment to meet quality and cost criteria fixed before the independent evaluation. If it does not, report the result and leave that research claim open. There is no promised improvement after every task.
+Completion is judged against the ongoing goal's gates, with source and evaluation evidence. A **positive recursive-improvement claim** additionally requires the development-workflow treatment to meet quality and cost criteria fixed before the independent evaluation. If it does not, report the result and leave that research claim open. There is no promised improvement after every task.
+
+Cross-organization deployed repair remains a **supporting roadmap milestone**, not a current completion prerequisite: record exact-version failure, perform a bounded verified repair, publish a distinct replacement, then let B independently adopt or decline it. Ambiguous effects enter reconciliation; publication never silently upgrades an installation. Its preserved WIP and unfinished checks remain separate from the development-method milestone.
 
 ## What can transfer
 
