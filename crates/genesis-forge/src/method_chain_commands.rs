@@ -82,8 +82,8 @@ fn expected(
         }
     }
 }
-fn companion(chain: &Path, stage: &str) -> PathBuf {
-    // Call only after expected() validates the declared stage identifier.
+pub(crate) fn companion(chain: &Path, stage: &str) -> PathBuf {
+    // Call only with a validated stage identifier from expected() or StageAllocation.
     let mut path = chain.as_os_str().to_os_string();
     path.push(format!(".stage-{stage}.json"));
     path.into()
