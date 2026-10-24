@@ -37,3 +37,30 @@ registry, not who authored them or whether they are verified, compatible, useful
 or independently evaluated. Search never grants acceptance or invocation rights.
 Receiver-owned selection, acceptance, current role/grant authority and pinned
 installations remain required; publication alone closes none of G0–G4.
+
+## Typed organization client
+
+The existing `RegistryClient` exposes `publish_method(expected_publisher,
+publication)`, `search_methods(query)`, `method_offer(lookup)` and
+`fetch_method_candidate(candidate)`. These reuse its fixed-origin HTTP transport,
+15-second timeout, 1 MiB bounded strict JSON decoder, disabled redirects and
+disabled retries. Local malformed input is refused before the request. Remote
+errors and inconsistent successful responses remain errors, with no remote body
+or credentials reflected in diagnostics.
+
+After receiver-owned selection, use `fetch_method_candidate`: it compares the
+complete search metadata, runtime, protocol and dependencies against the fetched
+canonical package. Plain `method_offer` binds the exact publisher/reference and
+checks the publication, without asserting agreement with an earlier search hit.
+Search checks bounds, filters, ordered unique identities and coherent truncation;
+the registry's `truncated: false` is not independent proof of exhaustive absence.
+
+`expected_publisher` checks the publication response; it cannot prevent a
+misconfigured token from writing under its actual account. Any publication error,
+including an identity mismatch, may follow a committed write. Reconcile exact
+identity before deciding on another attempt; the client never retries.
+
+The loopback client fixture publishes A's inert source, lets B discover/fetch it,
+then passes the unchanged bytes to `MethodRevisionSpec::prepare` under B's new
+task and operation. It stops at `Prepared`: no model request, source execution,
+acceptance, role creation or recursive benefit is demonstrated.
