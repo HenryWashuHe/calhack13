@@ -158,7 +158,9 @@ class Bridge:
                         raise Invalid("body exceeds limit")
         except TimeoutError as exc:
             raise Invalid("request read timeout") from exc
-        return decode(bytes(data), MAX_HTTP)
+        # Private requests wrap Message by one level; Message validation owns its
+        # separate root-relative depth64 limit after this bounded HTTP parse.
+        return decode(bytes(data), MAX_HTTP, max_depth=128)
 
     async def get_identity(self, _request):
         return respond(

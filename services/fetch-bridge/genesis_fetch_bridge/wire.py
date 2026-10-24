@@ -55,7 +55,21 @@ def canonical(value: Any) -> str:
         raise Invalid("invalid JSON value") from exc
 
 
-def decode(raw: bytes | str, limit: int = MAX_MESSAGE) -> Any:
+def compatible(value: Any, *, max_depth: int = 64, depth: int = 0) -> None:
+    # Python otherwise accepts integers and nesting the Rust inbox cannot retain.
+    if depth > max_depth:
+        raise Invalid("JSON nesting exceeds limit")
+    if type(value) is int and not -(2**63) <= value <= 2**64 - 1:
+        raise Invalid("JSON integer exceeds interoperable range")
+    if isinstance(value, dict):
+        for item in value.values():
+            compatible(item, max_depth=max_depth, depth=depth + 1)
+    elif isinstance(value, list):
+        for item in value:
+            compatible(item, max_depth=max_depth, depth=depth + 1)
+
+
+def decode(raw: bytes | str, limit: int = MAX_MESSAGE, *, max_depth: int = 64) -> Any:
     if len(raw.encode() if isinstance(raw, str) else raw) > limit:
         raise Invalid("JSON exceeds limit")
 
@@ -70,22 +84,9 @@ def decode(raw: bytes | str, limit: int = MAX_MESSAGE) -> Any:
     def constant(_):
         raise Invalid("non-finite JSON value")
 
-    def compatible(value, depth=0):
-        # Python otherwise accepts integers and nesting the Rust inbox cannot retain.
-        if depth > 64:
-            raise Invalid("JSON nesting exceeds limit")
-        if type(value) is int and not -(2**63) <= value <= 2**64 - 1:
-            raise Invalid("JSON integer exceeds interoperable range")
-        if isinstance(value, dict):
-            for item in value.values():
-                compatible(item, depth + 1)
-        elif isinstance(value, list):
-            for item in value:
-                compatible(item, depth + 1)
-
     try:
         value = json.loads(raw, object_pairs_hook=pairs, parse_constant=constant)
-        compatible(value)
+        compatible(value, max_depth=max_depth)
         canonical(
             value
         )  # Also rejects exponent overflow to infinity and surrogate encoding below.
@@ -185,6 +186,7 @@ def uint(value: Any) -> None:
 
 
 def validate(message: Any, *, fresh: bool = True) -> dict:
+    compatible(message)
     exact(
         message,
         {
