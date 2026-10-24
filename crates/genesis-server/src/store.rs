@@ -136,6 +136,14 @@ CREATE TABLE IF NOT EXISTS outbox (
     created_at       TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS outbox_pending ON outbox(status, next_attempt_at);
+-- Idempotency identities for requirement creation. Written in the same
+-- transaction as the snapshot that adds the requirement.
+CREATE TABLE IF NOT EXISTS requirement_requests (
+    client_request_id  TEXT PRIMARY KEY,
+    requirement_id     TEXT NOT NULL,
+    request_sha256     TEXT NOT NULL,
+    created_at         TEXT NOT NULL
+);
 "#;
 
 fn ts(t: DateTime<Utc>) -> String {
@@ -341,6 +349,21 @@ impl Store {
             ],
         )?;
         Ok((record.clone(), true))
+    }
+
+    /// The requirement and request digest stored for a client request ID.
+    pub fn find_requirement_by_request(
+        &self,
+        client_request_id: &str,
+    ) -> StoreResult<Option<(String, String)>> {
+        let conn = self.lock();
+        Ok(conn
+            .query_row(
+                "SELECT requirement_id, request_sha256 FROM requirement_requests WHERE client_request_id = ?1",
+                params![client_request_id],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )
+            .optional()?)
     }
 
     /// The change stored for a client request ID, if any.
@@ -606,6 +629,21 @@ pub fn enqueue(tx: &Transaction<'_>, item: &NewOutbox) -> StoreResult<()> {
     tx.execute(
         "INSERT INTO outbox (destination, kind, payload_json, next_attempt_at, created_at) VALUES (?1, ?2, ?3, ?4, ?4)",
         params![item.destination, item.kind, serde_json::to_string(&item.payload)?, now],
+    )?;
+    Ok(())
+}
+
+/// Bind a client request ID to the requirement created in this transaction.
+pub fn insert_requirement_request_tx(
+    tx: &Transaction<'_>,
+    client_request_id: &str,
+    requirement_id: &str,
+    request_sha256: &str,
+) -> StoreResult<()> {
+    tx.execute(
+        "INSERT INTO requirement_requests (client_request_id, requirement_id, request_sha256, created_at)
+         VALUES (?1, ?2, ?3, ?4)",
+        params![client_request_id, requirement_id, request_sha256, ts(Utc::now())],
     )?;
     Ok(())
 }
