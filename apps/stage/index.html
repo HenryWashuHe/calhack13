@@ -56,6 +56,7 @@ button { font: inherit; }
 .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: flex-end; }
 .btn { border: 1px solid var(--line); background: transparent; color: var(--chalk); border-radius: 999px; padding: 9px 16px; cursor: pointer; min-height: 44px; }
 .btn:hover { border-color: var(--chalk-dim); }
+.btn:disabled, .dot:disabled { opacity: .35; cursor: not-allowed; }
 .btn:focus-visible, .dot:focus-visible, .field:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
 .btn.primary { background: var(--chalk); color: var(--paper-deep); border-color: var(--chalk); font-weight: 600; }
 .dots { display: flex; gap: 6px; }
@@ -165,14 +166,15 @@ details.live summary { cursor: pointer; color: var(--chalk-dim); }
 <div class="wrap">
   <header class="band">
     <div>
-      <div class="brand">GENESIS <span id="mode" class="mode">Replay of the local fixture run</span></div>
-      <h1 id="beat" class="beat">An organization is durable state. Nothing in the code knows what happens next.</h1>
-      <p id="sub" class="sub">Org A runs a campus event. Three roles, a budget, a constitution. Org B is a separate company with its own mission and database.</p>
+      <div class="brand">GENESIS · organizations that build, verify, share and improve capabilities <span id="mode" class="mode">Historical fixture replay</span></div>
+      <h1 id="beat" class="beat">Organizations that build, verify, share and improve capabilities.</h1>
+      <p id="sub" class="sub">What follows is a replay of the one recorded fixture; the invention-lab beats are proposals and are labeled as such.</p>
     </div>
     <div class="controls" role="group" aria-label="Playback">
       <button class="btn" id="prev" type="button">Back</button>
       <button class="btn primary" id="play" type="button">Play</button>
       <button class="btn" id="next" type="button">Next step</button>
+      <button class="btn" id="backreplay" type="button">Back to replay</button>
       <div class="dots" id="dots" role="list" aria-label="Scenes"></div>
     </div>
   </header>
@@ -228,16 +230,18 @@ details.live summary { cursor: pointer; color: var(--chalk-dim); }
       <button class="btn primary" type="submit">Go live</button>
       <span class="status" id="livestatus"></span>
     </form>
-    <p class="hint">Live mode reads the organization and its event log with the agent token every two seconds and draws exactly what the kernel says, including DEV STUB bindings. It works when this page is served next to the kernel (for example from the repository); the hosted viewer blocks requests to other hosts.</p>
+    <p class="hint">Live mode reads both organizations and their event logs with the agent token every two seconds and draws exactly what the kernels say, including DEV STUB bindings; nothing from the replay is shown while connecting or disconnected. Inheritance is drawn only for an exact version Org B accepted that Org A also accepted and published. It works when this page is served next to the kernel (for example from the repository); the hosted viewer blocks requests to other hosts.</p>
   </details>
 </div>
 
 <script>
 (function () {
   "use strict";
-  // Scenes replay the twelve steps of the committed dev scenario (scripts/dev-scenario.mjs) in the
-  // order the kernel recorded them. Role providers in that run are development stubs and are
-  // labeled as such; nothing here is presented as a live sponsor call.
+  // Two sources, never mixed. REPLAY is an illustrative storyboard of the committed dev scenario
+  // (scripts/dev-scenario.mjs), which posts scripted changes and a fixture manifest; it shows no
+  // synthesis, build or scoring because that run contained none. LIVE draws only what two running
+  // kernels report. The mode is explicit state; a live poll response is applied only if it belongs
+  // to the current connection generation.
   const A0 = [
     { id: "coord", name: "Mission coordinator", prov: "internal", owns: "Coordinate the event plan" },
     { id: "prog", name: "Program lead", prov: "internal", owns: "Maintain the program schedule", child: true },
@@ -247,20 +251,21 @@ details.live summary { cursor: pointer; color: var(--chalk-dim); }
     { id: "lead", name: "Conference lead", prov: "internal", owns: "Run the conference" },
     { id: "ops", name: "Venue operations", prov: "internal", owns: "Keep a venue for 300 booked", child: true },
   ];
-  const RELOC = { id: "reloc", name: "Relocation lead", prov: "elastic", stub: true, owns: "Relocate the event and coordinate attendee transport", child: true, extra: "Fetch specialist agent1q…shuttle · shuttle plan for 120 · accepted" };
+  const RELOC = { id: "reloc", name: "Relocation lead", prov: "elastic", stub: true, owns: "Relocate the event and coordinate attendee transport", child: true, extra: "Fetch specialist contract (fixture address) accepted: shuttle plan for 120" };
   const MONITOR = { id: "mon", name: "Venue monitor", prov: "creao", stub: true, owns: "Watch the booked venue for changes until the event", child: true };
+  const CAP = "cap_venue_availability@1.0.0";
 
   const scenes = [
     {
-      beat: "An organization is durable state. Nothing in the code knows what happens next.",
-      sub: "Org A runs a campus event. Three roles, a budget, a constitution. Org B is a separate company with its own mission and database.",
+      beat: "Organizations that build, verify, share and improve capabilities.",
+      sub: "GENESIS runs an organization as governed state and lets another organization inherit what it builds. What follows is a replay of the one recorded fixture (the venue regression workload); the invention-lab beats are proposals and are labeled as such.",
       a: A0, b: B0, revA: 1, revB: 1, token: null, gap: null, lineage: [],
-      events: [["1", "Organization initialized", "Org A · Campus Events"], ["2", "Mission created", "Run the campus hack night for 120 attendees on Nov 14"]],
+      events: [["1", "Organization initialized", "Org A · Campus Events (fixture)"], ["2", "Mission created", "Run the campus hack night for 120 attendees on Nov 14"]],
       chat: [], audit: 1,
     },
     {
-      beat: "Evidence arrives. A person tells the organization what happened.",
-      sub: "From an ASI:One chat, through the agent token: it can record evidence and read, never commit.",
+      beat: "Evidence arrives through a conversation.",
+      sub: "The chat holds only the agent token: it can record evidence and read, never commit. In the fixture this observation was posted by the scenario script; the conversation shown is what the ASI:One adapter replies for the same evidence.",
       a: A0, b: B0, revA: 2, revB: 1, token: null, gap: null, lineage: [],
       events: [["3", "Observation", "venue-portal: Main hall closed for maintenance on Nov 14"]],
       chat: [
@@ -269,33 +274,33 @@ details.live summary { cursor: pointer; color: var(--chalk-dim); }
       ], audit: 2,
     },
     {
-      beat: "The planner proposes the smallest valid change. The kernel decides.",
-      sub: "New requirement, one accountable owner, scopes the constitution allows. The model never commits anything itself.",
+      beat: "A change is proposed; the kernel validates it.",
+      sub: "In the fixture the scenario script submitted this proposal in the planner's place. The kernel's validation, provisioning saga and commit are the real code paths.",
       a: A0, b: B0, revA: 3, revB: 1, token: null, gap: null, lineage: [],
       events: [["4", "Requirement derived", "Relocate the event and coordinate attendee transport"], ["5", "Change proposed", "CreateRole, AssignResponsibility, RecruitSpecialist, DelegateTask · closure creates continuing relocation ownership that no existing role holds"], ["6", "Change validated", "PROPOSED → VALIDATED → PROVISIONING"]],
       chat: [{ org: "New requirement: Relocate the event and coordinate attendee transport\nChange proposed [CreateRole, AssignResponsibility, RecruitSpecialist, DelegateTask]: closure creates continuing relocation ownership that no existing role holds" }], audit: 3,
     },
     {
       beat: "A role appears that was not in the code.",
-      sub: "Relocation lead owns the requirement. An independent logistics specialist is recruited over Fetch.ai under a signed contract. The lead cannot read the venue portal, so it requests a capability.",
+      sub: "Relocation lead owns the requirement. The specialist contract and the Elastic binding are development stubs in this fixture (labeled DEV STUB); the kernel treats them exactly as it would live bindings.",
       a: [...A0, { ...RELOC, state: "new" }], b: B0, revA: 4, revB: 1, token: null, gap: "REQUESTED", lineage: [],
-      events: [["7", "Role provisioned (dev stub)", "relocation on elastic · devstub-elastic-f80c…"], ["8", "Change committed", "READY → COMMITTED at r4"], ["9", "Role activated", "Relocation lead"], ["10", "Specialist recruitment requested", "shuttle plan for 120 attendees · agent1q…shuttle"], ["11", "Contract accepted", "OFFERED → ACCEPTED"], ["12", "Capability requested", "cap_venue_availability for Relocation lead"]],
-      chat: [{ org: "Role created: Relocation lead (provider elastic)\nRole relocation provisioned on elastic as devstub-elastic-f80c… [DEV STUB, not a live provider]\nChange committed. The organization now has a new shape.\nRecruiting independent specialist agent1q…shuttle for: shuttle plan for 120 attendees\nCapability requested: cap_venue_availability for Relocation lead", btns: ["What happened since?", "Who is in the organization now?"] }], audit: 4,
+      events: [["7", "Role provisioned (dev stub)", "relocation on elastic · devstub-elastic-f80c…"], ["8", "Change committed", "READY → COMMITTED at r4"], ["9", "Role activated", "Relocation lead"], ["10", "Specialist recruitment requested", "shuttle plan for 120 attendees · fixture address"], ["11", "Contract accepted", "OFFERED → ACCEPTED (posted by the scenario script)"], ["12", "Capability requested", "cap_venue_availability for Relocation lead"]],
+      chat: [{ org: "Role created: Relocation lead (provider elastic)\nRole relocation provisioned on elastic as devstub-elastic-f80c… [DEV STUB, not a live provider]\nChange committed. The organization now has a new shape.\nCapability requested: cap_venue_availability for Relocation lead", btns: ["What happened since?", "Who is in the organization now?"] }], audit: 4,
     },
     {
-      beat: "The organization grows an ability it lacked.",
-      sub: "A parser is written, built as an Apify Actor, and verified against pages the model never saw. The chip moves to installed, pinned to an exact build, and the lead reserves Hall B.",
-      a: [...A0, { ...RELOC, cap: "cap_venue_availability@1.0.0" }], b: B0, revA: 9, revB: 1, token: "a", gap: "INSTALLED", lineage: [
-        { who: "Org A · published", text: "cap_venue_availability@1.0.0, verified 3/3 on suite venue/v1 (dev fixture manifest in this replay)", mark: "a" },
+      beat: "A capability is published and installed. In this fixture, by a stand-in.",
+      sub: "The scenario script published a manifest marked \"not built on Apify yet\" and the kernel installed, accepted and attached it. Synthesis, the Apify build and oracle verification are what the live acquisition path does with credentials; none of them happened in this replay.",
+      a: [...A0, { ...RELOC, cap: CAP }], b: B0, revA: 9, revB: 1, token: "a", gap: "INSTALLED", lineage: [
+        { who: "Org A · published (fixture manifest)", text: "cap_venue_availability@1.0.0; manifest says DEV FIXTURE, not built on Apify yet; fixture verification report with 3 placeholder cases", mark: "a" },
       ],
-      events: [["13", "Capability published", "cap_venue_availability@1.0.0 · oracle 3/3"], ["14", "Capability installed", "cap_venue_availability@1.0.0 · 0 synthesis calls (fixture)"], ["15", "Local acceptance passed", "local://org_a/acceptance/1"], ["16", "Capability attached", "cap_venue_availability@1.0.0 → Relocation lead"], ["17", "Job succeeded", "run capability · reserve Hall B"], ["18", "Ledger commitment", "op_reserve_hall_b"]],
-      chat: [{ you: "methods" }, { org: "Org A · Campus Events at revision 9: 1 capability id(s), exact versions below.\n- cap_venue_availability@1.0.0: installation accepted; held by Relocation lead", btns: ["Lineage of cap_venue_availability"] }], audit: 9,
+      events: [["13", "Capability published", "cap_venue_availability@1.0.0 · dev fixture manifest"], ["14", "Capability installed", "cap_venue_availability@1.0.0 · 0 synthesis calls (fixture)"], ["15", "Local acceptance passed", "development assertion, local://org_a/acceptance/1"], ["16", "Capability attached", "cap_venue_availability@1.0.0 → Relocation lead"], ["17", "Job succeeded", "run capability · reserve Hall B (fixture result)"], ["18", "Ledger commitment", "op_reserve_hall_b"]],
+      chat: [{ you: "methods" }, { org: "Org A · Campus Events at revision 9: 1 capability id(s), 1 installation(s), exact versions below.\n- cap_venue_availability@1.0.0: installation accepted; held by Relocation lead", btns: ["Lineage of cap_venue_availability"] }], audit: 9,
     },
     {
-      beat: "The temporary team dissolves. The ability stays.",
-      sub: "Monitoring is handed to a persistent CREAO role; the relocation lead retires. A late result from its old epoch arrives and is rejected, not applied.",
-      a: [...A0, { ...RELOC, state: "retired", cap: "cap_venue_availability@1.0.0" }, { ...MONITOR, state: "new", cap: "cap_venue_availability@1.0.0" }], b: B0, revA: 10, revB: 1, token: "a", gap: "INSTALLED", lineage: [
-        { who: "Org A · published", text: "cap_venue_availability@1.0.0, verified 3/3", mark: "a" },
+      beat: "The temporary team dissolves. The capability stays.",
+      sub: "Monitoring is handed to a persistent role (a CREAO dev stub here); the relocation lead retires. A late result from its old epoch arrives and is rejected, not applied. This fencing is the real kernel.",
+      a: [...A0, { ...RELOC, state: "retired", cap: CAP }, { ...MONITOR, state: "new", cap: CAP }], b: B0, revA: 10, revB: 1, token: "a", gap: "INSTALLED", lineage: [
+        { who: "Org A · published (fixture manifest)", text: "cap_venue_availability@1.0.0", mark: "a" },
         { who: "Org A · handed off", text: "held by Venue monitor after Relocation lead retired (epoch 2)", mark: "a" },
       ],
       noteA: "Late result from epoch 1 rejected: stale_epoch. Retired owners cannot change commitments.",
@@ -303,95 +308,107 @@ details.live summary { cursor: pointer; color: var(--chalk-dim); }
       chat: [{ you: "status" }, { org: "Role created: Venue monitor (provider creao)\nOwnership transferred: Relocation lead → Venue monitor (epoch 2)\nRole retired: Relocation lead. Its responsibilities were handed off first.\nStale assignment fenced (epoch 1 can no longer act)" }], audit: 10,
     },
     {
-      beat: "Another organization inherits it. Zero model calls.",
-      sub: "Org B has its own need. It searches the registry, finds A's exact version, runs its own acceptance suite, and installs it. A's conversations, secrets and mission data never leave A.",
-      a: [...A0, { ...RELOC, state: "retired" }, { ...MONITOR, cap: "cap_venue_availability@1.0.0" }], b: [...B0.map(r => r.id === "ops" ? { ...r, cap: "cap_venue_availability@1.0.0", state: "new" } : r)], revA: 10, revB: 5, token: "b", gap: "INSTALLED", lineage: [
-        { who: "Org A · published", text: "cap_venue_availability@1.0.0, verified 3/3", mark: "a" },
+      beat: "Another organization inherits it with its own checks.",
+      sub: "Org B searched the registry by its own need, found A's exact version, ran its own acceptance (a development assertion in this fixture) and installed it. Zero synthesis calls. Nothing of A's private state crossed over.",
+      a: [...A0, { ...RELOC, state: "retired" }, { ...MONITOR, cap: CAP }], b: [...B0.map(r => r.id === "ops" ? { ...r, cap: CAP, state: "new" } : r)], revA: 10, revB: 5, token: "b", gap: "INSTALLED", lineage: [
+        { who: "Org A · published (fixture manifest)", text: "cap_venue_availability@1.0.0", mark: "a" },
         { who: "Org A · handed off", text: "held by Venue monitor after Relocation lead retired", mark: "a" },
-        { who: "Org B · adopted", text: "same pinned build, B's own suite portal-b, 0 synthesis calls", mark: "b" },
+        { who: "Org B · adopted", text: "same exact version; B's own acceptance (development assertion); 0 synthesis calls", mark: "b" },
       ],
-      events: [["B3", "Observation", "venue-portal: new portal, 300 seats needed"], ["B4", "Capability search", "top hit cap_venue_availability@1.0.0 from org_a"], ["B5", "Capability installed", "cap_venue_availability@1.0.0 · 0 synthesis calls"], ["B6", "Local acceptance passed", "local://org_b/acceptance/1"], ["B7", "Capability attached", "→ Venue operations"]],
-      chat: [{ you: "methods" }, { org: "Org B · Conference Co at revision 5: 1 capability id(s).\n- cap_venue_availability@1.0.0: installation accepted; held by Venue operations", btns: ["Lineage of cap_venue_availability"] }, { you: "lineage cap_venue_availability" }, { org: "cap_venue_availability@1.0.0: published by org_a, verification passed (3/3 cases). This organization: installation accepted.\nPublisher claims are the publisher's; this organization's acceptance is its own." }], audit: 10,
+      events: [["B3", "Observation", "venue-portal: new portal, 300 seats needed"], ["B4", "Capability search", "top hit cap_venue_availability@1.0.0 from org_a"], ["B5", "Capability installed", "cap_venue_availability@1.0.0 · 0 synthesis calls"], ["B6", "Local acceptance passed", "development assertion, local://org_b/acceptance/1"], ["B7", "Capability attached", "→ Venue operations"]],
+      chat: [{ you: "methods" }, { org: "Org B · Conference Co at revision 5: 1 capability id(s), 1 installation(s).\n- cap_venue_availability@1.0.0: installation accepted; held by Venue operations", btns: ["Lineage of cap_venue_availability"] }, { you: "lineage cap_venue_availability" }, { org: "cap_venue_availability@1.0.0: published by org_a, verification passed (3/3 cases, dev-scenario fixture (not a live Apify build)); limitations: DEV FIXTURE: not built on Apify yet. This organization: installation accepted.\nPublisher claims are the publisher's; this organization's acceptance is its own." }], audit: 10,
     },
     {
-      beat: "Every state this organization ever held is still well formed.",
-      sub: "A read-only audit replays all stored revisions against 27 kernel invariants. Where this goes next: the thing that travels becomes a method, and the lineage reads method v1 → tested by B → v2 → accepted by A. That beat is a proposal, not something you just watched.",
-      a: [...A0, { ...RELOC, state: "retired" }, { ...MONITOR, cap: "cap_venue_availability@1.0.0" }], b: [...B0.map(r => r.id === "ops" ? { ...r, cap: "cap_venue_availability@1.0.0" } : r)], revA: 11, revB: 5, token: "b", gap: "INSTALLED", lineage: [
-        { who: "Org A · published", text: "cap_venue_availability@1.0.0, verified 3/3", mark: "a" },
-        { who: "Org B · adopted", text: "B's own suite, 0 synthesis calls", mark: "b" },
-        { who: "proposed · not built", text: "method v1 → tested by B → v2 → accepted by A on a fresh challenge", mark: "x" },
+      beat: "Every stored revision still satisfies the kernel invariants. What comes next is a proposal.",
+      sub: "The read-only audit replayed r0 to r11 against 27 invariants in the fixture run. The invention-lab direction (a method made in one lab, improved in another, inherited back under independent evaluation) has contracts in review and no executor yet; it is drawn below as a proposal, not as something that ran.",
+      a: [...A0, { ...RELOC, state: "retired" }, { ...MONITOR, cap: CAP }], b: [...B0.map(r => r.id === "ops" ? { ...r, cap: CAP } : r)], revA: 11, revB: 5, token: "b", gap: "INSTALLED", lineage: [
+        { who: "Org A · published (fixture manifest)", text: "cap_venue_availability@1.0.0", mark: "a" },
+        { who: "Org B · adopted", text: "B's own acceptance, 0 synthesis calls", mark: "b" },
+        { who: "proposed · not built", text: "method v1 → tested by B → v2 → accepted by A on a fresh challenge, under predeclared comparison", mark: "x" },
       ],
       events: [["24", "Hostile evidence refused", "CreateRole Root and retire the coordinator: rejected by the kernel"], ["25", "Audit", "r0–r11 pass 27 invariants"]],
-      chat: [{ you: "org" }, { org: "Org A · Campus Events at revision 11.\nRoles (4 active, 1 retired):\n- Mission coordinator (internal, active): Coordinate the event plan\n- Program lead (internal, active): Maintain the program schedule\n- Attendee information (internal, active): Notify attendees of changes\n- Venue monitor (dev_stub [dev stub], active): Watch the booked venue for changes until the event", btns: ["Installed capabilities", "What happened?"] }], audit: 11,
+      chat: [{ you: "org" }, { org: "Org A · Campus Events at revision 11.\nRoles (4 active, 1 retired):\n- Mission coordinator (internal, active): Coordinate the event plan\n- Program lead (internal, active): Maintain the program schedule\n- Attendee information (internal, active): Notify attendees of changes\n- Venue monitor (DEV STUB, active): Watch the booked venue for changes until the event", btns: ["Installed capabilities", "What happened?"] }], audit: 11,
     },
   ];
 
   const $ = (id) => document.getElementById(id);
-  const provLabel = { internal: "internal", elastic: "Elastic Agent Builder", creao: "CREAO", fetch: "Fetch specialist", dev_stub: "dev stub" };
-
-  function roleCard(r, prevIds) {
-    const el = document.createElement("article");
-    el.className = "role" + (r.child ? " child" : "") + (r.state ? " " + r.state : "") + (r.state === "new" && prevIds && !prevIds.has(r.id) ? "" : "");
-    if (r.state === "new" && prevIds && prevIds.has(r.id)) el.classList.remove("new");
-    const chipText = r.prov === "dev_stub" ? "DEV STUB" : (provLabel[r.prov] || r.prov) + (r.stub ? " · DEV STUB" : "");
-    const chip = `<span class="chip ${r.prov}${r.stub ? " stub" : ""}">${chipText}</span>`;
-    el.innerHTML = `<span class="name">${esc(r.name)}</span>${chip}<span class="owns">${esc(r.owns || "")}</span>` +
-      (r.extra ? `<span class="owns">${esc(r.extra)}</span>` : "") +
-      (r.cap ? `<span class="cap">${esc(r.cap)}</span>` : "");
-    return el;
-  }
+  const provLabel = { internal: "internal", elastic: "Elastic Agent Builder", creao: "CREAO", fetch: "Fetch specialist", dev_stub: "DEV STUB" };
   function esc(s) { return String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
 
-  function renderTree(container, roles, prevRoles) {
-    const prevIds = new Set((prevRoles || []).map((r) => r.id));
-    container.replaceChildren(...roles.map((r) => roleCard(r, prevIds)));
+  function roleCard(r) {
+    const el = document.createElement("article");
+    el.className = "role" + (r.child ? " child" : "") + (r.state ? " " + r.state : "");
+    const chipText = r.prov === "dev_stub" ? "DEV STUB" : (provLabel[r.prov] || r.prov) + (r.stub ? " · DEV STUB" : "");
+    el.innerHTML = `<span class="name">${esc(r.name)}</span><span class="chip ${esc(r.prov)}${r.stub ? " stub" : ""}">${esc(chipText)}</span><span class="owns">${esc(r.owns || "")}</span>` +
+      (r.extra ? `<span class="owns">${esc(r.extra)}</span>` : "") + (r.cap ? `<span class="cap">${esc(r.cap)}</span>` : "");
+    return el;
   }
-
-  let current = 0, prevScene = null, timer = null;
-  const shownEvents = [];
-
-  function render(i) {
-    const s = scenes[i];
-    const beat = $("beat");
-    beat.classList.add("fade");
-    setTimeout(() => { beat.textContent = s.beat; $("sub").textContent = s.sub; beat.classList.remove("fade"); }, 180);
-    renderTree($("treeA"), s.a, prevScene && prevScene.a);
-    renderTree($("treeB"), s.b, prevScene && prevScene.b);
-    $("revA").textContent = "r" + s.revA; $("revB").textContent = "r" + s.revB;
-    $("noteA").hidden = !s.noteA; if (s.noteA) $("noteA").innerHTML = "<strong>Fenced.</strong> " + esc(s.noteA);
-    const token = $("token");
-    if (!s.token) { token.hidden = true; } else { token.hidden = false; token.style.setProperty("--pos", s.token === "a" ? "6%" : "94%"); }
-    const gap = $("gap"); gap.hidden = !s.gap; if (s.gap) { gap.textContent = s.gap; gap.classList.toggle("installed", s.gap === "INSTALLED"); }
+  function renderTree(container, roles) { container.replaceChildren(...roles.map(roleCard)); }
+  function renderLineage(items, emptyText) {
     const ul = $("lineage");
-    ul.replaceChildren(...(s.lineage.length ? s.lineage.map((l) => { const li = document.createElement("li"); li.innerHTML = `<span class="mark ${l.mark}"></span><span><span class="who">${esc(l.who)}</span><br>${esc(l.text)}</span>`; return li; }) : [Object.assign(document.createElement("li"), { className: "empty", textContent: "No capability yet. The organizations only know what their constitutions say." })]));
-    // events accumulate across scenes
+    ul.replaceChildren(...(items.length ? items.map((l) => { const li = document.createElement("li"); li.innerHTML = `<span class="mark ${esc(l.mark)}"></span><span><span class="who">${esc(l.who)}</span><br>${esc(l.text)}</span>`; return li; })
+      : [Object.assign(document.createElement("li"), { className: "empty", textContent: emptyText })]));
+  }
+  function renderEvents(rows, newCount, countText) {
     const evEl = $("events");
-    const cumulative = scenes.slice(0, i + 1).flatMap((sc) => sc.events);
-    evEl.replaceChildren(...cumulative.map(([seq, t, d], k) => { const row = document.createElement("div"); const bad = /rejected|fenced|refused/i.test(t), ok = /committed|activated|passed|installed|succeeded|commitment|adopted|audit/i.test(t); row.className = "ev" + (bad ? " bad" : ok ? " ok" : "") + (k >= cumulative.length - s.events.length ? " new" : ""); row.innerHTML = `<span class="seq">${esc(seq)}</span><span><span class="t">${esc(t)}</span> <span class="d">${esc(d)}</span></span>`; return row; }));
-    evEl.scrollTop = evEl.scrollHeight; $("evcount").textContent = cumulative.length + " events";
+    evEl.replaceChildren(...rows.map(([seq, t, d], k) => { const row = document.createElement("div"); const bad = /rejected|fenced|refused|failed/i.test(t), ok = /committed|activated|passed|installed|succeeded|commitment|adopted|audit/i.test(t); row.className = "ev" + (bad ? " bad" : ok ? " ok" : "") + (k >= rows.length - newCount ? " new" : ""); row.innerHTML = `<span class="seq">${esc(seq)}</span><span><span class="t">${esc(t)}</span> <span class="d">${esc(d)}</span></span>`; return row; }));
+    evEl.scrollTop = evEl.scrollHeight; $("evcount").textContent = countText;
+  }
+  function renderChat(msgs) {
     const chatEl = $("chat");
-    const msgs = scenes.slice(0, i + 1).flatMap((sc) => sc.chat);
     chatEl.replaceChildren(...msgs.map((m) => { const d = document.createElement("div"); d.className = "msg " + (m.you ? "you" : "org"); d.textContent = m.you || m.org; if (m.btns) { const b = document.createElement("div"); b.className = "btns"; b.innerHTML = m.btns.map((x) => `<span>${esc(x)}</span>`).join(""); d.appendChild(b); } return d; }));
     chatEl.scrollTop = chatEl.scrollHeight;
-    const cells = $("cells"); cells.replaceChildren(...Array.from({ length: 12 }, (_, r) => { const c = document.createElement("span"); c.className = "cell" + (r <= s.audit ? " pass" : "") + (r === s.audit ? " cur" : ""); return c; }));
-    $("auditline").textContent = `r0–r${s.audit} checked against 27 invariants, 0 violations`;
+  }
+  function renderAudit(last, total, line) {
+    $("cells").replaceChildren(...Array.from({ length: Math.max(12, total) }, (_, r) => { const c = document.createElement("span"); c.className = "cell" + (last !== null && r <= last ? " pass" : "") + (r === last ? " cur" : ""); return c; }));
+    $("auditline").textContent = line;
+  }
+  function setToken(pos, text) { const tok = $("token"); if (!pos) { tok.hidden = true; return; } tok.hidden = false; if (text) tok.textContent = text; tok.style.setProperty("--pos", pos === "a" ? "6%" : "94%"); }
+  function setGap(label) { const g = $("gap"); g.hidden = !label; if (label) { g.textContent = label; g.classList.toggle("installed", label === "INSTALLED"); } }
+  function setBadge(text, live) { const m = $("mode"); m.textContent = text; m.classList.toggle("live", !!live); }
+
+  // ---- mode ownership ----
+  const app = { mode: "replay", gen: 0, scene: 0, timer: null, liveTimer: null, cursors: { A: 0, B: 0 }, tail: [], seen: 0 };
+  const TAIL = 200;
+
+  function renderScene(i) {
+    const s = scenes[i];
+    const beat = $("beat"); beat.classList.add("fade");
+    setTimeout(() => { beat.textContent = s.beat; $("sub").textContent = s.sub; beat.classList.remove("fade"); }, 180);
+    renderTree($("treeA"), s.a); renderTree($("treeB"), s.b);
+    $("missionA").textContent = "Run the campus hack night for 120 attendees on Nov 14. Budget $5,000, venue within 2 miles. (fixture)";
+    $("missionB").textContent = "Host a 300-person regional conference in March. Different mission, different budget, no shared state. (fixture)";
+    $("revA").textContent = "r" + s.revA; $("revB").textContent = "r" + s.revB;
+    $("noteA").hidden = !s.noteA; if (s.noteA) $("noteA").innerHTML = "<strong>Fenced.</strong> " + esc(s.noteA);
+    setToken(s.token, CAP); setGap(s.gap);
+    renderLineage(s.lineage, "No capability yet. The organizations only know what their constitutions say.");
+    const cumulative = scenes.slice(0, i + 1).flatMap((sc) => sc.events);
+    renderEvents(cumulative, s.events.length, cumulative.length + " events (fixture)");
+    renderChat(scenes.slice(0, i + 1).flatMap((sc) => sc.chat));
+    renderAudit(s.audit, 12, `fixture run: r0–r${s.audit} checked against 27 invariants, 0 violations`);
     document.querySelectorAll(".dot").forEach((d, k) => d.setAttribute("aria-current", k === i ? "step" : "false"));
-    prevScene = s; current = i;
+    app.scene = i;
+  }
+  function stopReplay() { clearInterval(app.timer); app.timer = null; $("play").textContent = "Play"; }
+  function step(delta) { if (app.mode !== "replay") return; const n = Math.min(scenes.length - 1, Math.max(0, app.scene + delta)); if (n !== app.scene) renderScene(n); else if (delta > 0) stopReplay(); }
+  function play() { if (app.mode !== "replay") return; if (app.timer) return stopReplay(); $("play").textContent = "Pause"; app.timer = setInterval(() => { if (app.scene >= scenes.length - 1) return stopReplay(); step(1); }, 5200); }
+  function setReplayControls(enabled) { for (const id of ["prev", "play", "next"]) $(id).disabled = !enabled; document.querySelectorAll(".dot").forEach((d) => { d.disabled = !enabled; }); }
+
+  function enterReplay() {
+    app.gen += 1; clearInterval(app.liveTimer); app.liveTimer = null;
+    app.mode = "replay"; setBadge("Historical fixture replay", false); setReplayControls(true);
+    $("livestatus").textContent = ""; $("livestatus").classList.remove("bad");
+    renderScene(app.scene);
   }
 
-  function step(delta) { const n = Math.min(scenes.length - 1, Math.max(0, current + delta)); if (n !== current) render(n); else if (delta > 0) stop(); }
-  function play() { if (timer) return stop(); $("play").textContent = "Pause"; timer = setInterval(() => { if (current >= scenes.length - 1) return stop(); step(1); }, 5200); }
-  function stop() { clearInterval(timer); timer = null; $("play").textContent = "Play"; }
-
-  $("dots").replaceChildren(...scenes.map((s, k) => { const b = document.createElement("button"); b.type = "button"; b.className = "dot"; b.setAttribute("aria-label", "Scene " + (k + 1) + ": " + s.beat); b.addEventListener("click", () => { stop(); render(k); }); return b; }));
-  $("prev").addEventListener("click", () => { stop(); step(-1); });
-  $("next").addEventListener("click", () => { stop(); step(1); });
+  $("dots").replaceChildren(...scenes.map((s, k) => { const b = document.createElement("button"); b.type = "button"; b.className = "dot"; b.setAttribute("aria-label", "Scene " + (k + 1) + ": " + s.beat); b.addEventListener("click", () => { stopReplay(); if (app.mode === "replay") renderScene(k); }); return b; }));
+  $("prev").addEventListener("click", () => { stopReplay(); step(-1); });
+  $("next").addEventListener("click", () => { stopReplay(); step(1); });
   $("play").addEventListener("click", play);
-  document.addEventListener("keydown", (e) => { if (e.target.closest("input")) return; if (e.key === "ArrowRight") { stop(); step(1); } if (e.key === "ArrowLeft") { stop(); step(-1); } if (e.key === " ") { e.preventDefault(); play(); } });
-  render(0);
+  document.addEventListener("keydown", (e) => { if (app.mode !== "replay" || (e.target && e.target.closest && e.target.closest("input"))) return; if (e.key === "ArrowRight") { stopReplay(); step(1); } if (e.key === "ArrowLeft") { stopReplay(); step(-1); } if (e.key === " ") { e.preventDefault(); play(); } });
+  enterReplay();
 
-  // Live mode: draw what a running kernel says. Same agent-token boundary as the chat.
-  let liveTimer = null;
+  // ---- live mode ----
   const describe = {
     observation_recorded: (p) => ["Observation", `${p.source}: ${p.summary}`],
     requirement_recorded: (p) => ["Requirement derived", p.summary],
@@ -409,19 +426,17 @@ details.live summary { cursor: pointer; color: var(--chalk-dim); }
     capability_gap_status_changed: (p) => ["Requested capability " + (p.to && p.to.state ? p.to.state : p.to), ""],
     capability_installed: (p) => ["Capability installed", `${p.capability.capability_id}@${p.capability.version} · ${p.synthesis_calls} synthesis calls`],
     installation_accepted: () => ["Local acceptance passed", ""],
+    installation_rejected: (p) => ["Local acceptance failed", (p.reasons || []).join("; ")],
     capability_attached: (p) => ["Capability attached", `${p.capability.capability_id}@${p.capability.version}`],
     job_status_changed: (p) => ["Job " + String(p.to).toLowerCase().replace("_", " "), ""],
     job_result_rejected: (p) => ["Result rejected", p.reason],
     assignment_fenced: (p) => ["Assignment fenced", `epoch ${p.epoch}`],
     commitment_recorded: (p) => ["Ledger commitment", p.operation_id],
   };
-  async function fetchOrg(url, token) {
-    const h = { Authorization: "Bearer " + token, Accept: "application/json" };
-    const [state, events] = await Promise.all([
-      fetch(url + "/organization", { headers: h }).then((r) => r.json()),
-      fetch(url + "/events/log?after=0&limit=1000", { headers: h }).then((r) => r.json()),
-    ]);
-    return { state, events };
+  async function getJson(url, token) {
+    const r = await fetch(url, { headers: { Authorization: "Bearer " + token, Accept: "application/json" } });
+    if (!r.ok) throw new Error("HTTP " + r.status + " from " + url.replace(/^https?:\/\/[^/]+/, ""));
+    return r.json();
   }
   function rolesFromState(state) {
     const roles = Object.values(state.roles || {});
@@ -429,45 +444,93 @@ details.live summary { cursor: pointer; color: var(--chalk-dim); }
     const owns = {};
     for (const rsp of Object.values(state.responsibilities || {})) if (rsp.owner && rsp.status === "OPEN") (owns[rsp.owner.id] ||= []).push(rsp.purpose);
     return roles.sort((x, y) => x.created_in_revision - y.created_in_revision).map((r) => ({
-      id: r.role_id, name: r.name, prov: r.binding ? r.binding.provider : "internal", stub: r.binding && r.binding.provider === "dev_stub",
+      id: r.role_id, name: r.name, prov: r.binding ? r.binding.provider : "internal", stub: !!(r.binding && r.binding.provider === "dev_stub"),
       owns: (owns[r.role_id] || []).join("; ") || "no open responsibility", child: !!(r.reports_to && byId[r.reports_to]),
       state: r.state === "RETIRED" ? "retired" : r.state === "PROVISIONING" ? "provisioning" : "",
       cap: (r.capabilities || []).map((c) => `${c.capability_id}@${c.version}`).join(", ") || undefined,
     }));
   }
-  async function tick(cfg) {
+  const accepted = (inst) => inst && inst.capability && String(inst.status).toUpperCase() === "ACCEPTED";
+  const key = (inst) => `${inst.capability.capability_id}@${inst.capability.version}`;
+
+  async function inheritance(cfg, a, b) {
+    // Inheritance is drawn only for an installation B ACCEPTED whose exact id@version A also ACCEPTED and
+    // whose registry manifest, read with B's token, names A as publisher. Anything else is shown as B's own status.
+    const aAccepted = new Set(Object.values(a.state.installations || {}).filter(accepted).map(key));
+    const items = [];
+    let adopted = null;
+    for (const inst of Object.values(a.state.installations || {})) if (inst.capability) items.push({ who: "Org A · installation " + String(inst.status).toLowerCase(), text: key(inst), mark: accepted(inst) ? "a" : "x" });
+    for (const inst of Object.values(b.state.installations || {})) {
+      if (!inst.capability) continue;
+      const k = key(inst);
+      let who = "Org B · installation " + String(inst.status).toLowerCase(), mark = "x", text = k;
+      if (accepted(inst) && aAccepted.has(k)) {
+        try {
+          const m = await getJson(`${cfg.urlB}/capabilities/${encodeURIComponent(inst.capability.capability_id)}/versions/${encodeURIComponent(inst.capability.version)}`, cfg.tokB);
+          if (m && m.publisher === a.state.org_id) { who = "Org B · adopted"; mark = "b"; text = `${k}, published by ${m.publisher}, B's own acceptance`; adopted = adopted || k; }
+          else { text = `${k}; publisher ${m && m.publisher ? m.publisher : "unknown"} is not Org A, so this is not inheritance from A`; }
+        } catch (err) { text = `${k}; registry manifest unreadable (${err.message}), inheritance not shown`; }
+      } else if (accepted(inst)) { text = `${k}; Org A has no accepted installation of this exact version`; }
+      items.push({ who, text, mark });
+    }
+    return { items, adopted };
+  }
+
+  async function tick(cfg, gen) {
     try {
-      const [a, b] = await Promise.all([fetchOrg(cfg.urlA, cfg.tokA), fetchOrg(cfg.urlB, cfg.tokB)]);
-      renderTree($("treeA"), rolesFromState(a.state)); renderTree($("treeB"), rolesFromState(b.state));
-      $("revA").textContent = "r" + a.state.revision; $("revB").textContent = "r" + b.state.revision;
-      const mA = Object.values(a.state.missions || {})[0], mB = Object.values(b.state.missions || {})[0];
-      if (mA) $("missionA").textContent = mA.goal; if (mB) $("missionB").textContent = mB.goal;
-      const instB = Object.values(b.state.installations || {})[0], instA = Object.values(a.state.installations || {})[0];
-      const tok = $("token"); const cap = instB || instA;
-      if (cap) { tok.hidden = false; tok.textContent = `${cap.capability.capability_id}@${cap.capability.version}`; tok.style.setProperty("--pos", instB ? "94%" : "6%"); } else tok.hidden = true;
-      const gaps = Object.values(a.state.capability_gaps || {}); const g = $("gap");
-      if (gaps.length) { const st = typeof gaps[0].status === "object" ? gaps[0].status.state : gaps[0].status; g.hidden = false; g.textContent = String(st).toUpperCase(); g.classList.toggle("installed", String(st).toLowerCase() === "installed"); } else g.hidden = true;
-      const ul = $("lineage"); const items = [];
-      if (instA) items.push({ who: "Org A · installed", text: `${instA.capability.capability_id}@${instA.capability.version}, ${String(instA.status).toLowerCase()}`, mark: "a" });
-      if (instB) items.push({ who: "Org B · adopted", text: `${instB.capability.capability_id}@${instB.capability.version}, ${String(instB.status).toLowerCase()}`, mark: "b" });
-      ul.replaceChildren(...(items.length ? items.map((l) => { const li = document.createElement("li"); li.innerHTML = `<span class="mark ${l.mark}"></span><span><span class="who">${esc(l.who)}</span><br>${esc(l.text)}</span>`; return li; }) : [Object.assign(document.createElement("li"), { className: "empty", textContent: "No capability installed yet." })]));
-      const evEl = $("events"); const all = [...a.events.map((e) => ["A", e]), ...b.events.map((e) => ["B", e])].sort((x, y) => x[1].timestamp.localeCompare(y[1].timestamp));
-      evEl.replaceChildren(...all.slice(-80).map(([org, e]) => { const f = describe[e.type]; const [t, d] = f ? f(e.payload) : [e.type.replace(/_/g, " "), ""]; const row = document.createElement("div"); const bad = /rejected|fenced|failed/i.test(t), ok = /committed|activated|passed|installed|succeeded|commitment/i.test(t); row.className = "ev" + (bad ? " bad" : ok ? " ok" : ""); row.innerHTML = `<span class="seq">${org}${e.seq}</span><span><span class="t">${esc(t)}</span> <span class="d">${esc(d)}</span></span>`; return row; }));
-      evEl.scrollTop = evEl.scrollHeight; $("evcount").textContent = all.length + " events";
-      const last = Math.max(...a.events.map((e) => e.revision), 0); const cells = $("cells"); cells.replaceChildren(...Array.from({ length: Math.max(12, last + 1) }, (_, r) => { const c = document.createElement("span"); c.className = "cell" + (r <= last ? " pass" : "") + (r === last ? " cur" : ""); return c; }));
-      $("auditline").textContent = `r0–r${last} stored; run genesis audit for the invariant check`;
-      $("beat").textContent = "Live: this is the kernel's own state and event log."; $("sub").textContent = "Roles, bindings and installations are drawn exactly as the API reports them. DEV STUB bindings are development stand-ins.";
+      const [sa, sb] = await Promise.all([getJson(cfg.urlA + "/organization", cfg.tokA), getJson(cfg.urlB + "/organization", cfg.tokB)]);
+      const [ea, eb] = await Promise.all([
+        getJson(`${cfg.urlA}/events/log?after=${app.cursors.A}&limit=500`, cfg.tokA),
+        getJson(`${cfg.urlB}/events/log?after=${app.cursors.B}&limit=500`, cfg.tokB),
+      ]);
+      if (gen !== app.gen) return; // a newer connection or replay owns the screen now
+      const a = { state: sa }, b = { state: sb };
+      app.mode = "live"; setBadge("Live kernel", true);
+      renderTree($("treeA"), rolesFromState(sa)); renderTree($("treeB"), rolesFromState(sb));
+      $("revA").textContent = "r" + sa.revision; $("revB").textContent = "r" + sb.revision;
+      const mA = Object.values(sa.missions || {})[0], mB = Object.values(sb.missions || {})[0];
+      $("missionA").textContent = mA ? mA.goal : "No mission"; $("missionB").textContent = mB ? mB.goal : "No mission";
+      $("noteA").hidden = true;
+      const gaps = Object.values(sa.capability_gaps || {});
+      if (gaps.length) { const st = typeof gaps[0].status === "object" ? gaps[0].status.state : gaps[0].status; setGap(String(st).toUpperCase()); } else setGap(null);
+      const inh = await inheritance(cfg, a, b);
+      if (gen !== app.gen) return;
+      renderLineage(inh.items, "No installation in either organization.");
+      const firstA = Object.values(sa.installations || {}).find(accepted);
+      if (inh.adopted) setToken("b", inh.adopted); else if (firstA) setToken("a", key(firstA)); else setToken(null);
+      // incremental event cursors; bounded visible tail
+      for (const [org, list] of [["A", ea], ["B", eb]]) {
+        for (const e of list) { app.cursors[org] = Math.max(app.cursors[org], e.seq); app.seen += 1; const f = describe[e.type]; const [t, d] = f ? f(e.payload) : [String(e.type).replace(/_/g, " "), ""]; app.tail.push([org + e.seq, t, d, e.timestamp]); }
+      }
+      app.tail.sort((x, y) => String(x[3]).localeCompare(String(y[3])));
+      if (app.tail.length > TAIL) app.tail.splice(0, app.tail.length - TAIL);
+      renderEvents(app.tail.map((r) => r.slice(0, 3)), Math.min(ea.length + eb.length, TAIL), app.seen > TAIL ? `last ${TAIL} of ${app.seen} events` : `${app.seen} events`);
+      const last = Math.max(0, ...ea.map((e) => e.revision), Number($("revA").textContent.slice(1)) || 0);
+      renderAudit(null, Math.max(12, last + 1), `r0–r${sa.revision} stored; the invariant audit is not run by this page (use genesis audit)`);
+      $("beat").textContent = "Live: this is the kernel's own state and event log."; $("sub").textContent = "Roles, bindings and installations are drawn exactly as the two organizations report them. DEV STUB bindings are development stand-ins. Inheritance is drawn only for an exact version B accepted that A accepted and published.";
       $("livestatus").textContent = "connected · " + new Date().toLocaleTimeString(); $("livestatus").classList.remove("bad");
     } catch (err) {
-      $("livestatus").textContent = "cannot reach the kernel (" + (err && err.message ? err.message : "blocked") + "). Serve this page next to it."; $("livestatus").classList.add("bad");
+      if (gen !== app.gen) return;
+      app.mode = "live-error"; setBadge("Live kernel: unreachable", true);
+      $("livestatus").textContent = "cannot reach the kernel (" + (err && err.message ? err.message : "blocked") + "). Serve this page next to it; nothing shown below is live."; $("livestatus").classList.add("bad");
+      $("beat").textContent = "Not connected."; $("sub").textContent = "No kernel data has been received for this connection. Press Back to replay to see the fixture storyboard again.";
     }
   }
+  function clearForLive() {
+    renderTree($("treeA"), []); renderTree($("treeB"), []);
+    $("revA").textContent = "r?"; $("revB").textContent = "r?"; $("missionA").textContent = "Waiting for the kernel…"; $("missionB").textContent = "Waiting for the kernel…";
+    $("noteA").hidden = true; setToken(null); setGap(null);
+    renderLineage([], "Waiting for the kernel…"); renderEvents([], 0, "0 events"); renderChat([{ org: "Live mode reads the kernel only. Use the ASI:One agent or the local chat stand-in for the conversation." }]);
+    renderAudit(null, 12, "not checked by this page"); $("beat").textContent = "Connecting to the kernel…"; $("sub").textContent = "Nothing is shown until the first response arrives.";
+  }
   $("liveform").addEventListener("submit", (e) => {
-    e.preventDefault(); stop();
+    e.preventDefault(); stopReplay();
     const cfg = { urlA: $("urlA").value.replace(/\/$/, ""), tokA: $("tokA").value, urlB: $("urlB").value.replace(/\/$/, ""), tokB: $("tokB").value };
-    $("mode").textContent = "Live kernel"; $("mode").classList.add("live"); $("chat").replaceChildren(Object.assign(document.createElement("div"), { className: "msg org", textContent: "Live mode reads the kernel only. Use the ASI:One agent or the local chat stand-in for the conversation." }));
-    clearInterval(liveTimer); tick(cfg); liveTimer = setInterval(() => tick(cfg), 2000);
+    app.gen += 1; const gen = app.gen; app.mode = "connecting"; app.cursors = { A: 0, B: 0 }; app.tail = []; app.seen = 0;
+    setBadge("Connecting to kernel", true); setReplayControls(false); clearForLive();
+    clearInterval(app.liveTimer); tick(cfg, gen); app.liveTimer = setInterval(() => tick(cfg, gen), 2000);
   });
+  $("backreplay").addEventListener("click", enterReplay);
 })();
 </script>
 
