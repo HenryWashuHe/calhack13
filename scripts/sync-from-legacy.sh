@@ -24,7 +24,8 @@ git remote get-url legacy >/dev/null 2>&1 || git remote add legacy "$LEGACY_URL"
 git fetch -q --prune legacy
 git fetch -q --prune origin
 if [ ${#branches[@]} -eq 0 ]; then
-  mapfile -t branches < <(git for-each-ref --format='%(refname:short)' refs/remotes/legacy | sed 's#^legacy/##' | grep -v '^HEAD$')
+  # macOS ships bash 3.2 (no mapfile).
+  while IFS= read -r line; do branches+=("$line"); done < <(git for-each-ref --format='%(refname:short)' refs/remotes/legacy | sed 's#^legacy/##' | grep -v '^HEAD$')
 fi
 start=$(git branch --show-current)
 status=0
