@@ -510,3 +510,17 @@ td .sub { display: block; color: var(--ink-3); font-size: 12px; }
   border-style: dashed;
 }
 .duties.gaps li { align-items: baseline; }
+
+/* Henry's Claude: adoption decision trail under a requested capability. */
+.adoption-decisions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 4px; min-width: 0; max-width: 100%; }
+.adoption-decisions > * { min-width: 0; overflow-wrap: anywhere; }
+.decision-trail { width: 100%; margin-top: 6px; overflow-x: auto; }
+.evidence-tiers { list-style: none; padding: 0; margin: 0 0 6px; display: flex; flex-wrap: wrap; gap: 10px; }
+.evidence-tiers li { display: inline-flex; gap: 4px; align-items: baseline; border: 0; padding: 0; }
+.tree .evidence-tiers { padding-left: 0; }
+.tree .evidence-tiers > li { padding-top: 0; }
+.tree .evidence-tiers > li::before, .tree .evidence-tiers > li::after { content: none; display: none; }
+table.decisions td { overflow-wrap: anywhere; }
+table.decisions { width: 100%; border-collapse: collapse; font-size: 12px; }
+table.decisions th, table.decisions td { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+table.decisions th { color: var(--ink-2); font-weight: 500; }
