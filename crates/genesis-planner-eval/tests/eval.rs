@@ -97,7 +97,8 @@ async fn new_role_for_work_an_owner_already_covers_fails() {
         "valid but wrong"
     );
     assert!(!r.passed);
-    assert_eq!(failed(&r), ["forbid_ops", "max_new_roles"]);
+    // A new role also means the existing venue owner did not get the work.
+    assert_eq!(failed(&r), ["forbid_ops", "max_new_roles", "owner_role"]);
 }
 
 #[tokio::test]
@@ -195,6 +196,7 @@ fn capability_sources_must_share_the_evidence_origin() {
         change_status: Some("COMMITTED".into()),
         ops: vec!["RequestCapability".into()],
         escalation: None,
+        escalation_by_model: None,
         attempts: 1,
         latency_ms: 1,
         checks: vec![],
@@ -202,14 +204,26 @@ fn capability_sources_must_share_the_evidence_origin() {
         responses: vec![],
     };
     let op = |src: &str| vec![json!({"op": "RequestCapability", "observed_sources": [src]})];
-    let same = score(&s, &r, &op("https://portal.example/other/page.html"));
-    assert!(same.iter().all(|c| c.ok), "{same:?}");
+    let roles = std::collections::BTreeMap::new();
+    let same = score(
+        &s,
+        &r,
+        &op("https://portal.example/other/page.html"),
+        &roles,
+    );
+    let origin = |c: &[genesis_planner_eval::Check]| {
+        c.iter()
+            .find(|c| c.name == "capability_sources_on_evidence_origin")
+            .unwrap()
+            .ok
+    };
+    assert!(origin(&same), "{same:?}");
     for off in [
         "http://evil.example/venues/main-hall.html",
         "https://portal.example:8443/layout-drift/venues/main-hall.html",
         "file:///etc/passwd",
     ] {
-        let c = score(&s, &r, &op(off));
+        let c = score(&s, &r, &op(off), &roles);
         let o = c
             .iter()
             .find(|c| c.name == "capability_sources_on_evidence_origin")
