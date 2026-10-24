@@ -1,12 +1,14 @@
 //! `lab-exec`: run one frozen trial slot. JSON out.
 //!
-//!   lab-exec ref evaluator | environment <namespaces|none> | method <method.json>
-//!   lab-exec example-plan <namespaces|none> <instances> <sim-steps> <wall-ms> <out.json>
-//!   lab-exec run <plan.json> <slot> <method.json> <state-dir> <namespaces|none>
+//!   lab-exec ref evaluator | environment <namespaces|none> | runtime | protocol
+//!   lab-exec package <source-dir> <id> <version> <entry> <out.json>
+//!   lab-exec example-plan <namespaces|none> <instances> <sim-steps> <wall-ms> <out-dir>
+//!   lab-exec run <plan.json> <slot> <package.json> <state-dir> <namespaces|none>
 //!   lab-exec recover <plan.json> <slot> <state-dir> <namespaces|none>
 //!   lab-exec check <plan.json> <slot> <state-dir>
 use genesis_core::development_experiment::{ExperimentLedger, ExperimentScope};
-use genesis_core::development_method::{ExecutionReceipt, ResourceGrant};
+use genesis_core::development_method::{ExactContentRef, ExecutionReceipt, ResourceGrant};
+use genesis_core::development_package::{MethodPackage, MethodSourceFile};
 use genesis_core::development_trial::{assess_trials, TrialEvidence, TrialPlan};
 use genesis_lab_exec::{example, refs, run, sandbox::Mode};
 use std::path::{Path, PathBuf};
@@ -39,8 +41,42 @@ fn config(m: Mode) -> run::Config {
         },
     }
 }
-fn method_ref(path: &str) -> Result<genesis_core::development_method::ExactContentRef, String> {
-    run::Method::load(Path::new(path))?.reference()
+/// Every file under `dir`, as a #36 package for this host's runtime.
+fn package(dir: &Path, id: &str, version: &str, entry: &str) -> Result<MethodPackage, String> {
+    fn walk(root: &Path, dir: &Path, out: &mut Vec<MethodSourceFile>) -> Result<(), String> {
+        for e in std::fs::read_dir(dir).map_err(|e| format!("read {}: {e}", dir.display()))? {
+            let path = e.map_err(|e| e.to_string())?.path();
+            if path.is_dir() {
+                walk(root, &path, out)?;
+            } else {
+                let rel = path
+                    .strip_prefix(root)
+                    .unwrap()
+                    .to_string_lossy()
+                    .into_owned();
+                let content = std::fs::read_to_string(&path).map_err(|e| format!("{rel}: {e}"))?;
+                out.push(MethodSourceFile { path: rel, content });
+            }
+        }
+        Ok(())
+    }
+    let mut files = vec![];
+    walk(dir, dir, &mut files)?;
+    MethodPackage::new(
+        id.into(),
+        version.into(),
+        refs::runtime(&interpreter_version()),
+        refs::protocol(),
+        entry.into(),
+        vec![],
+        files,
+    )
+    .map_err(|e| format!("package: {e}"))
+}
+fn write_package(p: &MethodPackage, out: &Path) -> Result<ExactContentRef, String> {
+    let bytes = p.artifact_json().map_err(|e| format!("package: {e}"))?;
+    std::fs::write(out, bytes.as_bytes()).map_err(|e| format!("write {}: {e}", out.display()))?;
+    p.reference().map_err(|e| format!("package: {e}"))
 }
 fn finished(f: genesis_lab_exec::session::Finished) -> serde_json::Value {
     serde_json::json!({
@@ -61,12 +97,38 @@ fn main() -> ExitCode {
             ["ref", "environment", m] => {
                 serde_json::to_value(refs::environment(mode(m)?, &interpreter_version())).unwrap()
             }
-            ["ref", "method", path] => serde_json::to_value(method_ref(path)?).unwrap(),
+            ["ref", "runtime"] => {
+                serde_json::to_value(refs::runtime(&interpreter_version())).unwrap()
+            }
+            ["ref", "protocol"] => serde_json::to_value(refs::protocol()).unwrap(),
+            ["package", dir, id, version, entry, out] => serde_json::to_value(write_package(
+                &package(Path::new(dir), id, version, entry)?,
+                Path::new(out),
+            )?)
+            .unwrap(),
             ["example-plan", m, n, steps, wall, out] => {
-                let root = env!("CARGO_MANIFEST_DIR");
+                let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("methods");
+                let out = Path::new(out);
+                std::fs::create_dir_all(out).map_err(|e| format!("{}: {e}", out.display()))?;
                 let methods = example::ExampleMethods {
-                    candidate: method_ref(&format!("{root}/methods/random-search/method.json"))?,
-                    control: method_ref(&format!("{root}/methods/fixed-cart/method.json"))?,
+                    candidate: write_package(
+                        &package(
+                            &root.join("random-search"),
+                            "seed-random-search",
+                            "0.1.0",
+                            "random_search.py",
+                        )?,
+                        &out.join("candidate.package.json"),
+                    )?,
+                    control: write_package(
+                        &package(
+                            &root.join("fixed-cart"),
+                            "fixed-cart",
+                            "0.1.0",
+                            "fixed_cart.py",
+                        )?,
+                        &out.join("control.package.json"),
+                    )?,
                 };
                 let grant = ResourceGrant {
                     model_calls: 0,
@@ -83,15 +145,16 @@ fn main() -> ExitCode {
                     grant,
                 );
                 let reference = plan.reference().map_err(|e| format!("plan: {e:?}"))?;
-                std::fs::write(out, serde_json::to_vec_pretty(&plan).unwrap())
-                    .map_err(|e| format!("write {out}: {e}"))?;
-                serde_json::json!({"plan": reference, "path": out})
+                let path = out.join("plan.json");
+                std::fs::write(&path, serde_json::to_vec_pretty(&plan).unwrap())
+                    .map_err(|e| format!("write plan: {e}"))?;
+                serde_json::json!({"plan": reference, "dir": out})
             }
-            ["run", plan, slot, method, dir, m] => {
+            ["run", plan, slot, package, dir, m] => {
                 let plan: TrialPlan = json(plan)?;
-                let method = run::Method::load(Path::new(method))?;
+                let bytes = std::fs::read(package).map_err(|e| format!("read {package}: {e}"))?;
                 finished(
-                    run::execute(&plan, slot, &method, Path::new(dir), &config(mode(m)?))
+                    run::execute(&plan, slot, &bytes, Path::new(dir), &config(mode(m)?))
                         .map_err(|e| format!("{e:?}"))?,
                 )
             }

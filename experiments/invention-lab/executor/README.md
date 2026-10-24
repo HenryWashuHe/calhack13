@@ -9,16 +9,22 @@ against the in-process evaluator (`../evaluator`), and the run ends with a #18
 cd experiments/invention-lab/executor
 cargo test                       # the sandbox test runs only as root
 B=target/debug/lab-exec
-$B example-plan namespaces 6 72000 60000 /var/tmp/lab/plan.json
-$B run /var/tmp/lab/plan.json candidate methods/random-search/method.json /var/tmp/lab/candidate namespaces
-$B run /var/tmp/lab/plan.json control   methods/fixed-cart/method.json    /var/tmp/lab/control   namespaces
+$B example-plan namespaces 6 72000 60000 /var/tmp/lab   # writes plan + two packages
+$B run /var/tmp/lab/plan.json candidate /var/tmp/lab/candidate.package.json /var/tmp/lab/candidate namespaces
+$B run /var/tmp/lab/plan.json control   /var/tmp/lab/control.package.json   /var/tmp/lab/control   namespaces
 $B check /var/tmp/lab/plan.json candidate /var/tmp/lab/candidate
 ```
 
+Methods are #36 `development-method-source/1` packages (`lab-exec package`
+builds one from a source directory). The host selects the runtime (`python3`
+at its exact version) and the line protocol; a package naming anything else
+is refused by `MethodPackage::load_for`.
+
 ## What a run does
 
-1. **Before spawning anything** it checks three identities against the plan:
-   - the method manifest-plus-entry digest equals the slot's `method`;
+1. **Before spawning anything** it checks identities against the plan:
+   - the exact package bytes load for the slot's `method` (digest, canonical
+     bytes, labels, dependencies) under this host's runtime and protocol;
    - the executor environment digest (its sources, sandbox mode and
      interpreter version) equals `development_environment`;
    - the linked evaluator's content digest equals `context.evaluator`.
