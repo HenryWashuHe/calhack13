@@ -27,7 +27,7 @@ distinct; event organizing is superseded.
 | Henry's core Claude | Evaluator acknowledged; #13 proposal and newer spike `d65cf3e` pushed, not independently reviewed; narrow executor assigned, acknowledgment pending | Reconcile #13 and review #28; evaluator subtree stays owned. New `experiments/invention-lab/executor/**` assignment covers bounded seed-control execution, cumulative grants and exact transcripts. Coordinate shared files first; no generated-method claim. |
 | Eric / Eric's Claude | Audit #9 merged; isolated invention-lab UI assignment still unacknowledged | `docs/invention-lab/ui.md`, then `apps/web/src/invention-lab/**` after receipts settle. `EricZhu-31` has write access; do not silently transfer this lane. |
 | ACP Claude session | Acknowledged bridge #3/#4/#5 and isolated stage #20 | Migrate old journal constraints; preserve `bb5a841`. #5 overflow fixture is cleared. Fix #20 remaining mode/poll ordering and exact independent-inheritance checks using `d7e06e7`; keep historical event fixture secondary. |
-| Codex main chat | #18/#22 merged; draft trial plan #28 at `f52f182` | Obtain evaluator/adoption feedback, then scope call-level experiment transcript and trusted executor integration. Pure records do not enforce resource grants, prior freezing or disclosure timing. |
+| Codex main chat | #18/#22 merged; draft #28 `f52f182` and experiment ledger #32 `0fa3773` pushed | Obtain evaluator/executor feedback on trusted `ExperimentScope`, cumulative reserve/settle/seal transitions and exact transcript linkage. Review runtime integration; library accounting is not exclusive persistence, process isolation or disclosure enforcement. |
 | EricZhu-31 / Codex provider session | #25/#26 corrected and merged; evidence docs #27 and protocol labeling #30 merged | Continue already authorized provider validation from preserved checkpoints on that machine; report exact artifacts and unsuccessful outcomes. No duplicate cloud run from this chat. Elastic permission remediation remains with key owner. |
 | Ines | Unassigned by explicit user instruction | Do not infer identity from another collaborator handle. |
 
@@ -35,7 +35,7 @@ The same GitHub account hosts multiple sessions; ownership is by session and
 exact files. Claim interfaces/shared files in issue #1 before overlapping.
 Codex's additive contracts do not replace current Actor manifests, Henry's
 adoption/evaluator implementation or Eric's UI. Assignments are not evidence of
-acknowledged work. The next G0/G1 boundary is a trusted experiment-call ledger:
+acknowledged work. The next G0/G1 boundary is trusted runtime integration of #32:
 exact public-instance/call/transcript identity and cumulative grants shared by
 all calls, with separate scoring authority and frozen outputs before disclosure.
 
@@ -49,6 +49,11 @@ all calls, with separate scoring authority and frozen outputs before disclosure.
   No-output/missing/failed attempts remain visible. 109 core tests and strict
   Clippy pass; seven new cases independently rerun. No executor or runtime
   freeze/reveal enforcement is claimed; G0 and G4 remain open.
+- Draft #32 `0fa3773`, stacked on #28: cumulative simulation grant across exact
+  public experiments; failures/unknowns/overruns retained, wrong-slot evidence
+  rejected, exact sealed transcript and usage bound to receipts. 116 core tests,
+  strict Clippy and two independent probes pass. Owner feedback and executor
+  integration remain open; no cloud call or isolation/durability claim.
 - #25 source `d3434e5`, merge `0d6d96d`: corrected v2 receipt hashing uses saved
   protocol version. Independent composition `e977ab4` passed 20 focused tests
   and strict package Clippy; independent `affdaf4` regression file is unchanged.
