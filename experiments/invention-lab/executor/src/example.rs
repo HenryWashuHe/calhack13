@@ -4,7 +4,6 @@
 //! policy. Both methods are hand-written **controls**.
 use crate::refs::{self, content};
 use crate::sandbox::Mode;
-use genesis_core::development_evaluation::ScoringContext;
 use genesis_core::development_method::{AcceptanceRole, ExactContentRef, ResourceGrant};
 use genesis_core::development_trial::{ScoringInstances, TrialPlan, TrialPurpose, TrialSlot};
 use genesis_core::ids::{AttemptId, OrgId};
@@ -69,11 +68,6 @@ pub fn acceptance_plan_for(
         .map(|s| refs::instance_ref(family, s))
         .collect();
     let ids: Vec<_> = development_instances.iter().map(|r| r.id.clone()).collect();
-    let task = descriptor(
-        "lab-task/1",
-        family.name(),
-        serde_json::json!({"family": family.name(), "version": genesis_lab_eval::family::FAMILY_VERSION}),
-    );
     let org = OrgId::new("org_example_b");
     let slot = |id: &str, method: &ExactContentRef, role| TrialSlot {
         slot_id: id.into(),
@@ -96,40 +90,7 @@ pub fn acceptance_plan_for(
         ),
         development_instances: development_instances.clone(),
         scoring_instances: ScoringInstances::Development {},
-        context: ScoringContext {
-            public_task: task,
-            evaluator: refs::evaluator(),
-            environment: descriptor(
-                "lab-scoring-env/1",
-                "in-process",
-                serde_json::json!({"scoring": "in-process primitives"}),
-            ),
-            generator: descriptor(
-                "lab-generator/1",
-                family.name(),
-                serde_json::json!({"family": family.name(), "version": genesis_lab_eval::family::FAMILY_VERSION}),
-            ),
-            instance_set: descriptor(
-                "lab-instance-set/1",
-                "development",
-                serde_json::json!({"instances": ids}),
-            ),
-            design_schema: descriptor(
-                "lab-design-schema/1",
-                "language-1",
-                serde_json::json!({"language": 1}),
-            ),
-            metric_schema: descriptor(
-                "lab-metric-schema/1",
-                "v1",
-                serde_json::json!({"metrics": ["success", "progress", "cost", "joints_broken", "steps_to_target"]}),
-            ),
-            scoring_rule: descriptor(
-                "lab-scoring-rule/1",
-                family.name(),
-                serde_json::json!({"success": "payload held on the far bank for 1 s"}),
-            ),
-        },
+        context: refs::scoring_context(family, &ids),
         model_settings: descriptor(
             "lab-model-settings/1",
             "none",
