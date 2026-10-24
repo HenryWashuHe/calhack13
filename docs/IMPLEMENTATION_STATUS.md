@@ -8,6 +8,8 @@ Use the [migration map](REPOSITORY_MIGRATION.md) for legacy PRs. The
 [ongoing goal](ONGOING_GOAL.md) remains a bounded A → B → A executable
 development-method loop and honest controlled evaluation with fixed model
 weights. Event organization remains superseded. G0–G4 are still open.
+The revised app Goal was activated on October 24, 2026 after the stale record
+was cleared; the existing hourly continuation remains active.
 
 Main through `a90ad14e7495be1ef5066234f84bddba1ac431b9`, tree
 `6b4e39d3d1853449d75f20b1d03da0c560ba900d`, includes the reviewed
