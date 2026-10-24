@@ -96,6 +96,23 @@ test("live mode hides the disruptions and renders a planner decision with its mo
   assert.match(eventText(h), /anthropic\/x/);
 });
 
+test("the disruption bar's flex rule must not beat the hidden attribute (review of feb3da7)", () => {
+  const css = html.slice(html.indexOf("<style>"), html.indexOf("</style>"));
+  const rule = css.match(/\.disrupt\[hidden\]\s*\{([^}]*)\}/);
+  assert.ok(rule, "a .disrupt[hidden] rule exists");
+  assert.match(rule[1], /display:\s*none/);
+  const flex = css.indexOf(".disrupt {"), hidden = css.indexOf(".disrupt[hidden]");
+  assert.ok(hidden > flex, "the hidden rule comes after the flex rule, so equal-or-higher specificity wins");
+});
+
+test("an unreachable kernel updates the presenter caption too (review of feb3da7)", async () => {
+  const h = harness(async () => { throw new Error("offline"); });
+  h.submit(); await settle();
+  assert.equal(h.get("mode").textContent, "Live kernel: unreachable");
+  assert.match(h.get("caption").textContent, /unreachable/);
+  assert.doesNotMatch(h.get("caption").textContent, /Scene \d/);
+});
+
 test("presenter mode is a body class with a scene caption; Escape leaves it; a refused fullscreen is tolerated", async () => {
   const h = harness(async () => { throw new Error("no network"); });
   h.get("playreplay").handlers.click();
