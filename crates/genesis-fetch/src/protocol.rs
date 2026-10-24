@@ -1,6 +1,6 @@
 //! The application context lives inside the SDK-signed payload. The native
 //! envelope's unsigned version/protocol metadata is not an authority boundary.
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Datelike, Timelike, Utc};
 use genesis_verification::{decode_json, json_sha256};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -10,6 +10,7 @@ pub const PROTOCOL_DIGEST: &str =
 pub const MODEL_DIGEST: &str =
     "model:3d35410a0bac7663333dda8af6d33f8e7c4d2677da8dd74804a2559574d46e2b";
 pub const MAX_MESSAGE_BYTES: usize = 64 * 1024;
+pub const MAX_JSON_DEPTH: usize = 64;
 
 #[derive(Debug, thiserror::Error)]
 #[error("invalid, ambiguous or oversized Fetch protocol message")]
@@ -124,6 +125,83 @@ fn bounded(value: &Value) -> bool {
     serde_json::to_vec(value).is_ok_and(|bytes| bytes.len() <= 32 * 1024)
 }
 
+/// Match the Python wire's depth convention: message root is depth zero and
+/// every object value / array element increases it by one. Object keys do not.
+/// Traverse before serializing so constructed values cannot hide deep trees.
+fn depth_within_limit(value: &Value, root_depth: usize) -> bool {
+    let mut pending = vec![(value, root_depth)];
+    while let Some((value, depth)) = pending.pop() {
+        if depth > MAX_JSON_DEPTH {
+            return false;
+        }
+        match value {
+            Value::Object(values) => {
+                pending.extend(values.values().map(|value| (value, depth + 1)));
+            }
+            Value::Array(values) => {
+                pending.extend(values.iter().map(|value| (value, depth + 1)));
+            }
+            _ => {}
+        }
+    }
+    true
+}
+
+fn interoperable_timestamp(value: &DateTime<Utc>) -> bool {
+    // Python datetime accepts four-digit years 0001..9999 and no leap second.
+    (1..=9999).contains(&value.year()) && value.nanosecond() < 1_000_000_000
+}
+
+/// serde_json may round a too-large integer token into an f64 before it reaches
+/// Value. Check integer lexemes first; quoted digits and scientific/decimal
+/// floating-point literals are deliberately unaffected. JSON syntax and finite
+/// float validation remain the strict decoder's responsibility.
+fn integer_lexemes_fit(bytes: &[u8]) -> bool {
+    let mut index = 0;
+    while index < bytes.len() {
+        match bytes[index] {
+            b'"' => {
+                index += 1;
+                while index < bytes.len() {
+                    match bytes[index] {
+                        b'\\' => index += 2,
+                        b'"' => {
+                            index += 1;
+                            break;
+                        }
+                        _ => index += 1,
+                    }
+                }
+            }
+            b'-' | b'0'..=b'9' => {
+                let start = index;
+                index += 1;
+                while index < bytes.len()
+                    && matches!(bytes[index], b'0'..=b'9' | b'.' | b'e' | b'E' | b'+' | b'-')
+                {
+                    index += 1;
+                }
+                let token = &bytes[start..index];
+                if !token.iter().any(|byte| matches!(byte, b'.' | b'e' | b'E')) {
+                    let Ok(token) = std::str::from_utf8(token) else {
+                        return false;
+                    };
+                    let valid = if token.starts_with('-') {
+                        token.parse::<i64>().is_ok()
+                    } else {
+                        token.parse::<u64>().is_ok()
+                    };
+                    if !valid {
+                        return false;
+                    }
+                }
+            }
+            _ => index += 1,
+        }
+    }
+    true
+}
+
 /// Native agent address syntax and Bech32 checksum. Sender authentication still
 /// requires the SDK signature check at the bridge; an address alone is no proof.
 pub fn address(value: &str) -> bool {
@@ -172,6 +250,8 @@ impl Task {
         ]
         .iter()
         .all(|v| identifier(v))
+            && interoperable_timestamp(&self.deadline)
+            && depth_within_limit(&self.input, 1)
             && bounded(&self.input)
         {
             Ok(())
@@ -182,7 +262,7 @@ impl Task {
 }
 impl Message {
     pub fn decode(bytes: &[u8]) -> Result<Self, ProtocolError> {
-        if bytes.len() > MAX_MESSAGE_BYTES {
+        if bytes.len() > MAX_MESSAGE_BYTES || !integer_lexemes_fit(bytes) {
             return Err(ProtocolError);
         }
         let result: Self = decode_json(bytes).map_err(|_| ProtocolError)?;
@@ -196,7 +276,15 @@ impl Message {
         ))
     }
     pub fn validate(&self) -> Result<(), ProtocolError> {
+        let depth_valid = match &self.body {
+            Body::TaskRequest { task } => depth_within_limit(&task.input, 3),
+            Body::Offer { terms, .. } => depth_within_limit(terms, 2),
+            Body::TaskResult { output, .. } => depth_within_limit(output, 2),
+            _ => true,
+        };
         if self.schema_version != 1
+            || !depth_valid
+            || !interoperable_timestamp(&self.expires_at)
             || !uuid(&self.message_id)
             || ![
                 &self.org_id,
@@ -218,6 +306,7 @@ impl Message {
             } => {
                 text(requirement, 4096)
                     && capabilities(caps)
+                    && interoperable_timestamp(lease_expires_at)
                     && self.expires_at <= *lease_expires_at
             }
             Body::Offer {
@@ -231,6 +320,7 @@ impl Message {
                     && identifier(offer_id)
                     && capabilities(caps)
                     && bounded(terms)
+                    && interoperable_timestamp(lease_expires_at)
                     && self.expires_at <= *lease_expires_at
             }
             Body::AcceptOffer {
