@@ -17,8 +17,7 @@ static NEXT: AtomicU64 = AtomicU64::new(0);
 struct Files(PathBuf);
 impl Files {
     fn new() -> Self {
-        let f = Self(
-            std::env::temp_dir().join(format!(
+        let f = Self(std::env::temp_dir().join(format!(
                 "genesis-stage-cli-{}-{}-{}",
                 std::process::id(),
                 std::time::SystemTime::now()
@@ -26,8 +25,7 @@ impl Files {
                     .unwrap()
                     .as_nanos(),
                 NEXT.fetch_add(1, Ordering::Relaxed)
-            )),
-        );
+            )));
         fs::create_dir(&f.0).unwrap();
         let generated = fixture::generation("one", true);
         let prepared = MethodSynthesisSession::new(generated.plan().clone()).unwrap();
