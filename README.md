@@ -13,10 +13,14 @@ The Rust capability implementation now creates source-bearing Actors, resumes pi
 3. [Provider contracts](docs/PROVIDER_CONTRACTS.md) — documented APIs and the smoke tests that must pass first.
 4. [Research report](GENESIS-organization-evolution-research.md) — competitive research, sponsor division, risks, and demo design.
 5. [Capability forge integration](docs/FORGE_INTEGRATION.md) — runnable commands, source packaging, checkpoint recovery, and the kernel boundary.
-6. [Organization capability API](docs/CAPABILITY_EXECUTION.md) — trusted publication, independent adoption, persisted runs, and recovery.
+6. [Organization capability API](docs/CAPABILITY_EXECUTION.md) — trusted publication, independent adoption, durable runs, fresh invocation proofs, and recovery.
 7. [Persistent CREAO specialists](docs/CREAO_RUNTIME.md) — asynchronous creation/execution, shared account limits, recovery and the pending kernel hook.
 8. [Independent Fetch specialists](docs/FETCH_RUNTIME.md) — discovery, signed transport, durable recruitment, restart and release isolation.
 9. [Current implementation split](docs/NEXT_IMPLEMENTATION_SPLIT.md) — Codex capability work and Claude kernel/UI/Elastic assignments.
+10. [Capability source synthesis](docs/CAPABILITY_SYNTHESIS.md) — public requirement/examples to a durable generated parser and immutable forge candidate.
+11. [Durable capability acquisition](docs/CAPABILITY_ACQUISITION.md) — one checkpoint from generation through build and verification, with one bounded semantic repair.
+12. [Server-managed acquisition](docs/SERVER_ACQUISITION.md) — mission/assignment binding, persistent count quotas, resumable HTTP steps and trusted publication proofs.
+13. [Two-organization inherited mission](docs/INHERITED_MISSION.md) — Rust scenario driver connecting specialist creation, acquisition, independent adoption and responsibility handoff.
 
 ## Run the capability checks
 
@@ -50,6 +54,9 @@ Rust is the core implementation language. The Fetch sidecar keeps the official P
 - **GENESIS:** own roles, authority, budgets, assignments, lifecycle, verification gates, and adoption decisions.
 
 [Apify sponsor announcement notes](docs/APIFY_SPONSOR_NOTES.md) cover the announced credits, meaningful-use demo and separate AI Chat category.
+[CREAO sponsor requirements](docs/CREAO_SPONSOR_NOTES.md) track core agent work,
+agent ID/run-share-link submission evidence and the remaining live mission gap.
+See the [PR merge/review queue](docs/PR_REVIEW_QUEUE.md) for what is on main and what remains held.
 
 ## MVP
 

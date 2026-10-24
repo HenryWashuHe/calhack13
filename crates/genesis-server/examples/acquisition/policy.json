@@ -1,0 +1,16 @@
+{
+  "model": {
+    "model": "YOUR_CONCRETE_MODEL_ID",
+    "max_tokens": 8192
+  },
+  "quotas": {
+    "total_intents": 8,
+    "active": 2,
+    "model_calls": 16,
+    "actor_creates": 16,
+    "builds": 16,
+    "test_submits": 96,
+    "read_actions": 256
+  },
+  "max_duration_seconds": 3600
+}

@@ -28,6 +28,28 @@ pub async fn submit(
     Ok((status, Json(record)))
 }
 
+#[derive(Deserialize)]
+pub struct AbandonBody {
+    pub reason: String,
+}
+
+/// Operator: stop waiting on a role's asynchronous provider operation; the
+/// change ends FAILED with all provider IDs retained.
+pub async fn abandon_operation(
+    State(app): State<AppState>,
+    p: Principal,
+    Path((id, role_key)): Path<(String, String)>,
+    Json(body): Json<AbandonBody>,
+) -> ApiResult<Json<OrgChangeRecord>> {
+    p.require(&[Principal::Operator])?;
+    if body.reason.trim().is_empty() {
+        return Err(crate::error::ApiError::bad_request("reason is required"));
+    }
+    Ok(Json(
+        saga::abandon_operation(&app, &ChangeId::new(id), &role_key, &body.reason).await?,
+    ))
+}
+
 pub async fn list(
     State(app): State<AppState>,
     p: Principal,
@@ -43,4 +65,21 @@ pub async fn get_one(
 ) -> ApiResult<Json<OrgChangeRecord>> {
     p.require(&[Principal::Operator, Principal::Agent])?;
     Ok(Json(app.store.get_change(&ChangeId::new(id))?))
+}
+
+/// Look up a change by the `client_request_id` it was submitted with, so a
+/// client whose submission response was lost can reconcile without
+/// resubmitting. 404 when no change used that request ID.
+pub async fn by_request(
+    State(app): State<AppState>,
+    p: Principal,
+    Path(request_id): Path<String>,
+) -> ApiResult<Json<OrgChangeRecord>> {
+    p.require(&[Principal::Operator, Principal::Agent])?;
+    app.store
+        .find_change_by_request(&request_id)?
+        .map(Json)
+        .ok_or_else(|| {
+            crate::error::ApiError::not_found(format!("change for request {request_id}"))
+        })
 }
