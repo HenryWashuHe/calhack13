@@ -109,3 +109,7 @@ Each mode's integration test starts **three separate OS processes**: Org A, Org 
 - [SDK model schema](https://github.com/fetchai/uAgents/blob/v0.26.1/python/uagents-core/uagents_core/models.py): the SDK model uses Pydantic v1 compatibility.
 - [SDK agent startup](https://github.com/fetchai/uAgents/blob/v0.26.1/python/src/uagents/agent.py), [ASGI server](https://github.com/fetchai/uAgents/blob/v0.26.1/python/src/uagents/asgi.py), [transport](https://github.com/fetchai/uAgents/blob/v0.26.1/python/src/uagents/communication.py): default startup/HTTP behavior is why this service wraps the native signing primitives with explicit bounded networking.
 - [Current Agentverse search tutorial](https://innovationlab.fetch.ai/resources/docs/agentverse/searching), [v1 API reference](https://docs.agentverse.ai/v-1/api-reference/search/agents). The v1 reference is marked deprecated while the tutorial still targets `/v1/search/agents`; no replacement endpoint is assumed here.
+
+## ASI:One organization agent
+
+`python -m genesis_fetch_bridge.acp_mission` serves the organization's front door in ASI:One: `org`, `report <what happened>`, `status`. It holds the organization's agent token only. See [docs/FETCH_SPONSOR_NOTES.md](../../docs/FETCH_SPONSOR_NOTES.md#primary-workflow-in-asione-report-watch-inherit) and [ACP_MISSION_AGENT_README.md](ACP_MISSION_AGENT_README.md).
