@@ -43,7 +43,11 @@ The kernel commits it only if:
   the requirement's triggering observations. The agent cannot invent targets;
 - no installed, approved capability already has that ID (use
   `AttachCapability`);
-- no live gap exists for the same requirement and capability ID.
+- no live gap exists for the same requirement and capability ID;
+- the organization holds fewer than 16 live (non-terminal) gaps, and the
+  requirement fewer than 3 (`MAX_LIVE_CAPABILITY_GAPS`,
+  `MAX_LIVE_GAPS_PER_REQUIREMENT`; `capability_gap_limit_exceeded`). Each gap
+  can become an acquisition, so an agent must not be able to flood the driver.
 
 Commit adds `OrgState.capability_gaps[gap_id]` and emits
 `capability_gap_opened`. The operation carries no suite, oracle, quota,
@@ -110,6 +114,10 @@ capability only once it appears under installed capabilities, and does not
 request a capability that is already requested and not refused.
 
 ## Tests
+
+- `genesis-core/tests/engine_fuzz.rs`: 3,000 randomized proposals from a
+  fixed seed, chained through successful commits, with random gap
+  transitions. The engine never panics and the live-gap limit always holds.
 
 - `genesis-core/tests/capability_gap.rs`: happy path, origin binding (other
   origins, non-http, credentials, empty, non-URL evidence, case-insensitive

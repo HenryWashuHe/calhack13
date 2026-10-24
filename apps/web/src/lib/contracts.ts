@@ -851,7 +851,8 @@ export type ValidationCode =
   | "new_role_without_responsibility"
   | "not_provisioned"
   | "invalid_transition"
-  | "invalid_input";
+  | "invalid_input"
+  | "capability_gap_limit_exceeded";
 
 /**
  * A stored organization change with its lifecycle.

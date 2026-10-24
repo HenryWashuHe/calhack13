@@ -48,7 +48,14 @@ pub enum ValidationCode {
     NotProvisioned,
     InvalidTransition,
     InvalidInput,
+    CapabilityGapLimitExceeded,
 }
+
+/// Live (non-terminal) capability gaps an organization may hold at once.
+/// Each can become an acquisition; the agent must not be able to flood it.
+pub const MAX_LIVE_CAPABILITY_GAPS: usize = 16;
+/// Live capability gaps one requirement may hold at once.
+pub const MAX_LIVE_GAPS_PER_REQUIREMENT: usize = 3;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, thiserror::Error)]
 #[error("{code:?}{}: {message}", op_index.map(|i| format!(" (operation {i})")).unwrap_or_default())]
@@ -1063,6 +1070,30 @@ impl<'a> Sim<'a> {
                 ValidationCode::DuplicateKey,
                 Some(i),
                 format!("{capability_id} is already requested for requirement {requirement_id}"),
+            );
+        }
+        let live: Vec<_> = self
+            .st
+            .capability_gaps
+            .values()
+            .filter(|g| !g.status.is_terminal())
+            .collect();
+        if live.len() >= MAX_LIVE_CAPABILITY_GAPS {
+            self.err(
+                ValidationCode::CapabilityGapLimitExceeded,
+                Some(i),
+                format!("the organization already has {MAX_LIVE_CAPABILITY_GAPS} live capability requests"),
+            );
+        } else if live
+            .iter()
+            .filter(|g| g.requirement_id == *requirement_id)
+            .count()
+            >= MAX_LIVE_GAPS_PER_REQUIREMENT
+        {
+            self.err(
+                ValidationCode::CapabilityGapLimitExceeded,
+                Some(i),
+                format!("requirement {requirement_id} already has {MAX_LIVE_GAPS_PER_REQUIREMENT} live capability requests"),
             );
         }
         if !self.errors.is_empty() {
