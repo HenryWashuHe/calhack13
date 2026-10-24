@@ -1027,6 +1027,84 @@
           }
         }
       }
+    },
+    {
+      "description": "A planning agent's decision about one observation, with enough detail to audit how it reasoned. Recorded whether or not a change follows.",
+      "type": "object",
+      "required": [
+        "payload",
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "planner_decision"
+          ]
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "attempt",
+            "latency_ms",
+            "model",
+            "observation_id",
+            "planner",
+            "rationale",
+            "summary",
+            "verdict"
+          ],
+          "properties": {
+            "planner": {
+              "type": "string"
+            },
+            "model": {
+              "type": "string"
+            },
+            "observation_id": {
+              "type": "string"
+            },
+            "verdict": {
+              "$ref": "#/definitions/PlannerVerdict"
+            },
+            "summary": {
+              "type": "string"
+            },
+            "rationale": {
+              "type": "string"
+            },
+            "attempt": {
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0.0
+            },
+            "latency_ms": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "requirement_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "change_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "kernel_errors": {
+              "default": [],
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
     }
   ],
   "required": [
@@ -1234,6 +1312,39 @@
           "type": "string",
           "enum": [
             "UNKNOWN"
+          ]
+        }
+      ]
+    },
+    "PlannerVerdict": {
+      "description": "Outcome of one planning pass over an observation.",
+      "oneOf": [
+        {
+          "description": "Submitted an organization change.",
+          "type": "string",
+          "enum": [
+            "change_proposed"
+          ]
+        },
+        {
+          "description": "The observation needs no organizational change.",
+          "type": "string",
+          "enum": [
+            "no_change"
+          ]
+        },
+        {
+          "description": "The proposal was rejected by the kernel and needs another attempt.",
+          "type": "string",
+          "enum": [
+            "rejected"
+          ]
+        },
+        {
+          "description": "The planner gave up or could not produce valid output; a human decides.",
+          "type": "string",
+          "enum": [
+            "escalated"
           ]
         }
       ]
