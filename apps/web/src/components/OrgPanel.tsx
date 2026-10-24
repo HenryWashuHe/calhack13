@@ -15,9 +15,14 @@ import { shortLabel } from "../lib/capabilities";
 import { GapIntakeContext } from "../lib/gapIntake";
 import { GapFinalizationContext } from "../lib/gapFinalization";
 import { GapAdoptionContext } from "../lib/gapAdoption";
+import { AdoptionDecisions } from "./AdoptionDecisions";
 
 /** Records the "Why?" drawer explains a role from. Absent → no drawer. */
 const Provenance = createContext<{ changes: OrgChangeRecord[]; events: DomainEvent[] } | null>(null);
+/** Live adoption outcomes describe now, not a past revision; hidden in history. */
+const NO_ADOPTION: Record<string, never> = {};
+/** The live API for on-demand reads under a row; null while viewing history. */
+const LiveApi = createContext<Api | null>(null);
 
 function WhyButton({ open, onToggle }: { open: boolean; onToggle: () => void }) {
   if (!useContext(Provenance)) return null;
@@ -43,6 +48,7 @@ function RequestedCapabilities({ state, roleId }: { state: OrgState; roleId: str
   const intake = useContext(GapIntakeContext);
   const finalization = useContext(GapFinalizationContext);
   const adoption = useContext(GapAdoptionContext);
+  const api = useContext(LiveApi);
   const gaps = gapsForRole(state, roleId, intake, finalization, adoption);
   if (gaps.length === 0) return null;
   return (
@@ -59,6 +65,10 @@ function RequestedCapabilities({ state, roleId }: { state: OrgState; roleId: str
           <span className={`chip ${g.tone}`}>{g.label}</span>
           <span>{g.purpose}</span>
           {g.detail && <span className="muted">{g.detail}</span>}
+          {(() => {
+            const a = adoption[g.gapId];
+            return a?.outcome ? <AdoptionDecisions api={api} adoptionId={a.adoption_id} outcome={a.outcome} /> : null;
+          })()}
         </li>
       ))}
     </ul>
@@ -225,6 +235,7 @@ export function OrgPanel({
   /** Index into `gens` while replaying the organization's evolution. */
   const [replay, setReplay] = useState<number | null>(null);
   const live = viewRevision === null;
+  const adoptionNow = useContext(GapAdoptionContext);
   const gens = useMemo(() => (events ? generations(events, changes, state) : []), [events, changes, state]);
   const entries = useMemo(
     () => (events && mode === "evolution" ? timeline(events, changes, state) : []),
@@ -419,6 +430,8 @@ export function OrgPanel({
         )}
         {mode === "tree" && shown && tree.length === 0 && <p className="empty">No roles yet.</p>}
         {mode === "tree" && shown && (
+          <LiveApi.Provider value={live ? api : null}>
+          <GapAdoptionContext.Provider value={live ? adoptionNow : NO_ADOPTION}>
           <Provenance.Provider value={live && events ? { changes, events } : null}>
             <ul className="tree">
               {tree.map((n) => (
@@ -426,6 +439,8 @@ export function OrgPanel({
               ))}
             </ul>
           </Provenance.Provider>
+          </GapAdoptionContext.Provider>
+          </LiveApi.Provider>
         )}
       </div>
     </section>
