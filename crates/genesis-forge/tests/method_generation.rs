@@ -224,6 +224,7 @@ async fn restored_intent_keeps_original_prompt_wire_and_identity() {
     reseal_record(&mut saved);
     let mut prepared: MethodSynthesisSession = serde_json::from_value(saved.clone()).unwrap();
     assert_ne!(original, prepared.plan().request().unwrap());
+    assert_eq!(prepared.request_sha256(), original.sha256().unwrap());
     assert_eq!(prepared.begin().unwrap(), original);
     let pending = serde_json::to_value(&prepared).unwrap();
     assert_eq!(pending["request"], saved["request"]);

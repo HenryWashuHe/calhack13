@@ -95,10 +95,12 @@ impl CostScope {
             let mut slots = BTreeSet::new();
             if trial.slots.is_empty()
                 || trial.slots.len() > 64
-                || trial
-                    .slots
-                    .iter()
-                    .any(|s| s.trim().is_empty() || !slots.insert(s))
+                || trial.slots.iter().any(|s| {
+                    s.trim().is_empty()
+                        || s.trim() != s
+                        || s.chars().any(char::is_control)
+                        || !slots.insert(s)
+                })
             {
                 return Err(invalid("trial slots"));
             }
