@@ -4,6 +4,13 @@ Updated: October 21, 2026.
 
 ## Current integration checkpoint
 
+PR #3/#5/#6/#7 are merged on main at `5c4dd1a`. Codex is implementing source
+synthesis on `codex/capability-synthesis` in the forge modules/CLI/tests, with
+public-example inputs, a durable one-shot model adapter and exact generated-source
+handoff. [CAPABILITY_SYNTHESIS.md](CAPABILITY_SYNTHESIS.md) defines the interface
+and remaining live gates. Claude retains asynchronous role activation, Elastic,
+planner and UI; this does not activate the whole-kernel fallback.
+
 Codex reviewed PR #3 at `21103d1`, requested changes with reproduced findings in
 [the review](reviews/PR-3.md), and assigned [issue #4](https://github.com/HenryWashuHe/genesis/issues/4)
 to Eric/Claude. The [current split](NEXT_IMPLEMENTATION_SPLIT.md) supersedes the
