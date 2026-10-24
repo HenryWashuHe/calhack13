@@ -137,6 +137,10 @@ pub struct Termination {
     /// Canonical hash of the slot's execution receipt.
     pub execution_sha256: String,
     pub how: String,
+    /// True only when every process the method could have started is known
+    /// to have ended (namespaces mode: the whole PID namespace). Mode none
+    /// covers the reaped method process alone, so its descendants may live on.
+    pub whole_tree: bool,
 }
 
 /// Canonical hash of an execution receipt, as [`Termination`] binds it.
@@ -162,6 +166,7 @@ pub fn termination(slot_id: &str, dir: &Path) -> Result<Option<Termination>, Run
         slot_id: slot_id.into(),
         execution_sha256: receipt_sha256(&receipt),
         how,
+        whole_tree: state.terminated_tree,
     }))
 }
 
@@ -396,6 +401,7 @@ pub fn execute(
         }
         .into(),
     );
+    slot.state.terminated_tree = cfg.sandbox == Mode::Namespaces;
     let outcome = outcome.unwrap_or(if status.success() && slot.state.submission.is_some() {
         ExecutionOutcome::OutputGenerated
     } else {

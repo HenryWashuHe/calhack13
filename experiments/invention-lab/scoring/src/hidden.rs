@@ -137,11 +137,19 @@ pub fn score_hidden(
             .read(&termination_name(&slot.slot_id))
             .ok()
             .and_then(|b| serde_json::from_slice::<Termination>(&b).ok());
-        if !ended.is_some_and(|t| {
-            t.slot_id == slot.slot_id && t.execution_sha256 == receipt_sha256(receipt)
-        }) {
+        let Some(ended) = ended
+            .filter(|t| t.slot_id == slot.slot_id && t.execution_sha256 == receipt_sha256(receipt))
+        else {
             return Err(ScoringError::Refused(format!(
                 "the comparison is not closed: no termination evidence for slot {}",
+                slot.slot_id
+            )));
+        };
+        // A parent-only observation leaves descendants the method started
+        // possibly still running; only a whole-tree observation closes it.
+        if !ended.whole_tree {
+            return Err(ScoringError::Refused(format!(
+                "the comparison is not closed: slot {}'s termination covers only the method process, not its descendants",
                 slot.slot_id
             )));
         }

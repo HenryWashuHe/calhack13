@@ -1,6 +1,8 @@
-//! Comparison scoring on a committed hidden set, after every arm's method
-//! process has ended. Each arm runs as a real child process in explicit mode
-//! `none` (not namespace evidence); the methods only submit a fixed design.
+//! Comparison scoring on a committed hidden set, after every arm's whole
+//! process tree has ended. Arms run as real child processes. Scored paths need
+//! the namespace sandbox (root, Linux; skipped otherwise), whose termination
+//! covers the whole PID namespace; mode `none` only shows that a parent-only
+//! termination is refused. The methods only submit a fixed design.
 use genesis_core::development_evaluation::{EvaluationOutcome, RequestStatus};
 use genesis_core::development_method::{
     ExecutionOutcome, ExecutionReceipt, ResourceGrant, ResourceUsage,
@@ -27,11 +29,37 @@ fn dir(name: &str) -> PathBuf {
     std::env::temp_dir().join(format!("lab-hidden-{name}-{}", std::process::id()))
 }
 
-fn config(name: &str) -> run::Config {
+/// Root on Linux, from /proc (no libc dependency); false elsewhere.
+fn root() -> bool {
+    std::fs::read_to_string("/proc/self/status")
+        .ok()
+        .and_then(|s| {
+            s.lines()
+                .find(|l| l.starts_with("Uid:"))
+                .and_then(|l| l.split_whitespace().nth(2).map(|v| v == "0"))
+        })
+        .unwrap_or(false)
+}
+
+/// The namespace sandbox when available, else `None` for the caller to skip.
+fn sandboxed() -> Option<Mode> {
+    if root() {
+        Some(Mode::Namespaces)
+    } else {
+        eprintln!("skipped: whole-tree termination needs the namespace sandbox (root)");
+        None
+    }
+}
+
+fn config(name: &str, mode: Mode) -> run::Config {
     run::Config {
-        sandbox: Mode::None,
+        sandbox: mode,
         interpreter_version: run::interpreter_version("python3"),
-        stage_root: dir(name).join("stage"),
+        stage_root: match mode {
+            // Outside the directories the sandbox hides.
+            Mode::Namespaces => PathBuf::from("/run/genesis-lab-test"),
+            Mode::None => dir(name).join("stage"),
+        },
     }
 }
 
@@ -70,6 +98,7 @@ struct Arms {
 /// Freezes a comparison over two fixed-design methods, runs both arms as
 /// processes and collects the executor's termination evidence.
 fn arms(
+    mode: Mode,
     name: &str,
     count: u32,
     cand: Option<&str>,
@@ -77,7 +106,7 @@ fn arms(
     tweak: impl Fn(&mut TrialPlan),
 ) -> Arms {
     let _ = std::fs::remove_dir_all(dir(name));
-    let cfg = config(name);
+    let cfg = config(name, mode);
     let (pc, pk) = (method(&cfg, cand), method(&cfg, ctrl));
     let methods = example::ExampleMethods {
         candidate: pc.reference().unwrap(),
@@ -90,7 +119,7 @@ fn arms(
         wall_time_ms: 20_000,
         simulation_steps: 2400,
     };
-    let base = example::acceptance_plan(&methods, Mode::None, &cfg.interpreter_version, 2, grant);
+    let base = example::acceptance_plan(&methods, mode, &cfg.interpreter_version, 2, grant);
     let mut plan = comparison_plan(&base, "t1", &descriptor(count));
     tweak(&mut plan);
     let mut receipts = vec![];
@@ -153,7 +182,8 @@ fn nothing_simulated(store: &Store) -> bool {
 
 #[test]
 fn a_closed_comparison_is_scored_on_the_committed_draw_and_validates() {
-    let a = arms("ok", 3, Some(REFERENCE), None, |_| {});
+    let Some(mode) = sandboxed() else { return };
+    let a = arms(mode, "ok", 3, Some(REFERENCE), None, |_| {});
     let p = &a.plan;
     p.validate().unwrap();
     assert!(
@@ -233,7 +263,8 @@ fn a_closed_comparison_is_scored_on_the_committed_draw_and_validates() {
 
 #[test]
 fn hidden_scoring_refuses_before_simulating_anything() {
-    let a = arms("refuse", 3, Some(REFERENCE), Some(REFERENCE), |_| {});
+    let Some(mode) = sandboxed() else { return };
+    let a = arms(mode, "refuse", 3, Some(REFERENCE), Some(REFERENCE), |_| {});
     let p = &a.plan;
     let bytes = a.output();
     let closed = a.closed();
@@ -356,9 +387,14 @@ fn hidden_scoring_refuses_before_simulating_anything() {
     assert!(nothing_simulated(&store));
 
     // No wall time to score with.
-    let zero = arms("zero-wall", 3, Some(REFERENCE), Some(REFERENCE), |p| {
-        p.scoring_grant.wall_time_ms = 0
-    });
+    let zero = arms(
+        mode,
+        "zero-wall",
+        3,
+        Some(REFERENCE),
+        Some(REFERENCE),
+        |p| p.scoring_grant.wall_time_ms = 0,
+    );
     let store = zero.store("zero");
     assert!(matches!(
         score_hidden(
@@ -375,7 +411,7 @@ fn hidden_scoring_refuses_before_simulating_anything() {
     assert!(nothing_simulated(&store));
 
     // One episode short of the draw.
-    let short = arms("short", 3, Some(REFERENCE), Some(REFERENCE), |p| {
+    let short = arms(mode, "short", 3, Some(REFERENCE), Some(REFERENCE), |p| {
         p.scoring_grant.simulation_steps -= 1
     });
     let store = short.store("short");
@@ -396,7 +432,8 @@ fn hidden_scoring_refuses_before_simulating_anything() {
 
 #[test]
 fn a_slot_without_output_has_nothing_to_score() {
-    let a = arms("none", 2, None, Some(REFERENCE), |_| {});
+    let Some(mode) = sandboxed() else { return };
+    let a = arms(mode, "none", 2, None, Some(REFERENCE), |_| {});
     assert_eq!(a.cand.outcome, ExecutionOutcome::Failed);
     let store = a.store("none");
     assert!(matches!(
@@ -411,4 +448,31 @@ fn a_slot_without_output_has_nothing_to_score() {
         ),
         Err(ScoringError::NoOutput)
     ));
+}
+
+#[test]
+fn a_parent_only_termination_does_not_close_the_comparison() {
+    // Mode none: the executor reaps the method process but can't vouch for
+    // processes it started, so hidden scoring stays closed.
+    let a = arms(
+        Mode::None,
+        "parent-only",
+        2,
+        Some(REFERENCE),
+        Some(REFERENCE),
+        |_| {},
+    );
+    assert!(a.ended.iter().all(|t| !t.whole_tree));
+    let store = a.store("parent-only");
+    let r = score_hidden(
+        &a.plan,
+        "candidate",
+        &a.output(),
+        &a.closed(),
+        &descriptor(2),
+        SALT,
+        &store,
+    );
+    assert!(matches!(r, Err(ScoringError::Refused(_))), "{r:?}");
+    assert!(nothing_simulated(&store));
 }
