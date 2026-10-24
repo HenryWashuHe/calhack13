@@ -33,4 +33,14 @@ describe("AuditView", () => {
     expect(html).toContain("r1 budget limit: live roles hold 120 cents");
     expect(html).toContain("audit-cell bad here");
   });
+
+  it("never calls a range clean when fewer snapshots were checked than it spans", () => {
+    // Henry's Claude: r0..r3 with only 3 snapshots and no violation reported.
+    const gappy = { ...clean, snapshots_checked: 3, last_revision: 3 };
+    const html = renderToStaticMarkup(<AuditView audit={gappy} shown={3} current={3} onSelect={noop} open onToggle={noop} />);
+    expect(html).not.toContain("passes");
+    expect(html).toContain("3 of r0–r3 checked; the rest are unverified");
+    expect(html).toContain("audit-cell unknown");
+    expect(html).not.toContain("audit-cell ok");
+  });
 });
