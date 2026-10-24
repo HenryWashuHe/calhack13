@@ -1088,8 +1088,8 @@ fn a_closed_or_expired_mission_gets_the_audit_but_no_wakeup() {
 }
 
 /// Henry's Claude: a refusal wakes the planner, so a planner that keeps
-/// re-requesting the same capability for the same requirement would loop
-/// forever (one model call and two commits per cycle). After
+/// re-requesting for the same requirement, even under fresh capability names,
+/// would loop forever (one model call and two commits per cycle). After
 /// MAX_REFUSED_REQUESTS_PER_REQUIREMENT refusals the kernel says no; new
 /// evidence, as a new requirement, starts fresh.
 #[test]
@@ -1110,6 +1110,7 @@ fn repeated_refusals_stop_the_same_request_but_new_evidence_starts_fresh() {
         .unwrap()
         .responsibility_id
         .clone();
+    // Alternate names: renaming the capability must not reset the bound.
     let again = |key: &str, requirement: &RequirementId| OrgOp::RequestCapability {
         key: key.into(),
         requirement_id: requirement.clone(),
@@ -1117,7 +1118,7 @@ fn repeated_refusals_stop_the_same_request_but_new_evidence_starts_fresh() {
         responsibility: ResponsibilityRef::Existing {
             responsibility_id: rsp.clone(),
         },
-        capability_id: CapabilityId::new("venue-availability"),
+        capability_id: CapabilityId::new(format!("reader-{key}")),
         purpose: "Read the portal".into(),
         observed_sources: vec![PORTAL.into()],
     };

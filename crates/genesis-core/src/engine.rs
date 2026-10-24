@@ -56,12 +56,13 @@ pub enum ValidationCode {
 pub const MAX_LIVE_CAPABILITY_GAPS: usize = 16;
 /// Live capability gaps one requirement may hold at once.
 pub const MAX_LIVE_GAPS_PER_REQUIREMENT: usize = 3;
-/// Refused attempts after which the same requirement may not request the same
+/// Refused capability requests after which a requirement may not request any
 /// capability again. A refusal wakes the planner; without this bound a planner
-/// that keeps re-requesting (a model loop, or injected portal text) would spend
-/// one model call and two commits per cycle forever. Changed circumstances
-/// arrive as new evidence, hence a new requirement, which starts fresh.
-pub const MAX_REFUSED_REQUESTS_PER_REQUIREMENT: usize = 2;
+/// that keeps re-requesting (a model loop, or injected portal text), under the
+/// same or a fresh capability name, would spend one model call and two commits
+/// per cycle forever. Changed circumstances arrive as new evidence, hence a new
+/// requirement, which starts fresh.
+pub const MAX_REFUSED_REQUESTS_PER_REQUIREMENT: usize = 3;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, thiserror::Error)]
 #[error("{code:?}{}: {message}", op_index.map(|i| format!(" (operation {i})")).unwrap_or_default())]
@@ -1106,7 +1107,6 @@ impl<'a> Sim<'a> {
             .values()
             .filter(|g| {
                 g.requirement_id == *requirement_id
-                    && g.capability_id == *capability_id
                     && matches!(g.status, CapabilityGapStatus::Refused { .. })
             })
             .count();
@@ -1115,7 +1115,7 @@ impl<'a> Sim<'a> {
                 ValidationCode::CapabilityGapLimitExceeded,
                 Some(i),
                 format!(
-                    "{capability_id} was already refused {refused} times for requirement {requirement_id}; proceed without it, or record new evidence and a new requirement if circumstances changed"
+                    "requirement {requirement_id} already had {refused} capability requests refused; proceed without a new capability, or record new evidence and a new requirement if circumstances changed"
                 ),
             );
         }
