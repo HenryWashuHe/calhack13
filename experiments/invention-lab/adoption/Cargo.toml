@@ -1,0 +1,17 @@
+[package]
+name = "genesis-lab-adopt"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+publish = false
+description = "Invention-lab method adoption: pre-execution checks and the evidence-based outcome (experimental)."
+
+# Standalone like the evaluator, executor and scoring: not a root workspace member.
+[workspace]
+
+[dependencies]
+genesis-core = { path = "../../../crates/genesis-core" }
+genesis-lab-exec = { path = "../executor" }
+genesis-lab-score = { path = "../scoring" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
