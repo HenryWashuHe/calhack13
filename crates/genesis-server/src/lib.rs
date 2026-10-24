@@ -12,6 +12,7 @@ pub mod auth;
 pub mod capability_evidence;
 pub mod capability_runtime;
 pub mod capability_store;
+pub mod creao_config;
 pub mod error;
 pub mod outbox;
 pub mod registry;
@@ -167,6 +168,8 @@ pub fn build_org(cfg: &OrgConfig, providers: Option<ProviderSet>) -> anyhow::Res
 /// Serve an organization on `listener`, with its outbox worker and saga
 /// recovery. Returns when the server stops.
 pub async fn serve_org(app: AppState, listener: TcpListener) -> anyhow::Result<()> {
+    // Registered here because CREAO startup recovery is asynchronous.
+    let app = creao_config::attach_creao_from_env(app).await?;
     let resumed = saga::resume_pending(&app).await.unwrap_or(0);
     if resumed > 0 {
         tracing::info!(resumed, "resumed interrupted organization changes");
