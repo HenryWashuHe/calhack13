@@ -11,7 +11,9 @@
 //! loader cache), `/home`, `/run`, `/var`, host `/tmp` or other mount in it.
 //! Setup refuses to start if any socket file is inside the root. The method
 //! runs as `nobody` with `no_new_privs`, so it can't leave the chroot. Killing
-//! the namespace's first process ends every process in it.
+//! the namespace's first process ends every process in it. [`Mode::stop`]
+//! kills that process directly: `unshare --kill-child` alone is not enough,
+//! because the privilege drop clears the parent-death signal it relies on.
 //!
 //! Resource limits (prlimit, applied before the privilege drop): 1 GiB address
 //! space, 64 processes for the `nobody` user, 64 MiB per written file, 256 open
@@ -31,7 +33,7 @@
 //! `Mode::None` runs the method directly with no isolation at all, and model
 //! usage stays unknown.
 use std::path::Path;
-use std::process::{Command, Stdio};
+use std::process::{Child, Command, Stdio};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Mode {
@@ -172,5 +174,45 @@ impl Mode {
             .stdout(Stdio::piped())
             .stderr(Stdio::null());
         c
+    }
+}
+
+impl Mode {
+    /// Stops a started method. In `Namespaces` mode this SIGKILLs the PID
+    /// namespace's first process (the `unshare` child), which ends every
+    /// process in the namespace; `unshare` then exits only after the kernel
+    /// has torn the namespace down, so waiting on `child` afterwards waits for
+    /// the whole tree. Killing `unshare` itself would not: the setpriv
+    /// credential change clears `--kill-child`'s parent-death signal and the
+    /// namespace would outlive it. In `None` mode only the method process is
+    /// killed; its descendants are not tracked.
+    pub fn stop(self, child: &mut Child) {
+        if self == Self::Namespaces {
+            let id = child.id();
+            // No first process yet means `unshare` hasn't forked, or the
+            // namespace is already ending and `unshare` is about to exit.
+            for _ in 0..200 {
+                let inits = std::fs::read_to_string(format!("/proc/{id}/task/{id}/children"))
+                    .unwrap_or_default();
+                let mut found = false;
+                for pid in inits
+                    .split_whitespace()
+                    .filter(|p| p.parse::<u32>().is_ok())
+                {
+                    found = true;
+                    let _ = Command::new("kill")
+                        .args(["-KILL", pid])
+                        .stdin(Stdio::null())
+                        .stdout(Stdio::null())
+                        .stderr(Stdio::null())
+                        .status();
+                }
+                if found || !matches!(child.try_wait(), Ok(None)) {
+                    return;
+                }
+                std::thread::sleep(std::time::Duration::from_millis(5));
+            }
+        }
+        let _ = child.kill();
     }
 }
