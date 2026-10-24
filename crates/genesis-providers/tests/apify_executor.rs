@@ -281,35 +281,64 @@ async fn lost_post_response_is_unknown_and_never_retried() {
 }
 
 #[tokio::test]
-async fn terminal_failed_run_is_rejected_instead_of_retried() {
-    let mock = Mock::serve(vec![Reply::json(build()), Reply::json(run("FAILED"))]).await;
-    assert!(matches!(
-        mock.executor().submit(&request()).await,
-        Err(ProviderError::Rejected(_))
-    ));
-    assert_eq!(mock.finish().await.len(), 2);
+async fn terminal_failed_run_is_a_distinct_terminal_failure_instead_of_retried() {
+    // Henry's Claude: a provenance-checked terminal status is `RunFailed`,
+    // kept apart from `Rejected` so callers can tell that the external run
+    // stopped. It is still never retried by the adapter.
+    for status in ["FAILED", "TIMED-OUT", "ABORTED"] {
+        let mock = Mock::serve(vec![Reply::json(build()), Reply::json(run(status))]).await;
+        assert!(matches!(
+            mock.executor().submit(&request()).await,
+            Err(ProviderError::RunFailed(_))
+        ));
+        assert_eq!(mock.finish().await.len(), 2);
 
+        let mock = Mock::serve(vec![
+            Reply::json(build()),
+            Reply::json(run("RUNNING")),
+            Reply::json(build()),
+            Reply::json(run(status)),
+        ])
+        .await;
+        let executor = mock.executor();
+        let input = request();
+        let receipt = executor.submit(&input).await.unwrap();
+        let error = executor
+            .resume(&input, receipt.ticket.as_ref().unwrap())
+            .await
+            .unwrap_err();
+        assert!(matches!(error, ProviderError::RunFailed(_)), "{status}");
+        assert!(!serde_json::to_string(&error).unwrap().contains(TOKEN));
+        let requests = mock.finish().await;
+        assert_eq!(requests.len(), 4);
+        assert!(requests[2..]
+            .iter()
+            .all(|request| request.starts_with("GET ")));
+    }
+}
+
+#[tokio::test]
+async fn a_terminal_status_for_a_different_build_is_not_a_confirmed_run_failure() {
+    // The terminal status only counts for the exact run and build that were
+    // submitted; a mismatch is a provenance rejection, not `RunFailed`.
+    let mut metadata = run("FAILED");
+    metadata["data"]["buildId"] = json!("different-build");
     let mock = Mock::serve(vec![
         Reply::json(build()),
         Reply::json(run("RUNNING")),
         Reply::json(build()),
-        Reply::json(run("FAILED")),
+        Reply::json(metadata),
     ])
     .await;
     let executor = mock.executor();
     let input = request();
     let receipt = executor.submit(&input).await.unwrap();
-    assert!(matches!(
-        executor
-            .resume(&input, receipt.ticket.as_ref().unwrap())
-            .await,
-        Err(ProviderError::Rejected(_))
-    ));
-    let requests = mock.finish().await;
-    assert_eq!(requests.len(), 4);
-    assert!(requests[2..]
-        .iter()
-        .all(|request| request.starts_with("GET ")));
+    let error = executor
+        .resume(&input, receipt.ticket.as_ref().unwrap())
+        .await
+        .unwrap_err();
+    assert!(matches!(error, ProviderError::Rejected(_)), "{error:?}");
+    assert_eq!(mock.finish().await.len(), 4);
 }
 
 #[tokio::test]
