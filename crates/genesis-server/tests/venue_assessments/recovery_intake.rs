@@ -567,3 +567,42 @@ async fn unavailable_recruiting_authority_does_not_freeze_an_older_candidate() {
     assert_eq!(f.providers.execution_posts().len(), 1);
     assert!(bridge.sends().is_empty());
 }
+
+#[tokio::test]
+async fn captured_source_pages_finish_across_restart_before_choosing_newest_evidence() {
+    let mut f = Fixture::start().await;
+    let bridge = Bridge::start().await;
+    bridge.attach(&mut f).await;
+    let (older, reopened) = reopened(&f).await;
+    // Explicit repeated-event fixture: duplicate completion notifications name
+    // the same genuine verified job. They do not manufacture source evidence.
+    let repeated = (0..18)
+        .map(|_| EventKind::JobStatusChanged {
+            job_id: JobId::new(&older),
+            from: JobStatus::Verifying,
+            to: JobStatus::Succeeded,
+        })
+        .collect();
+    f.app
+        .store
+        .append_events(repeated, &Default::default(), |_| Ok(()))
+        .unwrap();
+    let newer = f.source("intake-newest-after-source-page", 3).await;
+    f.app.automatic_venue_recovery = true;
+    // Pass 1 authenticates the Reopen; pass 2 scans 16 matching completions.
+    // The newer evidence is beyond that captured page, so no request may freeze.
+    drain(&f, 2).await;
+    let scanning = records(&f).await;
+    assert_eq!(scanning.len(), 1);
+    assert_eq!(scanning[0]["phase"], "discovering");
+    assert!(scanning[0]["client_request_id"].is_null());
+    assert_eq!(recovery_count(&f), 0);
+    restart_enabled(&mut f, &bridge).await;
+    let prepared = until(&f, &reopened, |record| record["phase"] == "prepared").await;
+    assert_eq!(prepared["candidate_job_id"], newer);
+    assert_ne!(prepared["candidate_job_id"], older);
+    let linked = until(&f, &reopened, |record| record["phase"] == "linked").await;
+    assert_eq!(exact_request(&linked), exact_request(&prepared));
+    assert_eq!(recovery_count(&f), 1);
+    assert!(bridge.sends().is_empty());
+}

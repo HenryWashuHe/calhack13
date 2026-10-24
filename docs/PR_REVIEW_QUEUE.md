@@ -9,7 +9,7 @@ supersede the historical tables below.
 | --- | --- | --- |
 | #86 | Merged `ad622a9`, reviewed `ac50d35` | 35 gap-adoption tests and two-org inheritance pass; retained native receipt failures remain blocked. Strict Clippy/fmt. |
 | #111 | Merged `6194e53`, reviewed `84dd81f` / composition `e1b95ea` | Reproduced full-scenario deadline failure, then five scenarios and 40 scenario units pass. Runtime freshness remains strict; Claude contribution preserved. |
-| #112 | Implemented `1b2610c` + tests `bbe1872`; current merge status on GitHub | 139 library + 90 assessment tests, then final 11 intake tests; strict Clippy/fmt and independent review. Loopback evidence; counts overlap. |
+| #112 | Implemented `1b2610c` + tests `bbe1872`; current merge status on GitHub | 139 library + 90 assessment tests, then final 12 intake tests; strict Clippy/fmt and independent review. Loopback evidence; counts overlap. |
 | #110 | **Hold** at `91b0169`; supersedes #91 | Structural updates every second still starve replay. Test-only `b677414`: one reproduced failure plus three unchanged passing original controls. |
 
 Claude owns #110's production fix and the separately agreed terminal-outcome

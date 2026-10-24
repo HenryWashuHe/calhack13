@@ -11,7 +11,7 @@ take precedence over the historical snapshots below. The mission goal is active.
   Five full scenarios and 40 scenario units passed with strict Clippy/fmt.
 - #112 implements opt-in automatic Reopen-to-recovery intake: runtime `1b2610c`,
   integration coverage `bbe1872`. See [its contract](docs/VENUE_RECOVERY_INTAKE.md).
-  139 library and 90 assessment tests passed, then the final 11 intake tests
+  139 library and 90 assessment tests passed, then the final 12 intake tests
   passed; one pre-existing native test remains opt-in. Strict Clippy/fmt and
   independent source review passed. These counts overlap, and providers are fixtures.
 - #110 supersedes #91 and remains held at `91b0169` on structural replay
