@@ -191,9 +191,9 @@ fn timestamp(value: &str) -> Option<DateTime<FixedOffset>> {
         }
     }
     if &bytes[0..4] == b"0000"
-        || &bytes[11..13] > b"23"
-        || &bytes[14..16] > b"59"
-        || &bytes[17..19] > b"59"
+        || bytes[11..13] > b"23"[..]
+        || bytes[14..16] > b"59"[..]
+        || bytes[17..19] > b"59"[..]
     {
         return None;
     }
