@@ -267,8 +267,9 @@ treatments are the primary comparison; per-task warm numbers are secondary.
   identities each trial uses, so no-output failures stay in the denominator.
 - **adoption.md:** acceptance suites are lists of development `instance_ref`s
   plus a criterion over scoring metrics (for example `success` count versus the
-  control arm); the evaluator requirement a method declares is
-  `evaluator_id@version`.
+  control arm); the evaluator requirement is `evaluator_id@version` **plus its content
+  digest**, resolved and pinned by the receiver; a digest change needs
+  re-acceptance even under the same version label.
 - **Evidence UI (#123):** the downsampled trace for animation, score receipts
   for the outcome panel, and the distinction `failed` versus `unknown`.
 
