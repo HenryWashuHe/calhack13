@@ -689,3 +689,138 @@ async fn committed_child_recovers_after_link_save_failure_without_renewing_its_r
         assert_eq!(f.side_effect_counts(), (effects.0 + 1, effects.1));
     }
 }
+
+#[tokio::test]
+async fn durable_event_cursor_finds_late_verification_after_hundreds_of_unrelated_events() {
+    let mut f = Fixture::start().await;
+    let baseline_source = f.source("cursor-baseline-source", 0).await;
+    let baseline_created = f
+        .app
+        .store
+        .get_job(&JobId::new(&baseline_source))
+        .unwrap()
+        .created_at;
+    let (status, deferred) = f
+        .post(
+            "/capability-runs",
+            json!({"client_request_id":"cursor-deferred-update","installation_id":f.installation,
+                "role_id":f.monitor,"responsibility_id":f.responsibility,"suite_id":suite().suite_id,
+                "input":suite().cases[3].input}),
+        )
+        .await;
+    assert_eq!(status, StatusCode::ACCEPTED, "{deferred}");
+    let deferred_id = deferred["job_id"].as_str().unwrap().to_owned();
+    let deferred_created = f
+        .app
+        .store
+        .get_job(&JobId::new(&deferred_id))
+        .unwrap()
+        .created_at;
+    assert!(deferred_created > baseline_created);
+    assert_eq!(
+        f.get(&format!("/capability-runs/{deferred_id}")).await["phase"],
+        "prepared",
+        "the future source is created, but has no collected or accepted proof yet"
+    );
+    let registered_at = Utc::now();
+    let saved = subscribe(
+        &f,
+        subscription_request(&f, "cursor-monitor", &baseline_source, 4),
+    )
+    .await;
+    assert!(deferred_created < registered_at);
+    let path = monitor_path(&saved);
+    let baseline = drain_until(&f, &path, |value| {
+        value["last_assessment_id"].is_string() && value["pending_assessment_id"].is_null()
+    })
+    .await;
+    assert_eq!(baseline["assessment_count"], 1);
+    assert_eq!(baseline["status"], "active");
+    let cursor_before = baseline["event_cursor"].as_u64().unwrap();
+    for index in 0..205 {
+        let (status, observation) = f
+            .post(
+                &format!("/missions/{}/observations", f.mission),
+                json!({"source":"cursor-fixture","summary":format!("Unrelated valid event {index}")}),
+            )
+            .await;
+        assert_eq!(status, StatusCode::CREATED, "{observation}");
+    }
+    // The existing trusted cards case is a different event/date. Its proof is
+    // genuinely accepted, but cannot spend this monitor's same-event budget.
+    let wrong_event = f.source("cursor-wrong-event-source", 1).await;
+    f.collect(&deferred_id).await;
+    let (status, verified) = f
+        .post(&format!("/capability-runs/{deferred_id}/verify"), json!({}))
+        .await;
+    assert_eq!(status, StatusCode::OK, "{verified}");
+    assert_eq!(verified["decision"], "verified");
+    let events = f.app.store.events_after(cursor_before, 512).unwrap();
+    assert!(events.len() > 200);
+    let verified_sequence = events
+        .iter()
+        .find_map(|event| match &event.kind {
+            genesis_core::events::EventKind::JobStatusChanged {
+                job_id,
+                to: JobStatus::Succeeded,
+                ..
+            } if job_id.as_str() == deferred_id => Some(event.seq),
+            _ => None,
+        })
+        .expect("the real invocation verifier must commit a Succeeded event");
+    assert!(verified_sequence > cursor_before + 200);
+    genesis_server::venue_monitors::drain_once(&f.app)
+        .await
+        .unwrap();
+    let first_page = f.get(&path).await;
+    assert_eq!(first_page["assessment_count"], 1);
+    let cursor_after_page = first_page["event_cursor"].as_u64().unwrap();
+    assert!(cursor_after_page > cursor_before);
+    assert!(
+        cursor_after_page < verified_sequence,
+        "a bounded page cannot skip directly to the last event"
+    );
+
+    // Restart must retain progress rather than repeatedly re-reading the first
+    // page or discarding jobs whose creation predates subscription registration.
+    f.restart(false).await;
+    assert_eq!(f.get(&path).await["event_cursor"], cursor_after_page);
+    let mut selected = None;
+    for _ in 0..32 {
+        genesis_server::venue_monitors::drain_once(&f.app)
+            .await
+            .unwrap();
+        let record = f.get(&path).await;
+        assert_ne!(record["pending_source_job_id"], wrong_event);
+        assert_eq!(record["status"], "active", "{record}");
+        if record["pending_source_job_id"] == deferred_id {
+            selected = Some(record);
+            break;
+        }
+    }
+    let selected = selected.expect("bounded cursor pages must discover the late verified source");
+    assert_eq!(
+        selected["assessment_count"], 2,
+        "the unrelated event input spent no intent"
+    );
+    assert!(selected["event_cursor"].as_u64().unwrap() >= verified_sequence);
+    let completed = drain_until(&f, &path, |v| v["status"] == "completed").await;
+    assert_eq!(completed["assessment_count"], 2);
+    let cut = f
+        .get(&assessment_path(&completed["last_assessment_id"]))
+        .await;
+    assert_eq!(cut["source_job_id"], deferred_id);
+    assert_eq!(proof(&cut)["decision"], "accepted");
+    assert_eq!(proof(&cut)["output"]["verdict"], "reopen");
+    assert!(proof(&cut)["requirement_id"].is_string());
+    assert_eq!(assessment_rows(&f), 2);
+    assert_eq!(f.providers.execution_posts().len(), 2);
+    let effects = f.side_effect_counts();
+    for _ in 0..3 {
+        genesis_server::venue_monitors::drain_once(&f.app)
+            .await
+            .unwrap();
+    }
+    assert_eq!(f.providers.execution_posts().len(), 2);
+    assert_eq!(f.side_effect_counts(), effects);
+}
