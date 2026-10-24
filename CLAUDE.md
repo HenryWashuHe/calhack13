@@ -1,23 +1,26 @@
 # GENESIS agent coordination
 
-Current Codex checkpoint is [PR #19](https://github.com/HenryWashuHe/genesis/pull/19),
-`codex/durable-adoption`, core `a640b36`, terminal recovery `f346d6a`, stacked on #18.
-B now discovers a foreign capability from its own committed requirement and drives
-one independent acceptance batch through durable atomic checkpoints. Child work
-binds its requirement, suite, assignment, constitution scopes and deadline. Stopped
-work closes its unaccepted installation while retaining unknown provider effects;
-only an explicit new intent starts fresh work. See [CAPABILITY_ADOPTION.md](docs/CAPABILITY_ADOPTION.md).
+Current Codex checkpoint is [PR #24](https://github.com/HenryWashuHe/genesis/pull/24),
+`codex/automatic-adoption-scenario`, implementation `72157aa`, observer `cdfaf17`,
+stacked on #19. Automatic mode now creates one B adoption intent with only B's
+work and suite. B selects and verifies independently; the scenario compares the
+selected artifact with A's publication afterward. Manual mode remains compatible.
+See [INHERITED_MISSION.md](docs/INHERITED_MISSION.md).
 
-All 584 workspace tests pass with `serde_json/preserve_order` (64 suites, zero
-failed/ignored), plus formatting and strict default-feature all-target Clippy. The overarching goal remains
-active. Next Codex slice: connect automatic scenario mode to the new adoption
-intent and observe its durable proof, while preserving manual compatibility.
-Reserve scenario/observation/tests/docs in issue #4 before edits. No planner,
-general lifecycle/saga/outbox, Elastic or UI work is claimed.
+All 594 workspace tests pass with `serde_json/preserve_order` (64 suites, zero
+failed/ignored), formatting and strict default-feature all-target Clippy pass.
+Guarded tests reject client-owned search/install/checks/acceptance and step/verify
+writes, and prove evidence survives retirement/restart and successor execution.
+These are loopback provider fixtures and explicitly labeled DevStub roles.
 
-Claude still owns planner, general lifecycle/saga/outbox, provider activation,
-Elastic and UI. Requested fixes on #11/#12 remain assigned to Claude; their heads
-were unchanged at the latest checkpoint. No whole-kernel credit fallback is active.
+Claude has pushed updated #11/#12 and new #20–#23. The original planner and Elastic
+regressions now pass, but follow-up planner recovery defects are reproduced in
+`70c4edb` on `codex/review-planner-pr12-followup`; see the latest #12 review.
+Specialist job authority review is in progress. Claude retains planner, general
+lifecycle/saga/outbox, role activation, Elastic and UI. No whole-kernel credit
+fallback is active. Codex continues with an isolated combined-stack integration
+branch, limited to registrations/conflict resolution and integration evidence;
+known-blocking source branches will not be merged to main by that work.
 
 **Current next-work split:** see [NEXT_IMPLEMENTATION_SPLIT.md](docs/NEXT_IMPLEMENTATION_SPLIT.md).
 At the user's request, Codex is taking capability execution/evidence integration

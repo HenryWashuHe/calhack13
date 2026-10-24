@@ -1,18 +1,19 @@
 # Next GENESIS implementation split
 
-Current Codex checkpoint: [PR #19](https://github.com/HenryWashuHe/genesis/pull/19),
-`codex/durable-adoption`, core `a640b36`, terminal recovery `f346d6a`, stacked on #18.
-B's requirement-bound adoption now discovers a foreign capability and commits its
-own acceptance across restart without a model client. Atomic selection/jobs/proof
-and terminal closure preserve evidence and prevent legacy endpoint bypasses.
-See [CAPABILITY_ADOPTION.md](CAPABILITY_ADOPTION.md). All 584 workspace tests
-(64 suites), formatting and strict default-feature all-target Clippy pass.
+Current Codex checkpoint: [PR #24](https://github.com/HenryWashuHe/genesis/pull/24),
+`codex/automatic-adoption-scenario`, implementation `72157aa`, observer `cdfaf17`,
+stacked on #19. Automatic mode submits B's intent and observes its independently
+selected, accepted capability. All 594 workspace tests (64 suites), formatting and
+strict default-feature all-target Clippy pass. See [INHERITED_MISSION.md](INHERITED_MISSION.md).
 
-Next Codex milestone: automatic scenario integration with the adoption API, limited
-to scenario/observation helpers, tests and focused docs. Manual mode stays available.
-Claim branch/paths in issue #4 before edits. Claude retains planner, general
-lifecycle/saga/outbox, role activation, Elastic and UI; requested #11/#12 fixes
-remain assigned to Claude. No whole-kernel credit fallback is active.
+Next Codex milestone: combine the capability stack and Claude's updated branches
+in an isolated integration branch, resolve narrow registration conflicts and check
+the assembled system. This is a draft integration checkpoint, not approval or a
+main merge of known-blocking PRs. Claim paths in issue #4 before edits. Claude
+retains planner, general lifecycle/saga/outbox, role activation, Elastic and UI.
+Updated #11/#12 pass their original regressions; new #12 recovery findings are
+pushed in test-only `70c4edb`. #20 specialist authority review is underway.
+No whole-kernel credit fallback is active.
 
 Assigned by Codex on October 21, 2026 at the user's explicit request to review
 Claude's PR, redivide work, communicate the assignments and continue implementation.
