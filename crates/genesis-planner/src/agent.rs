@@ -116,28 +116,25 @@ impl Planner {
     /// submissions the kernel already rejected. A rejected attempt's request
     /// keys are spent: resubmitting under them returns the cached rejection.
     async fn prior_attempts(&self, obs: &ObservationId) -> Result<Prior, KernelError> {
+        // Scan every key: an attempt whose model output was unusable submits
+        // nothing, so a gap does not mean later attempts are unused.
         let mut prior = Prior::default();
         for attempt in 1..=self.max_attempts {
-            let mut used = false;
             for submission in 0..3 {
                 if let Some(c) = self
                     .kernel
                     .change_by_request(&Self::request_key(obs, attempt, submission))
                     .await?
                 {
-                    used = true;
                     if c.status == ChangeStatus::Rejected {
                         prior.rejections.extend(rejection(&c).reasons());
+                        prior.spent = attempt;
                     } else {
                         prior.accepted = Some(c);
                         return Ok(prior);
                     }
                 }
             }
-            if !used {
-                break;
-            }
-            prior.spent = attempt;
         }
         Ok(prior)
     }
@@ -468,7 +465,8 @@ fn existing_requirement(
 #[derive(Default)]
 struct Prior {
     accepted: Option<OrgChangeRecord>,
-    /// Model attempts already used by submissions the kernel rejected.
+    /// Highest model attempt whose submission the kernel rejected; the next
+    /// run resumes after it so no spent request key is reused.
     spent: u32,
     rejections: Vec<String>,
 }
