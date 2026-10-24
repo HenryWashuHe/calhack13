@@ -139,11 +139,16 @@ export function useCapabilityEvidence(api: Api, state: OrgState | null, jobs: Jo
       const sig = jobSignature(byId.get(id)!);
       known.set(id, { ...(known.get(id) ?? {}), sig, at: null, outcome: "pending" });
       const settle = (patch: Partial<RunFetch>) => {
+        // Apply only while this request's map is still the current one: an
+        // organization switch (or StrictMode's re-run of the reset effect)
+        // replaces requested.current.runs, and a disposed request must not
+        // write visible state or drive polling from the obsolete map.
+        if (!live() || requested.current.runs !== known) return false;
         const k = known.get(id);
         // Ignore a response for an older job state.
-        if (!live() || !k || k.sig !== sig) return false;
+        if (!k || k.sig !== sig) return false;
         known.set(id, { ...k, ...patch, at: Date.now() });
-        setPolling(needsPolling(known));
+        setPolling(needsPolling(requested.current.runs));
         return true;
       };
       api
