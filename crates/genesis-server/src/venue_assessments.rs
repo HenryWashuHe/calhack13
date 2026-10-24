@@ -673,7 +673,7 @@ pub async fn read(app: &AppState, id: &str) -> ApiResult<AssessmentRecord> {
     let _guard = app.kernel.lock().await;
     read_locked(app, id)
 }
-fn read_locked(app: &AppState, id: &str) -> ApiResult<AssessmentRecord> {
+pub(crate) fn read_locked(app: &AppState, id: &str) -> ApiResult<AssessmentRecord> {
     let binding = app.store.assessment_binding(id)?;
     let job = app.store.get_job(&binding.job.job_id)?;
     if job_spec(&job) != binding.job {

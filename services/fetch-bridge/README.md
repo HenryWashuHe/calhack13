@@ -1,6 +1,6 @@
 # Fetch specialist bridge
 
-This process transports GENESIS messages using **native Fetch SDK identities, schema digests, and signed envelopes**. Its SQLite inbox and outbox survive restarts. The optional independent specialist maintains its own contracts for multiple organizations and returns synthetic advisory receipts, not planning recommendations. It never activates a kernel role or verifies a business outcome.
+This process transports GENESIS messages using **native Fetch SDK identities, schema digests, and signed envelopes**. Its SQLite inbox and outbox survive restarts. The optional independent specialist maintains contracts for multiple organizations. Its default advisory mode returns synthetic receipts; explicit venue-selection mode evaluates frozen venue facts and proposes a replacement. The organization independently verifies that proposal before applying any mission effect.
 
 The organization kernel retains authority over recruitment, grants, leases, epochs, assignments, and result acceptance. A bridge `202 queued`, Fetch HTTP `200`, or `task_result` is not domain success. The private API and `GenesisMessage` protocol are GENESIS interfaces, not Fetch-hosted APIs.
 
@@ -43,6 +43,16 @@ uv run --project services/fetch-bridge --frozen genesis-fetch-bridge serve \
   --port 8102 --specialist
 ```
 
+For a replacement specialist that performs the `venue.select` capability, use a separate database and explicit mode:
+
+```sh
+uv run --project services/fetch-bridge --frozen genesis-fetch-bridge serve \
+  --db .local/venue-specialist-fetch.sqlite --peers .local/specialist-peers.json \
+  --port 8102 --specialist-mode venue_selection
+```
+
+`--specialist` remains equivalent to `--specialist-mode advisory`. An explicit mode enables the specialist without requiring both flags. The selected mode is persisted in its database; changing modes requires a separate database. Existing advisory contracts cannot become venue-selection contracts after a restart.
+
 The CLI binds only literal loopback. Signed ingress is `POST /submit`; all `/v1/*` API endpoints require Bearer authentication. A remote deployment needs a separately configured TLS ingress exposing **only** `/submit`, while keeping `/v1/*` private. Outbound peers accept HTTPS or literal loopback HTTP; URLs must be preconfigured and cannot contain credentials, queries, or fragments. A search result does not automatically become an allowed peer.
 
 No `Agent` is started, so there is no SDK automatic registration, public status write, telemetry, wallet action, or mailbox polling. Network traffic starts only when a durable outgoing message targets an explicitly configured peer. Public Agentverse discovery and registration remain separate, untested deployment steps.
@@ -65,7 +75,15 @@ Outgoing delivery is **at least once**. A crash after remote acceptance can rese
 
 Storage stops accepting new evidence at an explicit record/page cap (defaults: 10,000 rows across transport and specialist tables; 64 MiB main SQLite database). It never silently evicts unconsumed receipts. The rollback journal may temporarily require additional disk space. Operators must resolve a full database explicitly; there is no automatic retention/deletion policy. A single active bridge per database is the supported deployment.
 
-The synthetic specialist commits contract/task state, its inbox cursor, and reply outbox in one transaction. An offer must be accepted by its original sender. Sender/org/mission/contract/correlation binding is checked again for each request. Fresh release requests may close an expired lease; acceptance and work still require a live lease. Released contract IDs are not reused. A task's immutable job/attempt and idempotency key cannot be replaced. Releasing Org A's contract leaves Org B's contract usable. Outputs explicitly say `synthetic:true` and `domain_verified:false`; the sample performs no web or external business action.
+Both specialist modes commit contract/task state, the inbox cursor, and reply outbox in one transaction. An offer must be accepted by its original sender. Sender/org/mission/contract/correlation binding is checked again for each request. Fresh release requests may close an expired lease; acceptance and work still require a live lease. Released contract IDs are not reused. A task's immutable job/attempt and idempotency key cannot be replaced. Releasing Org A's contract leaves Org B's contract usable. Advisory outputs explicitly say `synthetic:true` and `domain_verified:false`. Neither mode performs web requests or external business actions.
+
+## Venue selection contract
+
+The opt-in mode offers only `venue.select`. Its task input is `venue_replacement_v1`, binding a recovery ID, policy digest, context digest and 1–16 frozen candidates from at most eight source jobs. The [shared Rust/Python fixture](../../contracts/fixtures/fetch_venue_replacement_v1.json) specifies the complete input and output shape. Objects reject unknown fields, and input and output are each limited to 32 KiB.
+
+For every candidate, the specialist evaluates capacity, price in the same currency, coverage of the event window, availability and step-free access. RFC3339 windows are compared as instants with nanosecond precision. It excludes the previously failed venue, then selects the cheapest eligible candidate; ties use venue ID and source job ID in UTF-8 byte order. Results preserve candidate order and cite each exact source, invocation proof and evidence reference. Input facts and hashes remain untrusted until the organization authenticates their provenance and recomputes the selection.
+
+A valid no-match result contains all candidate evaluations and `selected:null`. Malformed input returns a native task result with `output:null`, which is invalid domain evidence, rather than inventing a no-match decision. That refusal is persisted with the exact task attempt and survives replay and restart. No output claims a reservation, a verified business outcome or a fulfilled requirement.
 
 ## Validation
 
@@ -74,7 +92,7 @@ uv run --project services/fetch-bridge --frozen python -m unittest \
   discover -s services/fetch-bridge/tests -v
 ```
 
-The integration test starts **three separate OS processes**: Org A, Org B, and one independent specialist. It exercises signed offer/accept/task/result messages over HTTP, an offline durable queue, sender and specialist restarts, receiver replay deduplication, stable identity, and release isolation. It does not use Bureau's same-process dispatcher shortcut. Other tests cover tampering, forged identity/target/schema, expiry, immutable retry conflicts, capacity, private authentication, bounded parsing, and redirect refusal. No public credentials, registration, or authenticated cloud smoke test is claimed.
+Each mode's integration test starts **three separate OS processes**: Org A, Org B, and one independent specialist. They exercise signed offer/accept/task/result messages over HTTP, an offline durable queue, sender and specialist restarts, receiver replay deduplication, stable identity, and release isolation. The venue test also verifies real selection and persistent malformed-input refusal. These tests do not use Bureau's same-process dispatcher shortcut. The shared fixture checks Rust/Python output agreement; focused tests cover all five predicates, exact timestamp boundaries, deterministic ranking and strict input binding. Other tests cover tampering, forged identity/target/schema, expiry, immutable retry conflicts, capacity, private authentication, bounded parsing, and redirect refusal. No public credentials, registration, or authenticated cloud smoke test is claimed.
 
 ## Verified upstream contracts
 

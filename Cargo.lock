@@ -710,6 +710,7 @@ dependencies = [
  "genesis-core",
  "genesis-creao",
  "genesis-elastic",
+ "genesis-fetch",
  "genesis-forge",
  "genesis-providers",
  "genesis-verification",
