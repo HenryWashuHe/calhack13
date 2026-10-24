@@ -854,3 +854,138 @@ async fn failed_bridge_identity_preflights_consume_lifetime_release_attempts() {
     assert!(bridge.release_sends().is_empty());
     assert!(flaky.attempted.lock().unwrap().is_empty());
 }
+
+/// A genuine verified invocation of the same installation, suite, acceptance,
+/// artifact and event input, made by a role in a second mission of this
+/// organization. Only the job's mission differs from the frozen original.
+async fn second_mission_source(f: &Fixture, key: &str, case: usize) -> (String, String) {
+    let (status, mission) = f.post("/missions", json!({"goal":"An unrelated second mission using the same capability",
+        "roles":[{"key":"other","name":"Second mission reader","charter":"Read venue snapshots for another mission",
+            "authority":{"scopes":["mission.coordinate","capability.venue_lookup"],"budget_cents":10000}}],
+        "responsibilities":[{"purpose":"Read venues for the second mission","owner":"other"}]})).await;
+    assert_eq!(status, StatusCode::CREATED, "{mission}");
+    let mission = mission["mission_id"].as_str().unwrap().to_owned();
+    assert_ne!(mission, f.mission);
+    let state = f.app.current_state().unwrap();
+    let role = state
+        .roles
+        .values()
+        .find(|r| r.name == "Second mission reader")
+        .unwrap()
+        .role_id
+        .to_string();
+    let responsibility = state
+        .responsibilities
+        .values()
+        .find(|r| r.mission_id.as_str() == mission)
+        .unwrap()
+        .responsibility_id
+        .to_string();
+    let (status, observation) = f
+        .post(
+            &format!("/missions/{mission}/observations"),
+            json!({"source":"fixture","summary":"The second mission also needs the accepted reader"}),
+        )
+        .await;
+    assert_eq!(status, StatusCode::CREATED, "{observation}");
+    let (status, change) = f.post("/org-changes", json!({"client_request_id":format!("{key}-attach"),"proposal":{
+        "expected_org_revision":f.app.current_state().unwrap().revision,"trigger_evidence_ids":[observation["observation_id"]],
+        "rationale":"Attach the existing accepted capability in the second mission","operations":[
+            {"op":"AttachCapability","role":{"kind":"existing","role_id":role},"capability":{"capability_id":CAPABILITY,"version":VERSION}}]}})).await;
+    assert_eq!(status, StatusCode::ACCEPTED, "{change}");
+    f.wait(
+        &format!("/org-changes/{}", change["change_id"].as_str().unwrap()),
+        |v| v["status"] == "COMMITTED",
+    )
+    .await;
+    let (status, job) = f.post("/capability-runs", json!({"client_request_id":key,"installation_id":f.installation,
+        "role_id":role,"responsibility_id":responsibility,"suite_id":suite().suite_id,"input":suite().cases[case].input})).await;
+    assert_eq!(status, StatusCode::ACCEPTED, "{job}");
+    let id = job["job_id"].as_str().unwrap().to_owned();
+    f.collect(&id).await;
+    let (status, proof) = f
+        .post(&format!("/capability-runs/{id}/verify"), json!({}))
+        .await;
+    assert_eq!(status, StatusCode::OK, "{proof}");
+    assert_eq!(proof["decision"], "verified");
+    (id, mission)
+}
+
+#[tokio::test]
+async fn candidate_from_another_mission_is_refused_while_same_mission_control_registers() {
+    let mut f = Fixture::start().await;
+    let bridge = Bridge::start().await;
+    bridge.attach(&mut f).await;
+    let (source, reopened) = reopened(&f).await;
+    // Case 0 is another page of the same frozen event: its input differs from
+    // the original's only in source_url.
+    let same_mission = f.source("recovery-same-mission-page", 0).await;
+    let (other_mission, mission) =
+        second_mission_source(&f, "recovery-other-mission-page", 0).await;
+    let read = |id: &str| {
+        let job = f.app.store.get_job(&JobId::new(id)).unwrap();
+        let run = f.app.store.get_capability_run(&JobId::new(id)).unwrap();
+        (job, run)
+    };
+    let (original_job, original_run) = read(&source);
+    let (control_job, control_run) = read(&same_mission);
+    let (foreign_job, foreign_run) = read(&other_mission);
+    assert_eq!(foreign_job.mission_id.as_str(), mission);
+    assert_ne!(foreign_job.mission_id, original_job.mission_id);
+    assert_eq!(control_job.mission_id, original_job.mission_id);
+    for (job, run) in [(&control_job, &control_run), (&foreign_job, &foreign_run)] {
+        assert_eq!(job.org_id, original_job.org_id);
+        assert_eq!(run.request.artifact, original_run.request.artifact);
+        let mut input = job.input.clone();
+        input["source_url"] = original_job.input["source_url"].clone();
+        assert_eq!(json_sha256(&input), json_sha256(&original_job.input));
+        let proof = genesis_server::capability_invocation::read(&f.app, &job.job_id)
+            .await
+            .unwrap();
+        let original = genesis_server::capability_invocation::read(&f.app, &original_job.job_id)
+            .await
+            .unwrap();
+        assert_eq!(proof.installation_id, original.installation_id);
+        assert_eq!(proof.suite_id, original.suite_id);
+        assert_eq!(proof.suite_sha256, original.suite_sha256);
+        assert_eq!(proof.acceptance_report_ref, original.acceptance_report_ref);
+    }
+
+    // The other origin dimensions cannot vary alone: the kernel refuses a second
+    // live installation of this capability, and installation, suite, acceptance
+    // and artifact are each fixed per installation by the invocation proof.
+    let installations = f.app.current_state().unwrap().installations.len();
+    let (status, duplicate) = f
+        .post(
+            "/capability-installations",
+            json!({"capability_id":CAPABILITY,"version":VERSION}),
+        )
+        .await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{duplicate}");
+    assert_eq!(
+        f.app.current_state().unwrap().installations.len(),
+        installations
+    );
+
+    let mut body = recovery_request(&source, &reopened);
+    body["candidate_job_ids"] = json!([other_mission]);
+    let before = f.app.current_state().unwrap();
+    let (status, refused) = f.post("/venue-recoveries", body.clone()).await;
+    assert_eq!(status, StatusCode::CONFLICT, "{refused}");
+    assert_eq!(refused["error"], "venue_recovery_source");
+    assert_eq!(
+        refused["message"],
+        "candidate source differs from the frozen event or capability"
+    );
+    assert_eq!(f.app.current_state().unwrap(), before);
+    let rows: u64 = sqlite(&f)
+        .query_row("SELECT COUNT(*) FROM venue_recoveries", [], |r| r.get(0))
+        .unwrap();
+    assert_eq!(rows, 0);
+
+    // Control: the same page, verified in the original mission, registers.
+    body["candidate_job_ids"] = json!([same_mission]);
+    let (_, registered) = register(&f, body).await;
+    assert_eq!(registered["phase"], "recruiting");
+    assert!(bridge.sends().is_empty());
+}
