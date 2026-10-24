@@ -2,7 +2,8 @@
 
 The organization server can own a complete acquisition rather than requiring a
 caller to manage forge files. An operator creates an intent for an existing
-requirement and assigned responsibility, then advances it through generation,
+requirement and assigned responsibility, then advances it manually or enables
+automatic progression through generation,
 Actor creation/build, independent verification and one optional semantic repair.
 The checkpoint and consumed action counts live in that organization's SQLite DB.
 
@@ -20,7 +21,8 @@ and organization configuration. Start from
 available to your account. The policy contains no credentials or provider URLs.
 `ANTHROPIC_API_KEY` and `APIFY_TOKEN` are environment-only. Missing clients allow
 offline preparation/status but reject the relevant effect before changing intent
-or consuming an effect count.
+or consuming an effect count. Automatic mode additionally requires both clients
+at startup; enabling it with either missing is rejected before opening the database.
 
 ```sh
 cargo run --locked -p genesis-server -- org \
@@ -54,8 +56,9 @@ Unknown fields are rejected.
    checks the current state; a subsequent step permanently records fencing when
    authority has changed.
 3. `POST /api/v1/capability-acquisitions/{id}/step` with `{}` advances one local
-   transition or one provider action. There is no automatic acquisition worker.
-   Repeat deliberately while progress is allowed. A saved retryable read requires
+   transition or one provider action. Without automatic mode, repeat deliberately
+   while progress is allowed. With `--auto-acquire`, the server advances eligible
+   intents without these calls. A saved retryable read always requires
    `{"retry_read":true}`; this flag never permits another mutating submission.
 4. After `phase: verified`, use the existing
    `POST /api/v1/capabilities/publish` with a manifest and
@@ -77,6 +80,52 @@ current assignment or delegation and the explicit `capability.acquire` scope.
 The demo constitution recognizes this scope, but role grants still need to
 include it. Preparing an acquisition does not grant authority.
 
+## Opt-in automatic acquisition
+
+Add `--auto-acquire` to the configured `genesis org` command to advance **existing
+and new explicit acquisition intents** automatically. It is off by default, requires
+`--acquisition-policy` and both model/Apify clients, and has no credential CLI flags.
+The policy JSON and persistent count quotas are unchanged. It does not infer a
+candidate, trusted suite, public examples or source allowlist from a bare requirement.
+A planner still creates the intent after its organization change commits. Publication
+and installation remain separate decisions.
+
+The dedicated worker selects at most four eligible active records per pass, serving
+the oldest scheduled work first. It calls the existing one-step runtime and includes
+an eligible first semantic rejection that can advance to its single planned repair.
+A successful step waits at least one second before the next automatic step at that
+version. Provider I/O remains outside the kernel lock, and a shared runtime gate
+serializes manual and automatic steps. Every automatic selection checks its expected
+record version inside that gate before recovery, mutation, quota debit or I/O.
+
+Scheduler state is persistent and tied to the exact acquisition version it observed.
+A stale error cannot become a stop condition for a newer manually advanced record.
+Invalid configuration/checkpoints, quota exhaustion and failed reads become safe
+attention categories rather than repeated provider calls. A successful explicit
+step creates a new version and lets automation continue. Errors requiring a read
+retry never cause the worker to set `retry_read:true`.
+
+Operator-only `GET /api/v1/capability-acquisitions/{id}/automation` reports:
+
+- `enabled`, `current_version` and the scheduler's optional `observed_version`;
+- `state`: `disabled`, `ready`, `waiting`, `attention` or `inactive`;
+- a closed `error_code`, plus optional `next_attempt_at`, `next_reconcile_at`
+  and `updated_at` timestamps.
+
+This response is scheduling metadata, not verification proof. It contains no source,
+examples, oracle answers or raw provider/database errors. An inactive acquisition
+may be verified, failed, rejected or awaiting reconciliation; inspect its normal
+status endpoint for the actual phase.
+
+Failed-read and quota attention receive a strictly local authority/recovery check
+at most every five seconds. This can fence expired or retired work and free active
+capacity, without retrying the paused network action. Other attention stays stopped
+at that version. Scheduling writes compare against the version actually processed;
+if manual work already advanced, the next pass observes its new state. A scheduler
+storage failure stops the worker rather than running effects without durable state.
+Dropping the organization server cancels its worker; interrupted effects remain
+subject to the runtime's existing recovery rules.
+
 ## Fencing and recovery
 
 The record captures organization identity, mission and requirement digests, role
@@ -95,8 +144,10 @@ writes; they are not a distributed worker lease.
 
 Startup recovery makes no provider calls. Unknown model/Actor/build/run POST
 outcomes require reconciliation and are never replayed. Known pending GETs retain
-their saved context and can resume on an explicit step. Credentials are not needed
-for local recovery. A failed or interrupted acquisition cannot publish a proof.
+their saved context and can resume on an explicit step or through enabled automation.
+This differs from a recorded failed GET, which still requires explicit `retry_read`.
+Credentials are not needed for local recovery; running automatic mode requires its
+configured provider clients. A failed or interrupted acquisition cannot publish a proof.
 Publication remains an explicit operator network action; authority is checked
 before starting it, not atomically across the remote registry transaction.
 
@@ -122,7 +173,9 @@ The private record is capped at 9 MiB; its acquisition checkpoint retains the
 normalized complete Apify evidence. Use the same forge binary and embedded Actor
 scaffold for a DB retaining these acquisition records: validation rederives the
 package even for a completed record. There is no scaffold migration/archive API
-yet. Trusted exported ForgeSession proofs retain frozen package bytes.
+yet. Trusted exported ForgeSession proofs retain frozen package bytes. Startup still
+validates all retained acquisition records and fails closed if one has a missing suite,
+corrupt checkpoint or incompatible scaffold; the scheduler does not bypass that gate.
 
 The initial HTTP integration exposes status rather than adding new domain-event
 schemas or UI behavior. Organization B still discovers the published manifest and

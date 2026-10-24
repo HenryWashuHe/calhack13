@@ -9,6 +9,7 @@
 
 pub mod app;
 pub mod auth;
+pub mod capability_acquisition_driver;
 pub mod capability_acquisition_runtime;
 pub mod capability_acquisition_store;
 pub mod capability_authority;
@@ -43,6 +44,8 @@ use tokio::sync::{broadcast, Mutex};
 #[derive(Clone)]
 pub struct AcquisitionConfig {
     pub policy: capability_acquisition_store::AcquisitionPolicy,
+    /// Explicit trusted opt-in. Drives existing and new authorized intents.
+    pub automatic: bool,
     pub model: Option<Arc<genesis_forge::AnthropicGenerator>>,
     pub apify: Option<Arc<genesis_apify::ApifyClient>>,
 }
@@ -51,6 +54,7 @@ impl AcquisitionConfig {
     pub fn offline(policy: capability_acquisition_store::AcquisitionPolicy) -> Self {
         Self {
             policy,
+            automatic: false,
             model: None,
             apify: None,
         }
@@ -61,6 +65,7 @@ impl std::fmt::Debug for AcquisitionConfig {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("AcquisitionConfig")
             .field("policy", &self.policy)
+            .field("automatic", &self.automatic)
             .field("model_configured", &self.model.is_some())
             .field("apify_configured", &self.apify.is_some())
             .finish()
@@ -138,6 +143,11 @@ pub fn demo_constitution() -> Constitution {
 
 /// Open the store, initialize revision 0 if needed, and build the app state.
 pub fn build_org(cfg: &OrgConfig, providers: Option<ProviderSet>) -> anyhow::Result<AppState> {
+    if cfg.acquisition.as_ref().is_some_and(|config| {
+        config.automatic && (config.model.is_none() || config.apify.is_none())
+    }) {
+        anyhow::bail!("automatic acquisition requires configured model and Apify clients");
+    }
     let store = match &cfg.db {
         Some(path) => Store::open(path, cfg.org_id.clone())?,
         None => Store::open_in_memory(cfg.org_id.clone())?,
@@ -175,6 +185,7 @@ pub fn build_org(cfg: &OrgConfig, providers: Option<ProviderSet>) -> anyhow::Res
     store.init_capability_finalization()?;
     if let Some(config) = &cfg.acquisition {
         store.init_acquisitions(&config.policy)?;
+        store.init_acquisition_driver()?;
     }
     let evidence_policy = Arc::new(capability_evidence::EvidencePolicy::new(
         cfg.oracle_suites.clone(),
@@ -209,6 +220,7 @@ pub fn build_org(cfg: &OrgConfig, providers: Option<ProviderSet>) -> anyhow::Res
         evidence_policy,
         capability_runtime,
         acquisition_policy: cfg.acquisition.as_ref().map(|c| Arc::new(c.policy.clone())),
+        automatic_acquisition: cfg.acquisition.as_ref().is_some_and(|c| c.automatic),
         acquisition_runtime,
         registry,
         provision_timeout: cfg.provision_timeout,
@@ -229,6 +241,9 @@ pub async fn serve_org(app: AppState, listener: TcpListener) -> anyhow::Result<(
     }
     let _capability_worker = AbortWorker(capability_worker(app.clone()));
     let _finalization_worker = AbortWorker(capability_finalization::spawn(app.clone()));
+    let _acquisition_worker = app
+        .automatic_acquisition
+        .then(|| AbortWorker(capability_acquisition_driver::spawn(app.clone())));
     let _outbox_worker = AbortWorker(outbox::spawn(app.clone()));
     let router = app.router();
     let res = axum::serve(listener, router).await;

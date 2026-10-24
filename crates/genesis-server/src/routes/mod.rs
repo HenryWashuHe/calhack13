@@ -63,6 +63,10 @@ pub fn router(state: AppState) -> Router {
         .route("/capability-acquisitions", post(acquisitions::create))
         .route("/capability-acquisitions/{id}", get(acquisitions::status))
         .route(
+            "/capability-acquisitions/{id}/automation",
+            get(acquisitions::automation),
+        )
+        .route(
             "/capability-acquisitions/{id}/step",
             post(acquisitions::step),
         )
