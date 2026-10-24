@@ -43,19 +43,75 @@ fn seed(store: &Store, id: &str, version: u64, active: bool) {
          VALUES (?1,?1,?1,?1,1,'metadata-only-suite',?2,?3,?4)",
         params![id, version as i64, i64::from(active), json!({"private":PRIVATE_RECORD}).to_string()],
     ).unwrap();
+    // The scheduler now journals attention atomically. Supply a matching small
+    // metadata projection as well; this is still not a validated checkpoint or
+    // a verification/publication proof.
+    let snapshot = json!({
+        "id":id,"org_id":"scheduler-tests","mission_id":"mission",
+        "requirement_id":id,"role_id":"role","responsibility_id":"responsibility",
+        "assignment_id":id,"epoch":1,"version":version,
+        "created_at":now(),"updated_at":now(),"phase":"generating",
+        "generation_phase":"prepared","forge_phase":null,"attempt":0,
+        "pending_action":null,"completed_case_count":0,"fence_reason":null,"active":active
+    });
+    let mut conn = store.lock();
+    let tx = conn.transaction().unwrap();
+    tx.execute("INSERT INTO acquisition_catalog(id,mission_id,requirement_id,version,org_revision,last_seq,snapshot_json) VALUES(?1,'mission',?1,?2,0,0,?3)",params![id,version as i64,snapshot.to_string()]).unwrap();
+    tx.execute("INSERT INTO acquisition_history(acquisition_id,record_version,event_kind,payload_json) VALUES(?1,?2,'baseline_observed','')", params![id,version as i64]).unwrap();
+    let seq = tx.last_insert_rowid();
+    let entry = json!({"seq":seq,"kind":"baseline_observed","checkpoint_org_revision":0,
+        "recorded_at":now(),"snapshot":snapshot,"debit":null,"attention":null});
+    tx.execute(
+        "UPDATE acquisition_history SET payload_json=?1 WHERE seq=?2",
+        params![entry.to_string(), seq],
+    )
+    .unwrap();
+    tx.execute(
+        "UPDATE acquisition_catalog SET last_seq=?1 WHERE id=?2",
+        params![seq, id],
+    )
+    .unwrap();
+    tx.commit().unwrap();
 }
 
 fn change_version(store: &Store, id: &str, version: u64) {
+    let mut conn = store.lock();
+    let tx = conn.transaction().unwrap();
     assert_eq!(
-        store
-            .lock()
-            .execute(
-                "UPDATE capability_acquisitions SET version=?2 WHERE id=?1",
-                params![id, version as i64],
-            )
-            .unwrap(),
+        tx.execute(
+            "UPDATE capability_acquisitions SET version=?2 WHERE id=?1",
+            params![id, version as i64]
+        )
+        .unwrap(),
         1
     );
+    let json: String = tx
+        .query_row(
+            "SELECT snapshot_json FROM acquisition_catalog WHERE id=?1",
+            [id],
+            |row| row.get(0),
+        )
+        .unwrap();
+    let mut snapshot: serde_json::Value = serde_json::from_str(&json).unwrap();
+    snapshot["version"] = json!(version);
+    tx.execute("UPDATE acquisition_catalog SET version=?1,snapshot_json=?2,attention_version=NULL,attention_code=NULL WHERE id=?3",
+        params![version as i64,snapshot.to_string(),id]).unwrap();
+    tx.execute("INSERT INTO acquisition_history(acquisition_id,record_version,event_kind,payload_json) VALUES(?1,?2,'transition','')",
+        params![id,version as i64]).unwrap();
+    let seq = tx.last_insert_rowid();
+    let entry = json!({"seq":seq,"kind":"transition","checkpoint_org_revision":0,
+        "recorded_at":now(),"snapshot":snapshot,"debit":null,"attention":null});
+    tx.execute(
+        "UPDATE acquisition_history SET payload_json=?1 WHERE seq=?2",
+        params![entry.to_string(), seq],
+    )
+    .unwrap();
+    tx.execute(
+        "UPDATE acquisition_catalog SET last_seq=?1 WHERE id=?2",
+        params![seq, id],
+    )
+    .unwrap();
+    tx.commit().unwrap();
 }
 
 fn ids(store: &Store, time: DateTime<Utc>) -> Vec<String> {
