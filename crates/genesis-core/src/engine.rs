@@ -1058,11 +1058,13 @@ impl<'a> Sim<'a> {
             );
         }
         for url in observed_sources {
-            match http_origin(url) {
+            match acquirable_source(url) {
                 None => self.err(
                     ValidationCode::InvalidInput,
                     Some(i),
-                    format!("observed source {url:?} is not an http(s) URL"),
+                    format!(
+                        "observed source {url:?} must be a canonical https URL with no credentials or fragment, as acquisition requires"
+                    ),
                 ),
                 Some(origin) if !evidence_origins.contains(&origin) => self.err(
                     ValidationCode::UnknownEvidence,
@@ -2058,6 +2060,26 @@ fn http_origin(url: &str) -> Option<String> {
     Some(format!("{scheme}://{}", authority.to_ascii_lowercase()))
 }
 
+/// Origin of a source an acquisition can actually use. The same rules as the
+/// forge's synthesis input (`genesis_forge::SynthesisRequest::validate`):
+/// https, a host, no credentials, no fragment, at most 1024 bytes, and already
+/// in canonical form. Anything else would commit a gap no trusted policy can
+/// ever materialize, so it is rejected here, where the planner can repair it.
+fn acquirable_source(source: &str) -> Option<String> {
+    let url = url::Url::parse(source).ok()?;
+    if source.len() > 1024
+        || url.scheme() != "https"
+        || url.host_str().is_none()
+        || !url.username().is_empty()
+        || url.password().is_some()
+        || url.fragment().is_some()
+        || url.as_str() != source
+    {
+        return None;
+    }
+    http_origin(source)
+}
+
 fn valid_capability_name(name: &str) -> bool {
     (3..=64).contains(&name.len())
         && name
@@ -2078,6 +2100,25 @@ pub fn update_capability_gap(
     state: &OrgState,
     gap_id: &CapabilityGapId,
     to: CapabilityGapStatus,
+) -> Result<Outcome, ValidationError> {
+    update_capability_gap_at(state, gap_id, to, Utc::now())
+}
+
+/// Source of the observation a final gap transition records.
+pub const CAPABILITY_GAP_SOURCE: &str = "kernel.capability_gap";
+
+/// [`update_capability_gap`] at a given time. A final transition (`installed`
+/// or `refused`) also records one observation on the gap's mission, in the
+/// same outcome, so the planner gets its next pass: attach the installed
+/// capability, or decide what to do without it. Only while the mission is
+/// active and before its deadline: a closed mission gets the audit event and
+/// no new planning input. The observation carries no
+/// public URL, so it cannot itself justify another `RequestCapability`.
+pub fn update_capability_gap_at(
+    state: &OrgState,
+    gap_id: &CapabilityGapId,
+    to: CapabilityGapStatus,
+    now: DateTime<Utc>,
 ) -> Result<Outcome, ValidationError> {
     use CapabilityGapStatus as S;
     let invalid = |msg: String| ValidationError::new(ValidationCode::InvalidInput, None, msg);
@@ -2192,15 +2233,56 @@ pub fn update_capability_gap(
     }
     let gap = st.capability_gaps.get_mut(gap_id).expect("checked");
     let from = std::mem::replace(&mut gap.status, to.clone());
+    let note = match &to {
+        S::Installed {
+            capability,
+            installation_id,
+            ..
+        } => Some(format!(
+            "Requested capability {}@{} is installed and approved ({installation_id}); role {} may attach it for requirement {}",
+            capability.capability_id, capability.version, gap.role_id, gap.requirement_id
+        )),
+        S::Refused { reason, .. } => Some(format!(
+            "Requested capability {} for role {} was refused: {reason}",
+            gap.capability_id, gap.role_id
+        )),
+        _ => None,
+    };
+    let mission_id = gap.mission_id.clone();
+    // Wake the planner only for a mission that can still act on it. A gap of a
+    // finished, failed or expired mission still records its final status
+    // (the event above is the audit), but no fresh planning input.
+    let runnable = st
+        .missions
+        .get(&mission_id)
+        .is_some_and(|m| m.status == MissionStatus::Active && m.deadline.is_none_or(|d| d > now));
+    let note = note.filter(|_| runnable);
+    let mut effects = vec![EventKind::CapabilityGapStatusChanged {
+        gap_id: gap_id.clone(),
+        from,
+        to,
+    }];
+    if let Some(summary) = note {
+        let observation_id = ObservationId::generate();
+        st.observations.insert(
+            observation_id.clone(),
+            Observation {
+                observation_id: observation_id.clone(),
+                mission_id,
+                source: CAPABILITY_GAP_SOURCE.to_owned(),
+                summary: summary.clone(),
+                evidence_ref: Some(format!("genesis://capability-gaps/{gap_id}")),
+                observed_at: now,
+            },
+        );
+        effects.push(EventKind::ObservationRecorded {
+            observation_id,
+            source: CAPABILITY_GAP_SOURCE.to_owned(),
+            summary,
+        });
+    }
     st.revision += 1;
-    Ok(Outcome {
-        state: st,
-        effects: vec![EventKind::CapabilityGapStatusChanged {
-            gap_id: gap_id.clone(),
-            from,
-            to,
-        }],
-    })
+    Ok(Outcome { state: st, effects })
 }
 
 // ---------------------------------------------------------------------------

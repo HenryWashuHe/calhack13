@@ -14,10 +14,31 @@ observation (evidence_ref) ─► requirement ─► planner proposal
                                    │  acquisition driver (operator policy)
                                    ▼
           acquiring ─► acquired { capability@version } │ refused { reason }
-                                   │  planner's next pass
+                                   │  installed { installation_id } │ refused
+                                   │  + one kernel observation, same commit
+                                   ▼
+                  planner's next pass (the runner plans on that observation)
                                    ▼
                   AttachCapability(role, capability@version)
 ```
+
+### Closing the loop
+
+The planner only plans on new observations, so a final transition records
+one itself. `installed` and `refused` each add an observation on the gap's
+mission (source `kernel.capability_gap`, `evidence_ref`
+`genesis://capability-gaps/<gap_id>`) in the same outcome as the status
+change, so the note can't be lost or duplicated. A repeated transition is a
+no-op and adds nothing. The note names the role, requirement and, when
+installed, the exact version and installation. The planner then attaches it,
+or decides what to do without it after a refusal. The note has no public
+URL, so it can't justify another `RequestCapability` (the origin check
+rejects it), and the kernel can't drive a re-request loop with its own notes.
+`Acquiring` and `Acquired` record nothing: acquired is not installed. The
+note is recorded only while the gap's mission is `Active` and before its
+deadline. A gap of a finished, failed or expired mission still records its
+final status (the `capability_gap_status_changed` event is the audit) but
+gives the planner no new input, so a late refusal can't revive closed work.
 
 ## The operation
 
@@ -41,9 +62,14 @@ The kernel commits it only if:
   owned by the same role, the link acquisition authority checks later;
 - `capability_id` is 3–64 characters of `a-z 0-9 - .`, starting alphanumeric;
   `purpose` is 1–400 characters;
-- `observed_sources` holds 1–8 http(s) URLs without credentials, each on the
-  **same origin** (scheme and host, case-insensitive) as an `evidence_ref` of
-  the requirement's triggering observations. The agent cannot invent targets;
+- `observed_sources` holds 1–8 URLs the forge can use: **canonical https**, a
+  host, no credentials, no fragment, at most 1024 bytes (the same rules as
+  `SynthesisRequest::validate`), each on the **same origin** (scheme and host,
+  case-insensitive) as an `evidence_ref` of the requirement's triggering
+  observations. The agent cannot invent targets, and a committed gap is always
+  one a trusted policy could materialize. So the capability path needs the
+  evidence itself served over https (the portal's public tunnel); a local
+  `http://` portal cannot back a request;
 - no installed, approved capability already has that ID (use
   `AttachCapability`);
 - no live gap exists for the same requirement and capability ID;
