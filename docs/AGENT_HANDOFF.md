@@ -49,7 +49,7 @@ tested against in-process fakes only; no live sponsor or model calls were made.
 
 | Order | Branch | PR | Contents | Docs |
 | --- | --- | --- | --- | --- |
-| 1 | `feat/elastic` | #11 | `genesis-elastic` crate (org-namespaced evidence projection, capability index, Agent Builder `RoleProvisioner` with exact-config reconciliation, fakes, live smoke binary); server projection worker, `/search/evidence`, `/projection`; Elastic specialist jobs as converse turns; registry search through Elastic; console search box. PR #11 review fixed with Codex's regressions. | [ELASTIC.md](ELASTIC.md) |
+| 1 | `feat/elastic` | #11 | `genesis-elastic` crate (org-namespaced evidence projection, capability index, Agent Builder `RoleProvisioner` with exact-config reconciliation, fakes, live smoke binary); server projection worker, `/search/evidence`, `/projection`; Elastic specialist jobs as converse turns; registry search through Elastic; console search box; `genesis-elastic-smoke` live smoke binary. PR #11 review fixed with Codex's regressions. | [ELASTIC.md](ELASTIC.md), [ELASTIC_SETUP.md](ELASTIC_SETUP.md) |
 | 2 | `feat/planner` | #12 | `genesis-planner` crate; `planner_decision` event; `GET /org-changes/requests/{id}`; idempotent terminal decisions. PR #12 review fixed with Codex's regressions. | [PLANNER.md](PLANNER.md) |
 | 3 | `feat/creao-readiness` | to open | Pending/readiness hook (`specialist.rs`), `OrgChangeRecord.operations`, `provisioning_progress` event, specialist jobs (CREAO steps 5–6), operator abandon endpoint, console operation state. | [ASYNC_PROVISIONING.md](ASYNC_PROVISIONING.md) |
 | 4 | `feat/ui-evidence` | to open | Console capability evidence: pinned build, publisher verification, local acceptance, per-run backend records. | — |
