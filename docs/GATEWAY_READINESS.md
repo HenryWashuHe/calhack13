@@ -46,7 +46,7 @@ next saga pass
 | Probe accepted | Challenge `dispatched`; waits up to `ttl` (default 5 min) for the receipt. |
 | Probe outcome unknown (`ProviderError::Unknown` / `Timeout`) | Challenge stays `dispatching` and **still accepts a receipt until it expires**; no second dispatch. |
 | Probe definitely failed (any other error) | Challenge `dispatch_failed` (its nonce never left the backend, so its receipt is refused); the next challenge waits `retry_after` (default 15 s), doubling per failure up to 10 min. These do **not** count toward `max_attempts`. |
-| Receipt arrives while the probe call is still in flight | Accepted; whatever the probe then reports, the challenge stays `received` (status changes after dispatch only apply to a challenge still `dispatching`). |
+| Receipt arrives while the probe call is still in flight | Accepted provisionally; whatever the probe then reports, the challenge stays `received` (status changes after dispatch only apply to a challenge still `dispatching`). The run the receipt names is kept separately (`receipt_probe_ref`) and must match the run the dispatch reports (`probe_ref`, trusted); a mismatch voids the receipt and a new challenge is issued. A receipt naming no run, or the same run, counts. |
 | No receipt before expiry | Challenge `expired`; a late receipt gets `410`; a new challenge is issued. |
 | `max_attempts` (default 3) challenges that may have reached the agent got no receipt | Readiness fails: "no gateway readiness receipt after N challenge(s)". Created provider IDs are kept. |
 | `max_dispatch_failures` (default 5) definite dispatch failures | Readiness fails: "readiness probe could not be dispatched after N attempt(s)". |
