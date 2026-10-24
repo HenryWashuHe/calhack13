@@ -34,6 +34,9 @@ export interface AttentionItem {
 
 const OPEN: AttentionKind[] = ["action", "unknown", "waiting"];
 
+/** `native_status` the kernel sets when an operator attached the agent ID. */
+export const OPERATOR_ATTACHED = "operator_attached";
+
 export function isOpen(item: AttentionItem): boolean {
   return OPEN.includes(item.kind);
 }
@@ -66,10 +69,13 @@ export function attention(
           },
         });
       } else if (op.state === "awaiting_readiness") {
+        const attached = op.native_status === OPERATOR_ATTACHED;
         open.push({
           key: `readiness:${c.change_id}:${roleKey}`,
           kind: "waiting",
-          title: "Agent created; role inactive until readiness is proven",
+          title: attached
+            ? "Agent ID attached by an operator; role inactive until readiness is proven"
+            : "Agent created; role inactive until readiness is proven",
           detail: where + (op.attention ? ` — ${op.attention}` : ""),
           refs: [c.change_id],
         });
