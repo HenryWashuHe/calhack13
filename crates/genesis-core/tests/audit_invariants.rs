@@ -834,6 +834,46 @@ fn record_transition_cases(f: &Fx) -> Vec<Case> {
             s,
             |st| st.assignments.get_mut(&asg).unwrap().epoch += 1,
         ),
+        tcase(
+            "constitution budget raised",
+            "constitution_unchanged",
+            "budget_cents",
+            s,
+            |st| st.constitution.budget_cents += 1,
+        ),
+        tcase(
+            "constitution role limit raised",
+            "constitution_unchanged",
+            "max_active_roles",
+            s,
+            |st| st.constitution.max_active_roles += 1,
+        ),
+        tcase(
+            "constitution contract limit raised",
+            "constitution_unchanged",
+            "max_active_contracts",
+            s,
+            |st| st.constitution.max_active_contracts += 1,
+        ),
+        tcase(
+            "constitution scope added",
+            "constitution_unchanged",
+            "scopes added: payments.send",
+            s,
+            |st| {
+                st.constitution.scopes.insert("payments.send".into());
+            },
+        ),
+        tcase(
+            "constitution scope removed",
+            "constitution_unchanged",
+            "scopes removed: ",
+            s,
+            |st| {
+                let first = st.constitution.scopes.iter().next().unwrap().clone();
+                st.constitution.scopes.remove(&first);
+            },
+        ),
     ]
 }
 

@@ -136,33 +136,7 @@ impl CandidateSpec {
             return Err(ForgeStateError::InvalidCandidate);
         }
         self.source.validate()?;
-        // Match the documented Actor name and major.minor source version contract.
-        if self.actor_name.is_empty()
-            || self.actor_name.len() > 64
-            || !self
-                .actor_name
-                .bytes()
-                .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == b'-')
-            || self.actor_name.starts_with('-')
-            || self.actor_name.ends_with('-')
-        {
-            return Err(ForgeStateError::InvalidCandidate);
-        }
-        if self.source_version.len() > 5 {
-            return Err(ForgeStateError::InvalidCandidate);
-        }
-        let parts: Vec<_> = self.source_version.split('.').collect();
-        if parts.len() != 2
-            || parts.iter().any(|s| {
-                s.is_empty()
-                    || s.len() > 2
-                    || !s.bytes().all(|c| c.is_ascii_digit())
-                    || (s.len() > 1 && s.starts_with('0'))
-            })
-        {
-            return Err(ForgeStateError::InvalidCandidate);
-        }
-        Ok(())
+        validate_actor_identity(&self.actor_name, &self.source_version)
     }
 
     pub(crate) fn fingerprint(&self) -> Result<String, ForgeStateError> {
@@ -173,6 +147,38 @@ impl CandidateSpec {
             "actor_name":self.actor_name,"source_version":self.source_version,"source_sha256":self.source.sha256()?}),
         ))
     }
+}
+
+pub(crate) fn validate_actor_identity(
+    actor_name: &str,
+    source_version: &str,
+) -> Result<(), ForgeStateError> {
+    // Match the documented Actor name and major.minor source version contract.
+    if actor_name.is_empty()
+        || actor_name.len() > 64
+        || !actor_name
+            .bytes()
+            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == b'-')
+        || actor_name.starts_with('-')
+        || actor_name.ends_with('-')
+    {
+        return Err(ForgeStateError::InvalidCandidate);
+    }
+    if source_version.len() > 5 {
+        return Err(ForgeStateError::InvalidCandidate);
+    }
+    let parts: Vec<_> = source_version.split('.').collect();
+    if parts.len() != 2
+        || parts.iter().any(|s| {
+            s.is_empty()
+                || s.len() > 2
+                || !s.bytes().all(|c| c.is_ascii_digit())
+                || (s.len() > 1 && s.starts_with('0'))
+        })
+    {
+        return Err(ForgeStateError::InvalidCandidate);
+    }
+    Ok(())
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

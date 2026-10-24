@@ -1,48 +1,66 @@
 # GENESIS agent coordination
 
-## Current checkpoint: recursive capability roadmap
+> **Working repository: [genesis-history-experiment](https://github.com/HenryWashuHe/genesis-history-experiment).**
+> Push and open PRs here; coordinate in [issue #1](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1).
+> The owner moved active work here on October 23, 2026 (Pacific). Histories have
+> different commit identities; preserve this repository’s ancestry and verify
+> mapped-base tree deltas. See the [migration map](docs/REPOSITORY_MIGRATION.md)
+> for legacy PR numbers and preserved work. The proposed sync script is held;
+> do not assume it is ready. Historical checkpoints below retain old links.
 
-Main through #115 is `841295a`. The reviewed recursive roadmap is merged.
-#114 remains held at `3ac1fc6`: 119 original Python tests pass, while `091100b`
-reproduces duplicate ACP observation submission after restart and a false no-change
-response after an accepted POST. Claude owns those corrections.
-Newer GitHub state and [issue #4](https://github.com/HenryWashuHe/genesis/issues/4)
-take precedence over the historical snapshots below. The mission goal is active.
+## Current direction and coordination
 
-- #86 is merged (`ad622a9`); final reviewed source `ac50d35` safely limits retries.
-- #111 is merged: the full scenario now uses exact source freshness deadlines.
-  Five full scenarios and 40 scenario units passed with strict Clippy/fmt.
-- #112 is merged and implements opt-in automatic Reopen-to-recovery intake: runtime `1b2610c`,
-  integration coverage `bbe1872`. See [its contract](docs/VENUE_RECOVERY_INTAKE.md).
-  139 library and 90 assessment tests passed, then the final 12 intake tests
-  passed; one pre-existing native test remains opt-in. Strict Clippy/fmt and
-  independent source review passed. These counts overlap, and providers are fixtures.
-- #110 supersedes #91; #113's `08f2b74` fix clears structural replay starvation.
-  Reviewed composition `9fd1eb0` preserves the independent `b677414` regression
-  as `5b20bdf`. All 133 web tests, typecheck/build, audit route/library tests and
-  strict server Clippy/fmt pass. The parent branch was fast-forwarded; pull before
-  continuing it. Claude/Eric retains UI ownership.
+**Networked recursive capability improvement with fixed model weights** is the
+user-selected product framing. It supersedes the previous decision to relegate
+recursive improvement to “What's next.” Distinguish implemented features from
+unmerged work and vision using [implementation status](docs/IMPLEMENTATION_STATUS.md).
+Accumulation, reuse/composition and improved capability development are different
+claims; the last needs independent comparative evidence.
 
-The ongoing goal now includes [networked recursive capability improvement with
-fixed model weights](docs/RECURSIVE_CAPABILITY_IMPROVEMENT.md): cross-organization
-repair → executable development capabilities → controlled baseline/task-tool/
-development-workflow evaluation. Appropriate non-reuse is valid. Preserve one
-justified organizational change, local acceptance, independent evaluation and
-failed/unknown outcomes; capability counts do not prove improvement.
+Event organization is discarded as the product/demo. Preserve existing venue
+code/tests as historical integration fixtures; do not expand that product story
+or use its completion as the new gate. The [invention-lab A → B → A demonstration](docs/INVENTION_LAB_DEMO.md)
+is proposed, not implemented. Its simulator, executable development-method runtime
+and recursive-benefit experiment remain open work.
 
-Use the [refreshed ownership map](docs/AGENT_HANDOFF.md#current-ownership-and-next-work)
-and newer issue #4 claims before assigning or editing work. Henry's Claude keeps
-candidate decision logging and the narrow terminal-RunFailed retry contract.
-Eric's replay work is merged, with no new claim inferred. Codex's native Fetch +
-automatic intake composition `059a796` passes both explicit native checks, strict
-assessment Clippy and formatting; scheduling is explicit and Apify/CREAO remain
-fixtures. Next network repair contracts need a scoped handoff. Claude's #114 owns its new mission ACP adapter/pitch/submission changes;
-review it before implementing overlapping ACP work. Preserve this framing when
-composing its README changes. The side-chat Claude brief is a proposal, not a blanket assignment.
+**Ongoing work is resumed under [the repository goal](docs/ONGOING_GOAL.md).**
+The existing hourly continuation is active. At this checkpoint the older app Goal
+card remains paused because the goal tool cannot replace an unfinished record;
+never falsely complete it to work around that limitation. The user's renewed
+instruction authorizes scoped work under the revised goal, not the discarded
+venue objective. Preserve local deployed-repair WIP until separately scoped.
 
-The current ACP gateway supports fixed recovery cases only. Public Agentverse/
-ASI execution and live sponsor credentials/evidence remain open. Keep the repo
-private until its owner authorizes a visibility change.
+Read the [goal's working cycle](docs/ONGOING_GOAL.md#working-cycle),
+[current ownership map](docs/AGENT_HANDOFF.md#current-ownership-and-next-work)
+and [issue #1](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1), including newer
+branch/head updates, before editing or assigning work. Check goal alignment at
+every milestone. All lower checkpoints are historical.
+
+- Henry's core Claude: [#122](https://github.com/HenryWashuHe/genesis/issues/122),
+  #116 corrections/new outcome classifier and #121 terminal-run retry; then
+  development-method adoption contract. #116 is now `78a18c0`, independently
+  unreviewed; do not repeat old-head findings as verified on its correction.
+- Eric (`EricZhu-31`): [#123](https://github.com/HenryWashuHe/genesis/issues/123),
+  #120 constitution audit; then invention-lab evidence UI design and isolated subtree.
+- ACP Claude session: [#125](https://github.com/HenryWashuHe/genesis/issues/125),
+  merged #114's outstanding regressions, then product-neutral command design.
+- Codex: [#124](https://github.com/HenryWashuHe/genesis/issues/124), shared method,
+  identity, receipt and comparison contracts. Preserve paused repair WIP separately.
+- Evaluator/simulator: Henry’s core Claude is assigned the requested legacy
+  [#126](https://github.com/HenryWashuHe/genesis/issues/126) lane: current proposal
+  [#13](https://github.com/HenryWashuHe/genesis-history-experiment/pull/13), then
+  only `experiments/invention-lab/evaluator/**` after interface agreement.
+  Ines stays unassigned by user instruction; do not infer her identity.
+
+The task/PR numbers in the preceding legacy lane descriptions refer to the old
+repository unless explicitly linked here. Use the migration map for current PRs.
+
+New method/adoption/UI implementation depends on agreed method and evaluator
+contracts. Claim shared wiring explicitly; do not take another session's files.
+Keep commits/PRs focused and pushed so other machines can integrate them.
+Author-reported checks, independent local tests, native local processes and live
+cloud execution are distinct evidence. Public Agentverse/ASI use and live sponsor
+proof remain open. Keep the repository private unless the owner changes that.
 
 ## Historical checkpoint after #108
 

@@ -6,6 +6,8 @@ use std::collections::BTreeSet;
 /// Only the parser and allowed public source URLs vary. No oracle answers are
 /// included. The supplied parser may be generated upstream or hand authored;
 /// packaging itself is not LLM synthesis or arbitrary-code containment.
+/// This legacy helper preserves its original bytes. Fresh candidates must use
+/// `venue_source_for_actor` to bind their Actor identity before freezing source.
 pub fn venue_source(
     extractor_typescript: &str,
     source_urls: &[String],
@@ -60,5 +62,30 @@ pub fn venue_source(
         name: "allowed-sources.json".into(),
         content: serde_json::json!({"urls":urls}).to_string(),
     });
+    SourcePackage::new(files)
+}
+
+/// Bind provider-visible metadata before the package receives a frozen identity.
+/// Never apply this to the source saved in an existing Forge checkpoint.
+pub fn venue_source_for_actor(
+    extractor_typescript: &str,
+    source_urls: &[String],
+    actor_name: &str,
+    source_version: &str,
+) -> Result<SourcePackage, ForgeStateError> {
+    crate::source::validate_actor_identity(actor_name, source_version)?;
+    let mut files = venue_source(extractor_typescript, source_urls)?
+        .files()
+        .to_vec();
+    let actor = files
+        .iter_mut()
+        .find(|file| file.name == ".actor/actor.json")
+        .ok_or(ForgeStateError::InvalidSource)?;
+    let mut config: serde_json::Value =
+        serde_json::from_str(&actor.content).map_err(|_| ForgeStateError::InvalidSource)?;
+    config["name"] = actor_name.into();
+    config["version"] = source_version.into();
+    actor.content =
+        serde_json::to_string_pretty(&config).map_err(|_| ForgeStateError::InvalidSource)?;
     SourcePackage::new(files)
 }

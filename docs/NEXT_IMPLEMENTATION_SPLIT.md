@@ -1,5 +1,7 @@
 # Next GENESIS implementation split
 
+> **Historical coordination plan — superseded.** The current framing is networked recursive capability improvement with fixed model weights. Event organization is no longer the product/demo. Use [the current ownership map](AGENT_HANDOFF.md#current-ownership-and-next-work) and issue #4; assignments and “must” statements below are historical, not current instructions.
+
 ## Current merge and ownership checkpoint — October 22, 2026
 
 Main is `f03ce9b`: the eleven capability PRs through #24, handoff #30, and
