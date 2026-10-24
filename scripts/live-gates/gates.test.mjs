@@ -109,6 +109,7 @@ console.log(JSON.stringify(seq[Math.min(n, seq.length - 1)]));`,
   const r = await run(bin, mkdtempSync(join(tmpdir(), "out-")), { gates: ["creao"] });
   assert.equal(r.results.creao.status, "passed");
   assert.equal(r.results.creao.evidence.provider_agent_id, "agent-9");
+  assert.equal(r.results.creao.evidence.api_version, "v1");
   assert.equal(r.results.creao.evidence.readiness_verified, false);
   const steps = calls(bin, "genesis-creao").filter((c) => c.startsWith("step"));
   assert.equal(steps.length, 4);
@@ -127,6 +128,29 @@ test("creao v2 gate freezes protocol in the prepared spec", async () => {
   assert.equal(r.results.creao.stage, "prepare");
   const spec = JSON.parse(readFileSync(join(out, "creao", "t1", "spec.json"), "utf8"));
   assert.equal(spec.api_version, "v2");
+});
+
+test("creao v2 gate labels public evidence and rejects invalid protocol before preparation", async () => {
+  const bin = mkdtempSync(join(tmpdir(), "bin-"));
+  const out = mkdtempSync(join(tmpdir(), "out-"));
+  stub(bin, "genesis-creao", `if (args[0] === "prepare") process.exit(0);
+console.log(JSON.stringify({ phase: "native_completed", native_status: "completed", run_id: "run-2", provider_agent_id: "agent-2" }));`);
+  const hosted = await run(bin, out, {
+    gates: ["creao"],
+    env: { ...fullEnv, CREAO_API_VERSION: "v2" },
+  });
+  assert.equal(hosted.results.creao.status, "passed");
+  assert.equal(hosted.results.creao.evidence.api_version, "v2");
+  const invalidOut = mkdtempSync(join(tmpdir(), "out-"));
+  const priorCalls = calls(bin, "genesis-creao").length;
+  const invalid = await run(bin, invalidOut, {
+    gates: ["creao"],
+    env: { ...fullEnv, CREAO_API_VERSION: "v3" },
+  });
+  assert.equal(invalid.results.creao.stage, "configuration");
+  assert.equal(invalid.results.creao.status, "failed");
+  assert.equal(calls(bin, "genesis-creao").length, priorCalls);
+  assert.equal(readdirSync(invalidOut).includes("creao"), false);
 });
 
 test("apify stops at an unknown outcome and never steps again", async () => {

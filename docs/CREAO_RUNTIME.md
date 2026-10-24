@@ -78,6 +78,8 @@ operation sends a real, potentially billable request:
 For a Developer Platform project key, also set `CREAO_API_VERSION=v2` before
 preparing the operation. A CLI spec must include `"api_version":"v2"`; the
 live-gate script sets this field when the same environment variable is set.
+CLI status and sanitized live-gate evidence identify the saved API version;
+an invalid `CREAO_API_VERSION` stops the gate before it prepares a checkpoint.
 Do not use a v2 project key with the default v1 protocol. Existing v1 specs,
 tickets and journals keep their original wire identity. The v2 path is covered
 by local protocol tests; it has not yet completed a live hosted-agent run.
