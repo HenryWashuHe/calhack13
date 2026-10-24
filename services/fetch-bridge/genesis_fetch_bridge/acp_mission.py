@@ -256,7 +256,7 @@ class MissionGateway:
                     after_seq INTEGER NOT NULL,
                     created_at TEXT NOT NULL,
                     sender TEXT NOT NULL DEFAULT '',
-                    message_id TEXT UNIQUE,
+                    message_id TEXT,
                     summary TEXT NOT NULL DEFAULT '',
                     visible_seq INTEGER NOT NULL DEFAULT 0
                 );
@@ -269,7 +269,9 @@ class MissionGateway:
                         # A row written before the cursor existed starts where its report did, like a new row;
                         # otherwise status would replay events from before that report.
                         self.db.execute("UPDATE reports SET visible_seq = after_seq")
-            self.db.execute("CREATE UNIQUE INDEX IF NOT EXISTS reports_message ON reports(message_id)")
+            # Identity is the authenticated sender plus its message id: two senders may reuse a UUID.
+            self.db.execute("DROP INDEX IF EXISTS reports_message")
+            self.db.execute("CREATE UNIQUE INDEX IF NOT EXISTS reports_sender_message ON reports(sender, message_id)")
             binding = canonical({"identity": identity, "url": self.url, "config": self.config})
             self.db.execute("BEGIN IMMEDIATE")
             self.db.execute("INSERT OR IGNORE INTO gateway_binding VALUES(1,?)", (binding,))
@@ -342,8 +344,8 @@ class MissionGateway:
         since = (datetime.now(UTC) - timedelta(hours=1)).isoformat()
         return int(self.db.execute("SELECT COUNT(*) FROM reports WHERE created_at > ?", (since,)).fetchone()[0])
 
-    def _find_report(self, message_id: str) -> sqlite3.Row | None:
-        return self.db.execute("SELECT * FROM reports WHERE message_id=?", (message_id,)).fetchone()
+    def _find_report(self, sender: str, message_id: str) -> sqlite3.Row | None:
+        return self.db.execute("SELECT * FROM reports WHERE sender=? AND message_id=?", (sender, message_id)).fetchone()
 
     def _last_report(self, sender: str) -> sqlite3.Row | None:
         return self.db.execute("SELECT * FROM reports WHERE sender=? ORDER BY id DESC LIMIT 1", (sender,)).fetchone()
@@ -494,7 +496,7 @@ class MissionGateway:
                     if len(summary) < 8:
                         yield "Describe what happened in a sentence, for example: report the main hall is closed on Nov 14."
                         return
-                    known = self._find_report(message_id)
+                    known = self._find_report(sender, message_id)
                     if known is not None:
                         # Redelivery of a message already acted on: report, never repeat the effect.
                         if known["observation_id"]:
@@ -531,7 +533,15 @@ class MissionGateway:
                         yield f"The organization refused the report (HTTP {status}). Nothing to relay."
                         return
                     observation_id = record["observation_id"]
-                    self._set_observation(row_id, observation_id)
+                    try:
+                        self._set_observation(row_id, observation_id)
+                    except sqlite3.Error:
+                        # The observation exists; only this gateway's journal failed to note its id.
+                        yield (
+                            f"Recorded as evidence {observation_id[:17]}, but this gateway could not journal it. "
+                            "Do not repeat the report; ask status later for what the organization did with it."
+                        )
+                        return
                     yield (
                         f"Recorded as evidence {observation_id[:17]} for the mission \"{clean(missions[0].get('goal'), 100)}\". "
                         "The organization's planner is reading it now; I will relay each step."
