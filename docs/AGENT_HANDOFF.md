@@ -1,6 +1,6 @@
 # GENESIS implementation handoff
 
-## Current checkpoint: first live generated package awaits runtime acceptance
+## Current checkpoint: finite chain ceilings and receiving evidence merged
 
 **Networked recursive capability improvement with fixed model weights** remains
 the chosen direction. Work in
@@ -11,7 +11,8 @@ issue #4/task numbers below are historical. Preserve rewritten ancestry.
 
 The [ongoing goal](ONGOING_GOAL.md), revised app Goal and hourly continuation are
 active. The stale app record was cleared and replaced on October 24, 2026. Main
-through `a90ad14e7495be1ef5066234f84bddba1ac431b9` includes the experimental core
+through `f45cb1deb57887219622b8dc123928ff764bcd9b`, tree
+`3c8ec2660cb552ac503c66c65aa56b0cb6184ae3`, includes the experimental core
 contracts, source loader, corrected adoption proposal/UI, simulator primitives,
 #50–#52 method-source generation, #42/#43 executor foundations/session and #56
 accounting identity checks plus #58/#59 declared combined-cost assessment and
@@ -29,13 +30,16 @@ Independent historical-session and CLI-boundary tests are preserved in #83.
 Structural stage allocation and retained trial-binding CLI #85/#86 are merged,
 with independent overflow and pending-recovery guards in #87. Optional allocation
 checks use the existing generation/cost paths; runtime entry checks remain open.
+Blank CREAO-version compatibility #96, shared stage checks/current Goal refresh
+#97 and finite generation/trial-only chain ceilings #103 are now merged.
 ACP corrections/commands #3/#5 are also merged with all original regression
 files preserved.
 #57/#65 remain unmerged pending namespace lifecycle assurance,
 and ACP's #4 documentation proposal remains held. The third attempt on `07c098c`
-produced a genuine model-generated package with static inspection only. G0–G4
-remain open: its execution/scoring/adoption, an accepted A → B → A return and
-recursive benefit are unproved. Handwritten controls and the separately reported
+produced a genuine model-generated package with static inspection only in that
+retained bundle. Separate receiving evidence #98 now has independent retained-record
+checks; it does not establish adoption or close G1. G0–G4 remain open; an accepted A → B → A
+return and recursive benefit are unproved. Handwritten controls and the separately reported
 Apify baseline do not close those gates. Event organizing remains superseded.
 
 ### Current ownership and next work
@@ -44,34 +48,62 @@ Apify baseline do not close those gates. Event organizing remains superseded.
 | --- | --- | --- |
 | Henry's core Claude | Adoption/planner acknowledged; prior foundations and #64 merged | Retain method-adoption wiring and existing console UI. Receiver/offer binding and create-only installation records are corrected; retain supporting acceptance receipts separately. Fixture acceptance does not close G2. |
 | Henry's core Claude | Evaluator/executor active; simulator and #42–#45 executor stack merged | Own evaluator/executor. #57/#65 portable fixes clear their prior findings; namespace lifecycle assurance remains unverified after interrupted review. Preserve exact evidence limits and avoid claiming Linux enforcement. |
-| Henry's core Claude | #46/#48/#64/#70/#72 merged | Own scoring and adoption. Retained-file CLI cost assessment and exact-parent revision rehearsals are integrated; continue the scoped method loop and #57 closure assurance without relabeling fixture source as model development. |
-| Eric / Eric's Claude | [UI lane acknowledged](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6386421464); open #93 `cca56b48c3e9978c985aa048ce98dbac742105fd`, stacked #94 `a56cea8c8a6216659758d1e8e9864f3bc28d80e3` | `docs/invention-lab/ui.md` and `apps/web/src/invention-lab/**`, no shared routes. Current PRs are under review; `EricZhu-31` retains this lane. |
+| Henry's core Claude | #46/#48/#64/#70/#72 merged; #98 `cb29a95` receiving records merged after independent checks; #102 `737d214` feedback export held | Own execution/scoring/adoption and receiving-side record plumbing. Retain B's explicit selection/local acceptance decision and intended responsibility, including the rejected random-search comparison. Distinct B and fresh A return tasks remain required; do not edit forge. #57/#65 are separate unmerged assurance work. |
+| Eric / Eric's Claude | UI #93 `9733b96` / #94 `9ac13fc` updated; existing two findings remain | `docs/invention-lab/ui.md` and `apps/web/src/invention-lab/**`, no shared routes. Preserve independent `78adef37ac21f8b7b0506bf6a83af6dce1c2d844`; #99 `63fdded`, #100 `dbb31c2`, #101 `fe73a50` await base fixes. No implicit lane transfer. |
 | ACP Claude session | #3 `f64e131` / #5 `e95a286` merged; stage #20 merged | Migration holds cleared with all eight independent cases unchanged. Reconcile held #4 routing/status/demo docs with merged #3/#5, local executor/scorer and issue #1; preserve the superseded event-organizer boundary. Bridge ownership remains with ACP. |
-| Codex main chat | Third live attempt on `07c098c` produced the first model-generated package after merged parser compatibility; AST-only inspection | Preserve the exact package and all three attempts' costs; Henry owns runtime/acceptance, with no retagging to fit another host. No execution/adoption/inheritance yet. Finite chain ceilings remain proposed, allowing trial-only inherited/control/decline stages without dummy generation. Preserve Henry's runtime and ACP ownership. |
-| EricZhu-31 / Codex provider session | Existing provider lane; reports the post-#47 Apify baseline gate passed three cases | Preserve/share sanitized exact evidence for independent inspection; no duplicate cloud run here. This handwritten parser run does not establish model synthesis. Elastic permissions remain with key owner. |
+| Codex main chat | Third live package retained; #97/#103 shared validation and finite-chain contract merged | Retain #98 decision/evidence context and require #102 corrections, then prepare an exact-parent B revision from checked public feedback and explicit decision context, with immutable request/settings/parent and a separate prior budget. No blind regeneration, spent-operation replay or new provider call in this review increment. Preserve Henry's runtime and ACP ownership. |
+| EricZhu-31 / Codex provider session | [CREAO nullable-ticket slice claimed](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6387513389); #104 `5023a48` open for review; prior Apify baseline remains operator-reported | Only `crates/genesis-creao/src/{client,model,runtime,main}.rs`, focused CREAO tests and `docs/CREAO_RUNTIME.md`. Preserve exact account/version/request/run ticket before operator read-only reconciliation; wrong IDs/read failures leave it unchanged. No duplicate create, name/time-window binding or retroactive recovery of the old lost run ID. Implementation under review, not completed recovery; ACP keeps hosted-gate evidence. |
 | Ines | Unassigned by explicit user instruction | Do not infer identity from another collaborator handle. |
 
 Henry [acknowledged the receiving-side execution/scoring/verdict/adoption handoff](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6386515979)
 within his existing lane; the exact generated package is now available below.
+The [latest direction and ownership checkpoint](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6387556484)
+is authoritative: feedback-driven B revision and return to A are the next mechanism
+target; use/experimentation does not imply adoption or promotion.
 
 Ownership is by session and exact files, even when sessions share a GitHub
 account. Claim shared interfaces in issue #1 before overlapping. The allocation
 and retained-binding contracts are merged; Henry still owns consuming the binding
-before runtime intent, scoring and receiver-local adoption. The next visible
-mechanism milestone is genuine generated source handed to that existing runner.
-Finite whole-chain ceilings are independent proposed work, not implemented:
-permit generation-bearing development/revision and trial-only acceptance,
-return, control or decline stages. Hashes alone prove no timing. ACP retains its
-bridge/documentation lane.
+before runtime intent, scoring and receiver-local adoption.
+Receiving-side evidence [#98](https://github.com/HenryWashuHe/genesis-history-experiment/pull/98)
+merged at `f45cb1deb57887219622b8dc123928ff764bcd9b`, source
+`cb29a9593c93bbf6fe017e7e06fe7eb450d551d3`. Read-only independent checks cover
+248 manifest entries, 209 artifacts, five slot bindings and the byte-identical
+8,074-byte cost report. Both retained verdicts stand: **Accepted: 1/6 versus
+0/6**, and separate **Rejected: 1/6 versus 2/6** against random search, using the
+exact generated package. This review did not execute source, run the scorer or
+call providers. The report covers the first trial only, excluding the two failed
+generation attempts, separate reference run and second comparison. It is not
+whole-experiment cost evidence. No recorded local adoption/promotion, distinct
+B task or fresh A return is established. Feedback export #102
+`737d214a11c5e5c6b8cf1e4d4991bed0691b2e81` is
+[held](https://github.com/HenryWashuHe/genesis-history-experiment/pull/102#issuecomment-6387587313):
+independent `8ad9d645` has two failures and one passing control. It accepts hidden
+comparison input for public export and emits 133,229 bytes against the 131,072-byte
+revision limit. Henry owns the correction; do not use it as a revision input.
+
+The merged [finite-chain contract](invention-lab/contracts/chain-allocation.md)
+reserves the full ceilings of 1–64 ordered generation or trial-only stages in all
+five resource dimensions. Later bindings check exact settings, organization,
+grants and trial/scope identities without inventing generation for inherited,
+control or return work. Declined/unbound stages retain their full capacity.
+This is a pure structural library: host retention before work, one authoritative
+binding per stage, runtime consumption, chronology, exhaustive accounting and
+actual enforcement remain outside it. It cannot retroactively allocate the three
+observed live calls or close G4.
+ACP retains its bridge/documentation and hosted-gate evidence lane.
 #57/#65 namespace lifecycle evidence remains incomplete; do not infer assurance
-from portable tests. Actual model-generated source is retained; its execution and
-a recorded accepted return remain unproved. Source identity does not establish
+from portable tests. Retained receiving execution/scoring records now have independent
+checks; local adoption and a recorded accepted return remain unproved. Source identity does not establish
 improved development or budget compliance.
 
 ### Evidence for this checkpoint
 
 | Reviewed increment | Evidence and limit |
 | --- | --- |
+| CREAO blank-version compatibility #96 source `dbec006da117a5a9f84389d85f27956f997bdf21`, merge `04b4c3756b03a4f5b3c7c7627a48717ccfdc7697` | Independently 68 CREAO Rust tests and 10 Node gate tests pass; the 10 Node cases were also separately rerun. Strict Clippy/fmt are author-validated. Unset/blank selects v1 consistently; explicit v2 stays opt-in and invalid nonblank versions fail. Offline only; no hosted completion or changed saved identities. |
+| Stage prerequisite / active-goal checkpoint #97 source `202e1fce4fb27418d6fe4898b6f57545de92f342`, merge `2dfc0993132385cc83227848b722fef08a7d01f0` | Ten independent stage/CLI/overflow/recovery cases pass; scoped strict Clippy/fmt. Existing checked arithmetic is shared through read-only accessors without changing valid serialization/hash domains. Current docs record the revised active app Goal; no gate closes. |
+| Finite chain ceilings #103 source `7b65b066687c8636fce2a41097c29362b8bce8e5`, merge `c458c6eb49a4e3cbdc2cc2710930b0252eb29668` | Reviewed and merged tree `4a4a8b00585a894272910df082d7f52f7e7436da`. Author full forge run: 216 tests across 41 targets before three assertions were strengthened; strengthened five chain cases and final scoped strict Clippy pass. The earlier fmt pass preceded a final module-order cleanup; this checkpoint corrects that formatting-only issue and passes workspace fmt. Independent frozen-head review reran 15 chain/stage/CLI/recovery tests, all passed, zero ignored. Counts overlap. [Structural generation/trial-only ceilings](invention-lab/contracts/chain-allocation.md), not runtime enforcement or retrospective allocation. |
 | #18 `07961f1` and #22 `7510b86` | Composition `785a22c` / `4d64fe6`: 102 core tests and strict Clippy; pure execution/scoring records. |
 | #28 source `f52f182`, merge `e47ee64`; #32 source `0fa3773`, merge `8578759` | Composition `d386fb0`, tree `680cf27e`: 116 core tests and strict Clippy. Declared-trial assessment and cumulative experiment accounting are libraries; persistence, isolation and actual metering remain runtime work. |
 | #36 source `f856a5b`, merge `2b2ecac`; #40 source `78dde86`, merge `df945c9` | Composition `a735bc7`, tree `0125f83c`: 125 core tests including independent probes, strict Clippy/fmt. Frozen-binding source loading; dependency/runtime resolution and execution remain host responsibilities. |
@@ -261,7 +293,8 @@ companion per canonical allocation path. Optional generation checks run before
 recovery/credentials/reservation; optional cost assessment uses the retained
 binding without writes or fallback. Runtime consumption remains Henry's scope.
 Copies, rollback, stale snapshots and work outside cooperating commands remain
-outside these bounds. No trusted chronology or whole-chain allocation is implied.
+outside these bounds. The separate chain library above adds finite structural
+ceilings; neither library establishes trusted chronology or global enforcement.
 
 ACP #3 source `f64e131516281d6bb1dc5f41abd8425cc42c77d1` merged
 `5b2615f0918f0e96d9b6f94135737ab1e8b2e98c`; #5 source
@@ -314,7 +347,8 @@ on `7d6119d` separately retained `content_shape` / `end_turn`: 1 call, 4,028 inp
 so a thinking-block cause is inference. Both attempts remain in cost accounting; no replay.
 The [third attempt](invention-lab/evidence/live-method-20261024-generated/README.md) on `07c098c`
 produced package `8215c3679a06724069759bcbdaa576b64ec0ef1251c5238a797c0cb34962b944`:
-AST-only inspection, no execution/scoring/adoption. Usage: 1 call, 4,028 input /
+AST-only inspection in that original bundle; the separate #98 receiving records
+are described above. Usage: 1 call, 4,028 input /
 5,231 output tokens, 42,198 ms. Henry owns the exact runtime/protocol-bound handoff.
 
 Repair WIP remains draft #7 `110a107` on matching forge base `f488eef`; all twelve
