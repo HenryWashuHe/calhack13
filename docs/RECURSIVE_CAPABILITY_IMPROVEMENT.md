@@ -1,6 +1,6 @@
 # Recursive capability improvement: goal and design
 
-Status: proposed implementation and evaluation target. This document records the goal requested in the project-framing discussion; it is not an app-scheduled task, a completed experiment, or an ownership reassignment. Consult [AGENT_HANDOFF.md](AGENT_HANDOFF.md) before implementation. The current implementation boundary is summarized below.
+Status: implementation and evaluation roadmap incorporated into the ongoing two-organization mission goal. These are open milestones, not implemented behavior or a completed experiment. The existing continuation schedule references this document; this file does not create a separate app Goal or reassign ownership. Consult [AGENT_HANDOFF.md](AGENT_HANDOFF.md) and current issue #4 claims before implementation. The current implementation boundary is summarized below.
 
 ## Goal and completion evidence
 
@@ -10,9 +10,10 @@ The moonshot is a network whose useful experience compounds across organizations
 
 The implementation target is complete when the following evidence is reviewable:
 
+- [ ] A mission requirement triggers a justified responsibility or role change, with accountable ownership and a recorded handoff or retirement. A separate case retains an existing owner when sufficient; agent count is not the success criterion.
 - [ ] A records a failure against an exact installed version, performs a bounded repair, verifies and publishes a distinct replacement, and resumes its mission. Ambiguous effects enter reconciliation.
 - [ ] B independently discovers, verifies, and adopts that replacement using its own state, grants, and inputs. Its installation remains pinned; publication alone never upgrades it.
-- [ ] A published development capability is executable, has pinned dependencies and provenance, and is actually used by another organization to build or repair a later capability. Its use is visible in execution evidence, not inferred from a description.
+- [ ] GENESIS creates or improves a development capability through its governed development process, records that derivation, and publishes an executable version with pinned dependencies and provenance. Another organization actually uses it to build or repair a later capability, with execution evidence identifying the inherited method and its outputs. Packaging a hand-authored seed alone is a control, not this recursive-development gate.
 - [ ] Direct reuse, related transfer/composition, and an irrelevant-capability case all have reproducible traces with independently scored task results. The irrelevant capability is not forced into execution.
 - [ ] The controlled evaluation below produces per-family quality, cost, latency, intervention, and regression results, including unsuccessful runs. Provider fixtures and authenticated live runs are labeled separately.
 
@@ -42,7 +43,7 @@ The system can learn at the system level without weight updates. Call these exec
 | Organization changes | Roles, recruitment, delegation, retirement, and capability attachment | Use structural changes when new responsibility warrants them; reuse an existing owner when sufficient |
 | Evaluation | Two-organization inheritance tests and [planner evaluation](PLANNER_EVAL.md) exercise specific mechanisms | Controlled capability-transfer and recursive-improvement evaluation; existing fixtures do not establish this claim |
 
-The current executable path is specialized to TypeScript web extraction on Apify. A general math-and-drawing demo needs additional artifact/executor contracts and appropriate evaluators. Describing them in a manifest does not implement those runtimes. The shared registry is the present network mechanism, not a decentralized protocol.
+The current generated capability artifact path is specialized to TypeScript web extraction on Apify. A general math-and-drawing demo needs additional artifact/executor contracts and appropriate evaluators. Describing them in a manifest does not implement those runtimes. The shared registry is the present network mechanism, not a decentralized protocol.
 
 ## Adoption with evidence
 
@@ -67,6 +68,14 @@ Finite tests can miss failures. The enforceable promise is that required evidenc
 
 These steps preserve the four sponsor roles: Fetch recruits independent specialists, Elastic supplies organizational evidence and capability discovery, Apify builds/runs executable web capabilities, and CREAO owns continuing operational work. GENESIS owns authority, identity, lifecycle, verification and adoption. Changing the research framing does not establish live provider evidence or alter sponsor submission requirements.
 
+### Coordination and order of work
+
+The original two-organization mission, automatic-intake/native-Fetch/full-mission composition, and live sponsor gates remain open prerequisites or parallel tracks. Venue replacement selection is mission recovery; it is not evidence that a deployed capability was repaired. Likewise, retrying a confirmed failed provider run is not a semantic repair or a published replacement.
+
+At the integration checkpoint on main `16783da`, no PRs were open. Henry's Claude retains adoption candidate decision logging and the agreed narrow terminal-`RunFailed` retry change. Codex continues automatic-intake/native-Fetch composition, then scopes exact-version failure evidence and bounded repair intent with the acquisition/execution owners. Eric's replay fix is merged; no new exclusive implementation claim is inferred from it. The [current ownership map](AGENT_HANDOFF.md#current-ownership-and-next-work) and newer issue #4 comments take precedence.
+
+Do not assign the side-chat Claude brief wholesale. Before each next slice, inspect branches and claims, post the bounded files/interfaces in issue #4, and agree any shared contract change. Development-package and evaluation runtime work remain proposed until scoped; the sequence above does not preempt anyone's active implementation.
+
 ## Smallest convincing transfer demonstration
 
 | Case | What to show | What it establishes |
@@ -75,7 +84,7 @@ These steps preserve the four sponsor roles: Fetch recruits independent speciali
 | Related but different | B uses an inherited repair/build workflow on a held-out portal variation requiring a new extractor | Process transfer; improvement still needs the controlled comparison below |
 | Unrelated requirement | A later task uses other available capabilities, or creates a suitable one, while leaving the extractor unused | Appropriate non-reuse, with successful task completion scored separately |
 
-For an initial web-only demo, the third task can be an unrelated local planning calculation using an already available, tested execution path. This is a selection control, not evidence of universal domain coverage. The original web extractor might be useful again much later.
+For an initial demo, the third task can be an unrelated local planning calculation if a tested execution path is available; name that executor and its evidence when implementing the case. Otherwise choose an incompatible requirement within a supported executor and independently score its successful resolution. This is a selection control, not evidence of universal domain coverage. The original web extractor might be useful again much later.
 
 The interface should show the requirement, candidate scope, selection/non-selection reason, exact executed versions, local acceptance, dependency lineage, and outcome/cost. A rising capability counter or a growing organization graph alone is not an improvement metric. Dynamic roles remain tied to accountable work rather than spawning for spectacle.
 
@@ -93,7 +102,11 @@ Compare capability accumulation against baseline for reuse benefit; compare deve
 
 Before evaluation, fix the task families, evaluator/rubric versions, quality thresholds, permitted regression margins, budgets, and promotion criteria. Include repeated related tasks, changed inputs, delayed reuse, irrelevant capabilities, and environmental drift. Hold model identifier/version, model settings, initial tools, permissions, and infrastructure constant; version the prompts and workflow differences that form the intended treatment. Report provider/model changes that prevent exact matching.
 
+Predeclare applicability criteria independently of the selector, including near-miss candidates with similar schemas but incompatible permissions, environments, or task semantics. Score legitimate non-selection separately from unavailable discovery and insufficient evidence. An obviously unrelated tool is a useful control but cannot by itself establish reliable task-fit judgment.
+
 Keep development/selection tasks separate from final held-out evaluation. Builders must not see hidden expected outputs or modify the evaluator. Freeze the capability library before the final test, or use a declared online protocol where each task may access only the earlier task prefix. Do not rerun against the same exposed holdout until a favorable candidate appears. New independent evaluation is needed after further tuning.
+
+Isolate each treatment's registry/index, agent memory, organizational databases, and other persistent state from the other treatments. Record initial snapshots and reset them for independent repetitions. In an online protocol, the permitted prefix applies across all participating organizations, including shared discovery and development history; another organization cannot leak a future task or another treatment's artifact into the run.
 
 Use paired task sets, recorded seeds where supported, and multiple task orders/repetitions. Seeds do not guarantee deterministic provider behavior. Report counts and uncertainty; a single curated chain establishes mechanics only. Start with heterogeneous tasks within supported executors and name that scope precisely. Claims of broader transfer require broader evaluated domains.
 

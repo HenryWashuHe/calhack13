@@ -1,10 +1,17 @@
 # GENESIS implementation handoff
 
-## Current checkpoint: #111 and #112
+## Current checkpoint: recursive capability roadmap and merged review queue
 
-This supersedes the historical #108 snapshot. Main through #112 is `6e4f1ff`;
+This supersedes the historical snapshots below. Main through #110 is `16783da`;
 current GitHub state and newer [issue #4](https://github.com/HenryWashuHe/genesis/issues/4)
-comments remain authoritative. The two-organization mission goal is active.
+comments remain authoritative. No PRs were open at this checkpoint. The existing
+two-organization mission goal remains active and now includes the [recursive
+capability roadmap](RECURSIVE_CAPABILITY_IMPROVEMENT.md): cross-organization repair,
+executable development capabilities, then a controlled three-treatment evaluation.
+Fixed weights, selective transfer and valid non-reuse are explicit. Accumulation
+and reuse alone do not establish improvement of future capability development.
+The side-chat drafts are preserved verbatim in `7eeaf9f`; subsequent review edits
+retain organizational evolution and strengthen evaluation isolation and provenance.
 
 **Merged #86:** reviewed `ac50d35`, merge `ad622a9`. Confirmed pre-submission or
 otherwise safely settled checks can retry; retained native receipts remain
@@ -41,21 +48,32 @@ checks and strict server Clippy/fmt. #113 merged into #110 as `50cb501`; the
 parent branch was then fast-forwarded to the tested composition without rewriting
 history. Claude/Eric should pull before continuing it. This is jsdom/stub API
 and local backend evidence, not a new browser walkthrough. Current GitHub state
-gives the parent PR's merge status.
+records #110 merged at `16783da`; both PRs are closed.
 
-**Ownership:** Claude/Eric keeps kernel/planner/readiness/adoption/UI. Codex
-explicitly authorized Claude's requested narrow terminal RunFailed provider
-mapping and sanitize contract for the next retry PR; unknown submissions,
-failed status reads and retained running receipts must remain blocked. Claude's
-candidate decision logging uses the existing adoption flow. Codex keeps Fetch,
-monitor/recovery and provider verification. Coordinate shared interfaces in #4.
+### Current ownership and next work
 
-**Next mission work:** compose automatic intake with the existing native Fetch
-process test and the complete two-organization scenario, then extend the ACP
-surface toward the complete primary mission. Current ACP only handles frozen
-recovery cases. Actual Agentverse/ASI use, sponsor credentials, cloud execution,
-and genuine CREAO share evidence remain open. Primary-checkout product-document
-edits are unrelated in-progress work and must not be staged by these branches.
+| Owner | Active scope | Boundary / next handoff |
+| --- | --- | --- |
+| Henry's Claude | Kernel/planner/readiness/adoption; candidate decision logging in the adoption coordinator/store/routes/tests | Also owns the explicitly agreed narrow terminal `ProviderError::RunFailed` mapping, sanitizer preservation and safe retry gate. Unknown submissions, failed status reads and retained running receipts stay blocked. No general provider/runtime ownership transfer. |
+| Eric's Claude | Provenance/replay UI contribution #113 is merged | No next exclusive implementation claim is recorded. Coordinate UI work with Henry's Claude before claiming overlapping files. |
+| Codex | Fetch, monitor/recovery, provider verification and acquisition/execution verification boundaries | Next: automatic intake composed with the native Fetch process test, then full two-organization/ACP composition. Scope exact-version failure evidence and repair intent in issue #4 before expanding into network capability repair. |
+| Proposed, not assigned | Executable development packages and controlled recursive-benefit evaluation | Inspect current branches/claims and agree bounded contracts first. The side-chat Claude brief is a proposal, not an assignment. |
+
+The roadmap adds work to the existing goal; it does not replace the original
+mission or complete it. A deployed capability replacement must preserve exact
+failure/version lineage, independently verified publication, B's local adoption,
+and pinned installations. Venue selection recovery and a provider retry alone do
+not meet that gate. One justified organizational change and a no-new-role control
+remain required. An inherited development method must itself be created or
+improved through the governed process; generated tests cannot self-certify it.
+
+The existing continuation automation reads this roadmap and these ownership
+claims. Complete the mechanism/evaluation gates even if the measured benefit is
+null or negative; a positive recursive-improvement claim stays open unless its
+predeclared criteria pass. Keep the original live sponsor gates separately visible.
+Current ACP only handles frozen recovery cases. Agentverse/ASI use, cloud execution,
+and genuine CREAO share evidence remain open. The primary-checkout side-chat docs
+are being integrated deliberately; unrelated local changes still must not be staged.
 
 ## Historical checkpoint after #108 — October 23, 2026
 
