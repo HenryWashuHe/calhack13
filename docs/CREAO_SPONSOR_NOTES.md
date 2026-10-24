@@ -44,12 +44,15 @@ Responsibilities remain separate:
 
 ## What is still missing
 
+Main contains capability work through #24. The specialist/readiness code described
+below is on held source PRs #20/#26/#29 and assembled in draft #25, not on main.
+
 - The current scenario's inherited "monitor" execution calls `/capability-runs`;
   that route selects Apify. It does not demonstrate CREAO mission execution.
   See `capability_scenario.rs::invoke` and `routes/capabilities.rs`.
 - CREAO creation and the gateway probe in draft #29 establish neither core work
   nor a verified mission result. Collected specialist output remains subject to
-  domain verification in `specialist_jobs.rs`; preserve that boundary.
+  domain verification in draft #25's `specialist_jobs.rs`; preserve that boundary.
 - Capture the qualifying agent's build/save provenance on `agent.creao.ai`.
   If relying solely on API-created agents for eligibility, confirm that reading
   of the sponsor's wording at the booth instead of assuming it.

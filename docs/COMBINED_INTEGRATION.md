@@ -5,14 +5,19 @@ This is an assembled development checkpoint
 for both machines. It is draft because the source reviews below still have open
 findings. Passing the existing suite does not resolve those findings.
 
-The [PR review queue](PR_REVIEW_QUEUE.md) records the review of all 22 open
-PRs, dependency order, exact heads and source-fix ownership.
+The [PR review queue](PR_REVIEW_QUEUE.md) records eleven capability PRs now
+merged to main and eleven remaining held PRs, exact heads and source-fix ownership.
+Main's capability merge is `4ecc397`; handoff-only PR #30 is merged at `e57097f`.
+This branch reconciles that main history with the existing draft. Resolution is
+limited to coordination/sponsor documentation; no runtime, dependency, schema or
+test file changes from the previously validated combined source. The unchanged
+Rust suite was not rerun for this documentation/history reconciliation.
 
 ## Included snapshots
 
 | Source | Exact head | Purpose |
 | --- | --- | --- |
-| Capability stack through #24 | `9e7939a` | Synthesis, bounded repair, durable acquisition/adoption, fresh verification, automatic two-organization scenario |
+| Main capability stack through #24 | `9e7939a` | Synthesis, bounded repair, durable acquisition/adoption, fresh verification, automatic two-organization scenario |
 | #11 `feat/elastic` | `aa94d100` | Evidence projection, retrieval, Agent Builder specialists, Elastic capability search and jobs |
 | #12 `feat/planner` | `22fefe62` | Mission planner and persisted decision/reconciliation API |
 | #20 `feat/creao-readiness` | `e8cad205` | Asynchronous specialist readiness/jobs and CREAO environment registration |
@@ -80,7 +85,8 @@ execution or cross-account Actor access is established by this branch.
 
 Keep fixes on the owned source branches, then merge their new commits into this
 integration branch and rerun the affected checks. Avoid force-pushing the shared
-checkpoint. The source PRs are not approved or merged into `main` by this branch.
+checkpoint. The held source PRs remain unapproved and unmerged; capability PRs through #24
+landed separately under the user's authorization.
 
 | Source | Required follow-up | Evidence |
 | --- | --- | --- |

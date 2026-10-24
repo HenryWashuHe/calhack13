@@ -54,8 +54,9 @@ Rust is the core implementation language. The Fetch sidecar keeps the official P
 - **GENESIS:** own roles, authority, budgets, assignments, lifecycle, verification gates, and adoption decisions.
 
 [Apify sponsor announcement notes](docs/APIFY_SPONSOR_NOTES.md) cover the announced credits, meaningful-use demo and separate AI Chat category.
-[CREAO sponsor requirements](docs/CREAO_SPONSOR_NOTES.md) record the core-work requirement,
-agent ID/run-share-link submission evidence and the remaining real mission-execution gap.
+[CREAO sponsor requirements](docs/CREAO_SPONSOR_NOTES.md) track core agent work,
+agent ID/run-share-link submission evidence and the remaining live mission gap.
+See the [PR merge/review queue](docs/PR_REVIEW_QUEUE.md) for what is on main and what remains held.
 
 ## MVP
 

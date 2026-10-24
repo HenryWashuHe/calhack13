@@ -1,12 +1,31 @@
 # GENESIS implementation handoff
 
+## Current merge and ownership checkpoint — October 22, 2026
+
+Capability PRs #8/#9/#10/#13/#14/#15/#16/#17/#18/#19/#24 are merged to `main`
+at `4ecc397`. Their resulting tree matches tested #24 exactly: 594 Rust tests,
+formatting and strict Clippy. The user authorizes merging ready PRs; this does not
+resolve findings on other heads. [Current queue](PR_REVIEW_QUEUE.md).
+
+Hold #11/#12/#20/#21/#22/#26/#27/#28 for their source fixes, #23 for stale handoff
+content, and drafts #25/#29 for dependencies. Claude/Eric keeps those source fixes;
+Codex keeps capability/provider implementation and narrow integration. No whole-kernel
+credit fallback is active. The combined draft's 699-test evidence is separate from
+main and does not resolve its thirteen reproduced negative review regressions.
+
+[CREAO sponsor evidence](CREAO_SPONSOR_NOTES.md) still needs core mission
+execution, an actual agent ID and run share link. [Apify notes](APIFY_SPONSOR_NOTES.md)
+retain its meaningful-use and credit information. No live sponsor proof is claimed.
+
+## Combined draft checkpoint
+
 The October 22 [CREAO sponsor note](CREAO_SPONSOR_NOTES.md) records the required
 core agent work, agent ID/run share link, API-family distinction and missing
 mission-execution evidence. Keep this separate from readiness and Apify receipts.
 
 Current priority: [review queue and merge dependencies](PR_REVIEW_QUEUE.md).
 The user requested a backlog review; capability stack review found no new blockers,
-while #11/#12/#20/#21/#22/#26/#27/#28 retain source findings. No PR was merged in this pass.
+while #11/#12/#20/#21/#22/#26/#27/#28 retain source findings. The capability stack has since landed; these source findings remain.
 
 Latest assembled checkpoint: [draft PR #25](https://github.com/HenryWashuHe/genesis/pull/25),
 `codex/combined-integration`, source merge `1004934`.
@@ -23,7 +42,7 @@ This branch remains draft: thirteen reproduced failing regressions across
 #11/#12/#20/#26/#27 remain on separate test-only branches, alongside source/UI
 findings on #21/#22/#28. They are not part of the passing baseline. Keep source
 fixes with Claude and absorb tested new commits here. The current priority is
-clearing the review queue. No main merge or whole-kernel ownership transfer is
+clearing the review queue. No held source merge or whole-kernel ownership transfer is
 implied; the ongoing objective and hourly continuation remain active.
 
 ### CREAO provider readiness addition
