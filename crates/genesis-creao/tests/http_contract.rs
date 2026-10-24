@@ -239,16 +239,22 @@ async fn hosted_v2_run_omits_v1_only_fields_and_rejects_cross_protocol_ticket() 
 }
 
 #[tokio::test]
-async fn hosted_v2_missing_creation_agent_requires_reconciliation() {
+async fn hosted_v2_missing_creation_agent_retains_the_run_without_guessing_an_agent() {
     let mock = Mock::serve_v2(vec![Reply::json(
         202,
         json!({"run_id":RUN,"status":"pending",
         "agent_id":null,"conversation_id":null,"model":null}),
     )])
     .await;
-    let error = mock.client_v2().submit(&create()).await.unwrap_err();
-    assert_eq!(error.kind, ErrorKind::MalformedResponse);
-    assert!(error.post_may_have_run);
+    let client = mock.client_v2();
+    let request = create();
+    let ticket = client.submit(&request).await.unwrap();
+    assert_eq!(ticket.run_id(), RUN);
+    assert_eq!(ticket.agent_id(), None);
+    assert_eq!(
+        client.poll(&request, &ticket).await.unwrap_err().kind,
+        ErrorKind::TicketMismatch
+    );
     assert_eq!(mock.requests().len(), 1);
 
     let mock = Mock::serve_v2(vec![]).await;
