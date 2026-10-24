@@ -139,8 +139,14 @@ B's need must be committed after A's publication, or B's search is empty;
 with `synthesis_fallback: false` B's gap is then refused (`no_candidate`;
 status at `GET /api/v1/capability-gaps/{id}/adoption`).
 
-Evidence: `tests/two_org_inheritance.rs` runs exactly this with real
-`serve_org` on both sides against loopback providers. No live run yet.
+Evidence, and its limits: `tests/two_org_inheritance.rs` runs both orgs on
+real `serve_org` against loopback providers, but it seeds each
+`RequestCapability` change directly instead of running a planner. That a
+planner proposes the request and later attaches the installed capability is
+separate evidence: the replayed planner eval case `adopted-capability-attach`
+for attaching, and with a model key the `REHEARSAL_PLANNER=1` rehearsal for
+the request itself. The test only shows each kernel waking its planner once.
+No live run yet.
 
 Live preflight for this path (each of these fails silently into a refusal or
 attention if missed; loopback tests set them by hand):
@@ -160,7 +166,8 @@ attention if missed; loopback tests set them by hand):
       A's gap shows INSTALLED.
 
 Most of this list is checked by one offline command, which parses the real
-files with the server's own types and cross-checks them (suite pages inside
+files with the server's own types, runs the same policy validation as
+startup for all three policies, and cross-checks them (suite pages inside
 the source allowlist and on the tunnel host, `capability.acquire` and the
 finalization permissions held by a starting role and inside the constitution,
 B's adoption suite present and B holding A's manifest permissions, fallback
@@ -285,9 +292,14 @@ and 67 events, Org B 6 and 23, 0 violations. Use it as the closing line:
 
 ### Don't restart an org mid-capability
 
-The crash-anywhere test (`tests/chaos_two_org.rs`) restarts each org at many
-points of the capability beat. Nothing is ever duplicated, but liveness has
-holes. Plan around them:
+The crash test (`tests/chaos_two_org.rs`, on `henry-claude/chaos-two-org`)
+restarts each org on the same database at fixed points of the capability
+beat: 9 kill schedules per org (no kill, seven repeated kill intervals and one
+mixed one). In those schedules it asserted at most one model call and one
+Actor creation for A, no model call, Actor creation or second A run for B,
+at most one run per B suite case, and a clean kernel audit. That is the
+tested evidence, not a guarantee for every interleaving. Liveness has holes;
+plan around them:
 
 - **Org A while its gap is `acquiring`:** a restart during any provider call
   (the synthesis model call takes tens of seconds live) leaves the gap at
@@ -297,11 +309,18 @@ holes. Plan around them:
   provider acted. Then switch to the labeled recording. Once `acquired`,
   restarts during finalization were recovered in every run.
 - **Org B while adoption is checking:** a restart mid-check stops adoption at
-  `attention / checks`. One operator call recovers it (#86):
-  `POST /api/v1/capability-gaps/{gap}/adoption/retry` with the operator token.
-  It starts fresh checks; the stopped attempt stays in history.
-- Rehearse the restart you'd actually do, e.g. a laptop sleep, with
-  `rehearse_autonomy` before the event.
+  `attention / checks`. If every check run has a definite outcome, one
+  operator call recovers it (#86):
+  `POST /api/v1/capability-gaps/{gap}/adoption/retry` with the operator token
+  starts fresh checks and keeps the stopped attempt in history. If the
+  restart hit a check submission (unknown outcome), the retry answers 409
+  `adoption_checks_unresolved` on purpose, so the check is never submitted
+  twice, and there is no recovery path today. Don't stop B between its
+  `RequestCapability` and INSTALLED.
+- `rehearse_autonomy` does not rehearse a restart: each launch creates fresh
+  temporary databases, so stopping and relaunching it starts both orgs over
+  rather than resuming them. Only the crash test above resumes the same
+  databases.
 
 ## Open human decisions
 
