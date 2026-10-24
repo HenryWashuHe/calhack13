@@ -74,3 +74,42 @@ fn families_are_deterministic_and_draw_different_worlds() {
     assert!(a.pushes.is_empty());
     assert!((1.0..=2.5).contains(&a.gap));
 }
+
+#[test]
+fn overlap_and_anchors_use_exact_rotated_shapes() {
+    use genesis_lab_eval::design::{penetrates, Body};
+    let body = |v: serde_json::Value| serde_json::from_value::<Body>(v).unwrap();
+    let square = |id: &str, x: f32, y: f32| {
+        body(serde_json::json!({
+            "shape": "rect", "id": id, "x": x, "y": y, "w": 1.0, "h": 1.0,
+            "angle": std::f32::consts::FRAC_PI_4, "material": "wood"
+        }))
+    };
+    let diamond = |id: &str, x: f32| square(id, x, 1.5);
+    // Two 45-degree squares offset along a face normal: bounding boxes
+    // overlap (0.8 < 1.41 on both axes), the faces are 1.13 apart > 1.0.
+    assert!(!penetrates(
+        &diamond("a", -3.0),
+        &square("b", -2.2, 2.3),
+        0.01
+    ));
+    assert!(penetrates(
+        &diamond("a", -3.0),
+        &square("b", -2.4, 2.1),
+        0.01
+    ));
+    // A circle near a rotated square's corner region but outside the square.
+    let c = body(
+        serde_json::json!({"shape":"circle","id":"c","x":-2.35,"y":2.15,"r":0.3,"material":"rubber"}),
+    );
+    assert!(!penetrates(&diamond("a", -3.0), &c, 0.01));
+    let inside = body(
+        serde_json::json!({"shape":"circle","id":"c","x":-2.8,"y":1.6,"r":0.3,"material":"rubber"}),
+    );
+    assert!(penetrates(&diamond("a", -3.0), &inside, 0.01));
+    // Anchors: on the rotated square's tip, yes; in its bounding-box corner, no.
+    let d = diamond("a", -3.0);
+    let tip = -3.0 + std::f32::consts::FRAC_1_SQRT_2;
+    assert!(d.contains(tip, 1.5, 0.05));
+    assert!(!d.contains(-3.0 + 0.6, 1.5 + 0.6, 0.05));
+}
