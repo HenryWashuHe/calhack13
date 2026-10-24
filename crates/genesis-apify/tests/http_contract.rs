@@ -268,9 +268,8 @@ async fn terminal_success_requires_dataset_id() {
 }
 
 #[tokio::test]
-async fn rejects_empty_multiple_nonobject_or_incomplete_dataset_pages() {
+async fn rejects_multiple_nonobject_or_incomplete_dataset_pages() {
     for body in [
-        json!([]),
         json!([output(), output()]),
         json!([1]),
         json!({"data":[output()]}),
@@ -311,6 +310,104 @@ async fn rejects_empty_multiple_nonobject_or_incomplete_dataset_pages() {
             ErrorKind::InvalidDataset
         );
         mock.finish().await;
+    }
+}
+
+#[tokio::test]
+async fn rereads_only_empty_dataset_pages_after_success() {
+    for resume in [false, true] {
+        let mut empty = Reply::json(json!([]));
+        empty.headers = vec![
+            ("X-Apify-Pagination-Total", "1".into()),
+            ("X-Apify-Pagination-Count", "0".into()),
+            ("X-Apify-Pagination-Offset", "0".into()),
+        ];
+        let mut replies = vec![Reply::json(build()), Reply::json(run("SUCCEEDED"))];
+        if resume {
+            replies.extend([Reply::json(build()), Reply::json(run("SUCCEEDED"))]);
+        }
+        replies.extend([empty, Reply::json(json!([output()]))]);
+        let mock = Mock::serve(replies).await;
+        let client = mock.client(limits());
+        let input = request();
+        let evidence = if resume {
+            let ticket = client.submit(&input).await.unwrap();
+            client.resume(&input, &ticket).await.unwrap()
+        } else {
+            client.execute(&input).await.unwrap()
+        };
+        assert_eq!(evidence.output, output());
+        let requests = mock.finish().await;
+        assert_eq!(
+            requests.iter().filter(|r| r.starts_with("POST ")).count(),
+            1
+        );
+        let dataset_reads: Vec<_> = requests
+            .iter()
+            .filter(|r| r.starts_with("GET /v2/datasets/dataset1/items?"))
+            .collect();
+        assert_eq!(dataset_reads.len(), 2);
+        assert_eq!(
+            dataset_reads[0].lines().next(),
+            dataset_reads[1].lines().next()
+        );
+    }
+}
+
+#[tokio::test]
+async fn persistently_empty_dataset_stops_after_five_reads() {
+    let mut replies = vec![Reply::json(build()), Reply::json(run("SUCCEEDED"))];
+    replies.extend((0..5).map(|_| Reply::json(json!([]))));
+    let mock = Mock::serve(replies).await;
+    let error = mock.client(limits()).execute(&request()).await.unwrap_err();
+    assert_eq!(error.kind, ErrorKind::InvalidDataset);
+    assert_eq!(error.stage, Stage::Dataset);
+    assert_eq!(error.run_id.as_deref(), Some("run1"));
+    let requests = mock.finish().await;
+    assert_eq!(requests.len(), 7);
+    assert_eq!(
+        requests.iter().filter(|r| r.starts_with("POST ")).count(),
+        1
+    );
+}
+
+#[tokio::test]
+async fn empty_dataset_retry_obeys_deadline() {
+    let mock = Mock::serve(vec![
+        Reply::json(build()),
+        Reply::json(run("SUCCEEDED")),
+        Reply::json(json!([])),
+    ])
+    .await;
+    let mut config = limits();
+    config.deadline = Duration::from_millis(100);
+    config.poll_interval = Duration::from_millis(500);
+    let error = mock.client(config).execute(&request()).await.unwrap_err();
+    assert_eq!(error.kind, ErrorKind::DeadlineExceeded);
+    assert_eq!(error.stage, Stage::Dataset);
+    assert_eq!(error.run_id.as_deref(), Some("run1"));
+    assert_eq!(mock.finish().await.len(), 3);
+}
+
+#[tokio::test]
+async fn invalid_empty_page_headers_fail_without_retry() {
+    for (header, value) in [
+        ("X-Apify-Pagination-Total", "2"),
+        ("X-Apify-Pagination-Count", "1"),
+        ("X-Apify-Pagination-Offset", "1"),
+        ("X-Apify-Pagination-Total", "oops"),
+    ] {
+        let mut empty = Reply::json(json!([]));
+        empty.headers.push((header, value.into()));
+        let mock = Mock::serve(vec![
+            Reply::json(build()),
+            Reply::json(run("SUCCEEDED")),
+            empty,
+        ])
+        .await;
+        let error = mock.client(limits()).execute(&request()).await.unwrap_err();
+        assert_eq!(error.kind, ErrorKind::InvalidDataset);
+        assert_eq!(mock.finish().await.len(), 3);
     }
 }
 
