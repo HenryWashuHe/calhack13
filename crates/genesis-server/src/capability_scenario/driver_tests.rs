@@ -158,6 +158,86 @@ fn legacy_spec() -> ScenarioSpec {
     serde_json::from_value(spec).unwrap()
 }
 
+fn monitoring_config() -> ScenarioVenueMonitoring {
+    serde_json::from_value(json!({
+        "policy": {
+            "selected_venue_id":"grand-hall", "attendees":150,
+            "budget":{"minor_units":100000,"currency":"USD"},
+            "window":{"start":"2026-11-14T18:00:00-08:00","end":"2026-11-14T22:00:00-08:00"},
+            "step_free_required":true
+        },
+        "updated_invocation_input":{"source_url":"https://example.com/venue-update"}
+    }))
+    .unwrap()
+}
+
+#[test]
+fn monitoring_configuration_requires_valid_policy_and_distinct_bounded_input() {
+    let mut spec = legacy_spec();
+    spec.provider_access_acknowledged = true;
+    assert!(spec.venue_monitoring.is_none());
+    spec.venue_monitoring = Some(monitoring_config());
+    assert!(validate_spec(&spec).is_ok());
+    for input in [
+        spec.invocation_input.clone(),
+        Value::Null,
+        json!({"large":"x".repeat(64 * 1024)}),
+    ] {
+        spec.venue_monitoring
+            .as_mut()
+            .unwrap()
+            .updated_invocation_input = input;
+        assert!(validate_spec(&spec).is_err());
+    }
+    spec.venue_monitoring = Some(monitoring_config());
+    spec.venue_monitoring.as_mut().unwrap().policy.attendees = 0;
+    assert!(validate_spec(&spec).is_err());
+    let mut value = serde_json::to_value(monitoring_config()).unwrap();
+    value["expected_verdict"] = json!("feasible");
+    assert!(serde_json::from_value::<ScenarioVenueMonitoring>(value).is_err());
+}
+
+#[tokio::test]
+async fn monitoring_preflight_requires_scope_and_native_runtime_before_any_mutation() {
+    use genesis_core::model::Constitution;
+    for (has_scope, has_runtime, succeeds) in [
+        (false, true, false),
+        (true, false, false),
+        (true, true, true),
+    ] {
+        let mut constitution = Constitution::default();
+        constitution.scopes.extend([
+            "capability.acquire".into(),
+            "capability.venue_lookup".into(),
+        ]);
+        let state_a = OrgState::new("a".into(), "A", constitution.clone());
+        if has_scope {
+            constitution.scopes.insert("monitor.venue".into());
+        } else {
+            constitution.scopes.remove("monitor.venue");
+        }
+        let state_b = OrgState::new("b".into(), "B", constitution);
+        let a = Server::start(vec![
+            ("GET", "/api/v1/organization".into(), json!(state_a)),
+            ("GET", "/api/v1/health".into(), json!({"registry_configured":true,"dev_stub_enabled":true,"acquisition_enabled":true})),
+        ]).await;
+        let b = Server::start(vec![
+            ("GET", "/api/v1/organization".into(), json!(state_b)),
+            ("GET", "/api/v1/health".into(), json!({"registry_configured":true,"dev_stub_enabled":true,"acquisition_enabled":false,
+                "configured_specialists": if has_runtime {json!(["creao"])} else {json!([])}})),
+        ]).await;
+        let mut spec = legacy_spec();
+        spec.venue_monitoring = Some(monitoring_config());
+        spec.allow_development_roles = true;
+        assert_eq!(driver(&a, &b).preflight(&spec).await.is_ok(), succeeds);
+        assert!(a
+            .requests()
+            .iter()
+            .chain(b.requests().iter())
+            .all(|(method, _, _)| method == "GET"));
+    }
+}
+
 fn work() -> Work {
     Work {
         mission: "mission".into(),

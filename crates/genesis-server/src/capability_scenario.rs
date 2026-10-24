@@ -7,6 +7,9 @@
 #[cfg(test)]
 mod driver_tests;
 mod observation;
+mod venue_monitoring;
+
+pub use venue_monitoring::{ScenarioMonitoringReport, ScenarioVenueMonitoring};
 
 use crate::capability_acquisition_store::AcquisitionCounters;
 use genesis_core::lifecycle::{InstallationStatus, RoleState};
@@ -138,6 +141,10 @@ pub struct ScenarioSpec {
     pub allowed_source_urls: Vec<String>,
     pub examples: Vec<PublicExample>,
     pub invocation_input: Value,
+    /// Optional continuing mission work after the verifier hands off to CREAO.
+    /// Both immutable source inputs must belong to B's configured trusted suite.
+    #[serde(default)]
+    pub venue_monitoring: Option<ScenarioVenueMonitoring>,
     #[serde(default)]
     pub allow_development_roles: bool,
     /// Both operators have arranged permitted access to the same private Actor.
@@ -196,6 +203,8 @@ pub struct ScenarioReport {
     /// This is not an account-wide claim about unrelated processes.
     pub acquisition_disabled_b: bool,
     pub bindings: Vec<ScenarioRoleBinding>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub venue_monitoring: Option<ScenarioMonitoringReport>,
 }
 
 pub struct ScenarioDriver {
@@ -221,8 +230,10 @@ struct AdoptionResult {
     reference: String,
 }
 
+#[derive(Clone, Copy)]
 struct InvocationContext<'a> {
     spec: &'a ScenarioSpec,
+    input: &'a Value,
     work: &'a Work,
     installation: &'a str,
     artifact: &'a ArtifactPin,
@@ -456,6 +467,22 @@ impl ScenarioDriver {
         }
         let ha = self.get(&self.a, "/health", "preflight health").await?;
         let hb = self.get(&self.b, "/health", "preflight health").await?;
+        if spec.venue_monitoring.is_some() {
+            if !b.constitution.scopes.contains("monitor.venue") {
+                return Err(ScenarioError::Preflight(
+                    "Org B requires venue monitoring authority",
+                ));
+            }
+            let specialists: Vec<Provider> = decode(
+                hb["configured_specialists"].clone(),
+                "configured specialist runtimes",
+            )?;
+            if !specialists.contains(&Provider::Creao) {
+                return Err(ScenarioError::Preflight(
+                    "venue monitoring requires Org B's CREAO runtime",
+                ));
+            }
+        }
         for health in [&ha, &hb] {
             if health["registry_configured"] != true {
                 return Err(ScenarioError::Preflight(
@@ -818,7 +845,7 @@ impl ScenarioDriver {
                 "/capability-runs",
                 json!({"client_request_id":format!("{}-{key}",spec.run_id),
             "installation_id":context.installation,"role_id":role,"responsibility_id":context.work.responsibility,
-            "suite_id":spec.suite_b_id,"input":spec.invocation_input}),
+            "suite_id":spec.suite_b_id,"input":context.input}),
                 "invoke inherited capability",
             )
             .await?;
@@ -915,10 +942,14 @@ impl ScenarioDriver {
         } else {
             "capability.acquire"
         };
+        let mut scopes = vec![scope];
+        if artifact.is_some() && spec.venue_monitoring.is_some() {
+            scopes.push("monitor.venue");
+        }
         let mut operations = vec![
             json!({"op":"CreateRole","key":"monitor","name":"Persistent venue monitor",
             "charter":"Maintain the inherited responsibility after temporary work ends",
-            "authority":{"scopes":[scope],"budget_cents":0},"provider":"creao","justification":"lifecycle"}),
+            "authority":{"scopes":scopes,"budget_cents":0},"provider":"creao","justification":"lifecycle"}),
             json!({"op":"RetireRole","role_id":work.role,"handoffs":[{"responsibility_id":work.responsibility,"to":{"kind":"new","key":"monitor"}}]}),
         ];
         if let Some(pin) = artifact {
@@ -1246,6 +1277,7 @@ impl ScenarioDriver {
         self.propose(&self.b,format!("{}-attach",spec.run_id),&b.observation,json!([{"op":"AttachCapability","role":{"kind":"existing","role_id":b.role},"capability":{"capability_id":artifact.capability_id,"version":artifact.capability_version}}]),"attach locally accepted capability").await?;
         let invocation = InvocationContext {
             spec,
+            input: &spec.invocation_input,
             work: &b,
             installation: &installation,
             artifact: &artifact,
@@ -1264,6 +1296,11 @@ impl ScenarioDriver {
                 Some(&initial_run.suite_sha256),
             )
             .await?;
+        let venue_monitoring = if spec.venue_monitoring.is_some() {
+            Some(venue_monitoring::run(self, spec, &b, &monitor, &continuation, &invocation).await?)
+        } else {
+            None
+        };
         let final_a = self.state(&self.a).await?;
         let final_b = self.state(&self.b).await?;
         let final_installation = final_b
@@ -1346,6 +1383,7 @@ impl ScenarioDriver {
             synthesis_calls_b: 0,
             acquisition_disabled_b: true,
             bindings,
+            venue_monitoring,
         })
     }
 }
@@ -1384,7 +1422,7 @@ fn validate_invocation_proof(
         || case.suite_sha256 != proof.suite_sha256
         || case.artifact != *context.artifact
         || case.case_id != collected.evidence.case_id
-        || case.input_sha256 != json_sha256(&context.spec.invocation_input)
+        || case.input_sha256 != json_sha256(context.input)
         || case.input_sha256 != collected.evidence.input_sha256
         || case.source != collected.evidence.source
         || case.run_id.as_ref() != Some(&collected.evidence.run_id)
@@ -1484,6 +1522,22 @@ fn validate_spec(spec: &ScenarioSpec) -> Result<()> {
             > 64 * 1024
     {
         return Err(ScenarioError::Invalid("bounded invocation object"));
+    }
+    if let Some(monitoring) = &spec.venue_monitoring {
+        crate::venue_assessment_domain::validate_policy(&monitoring.policy)
+            .map_err(|_| ScenarioError::Invalid("venue monitoring policy"))?;
+        if !monitoring.updated_invocation_input.is_object()
+            || serde_json::to_vec(&monitoring.updated_invocation_input)
+                .map_err(|_| ScenarioError::Invalid("updated invocation input"))?
+                .len()
+                > 64 * 1024
+            || json_sha256(&monitoring.updated_invocation_input)
+                == json_sha256(&spec.invocation_input)
+        {
+            return Err(ScenarioError::Invalid(
+                "venue monitoring requires a distinct bounded invocation object",
+            ));
+        }
     }
     Ok(())
 }
@@ -1591,6 +1645,7 @@ mod tests {
             allowed_source_urls: vec![],
             examples: vec![],
             invocation_input: suite.cases[0].input.clone(),
+            venue_monitoring: None,
             allow_development_roles: false,
             provider_access_acknowledged: true,
         };
@@ -1603,6 +1658,7 @@ mod tests {
         };
         let context = InvocationContext {
             spec: &spec,
+            input: &spec.invocation_input,
             work: &work,
             installation: "installation",
             artifact: &evidence.artifact,
@@ -1631,6 +1687,23 @@ mod tests {
             )
         };
         assert!(validate(value.clone()).is_ok());
+        let updated_input = json!({"source_url":"https://example.com/updated"});
+        let updated_context = InvocationContext {
+            input: &updated_input,
+            ..context
+        };
+        let proof: InvocationProofResponse = decode(value.clone(), "proof").unwrap();
+        assert!(
+            validate_invocation_proof(
+                &proof,
+                "job",
+                &updated_context,
+                &collected,
+                Some(&case.report().suite_sha256),
+            )
+            .is_err(),
+            "a baseline proof cannot validate a later invocation input"
+        );
         for (path, replacement) in [
             ("/job_id", json!("other-job")),
             ("/installation_id", json!("other-installation")),
