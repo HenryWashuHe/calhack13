@@ -80,6 +80,7 @@ async fn cli(url: &str, token: Option<&str>, args: &[&str]) -> Output {
     let mut cmd = Command::new(env!("CARGO_BIN_EXE_genesis"));
     cmd.env_clear()
         .env("GENESIS_REGISTRY_URL", url)
+        .env("RUST_LOG", "reqwest=debug")
         .args(["method"]);
     if let Some(token) = token {
         cmd.env("GENESIS_REGISTRY_TOKEN", token);
