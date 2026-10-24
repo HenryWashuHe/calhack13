@@ -191,8 +191,64 @@ fn role_slot(
         .find(|s| matches!(s.purpose, TrialPurpose::Acceptance { role: r } if r == role))
 }
 
+fn receiver_fits(
+    receiver: &Receiver,
+    plan: &TrialPlan,
+    slot: &genesis_core::development_trial::TrialSlot,
+) -> Result<(), String> {
+    use genesis_lab_exec::{refs, sandbox::Mode};
+    if ![Mode::Namespaces, Mode::None].iter().any(|m| {
+        refs::environment_for_runtime(*m, &receiver.runtime) == plan.development_environment
+    }) {
+        return Err("the acceptance trial did not run on this receiver's runtime".into());
+    }
+    if receiver.protocol != refs::protocol() {
+        return Err("this receiver's protocol is not the one the trial's executor speaks".into());
+    }
+    if let Some(d) = slot
+        .dependencies
+        .iter()
+        .find(|d| !receiver.allowed_dependencies.contains(d))
+    {
+        return Err(format!(
+            "dependency {}@{} is not allowed here",
+            d.id, d.version
+        ));
+    }
+    if receiver.installed.contains(&slot.method) {
+        return Err("this exact method version is already installed here".into());
+    }
+    Ok(())
+}
+
+/// Concludes an intent for one exact selected offer: the offer must pass
+/// [`precheck`] for this receiver and be exactly the plan's candidate method
+/// before the evidence is weighed by [`conclude`].
+pub fn conclude_selected(
+    receiver: &Receiver,
+    offer: &Offer,
+    plan: &TrialPlan,
+    criterion: &[u8],
+    candidate: &SlotEvidence,
+    control: &SlotEvidence,
+) -> Result<Outcome, String> {
+    use genesis_core::development_method::AcceptanceRole;
+    match precheck(offer, receiver) {
+        Decision::Selected => {}
+        d => return Err(format!("the offer was not selected: {d:?}")),
+    }
+    let slot = role_slot(plan, AcceptanceRole::Candidate).ok_or("plan has no candidate slot")?;
+    let package = parse(offer)?;
+    if slot.method != offer.reference || slot.dependencies != package.dependencies() {
+        return Err("the plan's candidate is not the selected offer".into());
+    }
+    conclude(receiver, plan, criterion, candidate, control)
+}
+
 /// Concludes one adoption intent from the receiver's frozen acceptance plan,
-/// its criterion bytes and both slots' evidence. `Err` means the inputs don't
+/// its criterion bytes and both slots' evidence. The plan must have run on
+/// the receiver's runtime and protocol with allowed dependencies, and the
+/// candidate must not already be installed. `Err` means the inputs don't
 /// belong together (not an outcome); a caller records that as `stopped`.
 pub fn conclude(
     receiver: &Receiver,
@@ -206,6 +262,10 @@ pub fn conclude(
     if slot.org_id.as_str() != receiver.org_id {
         return Err("the acceptance plan belongs to another organization".into());
     }
+    // The trial must have run what this receiver can run, and it must not
+    // already hold this exact version: the same requirements precheck applies
+    // to the offer, checked here against the plan's candidate slot.
+    receiver_fits(receiver, plan, slot)?;
     // The verdict re-validates every receipt against the plan first.
     let verdict = decide(plan, criterion, candidate, control)?;
     for (name, e) in [("candidate", candidate), ("control", control)] {
