@@ -2213,3 +2213,58 @@ async fn review_rejected_local_check_does_not_settle_a_still_running_native_effe
     assert_eq!(f.providers.model_calls(), 0);
     assert!(!f.driver_bound());
 }
+
+#[tokio::test]
+async fn a_never_submitted_sibling_of_a_failed_check_settles_and_is_never_submitted_later() {
+    // Henry's Claude: one check run FAILED at the provider; its siblings were
+    // prepared but never submitted. The stopped adoption can no longer
+    // authorize them, so they settle the retry, and stepping them afterwards
+    // rejects them locally with no POST.
+    use genesis_server::capability_runtime::CapabilityRunPhase;
+    let f = Fixture::new(Options::default()).await;
+    assert_eq!(f.drain().await, Some(Step::Frozen));
+    assert_eq!(f.drain().await, Some(Step::Dispatched));
+    f.adoption_step().await;
+    f.adoption_step().await;
+    let first = f.adoptions()[0].clone();
+    assert_eq!(first.phase(), AdoptionPhase::Checking);
+    let jobs = first.job_ids().to_vec();
+    assert!(jobs.len() > 1, "need siblings: {jobs:?}");
+    f.providers.fail_runs(1);
+    for _ in 0..10 {
+        let _ = f.app.capability_runtime.step(&jobs[0], false).await;
+        if f.app.store.get_capability_run(&jobs[0]).unwrap().phase == CapabilityRunPhase::Failed {
+            break;
+        }
+    }
+    assert_eq!(
+        f.app.store.get_capability_run(&jobs[0]).unwrap().phase,
+        CapabilityRunPhase::Failed
+    );
+    for job in &jobs[1..] {
+        assert_eq!(
+            f.app.store.get_capability_run(job).unwrap().phase,
+            CapabilityRunPhase::Prepared
+        );
+    }
+    let posts = f.providers.runs();
+    assert_eq!(posts, 1);
+    f.adoption_step().await;
+    assert_eq!(
+        f.drain().await,
+        Some(Step::Attention(GapAdoptionCode::Checks))
+    );
+    let (_, status) = adoption_status(&f, f.gap_id.as_str()).await;
+    assert_eq!(status["retryable"], true, "{status}");
+    let (code, body) = retry(&f, "operator").await;
+    assert_eq!(code, reqwest::StatusCode::OK, "{body}");
+    // The stopped adoption's prepared siblings are never submitted.
+    for job in &jobs[1..] {
+        let _ = f.app.capability_runtime.step(job, false).await;
+        assert_eq!(
+            f.app.store.get_capability_run(job).unwrap().phase,
+            CapabilityRunPhase::Rejected
+        );
+    }
+    assert_eq!(f.providers.runs(), posts);
+}
