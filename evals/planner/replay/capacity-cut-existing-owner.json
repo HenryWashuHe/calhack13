@@ -1,0 +1,3 @@
+[
+  "{\"assessment\": \"The booked venue no longer fits 120.\", \"verdict\": \"change\", \"requirement\": {\"summary\": \"Restore venue capacity for 120 on Nov 14\", \"acceptance\": \"A venue for 120 is reserved in the ledger\"}, \"rationale\": \"Venue operations already owns venue booking; assign the new requirement there.\", \"budget_limit_cents\": null, \"operations\": [{\"op\": \"AssignResponsibility\", \"target\": {\"kind\": \"from_requirement\", \"key\": \"capacity\", \"requirement_id\": \"$REQUIREMENT\", \"purpose\": \"Restore capacity for 120\", \"trigger\": \"venue availability changes\", \"termination\": \"event held\"}, \"owner\": {\"kind\": \"existing\", \"role_id\": \"{{role:Venue operations}}\"}}]}"
+]

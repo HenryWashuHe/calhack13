@@ -1,0 +1,27 @@
+[package]
+name = "genesis-planner-eval"
+description = "Scores GENESIS planner decisions against fresh in-process organizations"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "genesis-planner-eval"
+path = "src/main.rs"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+genesis-core.workspace = true
+genesis-planner = { path = "../genesis-planner" }
+genesis-server = { path = "../genesis-server" }
+anyhow.workspace = true
+async-trait.workspace = true
+clap = { version = "4", features = ["derive", "env"] }
+dotenvy = "0.15"
+reqwest.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
