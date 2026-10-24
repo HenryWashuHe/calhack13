@@ -12,7 +12,8 @@ B=target/debug/lab-exec
 $B example-plan namespaces 6 72000 60000 /var/tmp/lab   # writes plan + two packages
 $B run /var/tmp/lab/plan.json candidate /var/tmp/lab/candidate.package.json /var/tmp/lab/candidate namespaces
 $B run /var/tmp/lab/plan.json control   /var/tmp/lab/control.package.json   /var/tmp/lab/control   namespaces
-$B check /var/tmp/lab/plan.json candidate /var/tmp/lab/candidate
+$B score /var/tmp/lab/plan.json candidate /var/tmp/lab/candidate /var/tmp/lab/candidate-score
+$B check /var/tmp/lab/plan.json candidate /var/tmp/lab/candidate /var/tmp/lab/candidate-score
 ```
 
 Methods are #36 `development-method-source/1` packages (`lab-exec package`
@@ -58,6 +59,25 @@ is refused by `MethodPackage::load_for`.
 
 `check` runs `validate_execution` and `assess_trials` on the stored records.
 
+## Acceptance scoring (trusted, separate from execution)
+
+`score` (module `scoring`) never runs a method.
+
+1. It rebuilds the #22 `EvaluationRequest` from the frozen plan and the
+   retained execution receipt (`TrialPlan::evaluation_request`).
+2. It checks that the retained output bytes match the request's output
+   digest, and that the linked evaluator matches the plan's.
+3. It checks that the plan's separate scoring grant covers a full episode on
+   every public development instance, before simulating anything.
+4. It simulates every instance and writes the per-instance trace and a metrics
+   artifact (`success_count`, `of`, per-instance success, progress and cost).
+5. It returns a receipt that is validated against the rebuilt request.
+
+Acceptance uses the plan's **public** development instances, the same ones the
+method could experiment on, as #28 v1 specifies. Hidden comparison scoring and
+the reveal aren't implemented. No criterion verdict is computed: the
+criterion stays an artifact for the receiving organization's acceptance step.
+
 ## Isolation, exactly
 
 `namespaces` mode (root only):
@@ -91,8 +111,8 @@ generated or improved methods and say nothing about recursive benefit.
 
 ## Not in v0
 
-- No trusted scoring adapter: `assess_trials` shows scoring as `Missing`.
-- No comparison runner and no hidden-set reveal.
+- No comparison runner, hidden-set scoring or reveal.
+- No criterion evaluation or adoption decision.
 - No model access or dependencies.
 - The store is a local directory: it doesn't stop someone with write access
   from rolling it back, and it doesn't authenticate records.
