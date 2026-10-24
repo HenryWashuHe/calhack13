@@ -34,6 +34,10 @@ pub fn router(state: AppState) -> Router {
         )
         .route("/jobs", post(jobs::dispatch).get(jobs::list))
         .route("/jobs/{id}", get(jobs::get_one))
+        .route(
+            "/org-changes/{id}/operations/{role_key}/abandon",
+            post(changes::abandon_operation),
+        )
         .route("/jobs/{id}/results", post(jobs::submit_result))
         .route("/ledger", get(jobs::ledger))
         .route("/outbox", get(jobs::outbox))

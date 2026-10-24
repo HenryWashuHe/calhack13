@@ -30,7 +30,12 @@ pub mod projection;
 pub mod registry;
 pub mod routes;
 pub mod saga;
+pub mod specialist;
+pub mod specialist_jobs;
 pub mod store;
+
+/// Optional CREAO specialist registration from the backend environment.
+pub mod creao_config;
 
 use app::AppState;
 use auth::Tokens;
@@ -241,6 +246,7 @@ pub fn build_org(cfg: &OrgConfig, providers: Option<ProviderSet>) -> anyhow::Res
         projection: projection::Projection::disabled(),
         elastic_agents: None,
         provision_timeout: cfg.provision_timeout,
+        readiness: specialist::ReadinessRegistry::default(),
     })
 }
 
@@ -267,6 +273,8 @@ pub fn attach_elastic_from_env(mut app: AppState) -> anyhow::Result<AppState> {
 /// Serve an organization on `listener`, with its outbox worker and saga
 /// recovery. Returns when the server stops.
 pub async fn serve_org(app: AppState, listener: TcpListener) -> anyhow::Result<()> {
+    // Registered here because CREAO startup recovery is asynchronous.
+    let app = creao_config::attach_creao_from_env(app).await?;
     let resumed = saga::resume_pending(&app).await.unwrap_or(0);
     if resumed > 0 {
         tracing::info!(resumed, "resumed interrupted organization changes");
@@ -282,6 +290,8 @@ pub async fn serve_org(app: AppState, listener: TcpListener) -> anyhow::Result<(
     let _acquisition_worker = app
         .automatic_acquisition
         .then(|| AbortWorker(capability_acquisition_driver::spawn(app.clone())));
+    let _specialist_worker =
+        specialist::spawn(app.clone(), Duration::from_millis(500)).map(AbortWorker);
     let _outbox_worker = AbortWorker(outbox::spawn(app.clone()));
     let _projector = projection::spawn(app.clone()).map(AbortWorker);
     let router = app.router();

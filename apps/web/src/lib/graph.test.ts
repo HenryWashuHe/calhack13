@@ -84,6 +84,25 @@ suite("pendingRoles", () => {
     expect(monitor?.kind).toBe("pending");
   });
 
+  it("carries the asynchronous provider operation of a pending role", () => {
+    const c = change("PROVISIONING");
+    c.operations = {
+      monitor: {
+        provider: "creao",
+        operation_id: "creao-role-1",
+        state: "awaiting_readiness",
+        run_id: "run-1",
+        native_status: "completed",
+        attention: "no readiness verifier",
+        readiness_evidence: null,
+        updated_at: "",
+      },
+    };
+    const [p] = pendingRoles([c], state);
+    expect(p!.operation?.state).toBe("awaiting_readiness");
+    expect(pendingRoles([change("PROVISIONING")], state)[0]!.operation).toBeNull();
+  });
+
   it("never shows failed or rejected changes as roles", () => {
     expect(pendingRoles([change("FAILED"), change("REJECTED"), change("COMMITTED")], state)).toHaveLength(0);
   });
