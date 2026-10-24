@@ -212,3 +212,190 @@ fn review_an_applied_wire_result_with_a_valid_float_output_has_a_receipt() {
         .task_receipt(PEER, &recruit(), &accept(), &task(5))
         .expect("an Applied result has a receipt");
 }
+
+// Additional fix controls. The three independent review regressions above
+// remain unchanged, including their original assertions and fault timing.
+fn change_cached(dir: &tempfile::TempDir, change: impl FnOnce(&mut Value)) {
+    let db = rusqlite::Connection::open(dir.path().join("fetch.sqlite")).unwrap();
+    let raw: String = db
+        .query_row(
+            "SELECT data FROM fetch_contracts WHERE id='contract-a'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    let mut cached: Value = serde_json::from_str(&raw).unwrap();
+    change(&mut cached);
+    db.execute(
+        "UPDATE fetch_contracts SET data=?1 WHERE id='contract-a'",
+        [cached.to_string()],
+    )
+    .unwrap();
+}
+
+#[test]
+fn float_offer_input_output_and_signed_zero_survive_reopen_exactly() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("fetch.sqlite");
+    let store = RuntimeStore::open(&path, "org-a", BRIDGE).unwrap();
+    store.prepare(PEER, recruit(), at()).unwrap();
+    let floating: Value = serde_json::from_str(&format!(
+        "{{\"small\":{LOSSY},\"zero\":-0.0,\"big\":18446744073709551615}}"
+    ))
+    .unwrap();
+    let mut native_offer = offer();
+    let Body::Offer { terms, .. } = &mut native_offer.body else {
+        panic!()
+    };
+    *terms = floating.clone();
+    assert_eq!(receive(&store, native_offer), Disposition::Applied);
+    store.prepare(PEER, accept(), at()).unwrap();
+    assert_eq!(receive(&store, accepted()), Disposition::Applied);
+    let request = task_with(5, floating.clone());
+    store.prepare(PEER, request.clone(), at()).unwrap();
+    assert_eq!(
+        receive(&store, result(6, &request, floating.clone())),
+        Disposition::Applied
+    );
+    let receipt = store
+        .task_receipt(PEER, &recruit(), &accept(), &request)
+        .unwrap();
+    assert_eq!(
+        serde_json::to_string(receipt.output()).unwrap(),
+        serde_json::to_string(&floating).unwrap()
+    );
+    assert_eq!(
+        receipt.recruitment().terms_sha256(),
+        genesis_verification::json_sha256(&floating)
+    );
+    drop(store);
+    let reopened = RuntimeStore::open(&path, "org-a", BRIDGE).unwrap();
+    let again = reopened
+        .task_receipt(PEER, &recruit(), &accept(), &request)
+        .unwrap();
+    assert_eq!(
+        serde_json::to_string(&receipt).unwrap(),
+        serde_json::to_string(&again).unwrap()
+    );
+}
+
+#[test]
+fn cached_result_signed_zero_cannot_substitute_for_native_inbox_bytes() {
+    let (dir, store) = store();
+    let request = task(5);
+    store.prepare(PEER, request.clone(), at()).unwrap();
+    assert_eq!(
+        receive(&store, result(6, &request, json!({"score":0.0}))),
+        Disposition::Applied
+    );
+    let original = store
+        .task_receipt(PEER, &recruit(), &accept(), &request)
+        .unwrap();
+    change_cached(&dir, |cached| {
+        cached["tasks"][id(5)]["evidence"]["body"]["output"]["score"] = json!(-0.0)
+    });
+    assert!(store
+        .task_receipt(PEER, &recruit(), &accept(), &request)
+        .is_err());
+    // The stored native message remains unchanged; no alternate receipt is minted.
+    let db = rusqlite::Connection::open(dir.path().join("fetch.sqlite")).unwrap();
+    let raw: String = db
+        .query_row("SELECT data FROM fetch_inbox WHERE id=?1", [id(6)], |row| {
+            row.get(0)
+        })
+        .unwrap();
+    let item: InboxItem = serde_json::from_str(&raw).unwrap();
+    let Body::TaskResult { output, .. } = item.message.body else {
+        panic!()
+    };
+    assert_eq!(
+        original.output_sha256(),
+        genesis_verification::json_sha256(&output)
+    );
+}
+
+#[test]
+fn cached_offer_signed_zero_cannot_change_recruitment_identity() {
+    let dir = tempfile::tempdir().unwrap();
+    let store = RuntimeStore::open(dir.path().join("fetch.sqlite"), "org-a", BRIDGE).unwrap();
+    store.prepare(PEER, recruit(), at()).unwrap();
+    let mut native = offer();
+    let Body::Offer { terms, .. } = &mut native.body else {
+        panic!()
+    };
+    *terms = json!({"zero":0.0});
+    assert_eq!(receive(&store, native), Disposition::Applied);
+    store.prepare(PEER, accept(), at()).unwrap();
+    assert_eq!(receive(&store, accepted()), Disposition::Applied);
+    store
+        .recruitment_receipt(PEER, &recruit(), &accept())
+        .unwrap();
+    change_cached(&dir, |cached| {
+        cached["offer"]["body"]["terms"]["zero"] = json!(-0.0)
+    });
+    assert!(store
+        .recruitment_receipt(PEER, &recruit(), &accept())
+        .is_err());
+}
+
+#[test]
+fn legacy_cache_float_drift_is_not_rehashed_or_sent_after_reopen() {
+    let (dir, store) = store();
+    let input: Value = serde_json::from_str(&format!("{{\"x\":{LOSSY}}}")).unwrap();
+    let request = task_with(5, input.clone());
+    store.prepare(PEER, request.clone(), at()).unwrap();
+    let adjacent = f64::from_bits(input["x"].as_f64().unwrap().to_bits() + 1);
+    // Model a legacy cache rewritten after a lossy decode: the original outbox
+    // and its digest remain intact, but the cached copy holds another f64.
+    change_cached(&dir, |cached| {
+        cached["tasks"][id(5)]["request"]["body"]["task"]["input"]["x"] = json!(adjacent)
+    });
+    drop(store);
+    let db = rusqlite::Connection::open(dir.path().join("fetch.sqlite")).unwrap();
+    let before: (String, String) = db
+        .query_row(
+            "SELECT data,digest FROM fetch_outbox WHERE id=?1",
+            [id(5)],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .unwrap();
+    let reopened = RuntimeStore::open(dir.path().join("fetch.sqlite"), "org-a", BRIDGE).unwrap();
+    assert!(reopened.pending(at()).is_err());
+    assert!(reopened.prepare(PEER, request, at()).is_err());
+    let after: (String, String) = db
+        .query_row(
+            "SELECT data,digest FROM fetch_outbox WHERE id=?1",
+            [id(5)],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .unwrap();
+    assert_eq!(before, after);
+}
+
+#[test]
+fn pending_validates_the_stored_digest_before_returning_an_outgoing_float() {
+    let (dir, store) = store();
+    let request = task_with(5, json!({"x":0.0}));
+    store.prepare(PEER, request, at()).unwrap();
+    let db = rusqlite::Connection::open(dir.path().join("fetch.sqlite")).unwrap();
+    let raw: String = db
+        .query_row(
+            "SELECT data FROM fetch_outbox WHERE id=?1",
+            [id(5)],
+            |row| row.get(0),
+        )
+        .unwrap();
+    let mut raw: Value = serde_json::from_str(&raw).unwrap();
+    raw["body"]["task"]["input"]["x"] = json!(-0.0);
+    db.execute(
+        "UPDATE fetch_outbox SET data=?1 WHERE id=?2",
+        rusqlite::params![raw.to_string(), id(5)],
+    )
+    .unwrap();
+    change_cached(&dir, |cached| {
+        cached["tasks"][id(5)]["request"]["body"]["task"]["input"]["x"] = json!(-0.0)
+    });
+    // Both copies now agree under even canonical comparison, but the original
+    // immutable send digest still distinguishes the attempted substitution.
+    assert!(store.pending(at()).is_err());
+}
