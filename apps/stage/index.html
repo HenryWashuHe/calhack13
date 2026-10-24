@@ -166,23 +166,25 @@ details.live summary { cursor: pointer; color: var(--chalk-dim); }
 <div class="wrap">
   <header class="band">
     <div>
-      <div class="brand">GENESIS · organizations that build, verify, share and improve capabilities <span id="mode" class="mode">Historical fixture replay</span></div>
+      <div class="brand">GENESIS · organizations that build, verify, share and improve capabilities <span id="mode" class="mode">No source selected</span></div>
       <h1 id="beat" class="beat">Organizations that build, verify, share and improve capabilities.</h1>
-      <p id="sub" class="sub">What follows is a replay of the one recorded fixture; the invention-lab beats are proposals and are labeled as such.</p>
+      <p id="sub" class="sub">Connect two running kernels to draw them live, or play the historical fixture replay. The invention-lab direction is a proposal with contracts under review; nothing here claims it ran.</p>
     </div>
     <div class="controls" role="group" aria-label="Playback">
+      <button class="btn" id="playreplay" type="button">Play fixture replay</button>
       <button class="btn" id="prev" type="button">Back</button>
       <button class="btn primary" id="play" type="button">Play</button>
       <button class="btn" id="next" type="button">Next step</button>
       <button class="btn" id="backreplay" type="button">Back to replay</button>
+      <button class="btn" id="idle" type="button">Clear</button>
       <div class="dots" id="dots" role="list" aria-label="Scenes"></div>
     </div>
   </header>
 
   <section class="stage" aria-label="Two organizations">
     <div class="org" id="orgA">
-      <div class="org-head"><h2>Org A · Campus Events</h2><span class="rev" id="revA">r0</span></div>
-      <p class="mission" id="missionA">Run the campus hack night for 120 attendees on Nov 14. Budget $5,000, venue within 2 miles.</p>
+      <div class="org-head"><h2 id="headA">Organization A</h2><span class="rev" id="revA"></span></div>
+      <p class="mission" id="missionA">No source selected.</p>
       <div class="tree" id="treeA"></div>
       <p class="note" id="noteA" hidden></p>
     </div>
@@ -196,8 +198,8 @@ details.live summary { cursor: pointer; color: var(--chalk-dim); }
       <div class="lineage"><ul id="lineage"><li class="empty">No capability yet. The organizations only know what their constitutions say.</li></ul></div>
     </div>
     <div class="org" id="orgB">
-      <div class="org-head"><h2>Org B · Conference Co</h2><span class="rev" id="revB">r0</span></div>
-      <p class="mission" id="missionB">Host a 300-person regional conference in March. Different mission, different budget, no shared state.</p>
+      <div class="org-head"><h2 id="headB">Organization B</h2><span class="rev" id="revB"></span></div>
+      <p class="mission" id="missionB">No source selected.</p>
       <div class="tree" id="treeB"></div>
       <p class="note" id="noteB" hidden></p>
     </div>
@@ -368,13 +370,15 @@ details.live summary { cursor: pointer; color: var(--chalk-dim); }
   function setBadge(text, live) { const m = $("mode"); m.textContent = text; m.classList.toggle("live", !!live); }
 
   // ---- mode ownership ----
-  const app = { mode: "replay", gen: 0, scene: 0, timer: null, liveTimer: null, cursors: { A: 0, B: 0 }, tail: [], seen: 0 };
+  const app = { mode: "idle", gen: 0, scene: 0, timer: null, liveTimer: null, cursors: { A: 0, B: 0 }, tail: [], seen: 0, seenIds: new Set(), tick: 0, applied: 0 };
   const TAIL = 200;
 
   function renderScene(i) {
     const s = scenes[i];
     const beat = $("beat"); beat.classList.add("fade");
-    setTimeout(() => { beat.textContent = s.beat; $("sub").textContent = s.sub; beat.classList.remove("fade"); }, 180);
+    const gen = app.gen;
+    setTimeout(() => { beat.classList.remove("fade"); if (app.mode !== "replay" || gen !== app.gen) return; beat.textContent = s.beat; $("sub").textContent = s.sub; }, 180);
+    $("headA").textContent = "Org A · Campus Events (fixture)"; $("headB").textContent = "Org B · Conference Co (fixture)";
     renderTree($("treeA"), s.a); renderTree($("treeB"), s.b);
     $("missionA").textContent = "Run the campus hack night for 120 attendees on Nov 14. Budget $5,000, venue within 2 miles. (fixture)";
     $("missionB").textContent = "Host a 300-person regional conference in March. Different mission, different budget, no shared state. (fixture)";
@@ -400,13 +404,26 @@ details.live summary { cursor: pointer; color: var(--chalk-dim); }
     $("livestatus").textContent = ""; $("livestatus").classList.remove("bad");
     renderScene(app.scene);
   }
+  function enterIdle() {
+    // Product-neutral starting view: no organization is assumed, nothing is replayed until asked.
+    app.gen += 1; clearInterval(app.liveTimer); app.liveTimer = null; stopReplay();
+    app.mode = "idle"; setBadge("No source selected", false); setReplayControls(false);
+    $("headA").textContent = "Organization A"; $("headB").textContent = "Organization B";
+    $("beat").textContent = "Organizations that build, verify, share and improve capabilities.";
+    $("sub").textContent = "Connect two running kernels to draw them live, or play the historical fixture replay (the venue regression workload, every provider a development stub). The invention-lab direction is a proposal with contracts under review; nothing here claims it ran.";
+    renderTree($("treeA"), []); renderTree($("treeB"), []);
+    $("revA").textContent = ""; $("revB").textContent = ""; $("missionA").textContent = "No source selected."; $("missionB").textContent = "No source selected.";
+    $("noteA").hidden = true; setToken(null); setGap(null);
+    renderLineage([], "Nothing to show until a source is selected."); renderEvents([], 0, "0 events"); renderChat([]);
+    renderAudit(null, 12, "not checked"); $("livestatus").textContent = ""; $("livestatus").classList.remove("bad");
+  }
 
   $("dots").replaceChildren(...scenes.map((s, k) => { const b = document.createElement("button"); b.type = "button"; b.className = "dot"; b.setAttribute("aria-label", "Scene " + (k + 1) + ": " + s.beat); b.addEventListener("click", () => { stopReplay(); if (app.mode === "replay") renderScene(k); }); return b; }));
   $("prev").addEventListener("click", () => { stopReplay(); step(-1); });
   $("next").addEventListener("click", () => { stopReplay(); step(1); });
   $("play").addEventListener("click", play);
   document.addEventListener("keydown", (e) => { if (app.mode !== "replay" || (e.target && e.target.closest && e.target.closest("input"))) return; if (e.key === "ArrowRight") { stopReplay(); step(1); } if (e.key === "ArrowLeft") { stopReplay(); step(-1); } if (e.key === " ") { e.preventDefault(); play(); } });
-  enterReplay();
+  enterIdle();
 
   // ---- live mode ----
   const describe = {
@@ -454,38 +471,46 @@ details.live summary { cursor: pointer; color: var(--chalk-dim); }
   const key = (inst) => `${inst.capability.capability_id}@${inst.capability.version}`;
 
   async function inheritance(cfg, a, b) {
-    // Inheritance is drawn only for an installation B ACCEPTED whose exact id@version A also ACCEPTED and
-    // whose registry manifest, read with B's token, names A as publisher. Anything else is shown as B's own status.
-    const aAccepted = new Set(Object.values(a.state.installations || {}).filter(accepted).map(key));
+    // Inheritance is drawn only when the two panels are different organizations, B ACCEPTED an installation
+    // whose exact id@version AND source digest A also ACCEPTED, and the registry manifest (read with B's token)
+    // names A as publisher with that same digest. Anything else is shown as B's own observed status.
+    const aAccepted = new Map(Object.values(a.state.installations || {}).filter(accepted).map((i) => [key(i), i.source_digest]));
     const items = [];
     let adopted = null;
+    const sameOrg = !a.state.org_id || !b.state.org_id || a.state.org_id === b.state.org_id;
     for (const inst of Object.values(a.state.installations || {})) if (inst.capability) items.push({ who: "Org A · installation " + String(inst.status).toLowerCase(), text: key(inst), mark: accepted(inst) ? "a" : "x" });
     for (const inst of Object.values(b.state.installations || {})) {
       if (!inst.capability) continue;
       const k = key(inst);
       let who = "Org B · installation " + String(inst.status).toLowerCase(), mark = "x", text = k;
-      if (accepted(inst) && aAccepted.has(k)) {
+      if (sameOrg) { text = `${k}; both panels show the same organization, so no inheritance can be drawn`; }
+      else if (accepted(inst) && aAccepted.has(k) && aAccepted.get(k) && aAccepted.get(k) === inst.source_digest) {
         try {
           const m = await getJson(`${cfg.urlB}/capabilities/${encodeURIComponent(inst.capability.capability_id)}/versions/${encodeURIComponent(inst.capability.version)}`, cfg.tokB);
-          if (m && m.publisher === a.state.org_id) { who = "Org B · adopted"; mark = "b"; text = `${k}, published by ${m.publisher}, B's own acceptance`; adopted = adopted || k; }
-          else { text = `${k}; publisher ${m && m.publisher ? m.publisher : "unknown"} is not Org A, so this is not inheritance from A`; }
+          if (m && m.publisher === a.state.org_id && (!m.source_digest || m.source_digest === inst.source_digest)) { who = "Org B · adopted"; mark = "b"; text = `${k}, digest ${String(inst.source_digest).slice(0, 12)}…, published by ${m.publisher}, B's own acceptance`; adopted = adopted || k; }
+          else { text = `${k}; the registry manifest does not identify Org A's exact artifact, so this is not inheritance from A`; }
         } catch (err) { text = `${k}; registry manifest unreadable (${err.message}), inheritance not shown`; }
-      } else if (accepted(inst)) { text = `${k}; Org A has no accepted installation of this exact version`; }
+      } else if (accepted(inst) && aAccepted.has(k)) { text = `${k}; same label as Org A but a different source digest, so not the same executable`; }
+      else if (accepted(inst)) { text = `${k}; Org A has no accepted installation of this exact version`; }
       items.push({ who, text, mark });
     }
     return { items, adopted };
   }
 
   async function tick(cfg, gen) {
+    const seq = ++app.tick; // polls may overlap; only the latest-started completion is applied
+    const cursors = { A: app.cursors.A, B: app.cursors.B };
     try {
       const [sa, sb] = await Promise.all([getJson(cfg.urlA + "/organization", cfg.tokA), getJson(cfg.urlB + "/organization", cfg.tokB)]);
       const [ea, eb] = await Promise.all([
-        getJson(`${cfg.urlA}/events/log?after=${app.cursors.A}&limit=500`, cfg.tokA),
-        getJson(`${cfg.urlB}/events/log?after=${app.cursors.B}&limit=500`, cfg.tokB),
+        getJson(`${cfg.urlA}/events/log?after=${cursors.A}&limit=500`, cfg.tokA),
+        getJson(`${cfg.urlB}/events/log?after=${cursors.B}&limit=500`, cfg.tokB),
       ]);
-      if (gen !== app.gen) return; // a newer connection or replay owns the screen now
+      if (gen !== app.gen || seq < app.applied) return; // a newer connection, replay, or a later poll owns the screen now
+      app.applied = seq;
       const a = { state: sa }, b = { state: sb };
       app.mode = "live"; setBadge("Live kernel", true);
+      $("headA").textContent = sa.name || sa.org_id || "Organization A"; $("headB").textContent = sb.name || sb.org_id || "Organization B";
       renderTree($("treeA"), rolesFromState(sa)); renderTree($("treeB"), rolesFromState(sb));
       $("revA").textContent = "r" + sa.revision; $("revB").textContent = "r" + sb.revision;
       const mA = Object.values(sa.missions || {})[0], mB = Object.values(sb.missions || {})[0];
@@ -494,29 +519,38 @@ details.live summary { cursor: pointer; color: var(--chalk-dim); }
       const gaps = Object.values(sa.capability_gaps || {});
       if (gaps.length) { const st = typeof gaps[0].status === "object" ? gaps[0].status.state : gaps[0].status; setGap(String(st).toUpperCase()); } else setGap(null);
       const inh = await inheritance(cfg, a, b);
-      if (gen !== app.gen) return;
+      if (gen !== app.gen || seq < app.applied) return;
       renderLineage(inh.items, "No installation in either organization.");
       const firstA = Object.values(sa.installations || {}).find(accepted);
       if (inh.adopted) setToken("b", inh.adopted); else if (firstA) setToken("a", key(firstA)); else setToken(null);
       // incremental event cursors; bounded visible tail
+      let fresh = 0;
       for (const [org, list] of [["A", ea], ["B", eb]]) {
-        for (const e of list) { app.cursors[org] = Math.max(app.cursors[org], e.seq); app.seen += 1; const f = describe[e.type]; const [t, d] = f ? f(e.payload) : [String(e.type).replace(/_/g, " "), ""]; app.tail.push([org + e.seq, t, d, e.timestamp]); }
+        for (const e of list) {
+          const id = org + e.seq;
+          if (app.seenIds.has(id)) continue;
+          app.seenIds.add(id); fresh += 1;
+          app.cursors[org] = Math.max(app.cursors[org], e.seq); app.seen += 1;
+          const f = describe[e.type]; const [t, d] = f ? f(e.payload) : [String(e.type).replace(/_/g, " "), ""]; app.tail.push([id, t, d, e.timestamp]);
+        }
       }
       app.tail.sort((x, y) => String(x[3]).localeCompare(String(y[3])));
       if (app.tail.length > TAIL) app.tail.splice(0, app.tail.length - TAIL);
-      renderEvents(app.tail.map((r) => r.slice(0, 3)), Math.min(ea.length + eb.length, TAIL), app.seen > TAIL ? `last ${TAIL} of ${app.seen} events` : `${app.seen} events`);
+      renderEvents(app.tail.map((r) => r.slice(0, 3)), Math.min(fresh, TAIL), app.seen > TAIL ? `last ${TAIL} of ${app.seen} events` : `${app.seen} events`);
       const last = Math.max(0, ...ea.map((e) => e.revision), Number($("revA").textContent.slice(1)) || 0);
       renderAudit(null, Math.max(12, last + 1), `r0–r${sa.revision} stored; the invariant audit is not run by this page (use genesis audit)`);
       $("beat").textContent = "Live: this is the kernel's own state and event log."; $("sub").textContent = "Roles, bindings and installations are drawn exactly as the two organizations report them. DEV STUB bindings are development stand-ins. Inheritance is drawn only for an exact version B accepted that A accepted and published.";
       $("livestatus").textContent = "connected · " + new Date().toLocaleTimeString(); $("livestatus").classList.remove("bad");
     } catch (err) {
-      if (gen !== app.gen) return;
+      if (gen !== app.gen || seq < app.applied) return;
+      app.applied = seq;
       app.mode = "live-error"; setBadge("Live kernel: unreachable", true);
       $("livestatus").textContent = "cannot reach the kernel (" + (err && err.message ? err.message : "blocked") + "). Serve this page next to it; nothing shown below is live."; $("livestatus").classList.add("bad");
       $("beat").textContent = "Not connected."; $("sub").textContent = "No kernel data has been received for this connection. Press Back to replay to see the fixture storyboard again.";
     }
   }
   function clearForLive() {
+    $("headA").textContent = "Organization A"; $("headB").textContent = "Organization B";
     renderTree($("treeA"), []); renderTree($("treeB"), []);
     $("revA").textContent = "r?"; $("revB").textContent = "r?"; $("missionA").textContent = "Waiting for the kernel…"; $("missionB").textContent = "Waiting for the kernel…";
     $("noteA").hidden = true; setToken(null); setGap(null);
@@ -526,11 +560,13 @@ details.live summary { cursor: pointer; color: var(--chalk-dim); }
   $("liveform").addEventListener("submit", (e) => {
     e.preventDefault(); stopReplay();
     const cfg = { urlA: $("urlA").value.replace(/\/$/, ""), tokA: $("tokA").value, urlB: $("urlB").value.replace(/\/$/, ""), tokB: $("tokB").value };
-    app.gen += 1; const gen = app.gen; app.mode = "connecting"; app.cursors = { A: 0, B: 0 }; app.tail = []; app.seen = 0;
+    app.gen += 1; const gen = app.gen; app.mode = "connecting"; app.cursors = { A: 0, B: 0 }; app.tail = []; app.seen = 0; app.seenIds = new Set(); app.applied = 0;
     setBadge("Connecting to kernel", true); setReplayControls(false); clearForLive();
     clearInterval(app.liveTimer); tick(cfg, gen); app.liveTimer = setInterval(() => tick(cfg, gen), 2000);
   });
   $("backreplay").addEventListener("click", enterReplay);
+  $("playreplay").addEventListener("click", () => { app.scene = 0; enterReplay(); });
+  $("idle").addEventListener("click", enterIdle);
 })();
 </script>
 

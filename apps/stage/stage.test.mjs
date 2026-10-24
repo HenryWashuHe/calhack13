@@ -30,11 +30,16 @@ function harness(fetchImpl) {
 }
 const settle = async () => { for (let k = 0; k < 6; k++) await new Promise((r) => setImmediate(r)); };
 const ok = (body) => ({ ok: true, status: 200, json: async () => body });
-const stateWith = (installations, org_id = "org_a") => ({ org_id, revision: 1, roles: {}, missions: {}, responsibilities: {}, capability_gaps: {}, installations });
+const stateWith = (installations, org_id = "org_a") => ({ org_id, name: org_id, revision: 1, roles: {}, missions: {}, responsibilities: {}, capability_gaps: {}, installations });
 
-test("replay starts in replay mode with fixture labels", () => {
+test("the page starts neutral; the fixture replay is opt-in and labeled", () => {
   const h = harness(async () => { throw new Error("no network in replay"); });
+  assert.equal(h.get("mode").textContent, "No source selected");
+  assert.equal(h.get("headA").textContent, "Organization A");
+  assert.equal(h.get("events").children.length, 0);
+  h.get("playreplay").handlers.click();
   assert.equal(h.get("mode").textContent, "Historical fixture replay");
+  assert.equal(h.get("headA").textContent, "Org A · Campus Events (fixture)");
   assert.ok(h.get("auditline").textContent.startsWith("fixture run:"));
   assert.equal(h.pending.size, 0, "no polling before going live");
 });
@@ -61,6 +66,7 @@ test("a rejected or unrelated B installation is never drawn as inheritance", asy
   const h = harness(async (url) => ok(url.includes("/events/") ? [] : url.includes("local-urlA") ? a : b));
   h.submit(); await settle();
   assert.equal(h.get("mode").textContent, "Live kernel");
+  assert.equal(h.get("headA").textContent, "org_a", "live headings use the kernel's own name");
   const rows = h.get("lineage").children.map((n) => n.innerHTML);
   assert.ok(rows.some((r) => r.includes("Org B · installation rejected")));
   assert.ok(rows.some((r) => r.includes("Org A has no accepted installation of this exact version")));
@@ -69,11 +75,12 @@ test("a rejected or unrelated B installation is never drawn as inheritance", asy
   assert.equal(h.get("token").style["--pos"], "6%", "token stays on A's side");
 });
 
-test("inheritance is drawn only for an exact accepted version A published", async () => {
+test("inheritance is drawn only for an exact accepted version and digest A published", async () => {
   const cap = { capability_id: "cap_a", version: "1.0" };
-  const a = stateWith({ x: { status: "ACCEPTED", capability: cap } });
-  const b = stateWith({ y: { status: "ACCEPTED", capability: cap } }, "org_b");
-  const h = harness(async (url) => ok(url.includes("/capabilities/") ? { publisher: "org_a" } : url.includes("/events/") ? [] : url.includes("local-urlA") ? a : b));
+  const digest = "d".repeat(64);
+  const a = stateWith({ x: { status: "ACCEPTED", capability: cap, source_digest: digest } });
+  const b = stateWith({ y: { status: "ACCEPTED", capability: cap, source_digest: digest } }, "org_b");
+  const h = harness(async (url) => ok(url.includes("/capabilities/") ? { publisher: "org_a", source_digest: digest } : url.includes("/events/") ? [] : url.includes("local-urlA") ? a : b));
   h.submit(); await settle();
   assert.ok(h.get("lineage").children.some((n) => n.innerHTML.includes("Org B · adopted")));
   assert.equal(h.get("token").style["--pos"], "94%");
