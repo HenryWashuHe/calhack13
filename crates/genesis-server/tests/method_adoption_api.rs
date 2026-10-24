@@ -354,3 +354,6 @@ async fn adoption_authorizes_only_the_owner_for_the_exact_version_under_current_
     });
     assert_eq!(call(&authorize, &token, ask(&owner, &v1)).await.0, 409);
 }
+
+#[path = "common/review_method_adoption_api.rs"]
+mod review_method_adoption_api;
