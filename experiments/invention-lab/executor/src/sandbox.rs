@@ -1,12 +1,15 @@
 //! How a method process is started, and what it can reach.
 //!
-//! `Mode::Namespaces` (needs root): new network, mount and PID namespaces; the
-//! root filesystem is remounted read-only; fresh private tmpfs over `/home`,
-//! `/root`, `/tmp`, `/var/tmp`, `/dev/shm` and `/run`, so the evaluator, its
-//! sources, the slot state, the staged script and other runs aren't visible and
-//! nothing written survives the run; the method runs as `nobody` with
-//! `no_new_privs` and gets a copy of its package's source files in `/tmp/work`. Killing the
-//! namespace's first process ends every process in it.
+//! `Mode::Namespaces` (needs root): new network, mount and PID namespaces;
+//! every existing mount is remounted read-only where the kernel allows it (a
+//! mount that refuses keeps its mode, and the setup doesn't fail on it); fresh
+//! private tmpfs over `/home`, `/root`, `/tmp`, `/var/tmp`, `/dev/shm` and
+//! `/run`, so the evaluator, its sources, the slot state, the staged files and
+//! other runs aren't visible there; the method runs as `nobody` with
+//! `no_new_privs` and gets a copy of its package's source files in `/tmp/work`.
+//! Writes land in those private tmpfs mounts, which vanish at exit, unless a
+//! mount refused the read-only remount. Killing the namespace's first process
+//! ends every process in it.
 //!
 //! Resource limits (prlimit, applied before the privilege drop): 1 GiB address
 //! space, 64 processes for the `nobody` user, 64 MiB per written file, 256 open
@@ -18,8 +21,11 @@
 //! still compute its own physics inside its wall time; `simulation_steps`
 //! meters evaluator calls only.
 //!
-//! `Mode::None` runs the method directly: no isolation at all, so model and
-//! network use can't be bounded and are reported unknown.
+//! Model calls and tokens are recorded as unknown in every mode: the network
+//! namespace doesn't exclude filesystem Unix sockets or a model reachable on a
+//! readable path, so "no network" isn't proof of "no model".
+//!
+//! `Mode::None` runs the method directly with no isolation at all.
 use std::path::Path;
 use std::process::{Command, Stdio};
 
@@ -32,7 +38,11 @@ pub enum Mode {
 /// Commands the sandboxed shell runs as root before dropping to `nobody`.
 const SETUP: &str = r#"set -e
 mount --bind / /
-mount -o remount,bind,ro /
+# Every existing mount, not just /, becomes read-only (best effort per mount;
+# kernel pseudo-filesystems that refuse are left as they are).
+awk '{print $5}' /proc/self/mountinfo | sort -u | while read -r m; do
+  mount -o remount,bind,ro "$m" 2>/dev/null || true
+done
 mount -t tmpfs -o size=64m,mode=755 none /home
 mount -t tmpfs -o size=1m,mode=700 none /root
 mount -t tmpfs -o size=256m,mode=1777 none /tmp
@@ -61,21 +71,24 @@ impl Mode {
                 "mode": "namespaces",
                 "network": "none (new network namespace)",
                 "user": "nobody, no_new_privs",
-                "root_filesystem": "read-only bind",
+                "mounts": "every existing mount remounted read-only where the kernel allows it",
                 "hidden": ["/home", "/root", "/tmp", "/var/tmp", "/dev/shm", "/run"],
                 "pid": "new namespace, killed as a whole at the wall-time limit",
                 "limits": {"address_space_bytes": 1073741824u64, "nproc_user": 64, "file_size_bytes": 67108864u64, "open_files": 256},
-                "not_enforced": ["reads of the rest of the read-only system", "syscall filter"],
+                "not_enforced": ["reads of the rest of the read-only system", "syscall filter", "filesystem Unix sockets", "mounts that refuse a read-only remount"],
+                "model_usage": "unknown",
                 "setup": SETUP,
             }),
             Self::None => serde_json::json!({"mode": "none", "isolation": "none"}),
         }
     }
 
-    /// Model calls and tokens are measured as zero only when the method has no
-    /// network and no model is provided inside the sandbox.
+    /// Whether model calls and tokens can be recorded as measured zero. Never:
+    /// no network is not the same as no model. Filesystem Unix sockets and any
+    /// local model or service on readable paths are not excluded, so model
+    /// usage stays unknown in every mode.
     pub fn bounds_model_use(self) -> bool {
-        self == Self::Namespaces
+        false
     }
 
     /// `stage/files` holds the package's source files, outside the directories

@@ -220,3 +220,33 @@ fn one_normalized_output_is_retained_and_the_receipt_validates() {
     );
     assert!(!r["ok"].as_bool().unwrap());
 }
+
+#[test]
+fn a_sealed_session_accepts_nothing_and_the_receipt_comes_last() {
+    let p = plan(7200);
+    let mut s = session(&p, "sealed");
+    finish(
+        &mut s,
+        refs::environment(Mode::None, "Python 3"),
+        false,
+        ExecutionOutcome::Failed,
+        ResourceUsage::Measured { value: 1 },
+    )
+    .unwrap();
+    let before = s.store.read("run.json").unwrap();
+    for req in [
+        json!({"op":"submit","design":cart()}),
+        json!({"op":"experiment","instance":"ravine-crossing/1/0","design":cart()}),
+        json!({"op":"instances"}),
+    ] {
+        let r = ask(&mut s, req);
+        assert_eq!(
+            r["refused"].as_str(),
+            Some("the execution is sealed"),
+            "{r}"
+        );
+    }
+    assert_eq!(s.store.read("run.json").unwrap(), before);
+    let state: RunState = serde_json::from_slice(&before).unwrap();
+    assert!(state.sealed && state.finished && state.submission.is_none());
+}

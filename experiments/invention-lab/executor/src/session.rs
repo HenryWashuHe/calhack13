@@ -24,6 +24,10 @@ pub struct RunState {
     /// The method identity verified before the process started.
     pub method: Option<ExactContentRef>,
     pub submission: Option<ExactContentRef>,
+    /// Set when finalization seals the ledger; nothing is accepted afterwards.
+    #[serde(default)]
+    pub sealed: bool,
+    /// Set only after the receipt is durable.
     pub finished: bool,
 }
 
@@ -77,6 +81,9 @@ impl<'a> Session<'a> {
 
     /// One method request. Refusals are replies, not ledger records.
     pub fn handle(&mut self, line: &str) -> Result<Value, RunError> {
+        if self.state.sealed {
+            return Ok(json!({"ok": false, "refused": "the execution is sealed"}));
+        }
         let Ok(req) = serde_json::from_str::<Value>(line) else {
             return Ok(json!({"ok": false, "refused": "request is not JSON"}));
         };
@@ -284,6 +291,7 @@ pub fn finish(
     wall: ResourceUsage,
 ) -> Result<Finished, RunError> {
     slot.ledger.seal(slot.scope())?;
+    slot.state.sealed = true;
     let transcript = slot.ledger.transcript_json(slot.scope())?;
     let transcript_ref = slot.ledger.reference(slot.scope())?;
     slot.store.write("transcript.json", transcript.as_bytes())?;
@@ -303,8 +311,12 @@ pub fn finish(
         usage: usage(bounds_model_use, wall, accounting.simulation_steps),
         binding,
     };
-    slot.state.finished = true;
+    // The sealed ledger and run state are durable before the receipt exists:
+    // a failure here leaves a slot that `recover` can finalize, never a
+    // receipt whose ledger on disk can't validate it.
+    slot.save()?;
     slot.store.write("receipt.json", &to_bytes(&receipt))?;
+    slot.state.finished = true;
     slot.save()?;
     Ok(Finished {
         receipt,
