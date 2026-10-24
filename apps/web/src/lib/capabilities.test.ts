@@ -5,6 +5,7 @@ import {
   describeOutput,
   failureKind,
   jobsForInstallation,
+  runsForInstallation,
   summarizeRun,
   summarizeVerification,
 } from "./capabilities";
@@ -94,5 +95,35 @@ describe("jobsForInstallation", () => {
       ({ job_id: id, created_at: at, capability: { capability_id: "venue-extractor", version } }) as unknown as Job;
     const jobs = [job("a", "1.0.0", "1"), job("b", "2.0.0", "2"), job("c", "1.0.0", "3")];
     expect(jobsForInstallation(jobs, inst).map((j) => j.job_id)).toEqual(["c", "a"]);
+  });
+});
+
+describe("runsForInstallation", () => {
+  const cap = { capability_id: "venue-extractor", version: "1.0.0" };
+  const job = (id: string, at: string) => ({ job_id: id, created_at: at, capability: cap }) as unknown as Job;
+  const acceptance = (installation_id: string) =>
+    ({ job_id: "x", phase: "collected", purpose: { kind: "adoption_acceptance", adoption_id: "ad", installation_id, suite_id: "s" } }) as const;
+
+  it("binds acceptance runs to their installation, not to the version", () => {
+    // A stopped intent left installation A; a fresh intent created B of the same version.
+    const a = { installation_id: "inst_a", capability: cap } as Installation;
+    const b = { installation_id: "inst_b", capability: cap } as Installation;
+    const jobs = [job("ja", "1"), job("jb", "2"), job("inv", "3"), job("unknown", "4")];
+    const records = {
+      ja: acceptance("inst_a"),
+      jb: { job_id: "jb", phase: "collected", purpose: { kind: "local_acceptance", installation_id: "inst_b", suite_id: "s" } } as const,
+      inv: { job_id: "inv", phase: "collected", purpose: { kind: "invocation" } } as const,
+    };
+    const forA = runsForInstallation(jobs, records, a);
+    const forB = runsForInstallation(jobs, records, b);
+    expect(forA.acceptance.map((j) => j.job_id)).toEqual(["ja"]);
+    expect(forB.acceptance.map((j) => j.job_id)).toEqual(["jb"]);
+    // Invocations and runs without a loaded record are shown separately.
+    expect(forA.other.map((j) => j.job_id)).toEqual(["unknown", "inv"]);
+    expect(forB.other.map((j) => j.job_id)).toEqual(["unknown", "inv"]);
+  });
+
+  it("labels adoption acceptance runs", () => {
+    expect(summarizeRun({ ...acceptance("inst_a"), job_id: "j" }).purpose).toBe("adoption acceptance · s");
   });
 });
