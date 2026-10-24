@@ -1,92 +1,68 @@
 # GENESIS implementation handoff
 
-## Current checkpoint: native automatic intake and recursive roadmap
+## Current checkpoint: failure-backed capability repair
 
-This supersedes the historical snapshots below. Main through #115 is `841295a`;
-current GitHub state and newer [issue #4](https://github.com/HenryWashuHe/genesis/issues/4)
-comments remain authoritative. #115 merged the reviewed recursive roadmap,
-preserving original side-chat drafts in `7eeaf9f`; primary main was updated without
-losing the originals. The existing Goal stays active, and its continuation schedule
-now references the expanded [milestones and evaluation](RECURSIVE_CAPABILITY_IMPROVEMENT.md).
+Base main is `2e5d7f0` (through #119). Current GitHub status and newer
+[issue #4](https://github.com/HenryWashuHe/genesis/issues/4) comments remain
+authoritative. The original side-chat drafts are preserved verbatim in `7eeaf9f`;
+#115 integrated the reviewed [recursive roadmap](RECURSIVE_CAPABILITY_IMPROVEMENT.md).
+The existing Goal stays active and the continuation schedule reads that roadmap.
 
-**Native automatic-intake composition:** source `059a796`, composed with #115 at
-`362a5a0`. Both explicitly enabled native checks pass: the original manual entry
-and the new automatic intake path. Two actual signed Python Fetch processes drive
-selection and retirement; prepared intent survives Rust restart and newer source
-evidence, with one exact coordinator and no recovery HTTP POST in the automatic
-variant. Strict assessment-target Clippy and workspace formatting pass. Explicit
-drains do not prove background timer scheduling; Apify/CREAO/provisioning remain
+**Codex repair increment:** `codex/deployed-capability-repair` adds a bounded
+replacement acquisition backed by an installed version's authenticated invocation
+failure. It reuses the current acquisition journal, authority, quotas and complete
+verification suite. Its parent source comes from a locally verified acquisition;
+unchanged parsers stop before Actor creation. Durable linkage prevents new attempts
+for repeated failures of the same exact parent. See [the contract and limits](DEPLOYED_CAPABILITY_REPAIR.md).
+Shared repair advisories/lineage, source-drift diagnostics, withdrawal/rollback,
+automatic replacement selection and development-workflow inheritance remain open.
+
+**Review queue:** #116 remains at `03f7101f` with reproduced holds: prevalidation
+changes first-eligible selection, and a finite JSON score overflowing f32 is stored
+as null and makes the new log unreadable. The independent tests are preserved in
+`4b44099`; baseline 50 adoption/inheritance checks passed. Decision persistence on
+installation conflict also needs review. Henry's Claude owns corrections.
+
+**ACP correction remains necessary:** #114 was merged by another session at
+`9d4f498` without changing the reviewed adapter. All seven additive regressions
+from `091100b` and `fad05e4` still failed against main `880eedb`: duplicate report
+submission after restart, false no-change after a confirmed POST, tagged status
+rendering (two paths), inaccessible outcomes beyond event/reply limits (two paths),
+and an unrelated decision stopping the current follow. Its original 119 Python
+tests passed. The author retains the focused correction. This is a confirmed main
+follow-up, not an open-PR hold or evidence of public-provider readiness.
+
+**Native automatic intake is merged as #117 (`29d05e6`, source `059a796`).** Both
+explicitly enabled native checks pass: original manual entry and automatic intake.
+Two signed Python Fetch processes drive selection and retirement; prepared intent
+survives Rust restart/new source evidence, with one coordinator and no manual
+recovery POST in the automatic variant. Strict assessment Clippy/fmt passed.
+Explicit drains do not prove timer scheduling; Apify/CREAO/provisioning remain
 fixtures. See [the command and evidence](VENUE_RECOVERY_INTAKE.md#inspection-and-evidence).
 
-**#114 review hold at `3ac1fc6`:** all 119 original Python tests pass, but independent
-`091100b` regressions reproduce duplicate observation submission when the same ACP
-message is delivered after restart, and a false no-change response after a confirmed
-POST followed by a failed progress read. Claude owns the production corrections;
-see [the review](https://github.com/HenryWashuHe/genesis/pull/114#issuecomment-6378556404).
-Its new mission adapter is not merged or public-provider evidence.
-
-**Merged #86:** reviewed `ac50d35`, merge `ad622a9`. Confirmed pre-submission or
-otherwise safely settled checks can retry; retained native receipts remain
-blocked when stored failure cannot distinguish a terminal outcome from a failed
-status read. 35 gap-adoption tests, the two-organization inheritance test and
-strict Clippy/fmt passed. Original running-receipt regression stayed unchanged.
-
-**Merged #111:** source `84dd81f`, composition `e1b95ea` preserves Claude's
-`e331fc6`, merge `6194e53`. The full mission scenario's old subscription-only
-child deadline expectation failed deterministically. It now authenticates the
-source job and uses the exact minimum freshness deadline, without weakening the
-runtime. Five full scenarios and 40 scenario units passed, plus strict Clippy/fmt.
-
-**Merged #112 at `6e4f1ff`:** runtime `1b2610c`, tests `bbe1872`, composed with #111 at
-`db2c906`. The explicitly enabled worker observes accepted Reopens, discovers
-fresh verified same-event alternatives, checks current authority, persists one
-exact request, and recruits through the existing Fetch coordinator. Local proof
-coverage reaches selection, independent CREAO acceptance and contract retirement,
-including restart and lost-link reconciliation. It waits for feasible evidence;
-missing or unreadable newer proof evidence cannot silently authorize an older
-selection. See [configuration and bounds](VENUE_RECOVERY_INTAKE.md).
-
-Validation: 139 library and 90 assessment integration tests passed; final
-12 intake tests (including three subsequently added regressions) passed, with
-strict server all-target Clippy/fmt and clean independent source review. Counts
-overlap. The native-process integration stays opt-in; these new tests use
-loopback providers/transport. No cloud or completed-live-mission claim follows.
-
-**Provenance hold cleared:** #113 `08f2b74` fixes the structural replay
-starvation in #110. The independent `b677414` failure passes unchanged as
-`5b20bdf`, alongside all original `42aab93` cases. Reviewed composition `9fd1eb0`
-with current main passes 133 web tests, typecheck/build, the audit route/library
-checks and strict server Clippy/fmt. #113 merged into #110 as `50cb501`; the
-parent branch was then fast-forwarded to the tested composition without rewriting
-history. Claude/Eric should pull before continuing it. This is jsdom/stub API
-and local backend evidence, not a new browser walkthrough. Current GitHub state
-records #110 merged at `16783da`; both PRs are closed.
+#118 (`880eedb`) separately mounts the audit strip during snapshot loading; #119
+(`2e5d7f0`) updates pitch documentation. Neither changed the ACP implementation.
+Earlier #86 safe retry, #110/#113 replay, #111 scenario deadline and #112 automatic
+intake milestones are merged; their historical checks remain below.
 
 ### Current ownership and next work
 
 | Owner | Active scope | Boundary / next handoff |
 | --- | --- | --- |
-| Henry's Claude | Kernel/planner/readiness/adoption; candidate decision logging in the adoption coordinator/store/routes/tests | Also owns the explicitly agreed narrow terminal `ProviderError::RunFailed` mapping, sanitizer preservation and safe retry gate. Unknown submissions, failed status reads and retained running receipts stay blocked. No general provider/runtime ownership transfer. |
-| Eric's Claude | Provenance/replay UI contribution #113 is merged | No next exclusive implementation claim is recorded. Coordinate UI work with Henry's Claude before claiming overlapping files. |
-| Claude, PR #114 | New `acp_mission.py` ASI:One mission adapter, adjacent Python tests/config, pitch and submission drafts | Newly opened during roadmap integration; review pending. Preserve the selective-transfer framing when composing its README changes. Public Agentverse/ASI execution remains unproven. |
-| Codex | Fetch, monitor/recovery, provider verification and acquisition/execution verification boundaries | Native automatic-intake composition now passes. Review #114 before further full-mission/ACP changes; next scope exact-version failure evidence and repair intent in issue #4 before expanding into network capability repair. |
-| Proposed, not assigned | Executable development packages and controlled recursive-benefit evaluation | Inspect current branches/claims and agree bounded contracts first. The side-chat Claude brief is a proposal, not an assignment. |
+| Henry's Claude | Kernel/planner/readiness/adoption; #116 candidate decision log corrections | Agreed narrow terminal `ProviderError::RunFailed` mapping, sanitizer preservation and safe retry gate. Unknown submissions, failed status reads and retained running receipts stay blocked. No general provider takeover. |
+| Eric's Claude | Newly claimed `constitution_unchanged` audit invariant | Core `audit.rs`/audit tests, server history-audit test, KERNEL_AUDIT docs only; see issue #4 comment 6378588001. No broad kernel reassignment. |
+| Claude, #114 author | ACP mission adapter corrections and adjacent Python tests/config; pitch/submission docs | Preserve all seven review regressions and selective-transfer framing. Coordinate any handoff explicitly; public Agentverse/ASI execution remains unproven. |
+| Codex | Fetch/monitor/recovery/provider verification; deployed repair constructor, server link/store/routes/tests | Claim in issue #4 comment 6378726528. Avoid adoption/retry/ACP/audit/UI files. Next connect authenticated shared repair lineage and independent replacement selection. |
+| Proposed, not assigned | Executable development packages and controlled recursive-benefit evaluation | Inspect branches/claims and agree bounded contracts first. The side-chat Claude brief is a proposal, not an assignment. |
 
-The roadmap adds work to the existing goal; it does not replace the original
-mission or complete it. A deployed capability replacement must preserve exact
-failure/version lineage, independently verified publication, B's local adoption,
-and pinned installations. Venue selection recovery and a provider retry alone do
-not meet that gate. One justified organizational change and a no-new-role control
-remain required. An inherited development method must itself be created or
-improved through the governed process; generated tests cannot self-certify it.
-
-The existing continuation automation reads this roadmap and these ownership
-claims. Complete the mechanism/evaluation gates even if the measured benefit is
-null or negative; a positive recursive-improvement claim stays open unless its
-predeclared criteria pass. Keep the original live sponsor gates separately visible.
-Merged ACP only handles frozen recovery cases; #114 proposes an additional mission adapter. Agentverse/ASI use, cloud execution,
-and genuine CREAO share evidence remain open. The primary-checkout side-chat docs
-are being integrated deliberately; unrelated local changes still must not be staged.
+The expanded roadmap does not complete or replace the original mission. A verified
+replacement, B's independent acceptance and pinned installations are required;
+venue selection recovery and provider retry alone do not meet that gate. One
+justified organizational change and a no-new-role control remain required. An
+inherited development method must itself be created or improved through the
+governed process; generated tests cannot self-certify it. Complete the evaluation
+even if measured benefit is null or negative. Live sponsor execution and genuine
+CREAO Share evidence remain separate open gates.
 
 ## Historical checkpoint after #108 — October 23, 2026
 
