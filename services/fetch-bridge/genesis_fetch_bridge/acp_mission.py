@@ -318,6 +318,9 @@ class MissionGateway:
                     )""")
                 columns = "id, observation_id, after_seq, created_at, sender, message_id, summary, visible_seq"
                 self.db.execute(f"INSERT INTO reports_migrated({columns}) SELECT {columns} FROM reports")
+                # The replacement guard is part of the same transaction: a failure here rolls the
+                # whole rebuild back and the old inline constraint keeps protecting the table.
+                self.db.execute("CREATE UNIQUE INDEX reports_sender_message ON reports_migrated(sender, message_id)")
                 self.db.execute("DROP TABLE reports")
                 self.db.execute("ALTER TABLE reports_migrated RENAME TO reports")
                 self.db.execute(
