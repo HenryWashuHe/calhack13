@@ -144,13 +144,23 @@ export function presetSpec(name, seed = "genesis") {
   }
 }
 
+/** A real calendar date in YYYY-MM-DD (rejects 2026-02-31, 2026-13-01). */
+export function isCalendarDate(s) {
+  if (typeof s !== "string" || !DATE_RE.test(s)) return false;
+  const [y, m, d] = s.split("-").map(Number);
+  const t = new Date(Date.UTC(y, m - 1, d));
+  return t.getUTCFullYear() === y && t.getUTCMonth() === m - 1 && t.getUTCDate() === d;
+}
+
+export const NAMESPACE_RE = /^[a-z0-9][a-z0-9.-]{0,63}$/;
+
 export function validateSpec(spec) {
   const fail = (path, msg) => {
     throw new Error(`invalid spec at ${path}: ${msg}`);
   };
   if (!spec || typeof spec !== "object") fail("$", "must be an object");
   if (!/^[a-z0-9][a-z0-9.-]{2,63}$/.test(spec.suite_id ?? "")) fail("suite_id", "3-64 chars of a-z, 0-9, '.', '-'");
-  if (!DATE_RE.test(spec.date ?? "")) fail("date", "YYYY-MM-DD");
+  if (!isCalendarDate(spec.date)) fail("date", "a real calendar date, YYYY-MM-DD");
   if (!OFFSET_RE.test(spec.utc_offset ?? "")) fail("utc_offset", "like -08:00");
   if (!Number.isInteger(spec.attendees) || spec.attendees < 1 || spec.attendees > 100000) fail("attendees", "positive integer");
   if (!Array.isArray(spec.pages) || spec.pages.length === 0 || spec.pages.length > 32) fail("pages", "1-32 pages");
@@ -161,7 +171,7 @@ export function validateSpec(spec) {
     if (!SLUG_RE.test(p.slug ?? "") || slugs.has(p.slug)) fail(`${at}.slug`, "unique slug of a-z, 0-9, '-'");
     slugs.add(p.slug);
     if (!LAYOUTS.includes(p.layout)) fail(`${at}.layout`, `one of ${LAYOUTS.join(", ")}`);
-    if (p.date !== undefined && !DATE_RE.test(p.date)) fail(`${at}.date`, "YYYY-MM-DD");
+    if (p.date !== undefined && !isCalendarDate(p.date)) fail(`${at}.date`, "a real calendar date, YYYY-MM-DD");
     if (p.missing !== undefined && p.missing !== "price") fail(`${at}.missing`, `only "price" is supported`);
     if (!Array.isArray(p.venues) || p.venues.length === 0 || p.venues.length > 24) fail(`${at}.venues`, "1-24 venues");
     if (p.missing && p.venues.length !== 1) fail(`${at}.venues`, "a missing-data page holds exactly one venue");
@@ -305,8 +315,9 @@ export function normalizeBaseUrl(raw) {
  * Build every output in memory. Returns public pages (served), the trusted
  * suite and a trusted manifest (never served), and a public mission fragment.
  */
-export function build(spec, baseUrl) {
+export function build(spec, baseUrl, namespace = spec.suite_id) {
   validateSpec(spec);
+  if (!NAMESPACE_RE.test(namespace ?? "")) throw new Error("namespace must be 1-64 chars of a-z, 0-9, '.', '-'");
   const base = normalizeBaseUrl(baseUrl);
   const pages = [];
   const cases = [];
@@ -314,9 +325,10 @@ export function build(spec, baseUrl) {
     const html = renderPage(spec, page);
     const bytes = Buffer.from(html, "utf8");
     const digest = sha256(bytes);
-    const url = `${base}/venues/${page.slug}.html`;
+    const path = `${namespace}/venues/${page.slug}.html`;
+    const url = `${base}/${path}`;
     const date = page.date ?? spec.date;
-    pages.push({ slug: page.slug, path: `venues/${page.slug}.html`, url, html, sha256: digest, layout: page.layout });
+    pages.push({ slug: page.slug, path, url, html, sha256: digest, layout: page.layout });
     const evidence = (locator) => ({ source_url: url, snapshot_sha256: digest, locator });
     const window = { start: iso(date, "18:00", spec.utc_offset), end: iso(date, "22:00", spec.utc_offset) };
     const expected = page.missing
@@ -351,12 +363,14 @@ export function build(spec, baseUrl) {
   const manifest = {
     generated_by: "scripts/venue-portal",
     suite_id: spec.suite_id,
+    namespace,
     base_url: base,
     spec,
     pages: pages.map(({ slug, url, sha256: s, layout }) => ({ slug, url, sha256: s, layout })),
   };
   const fragment = {
     note: "Public-safe. Paste into a scenario mission spec. Contains page HTML only, never expected answers.",
+    suite_id: spec.suite_id,
     allowed_source_urls: pages.map((p) => p.url),
     examples: pages.filter((_, i) => !spec.pages[i].missing).map((p) => ({ url: p.url, html: p.html })),
     invocation_input: cases.find((c) => c.expected.status === "supported").input,
@@ -364,8 +378,25 @@ export function build(spec, baseUrl) {
   return { pages, suite, manifest, fragment };
 }
 
-export function indexPage(pages) {
-  const items = pages.map((p) => `    <li><a href="${p.path}">${esc(p.slug)}</a> <code>${p.sha256.slice(0, 12)}</code></li>`).join("\n");
+/** Root index listing namespaces (directory names only). */
+export function namespaceIndex(pages) {
+  const items = pages.map((p) => `    <li><a href="venues/${esc(p.slug)}.html">${esc(p.slug)}</a> <code>${p.sha256.slice(0, 12)}</code></li>`).join("\n");
+  return `<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="robots" content="noindex"><title>GENESIS synthetic venue test portal</title></head>
+<body>
+  <h1>GENESIS synthetic venue test portal</h1>
+  <p>Public synthetic demo data. Not a real booking site.</p>
+  <ul>
+${items}
+  </ul>
+</body>
+</html>
+`;
+}
+
+export function indexPage(namespaces) {
+  const items = namespaces.map((n) => `    <li><a href="${esc(n)}/">${esc(n)}</a></li>`).join("\n");
   return `<!doctype html>
 <html lang="en">
 <head><meta charset="utf-8"><meta name="robots" content="noindex"><title>GENESIS synthetic venue test portal</title></head>
