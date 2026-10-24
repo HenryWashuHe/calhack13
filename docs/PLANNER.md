@@ -68,12 +68,20 @@ decisions. Test: `tests/elastic_planner.rs` (fake Kibana, real kernel).
 - **Decisions are idempotent.** The kernel records at most one terminal
   planner decision per observation; a retried decision returns the existing one.
 - **Model HTTP.** Model clients never follow redirects (a redirect would resend
-  the API key and prompt to another origin) and do not retry. Provider error
+  the API key and prompt to another origin). The clients themselves do not
+  retry; the planner binary wraps them in `llm::Retrying`, which repeats an
+  identical request only when it never reached the model (connect error) or the
+  provider said it is busy (429, 500/502/503/504, 529), twice, after 2 s and
+  8 s. Without that, one overloaded response escalates the observation for
+  good. A timeout, malformed reply or other 4xx is not retried. A model call
+  has no organization side effects, so the worst case is paying for a reply
+  that was produced but not delivered. Provider error
   bodies are reduced to the HTTP status and a short error type; their text
   never reaches errors, logs or `planner_decision` events.
 
 Regression tests: `tests/review_recovery.rs`, `tests/review_http.rs` (from the
-Codex review of PR #12) and the restart test in `tests/planner.rs`.
+Codex review of PR #12), `tests/llm_retry.rs` and the restart test in
+`tests/planner.rs`.
 
 ## Closed missions
 

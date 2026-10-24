@@ -100,6 +100,8 @@ async fn main() -> anyhow::Result<()> {
     } else {
         llm::from_env()?.map(Arc::from)
     };
+    // A busy provider should not escalate an observation for good.
+    let model = model.map(|m| Arc::new(llm::Retrying::new(m)) as Arc<dyn llm::LlmClient>);
 
     match cli.command {
         Command::Prompt { observation } => {
