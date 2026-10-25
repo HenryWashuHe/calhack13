@@ -97,6 +97,13 @@ executor and isn't trial evidence. The fixed designs ran through
    the three best match closely. Margins there will be small whatever the
    method.
 
+9. **Only rough-transport discriminates between these two methods.** By the
+   trial's margin-one rule per panel, the adaptive probe beats random search on
+   6 of 6 rough panels, 1 of 6 ravine panels and 1 of 6 return-mix panels.
+   Random search beats it on 2 return-mix panels. A's tasks (ravine,
+   return-mix) therefore can't show a better method by acceptance margin, which
+   makes an accepted A return close to chance whatever B's revision does.
+
 So the G3 target from reading 1 is reachable by a simple process change: add
 "try two kinds, keep the better" to the parent. With that, the parent's
 profile (strong on rough, near zero elsewhere) would become this one.
