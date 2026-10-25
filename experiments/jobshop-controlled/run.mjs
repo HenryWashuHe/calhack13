@@ -10,16 +10,12 @@ import { jobshopFamily, jobshopControls, featureDoc } from "../../scripts/iterat
 import { describeSandbox } from "../../scripts/iteration/families/sandbox.mjs";
 import { claudeMutator } from "../../scripts/iteration/mutators/claude.mjs";
 import { cascade } from "../../scripts/iteration/cascade.mjs";
-
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const REPO = path.resolve(ROOT, "../..");
 const CALL = path.join(ROOT, "provider-call.mjs");
 export const SOURCE_FILES = [
-  "experiments/jobshop-controlled/PROTOCOL.md", "experiments/jobshop-controlled/run.mjs",
-  "experiments/jobshop-controlled/provider-call.mjs", "experiments/jobshop-controlled/verify.mjs",
-  "scripts/iteration/engine.mjs", "scripts/iteration/cascade.mjs",
-  "scripts/iteration/mutators/claude.mjs", "scripts/iteration/families/jobshop.mjs",
-  "scripts/iteration/families/sandbox.mjs", "scripts/iteration/families/rule-child.mjs",
+  "experiments/jobshop-controlled/PROTOCOL.md", "experiments/jobshop-controlled/run.mjs", "experiments/jobshop-controlled/provider-call.mjs", "experiments/jobshop-controlled/verify.mjs",
+  "scripts/iteration/engine.mjs", "scripts/iteration/cascade.mjs", "scripts/iteration/mutators/claude.mjs", "scripts/iteration/families/jobshop.mjs", "scripts/iteration/families/sandbox.mjs", "scripts/iteration/families/rule-child.mjs",
 ];
 const MODEL = "claude-sonnet-5-5";
 const EFFORT = "medium";

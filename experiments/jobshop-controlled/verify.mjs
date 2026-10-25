@@ -8,7 +8,6 @@ import { fileURLToPath } from "node:url";
 import { canon, sha256, verifyLedger } from "../../scripts/iteration/engine.mjs";
 import { jobshopFamily } from "../../scripts/iteration/families/jobshop.mjs";
 import { frozenPanels, usageCharge, SOURCE_FILES } from "./run.mjs";
-
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const REPO = path.resolve(ROOT, "../..");
 const arg = (name) => { const i = process.argv.indexOf(`--${name}`); return i < 0 ? null : process.argv[i + 1]; };
@@ -34,16 +33,11 @@ if (process.argv.includes("--recompute-final")) {
 assert(manifest.schema === "jobshop-controlled/1" && manifest.model === "claude-sonnet-5-5" && manifest.calls === 50, "unexpected manifest design");
 for (const seed of manifest.seeds) assert(canon(manifest.panels[seed]) === canon(frozenPanels(seed)), `panel commitment differs: ${seed}`);
 
-let previous = sha256("jobshop-controlled/1");
-let index = 0;
+let previous = sha256("jobshop-controlled/1"), index = 0;
 const pending = new Map();
 const settled = new Map();
 const rounds = new Map();
-let completed = null;
-let spent = 0;
-let input = 0;
-let outputTokens = 0;
-let finalOpened = false;
+let completed = null, spent = 0, input = 0, outputTokens = 0, finalOpened = false;
 for (const line of fs.readFileSync(path.join(dir, "events.ndjson"), "utf8").trim().split("\n")) {
   const { hash, ...event } = JSON.parse(line);
   assert(event.seq === index++ && event.previous === previous && sha256(canon(event)) === hash, "event chain mismatch");
