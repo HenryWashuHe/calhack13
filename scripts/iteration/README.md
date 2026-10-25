@@ -47,6 +47,13 @@ the engine itself is unchanged except for the root-hydration fix.
   (`evidence` records N and the panel). Residual sandbox limit: sources naming `import`/`async`/`await`/
   `Promise` are refused because a sandbox rejection cannot be intercepted; an obfuscated source could
   still build one. Acceptable for model-proposed rules; not a security boundary.
+- `families/binpack.mjs`: the second family, online bin packing. 100 items of size 1–50 into capacity-100
+  bins; a package is a bin-choice rule `(item, bin, ctx) => number` over the open bins that fit; success is
+  bins ≤ 1.02 × ceil(total / capacity), which at this size equals hitting the volume bound (calibration on 20
+  fresh instances: first-fit 0.35, best-fit 0.45, worst-fit 0.00, random-search-of-24 0.40). Controls:
+  `fixed-first-fit`, `fixed-best-fit`, `fixed-worst-fit`, `random-search`. Known property: with sizes in
+  [1, 50] first-fit and best-fit tie on most instances, so this family separates rules less sharply than
+  job-shop; it is here to show the same engine, mutator, cascade and exports run unchanged on a second domain.
 - `mutators/claude.mjs`: the model mutator. One Messages API request per generation through a child
   process (`claude-call.mjs`, raw HTTP, key from `GENESIS_LLM_API_KEY`, server-side `fallbacks: "default"`)
   so the engine stays synchronous. The prompt follows the FunSearch/AlphaEvolve finding: scored programs,
@@ -62,7 +69,8 @@ the engine itself is unchanged except for the root-hydration fix.
 - `sponsors/fetch-offer.mjs`: an exported bundle as a `genesis-method-offer/1` chat message and as the
   observation body the ACP mission bridge already posts (`source`, `summary`, `evidence_ref`). The bridge
   does not yet send or parse it; the receiver re-verifies with `adopt` either way.
-- `run-jobshop.mjs`: the runner. `--mock` uses a seeded local stand-in; without it, live model calls.
+- `run-jobshop.mjs`: the runner for both families (`--family jobshop|binpack`; the name predates the second
+  family). `--mock` uses a seeded local stand-in; without it, live model calls.
   Writes `result.json`, `ledger.json`, `bundle.json`, `elastic-bulk.ndjson`, `fetch-offer.txt`,
   `fetch-observation.json` under `results/`. After the loop it confirms the frontier on a fresh panel and,
   report-only, scores the root and every control on that same panel.
@@ -71,6 +79,7 @@ the engine itself is unchanged except for the root-hydration fix.
 node --test scripts/iteration/*.test.mjs scripts/iteration/families/*.test.mjs scripts/iteration/mutators/*.test.mjs scripts/iteration/sponsors/*.test.mjs
 node scripts/iteration/run-jobshop.mjs --mock --generations 3 --k 3 --heldout 8
 node scripts/iteration/run-jobshop.mjs --generations 5 --k 4 --heldout 20   # live, needs GENESIS_LLM_API_KEY
+node scripts/iteration/run-jobshop.mjs --family binpack --mock --generations 2
 ```
 
 Honesty: a smoke test of this size establishes whether the loop can beat seeded random search on one
