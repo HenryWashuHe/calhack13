@@ -13,7 +13,7 @@ const runner = runnerText.replace(/^import .*;\n/gm, "").replace(/^export /gm, "
   .replaceAll("import.meta.url", JSON.stringify(runnerUrl.href));
 assert.doesNotMatch(runner, /^import /m);
 const helpers = { path, fileURLToPath, process: { argv: [] }, fs: {} };
-vm.runInNewContext(`${runner}\nglobalThis.helper = { admitKeyFile, providerFailure };`, helpers, { timeout: 1000 });
+vm.runInNewContext(`${runner}\nglobalThis.helper = { admitKeyFile, providerFailure, providerTimedOut: typeof providerTimedOut === "function" ? providerTimedOut : undefined };`, helpers, { timeout: 1000 });
 const plain = (value) => JSON.parse(JSON.stringify(value));
 
 const providerSource = fs.readFileSync(new URL("./provider-call.mjs", import.meta.url), "utf8");
@@ -38,7 +38,7 @@ const failureBranch = runnerText.match(/      if \(result\.error \|\| result\.st
 assert.ok(failureBranch, "locate the failed-child branch for this exact source");
 function stoppedProvider(result) {
   return plain(vm.runInNewContext(`(() => { try { ${failureBranch[1]} } catch (error) { return error.provider; } })()`, {
-    result, providerFailure: helpers.helper.providerFailure, PER_CALL_MICRO_USD: 204096,
+    result, providerFailure: helpers.helper.providerFailure, providerTimedOut: helpers.helper.providerTimedOut, PER_CALL_MICRO_USD: 204096,
   }, { timeout: 1000 }));
 }
 
@@ -60,6 +60,31 @@ test("the provider child's own timeout is retained as a timeout", async () => {
 
 test("the parent child-process timeout remains a timeout", () => {
   assert.equal(stoppedProvider({ error: { code: "ETIMEDOUT" }, status: null, stderr: "" }).timeout, true);
+});
+
+test("an HTTP error whose body times out retains both facts", async () => {
+  const result = await fakeProvider(async () => ({ ok: false, status: 504, json: async () => {
+    const error = new Error("private body"); error.name = "TimeoutError"; throw error;
+  } }));
+  assert.deepEqual(stoppedProvider(result), { http_status: 504, error_type: "unknown", timeout: true, reserved_micro_usd: 204096 });
+  assert.doesNotMatch(result.stderr, /private body/);
+});
+
+test("invalid provider error types and transport messages are withheld", async () => {
+  for (const type of ["secret diagnostic with spaces", "x".repeat(49), "token\nprivate body", null]) {
+    const result = await fakeProvider(async () => ({ ok: false, status: 429, json: async () => ({ error: { type, message: "private body" } }) }));
+    assert.deepEqual(stoppedProvider(result), { http_status: 429, error_type: "unknown", timeout: false, reserved_micro_usd: 204096 });
+    assert.doesNotMatch(result.stderr, /private body|secret diagnostic|xxxxxxxx/);
+  }
+  const result = await fakeProvider(async () => { throw new Error("private body and credential"); });
+  assert.doesNotMatch(result.stderr, /private body|credential/);
+  assert.deepEqual(stoppedProvider(result), { http_status: null, error_type: null, timeout: false, reserved_micro_usd: 204096 });
+});
+
+test("HTTP diagnostics must be a complete bounded error line", () => {
+  for (const stderr of ["Error: Claude API HTTP 503: " + "x".repeat(49), "prefix Claude API HTTP 503: unknown", "Error: Claude API HTTP 200: unknown"]) {
+    assert.deepEqual(plain(helpers.helper.providerFailure(stderr)), { http_status: null, error_type: null });
+  }
 });
 
 test("key admission refuses resolved descendants, including symlinks, but admits siblings", () => {
