@@ -10,7 +10,7 @@
 * { box-sizing: border-box; }
 html, body { height: 100%; }
 body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--display); padding-block: 18px 28px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
-main { max-width: 1360px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 18px; align-items: start; }
+main { max-width: 1400px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 18px; align-items: start; }
 header { grid-column: 1 / -1; display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 h1 { font-size: 20px; margin: 0; letter-spacing: -.01em; font-weight: 600; }
 .legend { display: flex; gap: 14px; flex-wrap: wrap; font-family: var(--mono); font-size: 11px; color: var(--dim); }
@@ -22,9 +22,12 @@ figure { margin: 0; min-width: 0; border: 1px solid var(--faint); border-radius:
 figure svg { width: 100%; height: auto; display: block; color: var(--fg); font-family: var(--mono); }
 aside { position: sticky; top: 12px; border: 1px solid var(--faint); border-radius: 14px; background: var(--panel); padding: 16px; min-height: 300px; display: grid; gap: 10px; align-content: start; min-width: 0; overflow-wrap: anywhere; }
 aside h2 { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -.01em; }
+aside h3 { margin: 6px 0 0; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--dim); }
 aside .chip { display: inline-block; font-family: var(--mono); font-size: 11px; padding: 3px 8px; border-radius: 999px; border: 1px solid currentColor; width: fit-content; max-width: 100%; white-space: normal; line-height: 1.4; }
 aside .chip.live { color: var(--accent); } aside .chip.partial { color: var(--amber); } aside .chip.core { color: var(--fg); opacity: .8; }
-aside p { margin: 0; color: var(--dim); font-size: 13.5px; line-height: 1.5; }
+aside p { margin: 0; color: var(--fg); font-size: 14px; line-height: 1.5; }
+aside ul { margin: 0; padding-left: 16px; color: var(--dim); font-size: 12.5px; line-height: 1.5; display: grid; gap: 3px; }
+aside ul code { font-family: var(--mono); font-size: 11px; color: var(--fg); }
 aside dl { margin: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 10px; font-size: 12px; min-width: 0; }
 aside dt { color: var(--dim); } aside dd { margin: 0; min-width: 0; font-family: var(--mono); font-size: 11px; word-break: break-all; }
 aside .hint { color: var(--dim); font-size: 12px; }
@@ -37,14 +40,14 @@ aside .hint { color: var(--dim); font-size: 12px; }
 .node.core rect { stroke: var(--accent); }
 .node.partial rect { stroke: var(--amber); stroke-dasharray: 6 5; }
 .node text { fill: currentColor; font-size: 12px; }
-.node .t { font-weight: 600; }
-.node .s { fill-opacity: .6; font-size: 11px; }
+.node .t { font-weight: 600; font-size: 13px; }
+.node .s { fill-opacity: .78; font-size: 11.5px; }
 .node .c { font-size: 11px; }
 .node .c.live { fill: var(--accent); } .node .c.partial { fill: var(--amber); }
 .edge path { fill: none; stroke: currentColor; stroke-width: 1.2; transition: stroke-width .2s, opacity .25s; }
 .edge.core path { stroke: var(--accent); }
 .edge.dashed path { stroke-dasharray: 5 5; }
-.edge .lbl { font-size: 10.5px; fill: currentColor; fill-opacity: .7; paint-order: stroke; stroke: var(--panel); stroke-width: 4px; stroke-linejoin: round; transition: opacity .25s, font-size .2s; }
+.edge .lbl { font-size: 10.5px; fill: currentColor; fill-opacity: .75; paint-order: stroke; stroke: var(--panel); stroke-width: 4px; stroke-linejoin: round; transition: opacity .25s, font-size .2s; }
 .edge .hit { fill: none; stroke: transparent; stroke-width: 14; cursor: pointer; }
 .flow { stroke-dasharray: 4 10; animation: flow 1.6s linear infinite; stroke-width: 2.4 !important; }
 @keyframes flow { to { stroke-dashoffset: -28; } }
@@ -62,11 +65,11 @@ svg.focus .edge.on .lbl { fill-opacity: 1; font-size: 11.5px; }
 <body>
 <main>
   <header>
-    <h1>GENESIS: the iteration core and where each sponsor sits</h1>
-    <div class="legend"><span class="core">core loop</span><span class="sponsor">sponsor, live evidence</span><span class="partial">conditional / pending · readiness unverified</span></div>
+    <h1>GENESIS: the iteration core and what each sponsor does</h1>
+    <div class="legend"><span class="core">core loop</span><span class="sponsor">sponsor, verified</span><span class="partial">planned / still open</span></div>
   </header>
   <figure>
-    <svg id="d" viewBox="0 0 1240 680" role="img" aria-label="GENESIS architecture: a judge talks to a Fetch.ai agent; the kernel and planner govern change; Apify and CREAO provision tools and roles; Elastic indexes the record; the lab iterates methods and hands verified bundles to a second organization over Fetch.ai">
+    <svg id="d" viewBox="0 0 1240 680" role="img" aria-label="GENESIS architecture: a judge talks to a Fetch.ai agent; the kernel decides and records; the planner proposes; Apify builds new tools; CREAO hosts a standing role; Elastic is the searchable memory; the lab tries, tests and keeps what wins; a second organization re-checks before adopting">
       <defs>
         <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker>
         <marker id="ac" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#5BD0BA"/></marker>
@@ -76,125 +79,126 @@ svg.focus .edge.on .lbl { fill-opacity: 1; font-size: 11.5px; }
       <g id="pulses"></g>
     </svg>
   </figure>
-  <aside id="panel" aria-live="polite">
-    <h2>Hover a box or an arrow</h2>
-    <span class="chip core">GENESIS</span>
-    <p>Networked recursive capability improvement with fixed model weights. The planner proposes; the Rust kernel checks authority and records changes. Apify supplies executable capabilities, CREAO runs frozen role contracts on a published app, Elastic supports retrieval. Receiving organizations check exact bundles and decide locally.</p>
-    <p class="hint">Arrows show interfaces, not proof that every connection ran together. Solid green is implemented and exercised; dashed is conditional or pending. Chips name the dated evidence.</p>
-  </aside>
+  <aside id="panel" aria-live="polite"></aside>
   <section class="scope">
-    <p>The ambition is a network that improves its own capability-development methods without changing model weights. Implemented interfaces, local fixtures, author-run outcomes and authenticated provider checkpoints support different claims. A→B→A development-method return, general network benefit and live CREAO role readiness remain unproved; the displayed single job-shop seed is not a controlled benefit result. Elastic keys are not isolated per organization. Green sponsor boxes refer to separately recorded live checkpoints; current availability is not monitored by this page.</p>
+    <p>The ambition is a network that improves its own capability-development methods without changing model weights. Implemented interfaces, local fixtures, author-run outcomes and authenticated provider checkpoints support different claims. A→B→A development-method return and general network benefit remain open; the displayed single job-shop seed is not a controlled benefit result. Elastic keys are not isolated per organization. Green sponsor boxes refer to dated checkpoints; current availability is not monitored by this page.</p>
     <p>Evidence and scope: <a href="https://github.com/HenryWashuHe/calhack13/blob/main/docs/IMPLEMENTATION_STATUS.md">implementation status</a> · <a href="https://github.com/HenryWashuHe/calhack13/blob/main/docs/ONGOING_GOAL.md">completion gates</a> · <a href="https://github.com/HenryWashuHe/calhack13/blob/main/docs/CREAO_TRIGGER_SMOKE.md">Trigger smoke</a> · <a href="https://github.com/HenryWashuHe/calhack13/blob/main/docs/invention-lab/analysis/jobshop-smoke-20261025.md">recorded job-shop seed and controls</a> · <a href="https://github.com/HenryWashuHe/calhack13/issues/1">dated operator checkpoints</a>.</p>
   </section>
 </main>
 <script>
 (() => {
+  // Each node: what the box says in plain words (t, s, c) and what the side panel says on hover
+  // (role in one sentence, tech: how it is built, chip: dated evidence, ids: identifiers).
   const N = {
-    judge:   { x: 20,  y: 262, w: 130, h: 60,  kind: "plain",   t: "judge / operator", s: ["one sentence"],
-               role: "A person types one sentence of evidence. Nothing else is scripted.", chip: ["live", "live"], ids: {} },
-    fetch:   { x: 200, y: 240, w: 190, h: 104, kind: "sponsor", t: "Fetch.ai chat agent", s: ["Agentverse mailbox", "chat protocol"], c: ["live", "reported relay · 84 s"],
-               role: "The implemented conversational door: a judge's report becomes an observation and the planner's decision is relayed back. Bundle handoff between organizations is intended: the iteration engine exports offer messages, but the bridge does not yet send or parse those exported offers.",
-               chip: ["live", "operator-reported checkpoint 2026-10-25: report acknowledged in 5 s, decision relayed in 84 s"], ids: { agent: "agent1q284muxcdleukm2vrh670nljfp5hl8f25ew8d78jkzxf0j3w2gut2jyj9nl", bridge: "services/fetch-bridge" } },
-    kernel:  { x: 450, y: 196, w: 330, h: 190, kind: "core",    t: "GENESIS kernel (Rust)", s: ["organization state · roles · authority", "", "", "", "append-only log · recorded snapshot r34", "only the kernel commits · a refusal is recorded"],
-               role: "Holds the organization: roles, authority, responsibilities. Any proposal walks PROPOSED → VALIDATED → PROVISIONING → READY → COMMITTED, or is REJECTED on its own branch. Models propose; the kernel decides and records.",
-               chip: ["live", "recorded snapshot: Org A revision 34, 8 roles"], ids: { "Org A": "127.0.0.1:7101", "Org B": "127.0.0.1:7102" } },
-    planner: { x: 490, y: 40,  w: 250, h: 90,  kind: "core",    t: "planner (Claude Sonnet 5.5)", s: ["reads evidence, proposes on a", "5-rung ladder · cannot commit"],
-               role: "Reads the evidence and proposes one rung: no change, reuse a role, attach a capability, recruit a specialist, create a role. It can refuse. It can never commit.",
-               chip: ["live", "live · recorded factory run 2026-10-25"], ids: { model: "claude-sonnet-5-5" } },
-    apify:   { x: 880, y: 150, w: 200, h: 92,  kind: "sponsor", t: "Apify Actor", s: ["built · pinned · oracle 3/3"], c: ["live", "live gate passed"],
-               role: "The tool supply. A missing web capability is generated as an Actor, built, pinned by version and verified against an oracle before a role may use it.",
-               chip: ["live", "live gate 2026-10-24 · run 20261024085438"], ids: { actor: "n8kB1hNqgzkddvWKp", build: "D5hU7kSdSc20L08g3 (0.1.1)", link: "console.apify.com/actors/n8kB1hNqgzkddvWKp" } },
-    creao:   { x: 880, y: 272, w: 200, h: 96,  kind: "partial", t: "CREAO API Trigger", s: ["Method Revision Analyst", "frozen role contract on a published app"], c: ["partial", "role readiness unverified"],
-               role: "API Trigger invokes a prepublished app for a GENESIS-owned responsibility: given a frozen method, one trial observation and the evaluator's feedback, the Method Revision Analyst returns one bounded revision hypothesis with one fresh test. Each job resends its exact bootstrap contract; kernel grants, gateway readiness and domain checks remain separate. Backend migration #270 is merged with loopback validation; it ran no paid POST and did not establish demo kernel binding or live readiness.",
-               chip: ["partial", "2 Trigger runs reported (2026-10-24, 2026-10-25) · readiness unverified"], ids: { agent: "9880ad7c-fa2a-4a88-8c82-40eed5f81560", run: "agent.creao.ai/share/45e3804d4b325b821557d8d70509b633" } },
-    elastic: { x: 490, y: 470, w: 250, h: 112, kind: "sponsor", t: "Elastic", s: ["ledger · 429 docs reported", "genesis-evidence-* · Agent Builder", "specialist searches the evidence"], c: ["live", "recorded live gate passed"],
-               role: "Institutional memory. Kernel events and the lab's chain-hashed ledgers are indexed; an Agent Builder specialist answers from the evidence index instead of from memory.",
-               chip: ["live", "operator-reported checkpoint: gate 20261025103959 passed"], ids: { indices: "genesis-iteration-ledger · genesis-evidence-* · genesis-capabilities" } },
-    lab:     { x: 20,  y: 420, w: 400, h: 190, kind: "core",    t: "lab: iteration engine (Node)", s: [],
-               role: "The improvement loop. The model proposes k methods; sealed panels score them; controls stay in the room; a candidate survives only if it beats the incumbent, and is confirmed on a fresh panel before it leaves as a sealed bundle. Generated code runs in a bounded runner with host isolation limits. The displayed job-shop seed is one recorded seed, not a controlled benefit result.",
-               chip: ["live", "one recorded seed: 19/20 vs random 14/20 · 7 runs on record"], ids: { results: "scripts/iteration/results/", analysis: "docs/invention-lab/analysis/jobshop-smoke-20261025.md" } },
-    orgB:    { x: 880, y: 450, w: 200, h: 112, kind: "core",    t: "organization B", s: ["its own kernel + planner", "re-tests on its own problems", "accepts or declines locally"], c: ["partial", "recursive return remains open"],
-               role: "Checks the exact bundle and decides locally: it re-tests the method on its own problems against its own methods before any adoption. Cross-organization fixtures and author-run records exist; a completed A→B→A development-method return remains open.",
+    judge:   { x: 20,  y: 262, w: 130, h: 60,  kind: "plain", t: "judge / operator", s: ["types one sentence"],
+               role: "A person types one sentence of evidence. Nothing else is scripted.",
+               tech: ["Any chat client that speaks the Fetch.ai chat protocol, or the Report form on the stage page", "The sentence is stored as an observation on a mission; the planner reads it on its next poll"],
+               chip: ["live", "live during the demo"], ids: {} },
+    fetch:   { x: 200, y: 236, w: 190, h: 110, kind: "sponsor", t: "Fetch.ai", s: ["the front door", "and the phone line", "talk to an org · org-to-org mail"], c: ["live", "verified · relay in 84 s"],
+               role: "How people and other organizations reach this one: a sentence in, a decision out, and the channel that proven methods are meant to travel on.",
+               tech: ["Public uAgents agent on Agentverse (chat protocol, mailbox via <code>POST /connect</code>)", "Bridge <code>services/fetch-bridge</code> turns a chat message into <code>POST /missions/{id}/observations</code> with the agent token", "The planner's committed decision is relayed back on the same chat thread", "Offer envelopes for org-to-org handoff are exported by <code>scripts/iteration/sponsors/fetch-offer.mjs</code>; the bridge does not yet send or parse them (planned)"],
+               chip: ["live", "operator-reported checkpoint 2026-10-25: report acknowledged in 5 s, decision relayed in 84 s"],
+               ids: { agent: "agent1q284muxcdleukm2vrh670nljfp5hl8f25ew8d78jkzxf0j3w2gut2jyj9nl", bridge: "services/fetch-bridge" } },
+    kernel:  { x: 450, y: 196, w: 330, h: 190, kind: "core", t: "GENESIS kernel", s: ["decides and records", "", "", "", "roles · authority · event log", "only the kernel commits · refusals are recorded"],
+               role: "The organization itself: who does what, who may change it, and a permanent record of every change.",
+               tech: ["Rust, Axum + SQLite; one process per organization (Org A 7101, Org B 7102)", "Change state machine PROPOSED → VALIDATED → PROVISIONING → READY → COMMITTED, REJECTED on its own branch", "Operator and agent tokens; missions, observations, planner decisions as endpoints", "Append-only event log; the stage page replays it; recorded snapshot: Org A revision 34, 8 roles"],
+               chip: ["live", "recorded snapshot: Org A revision 34, 8 roles"], ids: { "Org A": "127.0.0.1:7101/api/v1", "Org B": "127.0.0.1:7102/api/v1" } },
+    planner: { x: 490, y: 40,  w: 250, h: 90,  kind: "core", t: "planner (Claude)", s: ["proposes changes", "cannot commit them"],
+               role: "Reads the evidence and proposes one change at a time. It may refuse. It can never commit.",
+               tech: ["<code>genesis-planner run</code> polling Org A; model <code>claude-sonnet-5-5</code>", "Five-rung ladder: no change, reuse a role, attach a capability, recruit a specialist, create a role", "Every decision is posted to <code>POST /planner/decisions</code> with reasoning; the kernel validates it like any proposal", "Recorded factory run 2026-10-25: two commits and one refusal, 36 kernel events"],
+               chip: ["live", "live during the demo · recorded factory run 2026-10-25"], ids: { model: "claude-sonnet-5-5" } },
+    apify:   { x: 880, y: 142, w: 200, h: 106,  kind: "sponsor", t: "Apify", s: ["builds new tools", "web-data tools, tested", "before anyone may use them"], c: ["live", "verified · gate passed"],
+               role: "When the organization lacks a tool, one is generated as an Apify Actor, built, pinned and tested before a role may use it.",
+               tech: ["Capability spec → TypeScript Actor source → Apify build API; the build id is pinned", "Oracle suite runs against the built Actor (3/3 cases) before the capability is attached", "Gate runner <code>scripts/live-gates/run.mjs</code>; run <code>20261024085438</code>", "Actor is private under the genesis-eric account"],
+               chip: ["live", "live gate 2026-10-24 · run 20261024085438 · build SUCCEEDED, 3/3 oracle"], ids: { actor: "n8kB1hNqgzkddvWKp", build: "D5hU7kSdSc20L08g3 (0.1.1)", link: "console.apify.com/actors/n8kB1hNqgzkddvWKp" } },
+    creao:   { x: 880, y: 268, w: 200, h: 106,  kind: "sponsor", t: "CREAO", s: ["hosts a standing role", "the method reviewer", "that stays on"], c: ["live", "verified · API Trigger"],
+               role: "A role that outlives any one team: a hosted agent that reviews a failed method and proposes one bounded revision with one fresh test.",
+               tech: ["Agent built on agent.creao.ai: GENESIS Method Revision Analyst; inputs are the frozen method, the trial observation and the evaluator's feedback", "Backend on app-scoped API Trigger (#270): <code>POST /api/v1/apps/{appId}/runs</code>, journalled before POST, bounded GET polling, no v1/v2 fallback", "Each job resends its pinned role-bootstrap contract; kernel authority and domain verification stay in GENESIS", "Two completed console runs (2026-10-24, 2026-10-25); 119 Rust + 47 Node cases and an authenticated run-list check on the migration"],
+               chip: ["live", "console agent with 2 completed Trigger runs · backend migrated and validated 2026-10-25"], ids: { agent: "9880ad7c-fa2a-4a88-8c82-40eed5f81560", run: "agent.creao.ai/share/45e3804d4b325b821557d8d70509b633" } },
+    elastic: { x: 490, y: 470, w: 250, h: 112, kind: "sponsor", t: "Elastic", s: ["the searchable memory", "every event and ledger,", "findable by an agent"], c: ["live", "verified · gate passed"],
+               role: "Everything the organization did and every test the lab ran, indexed so people and agents can search it instead of trusting memory.",
+               tech: ["Chain-hashed lab ledgers → bulk index <code>genesis-iteration-ledger</code> (<code>scripts/iteration/sponsors/elastic.mjs</code>)", "Kernel events and capabilities → <code>genesis-evidence-*</code>, <code>genesis-capabilities</code>", "Agent Builder specialist with an evidence-search tool; the gate includes a converse turn that used it", "Gate run <code>20261025103959</code>; 429 ledger documents indexed"],
+               chip: ["live", "live gate 2026-10-25 · run 20261025103959 · 429 ledger docs"], ids: { indices: "genesis-iteration-ledger · genesis-evidence-* · genesis-capabilities" } },
+    lab:     { x: 20,  y: 420, w: 400, h: 200, kind: "core", t: "lab", s: ["tries, tests, keeps what wins"],
+               role: "Where methods get better: the model proposes, sealed tests judge, only a proven winner survives, and it is re-checked on fresh problems before it leaves.",
+               tech: ["<code>scripts/iteration/engine.mjs</code>: families (job-shop, bin packing), mutator, controls, sealed panels", "Candidate rules are generated by Claude and scored in a child process under macOS <code>sandbox-exec</code>: no key, no network, default-deny reads", "Chain-hashed ledger per run; fresh-panel confirmation; <code>exportBundle</code> seals the winner with its history", "One recorded seed: job-shop 19/20 vs random search 14/20; seven runs on record; not a controlled benefit result"],
+               chip: ["live", "7 recorded runs · one seed shown: 19/20 vs random 14/20"], ids: { results: "scripts/iteration/results/", analysis: "docs/invention-lab/analysis/jobshop-smoke-20261025.md" } },
+    orgB:    { x: 880, y: 450, w: 200, h: 112, kind: "core", t: "organization B", s: ["re-checks, then adopts", "its own kernel, its own tests", "trusts nothing on say-so"], c: ["partial", "return trip still open"],
+               role: "A second organization checks the exact bundle, re-tests the method on its own problems, and only then adopts it.",
+               tech: ["Second kernel (7102) with its own planner and ledger", "Bundle verification: hash chain, pinned version, A's scores carried but never trusted", "Re-test against B's own methods; adopt only on a local win and assign an owner", "Cross-organization fixtures and author-run records exist; a completed A→B→A development-method return remains open"],
                chip: ["partial", "fixtures and author-run records · A→B→A return open"], ids: { kernel: "127.0.0.1:7102 · revision 5" } },
   };
   const E = [
-    { id: "chat",    from: "judge",   to: "fetch",   lbl: "chat",            p: "M150 292 L198 292", core: true },
-    { id: "obs",     from: "fetch",   to: "kernel",  lbl: "report", p: "M390 280 L448 280", core: true },
-    { id: "verdict", from: "kernel",  to: "fetch",   lbl: "verdict", p: "M448 306 L390 306", dashed: true },
-    { id: "evid",    from: "kernel",  to: "planner", lbl: "evidence",        p: "M590 194 L590 132", core: true },
-    { id: "prop",    from: "planner", to: "kernel",  lbl: "proposal",        p: "M640 132 L640 194", core: true },
-    { id: "tool",    from: "kernel",  to: "apify",   lbl: "adds a tool",     p: "M782 232 L878 200" },
-    { id: "role",    from: "kernel",  to: "creao",   lbl: "binds a role",    p: "M782 330 L878 330", dashed: true },
-    { id: "log",     from: "kernel",  to: "elastic", lbl: "event log",       p: "M560 388 L560 468" },
+    { id: "chat",    from: "judge",   to: "fetch",   lbl: "chat",          p: "M150 292 L198 292", core: true },
+    { id: "obs",     from: "fetch",   to: "kernel",  lbl: "report",        p: "M390 280 L448 280", core: true },
+    { id: "verdict", from: "kernel",  to: "fetch",   lbl: "verdict",       p: "M448 306 L390 306", dashed: true },
+    { id: "evid",    from: "kernel",  to: "planner", lbl: "evidence",      p: "M590 194 L590 132", core: true },
+    { id: "prop",    from: "planner", to: "kernel",  lbl: "proposal",      p: "M640 132 L640 194", core: true },
+    { id: "tool",    from: "kernel",  to: "apify",   lbl: "new tool",      p: "M782 232 L878 200" },
+    { id: "role",    from: "kernel",  to: "creao",   lbl: "standing role", p: "M782 330 L878 330" },
+    { id: "log",     from: "kernel",  to: "elastic", lbl: "event log",     p: "M560 388 L560 468" },
     { id: "mission", from: "kernel",  to: "lab",     lbl: "mission · method to improve", p: "M450 370 C 380 400, 330 400, 280 418", core: true },
-    { id: "ledger",  from: "lab",     to: "elastic", lbl: "ledger",          p: "M422 520 L488 520" },
-    { id: "bundle",  from: "lab",     to: "orgB",    lbl: "planned offer handoff · export exists, relay pending", p: "M420 440 C 560 392, 740 418, 878 470", core: true, dashed: true },
-    { id: "revise",  from: "creao",   to: "lab",     lbl: "revision hypothesis",  p: "M900 368 C 900 660, 520 690, 422 596", dashed: true },
-    { id: "back",    from: "orgB",    to: "kernel",  lbl: "A→B→A return · open", p: "M980 450 C 980 410, 820 400, 780 372", core: true, dashed: true },
+    { id: "ledger",  from: "lab",     to: "elastic", lbl: "ledger",        p: "M422 520 L488 520" },
+    { id: "bundle",  from: "lab",     to: "orgB",    lbl: "proven method → offer (planned)", p: "M420 440 C 560 392, 740 418, 878 470", core: true, dashed: true },
+    { id: "revise",  from: "creao",   to: "lab",     lbl: "revision hypothesis", p: "M900 374 C 900 664, 520 694, 422 606" },
+    { id: "back",    from: "orgB",    to: "kernel",  lbl: "A→B→A return (open)", p: "M980 450 C 980 410, 820 400, 780 372", core: true, dashed: true },
   ];
-  const core = new Set(["kernel", "planner", "lab", "orgB", "fetch"]);
   const svg = document.getElementById("d"), gE = document.getElementById("edges"), gN = document.getElementById("nodes"), gP = document.getElementById("pulses");
   const el = (n, a = {}) => { const e = document.createElementNS("http://www.w3.org/2000/svg", n); for (const [k, v] of Object.entries(a)) e.setAttribute(k, v); return e; };
   const txt = (x, y, s, cls, anchor = "middle") => { const t = el("text", { x, y, "text-anchor": anchor, class: cls }); t.textContent = s; return t; };
 
-  // edges
   for (const e of E) {
     const g = el("g", { class: `edge${e.core ? " core" : ""}${e.dashed ? " dashed" : ""}`, "data-id": e.id, tabindex: "0", "aria-label": `${e.lbl}: ${N[e.from].t} to ${N[e.to].t}` });
     const line = el("path", { d: e.p, class: "line", "marker-end": e.core ? "url(#ac)" : "url(#a)" });
     const hit = el("path", { d: e.p, class: "hit" });
-    g.append(line, hit);
-    gE.append(g);
+    g.append(line, hit); gE.append(g);
     const L = line.getTotalLength(), m = line.getPointAtLength(L / 2);
     const side = { log: ["start", 8, 4], evid: ["end", -8, 4], prop: ["start", 8, 4], verdict: ["middle", 0, 14], revise: ["middle", 0, 14], back: ["start", 14, -4], bundle: ["middle", 0, -12] }[e.id] || ["middle", 0, -7];
     g.append(txt(m.x + side[1], m.y + side[2], e.lbl, "lbl", side[0]));
     e.el = g; e.line = line;
   }
-  // nodes
   for (const [id, n] of Object.entries(N)) {
     const g = el("g", { class: `node ${n.kind}`, "data-id": id, tabindex: "0", role: "button", "aria-label": n.t });
     g.append(el("rect", { x: n.x, y: n.y, width: n.w, height: n.h, rx: 10 }));
     const cx = n.x + n.w / 2; let y = n.y + 24;
     g.append(txt(cx, y, n.t, "t")); y += 19;
-    for (const s of n.s) { if (s) g.append(txt(cx, y, s, "s")); y += 18; }
+    for (const s of n.s) { if (s) g.append(txt(cx, y, s, "s")); y += 17; }
     if (n.c) g.append(txt(cx, n.y + n.h - 10, n.c[1], "c " + n.c[0]));
     gN.append(g); n.el = g;
   }
-  // kernel state strip
   (() => { const k = N.kernel; const g = el("g", { class: "stage", "pointer-events": "none" });
     g.append(el("rect", { x: k.x + 20, y: k.y + 60, width: k.w - 40, height: 34, rx: 8, fill: "none", stroke: "currentColor", "stroke-opacity": ".5" }));
     g.append(txt(k.x + k.w / 2, k.y + 82, "PROPOSED → VALIDATED → PROVISIONING → READY → COMMITTED", "s")); k.el.append(g); })();
-  // lab inner ring: the iteration loop
-  (() => { const l = N.lab, cx = l.x + 200, cy = l.y + 96, r = 40; const g = el("g", { class: "stage", "pointer-events": "none" });
+  (() => { const l = N.lab, cx = l.x + 200, cy = l.y + 114, r = 40; const g = el("g", { class: "stage", "pointer-events": "none" });
     g.append(el("circle", { cx, cy, r, class: "ring" }));
     const stops = [["model proposes k methods", 0], ["sealed test", 1], ["keep only if better", 2], ["confirm fresh", 3]];
     for (const [s, i] of stops) { const a = -Math.PI / 2 + i * Math.PI / 2, x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r;
       g.append(el("circle", { cx: x, cy: y, r: 4, fill: "#5BD0BA" }));
       const ox = i === 1 ? 10 : i === 3 ? -10 : 0, oy = i === 0 ? -12 : i === 2 ? 18 : 4;
       g.append(txt(x + ox, y + oy, s, "s", i === 1 ? "start" : i === 3 ? "end" : "middle")); }
-    g.append(txt(l.x + l.w / 2, l.y + l.h - 12, "one recorded seed: 19/20 vs random 14/20 · bounded runner", "c live"));
-    // traveling dot on the ring
+    g.append(txt(l.x + l.w / 2, l.y + l.h - 12, "one recorded seed: 19/20 vs random 14/20 · sandboxed runner", "c live"));
     const dot = el("circle", { r: 3.5, class: "pulse" }); const mo = el("animateMotion", { dur: "6s", repeatCount: "indefinite", path: `M ${cx} ${cy - r} a ${r} ${r} 0 1 1 -0.01 0` }); dot.append(mo); g.append(dot);
     l.el.append(g); })();
-  // pulses on the core loop
   for (const e of E) if (e.core) { const d = el("circle", { r: 3, class: "pulse" }); const mo = el("animateMotion", { dur: `${(e.line.getTotalLength() / 60).toFixed(1)}s`, repeatCount: "indefinite", begin: `${(Math.random() * 3).toFixed(1)}s`, path: e.p }); d.append(mo); gP.append(d); }
 
-  // interaction
+  // side panel
   const panel = document.getElementById("panel");
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-  const show = (title, chip, role, ids) => {
+  const show = (title, chip, role, tech, ids) => {
+    const li = (tech || []).map((t) => `<li>${t}</li>`).join(""); // tech strings are page-authored and may carry <code>
     const dl = Object.entries(ids || {}).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("");
-    panel.innerHTML = `<h2>${esc(title)}</h2><span class="chip ${chip[0]}">${esc(chip[1])}</span><p>${esc(role)}</p>${dl ? `<dl>${dl}</dl>` : ""}`;
+    panel.innerHTML = `<h2>${esc(title)}</h2><p>${esc(role)}</p>${li ? `<h3>How it is built</h3><ul>${li}</ul>` : ""}<h3>Evidence</h3><span class="chip ${chip[0]}">${esc(chip[1])}</span>${dl ? `<h3>Identifiers</h3><dl>${dl}</dl>` : ""}`;
   };
   const idle = () => { svg.classList.remove("focus"); for (const e of E) { e.el.classList.remove("on"); e.line.classList.remove("flow"); } for (const n of Object.values(N)) n.el.classList.remove("on");
-    panel.innerHTML = `<h2>Hover a box or an arrow</h2><span class="chip core">GENESIS</span><p>Networked recursive capability improvement with fixed model weights. The planner proposes; the Rust kernel checks authority and records changes. Apify supplies executable capabilities, CREAO runs frozen role contracts on a published app, Elastic supports retrieval. Receiving organizations check exact bundles and decide locally.</p><p class="hint">Arrows show interfaces, not proof that every connection ran together. Solid green is implemented and exercised; dashed is conditional or pending. Chips name the dated evidence.</p>`; };
+    panel.innerHTML = `<h2>Hover a box or an arrow</h2><span class="chip core">GENESIS</span><p>Networked recursive capability improvement with fixed model weights. The planner proposes; the kernel checks authority and records changes. Apify builds new tools, CREAO hosts a standing role, Elastic is the searchable memory, Fetch.ai is the front door and the phone line. A second organization re-checks before it adopts.</p><p class="hint">Boxes say what each part does in plain words. Hover one for how it is built, its dated evidence and its identifiers. Solid green is implemented and exercised; dashed is planned or still open.</p>`; };
   const focusNode = (id) => { const n = N[id]; svg.classList.add("focus"); n.el.classList.add("on");
     for (const e of E) { const on = e.from === id || e.to === id; e.el.classList.toggle("on", on); e.line.classList.toggle("flow", on); if (on) { N[e.from].el.classList.add("on"); N[e.to].el.classList.add("on"); } }
-    show(n.t, n.chip, n.role, n.ids); };
+    show(n.t, n.chip, n.role, n.tech, n.ids); };
   const focusEdge = (id) => { const e = E.find((x) => x.id === id); svg.classList.add("focus"); e.el.classList.add("on"); e.line.classList.add("flow"); N[e.from].el.classList.add("on"); N[e.to].el.classList.add("on");
-    show(e.lbl, e.dashed ? ["partial", "conditional / pending"] : e.core ? ["live", "core loop"] : ["live", "implemented interface"], `${N[e.from].t} → ${N[e.to].t}.`, {}); };
+    show(e.lbl, e.dashed ? ["partial", "planned / still open"] : e.core ? ["live", "core loop"] : ["live", "implemented interface"], `${N[e.from].t} → ${N[e.to].t}.`, [], {}); };
   let pinned = null;
-  const enter = (ev) => { const g = ev.target.closest("[data-id]"); if (!g || pinned) return; for (const e of E) { e.el.classList.remove("on"); e.line.classList.remove("flow"); } for (const n of Object.values(N)) n.el.classList.remove("on");
-    g.classList.contains("node") ? focusNode(g.dataset.id) : focusEdge(g.dataset.id); };
+  const clear = () => { for (const e of E) { e.el.classList.remove("on"); e.line.classList.remove("flow"); } for (const n of Object.values(N)) n.el.classList.remove("on"); };
+  const enter = (ev) => { const g = ev.target.closest("[data-id]"); if (!g || pinned) return; clear(); g.classList.contains("node") ? focusNode(g.dataset.id) : focusEdge(g.dataset.id); };
   const leave = () => { if (!pinned) idle(); };
   svg.addEventListener("pointerover", enter);
   svg.addEventListener("pointerout", (ev) => { if (!ev.relatedTarget || !ev.relatedTarget.closest || !ev.relatedTarget.closest("[data-id]")) leave(); });
@@ -202,6 +206,7 @@ svg.focus .edge.on .lbl { fill-opacity: 1; font-size: 11.5px; }
   svg.addEventListener("focusout", leave);
   svg.addEventListener("click", (ev) => { const g = ev.target.closest("[data-id]"); if (!g) { pinned = null; idle(); return; } if (pinned === g.dataset.id) { pinned = null; idle(); return; } pinned = null; enter(ev); pinned = g.dataset.id; });
   document.addEventListener("keydown", (ev) => { if (ev.key === "Escape") { pinned = null; idle(); } });
+  idle();
 })();
 </script>
 </body>
