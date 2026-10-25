@@ -82,6 +82,10 @@ Trusted acceptance scoring lives in the separate `../scoring` crate.
     any socket file is inside it;
   - the only writable place is a private tmpfs `/tmp`, with the package's
     source files in `/tmp/work`;
+  - only stdin, stdout and stderr cross into the namespace: every other
+    descriptor the executor holds (say, a directory or socket its launcher
+    left open) is marked close-on-exec first, so none can lead out of the
+    chroot;
   - the method runs as `nobody` with `no_new_privs`, so it can't leave the
     chroot;
   - at the deadline or after the outcome, the namespace's first process is
