@@ -126,8 +126,12 @@ fn main() -> ExitCode {
                     None => 0,
                 };
                 let count: u64 = num(n)?;
-                if first_seed.checked_add(count).is_none() {
-                    return Err("first-seed + instances overflows".into());
+                match first_seed.checked_add(count) {
+                    None => return Err("first-seed + instances overflows".into()),
+                    Some(end) if count > 0 && genesis_lab_eval::score::is_hidden_seed(end - 1) => {
+                        return Err("seed range reaches the reserved hidden-seed domain".into())
+                    }
+                    Some(_) => {}
                 }
                 let family = match rest.first() {
                     Some(f) => genesis_lab_eval::family::Family::parse(f)
