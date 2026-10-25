@@ -35,6 +35,7 @@ pub mod capability_store;
 pub mod elastic_jobs;
 pub mod error;
 pub mod method_adoption;
+pub mod method_adoption_store;
 pub mod outbox;
 pub mod projection;
 pub mod registry;
@@ -289,6 +290,7 @@ pub fn build_org(cfg: &OrgConfig, providers: Option<ProviderSet>) -> anyhow::Res
     store.init_method_development()?;
     store.init_capability_pins()?;
     store.init_capability_adoptions()?;
+    store.init_method_adoptions()?;
     store.init_capability_invocations()?;
     store.init_venue_assessments()?;
     store.init_venue_monitors()?;

@@ -59,6 +59,7 @@ impl Records {
             evaluators: vec![plan.context.evaluator.clone()],
             allowed_dependencies: vec![],
             records_root: root,
+            acceptance_plans: vec![],
         };
         let reference = plan.slots[0].method.clone();
         Self {
