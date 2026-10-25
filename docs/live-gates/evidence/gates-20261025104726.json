@@ -1,0 +1,46 @@
+{
+  "schema": "genesis-live-gates/1",
+  "run": "20261025104726",
+  "results": {
+    "creao": {
+      "gate": "creao",
+      "started_at": "2026-10-25T10:47:26.773Z",
+      "finished_at": "2026-10-25T10:47:27.930Z",
+      "status": "needs_reconciliation",
+      "duration_ms": 604,
+      "evidence": {
+        "operation_id": "live-gate-20261025104726",
+        "api_version": "v2",
+        "phase": "needs_reconciliation",
+        "native_status": null,
+        "run_id": "8b913f51-be38-49e0-82be-25452dcd49b4",
+        "provider_agent_id": null,
+        "readiness_verified": false,
+        "resume": "'<local path> Support/Claude/scratch-workspaces/7d039b07-8d10-499c-a14e-21fe4629fb38/d7cc80da-bf37-430b-882f-6a77f66a91d5/scratch-2026-10-24-9746e5/genesis/target/debug/genesis-creao' step --db '<local path> Support/Claude/scratch-workspaces/7d039b07-8d10-499c-a14e-21fe4629fb38/d7cc80da-bf37-430b-882f-6a77f66a91d5/scratch-2026-10-24-9746e5/genesis/data/live-gates/creao/20261025104726/creao.sqlite' --org org_a --operation live-gate-20261025104726 --account shared-demo-creao-account --quota-db '<local path> Support/Claude/scratch-workspaces/7d039b07-8d10-499c-a14e-21fe4629fb38/d7cc80da-bf37-430b-882f-6a77f66a91d5/scratch-2026-10-24-9746e5/genesis/data/live-gates/creao/quota.sqlite'",
+        "resume_argv": [
+          "<local path> Support/Claude/scratch-workspaces/7d039b07-8d10-499c-a14e-21fe4629fb38/d7cc80da-bf37-430b-882f-6a77f66a91d5/scratch-2026-10-24-9746e5/genesis/target/debug/genesis-creao",
+          "step",
+          "--db",
+          "<local path> Support/Claude/scratch-workspaces/7d039b07-8d10-499c-a14e-21fe4629fb38/d7cc80da-bf37-430b-882f-6a77f66a91d5/scratch-2026-10-24-9746e5/genesis/data/live-gates/creao/20261025104726/creao.sqlite",
+          "--org",
+          "org_a",
+          "--operation",
+          "live-gate-20261025104726",
+          "--account",
+          "shared-demo-creao-account",
+          "--quota-db",
+          "<local path> Support/Claude/scratch-workspaces/7d039b07-8d10-499c-a14e-21fe4629fb38/d7cc80da-bf37-430b-882f-6a77f66a91d5/scratch-2026-10-24-9746e5/genesis/data/live-gates/creao/quota.sqlite"
+        ]
+      },
+      "steps": [
+        {
+          "at": "2026-10-25T10:47:27.930Z",
+          "exit": 0,
+          "phase": "needs_reconciliation",
+          "ms": 604
+        }
+      ],
+      "note": "Creates one real, billable CREAO agent (no delete endpoint). Native completion is not readiness; the gateway skill/receipt gate is separate."
+    }
+  }
+}

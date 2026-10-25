@@ -15,6 +15,7 @@
 // configured credentials are scrubbed from public evidence reports. Private
 // resumable checkpoints remain owned by their CLIs and must not be shared.
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { closeSync, cpSync, existsSync, fsyncSync, mkdirSync, openSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -115,7 +116,9 @@ export async function elasticGate(ctx) {
   const bin = join(ctx.binDir, "genesis-elastic-smoke");
   if (!existsSync(bin)) return { status: "not_tested", reason: `no ${bin} (built from the Elastic branch, PR #11)` };
   const report = join(ctx.out, "elastic-smoke.json");
-  const org = `genesis-smoke-${ctx.stamp}`;
+  // Keep derived tool IDs within 63 characters while including the whole run
+  // identity: clock suffixes repeat across dates and custom --run-id values.
+  const org = `smoke-${createHash("sha256").update(String(ctx.stamp)).digest("hex").slice(0, 16)}`;
   const r = runCli(bin, ["--org", org, "--skip-capabilities", "--converse", "--cleanup", "--report", report], ctx);
   if (!existsSync(report)) return { status: "failed", reason: "smoke wrote no report", exit: r.code, error: r.stderr, duration_ms: r.ms };
   const rawReport = readFileSync(report, "utf8");
