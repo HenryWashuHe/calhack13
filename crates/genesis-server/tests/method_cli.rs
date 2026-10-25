@@ -229,7 +229,7 @@ async fn unknown_publication_is_one_request_with_no_remote_body_or_success_outpu
 }
 
 #[tokio::test]
-async fn publisher_expectation_failure_can_follow_a_committed_remote_write() {
+async fn publisher_expectation_mismatch_is_refused_before_remote_write() {
     let server = Server::registry().await;
     let dir = tempfile::tempdir().unwrap();
     let input = dir.path().join("input.json");
@@ -249,8 +249,8 @@ async fn publisher_expectation_failure_can_follow_a_committed_remote_write() {
         )
         .await
     )
-    .contains("registry_invalid_response"));
+    .contains("registry_error"));
     save(&input, &json!({"query":"transport"}));
     let results = success(cli(&server.url, Some("b-reader"), &["search", "--input", p]).await);
-    assert_eq!(results["candidates"][0]["publisher"], "org-a");
+    assert!(results["candidates"].as_array().unwrap().is_empty());
 }
