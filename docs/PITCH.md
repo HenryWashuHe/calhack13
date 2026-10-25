@@ -9,6 +9,15 @@ making a claim and [the invention-lab design](INVENTION_LAB_DEMO.md) for the
 proposed experiment. Historical venue fixtures test infrastructure; event
 organizing is no longer the product direction or required demo.
 
+## Evidence available for the current presentation
+
+Project Day 1 is **Friday, October 23, 2026 (Pacific)**; see the
+[timeline](PROJECT_TIMELINE.md). Use the [Stage script](../apps/stage/DEMO_SCRIPT.md)
+for implemented screens. The [published job-shop rehearsal](../experiments/jobshop-controlled/results/2026-10-25/README.md)
+compares feedback iteration (231/300) with equal-call independent generation
+(216/300). Random search wins four of five panels. This is a narrow controlled
+result, not an accepted independent A → B → A return or general recursive benefit.
+
 ## The three-minute story
 
 This script explains the proposed experience in the future tense. A presenter
@@ -62,9 +71,10 @@ changes, versioned capabilities, bounded acquisition and independent local
 acceptance. A two-organization integration uses loopback providers to exercise
 A creating and publishing an extraction capability and B checking and
 installing it without B synthesizing another copy. Local signed Fetch
-processes also exercise specialist work and retirement. These establish
-specific mechanisms; they do not establish the proposed physics experiment
-or measured recursive improvement.
+processes also exercise specialist work and retirement. Method generation,
+registry exchange, adoption, pinned invocation and experimental execution/scoring
+are merged, with retained actual and negative results. These establish bounded
+mechanisms; the complete independent return remains unproved.
 
 **2:45 to 3:00 — The ambition. Screen: A → B → A, with exact method versions.**
 
@@ -114,8 +124,9 @@ runtime already implement the lab workflow.
 | Apify | Build and run generated software Actors for a compatible bounded experiment worker or development tool | A validated new scaffold/executor, pinned Actor/build/run receipts, checked output, and evidence that the lab used it |
 | CREAO | Maintain an operational research responsibility, such as experiment analysis and follow-up across iterations | An agent built on agent.creao.ai doing core work, its agent ID, and a genuine run share link |
 
-The current generated Actor path is web extraction. A physics executor,
-development-method package contract and domain evaluator remain new work.
+The generated Actor path remains web extraction. Experimental method packages,
+physics executor and evaluator now exist; their integration and evidence limits
+are recorded in [implementation status](IMPLEMENTATION_STATUS.md).
 Calling a sponsor once or showing its logo does not establish substantive use.
 See the [submission evidence checklist](DEVPOST.md#sponsor-evidence).
 
@@ -148,8 +159,8 @@ are hypotheses to validate, not established outcomes.
 [implementation status](IMPLEMENTATION_STATUS.md). Distinguish local runtime
 execution, simulated provider responses, native signed processes and
 authenticated cloud runs. Credentials alone do not prove a successful run.
-The merged ACP mission adapter has outstanding review regressions; do not
-present the public workflow as ready until they are resolved and validated.
+ACP migration regressions are resolved. Reported public chat/observation routing
+does not establish a complete public method-transfer workflow.
 
 **What if the new method fails?** Show the failed result and retain the prior
 accepted method. The kernel and verification process govern what may run;

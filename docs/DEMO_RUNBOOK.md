@@ -327,11 +327,12 @@ plan around them:
   rather than resuming them. Only the crash test above resumes the same
   databases.
 
-## Open human decisions
+## Submission follow-up
 
-1. Cal Hacks eligibility: past Cal Hacks rules say the hack must be developed
-   entirely during the event; most of this repository predates Oct 23.
-   Confirm with organizers and decide how to disclose.
+1. Use the [Friday-start timeline](PROJECT_TIMELINE.md): October 23–25, 2026
+   (Pacific). Preserve dated prior research/infrastructure and identify the actual
+   submitted work from source/run evidence; this runbook does not determine
+   event eligibility or establish how much code predates that project phase.
 2. Which model runs the planner (`GENESIS_LLM_*` or Elastic).
 3. Sponsor keys for the four live gates, and who runs them.
 4. CREAO track: core mission work on a real agent, its agent ID and run share

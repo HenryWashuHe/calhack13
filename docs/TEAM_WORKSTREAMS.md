@@ -1,6 +1,10 @@
 # GENESIS team workstreams
 
-> **Historical coordination plan — superseded.** The current framing is networked recursive capability improvement with fixed model weights. Event organization is no longer the product/demo. Use [the current ownership map](AGENT_HANDOFF.md#current-ownership-and-next-work) and issue #4; assignments and “must” statements below are historical, not current instructions.
+Project Day 1 is **Friday, October 23, 2026 (Pacific)**. See the
+[current project timeline](PROJECT_TIMELINE.md); the older hour-by-hour plan
+below is design history, not a claim that those milestones all completed.
+
+> **Historical coordination plan — superseded.** The current framing is networked recursive capability improvement with fixed model weights. Event organization is no longer the product/demo. Use [the current ownership map](AGENT_HANDOFF.md#current-ownership-and-next-work) and [issue #1](https://github.com/HenryWashuHe/calhack13/issues/1); assignments and “must” statements below are historical, not current instructions.
 
 Four-person plan for a 36–48 hour build. The demo must complete one cycle: a disrupted event creates a new responsibility and specialist role, recruits an independent agent, gains a verified executable capability, transfers continuing work, and lets a second independent organization inherit that capability.
 

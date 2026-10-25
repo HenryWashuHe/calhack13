@@ -32,8 +32,10 @@ acceptance checks before adoption.
 The current executable acquisition path generates TypeScript web-extraction
 candidates within an Apify Actor scaffold. It pins artifacts, verifies output
 against independently configured acceptance data, and permits a bounded
-semantic repair during acquisition. It is not yet a general executable
-development-workflow or physics runtime.
+semantic repair during acquisition. A separate experimental lab path now
+implements executable method packages, source generation/revision, a simulator,
+executor/scorer, shared method registry, receiver adoption and pinned invocation.
+These implementations do not establish a complete independent recursive loop.
 
 A two-organization integration exercises A creating, verifying and publishing
 a capability, then B discovering, checking and installing it without B
@@ -115,14 +117,20 @@ submission. These boundaries matter even when a demonstration uses fixtures.
   loopback providers and no B synthesis.
 - Composed automatic recovery intake with actual signed local Fetch
   processes; the remaining providers in that test are fixtures.
+- Published actual generated-method records, receiver adoption/invocation
+  mechanisms and retained negative return results.
+- Published one preregistered 50-request job-shop rehearsal: feedback 231/300
+  versus independent generation 216/300; random search won four of five panels.
+  The [report](../experiments/jobshop-controlled/results/2026-10-25/README.md)
+  retains the narrow comparison, costs and local replay; it does not close G4.
 - Recorded source-specific evidence and remaining gates in
   [implementation status](IMPLEMENTATION_STATUS.md).
 
-The proposed invention labs, executable development-method inheritance and
-measured recursive benefit are not completed accomplishments. Deployed
-capability repair work remains paused and unmerged. The merged ACP mission
-adapter has outstanding review regressions. No complete public ASI:One or
-live sponsor mission is established by the evidence above.
+An accepted independent A → B → A method return and general recursive benefit
+remain unproved. Deployed capability repair stays preserved as draft #7. The
+ACP migration regressions are resolved; operator reports of public report/chat
+routing are separate from a complete public method-transfer mission. G0–G4
+remain open. See [implementation status](IMPLEMENTATION_STATUS.md).
 
 ## What's next
 
@@ -133,8 +141,9 @@ responsibilities and specialist participation when warranted. Capability
 evolution changes executable methods and tools while preserving local
 authority, exact versions and independent evaluation.
 
-The proposed lab requires a physics executor, domain-specific evaluation and
-executable development-method contracts beyond the present extraction path.
+The lab now has experimental executor/scorer and method contracts; the next
+work is independent runtime assurance, complete governed transfer evidence and
+a fresh accepted return with a predeclared comparison.
 The [recursive roadmap](RECURSIVE_CAPABILITY_IMPROVEMENT.md) separates
 accumulation, reuse/composition and measured recursive improvement. It calls
 for fixed-model comparisons, total cost accounting, unsuccessful runs and
@@ -149,16 +158,19 @@ execution; see the evidence below.
 
 ## Development disclosure
 
-Before submission, record the actual event window and identify pre-existing
-work versus work completed during it from repository history. Attach exact
-source revisions and run evidence for the submitted demonstration. Do not
+Our project timeline starts **Friday, October 23, 2026 (Pacific)** and continues
+through Sunday, October 25. The [timeline](PROJECT_TIMELINE.md) records each day
+and separates older research/infrastructure from the Friday-start project phase.
+Attach exact source revisions and run evidence for the submitted demonstration. Do not
 infer that a provider run occurred from the date its adapter was committed.
 Do not publish the current draft's proposed outcomes as accomplishments.
 
 ## Sponsor evidence
 
-The proposed roles below must be implemented and demonstrated before they
-become submission claims. They describe GENESIS responsibilities, not new
+The roles below combine implemented interfaces, dated operator reports and
+remaining submission gaps. Identifiers are recorded in the [architecture
+evidence table](../apps/stage/architecture.html); no provider run was repeated
+for this documentation update. They describe GENESIS responsibilities, not new
 sponsor API guarantees. Current submission requirements are recorded in the
 linked sponsor notes; account setup or a logo alone does not meet them.
 
@@ -173,29 +185,29 @@ transport tests do not prove public discovery or ASI:One completion.
 
 | Agent | Address | Proposed responsibility |
 | --- | --- | --- |
-| GENESIS Organization | `TODO-LIVE: agent1q…` | ACP entry point for the complete primary workflow |
+| GENESIS Organization | `agent1q284muxcdleukm2vrh670nljfp5hl8f25ew8d78jkzxf0j3w2gut2jyj9nl` | Public report/chat entry point; complete method transfer remains unproved |
 | GENESIS Research Specialist | `TODO-LIVE: agent1q…` | Independently recruited experimental or mechanism specialist |
 
 - Agentverse registration/profile: `TODO-LIVE: https://agentverse.ai/agents/details/…`
 - ASI:One shared conversation completing the primary workflow: `TODO-LIVE: https://asi1.ai/…`
-- Public GitHub submission repository: `TODO-LIVE: public repository URL`.
-  Visibility changes remain a separate owner decision.
+- Public GitHub submission repository: [HenryWashuHe/calhack13](https://github.com/HenryWashuHe/calhack13).
 - Setup and evidence requirements: [Fetch sponsor notes](FETCH_SPONSOR_NOTES.md)
   and [bridge README](../services/fetch-bridge/README.md).
 
 ### CREAO
 
-Proposed core work: a persistent experiment analyst executes the lab's
-analysis and follow-up responsibility across iterations. This workflow is
-not implemented by the current venue-specific assessment path.
+The team reports a published **GENESIS Method Revision Analyst** app with two
+completed runs. Production uses app-scoped API Trigger; GENESIS retains role
+contracts, authority, gateway readiness and domain verification.
 
-- Agent built on agent.creao.ai that actually performs core work:
-  `TODO-LIVE: agent ID`
-- Genuine run share link: `TODO-LIVE: https://…` (the CREAO Share link, not a run ID)
-- Core output and its effect on the lab's next action:
-  `TODO-LIVE: evidence reference`
-- Proposed track: Best AI-First Disruptor; select the track when submitting.
-- Requirements: [CREAO sponsor notes](CREAO_SPONSOR_NOTES.md).
+- Agent/app ID: `9880ad7c-fa2a-4a88-8c82-40eed5f81560`.
+- [Team-reported run share link](https://agent.creao.ai/share/45e3804d4b325b821557d8d70509b633)
+  (reported expiry November 24, 2026).
+- [Agent install link](https://agent.creao.ai/install/9880ad7c-fa2a-4a88-8c82-40eed5f81560).
+- Core output and its effect on the lab's next action: `TODO-LIVE: evidence reference`.
+- Proposed track: Best AI-First Disruptor; select it when submitting.
+- [Sponsor notes](CREAO_SPONSOR_NOTES.md) distinguish the console report from
+  backend migration tests and outstanding live readiness/core-work evidence.
 
 ### Apify
 
@@ -206,8 +218,10 @@ and does not implement a physics lab. Check the selected platform contract,
 independently evaluate output and record its contribution before claiming
 this role is implemented.
 
-- Actor: `TODO-LIVE: actor ID`
-- Build: `TODO-LIVE: build ID, build number`
+- Reported extraction Actor: `n8kB1hNqgzkddvWKp` (private, account `genesis-eric`).
+- Reported build: `D5hU7kSdSc20L08g3`, number `0.1.1`; October 24 gate
+  `20261024085438` reports 3/3 oracle cases. This baseline gate is not AI-generated
+  physics or evidence of a new lab executor. Judge access remains unresolved.
 - Verification runs: `TODO-LIVE: run IDs, dataset IDs and actual acceptance results`
 - Evidence of the Actor output affecting a design decision:
   `TODO-LIVE: input/output/decision references`
@@ -222,11 +236,13 @@ candidate methods, helping the labs select, develop and evaluate capabilities.
 Show actual use of Agent Builder and retrieval, not only an indexed record.
 
 - Project: `TODO-LIVE: project name/region` (no URLs containing keys)
-- Evidence/capability index: `TODO-LIVE: index name`
+- Evidence/capability indices: `genesis-iteration-ledger`, `genesis-evidence-*`,
+  `genesis-capabilities`; operator report records 429 ledger documents.
 - Specialist agent ID: `TODO-LIVE: agent ID`
 - Planner agent ID, if the planner ran on Agent Builder: `TODO-LIVE: agent ID`
 - Retrieval/agent execution and resulting decision: `TODO-LIVE: evidence references`
-- Smoke report: `TODO-LIVE: data/live-gates/gates-<run>.md`
+- Reported smoke: `data/live-gates/gates-20261025103959.md`, including a
+  converse turn using the evidence tool; retained local report, not a public URL.
 
 Authenticated cloud runs establish provider execution. They do not by
 themselves establish recursive improvement; that requires the independently

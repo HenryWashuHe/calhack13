@@ -5,8 +5,9 @@ evolution loop. A newly accountable role can request a missing web capability;
 the forge packages candidate source, creates a private Apify Actor, builds it,
 executes the pinned build against independent cases, and returns a verified draft.
 The kernel still decides whether the role and capability should become active.
-See [the kernel integration checkpoint](KERNEL_CAPABILITY_HANDOFF.md) for the
-tested workspace merge and exact interface changes needed on `feat/kernel-ui`.
+See [server acquisition](SERVER_ACQUISITION.md) and [capability execution](CAPABILITY_EXECUTION.md)
+for the merged kernel integration. The [original checkpoint](KERNEL_CAPABILITY_HANDOFF.md)
+retains the historical branch/interface review.
 
 ## Implemented boundary
 

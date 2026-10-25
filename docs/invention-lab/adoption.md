@@ -1,7 +1,7 @@
 # Invention lab: adopting an executable development method
 
-**Status: contract with a partial, standalone implementation (Henry's core
-Claude, method-adoption lane in issue #1).** It specifies how a receiving
+**Status: standalone acceptance and integrated server adoption/invocation are
+implemented as of October 25, 2026.** It specifies how a receiving
 organization decides whether to install and use an exact version of an
 executable development method. Method identity, execution and scoring receipts
 are Codex's contracts (`docs/invention-lab/contracts/**`). The evaluator,
@@ -17,7 +17,7 @@ What is implemented today, and what isn't:
 | Checked public receiver feedback for revision inputs | `lab-score feedback` (#102) | on main |
 | Exact method publication, search and fetch in the shared registry | `genesis-server/src/registry/methods.rs`, `method_client.rs` (#132, #133) | on main; grants no authority |
 | Receiving runs on real generated methods | evidence bundles from #98, #116 and #117 | on main; no adoption decided |
-| **Binding an accepted method to the receiver's requirement, responsibility, current role grant and epoch; pinned, authorized ordinary invocation; local decline and stale-grant rejection** | server | **not implemented.** Scoped as the next milestone in [issue #1](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388913830) |
+| Binding an accepted method to requirement, responsibility, current role grant and epoch; pinned invocation, local decline and stale-grant rejection | `method_adoption.rs`, `method_adoption_store.rs`, `routes/method_adoptions.rs` in genesis-server | on main; #154/#155/#159/#179/#186/#211, with #259 method.develop policy and #264–#266 optional rescoring/re-execution |
 
 The sidecar's `Installation` records the exact method, dependencies, acceptance
 plan, criterion, evaluator, environment and verdict. It does **not** name a
@@ -31,12 +31,14 @@ instead of inventing their fields.
 Throughout, three statuses are kept apart: **on main** (merged), **open PR**
 (pushed with tests, not merged, so not yet main's wire contract) and
 **proposed** (no integrated wire value yet). Receiving execution records exist;
-no governed method adoption or improvement has been established.
+operator-run adoption/use records exist, but independent organizational operation,
+an accepted recursive return and general improvement remain unestablished.
 
 ## What exists today, and what this extends
 
-Adoption today handles one artifact kind: a task capability (an Apify Actor build)
-described by a `CapabilityManifest`. Pieces this contract reuses:
+The original task-capability adoption path handles an Apify Actor build described
+by a `CapabilityManifest`. The separate method-adoption server path now builds on
+its authority and evidence boundaries. Original mechanisms:
 
 | Piece | Where | Status | Wire values |
 | --- | --- | --- | --- |
@@ -311,22 +313,24 @@ acceptance-experiment conclusion against the receiver's own trusted scorer.
 it does not authenticate their execution origin. A server integration must
 resolve evidence from receiver-controlled retention, not trust caller-authored
 receipts merely because their hashes agree.
-Steps 7 (budget policy) and 8 (evaluator requirement resolved by the receiver)
-and the `dependency_unavailable` path are not implemented.
+In that standalone sidecar, steps 7 (budget policy), 8 (receiver-resolved
+evaluator requirement) and `dependency_unavailable` remain outside its scope.
+The server separately pins its expected plan, evaluators and allowed dependencies.
 
-The server connection is the open part. A method adoption must be bound to
-the receiver's existing requirement, responsibility, current role grant and
-epoch through the existing authority snapshot, not a new registry or
-controller. The receiver's acceptance must be recomputed from retained records,
-never taken as a caller-authored flag. Invocation must check the pinned
-accepted version and current authority each time. Henry has acknowledged the scoped server work in issue #1; Codex approved the
-pure core-verdict move as its first prerequisite. These are assigned changes,
-not implemented authority. The kernel, registry and executor stay with their
-owners. No UI, simulator or evaluator code is part of this lane.
+The server connection is implemented: receiver-controlled expected-plan pins,
+retained-record assessment, requirement/responsibility/current-grant binding,
+durable decisions and the prepare/start/result/complete invocation lifecycle.
+See [method runs](contracts/method-runs.md), the implemented
+[routes](../../crates/genesis-server/src/routes/method_adoptions.rs), and
+[implementation status](../IMPLEMENTATION_STATUS.md). Conditional method.develop
+checks and optional receiver rescoring/re-execution are merged. Re-execution
+checks authority before staging and before commit; retained result consistency
+alone still does not authenticate execution origin or prove independent labs.
 
 ## Acceptance scenarios for the implementation
 
-Each becomes a test once the server connection exists. All use separate
+The cases below retain the original acceptance design; use the server tests and
+current review ledger for exact implemented coverage. All use separate
 organization databases and grants.
 
 1. **Compatible:** B adopts A's v1 after its own experiment; no regeneration;

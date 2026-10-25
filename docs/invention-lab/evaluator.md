@@ -1,14 +1,16 @@
 # Invention lab: evaluator and task contract
 
-**Status: reviewed contract proposal merged in #13, owned by Henry's core Claude
-(assigned in this repository's issue #1; legacy task genesis#126). Runtime is not
-merged or approved; branch-only `henry-claude/evaluator-impl` remains under review.**
+**Status: evaluator, executor and trusted scoring implementations are merged.**
+See [implementation status](../IMPLEMENTATION_STATUS.md) for current runtime
+assurance gaps and [the implementation](../../experiments/invention-lab/evaluator/README.md).
+The original contract was reviewed in #13; a merged runtime is not a completed
+independent recursive-return experiment.
 It defines the simulated world, the task families, how instances are drawn and
 hidden, how designs are scored, what a development experiment
 costs and how all of that is identified. The development-method artifact and
 its execution and scoring receipts are Codex's experimental contracts (#18,
 #22; lane genesis#124); local adoption is
-[the adoption proposal (#14)](https://github.com/HenryWashuHe/genesis-history-experiment/pull/14).
+[the implemented adoption contract](adoption.md).
 This document only references their types.
 
 Nothing here is a result. Simulated success says nothing about a physical
@@ -186,13 +188,13 @@ the experimental contracts in #18 (`development_method`, execution) and #22
 [experiment ledger](contracts/experiments.md) (#32) supply the bounded run scope.
 
 - `experiment(design, instance_ref, grant) -> ExperimentResult`
-  - Development only, inside one method execution. The current #28/#32
-    contracts support `acceptance` and `comparison` slots; `instance_ref` must
+  - Development only, inside one method execution. The original #28/#32
+    contracts supported `acceptance` and `comparison` slots; `instance_ref` must
     be one of the frozen public development instances in that slot's plan.
-    Comparison arms also develop on public instances. #18 has an `ordinary`
-    purpose, but ordinary-run scope/accounting is a future extension, not
-    supported by TrialPlan v1. Hidden instances are never reachable through
-    this call; hidden scoring is the separate trusted `score` operation.
+    Comparison arms also develop on public instances. TrialPlan v1 now also
+    supports public Development plans and grant-bound Invocation slots; see
+    [method runs](contracts/method-runs.md). Hidden instances are never reachable
+    through this call; hidden scoring is the separate trusted `score` operation.
   - Returns the simulation outcome, metrics, trace digest and downsampled trace.
     These feed the method's own transcript; they are not score evidence.
   - Debits the episode's **simulation steps** from the execution's grant

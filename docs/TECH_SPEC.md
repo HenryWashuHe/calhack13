@@ -2,8 +2,9 @@
 
 **Canonical framing: networked recursive capability improvement with fixed model weights.**
 
-Status: baseline architecture drafted October 21, 2026; direction revised October
-23. Section 14 now states the governing design direction. The original layouts,
+Project timeline starts **Friday, October 23, 2026 (Pacific)**; see
+[the timeline](PROJECT_TIMELINE.md). The baseline architecture below was drafted
+October 21 and its direction revised October 23. Section 14 now states the governing design direction. The original layouts,
 routes and venue workload below are design history, not a current inventory or
 product completion gate. Use [implementation status](IMPLEMENTATION_STATUS.md)
 for implemented vs unmerged vs proposed behavior, the [invention-lab proposal](INVENTION_LAB_DEMO.md)
@@ -25,7 +26,7 @@ Axum is designed around Tokio and the Tower middleware ecosystem. See [Axum docu
 
 Rust provides useful type and memory safety. Operational robustness additionally depends on durable state, explicit authority, bounded concurrency, reconciliation, and the acceptance tests below.
 
-Proposed source layout, to be created during implementation:
+Historical proposed source layout (the current paths are listed in [DEV.md](DEV.md#layout)):
 
 ```text
 crates/genesis-core/       domain types, authority and mutation validation
