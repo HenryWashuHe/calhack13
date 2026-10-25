@@ -700,7 +700,7 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
       const firstA = Object.values(sa.installations || {}).find(accepted);
       if (inh.adopted) setToken("b", inh.adopted); else if (firstA) setToken("a", key(firstA)); else setToken(null);
       // incremental event cursors; bounded visible tail
-      let fresh = 0;
+      let fresh = 0, ack = null; // ack: the judge's own answer seen in this poll, re-rendered after every event is applied
       for (const [org, list] of [["A", ea], ["B", eb]]) {
         for (const e of list) {
           const id = org + e.seq;
@@ -715,12 +715,14 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
             const at = app.obsAt.get(org + ":" + p.observation_id), decided = Date.parse(e.timestamp);
             const seconds = Number.isFinite(at) && Number.isFinite(decided) && decided >= at ? (decided - at) / 1000 : undefined;
             const verdict = String(p.verdict || "").replace(/_/g, " ");
-            showDecision({ verdict, why: p.summary, source: "live kernel " + (org === "A" ? (sa.org_id || "A") : (sb.org_id || "B")), model: p.model || "model unknown", when: seconds === undefined ? "" : `decided ${seconds.toFixed(1)} s after the evidence` });
-            if (p.observation_id) app.answers.set(org + ":" + p.observation_id, verdict);
-            if (org === "A" && p.observation_id && p.observation_id === app.lastJudgeObs) judgeStatus(`The planner answered: ${verdict}. See the decision card.`);
+            const card = { verdict, why: p.summary, source: "live kernel " + (org === "A" ? (sa.org_id || "A") : (sb.org_id || "B")), model: p.model || "model unknown", when: seconds === undefined ? "" : `decided ${seconds.toFixed(1)} s after the evidence` };
+            showDecision(card);
+            if (p.observation_id) app.answers.set(org + ":" + p.observation_id, card); // the complete answer, keyed by organization and observation
+            if (org === "A" && p.observation_id && p.observation_id === app.lastJudgeObs) ack = org + ":" + p.observation_id;
           }
         }
       }
+      if (ack) { showDecision(app.answers.get(ack)); judgeStatus(`The planner answered: ${app.answers.get(ack).verdict}. See the decision card.`); } // the card the status points to is the judge's own answer
       app.tail.sort((x, y) => String(x[3]).localeCompare(String(y[3])));
       if (app.tail.length > TAIL) app.tail.splice(0, app.tail.length - TAIL);
       renderEvents(app.tail.map((r) => r.slice(0, 3)), Math.min(fresh, TAIL), app.seen > TAIL ? `last ${TAIL} of ${app.seen} events` : `${app.seen} events`);
@@ -786,7 +788,8 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
       app.liveChat = [...app.liveChat, { you: "report " + summary }, { org: `Recorded as evidence ${id} for Org A's mission (live). The planner is reading it now; its verdict appears in the decision card.` }];
       renderChat(app.liveChat); $("judgetext").value = "";
       const early = app.answers.get("A:" + id); // the planner may have answered before this receipt arrived
-      judgeStatus(early ? `The planner answered: ${early}. See the decision card.` : `Recorded ${id} · waiting for the planner`);
+      if (early) showDecision(early);
+      judgeStatus(early ? `The planner answered: ${early.verdict}. See the decision card.` : `Recorded ${id} · waiting for the planner`);
     } catch (err) {
       if (gen !== app.gen) return;
       judgeStatus("Could not reach the kernel: " + (err && err.message ? err.message : "blocked"), true);
