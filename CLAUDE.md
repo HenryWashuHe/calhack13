@@ -97,7 +97,8 @@ every milestone. All lower checkpoints are historical.
   pass again on the exact final composition. Four old guard cases remain unchanged.
   Schema-1 read/replay stays compatible, but method invocation requires a new
   compatibility decision; the old authorization helper is only an ownership check.
-  #186 `b069b129` is held on disabled-receiver receipt retention and a frozen binding
+  New #186 `95bd7641` is unreviewed. The prior `b069b129` hold concerned
+  disabled-receiver receipt retention and a frozen binding
   that can exceed the receipt cap (12 library + four HTTP controls pass, two
   new guards fail). These are record/loopback checks, not execution proof.
   Henry retains this lane.
@@ -274,9 +275,10 @@ every milestone. All lower checkpoints are historical.
   #174 `f67ae448` → `73d039b5` clears its bounded-read/path hold: five focused
   tests, three temporary inert-file checks and scoped strict Clippy/fmt pass.
   It delegates to merged typed `assess_process_slot`; no scorer ran. Endpoint
-  #168 correction `8e132a96` is unreviewed. Prior `99b2c8b0` findings concerned
-  family-specific policy, full method identity and ordered/not-run roster binding
-  (one control passed, seven subcases failed); those are prior-source evidence.
+  #168 `8e132a96` remains held after exact review: five prior guards and a valid
+  policy control pass, but eight new `daf04dd5` subcases fail on consistently
+  wrong resource limits and skipped missing criterion. These are pure/mocked
+  checks, not runtime evidence.
   Selective-transfer #165 `cb5f28f0` merged at `b99839df` after corrected claims
   and static checks of 713 manifest entries, 523 artifact hashes, 12 slot joins
   and nine declaration comparisons. Original records are unchanged; the parent
@@ -349,20 +351,21 @@ activity, a foreign decision replacing a pending card, and Explain CSS matching
 and depends on held #198; it grants no new authority or ownership.
 Eric's new #148 `62c2a0c3` is unreviewed; previous `1519c275` findings remain
 historical. #149 new `6e08ba9` also awaits review; its prior findings are historical.
-Scheduling-study draft #201 `557127b4` is separately claimed and unreviewed;
+Scheduling-study #201 `557127b4` is separately claimed and unreviewed;
 reported offline calibration/replay is not independently checked formal evidence.
 ACP's config-only #202 `6640fac8` → `038b8ce9` is merged after official-key review,
 without app tests; explicit bot commands and App installation remain separate.
-Proposal #195 `81bddd78` is held after [document review](https://github.com/HenryWashuHe/genesis-history-experiment/pull/195#pullrequestreview-5641553241):
-finite #184 samples do not prove a family-wide cap or inability to improve;
-calibration needs the corrected, pinned harness and declared controls/budgets.
+Proposal #195 corrected source `ec3bb5d8` was merged by a colleague at `c113cfc5`
+and independently reviewed. Finite-sample overclaims and calibration prerequisites
+are corrected; full controls/builds/scoring/panels/grants must be frozen. This is
+a proposal only, with no new runs or gate closure.
 
 Queue cleanup preserved branches: #176/#177/#178 closed as superseded by
 #180/#181 and revised proposals #182/#183 after exact code/test comparisons.
 #143 closed as deferred, outside the active goal. #167 `d2b76522` merged at `0643c9ef`
 after root source review, locked executor check and strict all-target Clippy.
 The five-line staging-collision fix is not runtime or namespace assurance.
-Henry's priority remains held #186 and review of new #168; #184 `68e05610` remains held on
+Henry's priority remains review of #186 and held #168; #184 `68e05610` remains held on
 calibration unknown-to-zero and timeout/failure handling before new research runs.
 The `b5a35bf` invocation rehearsal is author-reported and unreviewed here,
 not independent organizational evidence or gate closure.
