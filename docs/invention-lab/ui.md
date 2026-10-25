@@ -152,7 +152,8 @@ fresh, or a decline was justified, is for the owners' evaluation.
 changes no shared configuration. The operator chooses record files or a whole
 evidence folder; they are read in the browser only. Each file is recognized by
 shape or listed with the reason it was not used. A status pairs with the
-checkpoint of the same operation in the same phase, so an evidence folder's
+checkpoint of the same organization, operation and exact request in the same
+phase (operation names can repeat across organizations), so an evidence folder's
 Prepared checkpoint is listed rather than used. Adoption outcomes other than
 `adopted` cannot name their receiver or method and are listed as needing host
 pairing. The operator then picks orgs A and B from those named in the records.
