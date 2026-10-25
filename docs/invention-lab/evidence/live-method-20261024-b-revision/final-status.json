@@ -1,0 +1,42 @@
+{
+  "actual_model": "claude-sonnet-5-5",
+  "authority": "none: generated source, not execution, acceptance or improvement; provider-default sampling is not fixed G4 evidence",
+  "operation_id": "live-b-revision-20261024t182242z-80adc80d",
+  "org_id": "org_example_b",
+  "package": {
+    "domain": "genesis",
+    "id": "receiver-revised-method",
+    "schema": "development-method-source/1",
+    "sha256": "4f455dc6e625bdaf554d567bdd7f0bc0c7b601a1ea6332d4e7a13e02005db14d",
+    "version": "0.1.0"
+  },
+  "phase": "generated",
+  "plan_sha256": "3bc469b96d404063a9bdcf987b599f87f3ef3fae044b45886de656f4b49d828a",
+  "request_sha256": "6f6225669059fd7dd512c194cec783787f37fffa77d87e2684311fc4f0ab80ef",
+  "settings": {
+    "max_tokens": 8192,
+    "model": "claude-sonnet-5-5",
+    "sampling": "provider_default",
+    "timeout_ms": 120000
+  },
+  "transport": "anthropic_https",
+  "usage": {
+    "input_tokens": {
+      "kind": "measured",
+      "value": 20798
+    },
+    "model_calls": {
+      "kind": "measured",
+      "value": 1
+    },
+    "output_tokens": {
+      "kind": "measured",
+      "value": 5741
+    },
+    "wall_time_ms": {
+      "kind": "measured",
+      "value": 40223
+    }
+  },
+  "wire_sha256": "56a9c82c6b44b41ba9f0742937ab0ffe210c210b3fcd61faa1d5cd17830695fe"
+}

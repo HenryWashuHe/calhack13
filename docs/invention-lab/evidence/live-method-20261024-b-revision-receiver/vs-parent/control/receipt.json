@@ -1,0 +1,115 @@
+{
+  "binding": {
+    "org_id": "org_example_b",
+    "run_id": "run-control",
+    "attempt_id": "att_control",
+    "method": {
+      "domain": "genesis",
+      "schema": "development-method-source/1",
+      "id": "generated-method",
+      "version": "0.1.0",
+      "sha256": "8215c3679a06724069759bcbdaa576b64ec0ef1251c5238a797c0cb34962b944"
+    },
+    "dependencies": [],
+    "public_task": {
+      "domain": "genesis-lab",
+      "schema": "lab-task/1",
+      "id": "rough-transport",
+      "version": "1",
+      "sha256": "7ea1854c2b359837033ade75434e2ca165465492792fbb66efaf21117758456b"
+    },
+    "evaluator": {
+      "domain": "genesis-lab",
+      "schema": "lab-evaluator/1",
+      "id": "genesis-lab-eval",
+      "version": "0.1.0",
+      "sha256": "1f03d1b6499721e6ddae6e600b688c123a8684e34c56f53cde8104d361246f42"
+    },
+    "model_settings": {
+      "domain": "genesis-lab",
+      "schema": "lab-model-settings/1",
+      "id": "none",
+      "version": "1",
+      "sha256": "22d87a28faebccda00538e6c2e78aab3a87e4749bd2e255572afdceefded8839"
+    },
+    "environment": {
+      "domain": "genesis-lab",
+      "schema": "lab-environment/1",
+      "id": "genesis-lab-exec/namespaces",
+      "version": "0.1.0",
+      "sha256": "2231a9303d03253fef9b0e38aa21491aa0ad58057e7a308bd76cc5429f43d745"
+    },
+    "purpose": {
+      "kind": "acceptance",
+      "plan": {
+        "domain": "genesis",
+        "schema": "development-trial-plan/1",
+        "id": "rough-transport-child-vs-parent",
+        "version": "1",
+        "sha256": "4a9eb4894ad71f13183d947daf75ada74bf372e86f4cfb517c0ac41ea47b1eb9"
+      },
+      "role": "control"
+    },
+    "budget": {
+      "model_calls": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "wall_time_ms": 60000,
+      "simulation_steps": 72000
+    }
+  },
+  "binding_sha256": "426c3794e804a649ebabafda0c3a3066ce35d94f73bbbd19f57e6a3603fdc6e6",
+  "actual_method": {
+    "domain": "genesis",
+    "schema": "development-method-source/1",
+    "id": "generated-method",
+    "version": "0.1.0",
+    "sha256": "8215c3679a06724069759bcbdaa576b64ec0ef1251c5238a797c0cb34962b944"
+  },
+  "actual_environment": {
+    "domain": "genesis-lab",
+    "schema": "lab-environment/1",
+    "id": "genesis-lab-exec/namespaces",
+    "version": "0.1.0",
+    "sha256": "2231a9303d03253fef9b0e38aa21491aa0ad58057e7a308bd76cc5429f43d745"
+  },
+  "outcome": "output_generated",
+  "outputs": [
+    {
+      "domain": "genesis-lab",
+      "schema": "lab-design/1",
+      "id": "output",
+      "version": "1",
+      "sha256": "2483f08f8ec33f4144a4a6105842bd9e2da7702275592140c3aca35c2ac61cec"
+    }
+  ],
+  "transcript": {
+    "domain": "genesis",
+    "schema": "development-experiment-transcript/1",
+    "id": "control",
+    "version": "1",
+    "sha256": "b62d503356f0e199a60352fd39c0661a20069d636931f0757956def81297b5a1"
+  },
+  "usage": {
+    "model_calls": {
+      "kind": "measured",
+      "value": 0
+    },
+    "input_tokens": {
+      "kind": "measured",
+      "value": 0
+    },
+    "output_tokens": {
+      "kind": "measured",
+      "value": 0
+    },
+    "wall_time_ms": {
+      "kind": "measured",
+      "value": 4035
+    },
+    "simulation_steps": {
+      "kind": "measured",
+      "value": 5205
+    }
+  }
+}

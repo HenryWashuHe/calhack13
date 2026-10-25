@@ -1,0 +1,177 @@
+// Eric's Claude: arrange decoded records into attempts, exact method nodes and
+// typed edges (docs/invention-lab/ui.md). Pure and read-only. Inconsistent
+// records are reported as problems, never silently reconciled.
+
+import { tierOf, type Tier } from "./claims";
+import {
+  refKey,
+  samePurpose,
+  type AdoptionOutcome,
+  type CheckpointOutcome,
+  type EvaluationReceipt,
+  type ExactRef,
+  type ExecutionReceipt,
+  type GenerationStatus,
+  type RevisionObservation,
+} from "./records";
+
+export interface AdoptionInput {
+  /** From the receiver's own `receiver.json`. */
+  receiver_org: string;
+  /** From the `lab-adopt precheck` output's `offer`. */
+  offer: ExactRef;
+  outcome: AdoptionOutcome;
+}
+
+export interface LabRecords {
+  generations: { status: GenerationStatus; checkpoint?: CheckpointOutcome }[];
+  revisions?: RevisionObservation[];
+  adoptions?: AdoptionInput[];
+  executions?: ExecutionReceipt[];
+  evaluations?: EvaluationReceipt[];
+}
+
+export interface Execution {
+  receipt: ExecutionReceipt;
+  /** Node key of the method the executor reports it ran. */
+  method: string;
+  /** Evaluations whose request names this run's receipt hash (`execution_sha256`),
+   * with an output among this run's outputs and the same purpose. */
+  evaluations: EvaluationReceipt[];
+}
+
+export interface Attempt {
+  status: GenerationStatus;
+  /** Enum outcome from the matching checkpoint, if one was supplied and matches. */
+  outcome: { kind: string; reason: string | null } | null;
+  tier: Tier;
+  /** Measured output equals the declared cap. Not proof of truncation. */
+  reachedOutputCap: boolean;
+}
+
+export interface MethodNode {
+  key: string;
+  ref: ExactRef;
+}
+
+export type Edge =
+  | { kind: "generated"; org_id: string; operation_id: string; to: string }
+  | { kind: "revised_from"; org_id: string; operation_id: string; from: string; to: string; source_changed: boolean }
+  | {
+      kind: "adoption";
+      org_id: string;
+      to: string;
+      outcome: AdoptionOutcome;
+      /** `record`: the installation names org and method itself. `host`: the
+       * outcome alone does not, so the pairing was supplied alongside it. */
+      pairing: "record" | "host";
+    };
+
+export interface Lineage {
+  attempts: Attempt[];
+  nodes: MethodNode[];
+  edges: Edge[];
+  executions: Execution[];
+  problems: string[];
+}
+
+export function buildLineage(records: LabRecords): Lineage {
+  const nodes = new Map<string, MethodNode>();
+  const edges: Edge[] = [];
+  const problems: string[] = [];
+  const node = (ref: ExactRef): string => {
+    const key = refKey(ref);
+    if (!nodes.has(key)) nodes.set(key, { key, ref });
+    return key;
+  };
+
+  // An operation is identified by its organization and operation id together:
+  // two organizations may reuse an operation name.
+  const opKey = (org: string, op: string) => `${org}\u0000${op}`;
+  const seen = new Set<string>();
+  const attempts = records.generations.map(({ status, checkpoint }): Attempt => {
+    const op = status.operation_id;
+    const key = opKey(status.org_id, op);
+    if (seen.has(key)) problems.push(`operation ${op} of ${status.org_id} appears more than once`);
+    seen.add(key);
+    let outcome: Attempt["outcome"] = null;
+    if (checkpoint) {
+      if (
+        checkpoint.org_id !== status.org_id ||
+        checkpoint.operation_id !== op ||
+        checkpoint.request_sha256 !== status.request_sha256
+      ) {
+        problems.push(`checkpoint does not match status for operation ${op}; its outcome is not shown`);
+      } else if (checkpoint.phase !== status.phase) {
+        problems.push(`checkpoint phase ${checkpoint.phase} differs from status phase ${status.phase} for ${op}`);
+      } else {
+        outcome = checkpoint.outcome;
+      }
+    }
+    if (status.package) {
+      if (status.phase === "generated")
+        edges.push({ kind: "generated", org_id: status.org_id, operation_id: op, to: node(status.package) });
+      else problems.push(`operation ${op} names a package in phase ${status.phase}`);
+    }
+    const out = status.usage?.output_tokens;
+    return {
+      status,
+      outcome,
+      tier: tierOf(status.transport),
+      reachedOutputCap: out?.kind === "measured" && out.value === status.settings.max_tokens,
+    };
+  });
+
+  for (const r of records.revisions ?? []) {
+    const gen = attempts.find((a) => a.status.org_id === r.org_id && a.status.operation_id === r.operation_id);
+    if (gen?.status.package && refKey(gen.status.package) !== refKey(r.child))
+      problems.push(`revision child differs from the package of operation ${r.operation_id} of ${r.org_id}`);
+    edges.push({
+      kind: "revised_from",
+      org_id: r.org_id,
+      operation_id: r.operation_id,
+      from: node(r.parent),
+      to: node(r.child),
+      source_changed: r.source_changed,
+    });
+  }
+
+  for (const a of records.adoptions ?? []) {
+    const installed = a.outcome.installed;
+    if (installed) {
+      if (installed.org_id !== a.receiver_org || refKey(installed.method) !== refKey(a.offer))
+        problems.push(`installation for ${installed.org_id} does not match the supplied receiver/offer; showing the installation`);
+      edges.push({ kind: "adoption", org_id: installed.org_id, to: node(installed.method), outcome: a.outcome, pairing: "record" });
+    } else {
+      edges.push({ kind: "adoption", org_id: a.receiver_org, to: node(a.offer), outcome: a.outcome, pairing: "host" });
+    }
+  }
+
+  const executions: Execution[] = [];
+  const runs = new Set<string>();
+  for (const receipt of records.executions ?? []) {
+    const run = `${receipt.org_id}/${receipt.run_id}/${receipt.attempt_id}`;
+    if (runs.has(run)) problems.push(`execution ${run} appears more than once`);
+    runs.add(run);
+    if (refKey(receipt.bound_method) !== refKey(receipt.actual_method))
+      problems.push(`execution ${run} ran a different method than its binding named; shown under the method it ran`);
+    executions.push({ receipt, method: node(receipt.actual_method), evaluations: [] });
+  }
+  // An evaluation attaches only to the execution its request names by receipt
+  // hash; matching output and purpose alone could be another organization's run.
+  for (const ev of records.evaluations ?? []) {
+    const named = executions.filter((e) => e.receipt.receipt_sha256 === ev.execution_sha256);
+    const run = named[0];
+    if (!run) {
+      problems.push(`evaluation ${ev.request_id} names execution ${ev.execution_sha256.slice(0, 12)}, which no supplied receipt has; not attached`);
+    } else if (!run.receipt.outputs.some((o) => refKey(o) === refKey(ev.output))) {
+      problems.push(`evaluation ${ev.request_id} scores an output its named execution did not produce; not attached`);
+    } else if (!samePurpose(run.receipt.purpose, ev.purpose)) {
+      problems.push(`evaluation ${ev.request_id} has a different purpose than its named execution; not attached`);
+    } else {
+      run.evaluations.push(ev);
+    }
+  }
+
+  return { attempts, nodes: [...nodes.values()], edges, executions, problems };
+}

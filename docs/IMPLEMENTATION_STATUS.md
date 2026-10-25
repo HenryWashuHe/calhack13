@@ -11,8 +11,8 @@ weights. Event organization remains superseded. G0–G4 are still open.
 The revised app Goal was activated on October 24, 2026 after the stale record
 was cleared; the existing hourly continuation remains active.
 
-Main through `f45cb1deb57887219622b8dc123928ff764bcd9b`, tree
-`3c8ec2660cb552ac503c66c65aa56b0cb6184ae3`, includes the reviewed
+Main through `85c5c11154391562ec7469c6385f1039605b66cc`, tree
+`f28c8c9dbe8334898d8566321c4687d11f374265`, includes the reviewed
 foundations below. Method generation merged at `d1be8443fee46e1196861926a963563f48407936`,
 whose tree `dc9d6adc19863d8584fd5af1fd11eae7552014eb` exactly matches the independently
 validated generation stack. Counts refer to the named source/composition, not a
@@ -20,6 +20,10 @@ combined main run.
 
 | Work | Validation and evidence boundary |
 | --- | --- |
+| Generated B source revision #112/#113 (`163e952` / `e5d7ece`), result merge `4bcd5c5` | Preparation merged before one request. Independently checked 34 final hashes, 23 unchanged prepared entries plus their manifest, 33 JSON records and six byte-identical read-only CLI outputs; all 36 input files unchanged by review. Child `4f455dc6`, changed source bytes and AST parsing only. Operator-assigned exploratory rough-transport work; no B execution/adoption/scoring or G3 closure. |
+| UI evidence labels #93 `05f77d2` → `85c5c11` | Own-property correction clears label regressions. Reviewed composition `478ad82`: 18 pass, two known downstream #94 failures, typecheck passes; unchanged independent `78adef37`. Other UI holds remain. |
+| Public feedback #102 `c8bf7a0` → `7accefd3` | Eight focused tests independently pass with strict Clippy/fmt, preserving `8ad9d645`. Hidden-policy and byte-cap holds cleared; read-only regeneration retains all 24 live-record experiments in 18,152 bytes. No source execution, adoption or revised-method result. |
+| Optional chain generation guard #110 `4b57cfa` → `0f277d7` | Independent 34 focused tests pass; author 33 focused tests and strict Clippy/fmt. Optional retained-chain validation precedes recovery/credentials/reservation/provider calls. Counts overlap; cooperating commands only, no runtime-entry or global enforcement claim. |
 | Retained chain CLI (`f8b6919`, composition `42d15cd`) | Create-only whole-chain declaration and per-stage bindings; read-only checks reuse existing generation allocation and trial bindings. Full forge 221/42 plus independent 20 focused checks, strict Clippy/fmt. [Contract](invention-lab/contracts/chain-allocation.md#retained-cli-files). No automatic runtime consumption or controlled comparison. |
 | CREAO blank-version compatibility #96 source `dbec006da117a5a9f84389d85f27956f997bdf21`, merge `04b4c3756b03a4f5b3c7c7627a48717ccfdc7697` | Independently 68 CREAO Rust tests and 10 Node gate tests pass; the 10 Node cases were also separately rerun. Strict Clippy/fmt are author-validated. Unset/blank selects v1 consistently; explicit v2 stays opt-in and invalid nonblank versions fail. Offline only; no hosted completion or changed saved identities. |
 | Stage prerequisite / active-goal checkpoint #97 source `202e1fce4fb27418d6fe4898b6f57545de92f342`, merge `2dfc0993132385cc83227848b722fef08a7d01f0` | Ten independent stage/CLI/overflow/recovery cases pass; scoped strict Clippy/fmt. Existing checked arithmetic is shared through read-only accessors without changing valid serialization/hash domains. Current docs record the revised active app Goal; no gate closes. |
@@ -148,16 +152,42 @@ exact generated package. This review did not execute source, run the scorer or
 call providers. The report covers the first trial only, excluding the two failed
 generation attempts, separate reference run and second comparison. It is not
 whole-experiment cost evidence. No recorded local adoption/promotion, distinct
-B task or fresh A return is established. Feedback export #102
-`737d214a11c5e5c6b8cf1e4d4991bed0691b2e81` is
-[held](https://github.com/HenryWashuHe/genesis-history-experiment/pull/102#issuecomment-6387587313):
-independent `8ad9d645` has two failures and one passing control. It accepts hidden
-comparison input for public export and emits 133,229 bytes against the 131,072-byte
-revision limit. Henry owns the correction; do not use it as a revision input.
+B-task execution or fresh A return is established. Public feedback #102 source
+`c8bf7a0e397d0a641239585ce5e50dcc292abd91` merged at
+`7accefd3cf5da521208f17fa1474001e92aa3753`. Both prior holds are cleared:
+Development-only policy is checked before record reads, and the document is
+bounded to 128 KiB with explicit design omissions and listed/total counts.
+Five author tests plus the three unchanged `8ad9d645` cases independently pass,
+alongside strict Clippy/fmt. Read-only regeneration on copies of #98 records
+produced 18,152 bytes, all 24 experiments fully listed; 55 inputs stayed
+byte-identical. Hash `9218988fed77dba3ffc04ca583560f339672079c5ec8237bf61bc34ed4631472`
+is local content identity, not new execution or adoption evidence.
+B's [exploratory source revision](invention-lab/evidence/live-method-20261024-b-revision/README.md)
+is now Generated. #112 preparation `163e952` merged before the single guarded
+request; #113 source `e5d7ece` merged at `4bcd5c5`. Exact parent `8215c367` and
+checked feedback `9218988f` yielded child `4f455dc6`: 6044 source bytes / 192
+lines, `source_changed: true`, AST parsing only. The operator assigned B the
+distinct rough-transport task; the parent's rejected random-search comparison
+remains negative context. No B execution, scoring, adoption or fresh A return is
+established. Henry owns those receiving decisions and trials with separate budgets.
+Usage: 1 Anthropic `claude-sonnet-5-5` call, 20,798 input / 5,741 output tokens,
+40,223 ms; one reservation remains spent. Four observed calls total 32,825 input /
+24,056 output tokens and 181,342 ms summed request time. This is arithmetic,
+not a prior combined grant or exhaustive billing, and excludes receiver costs.
 
-Eric retains the UI lane: #93 `9733b96` / #94 `9ac13fc` still have the two
-existing findings, with independent regression `78adef37` to preserve. #99–#101
-await those base fixes. His [separate CREAO ticket-reconciliation claim](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6387513389)
+Eric retains the UI lane. #93 `05f77d2` merged at `85c5c11` after label
+regressions cleared; reviewed composition `478ad82` with unchanged `78adef37`
+passes 18 cases/typecheck and retains two known #94 organization failures.
+Last reviewed #94 `3abc0f4`, #99 `425206c`, #100 `9cea7a2` and #101 `3a7af32`
+remain held: organization binding, exact ledger arithmetic, foreign-execution
+scoring and cross-org lineage/checkpoint pairing. Unchanged `59c3e1c` retains
+four failures/two controls; 28 author-focused tests and typecheck pass.
+#109 `55bb894` retains unsupported-version/SHA-only inspection holds from
+`632b291` / `f2ac45e5` (four failures/one control; 39 existing tests/typecheck
+passed there). Preserve these cases; later pushes require exact-head review.
+Archival stage presenter #108 `feb3da7` is held on visible hidden controls and
+stale Live caption after poll failure; it is separate from goal progress and
+revives no event-organizer direction. Eric's [separate CREAO ticket-reconciliation claim](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6387513389)
 merged as #104 (`5023a48` → `62a2f009`), with 69 original tests and three
 independent guards retained in #106 (`e8cf6010` → `90a26e00`). This establishes
 local recovery mechanics, not hosted recovery or readiness; the old unretained
@@ -311,8 +341,9 @@ This is local compatibility evidence; neither old failure is reinterpreted. The
 [third attempt on `07c098c`](invention-lab/evidence/live-method-20261024-generated/README.md)
 produced a canonical package: 4027 source bytes/137 lines, AST parse only. Usage:
 1 call, 4,028 input / 5,231 output tokens, 42,198 ms. Henry owns its exact-bound
-runtime/acceptance handoff; no runtime retagging. Execution/scoring/adoption remain
-unproved; G0–G4 are open and chain ceilings proposed.
+runtime/acceptance handoff; no runtime retagging. Separate #98 receiving
+execution/scoring records are checked above; adoption and the return remain
+unproved. G0–G4 remain open; chain ceilings and retained CLI are merged.
 Earlier delivery/source-specific evidence remains in the handoff; overlapping
 test counts must not be summed. Repair WIP is isolated in draft #7 and its
 original files remain untouched. Follow current
