@@ -1,0 +1,6 @@
+[2m2026-10-25T07:04:22.490619Z[0m [33m WARN[0m [2mgenesis_planner::llm[0m[2m:[0m transient model error; retrying [3merror[0m[2m=[0mmodel request failed: connect [3mretry_in_ms[0m[2m=[0m2000
+[2m2026-10-25T07:04:24.498095Z[0m [33m WARN[0m [2mgenesis_planner::llm[0m[2m:[0m transient model error; retrying [3merror[0m[2m=[0mmodel request failed: connect [3mretry_in_ms[0m[2m=[0m8000
+Escalated {
+    reason: "model call failed: model request failed: connect",
+    attempts: 1,
+}
