@@ -216,6 +216,11 @@ fn run_tool(
     }
 }
 
+/// Whether a receipt's measured wall time is within `grant` milliseconds.
+fn fits(bytes: &[u8], grant: u64) -> bool {
+    wall_ms(bytes).is_some_and(|ms| ms <= grant)
+}
+
 /// Measured wall time of a receipt, if it was measured.
 fn wall_ms(bytes: &[u8]) -> Option<u64> {
     let v: Value = serde_json::from_slice(bytes).ok()?;
@@ -326,11 +331,11 @@ impl MethodRescorer {
                 }
             }
             // Wall time is the one measurement left out of the comparison, so
-            // it is re-derived here: the retained claim that scoring fit its
+            // it is re-derived here: a retained claim that scoring fit its
             // grant only counts if it fits on this host too.
-            if wall_ms(&fresh).is_none_or(|ms| ms > scoring_grant) {
+            if fits(&retained, scoring_grant) && !fits(&fresh, scoring_grant) {
                 return Err(fail(format!(
-                    "rescoring the {slot} slot here did not fit its scoring grant"
+                    "the retained {slot} scoring fits its grant but rescoring here did not"
                 )));
             }
             let metrics = serde_json::from_slice::<Value>(&fresh)
