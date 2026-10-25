@@ -26,7 +26,6 @@ use std::time::Duration;
 
 const NEED: &str = "Develop rough-transport cart designs with a method another lab published";
 const ACCEPTANCE: &str = "Beats the fixed cart by one success on six fresh public instances";
-const TRIAL: &str = "rehearse4-accept-vs-fixed-cart";
 
 fn env(name: &str) -> PathBuf {
     PathBuf::from(std::env::var(name).unwrap_or_else(|_| panic!("set {name}")))
@@ -252,6 +251,9 @@ async fn rehearse_two_organizations_with_a_live_planner() {
     // A publishes its child with A's registry token.
     let spec: Value =
         serde_json::from_slice(&std::fs::read(dir.join("spec.json")).unwrap()).unwrap();
+    // The spec names the trial; its prefix labels this run's request keys.
+    let trial = spec["trials"][0]["id"].as_str().unwrap().to_string();
+    let label = trial.split("-accept").next().unwrap().to_string();
     let child_path = dir.join(spec["packages"]["child"]["path"].as_str().unwrap());
     let package_json = std::fs::read_to_string(&child_path).unwrap();
     let envelope: Value = serde_json::from_str(&package_json).unwrap();
@@ -317,7 +319,7 @@ async fn rehearse_two_organizations_with_a_live_planner() {
         .unwrap();
     write(&out.join("search.json"), &json!(found));
     assert_eq!(found.candidates.len(), 1);
-    let request = json!({"client_request_id":"rehearse4-selection","need":NEED,
+    let request = json!({"client_request_id":format!("{label}-selection"),"need":NEED,
         "acceptance":ACCEPTANCE,"selection":found.candidates[0]});
     let (status, intake) = b_api
         .post(&format!("/missions/{mission}/method-development"), &request)
@@ -330,7 +332,7 @@ async fn rehearse_two_organizations_with_a_live_planner() {
 
     // B's live planner: the real `genesis-planner` binary, one `once` call for
     // the intake observation, against B's process with B's agent token. Model
-    // settings come from the caller's GENESIS_LLM_* only; nothing else passes.
+    // settings come from the caller's GENESIS_LLM_* plus the HTTPS proxy and CA file.
     let planner_bin = env("PLANNER_BIN");
     let observation = intake["observation_id"].as_str().unwrap().to_string();
     let llm: Vec<(&str, OsString)> = [
@@ -340,6 +342,16 @@ async fn rehearse_two_organizations_with_a_live_planner() {
         "GENESIS_LLM_BASE_URL",
     ]
     .into_iter()
+    // Rehearsal 4 cleared these too, so the planner couldn't reach the
+    // provider through this host's proxy. HTTPS only: B is plain HTTP on
+    // loopback, so no HTTP proxy variable is passed.
+    .chain([
+        "HTTPS_PROXY",
+        "https_proxy",
+        "NO_PROXY",
+        "no_proxy",
+        "SSL_CERT_FILE",
+    ])
     .filter_map(|k| std::env::var_os(k).map(|v| (k, v)))
     .collect();
     let planner = |sub: &str, with_model: bool| {
@@ -413,7 +425,7 @@ async fn rehearse_two_organizations_with_a_live_planner() {
     std::fs::write(out.join("receive.stdout"), &r.stdout).unwrap();
     std::fs::write(out.join("receive.stderr"), &r.stderr).unwrap();
     assert!(r.status.success(), "{}", String::from_utf8_lossy(&r.stderr));
-    let trial_dir = trial_out.join(TRIAL);
+    let trial_dir = trial_out.join(&trial);
     let plan: Value =
         serde_json::from_slice(&std::fs::read(trial_dir.join("plan.json")).unwrap()).unwrap();
     let verdict: Value =
@@ -455,7 +467,7 @@ async fn rehearse_two_organizations_with_a_live_planner() {
             "role_id":role,"responsibility_id":responsibility,"publisher":"org_example_a",
             "reference":child,"decision":decision})
     };
-    let adopt = json!({"decision":"adopt","trial":TRIAL});
+    let adopt = json!({"decision":"adopt","trial":trial});
     // A's operator token means nothing to B.
     let a_on_b = Http {
         base: b_api.base.clone(),
@@ -552,7 +564,7 @@ async fn rehearse_two_organizations_with_a_live_planner() {
                 os("--org"),
                 os(&b_api.base),
                 os("--key"),
-                os("rehearse4-run"),
+                os(format!("{label}-run")),
                 os("--request"),
                 os(out.join("proposed-request.json")),
                 os("--plan"),
