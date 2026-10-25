@@ -1,0 +1,81 @@
+{
+  "assignments": {
+    "asg_615463521c5747b1b45f664ecaae9ae5": {
+      "assignment_id": "asg_615463521c5747b1b45f664ecaae9ae5",
+      "epoch": 1,
+      "lease_expires_at": null,
+      "responsibility_id": "rsp_b16ca23d2eab490f9fb9a1f7e9bd70e8",
+      "role_id": "role_47f2bc198d3b40328a40507d050483c8",
+      "state": "ACTIVE"
+    }
+  },
+  "capability_gaps": {},
+  "constitution": {
+    "budget_cents": 1000000,
+    "max_active_contracts": 3,
+    "max_active_roles": 10,
+    "scopes": [
+      "method.develop",
+      "mission.coordinate"
+    ]
+  },
+  "contracts": {},
+  "installations": {},
+  "missions": {
+    "mis_741f5a0ec24941b8b522c6ab8ae2ee03": {
+      "constraints": [],
+      "created_at": "2026-10-25T06:07:09.771775583Z",
+      "deadline": null,
+      "goal": "Develop physical designs",
+      "mission_id": "mis_741f5a0ec24941b8b522c6ab8ae2ee03",
+      "status": "ACTIVE",
+      "success_checks": []
+    }
+  },
+  "name": "org_example_a",
+  "observations": {},
+  "org_id": "org_example_a",
+  "requirements": {},
+  "responsibilities": {
+    "rsp_b16ca23d2eab490f9fb9a1f7e9bd70e8": {
+      "epoch": 1,
+      "executor": null,
+      "mission_id": "mis_741f5a0ec24941b8b522c6ab8ae2ee03",
+      "owner": {
+        "id": "role_47f2bc198d3b40328a40507d050483c8",
+        "kind": "role"
+      },
+      "purpose": "Ravine-crossing designs",
+      "requirement_id": null,
+      "responsibility_id": "rsp_b16ca23d2eab490f9fb9a1f7e9bd70e8",
+      "status": "OPEN",
+      "termination": "",
+      "trigger": ""
+    }
+  },
+  "revision": 1,
+  "roles": {
+    "role_47f2bc198d3b40328a40507d050483c8": {
+      "authority": {
+        "budget_cents": 1000,
+        "scopes": [
+          "method.develop"
+        ]
+      },
+      "binding": {
+        "config_digest": "c7f42740dfdcfacfa87147aae9f0527a45908e3c9e74e3d2cfd0472b79cb8545",
+        "conversation_ref": null,
+        "provider": "internal",
+        "provider_agent_id": "kernel:designer"
+      },
+      "capabilities": [],
+      "charter": "Design carts",
+      "created_in_revision": 1,
+      "name": "Designer",
+      "reports_to": null,
+      "retired_in_revision": null,
+      "role_id": "role_47f2bc198d3b40328a40507d050483c8",
+      "state": "ACTIVE"
+    }
+  }
+}

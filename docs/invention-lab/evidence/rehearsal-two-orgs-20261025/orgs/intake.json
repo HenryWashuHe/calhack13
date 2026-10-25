@@ -1,0 +1,44 @@
+{
+  "body": {
+    "mission_id": "mis_f3acba1dbf7947a0bd1ec816530a2728",
+    "observation_id": "obs_ff587d404663403790f9b618aa5f0b15",
+    "org_id": "org_example_b",
+    "request": {
+      "acceptance": "Beats the fixed cart by one success on six fresh public instances",
+      "client_request_id": "rehearse3-selection",
+      "need": "Develop rough-transport cart designs with a method another lab published",
+      "selection": {
+        "applicability": [
+          "lab family v1"
+        ],
+        "dependencies": [],
+        "intent": "rough terrain cart design",
+        "protocol": {
+          "domain": "genesis-lab",
+          "id": "genesis-lab-exec-lines",
+          "schema": "lab-protocol/1",
+          "sha256": "d3b90c36b32e89b4e3d191dc018717301a4afc386ac915123cf5cf86250c550d",
+          "version": "1"
+        },
+        "publisher": "org_example_a",
+        "reference": {
+          "domain": "genesis",
+          "id": "receiver-revised-method",
+          "schema": "development-method-source/1",
+          "sha256": "4f455dc6e625bdaf554d567bdd7f0bc0c7b601a1ea6332d4e7a13e02005db14d",
+          "version": "0.1.0"
+        },
+        "runtime": {
+          "domain": "genesis-lab",
+          "id": "python3",
+          "schema": "lab-runtime/1",
+          "sha256": "0b21e795ac528c0f9cbe99e28ca1125af0c4dc5b87f53224abfe2a2ae5a69491",
+          "version": "1"
+        }
+      }
+    },
+    "request_sha256": "4e5bb182dd8dd5ce54a3bb985b97360b75017b9a7f6fb8d716d5bf876ded9c6b",
+    "schema": "genesis-method-development-intake/1"
+  },
+  "status": 201
+}

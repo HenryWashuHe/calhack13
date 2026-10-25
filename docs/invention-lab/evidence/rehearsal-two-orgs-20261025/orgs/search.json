@@ -1,0 +1,34 @@
+{
+  "candidates": [
+    {
+      "applicability": [
+        "lab family v1"
+      ],
+      "dependencies": [],
+      "intent": "rough terrain cart design",
+      "protocol": {
+        "domain": "genesis-lab",
+        "id": "genesis-lab-exec-lines",
+        "schema": "lab-protocol/1",
+        "sha256": "d3b90c36b32e89b4e3d191dc018717301a4afc386ac915123cf5cf86250c550d",
+        "version": "1"
+      },
+      "publisher": "org_example_a",
+      "reference": {
+        "domain": "genesis",
+        "id": "receiver-revised-method",
+        "schema": "development-method-source/1",
+        "sha256": "4f455dc6e625bdaf554d567bdd7f0bc0c7b601a1ea6332d4e7a13e02005db14d",
+        "version": "0.1.0"
+      },
+      "runtime": {
+        "domain": "genesis-lab",
+        "id": "python3",
+        "schema": "lab-runtime/1",
+        "sha256": "0b21e795ac528c0f9cbe99e28ca1125af0c4dc5b87f53224abfe2a2ae5a69491",
+        "version": "1"
+      }
+    }
+  ],
+  "truncated": false
+}
