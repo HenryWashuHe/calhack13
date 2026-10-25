@@ -7,6 +7,7 @@ mod method_revision_commands;
 mod method_roster_commands;
 mod method_stage_commands;
 mod method_synthesis_commands;
+mod process_select_commands;
 mod storage;
 mod synthesis_commands;
 
@@ -30,6 +31,8 @@ const HELP: &str = "Usage:
   genesis-forge method-chain-bind --manifest chain-stage-input.json --chain chain.json
   genesis-forge method-chain-check --manifest chain-stage-input.json --chain chain.json
   genesis-forge method-chain-cost-assess --chain chain.json --manifest chain-costs.json
+  genesis-forge process-select-prepare --manifest selection-input.json --selection selection.json
+  genesis-forge process-select-check --selection selection.json
   genesis-forge method-stage-prepare --manifest stage-input.json --admission admission.json --allocation stage.json
   genesis-forge method-stage-bind --manifest trial-input.json --allocation stage.json
   genesis-forge method-admission-prepare --roster roster.json --admission admission.json
@@ -75,6 +78,9 @@ on failures. It can perform one preplanned semantic repair, never an automatic
 retry of failed provider submissions. Its status output is newline-delimited JSON.
 method-cost-assess and method-chain-cost-assess are offline and read-only. Exit 0 means report construction,
 including unknown usage or overruns; it is not acceptance or budget compliance.
+process-select-prepare captures one arm/family's three development rounds offline,
+create-only; process-select-check recomputes the retained report without writing.
+Their exit 0 means consistency, including no candidate, not acceptance or a complete experiment.
 Exit codes: 0 success/progress, 1 rejected/failed/reconciliation required, 2 invalid input or local error.
 ";
 
@@ -113,6 +119,8 @@ impl Arguments {
             "prepare-generated" => &["--candidate", "--generation", "--suite", "--checkpoint"],
             "method-generate-prepare" => &["--plan", "--checkpoint"],
             "method-cost-assess" => &["--manifest", "--admission", "--allocation"],
+            "process-select-prepare" => &["--manifest", "--selection"],
+            "process-select-check" => &["--selection"],
             "method-stage-prepare" => &["--manifest", "--admission", "--allocation"],
             "method-chain-prepare"
             | "method-chain-bind"
@@ -272,6 +280,9 @@ async fn run() -> Result<u8, String> {
     }
     if args.command == "method-cost-assess" {
         return method_accounting_commands::run(&args);
+    }
+    if args.command.starts_with("process-select-") {
+        return process_select_commands::run(&args);
     }
     if matches!(
         args.command.as_str(),
