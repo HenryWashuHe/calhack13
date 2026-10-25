@@ -32,11 +32,21 @@ class Unavailable(Exception):
     """The panel's measurement is unavailable: never counted as a failure."""
 
 
+# The running panel's deadline (time.monotonic), if any: every evaluator call
+# made for that panel ends by it.
+_panel_deadline = None
+
+
 def lab(lab_eval, *args):
     """One evaluator call's JSON; Unavailable on a failed, slow or malformed call."""
+    timeout = EVALUATOR_TIMEOUT_S
+    if _panel_deadline is not None:
+        timeout = min(timeout, _panel_deadline - time.monotonic())
+        if timeout <= 0:
+            raise Unavailable("panel deadline passed")
     try:
         done = subprocess.run([lab_eval, *args], capture_output=True, text=True,
-                              timeout=EVALUATOR_TIMEOUT_S)
+                              timeout=timeout)
     except subprocess.TimeoutExpired:
         raise Unavailable(f"evaluator timed out: {args[0]}")
     if done.returncode != 0:
@@ -45,6 +55,39 @@ def lab(lab_eval, *args):
         return json.loads(done.stdout)
     except ValueError:
         raise Unavailable(f"evaluator output is not JSON: {args[0]}")
+
+
+MEASURED = {"scored", "invalid"}
+
+
+def acceptance_count(scored, seeds):
+    """Successes from a `lab-eval accept` result, checked against its receipts.
+
+    Every declared seed needs exactly one receipt with a measured outcome:
+    `scored` (with a boolean success metric) or `invalid` (a design the rules
+    refuse, which is a measured failure). A failed or unknown receipt, a
+    missing or extra seed, or a count that doesn't match the receipts makes
+    the measurement Unavailable rather than a zero.
+    """
+    if not isinstance(scored, dict) or not isinstance(scored.get("receipts"), list):
+        raise Unavailable("acceptance output has no receipts")
+    receipts = scored["receipts"]
+    if [r.get("seed") if isinstance(r, dict) else None for r in receipts] != list(seeds):
+        raise Unavailable("acceptance receipts are not the declared seeds")
+    successes = 0
+    for r in receipts:
+        outcome = r.get("outcome")
+        if outcome not in MEASURED:
+            raise Unavailable(f"acceptance receipt for seed {r.get('seed')} is {outcome!r}")
+        if outcome == "scored":
+            metrics = r.get("metrics")
+            if not isinstance(metrics, dict) or not isinstance(metrics.get("success"), bool):
+                raise Unavailable(f"scored receipt for seed {r.get('seed')} has no success metric")
+            successes += metrics["success"]
+    count, of = scored.get("succeeded"), scored.get("of")
+    if isinstance(count, bool) or count != successes or of != len(seeds) or isinstance(of, bool):
+        raise Unavailable("acceptance count does not match its receipts")
+    return successes
 
 
 def charged_steps(receipt, episode):
@@ -63,8 +106,10 @@ def lines(stream, out):
 
 def panel_run(lab_eval, method, family, seeds, grant, tmp):
     episode = STEPS.get(family, DEFAULT_STEPS)
+    global _panel_deadline
     row = {"seeds": [seeds[0], seeds[-1]], "experiments": 0, "steps_used": 0, "successes": None}
     deadline = time.monotonic() + PANEL_DEADLINE_S
+    _panel_deadline = deadline
     proc = None
     try:
         instances = [{"id": f"{family}/1/{s}", "max_steps": episode,
@@ -105,6 +150,7 @@ def panel_run(lab_eval, method, family, seeds, grant, tmp):
                     steps = charged_steps(receipt, episode)
                     remaining -= steps
                     row["experiments"] += 1
+                    row["steps_used"] = grant - remaining
                     reply = {"ok": True, "outcome": receipt.get("outcome"),
                              "metrics": receipt.get("metrics"), "reason": receipt.get("reason"),
                              "steps": steps, "remaining_steps": remaining}
@@ -115,20 +161,20 @@ def panel_run(lab_eval, method, family, seeds, grant, tmp):
                 reply = {"ok": False, "refused": "unknown op"}
             proc.stdin.write(json.dumps(reply) + "\n")
             proc.stdin.flush()
-        row["steps_used"] = grant - remaining
         if submitted is None:
             raise Unavailable("control ended without submitting")
         with open(design_path, "w") as f:
             json.dump(submitted, f)
         scored = lab(lab_eval, "accept", design_path, family, *map(str, seeds))
-        if not isinstance(scored.get("succeeded"), int):
-            raise Unavailable("acceptance output has no success count")
-        row["successes"] = scored["succeeded"]
+        if time.monotonic() > deadline:
+            raise Unavailable("panel deadline passed")
+        row["successes"] = acceptance_count(scored, seeds)
         row["kind"] = "launcher" if submitted.get("payload_on") == "arm" else "cart"
     except Unavailable as e:
         row["successes"] = None
         row["unavailable"] = str(e)
     finally:
+        _panel_deadline = None
         if proc is not None:
             try:
                 proc.stdin.close()
