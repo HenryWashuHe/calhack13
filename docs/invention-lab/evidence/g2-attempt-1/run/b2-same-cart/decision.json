@@ -1,0 +1,113 @@
+{
+  "body": {
+    "authority_sha256": "6ee7b7673fc0ba329d14299e1968e7091f3d38dcc90d6159660d0b3161979b76",
+    "client_request_id": "b2-same-cart-owner",
+    "compatibility": {
+      "protocol": {
+        "domain": "genesis-lab",
+        "id": "genesis-lab-exec-lines",
+        "schema": "lab-protocol/1",
+        "sha256": "d3b90c36b32e89b4e3d191dc018717301a4afc386ac915123cf5cf86250c550d",
+        "version": "1"
+      },
+      "runtime": {
+        "domain": "genesis-lab",
+        "id": "python3",
+        "schema": "lab-runtime/1",
+        "sha256": "0b21e795ac528c0f9cbe99e28ca1125af0c4dc5b87f53224abfe2a2ae5a69491",
+        "version": "1"
+      }
+    },
+    "created_at": "2026-10-25T09:13:04.428412821Z",
+    "grant": {
+      "assignment_id": "asg_9ca12fffa96a4621b06d6fe181b463ef",
+      "epoch": 1,
+      "responsibility_id": "rsp_deffd73ceeb444bdb755c7bfcff47cb3",
+      "role_id": "role_9a21e3de10dc4f32bf6571d6f28bad70"
+    },
+    "id": "madopt_85207fc61f6748f2b593c16a3fef0c97",
+    "intent_sha256": "e5705921b0ea7d5be6e8dd6059e3a8411b0dc6defec70410b3d7c0ae6c29931c",
+    "lease_expires_at": null,
+    "mission_id": "mis_785af6e636eb406dba49b76b44808c87",
+    "mission_sha256": "3de4c174a60555840221731052c4471d6d6453729a10e0d7d94b0e6cbcc572ff",
+    "org_id": "org_example_b",
+    "outcome": {
+      "evidence": {
+        "acceptance": {
+          "acceptance": "rejected",
+          "reason": "candidate 8/12 does not exceed control 8/12 by 1"
+        },
+        "criterion": {
+          "domain": "genesis-lab",
+          "id": "success-count-margin",
+          "schema": "lab-criterion/1",
+          "sha256": "dff0ab2f48e6a14ea6a9ab05ec096a9e73d85e97fb01fd8cd6d3823f64cebcf9",
+          "version": "1"
+        },
+        "dependencies": [],
+        "environment": {
+          "domain": "genesis-lab",
+          "id": "genesis-lab-exec/namespaces",
+          "schema": "lab-environment/1",
+          "sha256": "eea594d411dd74e146bf8e2a99e4c7b6f6c0249eb67a640d090df0a2554ec74f",
+          "version": "0.1.0"
+        },
+        "evaluator": {
+          "domain": "genesis-lab",
+          "id": "genesis-lab-eval",
+          "schema": "lab-evaluator/1",
+          "sha256": "1f03d1b6499721e6ddae6e600b688c123a8684e34c56f53cde8104d361246f42",
+          "version": "0.1.0"
+        },
+        "files": {
+          "candidate-score/artifacts/64228e1d1099d47830fd8c62289248bdaafa46b158d941878ab7c8e2dfd6c7f2": "64228e1d1099d47830fd8c62289248bdaafa46b158d941878ab7c8e2dfd6c7f2",
+          "candidate-score/evaluation.json": "315891e1df682b3558672f8015663e3d7258840bcf39202bf7488270ff19a9e4",
+          "candidate/receipt.json": "6e92135c8df1fbbcee6c26a87cc5bb3cfab5d81d560a4bf4be3590ed1d0eafc3",
+          "control-score/artifacts/64228e1d1099d47830fd8c62289248bdaafa46b158d941878ab7c8e2dfd6c7f2": "64228e1d1099d47830fd8c62289248bdaafa46b158d941878ab7c8e2dfd6c7f2",
+          "control-score/evaluation.json": "ccbc5c65d346f95273559c94bcc667adf92f8d64e28c9e96f65ec77cc32d1405",
+          "control/receipt.json": "bce0312c7efbeacab08415e00b53fb90de857b5cfdcbafbbdfb1ac3ddac78c43",
+          "criterion.json": "dff0ab2f48e6a14ea6a9ab05ec096a9e73d85e97fb01fd8cd6d3823f64cebcf9",
+          "plan.json": "eb2fa6595ecf7b7217ead2e696a8b4944eeaf6c2a7440cc6f95a42740c9d814b"
+        },
+        "method": {
+          "domain": "genesis",
+          "id": "same-cart",
+          "schema": "development-method-source/1",
+          "sha256": "b1a3bc7317c835675eae2cd0ae7d579242df221d276fe1f4e8c2425122f545e6",
+          "version": "1"
+        },
+        "plan": {
+          "domain": "genesis",
+          "id": "receive-b2-same-pinned",
+          "schema": "development-trial-plan/1",
+          "sha256": "a1947eb087e29c1809a4dc54ab8f597c9e619d79e390c6eea4ae85c2bb337dbe",
+          "version": "1"
+        },
+        "public_task": {
+          "domain": "genesis-lab",
+          "id": "rough-transport",
+          "schema": "lab-task/1",
+          "sha256": "7ea1854c2b359837033ade75434e2ca165465492792fbb66efaf21117758456b",
+          "version": "1"
+        },
+        "publisher": "org_example_a",
+        "trial": "b2-same-pinned"
+      },
+      "outcome": "not_applicable"
+    },
+    "publisher": "org_example_a",
+    "reference": {
+      "domain": "genesis",
+      "id": "same-cart",
+      "schema": "development-method-source/1",
+      "sha256": "b1a3bc7317c835675eae2cd0ae7d579242df221d276fe1f4e8c2425122f545e6",
+      "version": "1"
+    },
+    "requirement_id": "req_280b075fc8db45959c7dc6a1bb92ae0e",
+    "requirement_sha256": "4d984f155858a2c4e9cf3035ab8573309d689cd28328f94382e42e740fe8723a",
+    "responsibility_id": "rsp_deffd73ceeb444bdb755c7bfcff47cb3",
+    "role_id": "role_9a21e3de10dc4f32bf6571d6f28bad70",
+    "schema_version": 2
+  },
+  "status": 201
+}
