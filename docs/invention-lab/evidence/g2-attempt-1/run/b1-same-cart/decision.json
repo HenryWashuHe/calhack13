@@ -1,0 +1,113 @@
+{
+  "body": {
+    "authority_sha256": "316325702d3f24fd7ab0e733976c87311cb25182881e39d19ec0581263a79a47",
+    "client_request_id": "b1-same-cart-owner",
+    "compatibility": {
+      "protocol": {
+        "domain": "genesis-lab",
+        "id": "genesis-lab-exec-lines",
+        "schema": "lab-protocol/1",
+        "sha256": "d3b90c36b32e89b4e3d191dc018717301a4afc386ac915123cf5cf86250c550d",
+        "version": "1"
+      },
+      "runtime": {
+        "domain": "genesis-lab",
+        "id": "python3",
+        "schema": "lab-runtime/1",
+        "sha256": "0b21e795ac528c0f9cbe99e28ca1125af0c4dc5b87f53224abfe2a2ae5a69491",
+        "version": "1"
+      }
+    },
+    "created_at": "2026-10-25T09:12:31.683836820Z",
+    "grant": {
+      "assignment_id": "asg_bf9b80c2d45f477cae11d1730b66f9f8",
+      "epoch": 1,
+      "responsibility_id": "rsp_be4a1e946dcb4c4ab025512c6685f71c",
+      "role_id": "role_285b0ea0e4754cc38e1fecf77bb2a5d5"
+    },
+    "id": "madopt_da8d107d30144bb7968e87eb1e28968f",
+    "intent_sha256": "d6da25a6d0ecc250ea3f73f022108ffc743099055c7bf9fd8b2a3387c453a87e",
+    "lease_expires_at": null,
+    "mission_id": "mis_3882e1a6ffff4dc5987578e3d744e5b5",
+    "mission_sha256": "d29aa7d0cb4382fecc023cd12954934011e69d4bec0ed0e81145793577bb1872",
+    "org_id": "org_example_b",
+    "outcome": {
+      "evidence": {
+        "acceptance": {
+          "acceptance": "rejected",
+          "reason": "candidate 7/12 does not exceed control 7/12 by 1"
+        },
+        "criterion": {
+          "domain": "genesis-lab",
+          "id": "success-count-margin",
+          "schema": "lab-criterion/1",
+          "sha256": "da396938edd2c65de78a678cf7851999eb35c63b9a5bf0b0278102dc1ecf2df2",
+          "version": "1"
+        },
+        "dependencies": [],
+        "environment": {
+          "domain": "genesis-lab",
+          "id": "genesis-lab-exec/namespaces",
+          "schema": "lab-environment/1",
+          "sha256": "eea594d411dd74e146bf8e2a99e4c7b6f6c0249eb67a640d090df0a2554ec74f",
+          "version": "0.1.0"
+        },
+        "evaluator": {
+          "domain": "genesis-lab",
+          "id": "genesis-lab-eval",
+          "schema": "lab-evaluator/1",
+          "sha256": "1f03d1b6499721e6ddae6e600b688c123a8684e34c56f53cde8104d361246f42",
+          "version": "0.1.0"
+        },
+        "files": {
+          "candidate-score/artifacts/56ea174bace40b0d950affa6f5f22c6a8bfad9ed5e9f7d518c51a9ab47a57548": "56ea174bace40b0d950affa6f5f22c6a8bfad9ed5e9f7d518c51a9ab47a57548",
+          "candidate-score/evaluation.json": "1fc46790a9326f6354d71595dc2acf34af8330b34f6cd0595d5788dc225ef4d2",
+          "candidate/receipt.json": "106dc8dbfc9e58021306da61563aadb22d9a0a3585bd9db056fd09f0b416f821",
+          "control-score/artifacts/56ea174bace40b0d950affa6f5f22c6a8bfad9ed5e9f7d518c51a9ab47a57548": "56ea174bace40b0d950affa6f5f22c6a8bfad9ed5e9f7d518c51a9ab47a57548",
+          "control-score/evaluation.json": "0a798cefffe799f21b749ef2db45eb878b1232853038a6064d34f21be967e74a",
+          "control/receipt.json": "79622be9ffd648febc1b079903948f4529c13dd1d03413e533c7fe77c83e5c5f",
+          "criterion.json": "da396938edd2c65de78a678cf7851999eb35c63b9a5bf0b0278102dc1ecf2df2",
+          "plan.json": "d71ce5739b0debfdc85667ed493d0a07d61f3b45acb9735823454209faab40f3"
+        },
+        "method": {
+          "domain": "genesis",
+          "id": "same-cart",
+          "schema": "development-method-source/1",
+          "sha256": "b1a3bc7317c835675eae2cd0ae7d579242df221d276fe1f4e8c2425122f545e6",
+          "version": "1"
+        },
+        "plan": {
+          "domain": "genesis",
+          "id": "receive-b1-same-pinned",
+          "schema": "development-trial-plan/1",
+          "sha256": "f27d918a26ac6963781bcdd8497d65bc68d6bb62cd4354c1a71527e2e5ad1b82",
+          "version": "1"
+        },
+        "public_task": {
+          "domain": "genesis-lab",
+          "id": "rough-transport",
+          "schema": "lab-task/1",
+          "sha256": "7ea1854c2b359837033ade75434e2ca165465492792fbb66efaf21117758456b",
+          "version": "1"
+        },
+        "publisher": "org_example_a",
+        "trial": "b1-same-pinned"
+      },
+      "outcome": "not_applicable"
+    },
+    "publisher": "org_example_a",
+    "reference": {
+      "domain": "genesis",
+      "id": "same-cart",
+      "schema": "development-method-source/1",
+      "sha256": "b1a3bc7317c835675eae2cd0ae7d579242df221d276fe1f4e8c2425122f545e6",
+      "version": "1"
+    },
+    "requirement_id": "req_aa7936c4805d4258a73b2646453a3bc4",
+    "requirement_sha256": "5574c2d519735f5ec7c67717fac035e6efc98e03bff0e583aea8749a360783ab",
+    "responsibility_id": "rsp_be4a1e946dcb4c4ab025512c6685f71c",
+    "role_id": "role_285b0ea0e4754cc38e1fecf77bb2a5d5",
+    "schema_version": 2
+  },
+  "status": 201
+}

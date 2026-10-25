@@ -1,0 +1,29 @@
+{
+  "result": {
+    "of": 12,
+    "success_count": 8
+  },
+  "slot": "control",
+  "usage": {
+    "input_tokens": {
+      "kind": "measured",
+      "value": 0
+    },
+    "model_calls": {
+      "kind": "measured",
+      "value": 0
+    },
+    "output_tokens": {
+      "kind": "measured",
+      "value": 0
+    },
+    "simulation_steps": {
+      "kind": "measured",
+      "value": 19839
+    },
+    "wall_time_ms": {
+      "kind": "measured",
+      "value": 193
+    }
+  }
+}

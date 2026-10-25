@@ -1,6 +1,40 @@
 # Implementation status
 
-## Manual closeout — October 25, 2026
+## Current manual review batch — October 25, 2026
+
+#228 (`ddd17dbf`), #246/#254 (`96ff87be`), #248/#253 (`397788d4`) and
+#250/#255 (`f0791575`) are merged. The [current review table](reviews/pr-queue-2026-10-25.md#current-manual-review-batch--october-25-2026)
+records exact sources and separate checks: 54 inert runner cases, 134 inert Stage
+cases, four pure assignment guards and six pure ABA driver guards. They are not
+one aggregate suite. #249/#256 is also merged at `85526ea1`: independent static
+audit checks all 824 manifest entries, 454 content artifacts and 18 receipt pairs,
+plus four intake/decision/grant chains and two fresh invocation attachments.
+Its author archive records adoption and use in B1/B2, while retaining B2's
+missing method.develop authority condition; it does not close G2.
+
+The Stage correction binds displayed activity to its selected session, mission,
+role and change. The prospective drivers now distinguish a merely recorded
+requirement from committed assignment; A's exact plan is installed before its
+trial, and generic Accepted verdicts do not override process ineligibility.
+Historical evidence remains unchanged. #248's author-run record reports 4/6
+versus 2/6 with adoption but no invocation; its hash/binding checks are not an
+independently reproduced run. #250's corrected prospective driver was not run
+here; no retained declared attempt-2 run exists. Two earlier author-reported
+stand-in checks are unretained and not evidence. Henry's separately claimed
+adoption-scope `f52210ab` has clear source review but is not merged;
+main still lacks that method.develop policy. Henry retains implementation.
+Test-contract-only #257 `c7c13ff0` merged at `ff10865f`; root independently
+passes four inert-source CLI loopback cases for the #233 pre-write refusal.
+Neither correction changes the historical run. Main `85526ea1`
+passes all 321 web tests (56 files), TypeScript and workspace all-target
+compilation; this is separate from the narrower counts above.
+
+Automation and the native Goal remain paused; this manual review is separately
+authorized. G0–G4 remain open. No provider, method, evaluator/scorer, driver or
+namespace was run or dispatched by this batch. Earlier snapshots below retain
+source-specific evidence and superseded queue states.
+
+## Historical manual closeout — October 25, 2026
 
 The recurring task is paused at the user's request; the native Goal is also
 paused. The user separately authorized this manual subagent review/fix pass.

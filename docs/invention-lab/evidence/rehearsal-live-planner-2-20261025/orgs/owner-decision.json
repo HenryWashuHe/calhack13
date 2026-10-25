@@ -1,0 +1,7 @@
+{
+  "body": {
+    "error": "already_adopted",
+    "message": "this exact method is already adopted for this requirement and grant"
+  },
+  "status": 409
+}
