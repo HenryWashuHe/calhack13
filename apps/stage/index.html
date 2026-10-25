@@ -270,8 +270,8 @@ body.explain [data-n]::before { content: attr(data-n); position: absolute; top: 
 .lab-confirm .k { font-size: 12.5px; color: var(--paper-dim); align-self: center; line-height: 1.35; }
 .lab-ledger { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; font-size: 13px; color: var(--paper-dim); border-top: 1px dashed var(--line); padding-top: 10px; }
 .lab-ledger .mono { font-family: var(--mono); font-size: 12px; color: var(--paper); }
-.lab-ledger .ok { font-family: var(--mono); font-size: 11px; border-radius: 6px; padding: 3px 8px; background: var(--accent); color: var(--accent-ink); }
-.lab-ledger .ok.bad { background: var(--refuse); color: var(--ink); }
+.lab-ledger .reported { font-family: var(--mono); font-size: 11px; border-radius: 6px; padding: 3px 8px; border: 1px dashed var(--fixture); color: var(--fixture); }
+.lab-ledger a { color: var(--fixture); font-family: var(--mono); font-size: 12px; }
 .lab-ledger .line { flex-basis: 100%; }
 .lab-thesis { font-family: var(--serif); font-size: 16px; color: var(--paper); }
 
@@ -414,6 +414,7 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
   <section class="lab" id="lab" data-n="8" aria-label="What the lab did">
     <div class="lab-head"><h3 id="labhead">The lab: candidates per generation, success count on that generation's sealed panel, out of 20</h3><span class="tag" id="labtag">recorded run</span></div>
     <p class="cap" id="cap-lab">Recorded run, 2026-10-25, claude-sonnet-5-5 proposing rules behind the iteration engine. Not live.</p>
+    <p class="cap">Author-reported research in one lab, separate from the organization fixture. This is not a cross-organizational improvement result.</p>
     <div class="lab-body">
       <div class="lab-seeds" role="group" aria-label="Seed" id="labseeds"></div>
       <p class="lab-summary" id="labsummary"></p>
@@ -514,8 +515,8 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
   // The lab's recorded run (PR #216, scripts/iteration/results/jobshop-smoke-{2,3,4}/result.json and ledger.json),
   // reduced to what the beat draws: per generation [incumbent, [candidates], index of the promoted candidate or null],
   // the fresh-panel confirmation, the report-only comparison [success count, mean makespan / lower bound], the ledger.
-  // Nothing here is fetched; this page is also published standalone.
-  const LAB = {"date":"2026-10-25","model":"claude-sonnet-5-5","family":"jobshop-10x5","of":20,"seeds":[{"id":"smoke-2","gens":[[11,[15,14,15,13],0],[15,[14,15,15,15],null],[18,[15,15,15,16],null],[15,[15,15,15,15],null],[19,[17,17,18,17],null]],"confirm":19,"frontierGen":1,"panel":{"frontier":[19,1.095],"random-search":[14,1.147],"MWKR":[15,1.15],"SPT":[5,1.269]},"ledger":{"records":60,"head":"2528af2738189fc168e42d700289909aea573dced4ac186cc5c1d5998f7a51e8","ok":true}},{"id":"smoke-3","gens":[[8,[9,10,9,11],3],[12,[14,12,13,12],0],[14,[17,17,14,15],0],[11,[12,14,12,12],1],[15,[15,16,15,16],1]],"confirm":17,"frontierGen":5,"panel":{"frontier":[17,1.085],"random-search":[17,1.12],"MWKR":[15,1.13],"SPT":[12,1.19]},"ledger":{"records":64,"head":"ef28abf5001c1a0318b9da4f6ff8775101fe0afa2ea055ab094fe935ac05adda","ok":true}},{"id":"smoke-4","gens":[[8,[18,14,14,13],0],[17,[14,16,17,15],null],[16,[16,14,14,13],null],[16,[15,16,16,16],null],[16,[17,19,17,17],1]],"confirm":18,"frontierGen":5,"panel":{"frontier":[18,1.086],"random-search":[12,1.163],"MWKR":[15,1.139],"SPT":[10,1.194]},"ledger":{"records":61,"head":"af6cc83c25b45002cc014aa5fbbebb7268d9660945c626606eb61f0d89e0ec07","ok":true}}]};
+  // Nothing here is fetched or verified by this page. sourceCommit and artifact hashes identify the recorded inputs, not authenticated execution.
+  const LAB = {"date":"2026-10-25","model":"claude-sonnet-5-5","family":"jobshop-10x5","of":20,"seeds":[{"id":"smoke-2","gens":[[11,[15,14,15,13],0],[15,[14,15,15,15],null],[18,[15,15,15,16],null],[15,[15,15,15,15],null],[19,[17,17,18,17],null]],"confirm":19,"frontierGen":1,"panel":{"frontier":[19,1.095],"random-search":[14,1.147],"MWKR":[15,1.15],"SPT":[5,1.269]},"ledger":{"records":60,"head":"2528af2738189fc168e42d700289909aea573dced4ac186cc5c1d5998f7a51e8","ok":true},"artifacts":{"result_sha256":"8afbf2fb49419136920dbefa5d32f2b91c2f19a441f988a2381b09d491660b4f","ledger_sha256":"156928e39736b236c575988b63530201cecef20d9679fa3b05804ae68343851b"}},{"id":"smoke-3","gens":[[8,[9,10,9,11],3],[12,[14,12,13,12],0],[14,[17,17,14,15],0],[11,[12,14,12,12],1],[15,[15,16,15,16],1]],"confirm":17,"frontierGen":5,"panel":{"frontier":[17,1.085],"random-search":[17,1.12],"MWKR":[15,1.13],"SPT":[12,1.19]},"ledger":{"records":64,"head":"ef28abf5001c1a0318b9da4f6ff8775101fe0afa2ea055ab094fe935ac05adda","ok":true},"artifacts":{"result_sha256":"4ed191732600fb1783b5ce96963ddf5edf553704e3d0d60be26e9251182ae5c7","ledger_sha256":"bc627c838f1e9fd16a510e3736c01934aec9bd0b502ea78fe804c2dffc18ee1b"}},{"id":"smoke-4","gens":[[8,[18,14,14,13],0],[17,[14,16,17,15],null],[16,[16,14,14,13],null],[16,[15,16,16,16],null],[16,[17,19,17,17],1]],"confirm":18,"frontierGen":5,"panel":{"frontier":[18,1.086],"random-search":[12,1.163],"MWKR":[15,1.139],"SPT":[10,1.194]},"ledger":{"records":61,"head":"af6cc83c25b45002cc014aa5fbbebb7268d9660945c626606eb61f0d89e0ec07","ok":true},"artifacts":{"result_sha256":"51cf66fb7a363bba5a13cb3aacec7b0a6b163ed844b313aae4a6695859ae4544","ledger_sha256":"0f3c16494b54a35840925085cbf3e635f2a5dc5f86aa0b0d2cad7a6517ef670e"}}],"sourceCommit":"5fcb126ff913433a1d7d615fdfd61e0450e53ec2"};
   const LAB_SCENE = 7;
   const labSeed = (k) => LAB.seeds[k] || LAB.seeds[0];
 
@@ -614,7 +615,7 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
     ["Capability", [["real", "install, local acceptance, attach, ledger commitment"], ["fixture", "manifest is a dev fixture; no Apify build or oracle run"]]],
     ["Handoff", [["real", "ownership transfer, epoch fencing, stale result rejected"], ["fixture", "CREAO binding is a dev stub"]]],
     ["Inheritance", [["real", "registry search, B's own acceptance, zero synthesis calls"], ["fixture", "B's acceptance is a development assertion"]]],
-    ["Lab", [["real", `iteration engine: sealed panels, ${LAB.model} proposing, chain-hashed ledger verified`], ["recorded", `${LAB.date} run replayed from result.json; not live, nothing is called now`]]],
+    ["Lab", [["recorded", `author-reported iteration engine: sealed panels, ${LAB.model} proposing; not checked by this page`], ["recorded", `${LAB.date} run replayed from result.json; not live, nothing is called now`]]],
     ["Audit", [["real", "r0–r11 replayed against 27 invariants"], ["proposal", "method lineage across labs: contracts in review, not run"]]],
   ];
 
@@ -814,8 +815,7 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
   function labSummary(seed) {
     const promoted = seed.gens.map((g, k) => (g[2] === null ? null : k + 1)).filter((k) => k !== null);
     const where = promoted.length === seed.gens.length ? "a promotion in every generation" : promoted.length === 1 ? `one promotion, in generation ${promoted[0]}` : `promotions in generations ${promoted.slice(0, -1).join(", ")} and ${promoted.at(-1)}`;
-    const later = seed.frontierGen > 1 ? `the frontier came from generation ${seed.frontierGen}, so later generations improved it` : `the frontier came from generation ${seed.frontierGen}; later generations did not improve it`;
-    return `Seed ${seed.id}: ${where}; ${later}. Confirmed ${seed.confirm}/${LAB.of} on a fresh panel.`;
+    return `Seed ${seed.id}: ${where}; the frontier came from generation ${seed.frontierGen}. Promotions describe selection panels, not a fresh-panel comparison with earlier frontiers. Reported confirmation: ${seed.confirm}/${LAB.of}.`;
   }
   function renderLab(k, animate) {
     const seed = labSeed(k); app.labSeed = k; const run = ++app.labRun;
@@ -836,8 +836,14 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
     $("labconfirm").replaceChildren(k2, ...Object.entries(seed.panel).map(([name, [n, ratio]]) => labCell(n, name === "frontier" ? "promoted" : "", `${name} ${n}/${LAB.of} · ${ratio.toFixed(3)}`)));
     const L = seed.ledger;
     const chip = (cls, t) => { const c = document.createElement("span"); c.className = cls; c.textContent = t; return c; };
-    $("labledger").replaceChildren(chip("", `Ledger: ${L.records} records`), chip("mono", `head ${L.head.slice(0, 10)}…`), chip("ok" + (L.ok ? "" : " bad"), L.ok ? "verified" : "not verified"),
-      chip("line", "Append-only and chain-hashed: each record carries the hash of the one before it, so a changed or reordered record is detectable."));
+    const artifacts = ["result", "ledger"].map((name) => {
+      const a = document.createElement("a");
+      a.href = `https://github.com/HenryWashuHe/genesis-history-experiment/blob/${LAB.sourceCommit}/scripts/iteration/results/jobshop-${seed.id}/${name}.json`;
+      a.title = "SHA-256 " + seed.artifacts[name + "_sha256"]; a.textContent = "Recorded " + name; a.target = "_blank"; a.rel = "noopener noreferrer";
+      return a;
+    });
+    $("labledger").replaceChildren(chip("", `Ledger: ${L.records} records`), chip("mono", `head ${L.head.slice(0, 10)}…`), chip("reported", "author-reported: " + (L.ok ? "verified" : "not verified")),
+      chip("line", "Append-only and chain-hashed in the report; not checked by this page. With retained hashes, a changed or reordered record is detectable; this is not authenticated execution evidence."), ...artifacts);
   }
   function resetDisruptions() { app.thrown = []; for (const id of Object.keys(DISRUPTIONS)) $(id).disabled = false; }
   function setPresent(on) {
