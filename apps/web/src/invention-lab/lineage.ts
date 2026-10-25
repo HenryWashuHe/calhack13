@@ -302,11 +302,13 @@ export function buildLineage(records: LabRecords): Lineage {
 
   const trials: Trial[] = (records.trials ?? []).map((t) => ({
     ...t,
-    executions: executions.filter(
-      (e) =>
-        (e.receipt.purpose.kind === "acceptance" || e.receipt.purpose.kind === "comparison") &&
-        refKey(e.receipt.purpose.plan) === refKey(t.plan.ref),
-    ),
+    executions: executions.filter((e) => {
+      const p = e.receipt.purpose;
+      if ((p.kind !== "acceptance" && p.kind !== "comparison") || refKey(p.plan) !== refKey(t.plan.ref)) return false;
+      const why = trialBindingProblem(e, t.plan);
+      if (why) problems.push(`execution ${e.receipt.org_id}/${e.receipt.run_id}/${e.receipt.attempt_id}: ${why}; not attached to trial`);
+      return why === null;
+    }),
   }));
 
   const metrics = new Map((records.metrics ?? []).map((m) => [m.sha256, m]));
@@ -328,6 +330,8 @@ export function buildLineage(records: LabRecords): Lineage {
  * evaluations of one run are a conflict: none is chosen, whatever their order. */
 function scoreOf(e: Execution, plan: TrialPlan | null, metrics: Map<string, MetricsArtifact>, problems: string[]): Score {
   const run = `${e.receipt.org_id}/${e.receipt.run_id}/${e.receipt.attempt_id}`;
+  const bindingProblem = plan ? trialBindingProblem(e, plan) : null;
+  if (bindingProblem) return { kind: "rejected", reasons: [bindingProblem] };
   if (e.evaluations.length === 0) return { kind: "unscored" };
   const scored = e.evaluations.filter((v) => v.outcome === "scored");
   if (scored.length === 0) return { kind: "not_scored", outcomes: [...new Set(e.evaluations.map((v) => v.outcome))].sort() };
@@ -371,6 +375,17 @@ function scoreOf(e: Execution, plan: TrialPlan | null, metrics: Map<string, Metr
   return reasons.length > 0 ? { kind: "rejected", reasons } : { kind: "metrics_missing" };
 }
 
+function trialBindingProblem(e: Execution, plan: TrialPlan): string | null {
+  if (!plan.slots) return `trial plan ${plan.ref.id} has no supported declared slots`;
+  const matches = plan.slots.filter((s) => s.binding_sha256 === e.receipt.binding_sha256);
+  if (!e.receipt.binding_hash_matches || matches.length !== 1)
+    return `its binding does not match exactly one declared slot of trial plan ${plan.ref.id}`;
+  const slot = matches[0]!;
+  if (refKey(e.receipt.actual_method) !== refKey(slot.method) || refKey(e.receipt.actual_environment) !== refKey(slot.environment))
+    return `its actual method or environment differs from its declared trial slot`;
+  return null;
+}
+
 function contextProblem(e: Execution, v: EvaluationReceipt, plan: TrialPlan | null): string | null {
   if (!v.metrics || !isSupportedMetricsRef(v.metrics))
     return `its metrics reference ${v.metrics ? `${v.metrics.schema} ${v.metrics.id}@${v.metrics.version}` : "is missing and"} is not the supported ${METRICS_IDENTITY.schema} identity`;
@@ -378,6 +393,8 @@ function contextProblem(e: Execution, v: EvaluationReceipt, plan: TrialPlan | nu
   const own = e.receipt.public_task;
   if (!task || refKey(task) !== refKey(own))
     return `it was scored against task ${task ? `${task.id}@${task.version} ${task.sha256.slice(0, 12)}` : "(none named)"}, not the run's ${own.id}@${own.version} ${own.sha256.slice(0, 12)}`;
+  if (!v.context.evaluator || refKey(v.context.evaluator) !== refKey(e.receipt.evaluator))
+    return "its scoring evaluator differs from the evaluator frozen in the execution binding";
   if (!v.observed_context) return "the scorer's observed context is not recorded";
   if (!sameContext(v.context, v.observed_context)) return "the scorer's observed context differs from the requested one";
   // Agreeing with the scorer's own request is not enough: the trial's plan froze its context.

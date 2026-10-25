@@ -275,6 +275,11 @@ export interface ExecutionReceipt {
   /** The method the executor reports it actually ran. */
   actual_method: ExactRef;
   actual_environment: ExactRef;
+  /** Evaluator frozen into the run, separate from a scoring request's claim. */
+  evaluator: ExactRef;
+  /** Computed from the retained binding, not trusted from binding_sha256. */
+  binding_sha256: string;
+  binding_hash_matches: boolean;
   /** The task family the binding names (e.g. `ravine-crossing`). */
   public_task: ExactRef;
   purpose: Purpose;
@@ -290,6 +295,7 @@ export function decodeExecutionReceipt(v: unknown): ExecutionReceipt {
   const at = "execution";
   const o = obj(v, at);
   const b = obj(o.binding, `${at}.binding`);
+  const bindingHash = runBindingHash(b);
   return {
     receipt_sha256: canonicalSha256({ domain: EXECUTION_RECEIPT_DOMAIN, version: 1, record: o }),
     org_id: str(b, "org_id", `${at}.binding`),
@@ -298,6 +304,9 @@ export function decodeExecutionReceipt(v: unknown): ExecutionReceipt {
     bound_method: decodeRef(b.method, `${at}.binding.method`),
     actual_method: decodeRef(o.actual_method, `${at}.actual_method`),
     actual_environment: decodeRef(o.actual_environment, `${at}.actual_environment`),
+    evaluator: decodeRef(b.evaluator, `${at}.binding.evaluator`),
+    binding_sha256: bindingHash,
+    binding_hash_matches: o.binding_sha256 === bindingHash,
     public_task: decodeRef(b.public_task, `${at}.binding.public_task`),
     purpose: decodePurpose(b.purpose, `${at}.binding.purpose`),
     outcome: str(o, "outcome", at),
@@ -471,6 +480,9 @@ export interface TrialPlan {
   development_instances: string[];
   /** The scoring context the plan froze; a score of one of its runs must name exactly this. */
   context: ScoringContext;
+  /** Expected bindings reconstructed using TrialPlan::binding. Null means the
+   * supplied slot shape is unsupported; it cannot lend a run its verdict. */
+  slots: { binding_sha256: string; method: ExactRef; environment: ExactRef }[] | null;
 }
 export const TRIAL_PLAN_FIELDS = [
   "id", "version", "criterion", "development_instances", "scoring_instances",
@@ -479,14 +491,13 @@ export const TRIAL_PLAN_FIELDS = [
 export function decodeTrialPlan(v: unknown): TrialPlan {
   const at = "plan";
   const o = obj(v, at);
+  const ref: ExactRef = {
+    domain: "genesis", schema: "development-trial-plan/1",
+    id: str(o, "id", at), version: str(o, "version", at),
+    sha256: canonicalSha256({ domain: "genesis.development_trial_plan", version: 1, plan: o }),
+  };
   return {
-    ref: {
-      domain: "genesis",
-      schema: "development-trial-plan/1",
-      id: str(o, "id", at),
-      version: str(o, "version", at),
-      sha256: canonicalSha256({ domain: "genesis.development_trial_plan", version: 1, plan: o }),
-    },
+    ref,
     criterion: decodeRef(o.criterion, `${at}.criterion`),
     scoring_kind: str(obj(o.scoring_instances, `${at}.scoring_instances`), "kind", `${at}.scoring_instances`),
     development_instances: ((): string[] => {
@@ -494,7 +505,41 @@ export function decodeTrialPlan(v: unknown): TrialPlan {
       return o.development_instances.map((d, i) => str(obj(d, `${at}.development_instances[${i}]`), "id", `${at}.development_instances[${i}]`));
     })(),
     context: decodeContext(o.context, `${at}.context`),
+    slots: trialSlots(o, ref),
   };
+}
+
+function runBindingHash(binding: unknown): string {
+  return canonicalSha256({ domain: "genesis.development_run_binding", version: 1, binding });
+}
+
+function trialSlots(plan: Obj, ref: ExactRef): TrialPlan["slots"] {
+  if (!Array.isArray(plan.slots) || plan.slots.length === 0) return null;
+  try {
+    const context = obj(plan.context, "plan.context");
+    const environment = decodeRef(plan.development_environment, "plan.development_environment");
+    return plan.slots.map((raw, i) => {
+      const at = `plan.slots[${i}]`;
+      const s = obj(raw, at);
+      const p = obj(s.purpose, `${at}.purpose`);
+      const purpose = decodePurpose({ ...p, plan: ref }, `${at}.purpose`);
+      if (purpose.kind !== "acceptance" && purpose.kind !== "comparison")
+        throw new DecodeError(`${at}: unsupported trial purpose`);
+      const method = decodeRef(s.method, `${at}.method`);
+      const binding = {
+        org_id: str(s, "org_id", at), run_id: str(s, "run_id", at), attempt_id: str(s, "attempt_id", at),
+        method, dependencies: refs(s.dependencies, `${at}.dependencies`),
+        public_task: decodeRef(context.public_task, "plan.context.public_task"),
+        evaluator: decodeRef(context.evaluator, "plan.context.evaluator"),
+        model_settings: decodeRef(plan.model_settings, "plan.model_settings"),
+        environment, purpose, budget: obj(plan.development_grant, "plan.development_grant"),
+      };
+      return { binding_sha256: runBindingHash(binding), method, environment };
+    });
+  } catch (e) {
+    if (!(e instanceof DecodeError)) throw e;
+    return null; // Retain the plan as unsupported instead of inventing a slot.
+  }
 }
 
 /** The only metrics identity this view counts: the scorer's `lab-scoring-metrics/1`
