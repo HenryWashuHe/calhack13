@@ -49,13 +49,13 @@ function renderReflection(r) {
  * archive and the reflection record stay current; both hold sources and id-free rows only. `parentScores` is the
  * incumbent arm's scores from the ledger (slot "incumbent" of the generation's plan).
  */
-export function claudeMutator({ task, featureDoc, model = process.env.GENESIS_LLM_MODEL || "claude-sonnet-5-5", effort = "medium", call = childCall, archiveSize = 4, log = () => {} } = {}) {
+export function claudeMutator({ task, featureDoc, subject = "a dispatching rule for job-shop scheduling", model = process.env.GENESIS_LLM_MODEL || "claude-sonnet-5-5", effort = "medium", call = childCall, archiveSize = 4, log = () => {} } = {}) {
   if (!task || !featureDoc) throw new Error("claudeMutator needs task and featureDoc");
   const state = { archive: {}, reflection: null, usage: { input_tokens: 0, output_tokens: 0, calls: 0, failures: 0 } };
   const remember = (source, success_count, of, rows, role) => {
     state.archive = { ...state.archive, [sha256(source)]: { source, success_count, of, mean_progress: meanProgress(rows), rows, role } };
   };
-  const systemFor = (k) => `You improve a dispatching rule for job-shop scheduling, one small JavaScript function at a time.\n\n${task}\n\n${featureDoc}\n\nYou will see programs that were already scored on hidden instances, worst first and best last, with per-instance tables. Instances change every generation, so a rule that fits one table will not carry. Write ${k} distinct candidate programs that you expect to beat the best one shown. Each candidate must be a single JavaScript arrow function expression (op, ctx) => number with no comments outside the function, no imports, no side effects, finite output for every input.\n\nAnswer with exactly this layout and nothing else:\n=== CANDIDATE 1 ===\n\`\`\`js\n(op, ctx) => ...\n\`\`\`\n=== CANDIDATE 2 ===\n...`;
+  const systemFor = (k) => `You improve ${subject}, one small JavaScript function at a time.\n\n${task}\n\n${featureDoc}\n\nYou will see programs that were already scored on hidden instances, worst first and best last, with per-instance tables. Instances change every generation, so a rule that fits one table will not carry. Write ${k} distinct candidate programs that you expect to beat the best one shown. Each candidate must be a single JavaScript arrow function expression returning a finite number, taking exactly the arguments the field reference describes, with no comments outside the function, no imports, no side effects.\n\nAnswer with exactly this layout and nothing else:\n=== CANDIDATE 1 ===\n\`\`\`js\n(...) => ...\n\`\`\`\n=== CANDIDATE 2 ===\n...`;
   return {
     usage: state.usage,
     propose({ parent, feedback, k, generation }) {
