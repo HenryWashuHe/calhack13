@@ -105,6 +105,8 @@ async fn wait_up(addr: &str) {
 
 struct OrgProc {
     id: &'static str,
+    /// Prefix of this process's operator/agent/adapter tokens.
+    tokens: String,
     port: u16,
     db: PathBuf,
     log: PathBuf,
@@ -127,9 +129,9 @@ impl OrgProc {
                 "--registry-token",
                 self.registry_token,
             ])
-            .args(["--operator-token", &format!("{}-operator", self.id)])
-            .args(["--agent-token", &format!("{}-agent", self.id)])
-            .args(["--adapter-token", &format!("{}-adapter", self.id)])
+            .args(["--operator-token", &format!("{}-operator", self.tokens)])
+            .args(["--agent-token", &format!("{}-agent", self.tokens)])
+            .args(["--adapter-token", &format!("{}-adapter", self.tokens)])
             .arg("--dev-stub")
             .env_clear()
             .env("PATH", std::env::var_os("PATH").unwrap_or_default())
@@ -152,7 +154,7 @@ impl OrgProc {
     fn api(&self) -> Http {
         Http {
             base: format!("{}/api/v1", self.url()),
-            token: format!("{}-operator", self.id),
+            token: format!("{}-operator", self.tokens),
             http: reqwest::Client::new(),
         }
     }
@@ -246,14 +248,57 @@ struct Shared {
     llm: Vec<(&'static str, OsString)>,
 }
 
-/// One B instance through stages 2–6. Returns its outcome summary.
-async fn run_b(s: &Shared, name: &'static str, charter: &str, scopes: &[&str]) -> Value {
-    let out = s.out.join(name);
+/// Stops this instance's stages with a recorded reason instead of a panic.
+macro_rules! ensure {
+    ($cond:expr, $($msg:tt)+) => {
+        if !$cond {
+            return Err(format!($($msg)+));
+        }
+    };
+}
+
+fn read_checked(path: &Path) -> Result<Value, String> {
+    let bytes = std::fs::read(path).map_err(|e| format!("{}: {e}", path.display()))?;
+    serde_json::from_slice(&bytes).map_err(|e| format!("{}: {e}", path.display()))
+}
+
+/// One B instance (`name` is B1 or B2, seeing exactly one `offer`) through
+/// stages 2–6. Every outcome, including a stop, ends up in its summary; a stop
+/// in one instance never prevents the others.
+async fn run_b(
+    s: &Shared,
+    name: &'static str,
+    offer: &'static str,
+    charter: &str,
+    scopes: &[&str],
+) -> Value {
+    let tag = format!("{name}-{offer}");
+    let out = s.out.join(&tag);
     std::fs::create_dir(&out).unwrap();
+    let mut summary = json!({"b":name,"offer":offer});
+    let result = run_b_stages(s, name, offer, charter, scopes, &out, &mut summary).await;
+    if let Err(stop) = result {
+        summary["stopped"] = json!(stop);
+    }
+    write(&out.join("summary.json"), &summary);
+    summary
+}
+
+async fn run_b_stages(
+    s: &Shared,
+    name: &'static str,
+    offer: &'static str,
+    charter: &str,
+    scopes: &[&str],
+    out: &Path,
+    summary: &mut Value,
+) -> Result<(), String> {
+    let tag = format!("{name}-{offer}");
     let b = OrgProc {
         id: "org_example_b",
+        tokens: format!("{tag}-b"),
         port: free_port(),
-        db: s.out.join("state").join(format!("{name}.db")),
+        db: s.out.join("state").join(format!("{tag}.db")),
         log: out.join("org.log"),
         registry_token: "b-registry",
         constitution: s.constitution.clone(),
@@ -261,28 +306,45 @@ async fn run_b(s: &Shared, name: &'static str, charter: &str, scopes: &[&str]) -
     let b_proc = b.spawn(&s.bin, &s.registry_url, None);
     wait_up(&b.url()).await;
     let api = b.api();
-    let founding = json!({"goal":"Develop physical designs with the best available methods",
-        "roles":[{"key":"lead","name":"Lab lead","charter":charter,
-            "authority":{"scopes":scopes,"budget_cents":10000}}],
-        "responsibilities":[{"purpose":"Coordinate the lab","owner":"lead"}]});
+    let founding = read_checked(&s.dir.join(format!("founding-{name}.json")))?;
+    ensure!(
+        founding["roles"][0]["charter"] == json!(charter)
+            && founding["roles"][0]["authority"]["scopes"] == json!(scopes),
+        "founding-{name}.json differs from the declared charter/scopes"
+    );
     let (status, mission) = api.post("/missions", &founding).await;
     write(
         &out.join("mission.json"),
-        &json!({"request":founding,"status":status,"body":mission}),
+        &json!({"status":status,"body":mission}),
     );
-    assert_eq!(status, 201, "{mission}");
-    let mission = mission["mission_id"].as_str().unwrap().to_string();
-    let lead = api.get("/organization").await["roles"]
-        .as_object()
-        .unwrap()
-        .values()
-        .find(|r| r["name"] == "Lab lead")
-        .unwrap()["role_id"]
+    ensure!(status == 201, "mission: {status} {mission}");
+    let mission = mission["mission_id"]
         .as_str()
-        .unwrap()
+        .unwrap_or_default()
         .to_string();
+    let org = api.get("/organization").await;
+    let lead_role = org["roles"]
+        .as_object()
+        .and_then(|r| r.values().find(|r| r["name"] == "Lab lead"))
+        .cloned()
+        .ok_or("no Lab lead")?;
+    let lead = lead_role["role_id"]
+        .as_str()
+        .unwrap_or_default()
+        .to_string();
+    let lead_responsibility = org["responsibilities"]
+        .as_object()
+        .and_then(|r| r.values().find(|r| r["owner"]["id"] == json!(lead)))
+        .map(|r| {
+            r["responsibility_id"]
+                .as_str()
+                .unwrap_or_default()
+                .to_string()
+        })
+        .ok_or("no lead responsibility")?;
+    summary["lead"] = json!(lead);
 
-    // Stage 2: search with B's read token, one intake per offer.
+    // Stage 2: search with B's read token, one intake for this instance's offer.
     let found = RegistryClient::new(&s.registry_url, "b-registry")
         .search_methods(&MethodSearch {
             query: "cart design".into(),
@@ -292,127 +354,125 @@ async fn run_b(s: &Shared, name: &'static str, charter: &str, scopes: &[&str]) -
             exclude_publisher: Some(OrgId::new("org_example_b")),
         })
         .await
-        .unwrap();
+        .map_err(|e| format!("search: {e:?}"))?;
     write(&out.join("search.json"), &json!(found));
-    let mut observations = BTreeMap::new();
-    for offer in OFFERS {
-        let wanted = &s.offers[offer];
-        let selection = found
-            .candidates
-            .iter()
-            .find(|c| json!(c)["reference"] == json!(wanted))
-            .unwrap_or_else(|| panic!("{offer} not found by search"));
-        let request = json!({"client_request_id":format!("{name}-{offer}-selection"),
-            "need":NEED,"acceptance":ACCEPTANCE,"selection":selection});
-        let (status, intake) = api
-            .post(&format!("/missions/{mission}/method-development"), &request)
-            .await;
-        write(
-            &out.join(format!("intake-{offer}.json")),
-            &json!({"status":status,"body":intake}),
-        );
-        assert_eq!(status, 201, "{intake}");
-        observations.insert(
-            offer,
-            intake["observation_id"].as_str().unwrap().to_string(),
-        );
-    }
+    let reference = &s.offers[offer];
+    let selection = found
+        .candidates
+        .iter()
+        .find(|c| json!(c)["reference"] == json!(reference))
+        .ok_or(format!("{offer} not found by search"))?;
+    let request = json!({"client_request_id":format!("{tag}-selection"),
+        "need":NEED,"acceptance":ACCEPTANCE,"selection":selection});
+    let (status, intake) = api
+        .post(&format!("/missions/{mission}/method-development"), &request)
+        .await;
+    write(
+        &out.join("intake.json"),
+        &json!({"status":status,"body":intake}),
+    );
+    ensure!(status == 201, "intake: {status} {intake}");
+    let observation = intake["observation_id"]
+        .as_str()
+        .unwrap_or_default()
+        .to_string();
 
-    // Stage 3: one live `once` call per intake observation, in offer order.
-    let planner = |sub: &str, observation: &str, with_model: bool| {
+    // Stage 3: one live `once` call for that observation. The requirement is
+    // matched by its triggering evidence and counts only once ASSIGNED.
+    let planner = |sub: &str, with_model: bool| {
         let mut c = Command::new(&s.planner_bin);
         c.env_clear()
             .env("PATH", std::env::var_os("PATH").unwrap_or_default())
-            .current_dir(&out)
-            .args(["--org-url", &b.url(), "--token", "org_example_b-agent"])
-            .args([sub, "--observation", observation]);
+            .current_dir(out)
+            .args(["--org-url", &b.url(), "--token", &format!("{tag}-b-agent")])
+            .args([sub, "--observation", &observation]);
         if with_model {
             c.envs(s.llm.iter().map(|(k, v)| (k, v)));
         }
         c.output().unwrap()
     };
-    let mut committed: BTreeMap<&str, Value> = BTreeMap::new();
-    let mut seen: Vec<String> = vec![];
-    for offer in OFFERS {
-        let observation = &observations[offer];
-        let prompt = planner("prompt", observation, false);
-        std::fs::write(
-            out.join(format!("planner-prompt-{offer}.txt")),
-            &prompt.stdout,
-        )
-        .unwrap();
-        assert!(prompt.status.success());
-        let once = planner("once", observation, true);
-        std::fs::write(
-            out.join(format!("planner-once-{offer}.stdout")),
-            &once.stdout,
-        )
-        .unwrap();
-        std::fs::write(
-            out.join(format!("planner-once-{offer}.stderr")),
-            &once.stderr,
-        )
-        .unwrap();
-        // A non-zero exit is recorded like any other outcome for this offer.
-        let mut org = Value::Null;
-        let mut new = None;
-        for _ in 0..240 {
-            org = api.get("/organization").await;
-            new = org["requirements"]
+    let prompt = planner("prompt", false);
+    std::fs::write(out.join("planner-prompt.txt"), &prompt.stdout).unwrap();
+    ensure!(prompt.status.success(), "planner prompt failed");
+    let once = planner("once", true);
+    std::fs::write(out.join("planner-once.stdout"), &once.stdout).unwrap();
+    std::fs::write(out.join("planner-once.stderr"), &once.stderr).unwrap();
+    summary["planner_exit"] = json!(once.status.code());
+    let mut org = Value::Null;
+    let mut assigned = None;
+    for _ in 0..240 {
+        org = api.get("/organization").await;
+        let mine = org["requirements"].as_object().and_then(|r| {
+            r.values()
+                .find(|r| {
+                    r["triggering_evidence"]
+                        .as_array()
+                        .is_some_and(|e| e.contains(&json!(observation)))
+                })
+                .cloned()
+        });
+        summary["requirement"] = mine.clone().unwrap_or(Value::Null);
+        let responsibility = mine.as_ref().and_then(|r| {
+            org["responsibilities"]
                 .as_object()
-                .unwrap()
-                .values()
-                .find(|r| !seen.contains(&r["requirement_id"].as_str().unwrap().to_string()))
-                .cloned();
-            if new.is_some() || !once.status.success() {
+                .and_then(|x| {
+                    x.values()
+                        .find(|x| x["requirement_id"] == r["requirement_id"])
+                })
+                .map(|x| x["responsibility_id"].clone())
+        });
+        if let (Some(r), Some(rsp)) = (&mine, responsibility) {
+            if r["status"] == "ASSIGNED" {
+                assigned = Some((r.clone(), rsp));
                 break;
             }
-            tokio::time::sleep(Duration::from_millis(250)).await;
         }
-        write(&out.join(format!("organization-after-{offer}.json")), &org);
-        if let Some(r) = new {
-            seen.push(r["requirement_id"].as_str().unwrap().to_string());
-            let responsibility = org["responsibilities"]
-                .as_object()
-                .unwrap()
-                .values()
-                .find(|x| x["requirement_id"] == r["requirement_id"])
-                .unwrap()["responsibility_id"]
-                .clone();
-            committed.insert(
-                offer,
-                json!({"requirement":r,"responsibility":responsibility}),
-            );
+        if !once.status.success() {
+            break;
         }
+        tokio::time::sleep(Duration::from_millis(250)).await;
     }
-    let mut summary = json!({"b":name,"lead":lead,"offers":{}});
-    for offer in OFFERS {
-        summary["offers"][offer] = match committed.get(offer) {
-            Some(c) => json!({"planner":"committed","owner":c["requirement"]["owner"],
-                "owner_is_lead": c["requirement"]["owner"]["id"] == json!(lead)}),
-            None => json!({"planner":"no requirement"}),
-        };
-    }
-    if committed.is_empty() {
-        write(&out.join("summary.json"), &summary);
-        return summary;
-    }
+    write(&out.join("organization-after-planner.json"), &org);
+    let Some((requirement, responsibility)) = assigned else {
+        summary["planner"] = json!("no assigned requirement (no change, escalation or unresolved)");
+        return Ok(());
+    };
+    let requirement_id = requirement["requirement_id"]
+        .as_str()
+        .unwrap_or_default()
+        .to_string();
+    let owner = requirement["owner"]["id"]
+        .as_str()
+        .unwrap_or_default()
+        .to_string();
+    let responsibility = responsibility.as_str().unwrap_or_default().to_string();
+    let owner_role = &org["roles"][&owner];
+    summary["planner"] = json!("assigned");
+    summary["owner"] = json!({"role_id":owner,"is_lead":owner == lead,
+        "name":owner_role["name"],"charter":owner_role["charter"],"scopes":owner_role["authority"]["scopes"]});
 
-    // Stage 4: B's receiving trials for the committed offers only.
-    let full = read(&s.dir.join(format!("{name}-receive.json")));
+    // Stage 4: B's receiving trials for this offer.
+    let short = if offer == "parent" { "parent" } else { "same" };
+    let pinned = format!("{name}-{short}-pinned");
+    let full = read_checked(&s.dir.join(format!("{name}-receive.json")))?;
     let mut spec = full.clone();
-    let keep = |t: &Value| committed.contains_key(t["candidate"].as_str().unwrap());
     spec["trials"] = json!(full["trials"]
         .as_array()
-        .unwrap()
+        .ok_or("spec has no trials")?
         .iter()
-        .filter(|t| keep(t))
+        .filter(|t| t["candidate"] == json!(offer))
         .collect::<Vec<_>>());
     // The filtered spec lives in the run directory, so its package paths are
     // made absolute; the bytes are still checked against the same sha256.
-    for v in spec["packages"].as_object_mut().unwrap().values_mut() {
-        let path = s.dir.join(v["path"].as_str().unwrap());
-        v["path"] = json!(path.canonicalize().unwrap());
+    for v in spec["packages"]
+        .as_object_mut()
+        .ok_or("spec has no packages")?
+        .values_mut()
+    {
+        let path = s.dir.join(v["path"].as_str().unwrap_or_default());
+        v["path"] = json!(path
+            .canonicalize()
+            .map_err(|e| format!("{}: {e}", path.display()))?);
     }
     let spec_path = out.join("receive.json");
     write(&spec_path, &spec);
@@ -427,55 +487,50 @@ async fn run_b(s: &Shared, name: &'static str, charter: &str, scopes: &[&str]) -
     );
     std::fs::write(out.join("receive.stdout"), &r.stdout).unwrap();
     std::fs::write(out.join("receive.stderr"), &r.stderr).unwrap();
-    assert!(r.status.success(), "{}", String::from_utf8_lossy(&r.stderr));
-    let pinned = |offer: &str| {
-        format!(
-            "{name}-{}-pinned",
-            if offer == "parent" { "parent" } else { "same" }
-        )
-    };
-    let mut pins = vec![];
-    let mut first_plan = Value::Null;
-    for offer in committed.keys() {
-        let trial = trial_out.join(pinned(offer));
-        let plan = read(&trial.join("plan.json"));
-        let verdict = read(&trial.join("verdict.json"));
-        summary["offers"][*offer]["trial"] = json!({"id":pinned(offer),"candidate":verdict["candidate"],
-            "control":verdict["control"],"verdict":verdict["verdict"],"reason":verdict["reason"]});
-        let random = trial_out.join(pinned(offer).replace("-pinned", "-vs-random"));
-        if let Ok(bytes) = std::fs::read(random.join("verdict.json")) {
-            let v: Value = serde_json::from_slice(&bytes).unwrap();
-            summary["offers"][*offer]["reported_vs_random"] = json!({"candidate":v["candidate"],"control":v["control"],"verdict":v["verdict"],"reason":v["reason"]});
-        }
-        pins.push(AcceptancePin {
-            requirement_id: committed[offer]["requirement"]["requirement_id"]
-                .as_str()
-                .unwrap()
-                .into(),
-            publisher: OrgId::new("org_example_a"),
-            plan: serde_json::from_value::<TrialPlan>(plan.clone())
-                .unwrap()
-                .reference()
-                .unwrap(),
-        });
-        first_plan = plan;
+    ensure!(
+        r.status.success(),
+        "receive.py exited {:?}",
+        r.status.code()
+    );
+    let plan = read_checked(&trial_out.join(&pinned).join("plan.json"))?;
+    let verdict = read_checked(&trial_out.join(&pinned).join("verdict.json"))?;
+    summary["trial"] = json!({"id":pinned,"verdict":verdict});
+    if let Ok(v) = read_checked(
+        &trial_out
+            .join(pinned.replace("-pinned", "-vs-random"))
+            .join("verdict.json"),
+    ) {
+        summary["reported_vs_random"] = v;
     }
-    let envelope = read(&trial_out.join("packages/parent.package.json"));
-    let field = |k: &str| {
-        serde_json::from_value::<ExactContentRef>(envelope["package"][k].clone()).unwrap()
-    };
+    let settled = verdict["verdict"] == "accepted" || verdict["verdict"] == "rejected";
+    if !settled {
+        // Failed, interrupted or unknown executions are ineligible: no decision.
+        summary["decision"] = json!("ineligible: the pinned trial has no settled verdict");
+        return Ok(());
+    }
+
+    // B's operator pins exactly that plan to the requirement and restarts.
+    let envelope = read_checked(&trial_out.join(format!("packages/{offer}.package.json")))?;
+    let field = |k: &str| serde_json::from_value::<ExactContentRef>(envelope["package"][k].clone());
     let receiver = MethodReceiver {
-        runtime: field("runtime"),
-        protocol: field("protocol"),
+        runtime: field("runtime").map_err(|e| e.to_string())?,
+        protocol: field("protocol").map_err(|e| e.to_string())?,
         environments: vec![
-            serde_json::from_value(first_plan["development_environment"].clone()).unwrap(),
+            serde_json::from_value(plan["development_environment"].clone())
+                .map_err(|e| e.to_string())?,
         ],
-        evaluators: vec![
-            serde_json::from_value(first_plan["context"]["evaluator"].clone()).unwrap(),
-        ],
+        evaluators: vec![serde_json::from_value(plan["context"]["evaluator"].clone())
+            .map_err(|e| e.to_string())?],
         allowed_dependencies: vec![],
         records_root: trial_out.clone(),
-        acceptance_plans: pins,
+        acceptance_plans: vec![AcceptancePin {
+            requirement_id: requirement_id.as_str().into(),
+            publisher: OrgId::new("org_example_a"),
+            plan: serde_json::from_value::<TrialPlan>(plan.clone())
+                .map_err(|e| e.to_string())?
+                .reference()
+                .map_err(|e| format!("{e:?}"))?,
+        }],
     };
     let receiver_path = out.join("receiver.json");
     write(&receiver_path, &json!(receiver));
@@ -484,179 +539,166 @@ async fn run_b(s: &Shared, name: &'static str, charter: &str, scopes: &[&str]) -
     let _b_proc = b.spawn(&s.bin, &s.registry_url, Some(&receiver_path));
     wait_up(&b.url()).await;
 
-    // Stages 5 and 6 per committed offer.
-    let a_on_b = Http {
+    // Stage 5. Controls first: a token B never issued, and a role or grant
+    // that doesn't hold this work. Then the owner asks to adopt with the
+    // pinned trial, and B's receiver decides from that evidence.
+    let intent = |key: &str, role: &str, rsp: &str| {
+        json!({"client_request_id":key,"mission_id":mission,"requirement_id":requirement_id,
+            "role_id":role,"responsibility_id":rsp,"publisher":"org_example_a",
+            "reference":reference,"decision":{"decision":"adopt","trial":pinned}})
+    };
+    let unknown_token = Http {
         base: api.base.clone(),
         token: "org_example_a-operator".into(),
         http: reqwest::Client::new(),
     };
-    for (offer, c) in &committed {
-        let requirement_id = c["requirement"]["requirement_id"].as_str().unwrap();
-        let owner = c["requirement"]["owner"]["id"]
-            .as_str()
-            .unwrap()
-            .to_string();
-        let responsibility = c["responsibility"].as_str().unwrap();
-        let reference = &s.offers[offer];
-        let trial = pinned(offer);
-        let intent = |key: &str, role: &str, decision: &Value| {
-            json!({"client_request_id":key,"mission_id":mission,"requirement_id":requirement_id,
-                "role_id":role,"responsibility_id":responsibility,"publisher":"org_example_a",
-                "reference":reference,"decision":decision})
-        };
-        let adopt = json!({"decision":"adopt","trial":trial});
-        let (status_a, body_a) = a_on_b
-            .post(
-                "/method-adoptions",
-                &intent(&format!("{offer}-a-in-b"), &owner, &adopt),
-            )
-            .await;
-        // The lead control is sent only when someone else owns the work.
-        let (lead_status, lead_attempt) = if owner == lead {
-            (
-                None,
-                json!({"who":"B's lead","skipped":"the lead owns this work"}),
-            )
-        } else {
-            let (status, body) = api
-                .post(
-                    "/method-adoptions",
-                    &intent(&format!("{offer}-lead"), &lead, &adopt),
-                )
-                .await;
-            (
-                Some(status),
-                json!({"who":"B's lead","status":status,"body":body}),
-            )
-        };
-        write(
-            &out.join(format!("refused-{offer}.json")),
-            &json!([{"who":"A's operator token on B","status":status_a,"body":body_a}, lead_attempt]),
-        );
-        assert!(
-            status_a == 401 || status_a == 403,
-            "A acted in B: {status_a}"
-        );
-        if let Some(status) = lead_status {
-            assert!(
-                status >= 400,
-                "the lead adopted work it doesn't own: {status}"
-            );
-        }
-        let accepted = summary["offers"][*offer]["trial"]["verdict"] == "accepted";
-        let decision = if accepted {
-            adopt
-        } else {
-            json!({"decision":"decline","reason":"B's receiving trial did not accept it"})
-        };
-        let (status, decided) = api
-            .post(
-                "/method-adoptions",
-                &intent(&format!("{offer}-owner"), &owner, &decision),
-            )
-            .await;
-        write(
-            &out.join(format!("decision-{offer}.json")),
-            &json!({"status":status,"body":decided}),
-        );
-        assert_eq!(status, 201, "{decided}");
-        summary["offers"][*offer]["decision"] = decided["outcome"]["outcome"].clone();
-        if !accepted {
-            continue;
-        }
-
-        let ask = json!({"role_id":owner,"responsibility_id":responsibility,
-            "publisher":"org_example_a","reference":reference});
-        let (status, current) = api.post("/method-invocations/authorize", &ask).await;
-        write(
-            &out.join(format!("authorization-{offer}.json")),
-            &json!({"status":status,"body":current}),
-        );
-        assert_eq!(status, 200, "{current}");
-        let plan = read(&trial_out.join(&trial).join("plan.json"));
-        let template = read(&s.dir.join(format!("invoke-{name}-{offer}.json")));
-        let tag = format!("g2a1-{name}-{offer}");
-        let mut invocation = plan.clone();
-        invocation["id"] = json!(format!("invoke-{tag}"));
-        invocation["development_instances"] = template["development_instances"].clone();
-        invocation["context"]["instance_set"] = template["context"]["instance_set"].clone();
-        let mut slot = invocation["slots"][0].clone();
-        slot["slot_id"] = json!("use");
-        slot["run_id"] = json!(format!("run-{tag}"));
-        slot["attempt_id"] = json!(format!("att_{}", tag.replace('-', "_")));
-        slot["scoring_request_id"] = json!(format!("score-{tag}"));
-        let g = &current["grant"];
-        slot["purpose"] = json!({"kind":"invocation","grant":{"adoption_id":current["adoption_id"],
-            "requirement_id":current["requirement_id"],"role_id":g["role_id"],
-            "responsibility_id":g["responsibility_id"],"assignment_id":g["assignment_id"],"epoch":g["epoch"]}});
-        invocation["slots"] = json!([slot]);
-        let request_path = out.join(format!("proposed-request-{offer}.json"));
-        let plan_path = out.join(format!("proposed-plan-{offer}.json"));
-        write(&request_path, &ask);
-        write(&plan_path, &invocation);
-        let runs = out.join(format!("run-{offer}"));
-        let token = [("GENESIS_OPERATOR_TOKEN", os("org_example_b-operator"))];
-        let package = trial_out.join(format!("packages/{offer}.package.json"));
-        let steps: [(&str, Vec<OsString>); 3] = [
-            (
-                "prepare",
-                vec![
-                    os("prepare"),
-                    os("--org"),
-                    os(&api.base),
-                    os("--key"),
-                    os(format!("{tag}-run")),
-                    os("--request"),
-                    os(&request_path),
-                    os("--plan"),
-                    os(&plan_path),
-                    os("--out"),
-                    os(&runs),
-                ],
-            ),
-            (
-                "run",
-                vec![
-                    os("run"),
-                    os(&runs),
-                    os("--package"),
-                    os(&package),
-                    os("--lab-exec"),
-                    os(&s.lab_exec),
-                    os("--sandbox"),
-                    os("namespaces"),
-                ],
-            ),
-            (
-                "score",
-                vec![os("score"), os(&runs), os("--lab-score"), os(&s.lab_score)],
-            ),
-        ];
-        let mut id = String::new();
-        for (step, args) in steps {
-            let o = python(&s.invoke_py, &args, &token);
-            std::fs::write(out.join(format!("{step}-{offer}.stdout")), &o.stdout).unwrap();
-            std::fs::write(out.join(format!("{step}-{offer}.stderr")), &o.stderr).unwrap();
-            assert!(
-                o.status.success(),
-                "{step}: {}",
-                String::from_utf8_lossy(&o.stderr)
-            );
-            if step == "prepare" {
-                id = serde_json::from_slice::<Value>(&o.stdout).unwrap()["id"]
-                    .as_str()
-                    .unwrap()
-                    .to_string();
-            }
-        }
-        let record = api.get(&format!("/method-runs/{id}")).await;
-        write(&out.join(format!("run-record-{offer}.json")), &record);
-        summary["offers"][*offer]["invocation"] = json!({"run":id,"status":record["status"],
-            "attachment":record["result"]["attachment"]["kind"]});
-        assert_eq!(record["status"], "completed", "{record}");
+    let (status_t, body_t) = unknown_token
+        .post(
+            "/method-adoptions",
+            &intent(&format!("{tag}-foreign-token"), &owner, &responsibility),
+        )
+        .await;
+    // When the lead owns the work, the mismatched-grant control uses the
+    // lead's other responsibility; otherwise the lead asks for the owner's.
+    let (control_role, control_rsp, control_label) = if owner == lead {
+        (
+            lead.clone(),
+            lead_responsibility.clone(),
+            "the lead with its unrelated 'Coordinate the lab' responsibility",
+        )
+    } else {
+        (
+            lead.clone(),
+            responsibility.clone(),
+            "the lead, which does not own this responsibility",
+        )
+    };
+    let (status_c, body_c) = api
+        .post(
+            "/method-adoptions",
+            &intent(&format!("{tag}-mismatched"), &control_role, &control_rsp),
+        )
+        .await;
+    write(
+        &out.join("refused.json"),
+        &json!([{"who":"a bearer token B never issued","status":status_t,"body":body_t},
+            {"who":control_label,"status":status_c,"body":body_c}]),
+    );
+    summary["controls"] = json!({"unknown_token":status_t,"mismatched_grant":status_c});
+    ensure!(
+        status_t == 401 || status_t == 403,
+        "a token B never issued acted: {status_t}"
+    );
+    ensure!(
+        status_c >= 400,
+        "the mismatched-grant control adopted: {status_c} {body_c}"
+    );
+    let (status, decided) = api
+        .post(
+            "/method-adoptions",
+            &intent(&format!("{tag}-owner"), &owner, &responsibility),
+        )
+        .await;
+    write(
+        &out.join("decision.json"),
+        &json!({"status":status,"body":decided}),
+    );
+    ensure!(status == 201, "owner decision: {status} {decided}");
+    summary["decision"] = decided["outcome"]["outcome"].clone();
+    if decided["outcome"]["outcome"] != "adopted" {
+        return Ok(());
     }
-    write(&out.join("summary.json"), &summary);
-    summary
+
+    // Stage 6: one invocation under B's grant, scored and attached.
+    let ask = json!({"role_id":owner,"responsibility_id":responsibility,
+        "publisher":"org_example_a","reference":reference});
+    let (status, current) = api.post("/method-invocations/authorize", &ask).await;
+    write(
+        &out.join("authorization.json"),
+        &json!({"status":status,"body":current}),
+    );
+    ensure!(status == 200, "authorize: {status} {current}");
+    let template = read_checked(&s.dir.join(format!("invoke-{name}-{offer}.json")))?;
+    let label = format!("g2a1-{tag}");
+    let mut invocation = plan.clone();
+    invocation["id"] = json!(format!("invoke-{label}"));
+    invocation["development_instances"] = template["development_instances"].clone();
+    invocation["context"]["instance_set"] = template["context"]["instance_set"].clone();
+    invocation["criterion"] = template["criterion"].clone();
+    let mut slot = invocation["slots"][0].clone();
+    slot["slot_id"] = json!("use");
+    slot["run_id"] = json!(format!("run-{label}"));
+    slot["attempt_id"] = json!(format!("att_{}", label.replace('-', "_")));
+    slot["scoring_request_id"] = json!(format!("score-{label}"));
+    let g = &current["grant"];
+    slot["purpose"] = json!({"kind":"invocation","grant":{"adoption_id":current["adoption_id"],
+        "requirement_id":current["requirement_id"],"role_id":g["role_id"],
+        "responsibility_id":g["responsibility_id"],"assignment_id":g["assignment_id"],"epoch":g["epoch"]}});
+    invocation["slots"] = json!([slot]);
+    let request_path = out.join("proposed-request.json");
+    let plan_path = out.join("proposed-plan.json");
+    write(&request_path, &ask);
+    write(&plan_path, &invocation);
+    let runs = out.join("run");
+    let token = [("GENESIS_OPERATOR_TOKEN", os(format!("{tag}-b-operator")))];
+    let package = trial_out.join(format!("packages/{offer}.package.json"));
+    let steps: [(&str, Vec<OsString>); 3] = [
+        (
+            "prepare",
+            vec![
+                os("prepare"),
+                os("--org"),
+                os(&api.base),
+                os("--key"),
+                os(format!("{label}-run")),
+                os("--request"),
+                os(&request_path),
+                os("--plan"),
+                os(&plan_path),
+                os("--out"),
+                os(&runs),
+            ],
+        ),
+        (
+            "run",
+            vec![
+                os("run"),
+                os(&runs),
+                os("--package"),
+                os(&package),
+                os("--lab-exec"),
+                os(&s.lab_exec),
+                os("--sandbox"),
+                os("namespaces"),
+            ],
+        ),
+        (
+            "score",
+            vec![os("score"), os(&runs), os("--lab-score"), os(&s.lab_score)],
+        ),
+    ];
+    let mut id = String::new();
+    for (step, args) in steps {
+        let o = python(&s.invoke_py, &args, &token);
+        std::fs::write(out.join(format!("{step}.stdout")), &o.stdout).unwrap();
+        std::fs::write(out.join(format!("{step}.stderr")), &o.stderr).unwrap();
+        ensure!(
+            o.status.success(),
+            "invoke {step} exited {:?}",
+            o.status.code()
+        );
+        if step == "prepare" {
+            id = serde_json::from_slice::<Value>(&o.stdout).map_err(|e| e.to_string())?["id"]
+                .as_str()
+                .unwrap_or_default()
+                .to_string();
+        }
+    }
+    let record = api.get(&format!("/method-runs/{id}")).await;
+    write(&out.join("run-record.json"), &record);
+    summary["invocation"] = json!({"run":id,"status":record["status"],
+        "attachment":record["result"]["attachment"]["kind"]});
+    Ok(())
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
@@ -704,6 +746,7 @@ async fn g2_attempt_1() {
     wait_up(&registry_url).await;
     let a = OrgProc {
         id: "org_example_a",
+        tokens: "org_example_a".into(),
         port: free_port(),
         db: out.join("state/a.db"),
         log: out.join("org-a.log"),
@@ -763,7 +806,7 @@ async fn g2_attempt_1() {
         offers.insert(offer, reference);
     }
     write(&out.join("b-publish-as-a.json"), &forged);
-    // B's operator token means nothing to A.
+    // A token A never issued is refused.
     let b_on_a = Http {
         base: a_api.base.clone(),
         token: "org_example_b-operator".into(),
@@ -771,12 +814,12 @@ async fn g2_attempt_1() {
     };
     let (status, body) = b_on_a.get_status("/organization").await;
     write(
-        &out.join("b-token-on-a.json"),
-        &json!({"status":status,"body":body}),
+        &out.join("unknown-token-on-a.json"),
+        &json!({"who":"a bearer token A never issued","status":status,"body":body}),
     );
     assert!(
         status == 401 || status == 403,
-        "B's token worked on A: {status}"
+        "a token A never issued worked on A: {status}"
     );
 
     let llm = [
@@ -807,24 +850,26 @@ async fn g2_attempt_1() {
         offers,
         llm,
     };
-    let b1 = run_b(
-        &shared,
-        "b1",
+    // Four independent B instances, each seeing exactly one offer. B1 and B2
+    // differ only in the lead's founding charter and scopes.
+    let b1 = (
         "Own the lab and evaluate reusable methods",
-        &["mission.coordinate", "method.develop"],
-    )
-    .await;
-    let b2 = run_b(
-        &shared,
-        "b2",
+        &["mission.coordinate", "method.develop"][..],
+    );
+    let b2 = (
         "Own the lab and run rough-transport deliveries",
-        &["mission.coordinate"],
-    )
-    .await;
+        &["mission.coordinate"][..],
+    );
+    let mut results = json!({});
+    for (name, (charter, scopes)) in [("b1", b1), ("b2", b2)] {
+        for offer in OFFERS {
+            results[format!("{name}-{offer}")] = run_b(&shared, name, offer, charter, scopes).await;
+        }
+    }
 
     // A's state is its own.
     let a_state = a_api.get("/organization").await;
     write(&out.join("a-organization-at-end.json"), &a_state);
     assert!(a_state["requirements"].as_object().unwrap().is_empty());
-    write(&out.join("summary.json"), &json!({"b1":b1,"b2":b2}));
+    write(&out.join("summary.json"), &results);
 }
