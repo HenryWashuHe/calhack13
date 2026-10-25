@@ -135,6 +135,12 @@ struct OrgArgs {
     /// must reproduce each retained trial's scoring before an adoption decision.
     #[arg(long, value_name = "FILE", requires = "method_receiver")]
     method_rescorer: Option<PathBuf>,
+    /// Trusted JSON `{path, sha256, sandbox, packages, path_env?, timeout_ms?}`
+    /// naming a pinned executor that must reproduce each retained trial's
+    /// execution receipts before an adoption decision. Runs offered code in
+    /// the executor's sandbox on this host.
+    #[arg(long, value_name = "FILE", requires = "method_rescorer")]
+    method_reexecutor: Option<PathBuf>,
     #[arg(long, env = "GENESIS_REGISTRY_URL")]
     registry_url: Option<String>,
     #[arg(long, env = "GENESIS_REGISTRY_TOKEN")]
@@ -293,6 +299,7 @@ async fn main() -> anyhow::Result<()> {
                 gap_adoption_policy,
                 method_receiver,
                 method_rescorer,
+                method_reexecutor,
                 registry_url,
                 registry_token,
                 operator_token,
@@ -388,6 +395,11 @@ async fn main() -> anyhow::Result<()> {
             app.method_rescorer = method_rescorer
                 .as_deref()
                 .map(load_trusted_json::<genesis_server::method_rescore::MethodRescorer>)
+                .transpose()?
+                .map(Arc::new);
+            app.method_reexecutor = method_reexecutor
+                .as_deref()
+                .map(load_trusted_json::<genesis_server::method_rescore::MethodReexecutor>)
                 .transpose()?
                 .map(Arc::new);
             let listener = tokio::net::TcpListener::bind(&bind).await?;
