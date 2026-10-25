@@ -301,7 +301,7 @@ async fn rehearse_the_receiving_half_of_aba_attempt_2() {
     };
     let a = org("org_example_a", "a-registry", "org-a.log", "a.db");
     let b = org("org_example_b", "b-registry", "org-b.log", "b.db");
-    let mut a_proc = a.spawn(&bin, &registry_url, None);
+    let a_proc = a.spawn(&bin, &registry_url, None);
     let _b_proc = b.spawn(&bin, &registry_url, None);
     wait_up(&a.url()).await;
     wait_up(&b.url()).await;
@@ -476,10 +476,10 @@ async fn rehearse_the_receiving_half_of_aba_attempt_2() {
     };
     let receiver_path = state.join("a-receiver.json");
     write(&receiver_path, &json!(receiver));
-    drop(std::mem::replace(
-        &mut a_proc,
-        a.spawn(&bin, &registry_url, Some(&receiver_path)),
-    ));
+    // Stop and reap the old listener before starting its replacement on the
+    // same port. Spawning inside mem::replace races the old process's exit.
+    drop(a_proc);
+    let _a_proc = a.spawn(&bin, &registry_url, Some(&receiver_path));
     wait_up(&a.url()).await;
 
     // Stage 5: A's owner decides; B's operator token is refused on A.
