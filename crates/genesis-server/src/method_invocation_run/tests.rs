@@ -231,7 +231,9 @@ fn a_changed_grant_fences_before_start_and_marks_a_late_receipt() {
         E::Status(MethodRunStatus::Fenced)
     ));
 
-    let (late, _) = r.prepare(&r.intent("fence-during", r.plan())).unwrap();
+    let mut second = r.plan();
+    second.id = "invoke-second".into();
+    let (late, _) = r.prepare(&r.intent("fence-during", second)).unwrap();
     r.f.store
         .start_method_run(&late.id, &r.state(), receiver, r.f.now)
         .unwrap();
@@ -280,12 +282,11 @@ fn a_changed_retained_acceptance_plan_bounds_nothing() {
     // no longer match the adoption's evidence, no invocation is frozen.
     let r = Run::new();
     let plan = r.plan();
-    let path = r
-        .f
-        .records
-        .receiver
-        .records_root
-        .join("vs-fixed-cart/plan.json");
+    let path =
+        r.f.records
+            .receiver
+            .records_root
+            .join("vs-fixed-cart/plan.json");
     let mut retained: serde_json::Value =
         serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
     retained["development_grant"]["simulation_steps"] = serde_json::json!(1_000_000);
@@ -293,5 +294,69 @@ fn a_changed_retained_acceptance_plan_bounds_nothing() {
     assert!(matches!(
         r.prepare(&r.intent("tampered", plan)).unwrap_err(),
         E::InvalidRecord
+    ));
+}
+
+#[test]
+fn keys_sizes_and_stored_records_are_checked() {
+    let r = Run::new();
+    for key in ["", "k\n", &"k".repeat(257)] {
+        assert!(matches!(
+            r.prepare(&r.intent(key, r.plan())).unwrap_err(),
+            E::InvalidInput
+        ));
+    }
+    // A plan whose frozen record would exceed the record bound is refused.
+    let mut huge = r.plan();
+    let first = huge.development_instances[0].clone();
+    huge.development_instances = (0..12_000)
+        .map(|i| {
+            let mut instance = first.clone();
+            instance.id = format!("rough-transport/1/{}", 100_000 + i);
+            instance
+        })
+        .collect();
+    assert!(matches!(
+        r.prepare(&r.intent("huge", huge)).unwrap_err(),
+        E::InvalidInput
+    ));
+    // The indexed status must agree with the stored record.
+    let (record, _) = r.prepare(&r.intent("indexed", r.plan())).unwrap();
+    r.f.store
+        .lock()
+        .execute(
+            "UPDATE method_runs SET status='started' WHERE id=?1",
+            rusqlite::params![record.id],
+        )
+        .unwrap();
+    assert!(matches!(
+        r.f.store.method_run(&record.id).unwrap_err(),
+        E::InvalidRecord
+    ));
+}
+
+#[test]
+fn the_run_count_is_bounded() {
+    let r = Run::new();
+    for n in 0..MAX_METHOD_RUNS {
+        let mut plan = r.plan();
+        plan.id = format!("invoke-{n}");
+        r.prepare(&r.intent(&format!("run-{n}"), plan)).unwrap();
+    }
+    assert!(matches!(
+        r.prepare(&r.intent("one-too-many", r.plan())).unwrap_err(),
+        E::Limit
+    ));
+}
+
+#[test]
+fn one_exact_plan_is_frozen_once() {
+    // Identical plans share run and attempt ids; a receipt from one run would
+    // fit the other, so a second run of the same plan is refused.
+    let r = Run::new();
+    r.prepare(&r.intent("first", r.plan())).unwrap();
+    assert!(matches!(
+        r.prepare(&r.intent("second", r.plan())).unwrap_err(),
+        E::Plan(_)
     ));
 }
