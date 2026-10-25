@@ -96,6 +96,15 @@ mismatch or ledger failure stops the run without opening the final panel.
 All process and result records are English. Existing ACP smoke results,
 offline tests and this run are reported separately.
 
+After completion, publish the terminal event head separately, then run
+`node experiments/jobshop-controlled/verify.mjs --output-dir DATA_DIRECTORY
+--expected-head PUBLISHED_HEAD --recompute-final` against the exact source
+commit. This rechecks request/response and cost binding, engine ledger heads,
+selected packages and every final score. A matching local hash chain detects
+altered retained bytes only when bound to the externally published head; it
+does not authenticate the provider or certify that no unobserved request was
+sent from another process.
+
 The user waived waiting for additional independent Linux validation and
 accepted the local generated-rule execution risk for this run. The exact
 runtime sandbox and source head must still be recorded; this waiver does not
