@@ -35,6 +35,15 @@ Choose one of two modes, labeled in the top-left badge:
   decision card naming its source, the model and the timing the record
   supports (the transcript's planner-call duration; live, the kernel's own
   observation-to-decision interval).
+- **Clarity and mechanism.** Every panel carries a one-line caption; each scene lights the
+  panels doing the work and dims the rest; `?` opens an Explain overlay that numbers the
+  regions. A "How it decided" strip draws the planner's ladder of preferences (no change,
+  reuse a role, attach a capability, recruit a specialist, create a role) with the chosen rung
+  lit and the recorded reason, and the kernel's change pipeline (PROPOSED → VALIDATED →
+  PROVISIONING → READY → COMMITTED, or REJECTED). In the replay the fixture's proposals are
+  labelled as the scenario script's; live, the rung comes from the recorded operations and the
+  pipeline from the recorded status events of Org A's latest change. After a live report the
+  decision card shows "reading the evidence" with elapsed seconds until the answer lands.
 - **Presenter mode** (Present button, key P, Esc to leave): the same page at
   projector scale with the chrome hidden and a caption naming the scene, the
   source and the keys. Fullscreen is requested but optional.
