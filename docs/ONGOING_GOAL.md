@@ -254,3 +254,47 @@ credentials stay ignored and out of commits.
 This ledger is a checkpoint, not a substitute for current GitHub state. Record
 subsequent material milestones here with exact evidence; retain historical
 details in the handoff instead of copying an ever-growing transcript.
+
+## Direction update, October 24, 2026 (evening, Pacific)
+
+Relayed by the ACP lane from the owner's decisions in chat today; append-only, the
+objective and gates above are unchanged.
+
+- **How we tell it.** Lead with governance and measurement: an AI organization that
+  changes shape under evidence, within its constitution, and keeps what it learns with
+  provenance. Self-evolution is what this harness enables and has honestly measured, not a
+  headline claim: two real generations ran today and both were rejected against seeded
+  random search by predeclared trials. Nothing synthetic or scripted is ever presented as
+  a result; proof chips on the stage say what is real in every scene.
+- **Demo surface.** `apps/stage` is the main demo screen (#108 merged; #125 story pass
+  and #126 live judge input in review): the fixture replay with judge-triggered
+  disruptions, presenter mode, and live mode on the dev stack where a judge types a
+  disruption and the running planner answers on screen. The replay is the safety net.
+- **Research direction.** Make the iteration loop a real optimizer, domain-free and
+  transferable: the iteration contract and synthetic reference (#144, proposed and
+  exploratory pending interface review), the regression analysis of generation 2 (#160),
+  then the strategy/adapter split of method packages, a per-family frontier with several
+  candidates per generation, attributed same-family feedback with no strategy direction in
+  prompts, held-out panels regenerated every round, a screening cascade before full
+  trials, and a final fresh confirmation panel. Predeclared success metrics: per-family
+  frontier success over rounds; families where the frontier beats seeded random search
+  (target: two); families a strategy wins outside the family it was introduced in, which
+  measures transfer directly.
+- **Division of work tonight.** Stage, Devpost and README wording: the polishing member.
+  Analysis, engine contract and reference, paper-ablation notes: the research side (ACP
+  lane). Forge, executor and kernel: untouched without a claim accepted on issue #1.
+- **Sponsors, each with a job in the demo and an honest status.**
+  Fetch.ai (ASI:One, Agentverse, uAgents) is the conversation and the channel between
+  organizations: evidence arrives through the ASI:One mission agent (adapter merged, live
+  planner behind it; the public agent still needs the owner's Agentverse login), and
+  specialist contracts and inter-lab offers ride agent-to-agent messages. Elastic (Agent
+  Builder, Elasticsearch) is the organization's memory and a second planner: the event
+  log and ledgers are searchable evidence, and an organization can run its planner on
+  Agent Builder (`GENESIS_LLM_PROVIDER=elastic`) while another runs on Anthropic, one
+  constitution, two minds (gate blocked on a data key without create-index privilege).
+  Apify is the capability factory: the venue-availability capability is a real Actor,
+  built, pinned and oracle-verified (gate passed, 3/3 cases); in the lab, Actors are the
+  executable adapter layer for web-data task families. CREAO is the persistent role: the
+  Venue monitor exists as a real hosted agent created today; persistent roles are what
+  survive a temporary team dissolving (reconciliation path merged; readiness not yet
+  verified). The stage shows each in the scene where it acts, with its status chip.
