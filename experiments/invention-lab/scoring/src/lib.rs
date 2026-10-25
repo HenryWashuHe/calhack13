@@ -14,8 +14,8 @@
 //! at the wall grant (`Failed`). Unknown, failed and invalid primitive runs are
 //! kept as such, never folded into `Scored`. The receipt is written to
 //! `evaluation.json` before validation, so an overrun keeps its accounting, and
-//! is validated against the rebuilt request before it is returned. Hidden
-//! (comparison) scoring is not implemented here.
+//! is validated against the rebuilt request before it is returned. Comparison
+//! scoring on a committed hidden set is in [`hidden`].
 use genesis_core::development_evaluation::{
     EvaluationError, EvaluationOutcome, EvaluationReceipt, ScoringContext,
 };
@@ -24,6 +24,7 @@ use genesis_core::development_trial::{ScoringInstances, TrialPlan};
 use genesis_lab_eval::design::Design;
 use genesis_lab_eval::score::{score_acceptance, Outcome, Receipt};
 pub mod feedback;
+pub mod hidden;
 pub mod verdict;
 
 use genesis_lab_exec::refs;
@@ -163,7 +164,46 @@ pub fn score_slot(
             "the scoring grant allows no wall time".into(),
         ));
     }
-    let request_sha256 = request.canonical_hash(execution, &binding)?;
+    let jobs: Vec<Job> = worlds
+        .iter()
+        .map(|(reference, _)| Job {
+            trace_label: json!(reference),
+            id: reference.id.clone(),
+        })
+        .collect();
+    run_jobs(
+        slot_id,
+        &request,
+        execution,
+        &binding,
+        output_bytes,
+        store,
+        &jobs,
+        |design, i| score_acceptance(design, worlds[i].1.family, worlds[i].1.seed),
+    )
+}
+
+/// How one primitive scoring run is labeled in the trace and the metrics.
+pub(crate) struct Job {
+    pub trace_label: serde_json::Value,
+    pub id: String,
+}
+
+/// Runs admitted jobs under the request's wall grant and builds, retains and
+/// validates the receipt. Callers have already checked the context, the step
+/// grant (a full episode per job) and a nonzero wall grant.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn run_jobs(
+    slot_id: &str,
+    request: &genesis_core::development_evaluation::EvaluationRequest,
+    execution: &ExecutionReceipt,
+    binding: &genesis_core::development_method::DevelopmentRunBinding,
+    output_bytes: &[u8],
+    store: &Store,
+    jobs: &[Job],
+    score: impl Fn(&Design, usize) -> Result<Receipt, genesis_lab_eval::score::Refusal>,
+) -> Result<EvaluationReceipt, ScoringError> {
+    let request_sha256 = request.canonical_hash(execution, binding)?;
     let started = Instant::now();
 
     let deadline = std::time::Duration::from_millis(request.budget.wall_time_ms);
@@ -173,24 +213,23 @@ pub fn score_slot(
     let mut stopped = None;
     let design = serde_json::from_slice::<Design>(output_bytes);
     if let Ok(design) = &design {
-        for (reference, world) in &worlds {
+        for (i, job) in jobs.iter().enumerate() {
             // Admitted work stops at the scoring wall grant.
             if started.elapsed() >= deadline {
                 stopped = Some(format!(
                     "the scoring wall grant ran out after {} of {} instances",
                     runs.len(),
-                    worlds.len()
+                    jobs.len()
                 ));
                 break;
             }
-            let r = score_acceptance(design, world.family, world.seed)
-                .map_err(|e| ScoringError::Refused(format!("{e:?}")))?;
+            let r = score(design, i).map_err(|e| ScoringError::Refused(format!("{e:?}")))?;
             steps = match (steps, r.simulation_steps) {
                 (Some(total), Some(s)) => Some(total + s as u64),
                 _ => None,
             };
-            rows.push(json!({"instance": reference, "receipt": r}));
-            runs.push((reference.id.clone(), r));
+            rows.push(json!({"instance": job.trace_label, "receipt": r}));
+            runs.push((job.id.clone(), r));
         }
     }
     let trace = store_json(
@@ -256,7 +295,7 @@ pub fn score_slot(
         "evaluation.json",
         &serde_json::to_vec_pretty(&receipt).expect("receipt serializes"),
     )?;
-    receipt.validate_against(&request, execution, &binding)?;
+    receipt.validate_against(request, execution, binding)?;
     Ok(receipt)
 }
 
