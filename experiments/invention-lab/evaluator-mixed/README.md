@@ -54,7 +54,23 @@ calibration seeds.
 
 Frozen at `e2ade73` (`confirmation/freeze.json`, sha256 `38f26861…`) and
 announced on issue #1 before it ran. Run once, seeds 51000..51071, twelve
-panels of six (`confirmation/result.json`):
+panels of six (`confirmation/result.json`). The frozen confirmation CLI requires
+both the evaluator binary path (`argv[1]`) and the predeclared evaluator identity
+SHA-256 (`argv[2]`):
+
+```sh
+python3 experiments/invention-lab/evaluator-mixed/calibration/confirm.py \
+  /path/to/lab-eval-mixed \
+  316908f707b071bbb0bc51cc8fb90e1d51393fe0a1b53528b76e0822f17c4ed9
+```
+
+The second argument is `evaluator.sha256` in `confirmation/freeze.json`, not
+`evaluator.binary.sha256`. The script checks the binary's `identity` response
+against it before calibration/scoring work. This documents the retained run's
+invocation contract; it does not request a repeat or replacement of its evidence.
+The frozen script and its historical usage docstring remain byte-identical.
+
+Retained results:
 
 | arm | per panel | total of 72 |
 |---|---|---|
