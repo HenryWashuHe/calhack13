@@ -145,6 +145,11 @@ function main() {
   if (fullReserve > RUN_CAP || priorMicro + fullReserve > STUDY_CAP) throw new Error("full predeclared request reserve exceeds a dollar ceiling");
   if (fs.existsSync(output)) throw new Error("output directory already exists");
   const source = sourceManifest(); // admission and byte identity before a key is read or any output is created
+  const probeFamily = jobshopFamily({ id: "jobshop-10x5", seed: "admission-probe" });
+  const probeSource = probeFamily.root();
+  const probe = probeFamily.score({ sha256: sha256(probeSource), source: probeSource }, "jobshop-10x5/admission-probe/0");
+  if (typeof probe.success !== "boolean" || !Number.isFinite(probe?.detail?.ratio)) throw new Error("sandbox preflight could not score a trusted rule");
+  source.sandbox_probe = { rule_sha256: sha256(probeSource), score: probe };
   const key = loadKey(envFile); // stays in this process memory, not process.env or a result file
   fs.mkdirSync(output, { recursive: false, mode: 0o700 });
   const manifest = {
