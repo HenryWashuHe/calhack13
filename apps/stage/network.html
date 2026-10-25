@@ -85,6 +85,7 @@ text.big { font-family: var(--display); font-weight: 700; font-size: 22px; fill:
 .verify { fill: none; stroke: var(--accent); stroke-width: 2; stroke-dasharray: 10 8; opacity: 0; transform-origin: center; transform-box: fill-box; }
 .verify.on { opacity: 1; animation: spin 1.2s linear infinite; }
 .verify.bad { stroke: var(--refuse); }
+.paused .verify.on { animation-play-state: paused; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .fade { transition: opacity .5s; }
 @media (prefers-reduced-motion: reduce) { .verify.on { animation: none; } .rung, .stop, .org, .edge, .fade, .dots button { transition: none; } }
@@ -95,7 +96,7 @@ text.big { font-family: var(--display); font-weight: 700; font-size: 22px; fill:
 <header class="brand">GENESIS <span class="chip fixture" id="chip">scripted · fixture scenario</span><span class="chip" id="act-name">kernel</span></header>
 <main>
   <section class="act" id="act-kernel" aria-label="The kernel at work"><svg id="svg-kernel" viewBox="0 0 1200 640" role="img" aria-label="Evidence enters an organization, the planner chooses a rung, the kernel moves the change through its states"></svg></section>
-  <section class="act" id="act-improve" hidden aria-label="Improvement"><svg id="svg-improve" viewBox="0 0 1200 640" role="img" aria-label="Candidates rise each generation, the promoted one lifts the frontier, controls stay as lines"></svg></section>
+  <section class="act" id="act-improve" hidden aria-label="Improvement"><svg id="svg-improve" viewBox="0 0 1200 640" role="img" aria-label="Survivor scores on separate generation selection panels, followed by fresh-panel confirmation bars"></svg></section>
   <section class="act" id="act-network" hidden aria-label="The network"><svg id="svg-network" viewBox="0 0 1200 640" role="img" aria-label="Verified bundles travel between organizations and raise their meters"></svg></section>
 </main>
 <footer class="dots" aria-label="Acts">
@@ -124,10 +125,12 @@ text.big { font-family: var(--display); font-weight: 700; font-size: 22px; fill:
   const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const ease = (t) => (t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
 
-  // A pausable clock drives both the step timeline and the tweens, so Space freezes everything at once.
+  // Space pauses the logical steps, delayed mutations and SVG tweens; CSS color transitions may finish.
   const clock = { t: 0, last: null, paused: false };
   const timeline = { steps: [], i: 0, start: 0, length: 0 };
   const tweens = new Set();
+  const delays = new Set();
+  function delay(fn, ms) { delays.add({ at: clock.t + ms, fn }); }
   function at(ms, fn) { timeline.steps.push([ms, fn]); timeline.length = Math.max(timeline.length, ms); }
   function tween(ms, fn, done) { const s = { start: clock.t, ms: reduced ? 1 : ms, fn, done }; tweens.add(s); return s; }
   function frame(now) {
@@ -135,6 +138,9 @@ text.big { font-family: var(--display); font-weight: 700; font-size: 22px; fill:
     if (!clock.paused) clock.t += now - clock.last;
     clock.last = now;
     while (timeline.i < timeline.steps.length && clock.t - timeline.start >= timeline.steps[timeline.i][0]) timeline.steps[timeline.i++][1]();
+    for (const d of delays) {
+      if (clock.t >= d.at) { delays.delete(d); d.fn(); }
+    }
     for (const s of tweens) {
       const p = Math.min(1, (clock.t - s.start) / s.ms);
       s.fn(ease(p));
@@ -158,11 +164,14 @@ text.big { font-family: var(--display); font-weight: 700; font-size: 22px; fill:
     const a = ACTS[current];
     $("chip").className = "chip " + a.chip[0]; $("chip").textContent = a.chip[1]; $("act-name").textContent = a.name;
     const svg = $(a.svg); svg.replaceChildren();
-    tweens.clear(); timeline.steps = []; timeline.i = 0; timeline.length = 0; timeline.start = clock.t;
+    tweens.clear(); delays.clear(); timeline.steps = []; timeline.i = 0; timeline.length = 0; timeline.start = clock.t;
     a.build(svg);
     at(timeline.length + 1800, () => show(current + 1)); // the acts loop
   }
   document.addEventListener("keydown", (e) => {
+    if (typeof evidenceInput !== "undefined" && e.target === evidenceInput) return;
+    if (e.key === "l" || e.key === "L") { if (live.on) stopLive(); else startLive(); return; }
+    if ((e.key === "i" || e.key === "I") && live.on) { evidenceInput.hidden = false; evidenceInput.focus(); return; }
     if (e.key === " ") { e.preventDefault(); clock.paused = !clock.paused; document.body.classList.toggle("paused", clock.paused); }
     else if (e.key === "ArrowRight") show(current + 1);
     else if (e.key === "ArrowLeft") show(current - 1);
@@ -177,7 +186,7 @@ text.big { font-family: var(--display); font-weight: 700; font-size: 22px; fill:
   const STAGES = ["PROPOSED", "VALIDATED", "PROVISIONING", "READY", "COMMITTED"];
   const rungFor = (ops) => { const o = (ops || []).map(String); return o.some((x) => /CreateRole/i.test(x)) ? 4 : o.some((x) => /Recruit/i.test(x)) ? 3 : o.some((x) => /Capability|Install/i.test(x)) ? 2 : o.length ? 1 : 0; };
 
-  /** The drawing shared by the scripted act and the live act: a ring of roles, the ladder, the rail, one token. */
+  /** The drawing shared by the scripted act and the live act: a ring of roles, the ladder, the rail, one token. Every stagger goes through the pausable clock. */
   function kernelScene(svg, roleNames, orgLabel, revision) {
     const g = el("g", {}, svg);
     const cx = 290, cy = 330, R = 150;
@@ -208,10 +217,10 @@ text.big { font-family: var(--display); font-weight: 700; font-size: 22px; fill:
     const refuse = (at) => { stops.forEach((s, i) => s.set(i < at ? "done" : "")); rejected.set("rejected"); };
     const move = (x, y, ms) => { const x0 = +token.getAttribute("cx"), y0 = +token.getAttribute("cy"); tween(ms, (p) => { token.setAttribute("cx", x0 + (x - x0) * p); token.setAttribute("cy", y0 + (y - y0) * p); }); };
     const resetToken = () => { token.setAttribute("r", 0); token.setAttribute("class", "token"); token.setAttribute("cx", px); token.setAttribute("cy", ty); };
-    const climb = (to, refused = false) => { for (let i = 0; i <= to; i++) setTimeout(() => light(i, refused && i === to), i * 180); };
-    const stage = (i, refused = false) => { if (refused) { token.setAttribute("class", "token refused"); move(px + step + 90, py + 40, 700); setTimeout(() => refuse(Math.max(1, i)), 650); return; } token.setAttribute("r", 9); token.setAttribute("class", "token"); if (i === 0) { token.setAttribute("cx", px); setStops(0, "current"); } else { move(px + i * step, ty, 500); setTimeout(() => setStops(i, "current"), 480); } };
+    const climb = (to, refused = false) => { for (let i = 0; i <= to; i++) delay(() => light(i, refused && i === to), i * 180); };
+    const stage = (i, refused = false) => { if (refused) { token.setAttribute("class", "token refused"); move(px + step + 90, py + 40, 700); delay(() => refuse(Math.max(1, i)), 650); return; } token.setAttribute("r", 9); token.setAttribute("class", "token"); if (i === 0) { token.setAttribute("cx", px); setStops(0, "current"); } else { move(px + i * step, ty, 500); delay(() => setStops(i, "current"), 480); } };
     const pulse = (hostile = false) => evidence(g, cx - R - 300, cy, cx - R - 20, cy, hostile);
-    return { g, cx, cy, R, rev, addRole, light, clearLadder, setStops, move, resetToken, climb, stage, pulse, px, py, ty, step };
+    return { g, rev, addRole, light, clearLadder, setStops, resetToken, climb, stage, pulse };
   }
 
   function buildKernel(svg) {
@@ -242,8 +251,8 @@ text.big { font-family: var(--display); font-weight: 700; font-size: 22px; fill:
   // what it wrote: observation_recorded is a pulse, planner_decision lights a rung from the proposed operations,
   // change_status_changed moves the token, role_created grows the ring. Press I to type one line of evidence; it is
   // posted as an observation with the agent token, which can record evidence and cannot commit anything.
-  const params = new URLSearchParams(location.search);
-  const live = { on: false, url: (params.get("a") || "http://127.0.0.1:7101/api/v1").replace(/\/$/, ""), tok: params.get("tok") || "org_a-agent", cursor: 0, timer: null, k: null, changes: new Map(), mission: null, org: null };
+  const query = (name) => { const m = (typeof location === "object" && location && typeof location.search === "string" ? location.search : "").match(new RegExp("[?&]" + name + "=([^&]*)")); return m ? decodeURIComponent(m[1]) : null; };
+  const live = { on: false, url: (query("a") || "http://127.0.0.1:7101/api/v1").replace(/\/$/, ""), tok: query("tok") || "org_a-agent", cursor: 0, timer: null, k: null, changes: new Map(), mission: null, state: null, started: false };
   const getJson = async (u) => { const r = await fetch(u, { headers: { Authorization: "Bearer " + live.tok, Accept: "application/json" } }); if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); };
   function buildKernelLive(svg) {
     svg.replaceChildren();
@@ -255,7 +264,7 @@ text.big { font-family: var(--display); font-weight: 700; font-size: 22px; fill:
   function applyLiveEvent(e) {
     const k = live.k; if (!k) return; const p = e.payload || {};
     if (e.type === "observation_recorded") k.pulse(false);
-    if (e.type === "change_proposed" && p.change_id) live.changes.set(p.change_id, { ops: p.operations || [], stage: 0 });
+    if (e.type === "change_proposed" && p.change_id) live.changes.set(p.change_id, { ops: p.operations || [] });
     if (e.type === "planner_decision") {
       const verdict = String(p.verdict || "").replace(/_/g, " ");
       const c = p.change_id ? live.changes.get(p.change_id) : null;
@@ -266,7 +275,7 @@ text.big { font-family: var(--display); font-weight: 700; font-size: 22px; fill:
       const i = STAGES.indexOf(String(p.to));
       if (i >= 0) k.stage(i); else if (String(p.to) === "REJECTED" || String(p.to) === "FAILED") k.stage(Math.max(1, STAGES.indexOf(String(p.from))), true);
     }
-    if (e.type === "role_created") { k.addRole(String(p.name || "new role").toLowerCase(), true); }
+    if (e.type === "role_created") k.addRole(String(p.name || "new role").toLowerCase(), true);
   }
   async function pollLive() {
     try {
@@ -282,7 +291,7 @@ text.big { font-family: var(--display); font-weight: 700; font-size: 22px; fill:
   }
   async function startLive() {
     if (live.on) return; live.on = true;
-    timeline.steps = []; timeline.i = 0; tweens.clear();
+    timeline.steps = []; timeline.i = 0; tweens.clear(); delays.clear();
     for (const [k, a] of ACTS.entries()) $(a.id).hidden = k !== 0;
     document.querySelectorAll(".dots button").forEach((b, k) => b.classList.toggle("on", k === 0));
     $("act-name").textContent = "kernel · live";
@@ -296,16 +305,12 @@ text.big { font-family: var(--display); font-weight: 700; font-size: 22px; fill:
     try { await fetch(`${live.url}/missions/${encodeURIComponent(live.mission)}/observations`, { method: "POST", headers: { Authorization: "Bearer " + live.tok, "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ source: "silent-stage", summary: text.trim().slice(0, 200), evidence_ref: "stage://silent/" + Date.now() }) }); }
     catch { $("chip").textContent = "live kernel · report failed"; }
   }
-  const input = document.createElement("input");
-  input.type = "text"; input.id = "evidence"; input.autocomplete = "off"; input.hidden = true; input.setAttribute("aria-label", "One line of evidence for the live organization"); input.placeholder = "what happened?";
-  document.body.appendChild(input);
-  input.addEventListener("keydown", (e) => { e.stopPropagation(); if (e.key === "Enter") { postEvidence(input.value); input.value = ""; input.hidden = true; } if (e.key === "Escape") { input.value = ""; input.hidden = true; } });
-  document.addEventListener("keydown", (e) => {
-    if (e.target === input) return;
-    if (e.key === "l" || e.key === "L") { if (live.on) stopLive(); else startLive(); }
-    if ((e.key === "i" || e.key === "I") && live.on) { input.hidden = false; input.focus(); }
-  });
-  if (params.get("live") === "1") startLive();
+  const evidenceInput = document.createElementNS("http://www.w3.org/1999/xhtml", "input");
+  evidenceInput.setAttribute("type", "text"); evidenceInput.setAttribute("id", "evidence"); evidenceInput.setAttribute("autocomplete", "off"); evidenceInput.setAttribute("aria-label", "One line of evidence for the live organization"); evidenceInput.setAttribute("placeholder", "what happened?");
+  evidenceInput.hidden = true;
+  document.body.appendChild(evidenceInput);
+  evidenceInput.addEventListener("keydown", (e) => { e.stopPropagation(); if (e.key === "Enter") { postEvidence(evidenceInput.value); evidenceInput.value = ""; evidenceInput.hidden = true; } if (e.key === "Escape") { evidenceInput.value = ""; evidenceInput.hidden = true; } });
+  if (query("live") === "1") startLive();
 
   function placeRole(g, cx, cy, R, deg, name, isNew = false) {
     const a = deg * Math.PI / 180, x = cx + R * Math.cos(a), y = cy + R * Math.sin(a);
@@ -344,9 +349,8 @@ text.big { font-family: var(--display); font-weight: 700; font-size: 22px; fill:
     seed.gens.forEach((_, i) => el("text", { x: X(i), y: y0 + 22, "text-anchor": "middle" }, g, `g${i + 1}`));
     el("text", { x: x0, y: 80, class: "big" }, g, seed.id);
     el("text", { x: x0 + 150, y: 80 }, g, `${seed.head}…`);
-    // controls as lines, drawn from the fresh panel
-    const ctrl = [["random-search", "rs"], ["MWKR", ""], ["SPT", ""]];
-    ctrl.forEach(([name, cls]) => { const y = Y(seed.panel[name]); el("line", { x1: x0, y1: y, x2: x1, y2: y, class: "control " + cls }, g); el("text", { x: x1 + 8, y: y + 4 }, g, `${name} ${seed.panel[name]}`); });
+    el("text", { x: x0, y: 102 }, g, "survivor scores · separate selection panels");
+    // Each panel remeasures the survivor. Fresh-panel controls belong only in the confirmation bars.
     // the frontier
     let level = seed.gens[0][0];
     const frontier = el("path", { d: `M ${x0} ${Y(level)} H ${X(0)}`, class: "frontier" }, g);
@@ -363,12 +367,12 @@ text.big { font-family: var(--display); font-weight: 700; font-size: 22px; fill:
       t += 1500;
       at(t, () => {
         dots.forEach((c, k) => c.setAttribute("class", "cand" + (k === promoted ? " promoted" : " lost")));
+        const v = promoted === null ? inc : cands[promoted], from = Y(level), to = Y(v);
+        level = v;
+        const d = frontier.getAttribute("d");
+        ghost.setAttribute("d", `M ${x} ${from} V ${to}`);
+        tween(700, (p) => frontier.setAttribute("d", d + ` V ${from + (to - from) * p}`));
         if (promoted !== null) {
-          const v = cands[promoted], from = Y(level), to = Y(v);
-          level = v;
-          const d = frontier.getAttribute("d");
-          ghost.setAttribute("d", `M ${x} ${from} V ${to}`);
-          tween(700, (p) => frontier.setAttribute("d", d + ` V ${from + (to - from) * p}`));
           const c = dots[promoted], cx = +c.getAttribute("cx"); tween(700, (p) => c.setAttribute("cx", cx + (x - cx) * p));
         }
       });
@@ -418,7 +422,7 @@ text.big { font-family: var(--display); font-weight: 700; font-size: 22px; fill:
         tween(1300, (p) => tag.setAttribute("transform", `translate(${A.x + (B.x - A.x) * p} ${A.y + (B.y - A.y) * p})`), () => {
           B.verify.setAttribute("class", "verify on" + (ok ? "" : " bad"));
           const e = edgeOf(a, b);
-          setTimeout(() => {
+          delay(() => {
             B.verify.setAttribute("class", "verify");
             if (ok) { tag.remove(); B.set(Math.max(B.level, A.level - 0.08)); B.ring.setAttribute("class", "org lit"); e.setAttribute("class", "edge lit"); }
             else { tag.setAttribute("class", "bundle bad"); e.setAttribute("class", "edge bad"); B.ring.setAttribute("class", "org bad"); tween(1000, (p) => tag.setAttribute("transform", `translate(${B.x + (A.x - B.x) * p} ${B.y + (A.y - B.y) * p})`), () => { tag.remove(); B.ring.setAttribute("class", "org"); e.setAttribute("class", "edge"); }); }
