@@ -17,9 +17,11 @@ generated rule did anything of the kind; the point is that the boundary did not 
 produced. A second review showed that an empty-environment child alone is not a filesystem or network
 boundary either: the child ran as the same user and could read the repository's `.env`. Since
 `families/sandbox.mjs` (second revision) every rule is scored in a child with an empty environment, code
-generation from strings disabled, and, on this macOS host, a `sandbox-exec` profile that denies all network
-and all reads outside the iteration scripts and the child's own work directory; the runner no longer loads
-the key into its own environment and refuses live runs on hosts without an OS sandbox. The recorded results
+generation from strings disabled, and, on this macOS host, a `sandbox-exec` profile with a default-deny read
+policy (OS and Node runtime roots, the iteration scripts and the child's own fresh work directory are the only
+readable paths), no network, writes only in that work directory, and a policy file kept outside the child's
+reach and regenerated for every child; the runner no longer loads the key into its own environment and
+refuses live runs on hosts without an admissible sandbox (network-only confinement does not count). The recorded results
 are unchanged by this; they were produced without those boundaries.
 
 
