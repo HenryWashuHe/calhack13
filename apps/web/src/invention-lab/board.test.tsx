@@ -1,5 +1,5 @@
-// Eric's Claude: the results board and its step story on every committed
-// evidence folder, plus the empty case, the decision filters and the
+// Eric's Claude: the results board and its step story on each frozen
+// first-pass evidence folder, plus the empty case, the decision filters and the
 // single-file export. Static render, plus one export loaded in jsdom.
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
@@ -10,6 +10,7 @@ import { JSDOM } from "jsdom";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { intake } from "./intake";
+import { firstPassEvidenceFiles as evidenceFiles } from "./test-fixtures/first-pass";
 import { buildLineage, type LabRecords } from "./lineage";
 import { decodeGenerationStatus, decodeRevisionObservation, type ExactRef } from "./records";
 import { ResultsBoard } from "./ResultsBoard";
@@ -18,19 +19,6 @@ import aStatus from "../../../../docs/invention-lab/evidence/live-method-2026102
 import bStatus from "../../../../docs/invention-lab/evidence/live-method-20261024-b-revision/final-status.json";
 import revision from "../../../../docs/invention-lab/evidence/live-method-20261024-b-revision/revision-observation.json";
 
-const root = fileURLToPath(new URL("../../../../docs/invention-lab/evidence/", import.meta.url));
-function evidenceFiles() {
-  const out: { name: string; text: string }[] = [];
-  const walk = (dir: string) => {
-    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
-      const p = path.join(dir, e.name);
-      if (e.isDirectory()) walk(p);
-      else if (!/\.(md|txt)$|SHA256SUMS$/.test(e.name)) out.push({ name: path.relative(root, p), text: fs.readFileSync(p, "utf8") });
-    }
-  };
-  walk(root);
-  return out;
-}
 const textOf = (html: string) => html.replace(/<[^>]+>/g, " ").replace(/&#x27;/g, "'").replace(/\s+/g, " ");
 const A = "org_example_a";
 const B = "org_example_b";

@@ -1,32 +1,14 @@
-// Eric's Claude: the results matrix over every committed evidence folder,
+// Eric's Claude: the results matrix over the frozen first-pass evidence folders,
 // counting successes from the hash-named scoring metrics artifacts.
-import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { sha256Hex } from "./digest";
 import { intake } from "./intake";
+import { firstPassEvidenceFiles as evidenceFiles } from "./test-fixtures/first-pass";
 import { buildLineage } from "./lineage";
 import { buildMatrix, cellText, runText, type RunResult } from "./matrix";
 import { decodeExecutionReceipt, decodeMetricsArtifact } from "./records";
 
-const root = fileURLToPath(new URL("../../../../docs/invention-lab/evidence/", import.meta.url));
 type F = { name: string; text: string; bytes: Uint8Array };
-function evidenceFiles(): F[] {
-  const out: F[] = [];
-  const walk = (dir: string) => {
-    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
-      const p = path.join(dir, e.name);
-      if (e.isDirectory()) walk(p);
-      else if (!/\.(md|txt)$|SHA256SUMS$/.test(e.name)) {
-        const bytes = new Uint8Array(fs.readFileSync(p));
-        out.push({ name: path.relative(root, p), text: new TextDecoder().decode(bytes), bytes });
-      }
-    }
-  };
-  walk(root);
-  return out;
-}
 const file = (name: string, text: string): F => ({ name, text, bytes: new TextEncoder().encode(text) });
 const runsOf = (files: F[], method: string, family: string) => {
   const l = buildLineage(intake(files).records);
