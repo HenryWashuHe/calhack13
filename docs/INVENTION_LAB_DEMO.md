@@ -1,5 +1,20 @@
 # Invention labs: proposed GENESIS demonstration
 
+Manual closeout now adds full trial-slot/evaluator identity checks (#231) and a
+pre-write publisher expectation (#233). The evidence UI cannot borrow a plan's
+verdict for a foreign execution; a mismatched typed publisher cannot silently
+insert under the token's account. #232 improves retained-result consistency in
+the still-unmerged #228 experiment stack. These are mechanism corrections,
+not a new successful networked run. #230 retains a scripted stand-in
+receiving rehearsal: A adopted 3/12 versus its parent's 2/12, but the reported
+random control scored 6/12; invocation scored 2/12. It is author-run and closes
+no gate. Recurring work is disabled; the current
+review is manually authorized. #235 now supplies a standalone scripted/recorded/
+concept animation view with corrected pause/reset and panel-specific score
+plots (106 inert tests). Its concept act is not a measured networked result.
+The prospective #240/#241 protocol keeps its random-search quality floor
+separate from return-path mechanism evidence; no freeze or new run is claimed.
+
 **Status: genuine generated source and receiving-side records exist; the A → B → A loop remains incomplete.**
 GENESIS is infrastructure for **networked recursive capability improvement with
 fixed model weights**. The [implementation inventory](IMPLEMENTATION_STATUS.md)
