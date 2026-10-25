@@ -2,15 +2,20 @@
 
 ## Current review handoff — October 25, 2026
 
-Use [the main `96240fe5` priority snapshot](reviews/pr-queue-2026-10-25.md).
+Use [the main `60b4d10c` priority snapshot](reviews/pr-queue-2026-10-25.md).
 #220/#221 are merged into the #65/#57 branches, respectively, not main;
 exact-head independent Linux assurance remains open. Composition `91e6e174`
 passes independent compile/format checks only. User priority remains #57/#65;
 #144 is merged.
 Codex owns the scoped corrective work and review under the user's fix/test/merge
-request. Henry retains broader runtime/adoption and analysis ownership, Eric
-retains lab UI and separately claimed research, and ACP retains Stage ownership.
-Prepared #211/#199/#203 fixes await review/merge; no ownership transfer is implied.
+request. #211/#199/#203 corrections are now merged; their respective reviewed
+compositions pass 21 store, 78 inert Stage and 80 inert Stage cases. Henry retains
+broader runtime/adoption and analysis ownership. The [latest proposed Eric pickup](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6394513052)
+is #180/#181 harness and #148/#149 web UI work, not an acknowledgment. ACP claims
+the new Stage Lab Beat in `apps/stage`; future Eric governed UI stays within
+`apps/web/src/invention-lab` until a shared interface is explicitly agreed.
+#204 `7c8d669` and advancing #216 heads remain unreviewed; older findings are
+historical source evidence, not verdicts on those revisions.
 Ines remains unassigned. G0–G4 are open; the native app Goal reports `paused`.
 
 ## Historical checkpoint: generation-origin binding merged; governed loop remains open
