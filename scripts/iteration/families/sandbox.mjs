@@ -4,13 +4,19 @@
 //   - empty environment (no API key, no .env), an empty working directory, a wall-clock kill;
 //   - `--disallow-code-generation-from-strings`, so `Function(...)`/`eval` throw in every realm of the
 //     child, which closes the constructor.constructor class of escapes outright;
-//   - an OS sandbox when one is available: on macOS, `sandbox-exec` with a profile that denies all
-//     network, denies reading the home directory, the temp trees and other volumes (so the repository's
-//     `.env` and sibling temp files are unreadable), allows reading only the iteration scripts and the
-//     child's own work directory, and allows writing only there; on Linux, `unshare -rn` for no network
-//     when present (no filesystem confinement; the runner refuses live runs there unless told otherwise).
+//   - an OS sandbox when one is available. On macOS, `sandbox-exec` with a profile whose read policy is
+//     default-deny: every file read is refused except the declared runtime roots (the system roots `/usr`,
+//     `/bin`, `/sbin`, `/System`, `/Library`, `/private/etc`, `/private/var/db`, `/private/var/select`,
+//     `/dev`, the root directory entry, and the prefix the node binary lives under), the iteration scripts
+//     and the child's own work directory; writes are allowed only in that work directory; all network is
+//     denied. Process-level operations (mach, sysctl, signals) stay allowed so the runtime can start.
+//     The profile is written outside the child's writable directory and regenerated for every child, so a
+//     child cannot alter the policy the next child runs under. On Linux, `unshare -rn` removes the network
+//     only: that is NOT filesystem confinement, `describeSandbox()` says so, and the runner refuses live
+//     runs there unless told otherwise.
 // The parent never evaluates model text; it passes it as JSON. `describeSandbox()` says which layers are
-// in force so a run can record it and refuse to proceed without an OS boundary.
+// in force, with `confined` true only when both filesystem and network are confined, so a run can record
+// it and refuse to proceed without a full OS boundary.
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
@@ -22,37 +28,56 @@ const ITERATION_DIR = fs.realpathSync(path.dirname(path.dirname(CHILD))); // scr
 const NODE_FLAGS = ["--no-warnings", "--disallow-code-generation-from-strings"];
 let emptyDir = null;
 const workdir = () => (emptyDir ||= fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "genesis-rule-"))));
+// Policy material lives in its own directory, which the profile never makes writable.
+let policyDirPath = null;
+const policydir = () => (policyDirPath ||= fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "genesis-rule-policy-"))));
+
+/** System roots every process needs to read, plus the prefix the node binary was installed under. */
+function runtimeReadRoots() {
+  const nodeReal = fs.realpathSync(process.execPath);
+  const roots = ["/usr", "/bin", "/sbin", "/System", "/Library", "/private/etc", "/private/var/db", "/private/var/select", "/dev", path.dirname(path.dirname(nodeReal))];
+  for (const prefix of ["/opt/homebrew", "/usr/local"]) if (nodeReal.startsWith(prefix + "/")) roots.push(prefix);
+  return [...new Set(roots)];
+}
 
 const sbplQuote = (p) => `"${String(p).replace(/["\\]/g, "\\$&")}"`;
+const subpaths = (paths) => paths.map((p) => `(subpath ${sbplQuote(p)})`).join(" ");
+/** Default-deny reads and writes with declared allowances; network denied outright. The loader needs the root directory entry itself. */
 function darwinProfile(work) {
-  const home = os.homedir();
   return [
     "(version 1)", "(allow default)", "(deny network*)",
-    `(deny file-read* (subpath ${sbplQuote(home)}) (subpath "/private/tmp") (subpath "/tmp") (subpath "/private/var/folders") (subpath "/Volumes"))`,
+    "(deny file-read*)",
     "(allow file-read-metadata)",
-    `(allow file-read* (subpath ${sbplQuote(ITERATION_DIR)}) (subpath ${sbplQuote(work)}) (regex #"/package\\.json$"))`,
+    `(allow file-read* (literal "/") ${subpaths([...runtimeReadRoots(), ITERATION_DIR, work])})`,
     "(deny file-write*)",
-    `(allow file-write* (subpath ${sbplQuote(work)}) (subpath "/dev"))`,
+    `(allow file-write* (subpath ${sbplQuote(work)}) (literal "/dev/null"))`,
   ].join("\n");
 }
 
 const hasExecutable = (p) => { try { fs.accessSync(p, fs.constants.X_OK); return true; } catch { return false; } };
 const onPath = (name) => (process.env.PATH || "").split(path.delimiter).some((d) => d && hasExecutable(path.join(d, name)));
 
-/** Which confinement layers apply on this host; `os` is "sandbox-exec", "unshare", or "none". */
+/**
+ * Which confinement layers apply on this host; `os` is "sandbox-exec", "unshare", or "none". `confined` is
+ * true only when both the filesystem and the network are confined; a network-only wrapper is reported as
+ * such and does not count as a sandbox for live runs.
+ */
 export function describeSandbox() {
   const os_ = process.platform === "darwin" && hasExecutable("/usr/bin/sandbox-exec") ? "sandbox-exec"
     : process.platform === "linux" && onPath("unshare") ? "unshare" : "none";
-  return { process: "child, empty environment, empty cwd, wall timeout, SIGKILL", code_generation: "disallowed from strings", os: os_,
-    filesystem: os_ === "sandbox-exec" ? "read: iteration scripts and own work dir only; write: own work dir only" : "not confined",
-    network: os_ === "none" ? "not confined" : "denied" };
+  const filesystem = os_ === "sandbox-exec" ? "read: declared runtime roots, iteration scripts and own work dir only (default deny); write: own work dir only" : "not confined";
+  const network = os_ === "none" ? "not confined" : "denied";
+  return { process: "child, empty environment, empty cwd, wall timeout, SIGKILL", code_generation: "disallowed from strings", os: os_, filesystem, network,
+    confined: filesystem !== "not confined" && network === "denied" };
 }
 
 function command(work) {
   const sb = describeSandbox();
   if (sb.os === "sandbox-exec") {
-    const profile = path.join(work, "profile.sb");
-    if (!fs.existsSync(profile)) fs.writeFileSync(profile, darwinProfile(work));
+    // Outside the child's writable directory, and rewritten for every child: a previous child cannot
+    // have altered the policy the next one runs under.
+    const profile = path.join(policydir(), "profile.sb");
+    fs.writeFileSync(profile, darwinProfile(work));
     return ["/usr/bin/sandbox-exec", ["-f", profile, process.execPath, ...NODE_FLAGS, CHILD]];
   }
   if (sb.os === "unshare") return ["unshare", ["-rn", "--", process.execPath, ...NODE_FLAGS, CHILD]];

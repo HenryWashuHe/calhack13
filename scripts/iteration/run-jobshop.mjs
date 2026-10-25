@@ -54,9 +54,14 @@ function main() {
   const spec = familySpec(String(arg("family", "jobshop")));
   if (!spec) throw new Error("--family must be one of jobshop, binpack");
   const cfg = { family: spec.id, generations: num("generations", 5), k: num("k", 4), heldout: num("heldout", 20), screen: num("screen", 3), factor: num("factor", 2), target: arg("target", undefined) === undefined ? spec.target : num("target"), seed: String(arg("seed", "smoke-1")), stall: num("stall", 3), mock: arg("mock", false) === true, effort: String(arg("effort", "medium")), gate: String(arg("gate", "all")), model: modelEnv.GENESIS_LLM_MODEL || "claude-sonnet-5-5", sandbox: typeof describeSandbox === "function" ? describeSandbox() : { os: "unknown" } }; // inert orchestration fixtures run without the families
-  // Generated rules run under an OS sandbox or not at all for live runs; --allow-unsandboxed records the exception.
-  if (!cfg.mock && cfg.sandbox.os === "none" && arg("allow-unsandboxed", false) !== true) throw new Error("no OS sandbox is available on this host for generated rules (macOS sandbox-exec or Linux unshare); pass --allow-unsandboxed to run anyway, which the result will record");
-  cfg.unsandboxed = cfg.sandbox.os === "none";
+  // Generated rules run under an OS sandbox that confines BOTH the filesystem and the network, or not at all
+  // for live runs; a network-only wrapper (Linux unshare) does not qualify. --allow-unsandboxed records the exception.
+  const confined = cfg.sandbox.os !== "none" && cfg.sandbox.filesystem !== "not confined" && cfg.sandbox.network === "denied";
+  cfg.unsandboxed = !confined;
+  if (!cfg.mock && !confined && arg("allow-unsandboxed", false) !== true) {
+    if (cfg.sandbox.os === "none") throw new Error("no OS sandbox is available on this host for generated rules (macOS sandbox-exec); pass --allow-unsandboxed to run anyway, which the result will record");
+    throw new Error(`the OS sandbox on this host (${cfg.sandbox.os}) confines the network only (filesystem: ${cfg.sandbox.filesystem}); generated rules would read the host filesystem; pass --allow-unsandboxed to run anyway, which the result will record as unsandboxed`);
+  }
   const out = String(arg("out", path.join("scripts", "iteration", "results", `${String(arg("family", "jobshop"))}-${cfg.seed}${cfg.mock ? "-mock" : ""}`)));
   // A run directory is evidence: an occupied one is refused before any work or write, never overwritten.
   if (fs.existsSync(out) && fs.readdirSync(out).length) throw new Error(`refusing to reuse the occupied run directory ${out}; choose a new --seed or --out`);
