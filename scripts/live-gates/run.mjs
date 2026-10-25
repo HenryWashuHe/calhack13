@@ -111,7 +111,9 @@ export async function elasticGate(ctx) {
   const bin = join(ctx.binDir, "genesis-elastic-smoke");
   if (!existsSync(bin)) return { status: "not_tested", reason: `no ${bin} (built from the Elastic branch, PR #11)` };
   const report = join(ctx.out, "elastic-smoke.json");
-  const org = `genesis-smoke-${ctx.stamp}`;
+  // Agent Builder rejects the ids derived from a long organization name (the stamped name gave a 69-character
+  // tool id and HTTP 400 at "create specialist"); the time part of the stamp keeps runs distinct and the ids short.
+  const org = `genesis-smoke-${String(ctx.stamp).slice(-6)}`;
   const r = runCli(bin, ["--org", org, "--skip-capabilities", "--converse", "--cleanup", "--report", report], ctx);
   if (!existsSync(report)) return { status: "failed", reason: "smoke wrote no report", exit: r.code, error: r.stderr, duration_ms: r.ms };
   const rawReport = readFileSync(report, "utf8");

@@ -1,0 +1,76 @@
+{
+  "ok": true,
+  "org": "genesis-smoke-103959",
+  "run": "1792924799",
+  "steps": [
+    {
+      "detail": {
+        "capability_index": "genesis-capabilities",
+        "evidence_index": "genesis-evidence-genesis-smoke-103959-148bc30a566a5c3b"
+      },
+      "ok": true,
+      "step": "data config"
+    },
+    {
+      "detail": {
+        "Ok": 1
+      },
+      "ok": true,
+      "step": "evidence index"
+    },
+    {
+      "detail": {
+        "doc_id": "genesis-smoke-103959:observation:smoke-1792924799"
+      },
+      "ok": true,
+      "step": "evidence search"
+    },
+    {
+      "detail": {
+        "evidence_tool": "genesis-genesis-smoke-103959-148bc30a566a5c3b-evidence-search"
+      },
+      "ok": true,
+      "step": "agent builder config"
+    },
+    {
+      "detail": {
+        "Ok": "genesis-genesis-smoke-103959-smoke-bb3725dd2a61bff4"
+      },
+      "ok": true,
+      "step": "create specialist"
+    },
+    {
+      "detail": {
+        "Ok": "genesis-genesis-smoke-103959-smoke-bb3725dd2a61bff4"
+      },
+      "ok": true,
+      "step": "reconcile (no duplicate)"
+    },
+    {
+      "detail": {
+        "Ok": true
+      },
+      "ok": true,
+      "step": "readiness"
+    },
+    {
+      "detail": {
+        "conversation_id": "a04fe879-a6d2-4e88-bba7-a44707073651",
+        "message_excerpt": "Found one matching record in the evidence store:\n\n- **ID:** `genesis-smoke-103959:observation:smoke-1792924799`\n- **Content:** \"Smoke observation smoketoken1792924799\"\n\nThis is a single observation entry whose content is just the token itself (a smoke-test marker), with no additional detail or linke",
+        "status": "completed",
+        "tool_calls": [
+          "genesis-genesis-smoke-103959-148bc30a566a5c3b-evidence-search"
+        ]
+      },
+      "ok": true,
+      "step": "converse uses evidence tool"
+    },
+    {
+      "detail": {
+        "Ok": null
+      },
+      "ok": true,
+      "step": "cleanup agent"
+    }
+  ]
+}
