@@ -12,8 +12,8 @@ Work resumed on the user's retry. The native app Goal last returned `blocked`,
 not complete; the existing hourly continuation remains active. The repository
 completion contract is unchanged.
 
-Main through `899de43d68f66cc07d39414f44bf7c792f022031`, tree
-`04ee987aff997553138a8cf54bca481aa0d15e3d`, includes the reviewed
+Main through `8493a8ce8c48761845577a6a48af9a37f35ce11f`, tree
+`1a3fce96af5e2270bea90f8213fcf4be7cf08880`, includes the reviewed
 foundations below. Method generation merged at `d1be8443fee46e1196861926a963563f48407936`,
 whose tree `dc9d6adc19863d8584fd5af1fd11eae7552014eb` exactly matches the independently
 validated generation stack. Counts refer to the named source/composition, not a
@@ -21,9 +21,10 @@ combined main run.
 
 | Work | Validation and evidence boundary |
 | --- | --- |
+| Complete-roster CLI #191 `b6750eec` → `b16f8eb7`; guards #192 `1eb15a88` → `8493a8ce` | Root 21 initial scoped cases, 20 overlapping independent checks and 12 final composition cases pass, including three preserved independent guards; scoped strict Clippy/fmt pass. Final tree `1a3fce96` matches composition `416ff677`. Bounded create-only capture/read-only recheck retains declaration/eight selections/report without original paths. Canonical hashes are local identities, not chronology, generation provenance, costs, authority or success. |
 | Public eligibility CLI #174 `f67ae448` → `73d039b5` | Five focused eligibility tests (including all three original independent guards), three additional inert-file checks and scoped strict Clippy/fmt pass. Bounded regular-file reads and validated digest paths clear the previous hold. Read-only typed assessment only, not scorer execution, trusted expected-state origin or endpoint closure. |
 | Invocation purpose #185 `811c6f5c` → `b1b2c8f2`; guards #188 `e4824046` → `68604b92` | 23 pure core cases and scoped strict Clippy pass, including three preserved independent receipt-boundary guards. A one-slot public Development plan pins claimed adoption/grant identity. This authenticates no authority, runs no method and supplies no acceptance pair or fresh comparison. |
-| Eight-selection development roster #187 `da669296` → `bb9f7c28`; guards #189 `d2304309` → `899de43d` | Final composition `4b0d330a` and main share tree `04ee987a`: 30 scoped forge tests and strict Clippy/fmt pass, including four independent guards. All eight selections/24 positions bind round methods/controls/runtime settings, per-family policy and numeric trial grants. Pure consistency only; operator capture/chain links, generation provenance, chronology, fresh-panel consumption and governance remain open. |
+| Eight-selection development roster #187 `da669296` → `bb9f7c28`; guards #189 `d2304309` → `899de43d` | Final composition `4b0d330a` and main share tree `04ee987a`: 30 scoped forge tests and strict Clippy/fmt pass, including four independent guards. All eight selections/24 positions bind round methods/controls/runtime settings, per-family policy and numeric trial grants. Pure consistency only; operator capture is supplied by #191, while chain links, generation provenance, chronology, fresh-panel consumption and governance remain open. |
 | Method adoption #155 `cba4bf00` → `0bf7a8e2`; authorization routes #159 `db0deeca` → `e7c6baf7` | Root composition `0b671510`, tree `24183518`, matched main; 23 scoped tests and strict Clippy/fmt pass. Receiver-owned exact policy pins, record invariants, disabled-receiver refusal and durable replay clear the prior holds. Authorization under the current grant is implemented; execution under it is not. Policy reacceptance is proposed in held #179; draft #186 invocation integration is unmerged. |
 | Receiver IDs #163 `66118d2b` → `0df3e227`; guards #166 `00499186` → `c2fd8d12` | 22 mocked tests pass with real subprocess creation forbidden; original `e3f3779` and first-seed files unchanged. Namespaces run/attempt/scoring IDs by declared trial before intent, preserving deterministic preparation. No old evidence rewritten or runtime assurance established. |
 | Development selector #169 `1515b46f` → `47aef07f`; independent guards #170 `a8c42654` → `755d6c65` | Eight root selector tests, four preserved independent retained-record cases and 16 core verdict tests pass. [One arm/family and three rounds](invention-lab/contracts/process-selection.md), exact evidence checks, explicit missing/ineligible rows and deterministic selection; not a complete roster/chronology/endpoint or G4 result. |
@@ -300,8 +301,9 @@ forge cases and strict Clippy/fmt. Its declaration binds all
 family-specific policy with exact numeric grants. It is not the earlier six-call
 generation admission or a chain-cost/history proof. Generation-settings/feedback
 provenance, externally pinned chronology, fresh-panel consumption and governance
-remain open; no source execution or gate closure is established. Codex is developing
-the bounded operator cohort capture/check CLI; it is not implemented here.
+remain open; no source execution or gate closure is established. Bounded operator
+capture/check #191 `b6750eec` → `b16f8eb7` and independent #192 guards at
+`8493a8ce` are merged; they do not add chain links or fresh-panel consumption.
 Receiver ID mechanics are merged, but runtime assurance remains a prerequisite.
 Preparation #164 `55e14cc4` clears stale/partial publication and selected-byte
 pinning with eight pure tests and is merged at `a056ec65`; its description is
@@ -381,10 +383,12 @@ evidence.
 
 Current supporting review: Stage #125 `811d0df2` is merged at `c0c2cae1`;
 #126 `67071fc7` remains held on later-poll acknowledgment/card attribution.
-Iteration #144 has newer `51b342ea` under pure Node re-review. Prior `fd35c2fe`
-was held on confirmation/recovery budgets, ancestry, canonical encoding and
-emitter IDs: 38 old tests pass and six pure guards fail at `3032a412`. Those
-results are scoped to the older head, not a fresh reproduction.
+Iteration [#144 `51b342ea` remains held](https://github.com/HenryWashuHe/genesis-history-experiment/pull/144#pullrequestreview-5641446964):
+54 existing synthetic Node cases pass, including prior guards, while three new
+`db25f0b8` cases fail. Resume drops invalid positions, primitive/frozen callback
+errors lose partial rows, and ancestor metadata overrides later source bytes.
+All earlier tests remain unchanged; finite inert callbacks only, not actual
+method execution, Rust-contract integration or recursive benefit.
 Dated direction/sponsor note #161 `c936bcf6` merged at `a9caea11` after
 source/delta and independent review; the current checkpoint remains authoritative. Ownership is unchanged.
 
