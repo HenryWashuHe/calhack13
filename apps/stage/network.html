@@ -88,6 +88,10 @@ text.big { font-family: var(--display); font-weight: 700; font-size: 22px; fill:
 .paused .verify.on { animation-play-state: paused; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .fade { transition: opacity .5s; }
+text.say { font-family: var(--display); font-weight: 600; font-size: 15px; fill: var(--paper); letter-spacing: .01em; }
+text.say.soft { fill: var(--paper-dim); font-weight: 500; }
+text.say.ok { fill: var(--accent); } text.say.bad { fill: var(--refuse); } text.say.warm { fill: var(--fixture); }
+.panel { fill: none; stroke: var(--line); stroke-dasharray: 4 6; }
 @media (prefers-reduced-motion: reduce) { .verify.on { animation: none; } .rung, .stop, .org, .edge, .fade, .dots button { transition: none; } }
 @media (max-width: 720px) { .brand { font-size: 12px; } }
 </style>
@@ -96,13 +100,17 @@ text.big { font-family: var(--display); font-weight: 700; font-size: 22px; fill:
 <header class="brand">GENESIS <span class="chip fixture" id="chip">scripted · fixture scenario</span><span class="chip" id="act-name">kernel</span></header>
 <main>
   <section class="act" id="act-kernel" aria-label="The kernel at work"><svg id="svg-kernel" viewBox="0 0 1200 640" role="img" aria-label="Evidence enters an organization, the planner chooses a rung, the kernel moves the change through its states"></svg></section>
+  <section class="act" id="act-recorded" hidden aria-label="A recorded run on the running organization, 2026-10-25"><svg id="svg-recorded" viewBox="0 0 1200 640" role="img" aria-label="The real planner's decisions on a factory mission: two committed changes and one refusal"></svg></section>
   <section class="act" id="act-improve" hidden aria-label="Improvement"><svg id="svg-improve" viewBox="0 0 1200 640" role="img" aria-label="Survivor scores on separate generation selection panels, followed by fresh-panel confirmation bars"></svg></section>
+  <section class="act" id="act-handoff" hidden aria-label="Hand-off between organizations"><svg id="svg-handoff" viewBox="0 0 1200 640" role="img" aria-label="A proven method travels from one organization to another, which re-tests it on its own problems before adopting it"></svg></section>
   <section class="act" id="act-network" hidden aria-label="The network"><svg id="svg-network" viewBox="0 0 1200 640" role="img" aria-label="Verified bundles travel between organizations and raise their meters"></svg></section>
 </main>
 <footer class="dots" aria-label="Acts">
   <button type="button" data-act="0" class="on" aria-label="Act 1, kernel"></button>
-  <button type="button" data-act="1" aria-label="Act 2, improvement"></button>
-  <button type="button" data-act="2" aria-label="Act 3, network"></button>
+  <button type="button" data-act="4" aria-label="Act 2, recorded run"></button>
+  <button type="button" data-act="1" aria-label="Act 3, improvement"></button>
+  <button type="button" data-act="3" aria-label="Act 4, hand-off"></button>
+  <button type="button" data-act="2" aria-label="Act 5, network"></button>
 </footer>
 <script>
   // Recorded data: the same extract the stage page embeds (jobshop-10x5, 20-instance panels, 2026-10-25, claude-sonnet-5-5).
@@ -151,32 +159,36 @@ text.big { font-family: var(--display); font-weight: 700; font-size: 22px; fill:
   requestAnimationFrame(frame);
 
   const ACTS = [
-    { id: "act-kernel", svg: "svg-kernel", chip: ["fixture", "scripted · fixture scenario"], name: "kernel", build: buildKernel },
+    { id: "act-kernel", svg: "svg-kernel", chip: ["fixture", "scripted · how the pieces move"], name: "kernel", build: buildKernel },
     { id: "act-improve", svg: "svg-improve", chip: ["recorded", "recorded · 2026-10-25"], name: "improvement", build: buildImprove },
     { id: "act-network", svg: "svg-network", chip: ["concept", "concept"], name: "network", build: buildNetwork },
+    { id: "act-handoff", svg: "svg-handoff", chip: ["concept", "concept"], name: "hand-off", build: buildHandoff },
+    { id: "act-recorded", svg: "svg-recorded", chip: ["recorded", "recorded · 2026-10-25 · live planner"], name: "recorded run", build: buildRecorded },
   ];
+  const ORDER = [0, 4, 1, 3, 2]; // on screen: kernel (scripted), recorded run, improvement, hand-off, network
+  const nextOf = (i, dir = 1) => ORDER[(ORDER.indexOf(i) + dir + ORDER.length) % ORDER.length];
   let current = -1;
   function show(i) {
     if (live.on) return; // live owns the screen until L is pressed again
     current = (i + ACTS.length) % ACTS.length;
     for (const [k, a] of ACTS.entries()) $(a.id).hidden = k !== current;
-    document.querySelectorAll(".dots button").forEach((b, k) => b.classList.toggle("on", k === current));
+    document.querySelectorAll(".dots button").forEach((b, k) => b.classList.toggle("on", Number(b.dataset.act ?? k) === current));
     const a = ACTS[current];
     $("chip").className = "chip " + a.chip[0]; $("chip").textContent = a.chip[1]; $("act-name").textContent = a.name;
     const svg = $(a.svg); svg.replaceChildren();
     tweens.clear(); delays.clear(); timeline.steps = []; timeline.i = 0; timeline.length = 0; timeline.start = clock.t;
     a.build(svg);
-    at(timeline.length + 1800, () => show(current + 1)); // the acts loop
+    at(timeline.length + 1800, () => show(nextOf(current))); // the acts loop, in story order
   }
   document.addEventListener("keydown", (e) => {
     if (typeof evidenceInput !== "undefined" && e.target === evidenceInput) return;
     if (e.key === "l" || e.key === "L") { if (live.on) stopLive(); else startLive(); return; }
     if ((e.key === "i" || e.key === "I") && live.on) { evidenceInput.hidden = false; evidenceInput.focus(); return; }
     if (e.key === " ") { e.preventDefault(); clock.paused = !clock.paused; document.body.classList.toggle("paused", clock.paused); }
-    else if (e.key === "ArrowRight") show(current + 1);
-    else if (e.key === "ArrowLeft") show(current - 1);
+    else if (e.key === "ArrowRight") show(nextOf(current, 1));
+    else if (e.key === "ArrowLeft") show(nextOf(current, -1));
     else if (e.key === "r" || e.key === "R") show(current);
-    else if (/^[1-3]$/.test(e.key)) show(Number(e.key) - 1);
+    else if (/^[1-5]$/.test(e.key)) show(ORDER[Number(e.key) - 1]);
     else if (e.key === "f" || e.key === "F") { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen?.(); }
   });
   document.querySelectorAll(".dots button").forEach((b) => b.addEventListener("click", () => show(Number(b.dataset.act))));
@@ -220,29 +232,45 @@ text.big { font-family: var(--display); font-weight: 700; font-size: 22px; fill:
     const climb = (to, refused = false) => { for (let i = 0; i <= to; i++) delay(() => light(i, refused && i === to), i * 180); };
     const stage = (i, refused = false) => { if (refused) { token.setAttribute("class", "token refused"); move(px + step + 90, py + 40, 700); delay(() => refuse(Math.max(1, i)), 650); return; } token.setAttribute("r", 9); token.setAttribute("class", "token"); if (i === 0) { token.setAttribute("cx", px); setStops(0, "current"); } else { move(px + i * step, ty, 500); delay(() => setStops(i, "current"), 480); } };
     const pulse = (hostile = false) => evidence(g, cx - R - 300, cy, cx - R - 20, cy, hostile);
-    return { g, rev, addRole, light, clearLadder, setStops, resetToken, climb, stage, pulse };
+    return { g, rev, addRole, light, clearLadder, setStops, resetToken, climb, stage, pulse, say: (x, y, text, o) => say(g, x, y, text, o) };
   }
 
+  // Act one, recorded: the real planner on the live dev stack, 2026-10-25, factory scheduling mission on Org A.
+  // Three observations were posted (machine down, rush order, an instruction to skip inspections); the kernel's own
+  // events follow, compressed to about a second a step. Extract of apps/stage/recordings/factory-20261025.json.
+  const RECORDED = {"model":"anthropic/claude-sonnet-5-5","revision":[23,31],"roles":["Production planner","Shift lead","Quality inspector"],"steps":[{"type":"observation_recorded"},{"type":"change_proposed","change_id":"chg_b3b0b90b2b52475f888dce63adef2635","operations":["AssignResponsibility","DelegateTask"]},{"type":"change_status_changed","change_id":"chg_b3b0b90b2b52475f888dce63adef2635","from":"PROPOSED","to":"VALIDATED"},{"type":"change_status_changed","change_id":"chg_b3b0b90b2b52475f888dce63adef2635","from":"VALIDATED","to":"PROVISIONING"},{"type":"change_status_changed","change_id":"chg_b3b0b90b2b52475f888dce63adef2635","from":"PROVISIONING","to":"READY"},{"type":"change_status_changed","change_id":"chg_b3b0b90b2b52475f888dce63adef2635","from":"READY","to":"COMMITTED"},{"type":"planner_decision","verdict":"change_proposed","change_id":"chg_b3b0b90b2b52475f888dce63adef2635"},{"type":"observation_recorded"},{"type":"change_proposed","change_id":"chg_217b14639c1443ab88e3ac3a0ab70e2f","operations":["AssignResponsibility"]},{"type":"change_status_changed","change_id":"chg_217b14639c1443ab88e3ac3a0ab70e2f","from":"PROPOSED","to":"VALIDATED"},{"type":"change_status_changed","change_id":"chg_217b14639c1443ab88e3ac3a0ab70e2f","from":"VALIDATED","to":"PROVISIONING"},{"type":"change_status_changed","change_id":"chg_217b14639c1443ab88e3ac3a0ab70e2f","from":"PROVISIONING","to":"READY"},{"type":"change_status_changed","change_id":"chg_217b14639c1443ab88e3ac3a0ab70e2f","from":"READY","to":"COMMITTED"},{"type":"planner_decision","verdict":"change_proposed","change_id":"chg_217b14639c1443ab88e3ac3a0ab70e2f"},{"type":"observation_recorded","hostile":true},{"type":"planner_decision","verdict":"no_change","change_id":null}]};
+  function buildRecorded(svg) {
+    const k = kernelScene(svg, RECORDED.roles.map((n) => n.toLowerCase()), "Org A · Plant 3", "r" + RECORDED.revision[0]);
+    const changes = new Map();
+    let t = 600, rev = RECORDED.revision[0];
+    for (const e of RECORDED.steps) {
+      if (e.type === "observation_recorded") { at(t, () => { k.clearLadder(); k.setStops(-1, ""); k.resetToken(); k.pulse(!!e.hostile); k.say(160, 300, e.hostile ? "hostile instruction" : "evidence arrives", { cls: e.hostile ? "bad" : "warm" }); }); t += 1500; }
+      else if (e.type === "change_proposed") { changes.set(e.change_id, e.operations || []); at(t, () => { k.climb(rungFor(e.operations)); k.say(685, 80, "planner picks a rung", { cls: "soft", hold: 1800 }); }); t += 1400; }
+      else if (e.type === "change_status_changed") { const i = STAGES.indexOf(String(e.to)); at(t, () => { if (i >= 0) { k.stage(i); if (i === 0) k.say(820, 460, "kernel checks it", { cls: "soft", hold: 2600 }); if (i === STAGES.length - 1) { rev += 1; k.rev.textContent = "r" + rev; k.say(820, 460, "committed", { cls: "ok" }); } } else { k.stage(1, true); k.say(820, 620, "refused by the kernel", { cls: "bad", hold: 2000 }); } }); t += i === STAGES.length - 1 ? 1600 : 900; }
+      else if (e.type === "planner_decision") { const verdict = String(e.verdict || "").replace(/_/g, " "); at(t, () => { if (verdict === "no change") { k.light(0); k.say(685, 80, "planner refuses: nothing to change", { cls: "bad", hold: 2400 }); } }); t += verdict === "no change" ? 2600 : 600; }
+    }
+    at(t, () => {});
+  }
   function buildKernel(svg) {
     const k = kernelScene(svg, ["coordinator", "program", "attendees"], "organization A", "r1");
     let t = 400;
     // cycle 1: evidence arrives, the planner climbs to "create a role", the kernel commits, the ring grows
-    at(t, () => k.pulse(false)); t += 1400;
-    at(t, () => k.climb(4)); t += 1500;
-    at(t, () => k.stage(0)); t += 700;
+    at(t, () => { k.pulse(false); k.say(160, 300, "evidence arrives", { cls: "warm" }); }); t += 1400;
+    at(t, () => { k.climb(4); k.say(685, 80, "planner picks a rung", { cls: "soft", hold: 1800 }); }); t += 1500;
+    at(t, () => { k.stage(0); k.say(820, 460, "kernel checks it", { cls: "soft", hold: 2600 }); }); t += 700;
     for (let i = 1; i < STAGES.length; i++) { at(t, () => k.stage(i)); t += 1000; }
-    at(t, () => { k.addRole("relocation", true); k.rev.textContent = "r2"; }); t += 2200;
+    at(t, () => { k.addRole("relocation", true); k.rev.textContent = "r2"; k.say(290, 120, "new role, new revision", { cls: "ok", hold: 2000 }); }); t += 2200;
     // cycle 2: a hostile instruction; the planner would create a role; the kernel refuses at validation
     at(t, () => { k.clearLadder(); k.setStops(-1, ""); k.resetToken(); }); t += 300;
-    at(t, () => k.pulse(true)); t += 1400;
+    at(t, () => { k.pulse(true); k.say(160, 300, "hostile instruction", { cls: "bad" }); }); t += 1400;
     at(t, () => k.climb(4, true)); t += 1500;
     at(t, () => k.stage(0)); t += 700;
     at(t, () => k.stage(1)); t += 1000;
-    at(t, () => k.stage(1, true)); t += 2200;
+    at(t, () => { k.stage(1, true); k.say(820, 620, "refused by the kernel", { cls: "bad", hold: 2000 }); }); t += 2200;
     // cycle 3: a routine report; the planner stays on rung one; nothing moves on the rail
     at(t, () => { k.clearLadder(); k.setStops(-1, ""); k.resetToken(); }); t += 300;
-    at(t, () => k.pulse(false)); t += 1400;
-    at(t, () => k.light(0)); t += 2000;
+    at(t, () => { k.pulse(false); k.say(160, 300, "routine report", { cls: "warm" }); }); t += 1400;
+    at(t, () => { k.light(0); k.say(685, 80, "nothing to change", { cls: "soft", hold: 1800 }); }); t += 2000;
     at(t, () => {});
   }
 
@@ -263,19 +291,19 @@ text.big { font-family: var(--display); font-weight: 700; font-size: 22px; fill:
   }
   function applyLiveEvent(e) {
     const k = live.k; if (!k) return; const p = e.payload || {};
-    if (e.type === "observation_recorded") k.pulse(false);
+    if (e.type === "observation_recorded") { k.pulse(false); k.say(160, 300, "evidence recorded", { cls: "warm" }); }
     if (e.type === "change_proposed" && p.change_id) live.changes.set(p.change_id, { ops: p.operations || [] });
     if (e.type === "planner_decision") {
       const verdict = String(p.verdict || "").replace(/_/g, " ");
       const c = p.change_id ? live.changes.get(p.change_id) : null;
       k.clearLadder(); k.setStops(-1, ""); k.resetToken();
-      if (verdict === "no change") k.light(0); else if (c) k.climb(rungFor(c.ops)); else k.climb(RUNGS.length - 1, true);
+      if (verdict === "no change") { k.light(0); k.say(685, 80, "nothing to change", { cls: "soft", hold: 1800 }); } else if (c) { k.climb(rungFor(c.ops)); k.say(685, 80, "planner picks a rung", { cls: "soft", hold: 1800 }); } else { k.climb(RUNGS.length - 1, true); k.say(685, 80, "no rung chosen", { cls: "bad", hold: 1800 }); }
     }
     if (e.type === "change_status_changed" && p.change_id) {
       const i = STAGES.indexOf(String(p.to));
-      if (i >= 0) k.stage(i); else if (String(p.to) === "REJECTED" || String(p.to) === "FAILED") k.stage(Math.max(1, STAGES.indexOf(String(p.from))), true);
+      if (i >= 0) { k.stage(i); if (i === STAGES.length - 1) k.say(820, 460, "committed", { cls: "ok" }); } else if (String(p.to) === "REJECTED" || String(p.to) === "FAILED") { k.stage(Math.max(1, STAGES.indexOf(String(p.from))), true); k.say(820, 620, "refused by the kernel", { cls: "bad", hold: 2000 }); }
     }
-    if (e.type === "role_created") k.addRole(String(p.name || "new role").toLowerCase(), true);
+    if (e.type === "role_created") { k.addRole(String(p.name || "new role").toLowerCase(), true); k.say(290, 120, "new role", { cls: "ok", hold: 2000 }); }
   }
   async function pollLive() {
     try {
@@ -325,6 +353,13 @@ text.big { font-family: var(--display); font-weight: 700; font-size: 22px; fill:
     const t = el("text", { x, y: y + 4, "text-anchor": "middle", class: "stoptext" }, g, label);
     return { set: (state) => { r.setAttribute("class", "stop " + state); t.setAttribute("class", "stoptext " + state); } };
   }
+  /** One to three words beside the motion, gone after `hold` ms. Spoken for the judges' eyes; the presenter says the rest. */
+  function say(g, x, y, text, { cls = "", hold = 1600, anchor = "middle" } = {}) {
+    const t = el("text", { x, y, class: "say " + cls, "text-anchor": anchor, style: "opacity:0" }, g, text);
+    tween(250, (p) => (t.style.opacity = String(p)));
+    delay(() => tween(450, (p) => (t.style.opacity = String(1 - p)), () => t.remove()), hold);
+    return t;
+  }
   function evidence(g, x0, y0, x1, y1, hostile) {
     const dot = el("circle", { cx: x0, cy: y0, r: 7, class: "evidence" + (hostile ? " hostile" : "") }, g);
     tween(1100, (p) => { dot.setAttribute("cx", x0 + (x1 - x0) * p); dot.setAttribute("cy", y0 + (y1 - y0) * p); }, () => {
@@ -356,6 +391,7 @@ text.big { font-family: var(--display); font-weight: 700; font-size: 22px; fill:
     const frontier = el("path", { d: `M ${x0} ${Y(level)} H ${X(0)}`, class: "frontier" }, g);
     const ghost = el("path", { d: "", class: "frontier-ghost" }, g);
     let t = 600;
+    at(t, () => say(g, (x0 + x1) / 2, y1 - 60, "each generation: four new candidates, tested on unseen problems", { cls: "soft", hold: 3200 })); 
     seed.gens.forEach(([inc, cands, promoted], i) => {
       const x = X(i);
       at(t, () => { el("circle", { cx: x, cy: Y(inc), r: 9, class: "inc" }, g); const d = frontier.getAttribute("d"); frontier.setAttribute("d", d + ` H ${x}`); });
@@ -367,6 +403,7 @@ text.big { font-family: var(--display); font-weight: 700; font-size: 22px; fill:
       t += 1500;
       at(t, () => {
         dots.forEach((c, k) => c.setAttribute("class", "cand" + (k === promoted ? " promoted" : " lost")));
+        if (promoted !== null) say(g, x, Y(cands[promoted]) - 26, "promoted", { cls: "ok" }); else say(g, x, Y(inc) - 26, "none better", { cls: "soft" });
         const v = promoted === null ? inc : cands[promoted], from = Y(level), to = Y(v);
         level = v;
         const d = frontier.getAttribute("d");
@@ -382,6 +419,7 @@ text.big { font-family: var(--display); font-weight: 700; font-size: 22px; fill:
     at(t, () => {
       const bx = 1010, w = 34, items = [["frontier", seed.confirm, "win"], ["random-search", seed.panel["random-search"], "ctrl"], ["MWKR", seed.panel.MWKR, "ctrl"], ["SPT", seed.panel.SPT, "ctrl"]];
       el("text", { x: bx, y: 80 }, g, "fresh panel");
+      say(g, bx + 80, 110, "never seen before", { cls: "soft", hold: 3000 });
       items.forEach(([name, v, cls], k) => {
         const x = bx + k * (w + 10);
         const r = el("rect", { x, y: y0, width: w, height: 0, class: "bar " + cls }, g);
@@ -394,7 +432,45 @@ text.big { font-family: var(--display); font-weight: 700; font-size: 22px; fill:
     at(t, () => {});
   }
 
-  // ---------------------------------------------------------------- act 3: the network (concept)
+  // ---------------------------------------------------------------- act 3: hand-off between organizations (concept)
+  // A's confirmed method travels as a sealed bundle; B does not trust A's score: it re-tests the bundle on its own
+  // hidden problems against its own controls, then adopts or bounces. The counts here are illustrative; the shape is
+  // the engine's adopt(): verify the bundle, re-run as the only candidate, promote only on a local win.
+  function orgRing(g, x, y, label, roles) {
+    el("circle", { cx: x, cy: y, r: 110, class: "link", "stroke-dasharray": "3 7" }, g);
+    el("text", { x, y: y + 6, class: "big", "text-anchor": "middle" }, g, label);
+    roles.forEach((name, i) => { const a = (-90 + i * (360 / roles.length)) * Math.PI / 180; el("circle", { cx: x + 110 * Math.cos(a), cy: y + 110 * Math.sin(a), r: 16, class: "node" }, g); el("text", { x: x + 110 * Math.cos(a), y: y + 110 * Math.sin(a) + 30, "text-anchor": "middle" }, g, name); });
+  }
+  function buildHandoff(svg) {
+    const g = el("g", {}, svg);
+    const A = { x: 230, y: 330 }, B = { x: 970, y: 330 };
+    orgRing(g, A.x, A.y, "A", ["planner", "shift", "qa"]);
+    orgRing(g, B.x, B.y, "B", ["ops", "lab", "audit"]);
+    el("line", { x1: A.x + 130, y1: A.y, x2: B.x - 130, y2: B.y, class: "edge" }, g);
+    // B's own panel: eight hidden problems, drawn as a dashed box under B
+    const px = B.x - 150, py = 470, pw = 300, ph = 110;
+    el("rect", { x: px, y: py, width: pw, height: ph, rx: 10, class: "panel" }, g);
+    el("text", { x: px + 8, y: py + ph + 20 }, g, "B's own problems · B's own controls");
+    const Yb = (v) => py + ph - 10 - (v / 8) * (ph - 20);
+    let t = 500;
+    at(t, () => say(g, A.x, A.y - 150, "A confirmed a method", { cls: "ok", hold: 2200 })); t += 1800;
+    const tag = el("g", { class: "bundle", style: "opacity:0" }, g);
+    el("rect", { x: -40, y: -11, width: 80, height: 22 }, tag); el("text", { x: 0, y: 4, "text-anchor": "middle" }, tag, "63aadd…");
+    at(t, () => { tag.style.opacity = 1; tag.setAttribute("transform", `translate(${A.x + 130} ${A.y})`); say(g, (A.x + B.x) / 2, A.y - 30, "sealed bundle + ledger", { cls: "soft", hold: 2400 }); tween(1600, (p) => tag.setAttribute("transform", `translate(${A.x + 130 + (B.x - 130 - A.x - 130) * p} ${A.y})`)); }); t += 2200;
+    at(t, () => say(g, B.x, B.y - 150, "B checks the ledger", { cls: "soft", hold: 1800 })); t += 1800;
+    at(t, () => say(g, B.x, B.y - 150, "B re-tests it itself", { cls: "warm", hold: 2600 })); t += 600;
+    const own = [1, 0, 1, 1, 0, 1, 1, 0], theirs = [1, 1, 1, 0, 1, 1, 1, 1]; // B's incumbent vs A's method, on B's eight problems
+    for (let i = 0; i < 8; i++) {
+      at(t + i * 180, () => { const x = px + 24 + i * 36; const c0 = el("circle", { cx: x - 6, cy: py - 20, r: 6, class: "inc" }, g); tween(600, (p) => c0.setAttribute("cy", py - 20 + (Yb(own[i] ? 7 : 1) - (py - 20)) * p)); const c1 = el("circle", { cx: x + 6, cy: py - 20, r: 6, class: "cand" }, g); tween(600, (p) => c1.setAttribute("cy", py - 20 + (Yb(theirs[i] ? 7 : 1) - (py - 20)) * p)); });
+    }
+    t += 8 * 180 + 900;
+    at(t, () => { say(g, B.x, py - 36, "7 of 8 against B's own 5 of 8", { cls: "ok", hold: 2600 }); }); t += 2400;
+    at(t, () => { tag.setAttribute("class", "bundle"); tween(900, (p) => tag.setAttribute("transform", `translate(${B.x - 130 + 130 * p} ${A.y - 60 * p})`)); el("circle", { cx: B.x, cy: B.y - 110, r: 16, class: "node new" }, g); say(g, B.x, B.y - 150, "adopted, owned by B", { cls: "ok", hold: 2600 }); }); t += 2600;
+    at(t, () => say(g, (A.x + B.x) / 2, 600, "A's score was carried, never trusted", { cls: "soft", hold: 3000 })); t += 3200;
+    at(t, () => {});
+  }
+
+  // ---------------------------------------------------------------- act 4: the network (concept)
   function buildNetwork(svg) {
     const g = el("g", {}, svg);
     const P = { A: [250, 320], B: [520, 180], C: [520, 470], D: [790, 120], E: [790, 400], F: [1040, 250], G: [1040, 520] };
@@ -431,15 +507,17 @@ text.big { font-family: var(--display); font-weight: 700; font-size: 22px; fill:
       });
     };
     let t = 500;
-    at(t, () => { orgs.A.set(0.86); orgs.A.ring.setAttribute("class", "org lit"); }); t += 1400;
+    at(t, () => { orgs.A.set(0.86); orgs.A.ring.setAttribute("class", "org lit"); say(g, 250, 230, "one organization improves", { cls: "soft", hold: 2400 }); }); t += 1400;
+    at(t, () => say(g, 385, 200, "verify, then adopt", { cls: "soft", hold: 3000 }));
     transfer(t, "A", "B", true, "63aadd"); t += 3200;
     transfer(t, "A", "C", true, "63aadd"); t += 2600;
     transfer(t, "B", "D", true, "63aadd"); t += 2600;
+    at(t + 1400, () => say(g, 655, 470, "failed B's own test: bounced", { cls: "bad", hold: 2400 }));
     transfer(t, "C", "E", false, "9f02c1"); t += 3400;
     transfer(t, "B", "E", true, "63aadd"); t += 2800;
     transfer(t, "D", "F", true, "63aadd"); t += 2600;
     transfer(t, "E", "G", true, "d80754"); t += 2600;
-    at(t, () => { for (const o of Object.values(orgs)) if (o.level > 0.5) o.set(Math.min(0.97, o.level + 0.08)); }); t += 1600;
+    at(t, () => { for (const o of Object.values(orgs)) if (o.level > 0.5) o.set(Math.min(0.97, o.level + 0.08)); say(g, 600, 600, "every week, the whole network is stronger", { cls: "ok", hold: 3200 }); }); t += 2400;
     at(t, () => {});
   }
 
