@@ -122,19 +122,23 @@ nodes is the honest picture.
 
 A run is filed under the method the executor reports it **actually ran**. If
 that differs from the method its frozen binding named, the run is still shown
-there and the mismatch is reported. An evaluation attaches to the single run
-whose outputs include its exact output ref and whose purpose (ordinary,
-acceptance role, or comparison trial/arm) is identical. The view does not
-recompute `execution_sha256`, so the attachment says "matched by output and
-purpose". Zero or several matches leave the evaluation unattached and reported.
+there and the mismatch is reported. An evaluation attaches only to the run its
+request names: the view recomputes each receipt's identity
+(`execution_receipt_identity_hash`, the canonical SHA-256 of the whole receipt
+under `genesis.development_execution_receipt`) and compares it with the
+request's `execution_sha256`. Matching output and purpose alone are not enough,
+since another organization's run can share both. The named run must also
+contain the scored output and have the same purpose; otherwise the evaluation
+stays unattached and is reported. A hash match shows the bytes agree, not who
+produced them.
 
 Execution outcomes read "output generated", "execution failed",
 "execution interrupted" or "unknown — do not replay". "Output generated" is not
 design success. Evaluation outcomes read "scored", "output invalid for
 scoring", "scoring failed" or "scoring unknown"; "scored" means metrics exist,
-while acceptance remains the adoption verdict. Until a model-generated method
-is executed, these paths are exercised only by synthetic receipts shaped like
-the Rust serializers.
+while acceptance remains the adoption verdict. The retained receiver evidence
+(`live-method-20261024-receiver`) is checked to attach by hash; other cases use
+synthetic receipts shaped like the Rust serializers.
 
 ## Attempt ledger
 

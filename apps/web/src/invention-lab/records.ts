@@ -4,6 +4,8 @@
 // unexpected value is shown as unrecognized rather than guessed. Decoders never
 // read generated text, prompts or request bodies.
 
+import { canonicalSha256 } from "./digest";
+
 export class DecodeError extends Error {}
 
 type Obj = Record<string, unknown>;
@@ -269,12 +271,17 @@ export interface ExecutionReceipt {
   outcome: string;
   outputs: ExactRef[];
   usage: Record<UsageDimension, Usage>;
+  /** genesis-core `execution_receipt_identity_hash`: canonical SHA-256 of the
+   * whole retained receipt under its domain. Evaluations name this value. */
+  receipt_sha256: string;
 }
+export const EXECUTION_RECEIPT_DOMAIN = "genesis.development_execution_receipt";
 export function decodeExecutionReceipt(v: unknown): ExecutionReceipt {
   const at = "execution";
   const o = obj(v, at);
   const b = obj(o.binding, `${at}.binding`);
   return {
+    receipt_sha256: canonicalSha256({ domain: EXECUTION_RECEIPT_DOMAIN, version: 1, record: o }),
     org_id: str(b, "org_id", `${at}.binding`),
     run_id: str(b, "run_id", `${at}.binding`),
     attempt_id: str(b, "attempt_id", `${at}.binding`),
