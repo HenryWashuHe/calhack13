@@ -44,6 +44,14 @@ records. The pinned candidate/control scores are 12/4, 7/7, 11/7 and 8/8;
 the two fresh invocation scores are 10/12 and 11/12. This validates retained
 record consistency, not externally authenticated execution or provider costs.
 
+The four intake digests, requirement/mission/authority snapshots, exact receiver
+pins and 32 adoption-evidence file hashes also match. Both parent invocations
+bind the adoption grant through prepared, started and completed records to the
+scored result attachment. All 54 referenced output/transcript/score-trace files
+match their retained bytes. Eight comparative panels match declared seeds, and
+the two invocation panels use disjoint seeds with their declared contexts and
+grants. These checks validate local record links, not an external trust root.
+
 The historical README's phrase “organizational authority isn't enforced” is
 too broad. Unknown tokens and mismatched grants are refused in the retained
 controls. The narrower gap is that adoption/invocation do not require the
@@ -57,6 +65,13 @@ provisioning; the two B configurations vary charter and scope together.
 Same-cart ties are refusal plumbing controls, not a planner-quality experiment.
 The retained observation does not establish independent organizations,
 recursive improvement or completion of G0–G4.
+
+The protocol's original “proposed; nothing run” status is retained historical
+text, followed by the separate
+[predeclaration](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6395793768)
+and [author result report](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6395823284).
+The binary hash prefixes are author-provided and the binaries are not retained;
+Linux isolation and live model execution remain author-reported.
 
 ## Validation
 
