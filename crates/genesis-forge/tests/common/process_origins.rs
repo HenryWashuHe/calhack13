@@ -8,7 +8,7 @@ use serde_json::json;
 use sha2::{Digest, Sha256};
 #[allow(dead_code)]
 #[path = "method_accounting_fixture.rs"]
-mod fixture;
+mod accounting;
 
 fn pin(record: &RetainedSelection) -> SelectionPin {
     SelectionPin {
@@ -30,7 +30,7 @@ pub fn declaration(records: &[RetainedSelection; 8]) -> CohortDeclaration {
     }
 }
 fn base_records() -> [RetainedSelection; 8] {
-    let base = fixture::trial(&fixture::generation("inert", true));
+    let base = accounting::trial(&accounting::generation("inert", true));
     let families = [
         Family::RavineCrossing,
         Family::RoughTransport,
@@ -69,9 +69,6 @@ fn base_records() -> [RetainedSelection; 8] {
     })
 }
 
-#[path = "method_plan.rs"]
-mod plan_fixture;
-
 pub fn complete(plan: MethodSynthesisPlan) -> MethodSynthesisSession {
     let mut session = MethodSynthesisSession::new(plan).unwrap();
     let request = session.begin().unwrap();
@@ -89,7 +86,7 @@ pub fn complete(plan: MethodSynthesisPlan) -> MethodSynthesisSession {
 }
 
 pub fn fixture() -> (GenerationOrigins, [RetainedSelection; 8]) {
-    let mut base = plan_fixture::plan();
+    let mut base = plan_accounting::plan();
     base.settings.model = "claude-sonnet-5-5".into();
     base.settings.reasoning = Some(ReasoningPolicy::Adaptive {
         effort: ReasoningEffort::High,
