@@ -1,0 +1,7612 @@
+{
+ "records": [
+  {
+   "type": "root_registered",
+   "family": "binpack-100-20to70",
+   "package": "c7a74f8591b20f21512ceb3554d4dd804266f2554e56f63edda09fadcb00384e",
+   "prior_origin": null,
+   "lab": "lab_a",
+   "index": 0,
+   "prev": "f06dfc4916adbf50840c669a93bc815806cbb1d97dbda2ee9b9a4a4bcae4d7b8",
+   "sha256": "499a59b85b3791e6472c387131ae8798169ffb8112be5e095f0cdf39db50661c"
+  },
+  {
+   "type": "candidates_proposed",
+   "generation": 1,
+   "family": "binpack-100-20to70",
+   "parent": "c7a74f8591b20f21512ceb3554d4dd804266f2554e56f63edda09fadcb00384e",
+   "candidates": [
+    "f036e7b0f1022a0f24c81a2816187bdf3ed8183ff19363a98556ea032993b1f5",
+    "0742bee145e6819c7277665e21573dc83b76f18a0fb4b84312ce649e7f929366",
+    "5a8d9f6983dd4f1a2c909683f9e654c04885979eab6f126a877a37fa00bd05ec",
+    "1db9bfc1e9e637a6743f55064c318624ceee59f668248bc8369d2281cfb20d3b"
+   ],
+   "dropped": [],
+   "imported": false,
+   "lab": "lab_a",
+   "index": 1,
+   "prev": "499a59b85b3791e6472c387131ae8798169ffb8112be5e095f0cdf39db50661c",
+   "sha256": "68b0fb9630e7cae15d383f70a2f98b55d55a8483b446859d8f7bf53e489aab2b"
+  },
+  {
+   "type": "plan_frozen",
+   "plan": "e8838c35bee6764f627e32b1262b731c3f9dda21e58b44b0472e2c0ec8794d03",
+   "family": "binpack-100-20to70",
+   "generation": 1,
+   "arms": [
+    {
+     "slot": "incumbent",
+     "package": "c7a74f8591b20f21512ceb3554d4dd804266f2554e56f63edda09fadcb00384e"
+    },
+    {
+     "slot": "candidate:0",
+     "package": "f036e7b0f1022a0f24c81a2816187bdf3ed8183ff19363a98556ea032993b1f5"
+    },
+    {
+     "slot": "candidate:1",
+     "package": "0742bee145e6819c7277665e21573dc83b76f18a0fb4b84312ce649e7f929366"
+    },
+    {
+     "slot": "candidate:2",
+     "package": "5a8d9f6983dd4f1a2c909683f9e654c04885979eab6f126a877a37fa00bd05ec"
+    },
+    {
+     "slot": "candidate:3",
+     "package": "1db9bfc1e9e637a6743f55064c318624ceee59f668248bc8369d2281cfb20d3b"
+    }
+   ],
+   "criterion": {
+    "rule": "success-count-margin",
+    "min_margin": 1
+   },
+   "instances": [
+    "binpack-100-20to70/cb52db51/0",
+    "binpack-100-20to70/cb52db51/1",
+    "binpack-100-20to70/cb52db51/2",
+    "binpack-100-20to70/cb52db51/3",
+    "binpack-100-20to70/cb52db51/4",
+    "binpack-100-20to70/cb52db51/5",
+    "binpack-100-20to70/cb52db51/6",
+    "binpack-100-20to70/cb52db51/7",
+    "binpack-100-20to70/cb52db51/8",
+    "binpack-100-20to70/cb52db51/9",
+    "binpack-100-20to70/cb52db51/10",
+    "binpack-100-20to70/cb52db51/11",
+    "binpack-100-20to70/cb52db51/12",
+    "binpack-100-20to70/cb52db51/13",
+    "binpack-100-20to70/cb52db51/14",
+    "binpack-100-20to70/cb52db51/15",
+    "binpack-100-20to70/cb52db51/16",
+    "binpack-100-20to70/cb52db51/17",
+    "binpack-100-20to70/cb52db51/18",
+    "binpack-100-20to70/cb52db51/19"
+   ],
+   "instance_seed": "cb52db516e427354c7f823fe841de6cbf66f9f42217b3189245d8e5018394d58",
+   "lab": "lab_a",
+   "index": 2,
+   "prev": "68b0fb9630e7cae15d383f70a2f98b55d55a8483b446859d8f7bf53e489aab2b",
+   "sha256": "3bff15aa17ac1e52b533cb837bccb634502ff1fa550f208fe0e25aefe8597f06"
+  },
+  {
+   "type": "evaluation",
+   "plan": "e8838c35bee6764f627e32b1262b731c3f9dda21e58b44b0472e2c0ec8794d03",
+   "slot": "incumbent",
+   "package": "c7a74f8591b20f21512ceb3554d4dd804266f2554e56f63edda09fadcb00384e",
+   "scores": [
+    {
+     "instance": "binpack-100-20to70/cb52db51/0",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9387755102040817,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 46,
+      "ratio": 1.065217391304348
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/1",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8888888888888888,
+     "cost": 1,
+     "detail": {
+      "bins": 54,
+      "lower_bound": 48,
+      "ratio": 1.125
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/2",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9019607843137255,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 46,
+      "ratio": 1.108695652173913
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/3",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/4",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/5",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9166666666666666,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 44,
+      "ratio": 1.0909090909090908
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/6",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9038461538461539,
+     "cost": 1,
+     "detail": {
+      "bins": 52,
+      "lower_bound": 47,
+      "ratio": 1.1063829787234043
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/7",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/8",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9019607843137255,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 46,
+      "ratio": 1.108695652173913
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/9",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.92,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 46,
+      "ratio": 1.0869565217391304
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/10",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8823529411764706,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 45,
+      "ratio": 1.1333333333333333
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/11",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.92,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 46,
+      "ratio": 1.0869565217391304
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/12",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9215686274509803,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 47,
+      "ratio": 1.0851063829787233
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/13",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9215686274509803,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 47,
+      "ratio": 1.0851063829787233
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/14",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9038461538461539,
+     "cost": 1,
+     "detail": {
+      "bins": 52,
+      "lower_bound": 47,
+      "ratio": 1.1063829787234043
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/15",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9230769230769231,
+     "cost": 1,
+     "detail": {
+      "bins": 52,
+      "lower_bound": 48,
+      "ratio": 1.0833333333333333
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/16",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8958333333333334,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 43,
+      "ratio": 1.1162790697674418
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/17",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 45,
+      "ratio": 1.1111111111111112
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/18",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 45,
+      "ratio": 1.1111111111111112
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/19",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9038461538461539,
+     "cost": 1,
+     "detail": {
+      "bins": 52,
+      "lower_bound": 47,
+      "ratio": 1.1063829787234043
+     }
+    }
+   ],
+   "outcome": "scored",
+   "success_count": 4,
+   "of": 20,
+   "attempt": "first",
+   "lab": "lab_a",
+   "index": 3,
+   "prev": "3bff15aa17ac1e52b533cb837bccb634502ff1fa550f208fe0e25aefe8597f06",
+   "sha256": "30955c410c40c74df0dc4f11d0f23fc72d830378ddb4b1d65158521e9854860c"
+  },
+  {
+   "type": "evaluation",
+   "plan": "e8838c35bee6764f627e32b1262b731c3f9dda21e58b44b0472e2c0ec8794d03",
+   "slot": "candidate:0",
+   "package": "f036e7b0f1022a0f24c81a2816187bdf3ed8183ff19363a98556ea032993b1f5",
+   "scores": [
+    {
+     "instance": "binpack-100-20to70/cb52db51/0",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9387755102040817,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 46,
+      "ratio": 1.065217391304348
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/1",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9056603773584906,
+     "cost": 1,
+     "detail": {
+      "bins": 53,
+      "lower_bound": 48,
+      "ratio": 1.1041666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/2",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9019607843137255,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 46,
+      "ratio": 1.108695652173913
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/3",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/4",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/5",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9166666666666666,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 44,
+      "ratio": 1.0909090909090908
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/6",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.94,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 47,
+      "ratio": 1.0638297872340425
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/7",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/8",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.92,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 46,
+      "ratio": 1.0869565217391304
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/9",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9387755102040817,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 46,
+      "ratio": 1.065217391304348
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/10",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 45,
+      "ratio": 1.1111111111111112
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/11",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.92,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 46,
+      "ratio": 1.0869565217391304
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/12",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9591836734693877,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 47,
+      "ratio": 1.0425531914893618
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/13",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9215686274509803,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 47,
+      "ratio": 1.0851063829787233
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/14",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9215686274509803,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 47,
+      "ratio": 1.0851063829787233
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/15",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9230769230769231,
+     "cost": 1,
+     "detail": {
+      "bins": 52,
+      "lower_bound": 48,
+      "ratio": 1.0833333333333333
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/16",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9148936170212766,
+     "cost": 1,
+     "detail": {
+      "bins": 47,
+      "lower_bound": 43,
+      "ratio": 1.0930232558139534
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/17",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9183673469387755,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 45,
+      "ratio": 1.0888888888888888
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/18",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/19",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9215686274509803,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 47,
+      "ratio": 1.0851063829787233
+     }
+    }
+   ],
+   "outcome": "scored",
+   "success_count": 8,
+   "of": 20,
+   "attempt": "first",
+   "lab": "lab_a",
+   "index": 4,
+   "prev": "30955c410c40c74df0dc4f11d0f23fc72d830378ddb4b1d65158521e9854860c",
+   "sha256": "b46f28356fd51518b235c550ba72ccc8e3c7b94a7bea0b328d6c293a3a9c5c75"
+  },
+  {
+   "type": "evaluation",
+   "plan": "e8838c35bee6764f627e32b1262b731c3f9dda21e58b44b0472e2c0ec8794d03",
+   "slot": "candidate:1",
+   "package": "0742bee145e6819c7277665e21573dc83b76f18a0fb4b84312ce649e7f929366",
+   "scores": [
+    {
+     "instance": "binpack-100-20to70/cb52db51/0",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9387755102040817,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 46,
+      "ratio": 1.065217391304348
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/1",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9056603773584906,
+     "cost": 1,
+     "detail": {
+      "bins": 53,
+      "lower_bound": 48,
+      "ratio": 1.1041666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/2",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9019607843137255,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 46,
+      "ratio": 1.108695652173913
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/3",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/4",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/5",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9166666666666666,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 44,
+      "ratio": 1.0909090909090908
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/6",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.94,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 47,
+      "ratio": 1.0638297872340425
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/7",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/8",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.92,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 46,
+      "ratio": 1.0869565217391304
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/9",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9387755102040817,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 46,
+      "ratio": 1.065217391304348
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/10",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 45,
+      "ratio": 1.1111111111111112
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/11",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.92,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 46,
+      "ratio": 1.0869565217391304
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/12",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9591836734693877,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 47,
+      "ratio": 1.0425531914893618
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/13",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9215686274509803,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 47,
+      "ratio": 1.0851063829787233
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/14",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9215686274509803,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 47,
+      "ratio": 1.0851063829787233
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/15",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9230769230769231,
+     "cost": 1,
+     "detail": {
+      "bins": 52,
+      "lower_bound": 48,
+      "ratio": 1.0833333333333333
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/16",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9148936170212766,
+     "cost": 1,
+     "detail": {
+      "bins": 47,
+      "lower_bound": 43,
+      "ratio": 1.0930232558139534
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/17",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9183673469387755,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 45,
+      "ratio": 1.0888888888888888
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/18",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/19",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9215686274509803,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 47,
+      "ratio": 1.0851063829787233
+     }
+    }
+   ],
+   "outcome": "scored",
+   "success_count": 8,
+   "of": 20,
+   "attempt": "first",
+   "lab": "lab_a",
+   "index": 5,
+   "prev": "b46f28356fd51518b235c550ba72ccc8e3c7b94a7bea0b328d6c293a3a9c5c75",
+   "sha256": "4a98299d15fc6cb9aabba9e5ae72a732a1f85a581e82c543c0f24ee877409052"
+  },
+  {
+   "type": "evaluation",
+   "plan": "e8838c35bee6764f627e32b1262b731c3f9dda21e58b44b0472e2c0ec8794d03",
+   "slot": "candidate:2",
+   "package": "5a8d9f6983dd4f1a2c909683f9e654c04885979eab6f126a877a37fa00bd05ec",
+   "scores": [
+    {
+     "instance": "binpack-100-20to70/cb52db51/0",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9387755102040817,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 46,
+      "ratio": 1.065217391304348
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/1",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9056603773584906,
+     "cost": 1,
+     "detail": {
+      "bins": 53,
+      "lower_bound": 48,
+      "ratio": 1.1041666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/2",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9019607843137255,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 46,
+      "ratio": 1.108695652173913
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/3",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/4",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/5",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9166666666666666,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 44,
+      "ratio": 1.0909090909090908
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/6",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.94,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 47,
+      "ratio": 1.0638297872340425
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/7",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/8",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.92,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 46,
+      "ratio": 1.0869565217391304
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/9",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9387755102040817,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 46,
+      "ratio": 1.065217391304348
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/10",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 45,
+      "ratio": 1.1111111111111112
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/11",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.92,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 46,
+      "ratio": 1.0869565217391304
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/12",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9591836734693877,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 47,
+      "ratio": 1.0425531914893618
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/13",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9215686274509803,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 47,
+      "ratio": 1.0851063829787233
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/14",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9215686274509803,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 47,
+      "ratio": 1.0851063829787233
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/15",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9230769230769231,
+     "cost": 1,
+     "detail": {
+      "bins": 52,
+      "lower_bound": 48,
+      "ratio": 1.0833333333333333
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/16",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9148936170212766,
+     "cost": 1,
+     "detail": {
+      "bins": 47,
+      "lower_bound": 43,
+      "ratio": 1.0930232558139534
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/17",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9183673469387755,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 45,
+      "ratio": 1.0888888888888888
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/18",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/19",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9215686274509803,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 47,
+      "ratio": 1.0851063829787233
+     }
+    }
+   ],
+   "outcome": "scored",
+   "success_count": 8,
+   "of": 20,
+   "attempt": "first",
+   "lab": "lab_a",
+   "index": 6,
+   "prev": "4a98299d15fc6cb9aabba9e5ae72a732a1f85a581e82c543c0f24ee877409052",
+   "sha256": "46bff0de17174be624303e8a8b86581828db3488af088c2ffd5e54e662a405e1"
+  },
+  {
+   "type": "evaluation",
+   "plan": "e8838c35bee6764f627e32b1262b731c3f9dda21e58b44b0472e2c0ec8794d03",
+   "slot": "candidate:3",
+   "package": "1db9bfc1e9e637a6743f55064c318624ceee59f668248bc8369d2281cfb20d3b",
+   "scores": [
+    {
+     "instance": "binpack-100-20to70/cb52db51/0",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9583333333333334,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 46,
+      "ratio": 1.0434782608695652
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/1",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8571428571428571,
+     "cost": 1,
+     "detail": {
+      "bins": 56,
+      "lower_bound": 48,
+      "ratio": 1.1666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/2",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8846153846153846,
+     "cost": 1,
+     "detail": {
+      "bins": 52,
+      "lower_bound": 46,
+      "ratio": 1.1304347826086956
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/3",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 45,
+      "ratio": 1.1111111111111112
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/4",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9574468085106383,
+     "cost": 1,
+     "detail": {
+      "bins": 47,
+      "lower_bound": 45,
+      "ratio": 1.0444444444444445
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/5",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9166666666666666,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 44,
+      "ratio": 1.0909090909090908
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/6",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8867924528301887,
+     "cost": 1,
+     "detail": {
+      "bins": 53,
+      "lower_bound": 47,
+      "ratio": 1.127659574468085
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/7",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/8",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8846153846153846,
+     "cost": 1,
+     "detail": {
+      "bins": 52,
+      "lower_bound": 46,
+      "ratio": 1.1304347826086956
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/9",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.92,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 46,
+      "ratio": 1.0869565217391304
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/10",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8823529411764706,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 45,
+      "ratio": 1.1333333333333333
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/11",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9019607843137255,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 46,
+      "ratio": 1.108695652173913
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/12",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9038461538461539,
+     "cost": 1,
+     "detail": {
+      "bins": 52,
+      "lower_bound": 47,
+      "ratio": 1.1063829787234043
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/13",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9215686274509803,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 47,
+      "ratio": 1.0851063829787233
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/14",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8867924528301887,
+     "cost": 1,
+     "detail": {
+      "bins": 53,
+      "lower_bound": 47,
+      "ratio": 1.127659574468085
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/15",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8888888888888888,
+     "cost": 1,
+     "detail": {
+      "bins": 54,
+      "lower_bound": 48,
+      "ratio": 1.125
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/16",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8958333333333334,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 43,
+      "ratio": 1.1162790697674418
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/17",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9183673469387755,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 45,
+      "ratio": 1.0888888888888888
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/18",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9183673469387755,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 45,
+      "ratio": 1.0888888888888888
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/cb52db51/19",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9038461538461539,
+     "cost": 1,
+     "detail": {
+      "bins": 52,
+      "lower_bound": 47,
+      "ratio": 1.1063829787234043
+     }
+    }
+   ],
+   "outcome": "scored",
+   "success_count": 3,
+   "of": 20,
+   "attempt": "first",
+   "lab": "lab_a",
+   "index": 7,
+   "prev": "46bff0de17174be624303e8a8b86581828db3488af088c2ffd5e54e662a405e1",
+   "sha256": "85d99edad104ea4c8fb3368bb5e0e75971bf2d9a46e4cba6bc7b623579e49416"
+  },
+  {
+   "type": "verdict",
+   "plan": "e8838c35bee6764f627e32b1262b731c3f9dda21e58b44b0472e2c0ec8794d03",
+   "generation": 1,
+   "slot": "candidate:0",
+   "package": "f036e7b0f1022a0f24c81a2816187bdf3ed8183ff19363a98556ea032993b1f5",
+   "verdict": "promoted",
+   "reason": "8/20 vs incumbent 4/20 (success-count margin >= 1 required)",
+   "margins": [
+    {
+     "against": "incumbent",
+     "candidate": 8,
+     "other": 4,
+     "margin": 4,
+     "known": true
+    }
+   ],
+   "lab": "lab_a",
+   "index": 8,
+   "prev": "85d99edad104ea4c8fb3368bb5e0e75971bf2d9a46e4cba6bc7b623579e49416",
+   "sha256": "40810dfc0480aea07e0f6d40b324c86d1c0c67438647b795d6f5bc062c57df6e"
+  },
+  {
+   "type": "verdict",
+   "plan": "e8838c35bee6764f627e32b1262b731c3f9dda21e58b44b0472e2c0ec8794d03",
+   "generation": 1,
+   "slot": "candidate:1",
+   "package": "0742bee145e6819c7277665e21573dc83b76f18a0fb4b84312ce649e7f929366",
+   "verdict": "rejected",
+   "reason": "8/20 vs incumbent 4/20 (success-count margin >= 1 required)",
+   "margins": [
+    {
+     "against": "incumbent",
+     "candidate": 8,
+     "other": 4,
+     "margin": 4,
+     "known": true
+    }
+   ],
+   "lab": "lab_a",
+   "index": 9,
+   "prev": "40810dfc0480aea07e0f6d40b324c86d1c0c67438647b795d6f5bc062c57df6e",
+   "sha256": "e4245893a17a4d2b749371e8a4b3b0670d5fbc664cd61742437d7517427effe4"
+  },
+  {
+   "type": "verdict",
+   "plan": "e8838c35bee6764f627e32b1262b731c3f9dda21e58b44b0472e2c0ec8794d03",
+   "generation": 1,
+   "slot": "candidate:2",
+   "package": "5a8d9f6983dd4f1a2c909683f9e654c04885979eab6f126a877a37fa00bd05ec",
+   "verdict": "rejected",
+   "reason": "8/20 vs incumbent 4/20 (success-count margin >= 1 required)",
+   "margins": [
+    {
+     "against": "incumbent",
+     "candidate": 8,
+     "other": 4,
+     "margin": 4,
+     "known": true
+    }
+   ],
+   "lab": "lab_a",
+   "index": 10,
+   "prev": "e4245893a17a4d2b749371e8a4b3b0670d5fbc664cd61742437d7517427effe4",
+   "sha256": "ca660e44464b8d6cd97c5a31bb645b07a7a6bd2b0a7ffb143cac4c5e3aa33052"
+  },
+  {
+   "type": "verdict",
+   "plan": "e8838c35bee6764f627e32b1262b731c3f9dda21e58b44b0472e2c0ec8794d03",
+   "generation": 1,
+   "slot": "candidate:3",
+   "package": "1db9bfc1e9e637a6743f55064c318624ceee59f668248bc8369d2281cfb20d3b",
+   "verdict": "rejected",
+   "reason": "3/20 vs incumbent 4/20 (success-count margin >= 1 required)",
+   "margins": [
+    {
+     "against": "incumbent",
+     "candidate": 3,
+     "other": 4,
+     "margin": -1,
+     "known": true
+    }
+   ],
+   "lab": "lab_a",
+   "index": 11,
+   "prev": "ca660e44464b8d6cd97c5a31bb645b07a7a6bd2b0a7ffb143cac4c5e3aa33052",
+   "sha256": "8731e21e4254fe2e495112afe707a20f93b38e51c5bca31bb5d491ca30586f3b"
+  },
+  {
+   "type": "promotion",
+   "generation": 1,
+   "family": "binpack-100-20to70",
+   "package": "f036e7b0f1022a0f24c81a2816187bdf3ed8183ff19363a98556ea032993b1f5",
+   "parent": "c7a74f8591b20f21512ceb3554d4dd804266f2554e56f63edda09fadcb00384e",
+   "success_count": 8,
+   "incumbent_count": 4,
+   "of": 20,
+   "plan": "e8838c35bee6764f627e32b1262b731c3f9dda21e58b44b0472e2c0ec8794d03",
+   "lab": "lab_a",
+   "index": 12,
+   "prev": "8731e21e4254fe2e495112afe707a20f93b38e51c5bca31bb5d491ca30586f3b",
+   "sha256": "6c8a0804670bfe89db1d6b76f99d5dc0415d3b785be8cbc1b6f24aa78cde2028"
+  },
+  {
+   "type": "candidates_proposed",
+   "generation": 2,
+   "family": "binpack-100-20to70",
+   "parent": "f036e7b0f1022a0f24c81a2816187bdf3ed8183ff19363a98556ea032993b1f5",
+   "candidates": [
+    "9708d71d5f757f962fe7a0f5980b60d1e6b36afe1346b4c0db2f9fa5f3658f0b",
+    "d2a88f2b7566c72f7ba864c1b709cf9393fbab5e529ab2ebd88ffbb0a7c86330",
+    "e2971a68e189b357ea7ed89012fee29be2f5784ce96246f034000059ddd7cbf4",
+    "4842fac5558d479fd46395591395c006cc75babdc4713c7865ab575e5300653c"
+   ],
+   "dropped": [],
+   "imported": false,
+   "lab": "lab_a",
+   "index": 13,
+   "prev": "6c8a0804670bfe89db1d6b76f99d5dc0415d3b785be8cbc1b6f24aa78cde2028",
+   "sha256": "cb96fb0251e6e805beb7c39ba78ba8fbd952b36e45baf5ed03111e5420ef5756"
+  },
+  {
+   "type": "plan_frozen",
+   "plan": "7527558dc7a5906a923bbbcaa46a2a81cb6f4ad25134ae0230fdd2285f3601b6",
+   "family": "binpack-100-20to70",
+   "generation": 2,
+   "arms": [
+    {
+     "slot": "incumbent",
+     "package": "f036e7b0f1022a0f24c81a2816187bdf3ed8183ff19363a98556ea032993b1f5"
+    },
+    {
+     "slot": "candidate:0",
+     "package": "9708d71d5f757f962fe7a0f5980b60d1e6b36afe1346b4c0db2f9fa5f3658f0b"
+    },
+    {
+     "slot": "candidate:1",
+     "package": "d2a88f2b7566c72f7ba864c1b709cf9393fbab5e529ab2ebd88ffbb0a7c86330"
+    },
+    {
+     "slot": "candidate:2",
+     "package": "e2971a68e189b357ea7ed89012fee29be2f5784ce96246f034000059ddd7cbf4"
+    },
+    {
+     "slot": "candidate:3",
+     "package": "4842fac5558d479fd46395591395c006cc75babdc4713c7865ab575e5300653c"
+    }
+   ],
+   "criterion": {
+    "rule": "success-count-margin",
+    "min_margin": 1
+   },
+   "instances": [
+    "binpack-100-20to70/96be505f/0",
+    "binpack-100-20to70/96be505f/1",
+    "binpack-100-20to70/96be505f/2",
+    "binpack-100-20to70/96be505f/3",
+    "binpack-100-20to70/96be505f/4",
+    "binpack-100-20to70/96be505f/5",
+    "binpack-100-20to70/96be505f/6",
+    "binpack-100-20to70/96be505f/7",
+    "binpack-100-20to70/96be505f/8",
+    "binpack-100-20to70/96be505f/9",
+    "binpack-100-20to70/96be505f/10",
+    "binpack-100-20to70/96be505f/11",
+    "binpack-100-20to70/96be505f/12",
+    "binpack-100-20to70/96be505f/13",
+    "binpack-100-20to70/96be505f/14",
+    "binpack-100-20to70/96be505f/15",
+    "binpack-100-20to70/96be505f/16",
+    "binpack-100-20to70/96be505f/17",
+    "binpack-100-20to70/96be505f/18",
+    "binpack-100-20to70/96be505f/19"
+   ],
+   "instance_seed": "96be505fd9439b978cc8e49985fe8726f52c99ad0e5478b0a655832e8f3494cd",
+   "lab": "lab_a",
+   "index": 14,
+   "prev": "cb96fb0251e6e805beb7c39ba78ba8fbd952b36e45baf5ed03111e5420ef5756",
+   "sha256": "b85461e2133e1c1eead16f978d67b0893e85a71cf62bb0272abc854e9c109123"
+  },
+  {
+   "type": "evaluation",
+   "plan": "7527558dc7a5906a923bbbcaa46a2a81cb6f4ad25134ae0230fdd2285f3601b6",
+   "slot": "incumbent",
+   "package": "f036e7b0f1022a0f24c81a2816187bdf3ed8183ff19363a98556ea032993b1f5",
+   "scores": [
+    {
+     "instance": "binpack-100-20to70/96be505f/0",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9387755102040817,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 46,
+      "ratio": 1.065217391304348
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/1",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9038461538461539,
+     "cost": 1,
+     "detail": {
+      "bins": 52,
+      "lower_bound": 47,
+      "ratio": 1.1063829787234043
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/2",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9019607843137255,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 46,
+      "ratio": 1.108695652173913
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/3",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9387755102040817,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 46,
+      "ratio": 1.065217391304348
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/4",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9166666666666666,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 44,
+      "ratio": 1.0909090909090908
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/5",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.94,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 47,
+      "ratio": 1.0638297872340425
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/6",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9387755102040817,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 46,
+      "ratio": 1.065217391304348
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/7",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.94,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 47,
+      "ratio": 1.0638297872340425
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/8",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/9",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9387755102040817,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 46,
+      "ratio": 1.065217391304348
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/10",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9583333333333334,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 46,
+      "ratio": 1.0434782608695652
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/11",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9361702127659575,
+     "cost": 1,
+     "detail": {
+      "bins": 47,
+      "lower_bound": 44,
+      "ratio": 1.0681818181818181
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/12",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9574468085106383,
+     "cost": 1,
+     "detail": {
+      "bins": 47,
+      "lower_bound": 45,
+      "ratio": 1.0444444444444445
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/13",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/14",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9361702127659575,
+     "cost": 1,
+     "detail": {
+      "bins": 47,
+      "lower_bound": 44,
+      "ratio": 1.0681818181818181
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/15",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9245283018867925,
+     "cost": 1,
+     "detail": {
+      "bins": 53,
+      "lower_bound": 49,
+      "ratio": 1.0816326530612246
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/16",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9183673469387755,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 45,
+      "ratio": 1.0888888888888888
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/17",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9166666666666666,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 44,
+      "ratio": 1.0909090909090908
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/18",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9183673469387755,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 45,
+      "ratio": 1.0888888888888888
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/19",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9183673469387755,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 45,
+      "ratio": 1.0888888888888888
+     }
+    }
+   ],
+   "outcome": "scored",
+   "success_count": 12,
+   "of": 20,
+   "attempt": "first",
+   "lab": "lab_a",
+   "index": 15,
+   "prev": "b85461e2133e1c1eead16f978d67b0893e85a71cf62bb0272abc854e9c109123",
+   "sha256": "979d230084e495e6234c87cad8adc73dfc657e53b197dab588409257a3ab707f"
+  },
+  {
+   "type": "evaluation",
+   "plan": "7527558dc7a5906a923bbbcaa46a2a81cb6f4ad25134ae0230fdd2285f3601b6",
+   "slot": "candidate:0",
+   "package": "9708d71d5f757f962fe7a0f5980b60d1e6b36afe1346b4c0db2f9fa5f3658f0b",
+   "scores": [
+    {
+     "instance": "binpack-100-20to70/96be505f/0",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9387755102040817,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 46,
+      "ratio": 1.065217391304348
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/1",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9038461538461539,
+     "cost": 1,
+     "detail": {
+      "bins": 52,
+      "lower_bound": 47,
+      "ratio": 1.1063829787234043
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/2",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9019607843137255,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 46,
+      "ratio": 1.108695652173913
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/3",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9387755102040817,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 46,
+      "ratio": 1.065217391304348
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/4",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9166666666666666,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 44,
+      "ratio": 1.0909090909090908
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/5",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.94,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 47,
+      "ratio": 1.0638297872340425
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/6",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9387755102040817,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 46,
+      "ratio": 1.065217391304348
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/7",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.94,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 47,
+      "ratio": 1.0638297872340425
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/8",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/9",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9387755102040817,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 46,
+      "ratio": 1.065217391304348
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/10",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9583333333333334,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 46,
+      "ratio": 1.0434782608695652
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/11",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9361702127659575,
+     "cost": 1,
+     "detail": {
+      "bins": 47,
+      "lower_bound": 44,
+      "ratio": 1.0681818181818181
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/12",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9574468085106383,
+     "cost": 1,
+     "detail": {
+      "bins": 47,
+      "lower_bound": 45,
+      "ratio": 1.0444444444444445
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/13",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/14",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9361702127659575,
+     "cost": 1,
+     "detail": {
+      "bins": 47,
+      "lower_bound": 44,
+      "ratio": 1.0681818181818181
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/15",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9245283018867925,
+     "cost": 1,
+     "detail": {
+      "bins": 53,
+      "lower_bound": 49,
+      "ratio": 1.0816326530612246
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/16",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 45,
+      "ratio": 1.1111111111111112
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/17",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9166666666666666,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 44,
+      "ratio": 1.0909090909090908
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/18",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9183673469387755,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 45,
+      "ratio": 1.0888888888888888
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/19",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    }
+   ],
+   "outcome": "scored",
+   "success_count": 13,
+   "of": 20,
+   "attempt": "first",
+   "lab": "lab_a",
+   "index": 16,
+   "prev": "979d230084e495e6234c87cad8adc73dfc657e53b197dab588409257a3ab707f",
+   "sha256": "2bde1bf470577c8a839c7c8411617c9d9ebfe4e83a812150e78a06f01e040ba1"
+  },
+  {
+   "type": "evaluation",
+   "plan": "7527558dc7a5906a923bbbcaa46a2a81cb6f4ad25134ae0230fdd2285f3601b6",
+   "slot": "candidate:1",
+   "package": "d2a88f2b7566c72f7ba864c1b709cf9393fbab5e529ab2ebd88ffbb0a7c86330",
+   "scores": [
+    {
+     "instance": "binpack-100-20to70/96be505f/0",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9583333333333334,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 46,
+      "ratio": 1.0434782608695652
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/1",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9038461538461539,
+     "cost": 1,
+     "detail": {
+      "bins": 52,
+      "lower_bound": 47,
+      "ratio": 1.1063829787234043
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/2",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9019607843137255,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 46,
+      "ratio": 1.108695652173913
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/3",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9583333333333334,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 46,
+      "ratio": 1.0434782608695652
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/4",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9166666666666666,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 44,
+      "ratio": 1.0909090909090908
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/5",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.94,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 47,
+      "ratio": 1.0638297872340425
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/6",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9387755102040817,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 46,
+      "ratio": 1.065217391304348
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/7",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.94,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 47,
+      "ratio": 1.0638297872340425
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/8",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/9",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.92,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 46,
+      "ratio": 1.0869565217391304
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/10",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9583333333333334,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 46,
+      "ratio": 1.0434782608695652
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/11",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9361702127659575,
+     "cost": 1,
+     "detail": {
+      "bins": 47,
+      "lower_bound": 44,
+      "ratio": 1.0681818181818181
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/12",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/13",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/14",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9565217391304348,
+     "cost": 1,
+     "detail": {
+      "bins": 46,
+      "lower_bound": 44,
+      "ratio": 1.0454545454545454
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/15",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9074074074074074,
+     "cost": 1,
+     "detail": {
+      "bins": 54,
+      "lower_bound": 49,
+      "ratio": 1.1020408163265305
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/16",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 45,
+      "ratio": 1.1111111111111112
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/17",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9166666666666666,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 44,
+      "ratio": 1.0909090909090908
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/18",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9183673469387755,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 45,
+      "ratio": 1.0888888888888888
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/19",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    }
+   ],
+   "outcome": "scored",
+   "success_count": 12,
+   "of": 20,
+   "attempt": "first",
+   "lab": "lab_a",
+   "index": 17,
+   "prev": "2bde1bf470577c8a839c7c8411617c9d9ebfe4e83a812150e78a06f01e040ba1",
+   "sha256": "d237f428efe284a12f4b882e8f224d4495f8b8486ad1f8746759618fd47d5269"
+  },
+  {
+   "type": "evaluation",
+   "plan": "7527558dc7a5906a923bbbcaa46a2a81cb6f4ad25134ae0230fdd2285f3601b6",
+   "slot": "candidate:2",
+   "package": "e2971a68e189b357ea7ed89012fee29be2f5784ce96246f034000059ddd7cbf4",
+   "scores": [
+    {
+     "instance": "binpack-100-20to70/96be505f/0",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9583333333333334,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 46,
+      "ratio": 1.0434782608695652
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/1",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9038461538461539,
+     "cost": 1,
+     "detail": {
+      "bins": 52,
+      "lower_bound": 47,
+      "ratio": 1.1063829787234043
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/2",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9019607843137255,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 46,
+      "ratio": 1.108695652173913
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/3",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9583333333333334,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 46,
+      "ratio": 1.0434782608695652
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/4",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.88,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 44,
+      "ratio": 1.1363636363636365
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/5",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9215686274509803,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 47,
+      "ratio": 1.0851063829787233
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/6",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9583333333333334,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 46,
+      "ratio": 1.0434782608695652
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/7",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9215686274509803,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 47,
+      "ratio": 1.0851063829787233
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/8",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/9",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8679245283018868,
+     "cost": 1,
+     "detail": {
+      "bins": 53,
+      "lower_bound": 46,
+      "ratio": 1.1521739130434783
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/10",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9387755102040817,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 46,
+      "ratio": 1.065217391304348
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/11",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9166666666666666,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 44,
+      "ratio": 1.0909090909090908
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/12",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/13",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/14",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9777777777777777,
+     "cost": 1,
+     "detail": {
+      "bins": 45,
+      "lower_bound": 44,
+      "ratio": 1.0227272727272727
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/15",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8909090909090909,
+     "cost": 1,
+     "detail": {
+      "bins": 55,
+      "lower_bound": 49,
+      "ratio": 1.1224489795918366
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/16",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 45,
+      "ratio": 1.1111111111111112
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/17",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9166666666666666,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 44,
+      "ratio": 1.0909090909090908
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/18",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 45,
+      "ratio": 1.1111111111111112
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/19",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9183673469387755,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 45,
+      "ratio": 1.0888888888888888
+     }
+    }
+   ],
+   "outcome": "scored",
+   "success_count": 8,
+   "of": 20,
+   "attempt": "first",
+   "lab": "lab_a",
+   "index": 18,
+   "prev": "d237f428efe284a12f4b882e8f224d4495f8b8486ad1f8746759618fd47d5269",
+   "sha256": "852335a72d5313164c33c795ebf7d50a1bb453bb9b7d23ce6f0751644e7912d3"
+  },
+  {
+   "type": "evaluation",
+   "plan": "7527558dc7a5906a923bbbcaa46a2a81cb6f4ad25134ae0230fdd2285f3601b6",
+   "slot": "candidate:3",
+   "package": "4842fac5558d479fd46395591395c006cc75babdc4713c7865ab575e5300653c",
+   "scores": [
+    {
+     "instance": "binpack-100-20to70/96be505f/0",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9583333333333334,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 46,
+      "ratio": 1.0434782608695652
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/1",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8867924528301887,
+     "cost": 1,
+     "detail": {
+      "bins": 53,
+      "lower_bound": 47,
+      "ratio": 1.127659574468085
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/2",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9019607843137255,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 46,
+      "ratio": 1.108695652173913
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/3",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9583333333333334,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 46,
+      "ratio": 1.0434782608695652
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/4",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8627450980392157,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 44,
+      "ratio": 1.1590909090909092
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/5",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9215686274509803,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 47,
+      "ratio": 1.0851063829787233
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/6",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9387755102040817,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 46,
+      "ratio": 1.065217391304348
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/7",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9038461538461539,
+     "cost": 1,
+     "detail": {
+      "bins": 52,
+      "lower_bound": 47,
+      "ratio": 1.1063829787234043
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/8",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/9",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8679245283018868,
+     "cost": 1,
+     "detail": {
+      "bins": 53,
+      "lower_bound": 46,
+      "ratio": 1.1521739130434783
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/10",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9387755102040817,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 46,
+      "ratio": 1.065217391304348
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/11",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9166666666666666,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 44,
+      "ratio": 1.0909090909090908
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/12",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/13",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/14",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9565217391304348,
+     "cost": 1,
+     "detail": {
+      "bins": 46,
+      "lower_bound": 44,
+      "ratio": 1.0454545454545454
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/15",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8909090909090909,
+     "cost": 1,
+     "detail": {
+      "bins": 55,
+      "lower_bound": 49,
+      "ratio": 1.1224489795918366
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/16",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8823529411764706,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 45,
+      "ratio": 1.1333333333333333
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/17",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8979591836734694,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 44,
+      "ratio": 1.1136363636363635
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/18",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 45,
+      "ratio": 1.1111111111111112
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/96be505f/19",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9183673469387755,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 45,
+      "ratio": 1.0888888888888888
+     }
+    }
+   ],
+   "outcome": "scored",
+   "success_count": 8,
+   "of": 20,
+   "attempt": "first",
+   "lab": "lab_a",
+   "index": 19,
+   "prev": "852335a72d5313164c33c795ebf7d50a1bb453bb9b7d23ce6f0751644e7912d3",
+   "sha256": "f8be9aef5b43b38665d02f274209aa5e82140cc1ac839c04858c23fe53626f59"
+  },
+  {
+   "type": "verdict",
+   "plan": "7527558dc7a5906a923bbbcaa46a2a81cb6f4ad25134ae0230fdd2285f3601b6",
+   "generation": 2,
+   "slot": "candidate:0",
+   "package": "9708d71d5f757f962fe7a0f5980b60d1e6b36afe1346b4c0db2f9fa5f3658f0b",
+   "verdict": "promoted",
+   "reason": "13/20 vs incumbent 12/20 (success-count margin >= 1 required)",
+   "margins": [
+    {
+     "against": "incumbent",
+     "candidate": 13,
+     "other": 12,
+     "margin": 1,
+     "known": true
+    }
+   ],
+   "lab": "lab_a",
+   "index": 20,
+   "prev": "f8be9aef5b43b38665d02f274209aa5e82140cc1ac839c04858c23fe53626f59",
+   "sha256": "32b943e3ffa78325830e7645e6fbacb3dfdb5c0118e9afb08b76682ae355f046"
+  },
+  {
+   "type": "verdict",
+   "plan": "7527558dc7a5906a923bbbcaa46a2a81cb6f4ad25134ae0230fdd2285f3601b6",
+   "generation": 2,
+   "slot": "candidate:1",
+   "package": "d2a88f2b7566c72f7ba864c1b709cf9393fbab5e529ab2ebd88ffbb0a7c86330",
+   "verdict": "rejected",
+   "reason": "12/20 vs incumbent 12/20 (success-count margin >= 1 required)",
+   "margins": [
+    {
+     "against": "incumbent",
+     "candidate": 12,
+     "other": 12,
+     "margin": 0,
+     "known": true
+    }
+   ],
+   "lab": "lab_a",
+   "index": 21,
+   "prev": "32b943e3ffa78325830e7645e6fbacb3dfdb5c0118e9afb08b76682ae355f046",
+   "sha256": "5ddb6206d2758b26e28387e33e3c1f996ced170c19a0a552e607651f2003c92a"
+  },
+  {
+   "type": "verdict",
+   "plan": "7527558dc7a5906a923bbbcaa46a2a81cb6f4ad25134ae0230fdd2285f3601b6",
+   "generation": 2,
+   "slot": "candidate:2",
+   "package": "e2971a68e189b357ea7ed89012fee29be2f5784ce96246f034000059ddd7cbf4",
+   "verdict": "rejected",
+   "reason": "8/20 vs incumbent 12/20 (success-count margin >= 1 required)",
+   "margins": [
+    {
+     "against": "incumbent",
+     "candidate": 8,
+     "other": 12,
+     "margin": -4,
+     "known": true
+    }
+   ],
+   "lab": "lab_a",
+   "index": 22,
+   "prev": "5ddb6206d2758b26e28387e33e3c1f996ced170c19a0a552e607651f2003c92a",
+   "sha256": "599d6d8657dc7f1aeb51d73db48e14f33481f82b965607c1a2b4a98b5d677d9a"
+  },
+  {
+   "type": "verdict",
+   "plan": "7527558dc7a5906a923bbbcaa46a2a81cb6f4ad25134ae0230fdd2285f3601b6",
+   "generation": 2,
+   "slot": "candidate:3",
+   "package": "4842fac5558d479fd46395591395c006cc75babdc4713c7865ab575e5300653c",
+   "verdict": "rejected",
+   "reason": "8/20 vs incumbent 12/20 (success-count margin >= 1 required)",
+   "margins": [
+    {
+     "against": "incumbent",
+     "candidate": 8,
+     "other": 12,
+     "margin": -4,
+     "known": true
+    }
+   ],
+   "lab": "lab_a",
+   "index": 23,
+   "prev": "599d6d8657dc7f1aeb51d73db48e14f33481f82b965607c1a2b4a98b5d677d9a",
+   "sha256": "81a1f5daf9f7536233e783f8db8a976570bf2ae5978b49d486b790acbd392dfd"
+  },
+  {
+   "type": "promotion",
+   "generation": 2,
+   "family": "binpack-100-20to70",
+   "package": "9708d71d5f757f962fe7a0f5980b60d1e6b36afe1346b4c0db2f9fa5f3658f0b",
+   "parent": "f036e7b0f1022a0f24c81a2816187bdf3ed8183ff19363a98556ea032993b1f5",
+   "success_count": 13,
+   "incumbent_count": 12,
+   "of": 20,
+   "plan": "7527558dc7a5906a923bbbcaa46a2a81cb6f4ad25134ae0230fdd2285f3601b6",
+   "lab": "lab_a",
+   "index": 24,
+   "prev": "81a1f5daf9f7536233e783f8db8a976570bf2ae5978b49d486b790acbd392dfd",
+   "sha256": "080c47a4b78532f8594406efc5975ac936c53f78cdd0b108976516a43224c9eb"
+  },
+  {
+   "type": "candidates_proposed",
+   "generation": 3,
+   "family": "binpack-100-20to70",
+   "parent": "9708d71d5f757f962fe7a0f5980b60d1e6b36afe1346b4c0db2f9fa5f3658f0b",
+   "candidates": [
+    "496a7d279394c0bde73eaafdb712c043cca0e3a8f2f3a3dd6b62577952319d83",
+    "6d2826808df7195cedbe0c8832584cec52e033f2e8fd0eb2494ec9dbb7e8bf1e",
+    "80dc78ab4fc11729bb47ba8ff915cfdc25115e31ab3993628e78af6ef00a29c0",
+    "ea6379542d08bed2bef67ed70f2e1b748c3278b416c026253d6953e948000547"
+   ],
+   "dropped": [],
+   "imported": false,
+   "lab": "lab_a",
+   "index": 25,
+   "prev": "080c47a4b78532f8594406efc5975ac936c53f78cdd0b108976516a43224c9eb",
+   "sha256": "77b96794ed34d257337e541527a87dc1941e20f3ecffacb968c1082a27aba8c7"
+  },
+  {
+   "type": "plan_frozen",
+   "plan": "220d09a2fa996dc13bad7c74fa15f02bb231f55f67fcdca8f7aff422cd4daf53",
+   "family": "binpack-100-20to70",
+   "generation": 3,
+   "arms": [
+    {
+     "slot": "incumbent",
+     "package": "9708d71d5f757f962fe7a0f5980b60d1e6b36afe1346b4c0db2f9fa5f3658f0b"
+    },
+    {
+     "slot": "candidate:0",
+     "package": "496a7d279394c0bde73eaafdb712c043cca0e3a8f2f3a3dd6b62577952319d83"
+    },
+    {
+     "slot": "candidate:1",
+     "package": "6d2826808df7195cedbe0c8832584cec52e033f2e8fd0eb2494ec9dbb7e8bf1e"
+    },
+    {
+     "slot": "candidate:2",
+     "package": "80dc78ab4fc11729bb47ba8ff915cfdc25115e31ab3993628e78af6ef00a29c0"
+    },
+    {
+     "slot": "candidate:3",
+     "package": "ea6379542d08bed2bef67ed70f2e1b748c3278b416c026253d6953e948000547"
+    }
+   ],
+   "criterion": {
+    "rule": "success-count-margin",
+    "min_margin": 1
+   },
+   "instances": [
+    "binpack-100-20to70/e8eb16d3/0",
+    "binpack-100-20to70/e8eb16d3/1",
+    "binpack-100-20to70/e8eb16d3/2",
+    "binpack-100-20to70/e8eb16d3/3",
+    "binpack-100-20to70/e8eb16d3/4",
+    "binpack-100-20to70/e8eb16d3/5",
+    "binpack-100-20to70/e8eb16d3/6",
+    "binpack-100-20to70/e8eb16d3/7",
+    "binpack-100-20to70/e8eb16d3/8",
+    "binpack-100-20to70/e8eb16d3/9",
+    "binpack-100-20to70/e8eb16d3/10",
+    "binpack-100-20to70/e8eb16d3/11",
+    "binpack-100-20to70/e8eb16d3/12",
+    "binpack-100-20to70/e8eb16d3/13",
+    "binpack-100-20to70/e8eb16d3/14",
+    "binpack-100-20to70/e8eb16d3/15",
+    "binpack-100-20to70/e8eb16d3/16",
+    "binpack-100-20to70/e8eb16d3/17",
+    "binpack-100-20to70/e8eb16d3/18",
+    "binpack-100-20to70/e8eb16d3/19"
+   ],
+   "instance_seed": "e8eb16d3ba03aa3e81689f3e2403c2cbc5f5782ae265c2b8342a038fc6af88e2",
+   "lab": "lab_a",
+   "index": 26,
+   "prev": "77b96794ed34d257337e541527a87dc1941e20f3ecffacb968c1082a27aba8c7",
+   "sha256": "88686ca7a03ae25a371087b7c9f60770a99c5cb8e823a07a2224fa9ab09a9a64"
+  },
+  {
+   "type": "evaluation",
+   "plan": "220d09a2fa996dc13bad7c74fa15f02bb231f55f67fcdca8f7aff422cd4daf53",
+   "slot": "incumbent",
+   "package": "9708d71d5f757f962fe7a0f5980b60d1e6b36afe1346b4c0db2f9fa5f3658f0b",
+   "scores": [
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/0",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8888888888888888,
+     "cost": 1,
+     "detail": {
+      "bins": 54,
+      "lower_bound": 48,
+      "ratio": 1.125
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/1",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/2",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9148936170212766,
+     "cost": 1,
+     "detail": {
+      "bins": 47,
+      "lower_bound": 43,
+      "ratio": 1.0930232558139534
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/3",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8888888888888888,
+     "cost": 1,
+     "detail": {
+      "bins": 54,
+      "lower_bound": 48,
+      "ratio": 1.125
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/4",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9583333333333334,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 46,
+      "ratio": 1.0434782608695652
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/5",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.94,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 47,
+      "ratio": 1.0638297872340425
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/6",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.92,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 46,
+      "ratio": 1.0869565217391304
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/7",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.94,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 47,
+      "ratio": 1.0638297872340425
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/8",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 45,
+      "ratio": 1.1111111111111112
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/9",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.94,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 47,
+      "ratio": 1.0638297872340425
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/10",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9166666666666666,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 44,
+      "ratio": 1.0909090909090908
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/11",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9215686274509803,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 47,
+      "ratio": 1.0851063829787233
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/12",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.92,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 46,
+      "ratio": 1.0869565217391304
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/13",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9183673469387755,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 45,
+      "ratio": 1.0888888888888888
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/14",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9215686274509803,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 47,
+      "ratio": 1.0851063829787233
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/15",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9183673469387755,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 45,
+      "ratio": 1.0888888888888888
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/16",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9574468085106383,
+     "cost": 1,
+     "detail": {
+      "bins": 47,
+      "lower_bound": 45,
+      "ratio": 1.0444444444444445
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/17",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9565217391304348,
+     "cost": 1,
+     "detail": {
+      "bins": 46,
+      "lower_bound": 44,
+      "ratio": 1.0454545454545454
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/18",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9111111111111111,
+     "cost": 1,
+     "detail": {
+      "bins": 45,
+      "lower_bound": 41,
+      "ratio": 1.0975609756097562
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/19",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9361702127659575,
+     "cost": 1,
+     "detail": {
+      "bins": 47,
+      "lower_bound": 44,
+      "ratio": 1.0681818181818181
+     }
+    }
+   ],
+   "outcome": "scored",
+   "success_count": 8,
+   "of": 20,
+   "attempt": "first",
+   "lab": "lab_a",
+   "index": 27,
+   "prev": "88686ca7a03ae25a371087b7c9f60770a99c5cb8e823a07a2224fa9ab09a9a64",
+   "sha256": "28e31b252528b03df2456e566d53c2d1d2d919d618c3818c2af6fc33135fdb15"
+  },
+  {
+   "type": "evaluation",
+   "plan": "220d09a2fa996dc13bad7c74fa15f02bb231f55f67fcdca8f7aff422cd4daf53",
+   "slot": "candidate:0",
+   "package": "496a7d279394c0bde73eaafdb712c043cca0e3a8f2f3a3dd6b62577952319d83",
+   "scores": [
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/0",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8888888888888888,
+     "cost": 1,
+     "detail": {
+      "bins": 54,
+      "lower_bound": 48,
+      "ratio": 1.125
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/1",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9183673469387755,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 45,
+      "ratio": 1.0888888888888888
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/2",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9347826086956522,
+     "cost": 1,
+     "detail": {
+      "bins": 46,
+      "lower_bound": 43,
+      "ratio": 1.069767441860465
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/3",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8727272727272727,
+     "cost": 1,
+     "detail": {
+      "bins": 55,
+      "lower_bound": 48,
+      "ratio": 1.1458333333333333
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/4",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9387755102040817,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 46,
+      "ratio": 1.065217391304348
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/5",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.94,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 47,
+      "ratio": 1.0638297872340425
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/6",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.92,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 46,
+      "ratio": 1.0869565217391304
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/7",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9215686274509803,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 47,
+      "ratio": 1.0851063829787233
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/8",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 45,
+      "ratio": 1.1111111111111112
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/9",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9038461538461539,
+     "cost": 1,
+     "detail": {
+      "bins": 52,
+      "lower_bound": 47,
+      "ratio": 1.1063829787234043
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/10",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8979591836734694,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 44,
+      "ratio": 1.1136363636363635
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/11",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8703703703703703,
+     "cost": 1,
+     "detail": {
+      "bins": 54,
+      "lower_bound": 47,
+      "ratio": 1.148936170212766
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/12",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8846153846153846,
+     "cost": 1,
+     "detail": {
+      "bins": 52,
+      "lower_bound": 46,
+      "ratio": 1.1304347826086956
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/13",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 45,
+      "ratio": 1.1111111111111112
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/14",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9215686274509803,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 47,
+      "ratio": 1.0851063829787233
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/15",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 45,
+      "ratio": 1.1111111111111112
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/16",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/17",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9361702127659575,
+     "cost": 1,
+     "detail": {
+      "bins": 47,
+      "lower_bound": 44,
+      "ratio": 1.0681818181818181
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/18",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9318181818181818,
+     "cost": 1,
+     "detail": {
+      "bins": 44,
+      "lower_bound": 41,
+      "ratio": 1.0731707317073171
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/19",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9166666666666666,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 44,
+      "ratio": 1.0909090909090908
+     }
+    }
+   ],
+   "outcome": "scored",
+   "success_count": 6,
+   "of": 20,
+   "attempt": "first",
+   "lab": "lab_a",
+   "index": 28,
+   "prev": "28e31b252528b03df2456e566d53c2d1d2d919d618c3818c2af6fc33135fdb15",
+   "sha256": "8787114631fa9797b8f1d94055b08b9fa49a1baa1f117971aac321d27767513a"
+  },
+  {
+   "type": "evaluation",
+   "plan": "220d09a2fa996dc13bad7c74fa15f02bb231f55f67fcdca8f7aff422cd4daf53",
+   "slot": "candidate:1",
+   "package": "6d2826808df7195cedbe0c8832584cec52e033f2e8fd0eb2494ec9dbb7e8bf1e",
+   "scores": [
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/0",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8888888888888888,
+     "cost": 1,
+     "detail": {
+      "bins": 54,
+      "lower_bound": 48,
+      "ratio": 1.125
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/1",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9183673469387755,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 45,
+      "ratio": 1.0888888888888888
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/2",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9347826086956522,
+     "cost": 1,
+     "detail": {
+      "bins": 46,
+      "lower_bound": 43,
+      "ratio": 1.069767441860465
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/3",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8727272727272727,
+     "cost": 1,
+     "detail": {
+      "bins": 55,
+      "lower_bound": 48,
+      "ratio": 1.1458333333333333
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/4",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9387755102040817,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 46,
+      "ratio": 1.065217391304348
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/5",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.94,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 47,
+      "ratio": 1.0638297872340425
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/6",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.92,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 46,
+      "ratio": 1.0869565217391304
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/7",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9215686274509803,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 47,
+      "ratio": 1.0851063829787233
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/8",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 45,
+      "ratio": 1.1111111111111112
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/9",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9038461538461539,
+     "cost": 1,
+     "detail": {
+      "bins": 52,
+      "lower_bound": 47,
+      "ratio": 1.1063829787234043
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/10",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8979591836734694,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 44,
+      "ratio": 1.1136363636363635
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/11",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8703703703703703,
+     "cost": 1,
+     "detail": {
+      "bins": 54,
+      "lower_bound": 47,
+      "ratio": 1.148936170212766
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/12",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8846153846153846,
+     "cost": 1,
+     "detail": {
+      "bins": 52,
+      "lower_bound": 46,
+      "ratio": 1.1304347826086956
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/13",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 45,
+      "ratio": 1.1111111111111112
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/14",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9215686274509803,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 47,
+      "ratio": 1.0851063829787233
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/15",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 45,
+      "ratio": 1.1111111111111112
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/16",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/17",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9361702127659575,
+     "cost": 1,
+     "detail": {
+      "bins": 47,
+      "lower_bound": 44,
+      "ratio": 1.0681818181818181
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/18",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9318181818181818,
+     "cost": 1,
+     "detail": {
+      "bins": 44,
+      "lower_bound": 41,
+      "ratio": 1.0731707317073171
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/19",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9166666666666666,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 44,
+      "ratio": 1.0909090909090908
+     }
+    }
+   ],
+   "outcome": "scored",
+   "success_count": 6,
+   "of": 20,
+   "attempt": "first",
+   "lab": "lab_a",
+   "index": 29,
+   "prev": "8787114631fa9797b8f1d94055b08b9fa49a1baa1f117971aac321d27767513a",
+   "sha256": "c5e87b1d613539e081babfd14c4b7b82c959b7e5b15b2408aab016c01d978542"
+  },
+  {
+   "type": "evaluation",
+   "plan": "220d09a2fa996dc13bad7c74fa15f02bb231f55f67fcdca8f7aff422cd4daf53",
+   "slot": "candidate:2",
+   "package": "80dc78ab4fc11729bb47ba8ff915cfdc25115e31ab3993628e78af6ef00a29c0",
+   "scores": [
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/0",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8727272727272727,
+     "cost": 1,
+     "detail": {
+      "bins": 55,
+      "lower_bound": 48,
+      "ratio": 1.1458333333333333
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/1",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9183673469387755,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 45,
+      "ratio": 1.0888888888888888
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/2",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9347826086956522,
+     "cost": 1,
+     "detail": {
+      "bins": 46,
+      "lower_bound": 43,
+      "ratio": 1.069767441860465
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/3",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8571428571428571,
+     "cost": 1,
+     "detail": {
+      "bins": 56,
+      "lower_bound": 48,
+      "ratio": 1.1666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/4",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.92,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 46,
+      "ratio": 1.0869565217391304
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/5",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9215686274509803,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 47,
+      "ratio": 1.0851063829787233
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/6",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9019607843137255,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 46,
+      "ratio": 1.108695652173913
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/7",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9215686274509803,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 47,
+      "ratio": 1.0851063829787233
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/8",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 45,
+      "ratio": 1.1111111111111112
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/9",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9038461538461539,
+     "cost": 1,
+     "detail": {
+      "bins": 52,
+      "lower_bound": 47,
+      "ratio": 1.1063829787234043
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/10",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.88,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 44,
+      "ratio": 1.1363636363636365
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/11",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8703703703703703,
+     "cost": 1,
+     "detail": {
+      "bins": 54,
+      "lower_bound": 47,
+      "ratio": 1.148936170212766
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/12",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9019607843137255,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 46,
+      "ratio": 1.108695652173913
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/13",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 45,
+      "ratio": 1.1111111111111112
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/14",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9038461538461539,
+     "cost": 1,
+     "detail": {
+      "bins": 52,
+      "lower_bound": 47,
+      "ratio": 1.1063829787234043
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/15",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 45,
+      "ratio": 1.1111111111111112
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/16",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/17",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9361702127659575,
+     "cost": 1,
+     "detail": {
+      "bins": 47,
+      "lower_bound": 44,
+      "ratio": 1.0681818181818181
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/18",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9318181818181818,
+     "cost": 1,
+     "detail": {
+      "bins": 44,
+      "lower_bound": 41,
+      "ratio": 1.0731707317073171
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/19",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9166666666666666,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 44,
+      "ratio": 1.0909090909090908
+     }
+    }
+   ],
+   "outcome": "scored",
+   "success_count": 4,
+   "of": 20,
+   "attempt": "first",
+   "lab": "lab_a",
+   "index": 30,
+   "prev": "c5e87b1d613539e081babfd14c4b7b82c959b7e5b15b2408aab016c01d978542",
+   "sha256": "68ee8c7e112dbc65164790afb9eff8cb2212744ba6778a02b8e13784f5253d13"
+  },
+  {
+   "type": "evaluation",
+   "plan": "220d09a2fa996dc13bad7c74fa15f02bb231f55f67fcdca8f7aff422cd4daf53",
+   "slot": "candidate:3",
+   "package": "ea6379542d08bed2bef67ed70f2e1b748c3278b416c026253d6953e948000547",
+   "scores": [
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/0",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8888888888888888,
+     "cost": 1,
+     "detail": {
+      "bins": 54,
+      "lower_bound": 48,
+      "ratio": 1.125
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/1",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9183673469387755,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 45,
+      "ratio": 1.0888888888888888
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/2",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9347826086956522,
+     "cost": 1,
+     "detail": {
+      "bins": 46,
+      "lower_bound": 43,
+      "ratio": 1.069767441860465
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/3",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8727272727272727,
+     "cost": 1,
+     "detail": {
+      "bins": 55,
+      "lower_bound": 48,
+      "ratio": 1.1458333333333333
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/4",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9387755102040817,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 46,
+      "ratio": 1.065217391304348
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/5",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.94,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 47,
+      "ratio": 1.0638297872340425
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/6",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.92,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 46,
+      "ratio": 1.0869565217391304
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/7",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9215686274509803,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 47,
+      "ratio": 1.0851063829787233
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/8",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 45,
+      "ratio": 1.1111111111111112
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/9",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9038461538461539,
+     "cost": 1,
+     "detail": {
+      "bins": 52,
+      "lower_bound": 47,
+      "ratio": 1.1063829787234043
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/10",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8979591836734694,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 44,
+      "ratio": 1.1136363636363635
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/11",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8703703703703703,
+     "cost": 1,
+     "detail": {
+      "bins": 54,
+      "lower_bound": 47,
+      "ratio": 1.148936170212766
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/12",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8846153846153846,
+     "cost": 1,
+     "detail": {
+      "bins": 52,
+      "lower_bound": 46,
+      "ratio": 1.1304347826086956
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/13",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 45,
+      "ratio": 1.1111111111111112
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/14",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9215686274509803,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 47,
+      "ratio": 1.0851063829787233
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/15",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 45,
+      "ratio": 1.1111111111111112
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/16",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/17",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9361702127659575,
+     "cost": 1,
+     "detail": {
+      "bins": 47,
+      "lower_bound": 44,
+      "ratio": 1.0681818181818181
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/18",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9318181818181818,
+     "cost": 1,
+     "detail": {
+      "bins": 44,
+      "lower_bound": 41,
+      "ratio": 1.0731707317073171
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e8eb16d3/19",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9166666666666666,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 44,
+      "ratio": 1.0909090909090908
+     }
+    }
+   ],
+   "outcome": "scored",
+   "success_count": 6,
+   "of": 20,
+   "attempt": "first",
+   "lab": "lab_a",
+   "index": 31,
+   "prev": "68ee8c7e112dbc65164790afb9eff8cb2212744ba6778a02b8e13784f5253d13",
+   "sha256": "fbd51b8436c13ede84cac7945723b45b0d2fbe154b399097582a50803c9db720"
+  },
+  {
+   "type": "verdict",
+   "plan": "220d09a2fa996dc13bad7c74fa15f02bb231f55f67fcdca8f7aff422cd4daf53",
+   "generation": 3,
+   "slot": "candidate:0",
+   "package": "496a7d279394c0bde73eaafdb712c043cca0e3a8f2f3a3dd6b62577952319d83",
+   "verdict": "rejected",
+   "reason": "6/20 vs incumbent 8/20 (success-count margin >= 1 required)",
+   "margins": [
+    {
+     "against": "incumbent",
+     "candidate": 6,
+     "other": 8,
+     "margin": -2,
+     "known": true
+    }
+   ],
+   "lab": "lab_a",
+   "index": 32,
+   "prev": "fbd51b8436c13ede84cac7945723b45b0d2fbe154b399097582a50803c9db720",
+   "sha256": "f6ea1ee09ba11614b924778632b31d987bfaa58703ee75e243531dbd12dc57d0"
+  },
+  {
+   "type": "verdict",
+   "plan": "220d09a2fa996dc13bad7c74fa15f02bb231f55f67fcdca8f7aff422cd4daf53",
+   "generation": 3,
+   "slot": "candidate:1",
+   "package": "6d2826808df7195cedbe0c8832584cec52e033f2e8fd0eb2494ec9dbb7e8bf1e",
+   "verdict": "rejected",
+   "reason": "6/20 vs incumbent 8/20 (success-count margin >= 1 required)",
+   "margins": [
+    {
+     "against": "incumbent",
+     "candidate": 6,
+     "other": 8,
+     "margin": -2,
+     "known": true
+    }
+   ],
+   "lab": "lab_a",
+   "index": 33,
+   "prev": "f6ea1ee09ba11614b924778632b31d987bfaa58703ee75e243531dbd12dc57d0",
+   "sha256": "31026df84b670f341478976a406f33488bc92488b1edddb867ceb56433dc45b9"
+  },
+  {
+   "type": "verdict",
+   "plan": "220d09a2fa996dc13bad7c74fa15f02bb231f55f67fcdca8f7aff422cd4daf53",
+   "generation": 3,
+   "slot": "candidate:2",
+   "package": "80dc78ab4fc11729bb47ba8ff915cfdc25115e31ab3993628e78af6ef00a29c0",
+   "verdict": "rejected",
+   "reason": "4/20 vs incumbent 8/20 (success-count margin >= 1 required)",
+   "margins": [
+    {
+     "against": "incumbent",
+     "candidate": 4,
+     "other": 8,
+     "margin": -4,
+     "known": true
+    }
+   ],
+   "lab": "lab_a",
+   "index": 34,
+   "prev": "31026df84b670f341478976a406f33488bc92488b1edddb867ceb56433dc45b9",
+   "sha256": "fd9eea8ba213c3e00979f4943a9174d6ccbbdb6bd9c964c0594188a8344a7e84"
+  },
+  {
+   "type": "verdict",
+   "plan": "220d09a2fa996dc13bad7c74fa15f02bb231f55f67fcdca8f7aff422cd4daf53",
+   "generation": 3,
+   "slot": "candidate:3",
+   "package": "ea6379542d08bed2bef67ed70f2e1b748c3278b416c026253d6953e948000547",
+   "verdict": "rejected",
+   "reason": "6/20 vs incumbent 8/20 (success-count margin >= 1 required)",
+   "margins": [
+    {
+     "against": "incumbent",
+     "candidate": 6,
+     "other": 8,
+     "margin": -2,
+     "known": true
+    }
+   ],
+   "lab": "lab_a",
+   "index": 35,
+   "prev": "fd9eea8ba213c3e00979f4943a9174d6ccbbdb6bd9c964c0594188a8344a7e84",
+   "sha256": "664b0afbbb1b5d7cd0ee3a33abb6622d7b559b02770390cabeb3a35810ddb3ee"
+  },
+  {
+   "type": "candidates_proposed",
+   "generation": 4,
+   "family": "binpack-100-20to70",
+   "parent": "9708d71d5f757f962fe7a0f5980b60d1e6b36afe1346b4c0db2f9fa5f3658f0b",
+   "candidates": [
+    "52179a57634fdc4a803aed45a94615ee11907fea055fa9570a1526e1c4598a1b",
+    "8b584e2b4004ec53c7ac441a231d7fc608085c412ac0420568cff3aa72e6d2af",
+    "ac3e0022d405b937296e0d421897924ee86b4cd2a5129e7328bef49e97b96271",
+    "b912fb4bfa8c90bccf49739fc66eec6f78ecf8adf21a90dfaab0360c78d02146"
+   ],
+   "dropped": [],
+   "imported": false,
+   "lab": "lab_a",
+   "index": 36,
+   "prev": "664b0afbbb1b5d7cd0ee3a33abb6622d7b559b02770390cabeb3a35810ddb3ee",
+   "sha256": "bc83a514279f417f1ac6935e4a529ce5dcb1cf9c94f94fcd36df7d960cc15adb"
+  },
+  {
+   "type": "plan_frozen",
+   "plan": "d0ffe04e25511d2cb0178ad2172dc609ad92d6e05fa3219b6f1279a984590104",
+   "family": "binpack-100-20to70",
+   "generation": 4,
+   "arms": [
+    {
+     "slot": "incumbent",
+     "package": "9708d71d5f757f962fe7a0f5980b60d1e6b36afe1346b4c0db2f9fa5f3658f0b"
+    },
+    {
+     "slot": "candidate:0",
+     "package": "52179a57634fdc4a803aed45a94615ee11907fea055fa9570a1526e1c4598a1b"
+    },
+    {
+     "slot": "candidate:1",
+     "package": "8b584e2b4004ec53c7ac441a231d7fc608085c412ac0420568cff3aa72e6d2af"
+    },
+    {
+     "slot": "candidate:2",
+     "package": "ac3e0022d405b937296e0d421897924ee86b4cd2a5129e7328bef49e97b96271"
+    },
+    {
+     "slot": "candidate:3",
+     "package": "b912fb4bfa8c90bccf49739fc66eec6f78ecf8adf21a90dfaab0360c78d02146"
+    }
+   ],
+   "criterion": {
+    "rule": "success-count-margin",
+    "min_margin": 1
+   },
+   "instances": [
+    "binpack-100-20to70/e504a342/0",
+    "binpack-100-20to70/e504a342/1",
+    "binpack-100-20to70/e504a342/2",
+    "binpack-100-20to70/e504a342/3",
+    "binpack-100-20to70/e504a342/4",
+    "binpack-100-20to70/e504a342/5",
+    "binpack-100-20to70/e504a342/6",
+    "binpack-100-20to70/e504a342/7",
+    "binpack-100-20to70/e504a342/8",
+    "binpack-100-20to70/e504a342/9",
+    "binpack-100-20to70/e504a342/10",
+    "binpack-100-20to70/e504a342/11",
+    "binpack-100-20to70/e504a342/12",
+    "binpack-100-20to70/e504a342/13",
+    "binpack-100-20to70/e504a342/14",
+    "binpack-100-20to70/e504a342/15",
+    "binpack-100-20to70/e504a342/16",
+    "binpack-100-20to70/e504a342/17",
+    "binpack-100-20to70/e504a342/18",
+    "binpack-100-20to70/e504a342/19"
+   ],
+   "instance_seed": "e504a342a4f5ef647eb5a76f84e4556576b3c28bb71c37ecc34bc1985ca5eaff",
+   "lab": "lab_a",
+   "index": 37,
+   "prev": "bc83a514279f417f1ac6935e4a529ce5dcb1cf9c94f94fcd36df7d960cc15adb",
+   "sha256": "8935da2a80cff7d367333aeec591c21d95b60db6199c7ac62437464cc7880493"
+  },
+  {
+   "type": "evaluation",
+   "plan": "d0ffe04e25511d2cb0178ad2172dc609ad92d6e05fa3219b6f1279a984590104",
+   "slot": "incumbent",
+   "package": "9708d71d5f757f962fe7a0f5980b60d1e6b36afe1346b4c0db2f9fa5f3658f0b",
+   "scores": [
+    {
+     "instance": "binpack-100-20to70/e504a342/0",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/1",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9148936170212766,
+     "cost": 1,
+     "detail": {
+      "bins": 47,
+      "lower_bound": 43,
+      "ratio": 1.0930232558139534
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/2",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 45,
+      "ratio": 1.1111111111111112
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/3",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9148936170212766,
+     "cost": 1,
+     "detail": {
+      "bins": 47,
+      "lower_bound": 43,
+      "ratio": 1.0930232558139534
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/4",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9361702127659575,
+     "cost": 1,
+     "detail": {
+      "bins": 47,
+      "lower_bound": 44,
+      "ratio": 1.0681818181818181
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/5",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8888888888888888,
+     "cost": 1,
+     "detail": {
+      "bins": 54,
+      "lower_bound": 48,
+      "ratio": 1.125
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/6",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8979591836734694,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 44,
+      "ratio": 1.1136363636363635
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/7",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9387755102040817,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 46,
+      "ratio": 1.065217391304348
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/8",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9591836734693877,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 47,
+      "ratio": 1.0425531914893618
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/9",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9166666666666666,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 44,
+      "ratio": 1.0909090909090908
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/10",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9183673469387755,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 45,
+      "ratio": 1.0888888888888888
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/11",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.875,
+     "cost": 1,
+     "detail": {
+      "bins": 56,
+      "lower_bound": 49,
+      "ratio": 1.1428571428571428
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/12",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9387755102040817,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 46,
+      "ratio": 1.065217391304348
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/13",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.92,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 46,
+      "ratio": 1.0869565217391304
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/14",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9387755102040817,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 46,
+      "ratio": 1.065217391304348
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/15",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.88,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 44,
+      "ratio": 1.1363636363636365
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/16",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9230769230769231,
+     "cost": 1,
+     "detail": {
+      "bins": 52,
+      "lower_bound": 48,
+      "ratio": 1.0833333333333333
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/17",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8979591836734694,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 44,
+      "ratio": 1.1136363636363635
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/18",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/19",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8545454545454545,
+     "cost": 1,
+     "detail": {
+      "bins": 55,
+      "lower_bound": 47,
+      "ratio": 1.1702127659574468
+     }
+    }
+   ],
+   "outcome": "scored",
+   "success_count": 7,
+   "of": 20,
+   "attempt": "first",
+   "lab": "lab_a",
+   "index": 38,
+   "prev": "8935da2a80cff7d367333aeec591c21d95b60db6199c7ac62437464cc7880493",
+   "sha256": "7f8f45f110ec2858336bd1312849e77f9855be3bedb0527d6d4d787627a3d763"
+  },
+  {
+   "type": "evaluation",
+   "plan": "d0ffe04e25511d2cb0178ad2172dc609ad92d6e05fa3219b6f1279a984590104",
+   "slot": "candidate:0",
+   "package": "52179a57634fdc4a803aed45a94615ee11907fea055fa9570a1526e1c4598a1b",
+   "scores": [
+    {
+     "instance": "binpack-100-20to70/e504a342/0",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/1",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9148936170212766,
+     "cost": 1,
+     "detail": {
+      "bins": 47,
+      "lower_bound": 43,
+      "ratio": 1.0930232558139534
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/2",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 45,
+      "ratio": 1.1111111111111112
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/3",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9148936170212766,
+     "cost": 1,
+     "detail": {
+      "bins": 47,
+      "lower_bound": 43,
+      "ratio": 1.0930232558139534
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/4",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9361702127659575,
+     "cost": 1,
+     "detail": {
+      "bins": 47,
+      "lower_bound": 44,
+      "ratio": 1.0681818181818181
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/5",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8888888888888888,
+     "cost": 1,
+     "detail": {
+      "bins": 54,
+      "lower_bound": 48,
+      "ratio": 1.125
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/6",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8979591836734694,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 44,
+      "ratio": 1.1136363636363635
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/7",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9387755102040817,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 46,
+      "ratio": 1.065217391304348
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/8",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.94,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 47,
+      "ratio": 1.0638297872340425
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/9",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9166666666666666,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 44,
+      "ratio": 1.0909090909090908
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/10",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9183673469387755,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 45,
+      "ratio": 1.0888888888888888
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/11",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8909090909090909,
+     "cost": 1,
+     "detail": {
+      "bins": 55,
+      "lower_bound": 49,
+      "ratio": 1.1224489795918366
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/12",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9387755102040817,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 46,
+      "ratio": 1.065217391304348
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/13",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9019607843137255,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 46,
+      "ratio": 1.108695652173913
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/14",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.92,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 46,
+      "ratio": 1.0869565217391304
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/15",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.88,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 44,
+      "ratio": 1.1363636363636365
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/16",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9230769230769231,
+     "cost": 1,
+     "detail": {
+      "bins": 52,
+      "lower_bound": 48,
+      "ratio": 1.0833333333333333
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/17",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8979591836734694,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 44,
+      "ratio": 1.1136363636363635
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/18",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/19",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8545454545454545,
+     "cost": 1,
+     "detail": {
+      "bins": 55,
+      "lower_bound": 47,
+      "ratio": 1.1702127659574468
+     }
+    }
+   ],
+   "outcome": "scored",
+   "success_count": 6,
+   "of": 20,
+   "attempt": "first",
+   "lab": "lab_a",
+   "index": 39,
+   "prev": "7f8f45f110ec2858336bd1312849e77f9855be3bedb0527d6d4d787627a3d763",
+   "sha256": "237847397e8fc80aff6407e3fa9aa56e2f0cf9ec02888ad92cb84c73ed76f1c2"
+  },
+  {
+   "type": "evaluation",
+   "plan": "d0ffe04e25511d2cb0178ad2172dc609ad92d6e05fa3219b6f1279a984590104",
+   "slot": "candidate:1",
+   "package": "8b584e2b4004ec53c7ac441a231d7fc608085c412ac0420568cff3aa72e6d2af",
+   "scores": [
+    {
+     "instance": "binpack-100-20to70/e504a342/0",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/1",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9148936170212766,
+     "cost": 1,
+     "detail": {
+      "bins": 47,
+      "lower_bound": 43,
+      "ratio": 1.0930232558139534
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/2",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 45,
+      "ratio": 1.1111111111111112
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/3",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9148936170212766,
+     "cost": 1,
+     "detail": {
+      "bins": 47,
+      "lower_bound": 43,
+      "ratio": 1.0930232558139534
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/4",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9361702127659575,
+     "cost": 1,
+     "detail": {
+      "bins": 47,
+      "lower_bound": 44,
+      "ratio": 1.0681818181818181
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/5",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8888888888888888,
+     "cost": 1,
+     "detail": {
+      "bins": 54,
+      "lower_bound": 48,
+      "ratio": 1.125
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/6",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8979591836734694,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 44,
+      "ratio": 1.1136363636363635
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/7",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9387755102040817,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 46,
+      "ratio": 1.065217391304348
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/8",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.94,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 47,
+      "ratio": 1.0638297872340425
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/9",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9166666666666666,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 44,
+      "ratio": 1.0909090909090908
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/10",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9183673469387755,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 45,
+      "ratio": 1.0888888888888888
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/11",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.875,
+     "cost": 1,
+     "detail": {
+      "bins": 56,
+      "lower_bound": 49,
+      "ratio": 1.1428571428571428
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/12",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9387755102040817,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 46,
+      "ratio": 1.065217391304348
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/13",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.92,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 46,
+      "ratio": 1.0869565217391304
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/14",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9387755102040817,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 46,
+      "ratio": 1.065217391304348
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/15",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.88,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 44,
+      "ratio": 1.1363636363636365
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/16",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9230769230769231,
+     "cost": 1,
+     "detail": {
+      "bins": 52,
+      "lower_bound": 48,
+      "ratio": 1.0833333333333333
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/17",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8979591836734694,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 44,
+      "ratio": 1.1136363636363635
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/18",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/19",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8545454545454545,
+     "cost": 1,
+     "detail": {
+      "bins": 55,
+      "lower_bound": 47,
+      "ratio": 1.1702127659574468
+     }
+    }
+   ],
+   "outcome": "scored",
+   "success_count": 7,
+   "of": 20,
+   "attempt": "first",
+   "lab": "lab_a",
+   "index": 40,
+   "prev": "237847397e8fc80aff6407e3fa9aa56e2f0cf9ec02888ad92cb84c73ed76f1c2",
+   "sha256": "8d00659f158c06035e52e4657da04993aad2d8b4e8d0944be72252578e149750"
+  },
+  {
+   "type": "evaluation",
+   "plan": "d0ffe04e25511d2cb0178ad2172dc609ad92d6e05fa3219b6f1279a984590104",
+   "slot": "candidate:2",
+   "package": "ac3e0022d405b937296e0d421897924ee86b4cd2a5129e7328bef49e97b96271",
+   "scores": [
+    {
+     "instance": "binpack-100-20to70/e504a342/0",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/1",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9148936170212766,
+     "cost": 1,
+     "detail": {
+      "bins": 47,
+      "lower_bound": 43,
+      "ratio": 1.0930232558139534
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/2",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 45,
+      "ratio": 1.1111111111111112
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/3",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9148936170212766,
+     "cost": 1,
+     "detail": {
+      "bins": 47,
+      "lower_bound": 43,
+      "ratio": 1.0930232558139534
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/4",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9361702127659575,
+     "cost": 1,
+     "detail": {
+      "bins": 47,
+      "lower_bound": 44,
+      "ratio": 1.0681818181818181
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/5",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8888888888888888,
+     "cost": 1,
+     "detail": {
+      "bins": 54,
+      "lower_bound": 48,
+      "ratio": 1.125
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/6",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8979591836734694,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 44,
+      "ratio": 1.1136363636363635
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/7",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9583333333333334,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 46,
+      "ratio": 1.0434782608695652
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/8",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9591836734693877,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 47,
+      "ratio": 1.0425531914893618
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/9",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9361702127659575,
+     "cost": 1,
+     "detail": {
+      "bins": 47,
+      "lower_bound": 44,
+      "ratio": 1.0681818181818181
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/10",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/11",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.875,
+     "cost": 1,
+     "detail": {
+      "bins": 56,
+      "lower_bound": 49,
+      "ratio": 1.1428571428571428
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/12",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9387755102040817,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 46,
+      "ratio": 1.065217391304348
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/13",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.92,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 46,
+      "ratio": 1.0869565217391304
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/14",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9387755102040817,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 46,
+      "ratio": 1.065217391304348
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/15",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.88,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 44,
+      "ratio": 1.1363636363636365
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/16",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9230769230769231,
+     "cost": 1,
+     "detail": {
+      "bins": 52,
+      "lower_bound": 48,
+      "ratio": 1.0833333333333333
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/17",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8979591836734694,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 44,
+      "ratio": 1.1136363636363635
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/18",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/19",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8545454545454545,
+     "cost": 1,
+     "detail": {
+      "bins": 55,
+      "lower_bound": 47,
+      "ratio": 1.1702127659574468
+     }
+    }
+   ],
+   "outcome": "scored",
+   "success_count": 9,
+   "of": 20,
+   "attempt": "first",
+   "lab": "lab_a",
+   "index": 41,
+   "prev": "8d00659f158c06035e52e4657da04993aad2d8b4e8d0944be72252578e149750",
+   "sha256": "f9e0aed4f64742ec1eec2146a95dd897f04bd599611b23ddf5d2917b88af2421"
+  },
+  {
+   "type": "evaluation",
+   "plan": "d0ffe04e25511d2cb0178ad2172dc609ad92d6e05fa3219b6f1279a984590104",
+   "slot": "candidate:3",
+   "package": "b912fb4bfa8c90bccf49739fc66eec6f78ecf8adf21a90dfaab0360c78d02146",
+   "scores": [
+    {
+     "instance": "binpack-100-20to70/e504a342/0",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/1",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9148936170212766,
+     "cost": 1,
+     "detail": {
+      "bins": 47,
+      "lower_bound": 43,
+      "ratio": 1.0930232558139534
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/2",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 45,
+      "ratio": 1.1111111111111112
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/3",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9148936170212766,
+     "cost": 1,
+     "detail": {
+      "bins": 47,
+      "lower_bound": 43,
+      "ratio": 1.0930232558139534
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/4",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9361702127659575,
+     "cost": 1,
+     "detail": {
+      "bins": 47,
+      "lower_bound": 44,
+      "ratio": 1.0681818181818181
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/5",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8888888888888888,
+     "cost": 1,
+     "detail": {
+      "bins": 54,
+      "lower_bound": 48,
+      "ratio": 1.125
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/6",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8979591836734694,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 44,
+      "ratio": 1.1136363636363635
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/7",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9387755102040817,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 46,
+      "ratio": 1.065217391304348
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/8",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.94,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 47,
+      "ratio": 1.0638297872340425
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/9",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9166666666666666,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 44,
+      "ratio": 1.0909090909090908
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/10",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9183673469387755,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 45,
+      "ratio": 1.0888888888888888
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/11",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.875,
+     "cost": 1,
+     "detail": {
+      "bins": 56,
+      "lower_bound": 49,
+      "ratio": 1.1428571428571428
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/12",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9387755102040817,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 46,
+      "ratio": 1.065217391304348
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/13",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.92,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 46,
+      "ratio": 1.0869565217391304
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/14",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9387755102040817,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 46,
+      "ratio": 1.065217391304348
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/15",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.88,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 44,
+      "ratio": 1.1363636363636365
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/16",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9230769230769231,
+     "cost": 1,
+     "detail": {
+      "bins": 52,
+      "lower_bound": 48,
+      "ratio": 1.0833333333333333
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/17",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8979591836734694,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 44,
+      "ratio": 1.1136363636363635
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/18",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/e504a342/19",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8545454545454545,
+     "cost": 1,
+     "detail": {
+      "bins": 55,
+      "lower_bound": 47,
+      "ratio": 1.1702127659574468
+     }
+    }
+   ],
+   "outcome": "scored",
+   "success_count": 7,
+   "of": 20,
+   "attempt": "first",
+   "lab": "lab_a",
+   "index": 42,
+   "prev": "f9e0aed4f64742ec1eec2146a95dd897f04bd599611b23ddf5d2917b88af2421",
+   "sha256": "c8dc3bd41af6a80b93c89240b20e25de5d482b3176569e24a81b0ebf5445c182"
+  },
+  {
+   "type": "verdict",
+   "plan": "d0ffe04e25511d2cb0178ad2172dc609ad92d6e05fa3219b6f1279a984590104",
+   "generation": 4,
+   "slot": "candidate:0",
+   "package": "52179a57634fdc4a803aed45a94615ee11907fea055fa9570a1526e1c4598a1b",
+   "verdict": "rejected",
+   "reason": "6/20 vs incumbent 7/20 (success-count margin >= 1 required)",
+   "margins": [
+    {
+     "against": "incumbent",
+     "candidate": 6,
+     "other": 7,
+     "margin": -1,
+     "known": true
+    }
+   ],
+   "lab": "lab_a",
+   "index": 43,
+   "prev": "c8dc3bd41af6a80b93c89240b20e25de5d482b3176569e24a81b0ebf5445c182",
+   "sha256": "6ad81ad4bbf9717cde9765d3b44ba74ee5d73a3c512176077ed7f8a117b0b045"
+  },
+  {
+   "type": "verdict",
+   "plan": "d0ffe04e25511d2cb0178ad2172dc609ad92d6e05fa3219b6f1279a984590104",
+   "generation": 4,
+   "slot": "candidate:1",
+   "package": "8b584e2b4004ec53c7ac441a231d7fc608085c412ac0420568cff3aa72e6d2af",
+   "verdict": "rejected",
+   "reason": "7/20 vs incumbent 7/20 (success-count margin >= 1 required)",
+   "margins": [
+    {
+     "against": "incumbent",
+     "candidate": 7,
+     "other": 7,
+     "margin": 0,
+     "known": true
+    }
+   ],
+   "lab": "lab_a",
+   "index": 44,
+   "prev": "6ad81ad4bbf9717cde9765d3b44ba74ee5d73a3c512176077ed7f8a117b0b045",
+   "sha256": "a760f78bb8c259d940f797501704fc30443f30547c7d287114477fa1c0384c6a"
+  },
+  {
+   "type": "verdict",
+   "plan": "d0ffe04e25511d2cb0178ad2172dc609ad92d6e05fa3219b6f1279a984590104",
+   "generation": 4,
+   "slot": "candidate:2",
+   "package": "ac3e0022d405b937296e0d421897924ee86b4cd2a5129e7328bef49e97b96271",
+   "verdict": "promoted",
+   "reason": "9/20 vs incumbent 7/20 (success-count margin >= 1 required)",
+   "margins": [
+    {
+     "against": "incumbent",
+     "candidate": 9,
+     "other": 7,
+     "margin": 2,
+     "known": true
+    }
+   ],
+   "lab": "lab_a",
+   "index": 45,
+   "prev": "a760f78bb8c259d940f797501704fc30443f30547c7d287114477fa1c0384c6a",
+   "sha256": "31313e03530b6d149810cca22a4e2f61394ba2da4c3b2abfdf6b5419d774ad21"
+  },
+  {
+   "type": "verdict",
+   "plan": "d0ffe04e25511d2cb0178ad2172dc609ad92d6e05fa3219b6f1279a984590104",
+   "generation": 4,
+   "slot": "candidate:3",
+   "package": "b912fb4bfa8c90bccf49739fc66eec6f78ecf8adf21a90dfaab0360c78d02146",
+   "verdict": "rejected",
+   "reason": "7/20 vs incumbent 7/20 (success-count margin >= 1 required)",
+   "margins": [
+    {
+     "against": "incumbent",
+     "candidate": 7,
+     "other": 7,
+     "margin": 0,
+     "known": true
+    }
+   ],
+   "lab": "lab_a",
+   "index": 46,
+   "prev": "31313e03530b6d149810cca22a4e2f61394ba2da4c3b2abfdf6b5419d774ad21",
+   "sha256": "3aef43acce7ed0c648e78376ae0c7a13a0bc349c759896ee92bc438e30e6452d"
+  },
+  {
+   "type": "promotion",
+   "generation": 4,
+   "family": "binpack-100-20to70",
+   "package": "ac3e0022d405b937296e0d421897924ee86b4cd2a5129e7328bef49e97b96271",
+   "parent": "9708d71d5f757f962fe7a0f5980b60d1e6b36afe1346b4c0db2f9fa5f3658f0b",
+   "success_count": 9,
+   "incumbent_count": 7,
+   "of": 20,
+   "plan": "d0ffe04e25511d2cb0178ad2172dc609ad92d6e05fa3219b6f1279a984590104",
+   "lab": "lab_a",
+   "index": 47,
+   "prev": "3aef43acce7ed0c648e78376ae0c7a13a0bc349c759896ee92bc438e30e6452d",
+   "sha256": "20dc9d2313e3e6a9c2667cc6654a1867058b46b4fce368a5377f335cdda48a56"
+  },
+  {
+   "type": "candidates_proposed",
+   "generation": 5,
+   "family": "binpack-100-20to70",
+   "parent": "ac3e0022d405b937296e0d421897924ee86b4cd2a5129e7328bef49e97b96271",
+   "candidates": [
+    "383d1a0ff73cb4b0d2ea8db9d641bcefc86c7341d2ac473e2930e5ad5b2511dd",
+    "faf7444930fe0f0275b1e36d9f368b930d6001d462b995fd4e2689a21b8b80a8",
+    "7ec6bd12533b7660afcb14e4781031752d160b24a3673f4b054c9875b6fd78f7",
+    "4742c1848688b551d9ae4998f461f3216b3a8551d9bd05419d9bc7fa8a4946d0"
+   ],
+   "dropped": [],
+   "imported": false,
+   "lab": "lab_a",
+   "index": 48,
+   "prev": "20dc9d2313e3e6a9c2667cc6654a1867058b46b4fce368a5377f335cdda48a56",
+   "sha256": "8b3c43c7497f2dbb5318a2c467470e4e4fa155ff9874ee80c99387a6c34eeb64"
+  },
+  {
+   "type": "plan_frozen",
+   "plan": "4b1da95b573a28c29d72fe509d177050225b815eb6e14ea59de051c4fd78d602",
+   "family": "binpack-100-20to70",
+   "generation": 5,
+   "arms": [
+    {
+     "slot": "incumbent",
+     "package": "ac3e0022d405b937296e0d421897924ee86b4cd2a5129e7328bef49e97b96271"
+    },
+    {
+     "slot": "candidate:0",
+     "package": "383d1a0ff73cb4b0d2ea8db9d641bcefc86c7341d2ac473e2930e5ad5b2511dd"
+    },
+    {
+     "slot": "candidate:1",
+     "package": "faf7444930fe0f0275b1e36d9f368b930d6001d462b995fd4e2689a21b8b80a8"
+    },
+    {
+     "slot": "candidate:2",
+     "package": "7ec6bd12533b7660afcb14e4781031752d160b24a3673f4b054c9875b6fd78f7"
+    },
+    {
+     "slot": "candidate:3",
+     "package": "4742c1848688b551d9ae4998f461f3216b3a8551d9bd05419d9bc7fa8a4946d0"
+    }
+   ],
+   "criterion": {
+    "rule": "success-count-margin",
+    "min_margin": 1
+   },
+   "instances": [
+    "binpack-100-20to70/44cc6644/0",
+    "binpack-100-20to70/44cc6644/1",
+    "binpack-100-20to70/44cc6644/2",
+    "binpack-100-20to70/44cc6644/3",
+    "binpack-100-20to70/44cc6644/4",
+    "binpack-100-20to70/44cc6644/5",
+    "binpack-100-20to70/44cc6644/6",
+    "binpack-100-20to70/44cc6644/7",
+    "binpack-100-20to70/44cc6644/8",
+    "binpack-100-20to70/44cc6644/9",
+    "binpack-100-20to70/44cc6644/10",
+    "binpack-100-20to70/44cc6644/11",
+    "binpack-100-20to70/44cc6644/12",
+    "binpack-100-20to70/44cc6644/13",
+    "binpack-100-20to70/44cc6644/14",
+    "binpack-100-20to70/44cc6644/15",
+    "binpack-100-20to70/44cc6644/16",
+    "binpack-100-20to70/44cc6644/17",
+    "binpack-100-20to70/44cc6644/18",
+    "binpack-100-20to70/44cc6644/19"
+   ],
+   "instance_seed": "44cc664481f5d267aef75d92e6f3dfdce12d2811a747824ed8391e8ec424067c",
+   "lab": "lab_a",
+   "index": 49,
+   "prev": "8b3c43c7497f2dbb5318a2c467470e4e4fa155ff9874ee80c99387a6c34eeb64",
+   "sha256": "9c3ec7ee8bc32a367eab371e4703a8f0f9ae8325e2ffdd7dae6d04ebe4426612"
+  },
+  {
+   "type": "evaluation",
+   "plan": "4b1da95b573a28c29d72fe509d177050225b815eb6e14ea59de051c4fd78d602",
+   "slot": "incumbent",
+   "package": "ac3e0022d405b937296e0d421897924ee86b4cd2a5129e7328bef49e97b96271",
+   "scores": [
+    {
+     "instance": "binpack-100-20to70/44cc6644/0",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9166666666666666,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 44,
+      "ratio": 1.0909090909090908
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/1",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9056603773584906,
+     "cost": 1,
+     "detail": {
+      "bins": 53,
+      "lower_bound": 48,
+      "ratio": 1.1041666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/2",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8979591836734694,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 44,
+      "ratio": 1.1136363636363635
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/3",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9574468085106383,
+     "cost": 1,
+     "detail": {
+      "bins": 47,
+      "lower_bound": 45,
+      "ratio": 1.0444444444444445
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/4",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9183673469387755,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 45,
+      "ratio": 1.0888888888888888
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/5",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.92,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 46,
+      "ratio": 1.0869565217391304
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/6",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9019607843137255,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 46,
+      "ratio": 1.108695652173913
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/7",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9183673469387755,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 45,
+      "ratio": 1.0888888888888888
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/8",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.94,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 47,
+      "ratio": 1.0638297872340425
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/9",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9387755102040817,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 46,
+      "ratio": 1.065217391304348
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/10",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9215686274509803,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 47,
+      "ratio": 1.0851063829787233
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/11",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9148936170212766,
+     "cost": 1,
+     "detail": {
+      "bins": 47,
+      "lower_bound": 43,
+      "ratio": 1.0930232558139534
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/12",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/13",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9230769230769231,
+     "cost": 1,
+     "detail": {
+      "bins": 52,
+      "lower_bound": 48,
+      "ratio": 1.0833333333333333
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/14",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9019607843137255,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 46,
+      "ratio": 1.108695652173913
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/15",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9183673469387755,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 45,
+      "ratio": 1.0888888888888888
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/16",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9019607843137255,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 46,
+      "ratio": 1.108695652173913
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/17",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9387755102040817,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 46,
+      "ratio": 1.065217391304348
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/18",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/19",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8979591836734694,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 44,
+      "ratio": 1.1136363636363635
+     }
+    }
+   ],
+   "outcome": "scored",
+   "success_count": 6,
+   "of": 20,
+   "attempt": "first",
+   "lab": "lab_a",
+   "index": 50,
+   "prev": "9c3ec7ee8bc32a367eab371e4703a8f0f9ae8325e2ffdd7dae6d04ebe4426612",
+   "sha256": "d442a0c30b44c9f7c9d3a3fdbfb1f4df06b20eb0d79094ceb5dcc0677d95c9dc"
+  },
+  {
+   "type": "evaluation",
+   "plan": "4b1da95b573a28c29d72fe509d177050225b815eb6e14ea59de051c4fd78d602",
+   "slot": "candidate:0",
+   "package": "383d1a0ff73cb4b0d2ea8db9d641bcefc86c7341d2ac473e2930e5ad5b2511dd",
+   "scores": [
+    {
+     "instance": "binpack-100-20to70/44cc6644/0",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9166666666666666,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 44,
+      "ratio": 1.0909090909090908
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/1",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9056603773584906,
+     "cost": 1,
+     "detail": {
+      "bins": 53,
+      "lower_bound": 48,
+      "ratio": 1.1041666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/2",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8979591836734694,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 44,
+      "ratio": 1.1136363636363635
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/3",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/4",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9183673469387755,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 45,
+      "ratio": 1.0888888888888888
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/5",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.92,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 46,
+      "ratio": 1.0869565217391304
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/6",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9019607843137255,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 46,
+      "ratio": 1.108695652173913
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/7",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9183673469387755,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 45,
+      "ratio": 1.0888888888888888
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/8",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.94,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 47,
+      "ratio": 1.0638297872340425
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/9",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9387755102040817,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 46,
+      "ratio": 1.065217391304348
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/10",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9215686274509803,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 47,
+      "ratio": 1.0851063829787233
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/11",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8958333333333334,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 43,
+      "ratio": 1.1162790697674418
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/12",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/13",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9230769230769231,
+     "cost": 1,
+     "detail": {
+      "bins": 52,
+      "lower_bound": 48,
+      "ratio": 1.0833333333333333
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/14",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9019607843137255,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 46,
+      "ratio": 1.108695652173913
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/15",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9183673469387755,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 45,
+      "ratio": 1.0888888888888888
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/16",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8846153846153846,
+     "cost": 1,
+     "detail": {
+      "bins": 52,
+      "lower_bound": 46,
+      "ratio": 1.1304347826086956
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/17",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.92,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 46,
+      "ratio": 1.0869565217391304
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/18",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/19",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8979591836734694,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 44,
+      "ratio": 1.1136363636363635
+     }
+    }
+   ],
+   "outcome": "scored",
+   "success_count": 5,
+   "of": 20,
+   "attempt": "first",
+   "lab": "lab_a",
+   "index": 51,
+   "prev": "d442a0c30b44c9f7c9d3a3fdbfb1f4df06b20eb0d79094ceb5dcc0677d95c9dc",
+   "sha256": "43605f58f1d37cce3d61ddd83d24d54733fe5ba9e131a293143f4aece2b383ad"
+  },
+  {
+   "type": "evaluation",
+   "plan": "4b1da95b573a28c29d72fe509d177050225b815eb6e14ea59de051c4fd78d602",
+   "slot": "candidate:1",
+   "package": "faf7444930fe0f0275b1e36d9f368b930d6001d462b995fd4e2689a21b8b80a8",
+   "scores": [
+    {
+     "instance": "binpack-100-20to70/44cc6644/0",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9166666666666666,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 44,
+      "ratio": 1.0909090909090908
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/1",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9056603773584906,
+     "cost": 1,
+     "detail": {
+      "bins": 53,
+      "lower_bound": 48,
+      "ratio": 1.1041666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/2",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8979591836734694,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 44,
+      "ratio": 1.1136363636363635
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/3",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/4",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9183673469387755,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 45,
+      "ratio": 1.0888888888888888
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/5",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.92,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 46,
+      "ratio": 1.0869565217391304
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/6",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9019607843137255,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 46,
+      "ratio": 1.108695652173913
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/7",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9183673469387755,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 45,
+      "ratio": 1.0888888888888888
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/8",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.94,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 47,
+      "ratio": 1.0638297872340425
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/9",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9387755102040817,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 46,
+      "ratio": 1.065217391304348
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/10",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9215686274509803,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 47,
+      "ratio": 1.0851063829787233
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/11",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8958333333333334,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 43,
+      "ratio": 1.1162790697674418
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/12",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/13",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9230769230769231,
+     "cost": 1,
+     "detail": {
+      "bins": 52,
+      "lower_bound": 48,
+      "ratio": 1.0833333333333333
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/14",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9019607843137255,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 46,
+      "ratio": 1.108695652173913
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/15",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9183673469387755,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 45,
+      "ratio": 1.0888888888888888
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/16",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8846153846153846,
+     "cost": 1,
+     "detail": {
+      "bins": 52,
+      "lower_bound": 46,
+      "ratio": 1.1304347826086956
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/17",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.92,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 46,
+      "ratio": 1.0869565217391304
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/18",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/19",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8979591836734694,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 44,
+      "ratio": 1.1136363636363635
+     }
+    }
+   ],
+   "outcome": "scored",
+   "success_count": 5,
+   "of": 20,
+   "attempt": "first",
+   "lab": "lab_a",
+   "index": 52,
+   "prev": "43605f58f1d37cce3d61ddd83d24d54733fe5ba9e131a293143f4aece2b383ad",
+   "sha256": "5c88ee28b4119775dad69719ecc1bd6a7dc4fe4ac81302d07fe53f4755a286e9"
+  },
+  {
+   "type": "evaluation",
+   "plan": "4b1da95b573a28c29d72fe509d177050225b815eb6e14ea59de051c4fd78d602",
+   "slot": "candidate:2",
+   "package": "7ec6bd12533b7660afcb14e4781031752d160b24a3673f4b054c9875b6fd78f7",
+   "scores": [
+    {
+     "instance": "binpack-100-20to70/44cc6644/0",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9166666666666666,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 44,
+      "ratio": 1.0909090909090908
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/1",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9056603773584906,
+     "cost": 1,
+     "detail": {
+      "bins": 53,
+      "lower_bound": 48,
+      "ratio": 1.1041666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/2",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8979591836734694,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 44,
+      "ratio": 1.1136363636363635
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/3",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9574468085106383,
+     "cost": 1,
+     "detail": {
+      "bins": 47,
+      "lower_bound": 45,
+      "ratio": 1.0444444444444445
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/4",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9183673469387755,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 45,
+      "ratio": 1.0888888888888888
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/5",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.92,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 46,
+      "ratio": 1.0869565217391304
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/6",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9019607843137255,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 46,
+      "ratio": 1.108695652173913
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/7",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9183673469387755,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 45,
+      "ratio": 1.0888888888888888
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/8",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.94,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 47,
+      "ratio": 1.0638297872340425
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/9",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9387755102040817,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 46,
+      "ratio": 1.065217391304348
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/10",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9215686274509803,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 47,
+      "ratio": 1.0851063829787233
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/11",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8958333333333334,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 43,
+      "ratio": 1.1162790697674418
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/12",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/13",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9230769230769231,
+     "cost": 1,
+     "detail": {
+      "bins": 52,
+      "lower_bound": 48,
+      "ratio": 1.0833333333333333
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/14",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9019607843137255,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 46,
+      "ratio": 1.108695652173913
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/15",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9183673469387755,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 45,
+      "ratio": 1.0888888888888888
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/16",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8846153846153846,
+     "cost": 1,
+     "detail": {
+      "bins": 52,
+      "lower_bound": 46,
+      "ratio": 1.1304347826086956
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/17",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.92,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 46,
+      "ratio": 1.0869565217391304
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/18",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/19",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8979591836734694,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 44,
+      "ratio": 1.1136363636363635
+     }
+    }
+   ],
+   "outcome": "scored",
+   "success_count": 5,
+   "of": 20,
+   "attempt": "first",
+   "lab": "lab_a",
+   "index": 53,
+   "prev": "5c88ee28b4119775dad69719ecc1bd6a7dc4fe4ac81302d07fe53f4755a286e9",
+   "sha256": "326bcec27c3216b99a723f516657984c57ad34aae3fd733829a634dae97a80d0"
+  },
+  {
+   "type": "evaluation",
+   "plan": "4b1da95b573a28c29d72fe509d177050225b815eb6e14ea59de051c4fd78d602",
+   "slot": "candidate:3",
+   "package": "4742c1848688b551d9ae4998f461f3216b3a8551d9bd05419d9bc7fa8a4946d0",
+   "scores": [
+    {
+     "instance": "binpack-100-20to70/44cc6644/0",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9166666666666666,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 44,
+      "ratio": 1.0909090909090908
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/1",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9056603773584906,
+     "cost": 1,
+     "detail": {
+      "bins": 53,
+      "lower_bound": 48,
+      "ratio": 1.1041666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/2",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9166666666666666,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 44,
+      "ratio": 1.0909090909090908
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/3",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/4",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9183673469387755,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 45,
+      "ratio": 1.0888888888888888
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/5",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.92,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 46,
+      "ratio": 1.0869565217391304
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/6",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8846153846153846,
+     "cost": 1,
+     "detail": {
+      "bins": 52,
+      "lower_bound": 46,
+      "ratio": 1.1304347826086956
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/7",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9183673469387755,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 45,
+      "ratio": 1.0888888888888888
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/8",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.94,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 47,
+      "ratio": 1.0638297872340425
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/9",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9387755102040817,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 46,
+      "ratio": 1.065217391304348
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/10",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9215686274509803,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 47,
+      "ratio": 1.0851063829787233
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/11",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8958333333333334,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 43,
+      "ratio": 1.1162790697674418
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/12",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/13",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9230769230769231,
+     "cost": 1,
+     "detail": {
+      "bins": 52,
+      "lower_bound": 48,
+      "ratio": 1.0833333333333333
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/14",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.92,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 46,
+      "ratio": 1.0869565217391304
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/15",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9183673469387755,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 45,
+      "ratio": 1.0888888888888888
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/16",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8846153846153846,
+     "cost": 1,
+     "detail": {
+      "bins": 52,
+      "lower_bound": 46,
+      "ratio": 1.1304347826086956
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/17",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.92,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 46,
+      "ratio": 1.0869565217391304
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/18",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/44cc6644/19",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8979591836734694,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 44,
+      "ratio": 1.1136363636363635
+     }
+    }
+   ],
+   "outcome": "scored",
+   "success_count": 5,
+   "of": 20,
+   "attempt": "first",
+   "lab": "lab_a",
+   "index": 54,
+   "prev": "326bcec27c3216b99a723f516657984c57ad34aae3fd733829a634dae97a80d0",
+   "sha256": "4bf73b46e8f9ad77057adad3640a01b674bb83e57e88b79db371c1f4fdaa5f8d"
+  },
+  {
+   "type": "verdict",
+   "plan": "4b1da95b573a28c29d72fe509d177050225b815eb6e14ea59de051c4fd78d602",
+   "generation": 5,
+   "slot": "candidate:0",
+   "package": "383d1a0ff73cb4b0d2ea8db9d641bcefc86c7341d2ac473e2930e5ad5b2511dd",
+   "verdict": "rejected",
+   "reason": "5/20 vs incumbent 6/20 (success-count margin >= 1 required)",
+   "margins": [
+    {
+     "against": "incumbent",
+     "candidate": 5,
+     "other": 6,
+     "margin": -1,
+     "known": true
+    }
+   ],
+   "lab": "lab_a",
+   "index": 55,
+   "prev": "4bf73b46e8f9ad77057adad3640a01b674bb83e57e88b79db371c1f4fdaa5f8d",
+   "sha256": "91278c1d0221ab99fe5959fb1845cc190616d55b9e4322c741e4ea46f6929c13"
+  },
+  {
+   "type": "verdict",
+   "plan": "4b1da95b573a28c29d72fe509d177050225b815eb6e14ea59de051c4fd78d602",
+   "generation": 5,
+   "slot": "candidate:1",
+   "package": "faf7444930fe0f0275b1e36d9f368b930d6001d462b995fd4e2689a21b8b80a8",
+   "verdict": "rejected",
+   "reason": "5/20 vs incumbent 6/20 (success-count margin >= 1 required)",
+   "margins": [
+    {
+     "against": "incumbent",
+     "candidate": 5,
+     "other": 6,
+     "margin": -1,
+     "known": true
+    }
+   ],
+   "lab": "lab_a",
+   "index": 56,
+   "prev": "91278c1d0221ab99fe5959fb1845cc190616d55b9e4322c741e4ea46f6929c13",
+   "sha256": "1c21009d0ad3a8826ba2556d3833b2d47fa0f4322baedd9ddb37102423596bc7"
+  },
+  {
+   "type": "verdict",
+   "plan": "4b1da95b573a28c29d72fe509d177050225b815eb6e14ea59de051c4fd78d602",
+   "generation": 5,
+   "slot": "candidate:2",
+   "package": "7ec6bd12533b7660afcb14e4781031752d160b24a3673f4b054c9875b6fd78f7",
+   "verdict": "rejected",
+   "reason": "5/20 vs incumbent 6/20 (success-count margin >= 1 required)",
+   "margins": [
+    {
+     "against": "incumbent",
+     "candidate": 5,
+     "other": 6,
+     "margin": -1,
+     "known": true
+    }
+   ],
+   "lab": "lab_a",
+   "index": 57,
+   "prev": "1c21009d0ad3a8826ba2556d3833b2d47fa0f4322baedd9ddb37102423596bc7",
+   "sha256": "95e8540e6f960f4e8af954bba747260d5559dfd6c527211d5998ade6dd73053d"
+  },
+  {
+   "type": "verdict",
+   "plan": "4b1da95b573a28c29d72fe509d177050225b815eb6e14ea59de051c4fd78d602",
+   "generation": 5,
+   "slot": "candidate:3",
+   "package": "4742c1848688b551d9ae4998f461f3216b3a8551d9bd05419d9bc7fa8a4946d0",
+   "verdict": "rejected",
+   "reason": "5/20 vs incumbent 6/20 (success-count margin >= 1 required)",
+   "margins": [
+    {
+     "against": "incumbent",
+     "candidate": 5,
+     "other": 6,
+     "margin": -1,
+     "known": true
+    }
+   ],
+   "lab": "lab_a",
+   "index": 58,
+   "prev": "95e8540e6f960f4e8af954bba747260d5559dfd6c527211d5998ade6dd73053d",
+   "sha256": "1debd9eeab89c01b1dd74167e9c5121198103d9847dfe8fffe0748a1bbe734bc"
+  },
+  {
+   "type": "confirmation_declared",
+   "family": "binpack-100-20to70",
+   "package": "ac3e0022d405b937296e0d421897924ee86b4cd2a5129e7328bef49e97b96271",
+   "selection_plan": "d0ffe04e25511d2cb0178ad2172dc609ad92d6e05fa3219b6f1279a984590104",
+   "instance_seed": "babb9fdefc037efa3c9bc4853bbb53d65c89a084f356598f3f199fa36d3c3b45",
+   "instances": [
+    "binpack-100-20to70/babb9fde/0",
+    "binpack-100-20to70/babb9fde/1",
+    "binpack-100-20to70/babb9fde/2",
+    "binpack-100-20to70/babb9fde/3",
+    "binpack-100-20to70/babb9fde/4",
+    "binpack-100-20to70/babb9fde/5",
+    "binpack-100-20to70/babb9fde/6",
+    "binpack-100-20to70/babb9fde/7",
+    "binpack-100-20to70/babb9fde/8",
+    "binpack-100-20to70/babb9fde/9",
+    "binpack-100-20to70/babb9fde/10",
+    "binpack-100-20to70/babb9fde/11",
+    "binpack-100-20to70/babb9fde/12",
+    "binpack-100-20to70/babb9fde/13",
+    "binpack-100-20to70/babb9fde/14",
+    "binpack-100-20to70/babb9fde/15",
+    "binpack-100-20to70/babb9fde/16",
+    "binpack-100-20to70/babb9fde/17",
+    "binpack-100-20to70/babb9fde/18",
+    "binpack-100-20to70/babb9fde/19"
+   ],
+   "lab": "lab_a",
+   "index": 59,
+   "prev": "1debd9eeab89c01b1dd74167e9c5121198103d9847dfe8fffe0748a1bbe734bc",
+   "sha256": "e7a8e1c4ee0037a3521141e819765f934d9982e8e59420d6aa13b5f982c6d668"
+  },
+  {
+   "type": "confirmation",
+   "family": "binpack-100-20to70",
+   "package": "ac3e0022d405b937296e0d421897924ee86b4cd2a5129e7328bef49e97b96271",
+   "selection_plan": "d0ffe04e25511d2cb0178ad2172dc609ad92d6e05fa3219b6f1279a984590104",
+   "instance_seed": "babb9fdefc037efa3c9bc4853bbb53d65c89a084f356598f3f199fa36d3c3b45",
+   "instances": [
+    "binpack-100-20to70/babb9fde/0",
+    "binpack-100-20to70/babb9fde/1",
+    "binpack-100-20to70/babb9fde/2",
+    "binpack-100-20to70/babb9fde/3",
+    "binpack-100-20to70/babb9fde/4",
+    "binpack-100-20to70/babb9fde/5",
+    "binpack-100-20to70/babb9fde/6",
+    "binpack-100-20to70/babb9fde/7",
+    "binpack-100-20to70/babb9fde/8",
+    "binpack-100-20to70/babb9fde/9",
+    "binpack-100-20to70/babb9fde/10",
+    "binpack-100-20to70/babb9fde/11",
+    "binpack-100-20to70/babb9fde/12",
+    "binpack-100-20to70/babb9fde/13",
+    "binpack-100-20to70/babb9fde/14",
+    "binpack-100-20to70/babb9fde/15",
+    "binpack-100-20to70/babb9fde/16",
+    "binpack-100-20to70/babb9fde/17",
+    "binpack-100-20to70/babb9fde/18",
+    "binpack-100-20to70/babb9fde/19"
+   ],
+   "scores": [
+    {
+     "instance": "binpack-100-20to70/babb9fde/0",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/babb9fde/1",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9183673469387755,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 45,
+      "ratio": 1.0888888888888888
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/babb9fde/2",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9411764705882353,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 48,
+      "ratio": 1.0625
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/babb9fde/3",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9183673469387755,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 45,
+      "ratio": 1.0888888888888888
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/babb9fde/4",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9583333333333334,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 46,
+      "ratio": 1.0434782608695652
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/babb9fde/5",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9361702127659575,
+     "cost": 1,
+     "detail": {
+      "bins": 47,
+      "lower_bound": 44,
+      "ratio": 1.0681818181818181
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/babb9fde/6",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.8979591836734694,
+     "cost": 1,
+     "detail": {
+      "bins": 49,
+      "lower_bound": 44,
+      "ratio": 1.1136363636363635
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/babb9fde/7",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9565217391304348,
+     "cost": 1,
+     "detail": {
+      "bins": 46,
+      "lower_bound": 44,
+      "ratio": 1.0454545454545454
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/babb9fde/8",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9230769230769231,
+     "cost": 1,
+     "detail": {
+      "bins": 52,
+      "lower_bound": 48,
+      "ratio": 1.0833333333333333
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/babb9fde/9",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9019607843137255,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 46,
+      "ratio": 1.108695652173913
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/babb9fde/10",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9215686274509803,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 47,
+      "ratio": 1.0851063829787233
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/babb9fde/11",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9347826086956522,
+     "cost": 1,
+     "detail": {
+      "bins": 46,
+      "lower_bound": 43,
+      "ratio": 1.069767441860465
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/babb9fde/12",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9056603773584906,
+     "cost": 1,
+     "detail": {
+      "bins": 53,
+      "lower_bound": 48,
+      "ratio": 1.1041666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/babb9fde/13",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9375,
+     "cost": 1,
+     "detail": {
+      "bins": 48,
+      "lower_bound": 45,
+      "ratio": 1.0666666666666667
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/babb9fde/14",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9019607843137255,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 46,
+      "ratio": 1.108695652173913
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/babb9fde/15",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.9019607843137255,
+     "cost": 1,
+     "detail": {
+      "bins": 51,
+      "lower_bound": 46,
+      "ratio": 1.108695652173913
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/babb9fde/16",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9347826086956522,
+     "cost": 1,
+     "detail": {
+      "bins": 46,
+      "lower_bound": 43,
+      "ratio": 1.069767441860465
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/babb9fde/17",
+     "outcome": "scored",
+     "success": false,
+     "progress": 0.92,
+     "cost": 1,
+     "detail": {
+      "bins": 50,
+      "lower_bound": 46,
+      "ratio": 1.0869565217391304
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/babb9fde/18",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9333333333333333,
+     "cost": 1,
+     "detail": {
+      "bins": 45,
+      "lower_bound": 42,
+      "ratio": 1.0714285714285714
+     }
+    },
+    {
+     "instance": "binpack-100-20to70/babb9fde/19",
+     "outcome": "scored",
+     "success": true,
+     "progress": 0.9347826086956522,
+     "cost": 1,
+     "detail": {
+      "bins": 46,
+      "lower_bound": 43,
+      "ratio": 1.069767441860465
+     }
+    }
+   ],
+   "success_count": 10,
+   "of": 20,
+   "outcome": "scored",
+   "lab": "lab_a",
+   "index": 60,
+   "prev": "e7a8e1c4ee0037a3521141e819765f934d9982e8e59420d6aa13b5f982c6d668",
+   "sha256": "8fef2119d2c84dcafba604e4c48ecf6e009f9f0c4140308b7ed4b3531945e106"
+  },
+  {
+   "type": "bundle_sealed",
+   "family": "binpack-100-20to70",
+   "package": "ac3e0022d405b937296e0d421897924ee86b4cd2a5129e7328bef49e97b96271",
+   "records_before": 61,
+   "lineage": [
+    "ac3e0022d405b937296e0d421897924ee86b4cd2a5129e7328bef49e97b96271",
+    "9708d71d5f757f962fe7a0f5980b60d1e6b36afe1346b4c0db2f9fa5f3658f0b",
+    "f036e7b0f1022a0f24c81a2816187bdf3ed8183ff19363a98556ea032993b1f5",
+    "c7a74f8591b20f21512ceb3554d4dd804266f2554e56f63edda09fadcb00384e"
+   ],
+   "lab": "lab_a",
+   "index": 61,
+   "prev": "8fef2119d2c84dcafba604e4c48ecf6e009f9f0c4140308b7ed4b3531945e106",
+   "sha256": "8649827845f6d0e5546e1366255812c99ca009f6252d18d0ac3fb734cd0da10e"
+  }
+ ],
+ "head": "8649827845f6d0e5546e1366255812c99ca009f6252d18d0ac3fb734cd0da10e"
+}

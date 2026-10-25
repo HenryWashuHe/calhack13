@@ -1,0 +1,5 @@
+{
+ "source": "acp-mission-agent",
+ "summary": "Method offer from lab_a: family binpack-100-20to70, package 1b6db92802 (generation 2), sender's score 12, ledger 552df4f130 over 60 records. Verify before adopting.",
+ "evidence_ref": "scripts/iteration/results/binpack-smoke-3/bundle.json"
+}
