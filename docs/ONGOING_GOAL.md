@@ -104,23 +104,27 @@ failures or input that is actually required.
 
 ## Current milestone ledger
 
-**Final snapshot: main `fa9516cb`, ten open PRs before this checkpoint:**
-#204, #203, #199, #181, #180, #149, #144, #65, #57 and draft #7.
-#201 `f41e99e9` merged at `05f84f2d`; code/tests match independently cleared
-`f91952b7`, with the final documentation delta checked separately. Its earlier
-source/seed/lifecycle failures are resolved; author pilot results remain unverified.
-#180 `c5e916b8` remains held on lifecycle/buffered-deadline/staging-cleanup findings;
-#181 `f1df31b5` clears its own finding but inherits #180. Exchange UI #204
-`d5d6f7fe` is under independent review; Stage visual stack #203 `abc55ce4` is
-unreviewed. Later source changes require review; no goal gate closes.
+**Frozen snapshot: main `0cc38e6`, nine open PRs before this checkpoint:**
+#204, #203, #199, #181, #180, #144, #65, #57 and draft #7.
+#201 `f41e99e9` merged at `05f84f2d`; its earlier source/seed/lifecycle findings
+are cleared, while author pilot results remain unverified. #180 `c5e916b8` is held;
+#181 `f1df31b5` clears its own finding but inherits #180. #203 is unreviewed.
+#204 `d5d6f7fe` is held on immutable-version conflicts and nested-reference parsing:
+94 original cases pass; with seven guards, 96/101 pass and five fail; typecheck passes.
 
-**Merged with unresolved findings:** #148 `62c2a0c3` → `fa9516cb`, #168
-`8e132a96` → `e89a47a9`, #184 `2a4a1ccd` → `61125e72` and #198 `adf43e07` →
-`8186fb84`. Their recorded domain/context, resource-limit/criterion, calibration
-unknown/timeout/failure and Stage-evidence/CSS findings are not cleared by merge.
-[Corrective scopes](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6393885331)
-assign #168 to Codex and #198 to the protocol-review agent; #184 is assigned to
-Henry, not yet acknowledged. These corrections are in progress, not completed.
+**Corrective merges:** #205 `73ed916a` → `0cc38e61` clears #168's resource-limit/
+missing-criterion findings; eight inert test methods pass with the original eight
+mutation subcases preserved. #206 `3d8a4a60` → `281f66ef` clears #198's Stage
+receipt/foreign-card/CSS findings; root and independent reviewer each pass 61
+inert Node cases (overlapping). #199's own outcome/identity/CSS holds remain.
+These checks run no provider, scorer, executor, namespace or generated method.
+
+**Merged with unresolved findings:** #148 `62c2a0c3` → `fa9516cb`, #149
+`6e08ba9` → `ba8e1997` and #184 `2a4a1ccd` → `61125e72`. Their exact-reference/
+scoring-context, request-cost/unknown-panel and calibration findings remain open.
+[Corrective scope](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6393885331)
+assigns #184 to Henry, not yet acknowledged. Later sources require review;
+no merge, local check or scheduling proposal closes a goal gate.
 
 Eric [acknowledged the exchange UI slice](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6393807882):
 `records.ts`, `intake.ts`, new `exchange.ts`/`ExchangePanel.tsx`, its
@@ -131,16 +135,16 @@ retained-package fixtures are proposed, not new authenticated or live evidence.
 
 Queue cleanup closes no gate. #176/#177/#178 were closed as superseded after
 exact code/test comparisons; #143 is deferred outside the active goal. Their
-branches remain. Proposals #182/#183 are merged, while #180/#181 had static lifecycle/host-execution findings at their prior reviewed heads. Codex owns the scoped #168 correction after #179/#186 merged; the next scored-output/attachment lane is proposed, unacknowledged;
+branches remain. Proposals #182/#183 are merged, while #180/#181 had static lifecycle/host-execution findings at their prior reviewed heads. Codex’s scoped #168 correction is merged in #205; the next scored-output/attachment lane is proposed, unacknowledged;
 Eric #148/#149 and #180/#181; ACP #144 after #126 merged. #184 has unresolved findings at reviewed `68e05610` on
 calibration unknown-to-zero and timeout/failure handling before new research runs.
 Corrected proposal #195 `ec3bb5d8` is merged at `c113cfc5` after colleague merge
 and independent document review; no calibration/run or gate result follows.
-ACP #198 `adf43e07` is merged with unresolved findings on three VM guards; #199 `5567f827` is also held on five
+ACP Prior #198 source `adf43e07` had findings now cleared by #206 on three VM guards; #199 `5567f827` is also held on five
 new guards: outcome labels, cross-change pipeline binding and CSS collision. #148 `62c2a0c3` / #149 `6e08ba9` have new holds after
 prior fixes: exact-reference/scoring-context checks, request-cost attribution and
 unknown-panel labels. The inert stack is 133 pass/four fail/one exporter skip;
-typecheck passes. #168 `8e132a96` is merged with unresolved findings on resource-limit/criterion cases.
+typecheck passes. Prior #168 source `8e132a96` had findings now cleared by #205 on resource-limit/criterion cases.
 The reviewed scheduling-study #201 source `557127b4` was held on source/seed binding and lifecycle
 ordering: six originals and one control pass, four new guards fail. Only trusted
 synthetic scheduler/static-policy tests ran; author pilot results are unverified.
@@ -150,6 +154,8 @@ or new execution are claimed. Existing lane ownership is unchanged; Ines remains
 
 | Milestone | Owner and evidence | Next action |
 | --- | --- | --- |
+| Frozen endpoint policy correction | #205 source `73ed916a59328863bf6ff45a6598efe1d1b2a10f` → `0cc38e6167282051eeca0f8c898da0495a091f55`: eight mocked methods pass, original `daf04dd5` guard file unchanged; 27 original test bodies AST-identical | Clears #168’s exact budget/criterion defects, not external policy authentication, fresh-panel consumption or G4. |
+| Stage evidence correction | #206 source `3d8a4a603f6041b16a83092d3fcd12766085eb9e` → `281f66efc979eefcc4b165ae3a66c206b1f770b9`: root and independent reviewer each pass 61 inert Node cases | Clears #198’s three findings; #199’s own outcome/identity/CSS defects remain. No browser/live POST or authority claim. |
 | Generation-origin join, G4 prerequisite | Codex #196 `76ed5d3` → `f5a7bd74`; independent eight guards #200 `8c6029c1` → `b8fef413`. Root 18 scoped library/cohort checks pass; eight preserved independent guards pass again on `af09cdb`, tree `f09c1267` | [Six original positions](invention-lab/contracts/process-selection.md#generation-origins-library) bind snapshots/Prepared pins to all eight selections, common base policy and immediate workflow parents. Missing/unknown attempts stay explicit. Feedback provenance, chain admission/cost links, authentic origin and chronology remain unverified. |
 | Optional provenance capture, G4 prerequisite | Codex #197 `a7e36f0` → `97b108d4`: author 27 scoped checks; root and independent reviewer each pass nine CLI cases, with scoped strict Clippy/fmt. Counts overlap | Optional `/2` retains originals and both recomputed reports; `/1` bytes and summary stay compatible. Read-only recheck; no recovery, provider/generated-source execution, fresh-panel consumption or gate closure. |
 | Stage observation input, Delivery | #126 `702ee560` → `eb08a232`; root, independent reviewer and final composition each pass 52 offline VM cases (overlapping). All 49 old tests unchanged plus three ambiguity guards; tree `90c52423` matches `33cea78f` | Later-poll identity and uncertain-delivery wording corrected. No live POST, browser/provider execution, authority or sponsor evidence. |
@@ -157,7 +163,7 @@ or new execution are claimed. Existing lane ownership is unchanged; Ines remains
 | Selective-transfer records, G4 context | #165 `cb5f28f0` → `b99839df`; 713 manifest entries, 523 artifacts, 12 slot bindings and nine declaration comparisons pass static checks; raw records unchanged | Existing parent wins in rough-transport, not ravine; attempt 2 followed seeing attempt 1. Corrected evidence is not recursive improvement, a rerun or independent secrecy/runtime assurance. |
 | Reconciled ACP / research proposals, Delivery | #4 `be7056c6` → `9da2fc12`; #182 `28e398e5` → `c2b748cf`; #183 `813e05f1` → `d28e898c`. Root/independent document review and local links checked | ACP read/observation authority stays bounded. New split bytes require a new digest/plan; costs include actual paired runs; confirmation is terminal. No implementation, source execution, model call or gate closure. |
 | Retained whole-roster CLI, G4 prerequisite | Codex #191 `b6750eec9d6f6360965812ff24fe855d9feee57b` → `b16f8eb7b00c322b49efb3d5c9c41e084ca04adb`; independent #192 `1eb15a88` → `8493a8ce`. Root 21 initial scoped cases, 20 overlapping independent checks and 12 final composition cases pass, scoped strict Clippy/fmt | Bounded create-only capture/read-only recheck names canonical cohort/declaration/report hashes and eight selected references/absence. Final tree `1a3fce96` matches `416ff677`. Generation provenance, chain costs, fresh-panel consumption, chronology and governance remain open; not an experiment result. |
-| Public eligibility adapter, G4 prerequisite | Henry #174 `f67ae448d2bbc1578edc092356fd68ea3801d4f4` → `73d039b500e25ced05d20e22fdc5a27b693403ae`; five focused tests plus three inert-file checks and scoped strict Clippy/fmt clear the size/path hold | Shared typed assessment only. Endpoint #168 `8e132a96` is merged with unresolved findings on new resource-limit/missing-criterion checks after prior guards pass; no scorer/evaluator execution or G4 claim. |
+| Public eligibility adapter, G4 prerequisite | Henry #174 `f67ae448d2bbc1578edc092356fd68ea3801d4f4` → `73d039b500e25ced05d20e22fdc5a27b693403ae`; five focused tests plus three inert-file checks and scoped strict Clippy/fmt clear the size/path hold | Shared typed assessment only. Prior #168 source `8e132a96` had findings now cleared by #205 on new resource-limit/missing-criterion checks after prior guards pass; no scorer/evaluator execution or G4 claim. |
 | Invocation identity and compatibility, G2 prerequisite | Pure #185/#188 identity is merged. #179 `4ddca616` → `2a12e237`: root 21 scoped cases and strict Clippy pass; 17 store cases pass again on final composition `0db8d3cd`, tree `b10536c4`, identical to main | Prior migration/reacceptance/compatibility holds clear; four original guards stay unchanged. Schema-1 read/replay is retained, but invocation requires a new compatibility decision. The old helper checks ownership only. #186 `95bd7641` → `d704b097` now adds operator prepare/start/receipt lifecycle: 13 store, five HTTP and five mocked helper cases pass, strict scoped Clippy. This is operator-reported receipt validation, not independent execution or gate proof. |
 | Whole development roster, G4 prerequisite | Codex #187 `da669296849afb0c1317d3c3681bfcf7bb357ff3` → `bb9f7c2873ffa29eed7629447712566121a2d272`; independent #189 `d2304309cf7ed98bb477503e1d4b6e6db3ee5c26` → `899de43d68f66cc07d39414f44bf7c792f022031`. Final composition `4b0d330a`, tree `04ee987a`, passes 30 scoped forge cases and strict Clippy/fmt | Eight selections/24 positions bind round methods, controls, runtime settings, family policy and numeric trial grants. Operator capture/check is supplied by #191; generation/chain links, fresh-panel consumption, chronology and governance remain open. No provider/runtime execution or G4 claim. |
 | Canonical framing and status separation | Legacy #127/#131 already present in new main `e1f2264` with identical source tree | Maintain claim/evidence distinctions; no event-organizer revival |
@@ -345,7 +351,7 @@ Codex's bounded operator cohort capture/check CLI #191 `b6750eec` → `b16f8eb7`
 and independent #192 guards at `8493a8ce` are merged. No provider/runtime execution
 or gate closure is claimed. Henry retains endpoint and invocation authority.
 Preparation #164 is merged. Eligibility CLI #174 clears its size/path hold;
-endpoint #168 `8e132a96` is merged with unresolved findings after review: five prior guards and a valid
+prior #168 source `8e132a96` had findings now cleared by #205 after review: five prior guards and a valid
 policy control pass; eight `daf04dd5` subcases fail on consistently wrong resource
 limits and missing-criterion skips. No scorer or generated source ran.
 Selective-transfer #165 `cb5f28f0` merged at `b99839df` after corrected causal
