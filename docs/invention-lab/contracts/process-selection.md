@@ -99,3 +99,38 @@ compare the externally pinned digest and selected full method reference, and
 must separately bind the complete eight arm/family selections, controls, common
 round methods, model/settings, numeric grants and generation history. No complete
 experiment, receiver acceptance or execution grant is inferred here.
+
+## Whole development roster (library)
+
+`process_cohort::assess_cohort` consumes a trusted `CohortDeclaration` and eight
+`process_selection_record::RetainedSelection` records. The retained-selection
+wire format and canonical digest are unchanged from the CLI above. The declaration
+schema is `genesis-process-cohort-declaration/1`; its eight `SelectionPin` entries
+name arm/family, the independently retained canonical `selection_sha256`, and
+three expected positions, either `trial { plan: ExactContentRef }` or
+`no_method { reason }`. Missing trials must remain declared missing; never remove
+or renumber their positions. This is a final development declaration before the
+fresh panel, not the earlier six-operation generation admission.
+
+The check recomputes all eight selections and binds every input trial to its full
+expected reference. It requires exactly W/F × four families, the same method and
+ordered dependencies (or the same absence reason) across each arm/round's four
+families, a common control/settings/environment, and one family-specific task,
+criterion and instance policy across both arms. Trial identities and each
+organization's run/attempt/scoring IDs cannot repeat anywhere in the roster.
+
+Every development grant must be exactly 72,000 steps / 60,000 ms, with zero
+model calls/input/output tokens. Every scoring grant is six × family maximum
+steps (7,200 projectile; 14,400 otherwise), 600,000 ms and zero model/token
+capacity. These are declared numeric grants, not runtime enforcement or actual
+costs. Family-specific generator/scoring-rule/criterion/instance refs may differ.
+The implementation does not fetch their bytes or assert that caller-supplied
+references identify the trusted deployed evaluator.
+
+The report keeps all 24 positions, original outcomes and full selection refs,
+including valid zero scores and `no_candidate`. Evidence arrival order is irrelevant.
+The caller must bound serialized input sizes and independently pin the declaration
+before fresh-task preparation. Rewriting both declaration and evidence defeats
+this cooperative consistency check; hashes do not prove origin, chronology or
+complete history. No CLI, generation-settings/feedback provenance, whole-chain
+cost link, fresh-panel spec generation, execution or adoption is added here.
