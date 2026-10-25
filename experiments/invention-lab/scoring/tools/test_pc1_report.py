@@ -97,7 +97,11 @@ def make_plan(spec, tid, fam, cand, ctrl, mutate=None):
     p["development_grant"] = {"model_calls": 0, "input_tokens": 0, "output_tokens": 0,
                               "wall_time_ms": spec["wall_time_ms"],
                               "simulation_steps": spec["simulation_steps"]}
-    p["scoring_grant"] = {**p["scoring_grant"], "simulation_steps": 28800}
+    p["scoring_grant"] = {**p["scoring_grant"], "simulation_steps": (
+        14400 if fam == "projectile-target" else 28800)}
+    criterion = {"rule": "success-count-margin", "min_margin": 1,
+                 "instances": [row["id"] for row in p["development_instances"]]}
+    p["criterion"]["sha256"] = sha(json.dumps(criterion, sort_keys=True, separators=(",", ":")))
     for s, name, pkg in zip(p["slots"], ("candidate", "control"), (cand, ctrl)):
         s["method"] = {"domain": "genesis", "schema": "development-method-source/1",
                        "id": pkg, "version": "0.1.0", "sha256": spec["packages"][pkg]["sha256"]}
@@ -125,6 +129,10 @@ def trial(out, spec, tid, fam, cand, ctrl, cs, fs, overrides=None):
     d = os.path.join(out, tid)
     os.makedirs(d)
     plan = make_plan(spec, tid, fam, cand, ctrl, overrides.get("plan"))
+    with open(os.path.join(d, "criterion.json"), "w") as f:
+        json.dump({"rule": "success-count-margin", "min_margin": 1,
+                   "instances": [row["id"] for row in plan["development_instances"]]},
+                  f, sort_keys=True, separators=(",", ":"))
     with open(os.path.join(d, "plan.json"), "w") as f:
         json.dump(plan, f)
     with open(os.path.join(d, "verdict.json"), "w") as f:
