@@ -20,6 +20,19 @@ def write(path, value):
     path.write_text(json.dumps(value))
 
 
+def generation_plan():
+    # MethodSynthesisPlan/PublicDocument/TextModelSettings wire shape.
+    reference = {"domain": "fixture", "id": "fixture", "schema": "fixture/1",
+                 "version": "1", "sha256": hashlib.sha256(b"fixture").hexdigest()}
+    document = {"reference": reference, "text": "fixture"}
+    return {"operation_id": "generate", "org_id": "org", "target_id": "method",
+            "target_version": "1", "runtime": reference, "protocol": document,
+            "entrypoint": "method.py", "dependencies": [], "public_task": document,
+            "public_inputs": [], "instruction": "Never executed synthetic generation request",
+            "settings": {"model": "fixture", "max_tokens": 10,
+                         "timeout_ms": 1000, "sampling": "provider_default"}}
+
+
 class AuditGuards(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
@@ -96,6 +109,91 @@ class AuditGuards(unittest.TestCase):
         self.assertEqual(self.run_audit(), 1)
         self.assertFalse(self.work.exists())
         self.assertEqual(self.calls, [])
+
+    def test_slot_path_traversal_is_refused_before_commands(self):
+        self.fixture()
+        path = self.root / "trial/plan.json"
+        plan = json.loads(path.read_text())
+        sid = "x/../../escaped"
+        plan["slots"][0]["slot_id"] = sid
+        write(path, plan)
+        write(self.root / "trial" / sid / "receipt.json", self.receipt)
+        write(self.root / "trial" / (sid + "-score") / "evaluation.json", self.score)
+        self.assertEqual(self.run_audit(), 1)
+        self.assertEqual(self.calls, [])
+        self.assertFalse((self.work.parent / "escaped/receipt.json").exists())
+
+    def test_retained_evaluation_without_receipt_is_not_silently_omitted(self):
+        self.fixture()
+        path = self.root / "trial/plan.json"
+        plan = json.loads(path.read_text())
+        plan["slots"].append({"slot_id": "orphan", "method": plan["slots"][0]["method"]})
+        write(path, plan)
+        write(self.root / "trial/orphan-score/evaluation.json", self.score)
+        self.assertEqual(self.run_audit(), 1)
+        rows = json.loads((self.work / "audit.json").read_text())
+        self.assertTrue(any(r.get("slot") == "orphan" and r.get("exec") != "same" for r in rows))
+
+    def test_duplicate_slot_ids_are_refused_before_commands(self):
+        self.fixture()
+        path = self.root / "trial/plan.json"
+        plan = json.loads(path.read_text())
+        plan["slots"].append(plan["slots"][0].copy())
+        write(path, plan)
+        self.assertEqual(self.run_audit(), 1)
+        self.assertEqual(self.calls, [])
+
+    def test_invocation_evaluation_without_receipt_is_not_silently_omitted(self):
+        self.fixture()
+        write(self.root / "invocation/plan.json", json.loads((self.root / "trial/plan.json").read_text()))
+        write(self.root / "invocation/score/evaluation.json", self.score)
+        self.assertEqual(self.run_audit(), 1)
+        rows = json.loads((self.work / "audit.json").read_text())
+        self.assertTrue(any(r.get("trial") == "invocation" and r.get("exec") != "same" for r in rows))
+
+    def test_slot_suffixes_cannot_alias_another_slots_scratch_output(self):
+        self.fixture()
+        path = self.root / "trial/plan.json"
+        plan = json.loads(path.read_text())
+        plan["slots"].append({"slot_id": "candidate-score", "method": plan["slots"][0]["method"]})
+        write(path, plan)
+        write(self.root / "trial/candidate-score/receipt.json", self.receipt)
+        write(self.root / "trial/candidate-score-score/evaluation.json", self.score)
+        self.assertEqual(self.run_audit(), 0)
+        destinations = [Path(args[5]).resolve() for args in self.calls]
+        self.assertEqual(len(set(destinations)), 4)
+        self.assertTrue(all(p.is_relative_to(self.work.resolve()) for p in destinations))
+
+    def test_generation_request_is_reported_as_excluded_beside_valid_trial(self):
+        self.fixture()
+        write(self.root / "generation/plan.json", generation_plan())
+        self.assertEqual(self.run_audit(), 0)
+        rows = json.loads((self.work / "audit.json").read_text())
+        self.assertTrue(any(r.get("excluded") == "method_synthesis_request" for r in rows))
+        self.assertEqual(len(self.calls), 2)
+
+    def test_generation_request_alone_is_not_an_audited_trial(self):
+        write(self.root / "generation/plan.json", generation_plan())
+        self.assertEqual(self.run_audit(), 1)
+        rows = json.loads((self.work / "audit.json").read_text())
+        self.assertEqual(rows[0].get("excluded"), "method_synthesis_request")
+        self.assertEqual(self.calls, [])
+
+    def test_slots_key_has_trial_validation_precedence(self):
+        self.fixture()
+        request = generation_plan(); request["slots"] = []
+        write(self.root / "other/plan.json", request)
+        self.assertEqual(self.run_audit(), 1)
+        rows = json.loads((self.work / "audit.json").read_text())
+        self.assertFalse(any(r.get("excluded") for r in rows))
+
+    def test_partial_generation_shape_is_still_a_malformed_plan(self):
+        self.fixture()
+        request = generation_plan(); request["protocol"] = {"text": "fixture"}
+        write(self.root / "other/plan.json", request)
+        self.assertEqual(self.run_audit(), 1)
+        rows = json.loads((self.work / "audit.json").read_text())
+        self.assertFalse(any(r.get("excluded") for r in rows))
 
 
 if __name__ == "__main__":

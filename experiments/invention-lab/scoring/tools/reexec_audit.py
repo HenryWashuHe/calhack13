@@ -29,6 +29,7 @@ Prints one JSON line per slot and writes WORK_DIR/audit.json.
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -36,6 +37,48 @@ import sys
 
 def sha(data):
     return hashlib.sha256(data).hexdigest()
+
+
+def generation_request(value):
+    """Recognize MethodSynthesisPlan's exact wire shape, never a trial.
+
+    See crates/genesis-forge/src/method_synthesis.rs and text_generation.rs.
+    This classification excludes model generation from replay; it does not
+    validate a generation outcome or permit a malformed trial to disappear.
+    """
+    fields = {"operation_id", "org_id", "target_id", "target_version", "runtime",
+              "protocol", "entrypoint", "dependencies", "public_task", "public_inputs",
+              "instruction", "settings"}
+    if not isinstance(value, dict) or set(value) != fields:
+        return False
+    def reference(ref):
+        return (isinstance(ref, dict)
+                and set(ref) == {"domain", "id", "schema", "version", "sha256"}
+                and all(isinstance(v, str) and v.strip() for v in ref.values())
+                and re.fullmatch(r"[0-9a-f]{64}", ref["sha256"]) is not None)
+    def document(doc):
+        return (isinstance(doc, dict) and set(doc) == {"reference", "text"}
+                and reference(doc["reference"]) and isinstance(doc["text"], str)
+                and bool(doc["text"].strip())
+                and sha(doc["text"].encode()) == doc["reference"]["sha256"])
+    settings = value["settings"]
+    if not isinstance(settings, dict) or not {"model", "max_tokens", "timeout_ms", "sampling"} <= set(settings) <= {"model", "max_tokens", "timeout_ms", "sampling", "reasoning"}:
+        return False
+    reasoning = settings.get("reasoning")
+    if reasoning is not None and not (isinstance(reasoning, dict)
+            and set(reasoning) == {"mode", "effort"} and reasoning["mode"] == "adaptive"
+            and reasoning["effort"] in ("low", "medium", "high", "xhigh", "max")):
+        return False
+    return (all(isinstance(value[k], str) and value[k].strip() for k in
+                ("operation_id", "org_id", "target_id", "target_version", "entrypoint", "instruction"))
+            and reference(value["runtime"]) and document(value["protocol"])
+            and document(value["public_task"])
+            and isinstance(value["dependencies"], list) and all(map(reference, value["dependencies"]))
+            and isinstance(value["public_inputs"], list) and all(map(document, value["public_inputs"]))
+            and isinstance(settings["model"], str) and bool(settings["model"].strip())
+            and type(settings["max_tokens"]) is int and 1 <= settings["max_tokens"] <= 16384
+            and type(settings["timeout_ms"]) is int and 1 <= settings["timeout_ms"] <= 120000
+            and settings["sampling"] == "provider_default")
 
 
 def comparable(path):
@@ -65,7 +108,8 @@ def run(args):
 
 def layout(trial, sid, slots):
     """The retained state and score directories of one slot."""
-    if len(slots) == 1 and os.path.exists(os.path.join(trial, "state", "receipt.json")):
+    if len(slots) == 1 and (os.path.exists(os.path.join(trial, "state", "receipt.json"))
+                           or os.path.exists(os.path.join(trial, "score", "evaluation.json"))):
         return os.path.join(trial, "state"), os.path.join(trial, "score")
     return os.path.join(trial, sid), os.path.join(trial, sid + "-score")
 
@@ -108,8 +152,24 @@ def main(argv):
         try:
             with open(os.path.join(trial, "plan.json")) as fh:
                 plan = json.load(fh)
+            if generation_request(plan):
+                rows.append({"trial": os.path.relpath(trial, root),
+                             "excluded": "method_synthesis_request"})
+                continue
             if not isinstance(plan, dict) or not isinstance(plan.get("slots"), list) or not plan["slots"]:
                 raise ValueError("invalid plan slots")
+            ids = set()
+            for slot in plan["slots"]:
+                sid = slot.get("slot_id") if isinstance(slot, dict) else None
+                if not isinstance(sid, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,127}", sid) or sid in ids:
+                    raise ValueError("invalid or duplicate slot id")
+                ids.add(sid)
+                method = slot.get("method")
+                if not isinstance(method, dict) or not isinstance(method.get("sha256"), str) or not re.fullmatch(r"[0-9a-f]{64}", method["sha256"]):
+                    raise ValueError("invalid slot method digest")
+            environment = plan.get("development_environment")
+            if not isinstance(environment, dict) or not isinstance(environment.get("sha256"), str) or not re.fullmatch(r"[0-9a-f]{64}", environment["sha256"]):
+                raise ValueError("invalid development environment digest")
         except (OSError, ValueError) as error:
             rows.append({"trial": os.path.relpath(trial, root),
                          "exec": "invalid retained plan: " + type(error).__name__})
@@ -118,11 +178,17 @@ def main(argv):
         rel = os.path.relpath(trial, root)
         is_hidden = os.path.exists(os.path.join(trial, "descriptor.json"))
         hidden_score = next((v for k, v in hidden.items() if rel.startswith(k)), None)
-        for slot in plan.get("slots", []):
+        for slot_number, slot in enumerate(plan["slots"]):
             sid = slot["slot_id"]
             slot_state, score_dir = layout(trial, sid, plan["slots"])
             retained = os.path.join(slot_state, "receipt.json")
+            evaluation = os.path.join(score_dir, "evaluation.json")
             if not os.path.exists(retained):
+                if os.path.exists(evaluation):
+                    row = {"trial": rel, "slot": sid, "env": env,
+                           "exec": "missing receipt for retained evaluation"}
+                    rows.append(row)
+                    print(json.dumps(row), flush=True)
                 continue
             row = {"trial": rel, "slot": sid, "env": env}
             rows.append(row)
@@ -131,7 +197,13 @@ def main(argv):
                 row["exec"] = "no executor build" if not exe else "no package"
                 print(json.dumps(row), flush=True)
                 continue
-            state = os.path.join(work, f"{n:03d}-{sid}")
+            # Include the slot index so names such as candidate/candidate-score
+            # cannot alias another slot's state or score directory.
+            state = os.path.realpath(os.path.join(work, f"{n:03d}-{slot_number:03d}-{sid}"))
+            if os.path.commonpath([work, state]) != work:
+                row["exec"] = "scratch path outside WORK_DIR"
+                print(json.dumps(row), flush=True)
+                continue
             try:
                 msg = run([exe, "run", os.path.join(trial, "plan.json"), sid, pkg, state, "namespaces"])
             except (OSError, RuntimeError, subprocess.TimeoutExpired) as error:
@@ -145,7 +217,6 @@ def main(argv):
                 row["exec"] = "DIFFERENT"
             else:
                 row["exec"] = "same"
-                evaluation = os.path.join(score_dir, "evaluation.json")
                 if not os.path.exists(evaluation):
                     row["score"] = "none retained"
                 elif is_hidden and not hidden_score:
@@ -170,8 +241,9 @@ def main(argv):
             print(json.dumps(row), flush=True)
     with open(os.path.join(work, "audit.json"), "w") as fh:
         json.dump(rows, fh, indent=1)
-    bad = [r for r in rows if r.get("exec") != "same" or r.get("score") not in ("same", "none retained")]
-    return 1 if bad or not rows else 0
+    audited = [r for r in rows if "excluded" not in r]
+    bad = [r for r in audited if r.get("exec") != "same" or r.get("score") not in ("same", "none retained")]
+    return 1 if bad or not audited else 0
 
 
 if __name__ == "__main__":

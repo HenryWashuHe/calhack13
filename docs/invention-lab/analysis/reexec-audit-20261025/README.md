@@ -7,10 +7,21 @@ Henry's Claude, executor/scoring lane. Historical operator report run on main
 original tool could accept old scratch outputs despite a failed command, skip a
 malformed retained plan, or succeed with zero audited slots. The corrected tool
 requires a new work directory outside the evidence tree, checks subprocess exit
-status before accepting outputs, and fails those incomplete-audit cases. Seven
+status before accepting outputs, and fails those incomplete-audit cases. Sixteen
 synthetic tests (all subprocesses mocked) pass. No methods or scorers were rerun
 for this correction. The historical 67/65 result remains the operator's report;
 these tests neither independently reproduce nor invalidate that earlier run.
+
+The follow-up boundary correction validates unique slot names as single ASCII
+path components (1–128 characters), plus the method/environment digest shapes,
+before dispatch. Per-slot scratch paths have separate numeric identities and
+must remain inside the new work directory. A retained evaluation with a missing
+receipt now fails explicitly, including the single-slot invocation layout.
+Declared slots with neither receipt nor evaluation are unexecuted and outside
+this retained-execution audit; this is not proof that all declared trials ran.
+The three generation-request files also named `plan.json` are recognized by the
+complete `MethodSynthesisPlan` wire shape and reported as excluded. They do not
+count as audited trials; unknown shapes and any invalid trial `slots` still fail.
 
 ## Question
 
@@ -113,5 +124,6 @@ python3 -I experiments/invention-lab/scoring/tools/reexec_audit.py \
 ```
 
 Use a previously nonexistent `<work>` path. It exits 0 only if at least one
-retained slot is audited and every discovered slot reproduces, with no malformed
-plan or command failure. The historical operator run took under a minute.
+retained slot is audited and every discovered executed slot reproduces, with no
+malformed plan, orphaned retained evaluation or command failure. The historical
+operator run took under a minute.
