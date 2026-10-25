@@ -114,6 +114,27 @@ op.duration`, package `d807549f…`. Confirmation on a fresh panel: **18/20**. S
 500 engine evaluations, 120 screening evaluations, 5 calls, 20,789 input / 2,782 output tokens. Ledger: 61
 records, verified; bundle and sponsor exports written (Elastic refused again by the data key).
 
+## Second family: online bin packing, `binpack-smoke-1` (sizes 1–50, target 1.02, gate = incumbent only)
+
+The same engine, mutator, cascade, runner and exports, with only the family swapped
+(`scripts/iteration/families/binpack.mjs`, `--family binpack`): 100 items of size 1–50 into capacity-100
+bins, a package is a bin-choice rule over the open bins that fit, success is bins ≤ 1.02 × the volume lower
+bound, which at this size means hitting the bound exactly.
+
+| gen | incumbent (first-fit) | candidates | promoted |
+|---|---|---|---|
+| 1 | 7/20 | 8, 8, 8, 8 | yes, 8/20 |
+| 2–5 | 7, 7, 8, 8 | never ≥ incumbent + 1 | none |
+
+The generation-1 promotion is literally best-fit, `(item, bin) => -bin.fits`. Confirmation on a fresh
+panel: 8/20. Same panel: first-fit 8/20, best-fit 8/20, random-search 8/20, worst-fit 0/20, all four at the
+identical mean ratio 1.0225. **A ceiling, not a result**: with sizes in [1, 50] every reasonable rule hits
+the volume bound on the same instances and nothing can be told apart. The mechanism ran unchanged on a second
+domain, which is what this run shows; the family as parameterised cannot discriminate. 5 calls, 19,689
+input / 4,490 output tokens; ledger 60 records, verified. A second bin-packing run with sizes 20–70 and
+target 1.08 (calibration on 20 fresh instances: first-fit 0.15, best-fit 0.25, random-search-of-24 0.25)
+follows below.
+
 ## What the four runs say, and what they do not
 
 1. **The loop runs end to end on a real family with a real model**: sealed panels, frozen plans,
