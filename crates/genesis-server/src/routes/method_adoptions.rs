@@ -84,8 +84,23 @@ pub async fn create(
                 .package_json
         }
     };
-    // The rescore runs a subprocess, so it happens before any lock; the store
-    // then checks assessment read the same bytes.
+    // Re-execution and the rescore run subprocesses, so they happen before
+    // any lock; the store then checks assessment read the same bytes.
+    let reexecuted = match (&body.decision, app.method_reexecutor.clone()) {
+        (MethodDecision::Adopt { trial }, Some(executor)) => {
+            let (root, trial) = (receiver.records_root.clone(), trial.clone());
+            let package = package_json.clone().into_bytes();
+            let joined = tokio::task::spawn_blocking(move || {
+                executor.reexecute_trial(&root, &trial, &package)
+            })
+            .await;
+            let reexecuted = joined
+                .map_err(|_| ApiError::internal("method re-execution did not complete"))?
+                .map_err(|e| error(MethodAdoptionError::Acceptance(e)))?;
+            Some(reexecuted)
+        }
+        _ => None,
+    };
     let rescored = match (&body.decision, app.method_rescorer.clone()) {
         (MethodDecision::Adopt { trial }, Some(rescorer)) => {
             let (root, trial) = (receiver.records_root.clone(), trial.clone());
@@ -106,6 +121,7 @@ pub async fn create(
             &package_json,
             &receiver,
             rescored.as_ref(),
+            reexecuted.as_ref(),
             Utc::now(),
         )
         .map_err(error)?;

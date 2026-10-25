@@ -13,6 +13,7 @@
 //! method, so a substituted output is still scored as given.
 use crate::method_adoption::{read_retained, AcceptanceEvidence, MethodAcceptanceError};
 use genesis_core::development_method::ExecutionReceipt;
+use genesis_core::development_trial::TrialPlan;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
@@ -37,6 +38,32 @@ pub struct MethodRescorer {
     pub sha256: String,
     #[serde(default)]
     pub timeout_ms: Option<u64>,
+}
+
+/// Trusted operator configuration for re-execution: the executor
+/// (`lab-exec` interface: `run <plan> <slot> <package> <state-dir> <sandbox>`),
+/// its pin, the sandbox mode, and a directory of receiver-held control
+/// packages, each named `<sha256>.json` after its bytes. The candidate always
+/// comes from the selected registry offer.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct MethodReexecutor {
+    pub path: PathBuf,
+    pub sha256: String,
+    pub sandbox: String,
+    pub packages: PathBuf,
+    /// `PATH` for the executor (it finds the pinned runtime there).
+    #[serde(default)]
+    pub path_env: Option<String>,
+    #[serde(default)]
+    pub timeout_ms: Option<u64>,
+}
+
+/// The retained receipts one re-execution reproduced, by trial-relative path.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReexecutedTrial {
+    pub executor_sha256: String,
+    pub files: BTreeMap<String, String>,
 }
 
 /// The retained bytes one rescore was given, by trial-relative path.
@@ -67,7 +94,8 @@ fn bounded(path: &Path, limit: u64) -> Result<Vec<u8>, MethodAcceptanceError> {
     Ok(bytes)
 }
 
-/// Comparable form of an evaluation receipt: everything but measured wall time.
+/// Comparable form of an evaluation or execution receipt: everything but
+/// measured wall time.
 fn comparable(bytes: &[u8]) -> Option<Value> {
     let mut v: Value = serde_json::from_slice(bytes).ok()?;
     v.get_mut("usage")?
@@ -99,29 +127,95 @@ impl Drop for Scratch {
     }
 }
 
+/// Copies a pinned tool into `work`, checking the copy's digest, so a later
+/// change to the configured path can't run unpinned code.
+fn install(
+    path: &Path,
+    pin: &str,
+    work: &Path,
+    name: &str,
+) -> Result<PathBuf, MethodAcceptanceError> {
+    let bytes = bounded(path, MAX_SCORER_BYTES)?;
+    if sha(&bytes) != pin {
+        return Err(fail(format!(
+            "the configured {name} does not match its pin"
+        )));
+    }
+    let copy = work.join(name);
+    {
+        use std::io::Write;
+        use std::os::unix::fs::OpenOptionsExt;
+        let mut file = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .mode(0o700)
+            .open(&copy)
+            .map_err(|_| fail(format!("could not stage the {name}")))?;
+        file.write_all(&bytes)
+            .and_then(|_| file.sync_all())
+            .map_err(|_| fail(format!("could not stage the {name}")))?;
+    }
+    Ok(copy)
+}
+
+/// Runs a staged tool with a cleared environment (plus `path_env`, if any)
+/// until it exits or `timeout_ms` passes.
+fn run_tool(
+    tool: &Path,
+    args: &[&std::ffi::OsStr],
+    path_env: Option<&str>,
+    timeout_ms: u64,
+    (what, context): (&str, &str),
+    cwd: &Path,
+) -> Result<(), MethodAcceptanceError> {
+    let deadline = Duration::from_millis(timeout_ms);
+    let mut attempts = 0;
+    let mut child = loop {
+        let mut command = Command::new(tool);
+        command
+            .args(args)
+            .env_clear()
+            .current_dir(cwd)
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null());
+        if let Some(path) = path_env {
+            command.env("PATH", path);
+        }
+        match command.spawn() {
+            Ok(child) => break child,
+            Err(e) if e.raw_os_error() == Some(TEXT_BUSY) && attempts < 5 => {
+                attempts += 1;
+                std::thread::sleep(Duration::from_millis(20));
+            }
+            Err(_) => return Err(fail(format!("the {what} could not start"))),
+        }
+    };
+    let started = Instant::now();
+    loop {
+        match child.try_wait() {
+            Ok(Some(status)) if status.success() => return Ok(()),
+            Ok(Some(_)) => return Err(fail(format!("the {what} failed{context}"))),
+            Ok(None) if started.elapsed() < deadline => {
+                std::thread::sleep(Duration::from_millis(20))
+            }
+            Ok(None) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err(fail(format!("the {what} timed out{context}")));
+            }
+            Err(_) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err(fail(format!("the {what} could not be awaited")));
+            }
+        }
+    }
+}
+
 impl MethodRescorer {
-    /// Copies the pinned scorer into `work`, checking the copy's digest, so a
-    /// later change to the configured path can't run unpinned code.
     fn install(&self, work: &Path) -> Result<PathBuf, MethodAcceptanceError> {
-        let bytes = bounded(&self.path, MAX_SCORER_BYTES)?;
-        if sha(&bytes) != self.sha256 {
-            return Err(fail("the configured rescorer does not match its pin"));
-        }
-        let copy = work.join("rescorer");
-        {
-            use std::io::Write;
-            use std::os::unix::fs::OpenOptionsExt;
-            let mut file = std::fs::OpenOptions::new()
-                .write(true)
-                .create_new(true)
-                .mode(0o700)
-                .open(&copy)
-                .map_err(|_| fail("could not stage the rescorer"))?;
-            file.write_all(&bytes)
-                .and_then(|_| file.sync_all())
-                .map_err(|_| fail("could not stage the rescorer"))?;
-        }
-        Ok(copy)
+        install(&self.path, &self.sha256, work, "rescorer")
     }
 
     fn run(
@@ -131,50 +225,22 @@ impl MethodRescorer {
         slot: &str,
         cwd: &Path,
     ) -> Result<(), MethodAcceptanceError> {
-        let deadline = Duration::from_millis(self.timeout_ms.unwrap_or(DEFAULT_TIMEOUT_MS));
-        let mut attempts = 0;
-        let mut child = loop {
-            let spawned = Command::new(scorer)
-                .arg("score")
-                .arg(args[0])
-                .arg(slot)
-                .arg(args[1])
-                .arg(args[2])
-                .env_clear()
-                .current_dir(cwd)
-                .stdin(Stdio::null())
-                .stdout(Stdio::null())
-                .stderr(Stdio::null())
-                .spawn();
-            match spawned {
-                Ok(child) => break child,
-                Err(e) if e.raw_os_error() == Some(TEXT_BUSY) && attempts < 5 => {
-                    attempts += 1;
-                    std::thread::sleep(Duration::from_millis(20));
-                }
-                Err(_) => return Err(fail("the rescorer could not start")),
-            }
-        };
-        let started = Instant::now();
-        loop {
-            match child.try_wait() {
-                Ok(Some(status)) if status.success() => return Ok(()),
-                Ok(Some(_)) => return Err(fail(format!("the rescorer failed on the {slot} slot"))),
-                Ok(None) if started.elapsed() < deadline => {
-                    std::thread::sleep(Duration::from_millis(20))
-                }
-                Ok(None) => {
-                    let _ = child.kill();
-                    let _ = child.wait();
-                    return Err(fail(format!("the rescorer timed out on the {slot} slot")));
-                }
-                Err(_) => {
-                    let _ = child.kill();
-                    let _ = child.wait();
-                    return Err(fail("the rescorer could not be awaited"));
-                }
-            }
-        }
+        let args = [
+            "score".as_ref(),
+            args[0].as_os_str(),
+            slot.as_ref(),
+            args[1].as_os_str(),
+            args[2].as_os_str(),
+        ];
+        let timeout = self.timeout_ms.unwrap_or(DEFAULT_TIMEOUT_MS);
+        run_tool(
+            scorer,
+            &args,
+            None,
+            timeout,
+            ("rescorer", &format!(" on the {slot} slot")),
+            cwd,
+        )
     }
 
     /// Rescores every slot that has a retained evaluation. Blocking: call it
@@ -304,6 +370,7 @@ mod tests {
                 .collect(),
             acceptance: Acceptance::Rejected { reason: "r".into() },
             rescorer: None,
+            reexecutor: None,
         }
     }
 
@@ -328,5 +395,123 @@ mod tests {
             ("candidate-score/evaluation.json", "4"),
         ];
         assert!(rescored.binds(&evidence(&unseen)).is_err());
+    }
+}
+
+impl MethodReexecutor {
+    fn package(
+        &self,
+        slot: &str,
+        method_sha256: &str,
+        candidate: &[u8],
+    ) -> Result<Vec<u8>, MethodAcceptanceError> {
+        let bytes = if slot == "candidate" {
+            candidate.to_vec()
+        } else {
+            if method_sha256.len() != 64 || !method_sha256.bytes().all(|b| b.is_ascii_hexdigit()) {
+                return Err(fail(format!("the {slot} method has no usable digest")));
+            }
+            bounded(
+                &self.packages.join(format!("{method_sha256}.json")),
+                MAX_OUTPUT_BYTES,
+            )
+            .map_err(|_| {
+                fail(format!(
+                    "this organization holds no package for the {slot} method"
+                ))
+            })?
+        };
+        if sha(&bytes) != method_sha256 {
+            return Err(fail(format!("the {slot} package is not the plan's method")));
+        }
+        Ok(bytes)
+    }
+
+    /// Re-runs every slot that has a retained execution receipt and requires
+    /// the fresh receipt to equal it (wall time aside). Blocking: call it off
+    /// the async runtime and outside any store lock.
+    pub fn reexecute_trial(
+        &self,
+        records_root: &Path,
+        trial: &str,
+        candidate_package: &[u8],
+    ) -> Result<ReexecutedTrial, MethodAcceptanceError> {
+        let work = Scratch::new()?;
+        let executor = install(&self.path, &self.sha256, work.path(), "executor")?;
+        let read = |rel: &str| read_retained(records_root, trial, rel);
+        let plan_bytes =
+            read("plan.json")?.ok_or_else(|| MethodAcceptanceError::Record("plan.json".into()))?;
+        let plan: TrialPlan = serde_json::from_slice(&plan_bytes)
+            .map_err(|_| MethodAcceptanceError::Record("plan.json".into()))?;
+        let mut files = BTreeMap::new();
+        files.insert("plan.json".to_string(), sha(&plan_bytes));
+        let plan_path = work.path().join("plan.json");
+        std::fs::write(&plan_path, &plan_bytes).map_err(|_| fail("could not stage the plan"))?;
+        for slot in SLOTS {
+            let receipt_rel = format!("{slot}/receipt.json");
+            let Some(retained) = read(&receipt_rel)? else {
+                continue;
+            };
+            let method = plan
+                .slots
+                .iter()
+                .find(|s| s.slot_id == slot)
+                .map(|s| s.method.sha256.clone())
+                .ok_or_else(|| fail(format!("the plan has no {slot} slot")))?;
+            let package = work.path().join(format!("{slot}.package.json"));
+            std::fs::write(&package, self.package(slot, &method, candidate_package)?)
+                .map_err(|_| fail("could not stage the package"))?;
+            let state = work.path().join(slot);
+            let args = [
+                "run".as_ref(),
+                plan_path.as_os_str(),
+                slot.as_ref(),
+                package.as_os_str(),
+                state.as_os_str(),
+                self.sandbox.as_ref(),
+            ];
+            let timeout = self.timeout_ms.unwrap_or(DEFAULT_TIMEOUT_MS);
+            run_tool(
+                &executor,
+                &args,
+                self.path_env.as_deref(),
+                timeout,
+                ("executor", &format!(" on the {slot} slot")),
+                work.path(),
+            )?;
+            let fresh = bounded(&state.join("receipt.json"), MAX_OUTPUT_BYTES)?;
+            match (comparable(&fresh), comparable(&retained)) {
+                (Some(a), Some(b)) if a == b => {}
+                _ => {
+                    return Err(fail(format!(
+                        "the retained {slot} execution does not reproduce"
+                    )))
+                }
+            }
+            files.insert(receipt_rel, sha(&retained));
+        }
+        Ok(ReexecutedTrial {
+            executor_sha256: self.sha256.clone(),
+            files,
+        })
+    }
+}
+
+impl ReexecutedTrial {
+    /// The assessment must have read exactly the receipts that were
+    /// reproduced, and no receipt the re-execution didn't see.
+    pub fn binds(&self, evidence: &AcceptanceEvidence) -> Result<(), MethodAcceptanceError> {
+        let unseen = evidence
+            .files
+            .keys()
+            .any(|k| k.ends_with("/receipt.json") && !self.files.contains_key(k));
+        let changed = self
+            .files
+            .iter()
+            .any(|(k, v)| evidence.files.get(k) != Some(v));
+        if unseen || changed {
+            return Err(fail("the retained records changed after re-execution"));
+        }
+        Ok(())
     }
 }

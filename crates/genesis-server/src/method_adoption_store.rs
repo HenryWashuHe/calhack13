@@ -366,18 +366,19 @@ impl Store {
         receiver: &MethodReceiver,
         now: DateTime<Utc>,
     ) -> Result<(MethodAdoptionRecord, bool)> {
-        self.create_method_adoption_rescored(intent, package_json, receiver, None, now)
+        self.create_method_adoption_rescored(intent, package_json, receiver, None, None, now)
     }
 
-    /// As [`Self::create_method_adoption`]; when `rescored` is given, an
-    /// adoption's assessment must have read exactly the bytes that rescore
-    /// reproduced, and the evidence records the rescorer.
+    /// As [`Self::create_method_adoption`]; when `rescored` or `reexecuted`
+    /// is given, an adoption's assessment must have read exactly the bytes
+    /// they reproduced, and the evidence records the pinned tools.
     pub fn create_method_adoption_rescored(
         &self,
         intent: &CreateMethodAdoption,
         package_json: &str,
         receiver: &MethodReceiver,
         rescored: Option<&crate::method_rescore::RescoredTrial>,
+        reexecuted: Option<&crate::method_rescore::ReexecutedTrial>,
         now: DateTime<Utc>,
     ) -> Result<(MethodAdoptionRecord, bool)> {
         let ids = [
@@ -465,6 +466,10 @@ impl Store {
                 if let Some(rescored) = rescored {
                     rescored.binds(&evidence)?;
                     evidence.rescorer = Some(rescored.rescorer_sha256.clone());
+                }
+                if let Some(reexecuted) = reexecuted {
+                    reexecuted.binds(&evidence)?;
+                    evidence.reexecutor = Some(reexecuted.executor_sha256.clone());
                 }
                 if evidence.plan != *pinned {
                     return Err(MethodAcceptanceError::Binding(

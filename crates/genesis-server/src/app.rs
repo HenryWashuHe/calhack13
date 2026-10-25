@@ -112,6 +112,9 @@ pub struct AppState {
     /// Pinned scorer that must reproduce a trial's scoring before an adoption
     /// decision; off unless set.
     pub method_rescorer: Option<Arc<crate::method_rescore::MethodRescorer>>,
+    /// Pinned executor that must reproduce a trial's execution receipts
+    /// before an adoption decision; off unless set.
+    pub method_reexecutor: Option<Arc<crate::method_rescore::MethodReexecutor>>,
 }
 
 /// Result of a kernel mutation.

@@ -111,6 +111,10 @@ pub struct AcceptanceEvidence {
     /// scored slot before the decision; absent when no rescorer is configured.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub rescorer: Option<String>,
+    /// SHA-256 of this organization's pinned executor when it reproduced every
+    /// executed slot's receipt before the decision; absent without one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reexecutor: Option<String>,
 }
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
@@ -347,6 +351,7 @@ pub fn assess_selected(
         files: reader.files,
         acceptance,
         rescorer: None,
+        reexecutor: None,
     })
 }
 
