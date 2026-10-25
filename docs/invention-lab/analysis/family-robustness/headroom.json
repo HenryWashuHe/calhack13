@@ -1,0 +1,147 @@
+{
+ "seeds": [
+  31000,
+  31035
+ ],
+ "grant": 72000,
+ "families": {
+  "ravine-crossing": {
+   "portfolio_search": {
+    "per_panel": [
+     4,
+     2,
+     3,
+     4,
+     3,
+     4
+    ],
+    "total": 20
+   },
+   "random_search": {
+    "per_panel": [
+     3,
+     2,
+     3,
+     4,
+     3,
+     4
+    ],
+    "total": 19
+   },
+   "parent_2483f08f": {
+    "per_panel": [
+     0,
+     0,
+     0,
+     0,
+     1,
+     1
+    ],
+    "total": 2
+   },
+   "reference_five_wheel": {
+    "per_panel": [
+     4,
+     2,
+     3,
+     4,
+     4,
+     4
+    ],
+    "total": 21
+   }
+  },
+  "rough-transport": {
+   "portfolio_search": {
+    "per_panel": [
+     6,
+     6,
+     6,
+     6,
+     6,
+     6
+    ],
+    "total": 36
+   },
+   "random_search": {
+    "per_panel": [
+     3,
+     3,
+     4,
+     4,
+     2,
+     3
+    ],
+    "total": 19
+   },
+   "parent_2483f08f": {
+    "per_panel": [
+     4,
+     6,
+     5,
+     6,
+     4,
+     6
+    ],
+    "total": 31
+   },
+   "reference_five_wheel": {
+    "per_panel": [
+     1,
+     1,
+     1,
+     2,
+     0,
+     2
+    ],
+    "total": 7
+   }
+  },
+  "return-mix": {
+   "portfolio_search": {
+    "per_panel": [
+     5,
+     4,
+     3,
+     5,
+     5,
+     4
+    ],
+    "total": 26
+   },
+   "random_search": {
+    "per_panel": [
+     5,
+     5,
+     4,
+     5,
+     5,
+     3
+    ],
+    "total": 27
+   },
+   "parent_2483f08f": {
+    "per_panel": [
+     2,
+     0,
+     1,
+     2,
+     0,
+     0
+    ],
+    "total": 5
+   },
+   "reference_five_wheel": {
+    "per_panel": [
+     5,
+     4,
+     3,
+     5,
+     5,
+     4
+    ],
+    "total": 26
+   }
+  }
+ }
+}

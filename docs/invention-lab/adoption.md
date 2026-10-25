@@ -1,19 +1,37 @@
 # Invention lab: adopting an executable development method
 
-**Status: contract proposal (Henry's core Claude, lane genesis#122). Not
-implemented.** It specifies how a receiving organization decides whether to
-install and use an exact version of an executable development method. The
-method identity, execution and scoring receipts are Codex's experimental
-contracts (#18, #22; lane genesis#124, under `docs/invention-lab/contracts/**`
-on those branches); the evaluator and simulator are genesis#126, assigned to
-Henry's core Claude in this repository's issue #1 (contract #13). Where this document needs something from those
-contracts it says so under [Required from the method contract](#required-from-the-method-contract)
+**Status: contract with a partial, standalone implementation (Henry's core
+Claude, method-adoption lane in issue #1).** It specifies how a receiving
+organization decides whether to install and use an exact version of an
+executable development method. Method identity, execution and scoring receipts
+are Codex's contracts (`docs/invention-lab/contracts/**`). The evaluator,
+executor and trusted scorer under `experiments/invention-lab/` are Henry's.
+
+What is implemented today, and what isn't:
+
+| Piece | Where | Status |
+| --- | --- | --- |
+| Exact method packages, execution/scoring receipts, trial plans, experiment ledger | `genesis-core` (#18, #22, #28, #32, #36) | on main |
+| Evaluator, executor, trusted acceptance scoring and verdict | `experiments/invention-lab/{evaluator,executor,scoring}` (#37–#39, #42–#46, #48) | on main |
+| Receiver-side precheck and evidence-based conclusion, bound to the receiver and the exact offer | `experiments/invention-lab/adoption` (`genesis-lab-adopt`, #64): `precheck`, `conclude`, `conclude_selected`, create-only `Installation` record | on main, standalone crate |
+| Checked public receiver feedback for revision inputs | `lab-score feedback` (#102) | on main |
+| Exact method publication, search and fetch in the shared registry | `genesis-server/src/registry/methods.rs`, `method_client.rs` (#132, #133) | on main; grants no authority |
+| Receiving runs on real generated methods | evidence bundles from #98, #116 and #117 | on main; no adoption decided |
+| **Binding an accepted method to the receiver's requirement, responsibility, current role grant and epoch; pinned, authorized ordinary invocation; local decline and stale-grant rejection** | server | **not implemented.** Scoped as the next milestone in [issue #1](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388913830) |
+
+The sidecar's `Installation` records the exact method, dependencies, acceptance
+plan, criterion, evaluator, environment and verdict. It does **not** name a
+requirement, responsibility, role, grant or epoch, and nothing in the server
+reads it. An installation record is not an authenticated organizational
+decision and grants no mission authority. Where this document needs something
+from the method contracts it says so under
+[Required from the method contract](#required-from-the-method-contract)
 instead of inventing their fields.
 
 Throughout, three statuses are kept apart: **on main** (merged), **open PR**
 (pushed with tests, not merged, so not yet main's wire contract) and
-**proposed** (no wire value yet). Nothing here is a claim that a method has been adopted, executed or shown to
-improve anything.
+**proposed** (no integrated wire value yet). Receiving execution records exist;
+no governed method adoption or improvement has been established.
 
 ## What exists today, and what this extends
 
@@ -34,8 +52,8 @@ described by a `CapabilityManifest`. Pieces this contract reuses:
 
 #18 (execution), #22 (scoring), #28 (pre-execution trial plan), #32
 (experiment-call ledger) and #36 (method source packages) are merged
-experimental contracts, and the corrected evaluator proposal #13 is on main.
-The evaluator implementation (#37–#39) and executor (#42–#45) are open PRs.
+experimental contracts. The evaluator (#37–#39), executor (#42–#45) and
+scoring/verdict (#46, #48) implementations are merged too.
 
 The method case keeps all of these rules. It adds an artifact kind, an
 environment check and a different acceptance experiment. It does not add a
@@ -71,7 +89,10 @@ the existing one fits.
 ## Decision procedure
 
 For one adoption intent (one requirement, one role, one frozen authority
-binding, one acceptance suite), in rank order over at most five candidates:
+binding, one acceptance suite), in rank order over at most five candidates.
+The status column describes the existing Actor/server path and proposed method
+integration. The standalone sidecar already implements parts of steps 2, 5, 6
+and 9, as detailed under [Implementation boundary](#implementation-boundary):
 
 | Step | Check | On failure (decision) | Status (check / decision value) |
 | --- | --- | --- | --- |
@@ -87,7 +108,8 @@ binding, one acceptance suite), in rank order over at most five candidates:
 | 10 | First candidate passing 1–9 | `selected` → local acceptance | check and value on main |
 
 Steps 1–4, 9 and 10 and their decision values are on main (decision log
-from #8, legacy #116). Steps 5–8 are new and must be decided **before** anything executes. They never
+from #8, legacy #116). Steps 5–8 are new to the server integration and must be
+decided **before** anything executes. They never
 use similarity. Their reasons name the mismatched requirement (e.g. "needs
 design language 2, this organization runs 1"), never hidden evaluation data.
 
@@ -208,12 +230,28 @@ Unchanged from adopt-first for task capabilities, and explicit per rule:
   trusted evaluator's content digest (even under an unchanged version label),
   or a dependency digest the receiver resolves.
   This is separate from fencing stale jobs and is not on main.
+- **Method adoption records** (server, #155/#159 and #179): a decision stops
+  authorizing when its requirement, mission, authority or lease changes, or
+  when the receiver's policy moves away from it. That covers the pinned plan
+  for the requirement, the runtime and protocol, and the accepted
+  environments, evaluators and dependencies. Nothing is rewritten. A fresh
+  accepted decision under the changed policy is a new record. Schema 1
+  records, written before the runtime and protocol were retained, are kept
+  and still replay, but they never authorize: adopt again.
 - v1 and v2 may both be `accepted`. Which one a development run uses is an
   explicit, recorded choice (planner or policy), never "the newest".
 - Retiring v1 stops new runs under it. It does not erase its receipts or the
   lineage of anything developed with it.
 
 ## Walkthrough: A → B → A
+
+This is the proposed integrated behavior, not a completed run or the registry
+wire schema. Current `MethodPublication` carries an exact package reference,
+canonical package JSON, intent and applicability. Environment and dependencies
+are bound by that package; acceptance policy and budgets belong to receiver
+records. Derivation currently lives in separate exact-parent revision evidence,
+not a `derived_from` field in the publication. The richer manifest descriptions
+below remain proposed.
 
 1. **A publishes method v1** after developing it on its ravine tasks. Its
    manifest carries kind, environment, dependency digests, declared budget,
@@ -264,19 +302,31 @@ the #18/#22 contracts. Names are placeholders where those drafts don't fix them 
 - A terminal-failure signal distinct from transport uncertainty, equivalent to
   `RunFailed`, so the retry gate can stay conservative.
 
-## Implementation boundary (gated)
+## Implementation boundary
 
-Not started; requires agreed #18/#22 contracts and the evaluator contract (#13).
-When it starts, the adoption side is expected to touch: the adoption coordinator
-(artifact-kind branch and steps 5–8), the candidate decision log (new decision
-kinds), the acceptance-suite type (treatment/control and criterion), and the
-outcome classifier (mapping the new decisions). Kernel installation identity,
-the executor and receipts belong to their owners and need explicit claims in
-this repository's issue #1. No UI, simulator or evaluator code is part of this lane.
+The standalone sidecar (`genesis-lab-adopt`) implements decision steps 2, 5, 6
+(runtime, protocol and allowed dependencies) and 9, plus the
+acceptance-experiment conclusion against the receiver's own trusted scorer.
+`conclude_selected` validates caller-retained records and recomputes the verdict;
+it does not authenticate their execution origin. A server integration must
+resolve evidence from receiver-controlled retention, not trust caller-authored
+receipts merely because their hashes agree.
+Steps 7 (budget policy) and 8 (evaluator requirement resolved by the receiver)
+and the `dependency_unavailable` path are not implemented.
+
+The server connection is the open part. A method adoption must be bound to
+the receiver's existing requirement, responsibility, current role grant and
+epoch through the existing authority snapshot, not a new registry or
+controller. The receiver's acceptance must be recomputed from retained records,
+never taken as a caller-authored flag. Invocation must check the pinned
+accepted version and current authority each time. Henry has acknowledged the scoped server work in issue #1; Codex approved the
+pure core-verdict move as its first prerequisite. These are assigned changes,
+not implemented authority. The kernel, registry and executor stay with their
+owners. No UI, simulator or evaluator code is part of this lane.
 
 ## Acceptance scenarios for the implementation
 
-Each becomes a test once the method executor exists. All use separate
+Each becomes a test once the server connection exists. All use separate
 organization databases and grants.
 
 1. **Compatible:** B adopts A's v1 after its own experiment; no regeneration;

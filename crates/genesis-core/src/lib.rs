@@ -24,6 +24,7 @@ pub mod development_experiment;
 pub mod development_method;
 pub mod development_package;
 pub mod development_trial;
+pub mod development_verdict;
 pub mod digest;
 pub mod engine;
 pub mod events;

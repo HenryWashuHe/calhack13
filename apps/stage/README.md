@@ -24,6 +24,17 @@ Choose one of two modes, labeled in the top-left badge:
   the third is the fixture's hostile-evidence case. Their rows carry a `D`
   sequence and the word "scripted", the audit line says those revisions are
   not audited, nothing is called, and Play fixture replay clears them.
+  The story opens on the thesis ("an AI organization that changes shape and
+  keeps what it learns") and runs along a named chapter rail (Thesis,
+  Evidence, Decision, New role, Capability, Handoff, Inheritance, Audit).
+  Every scene carries proof chips: green for the path that is the real kernel
+  in that scene, dashed amber for the fixture stand-in or the proposal, so a
+  judge never has to guess what is being claimed. Roles that changed since
+  the previous scene are spotlighted. A planner verdict, whether a thrown
+  disruption's transcript or a live `planner_decision` event, is shown as one
+  decision card naming its source, the model and the timing the record
+  supports (the transcript's planner-call duration; live, the kernel's own
+  observation-to-decision interval).
 - **Presenter mode** (Present button, key P, Esc to leave): the same page at
   projector scale with the chrome hidden and a caption naming the scene, the
   source and the keys. Fullscreen is requested but optional.
@@ -37,6 +48,15 @@ Choose one of two modes, labeled in the top-left badge:
   IDs, versions and nonempty source digests, and a returned manifest matching
   that exact identity with Org A as publisher. Any other B installation is shown
   with its own status. Nothing here can commit, provision or publish. The organization servers allow any origin.
+  **Report live** (the box under the conversation, live mode only) posts one
+  observation to Org A's first mission with the agent token
+  (`POST /missions/{id}/observations`, source `stage-judge`, 200 characters,
+  one every 10 s). A judge can type what happened and watch the running
+  planner answer on the same screen: the chat shows the recorded evidence id,
+  the decision card shows the verdict with the model name and the kernel's
+  observation-to-decision interval, and the status line acknowledges the
+  answer. A kernel refusal is shown as its HTTP status. The box is hidden and
+  inert in idle and replay.
 
 ```sh
 cargo run -p genesis-server -- dev            # kernel stack with stubs
