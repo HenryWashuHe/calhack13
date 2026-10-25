@@ -24,7 +24,7 @@ test("three acts, each with its own honesty chip wording and an accessible label
 
 test("live mode exists only behind a connection: key L, ?live=1, the chip says live kernel only after a successful poll, and the input posts with the agent token", () => {
   assert.match(script, /e\.key === "l" \|\| e\.key === "L"/);
-  assert.match(script, /params\.get\("live"\) === "1"/);
+  assert.match(script, /query\("live"\) === "1"/);
   const pollBody = script.slice(script.indexOf("async function pollLive"), script.indexOf("async function startLive"));
   assert.match(pollBody, /"live kernel · "/, "the live chip is set inside the poll");
   assert.match(pollBody, /unreachable/, "an unreachable kernel is said so, never shown as live");
