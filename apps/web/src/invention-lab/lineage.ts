@@ -221,6 +221,20 @@ export function buildLineage(records: LabRecords): Lineage {
     // Prefer the version whose supplied bytes have this hash; a hash alone may
     // be shared by a contradictory reference.
     const sharing = [...nodes.values()].filter((x) => x.ref.sha256 === i.method_package_sha256);
+    if (i.package_ref) {
+      // An explicit full reference must match exactly; a shared digest under
+      // another identity is reported, never silently attributed.
+      const exact = nodes.get(refKey(i.package_ref));
+      if (!exact) {
+        problems.push(
+          sharing.length === 0
+            ? `static inspection names package ${i.method_package_sha256.slice(0, 12)}, which no supplied record contains`
+            : `static inspection names ${i.package_ref.id}@${i.package_ref.version} ${i.method_package_sha256.slice(0, 12)}, but the supplied records with that hash are ${sharing.map((x) => `${x.ref.id}@${x.ref.version}`).join(", ")}; not attached`,
+        );
+        continue;
+      }
+      sharing.splice(0, sharing.length, exact);
+    }
     const byBytes = sharing.filter((x) => x.package?.ref.sha256 === i.method_package_sha256);
     const n = byBytes.length === 1 ? byBytes[0] : sharing.length === 1 ? sharing[0] : undefined;
     if (!n) {

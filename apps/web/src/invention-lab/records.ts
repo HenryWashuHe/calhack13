@@ -380,6 +380,8 @@ export function decodePackageFile(bytes: Uint8Array): PackageFile {
  * verbatim as "key value" phrases rather than translated into one vocabulary. */
 export interface StaticInspection {
   method_package_sha256: string;
+  /** The full package reference when the record names one; it must match exactly. */
+  package_ref: ExactRef | null;
   /** Null when the record does not name its entrypoint. */
   entrypoint: string | null;
   source_sha256: string;
@@ -403,6 +405,7 @@ export function decodeStaticInspection(v: unknown): StaticInspection {
   if ("method_package_sha256" in o)
     return {
       method_package_sha256: str(o, "method_package_sha256", at),
+      package_ref: null,
       entrypoint: str(o, "entrypoint", at),
       source_sha256: str(o, "source_sha256", at),
       parse: `python_ast_parse ${str(o, "python_ast_parse", at)}`,
@@ -410,8 +413,10 @@ export function decodeStaticInspection(v: unknown): StaticInspection {
       execution: `execution ${str(o, "execution", at)}`,
       claim: str(o, "claim", at),
     };
+  const package_ref = decodeRef(o.package, `${at}.package`);
   return {
-    method_package_sha256: decodeRef(o.package, `${at}.package`).sha256,
+    method_package_sha256: package_ref.sha256,
+    package_ref,
     entrypoint: null,
     source_sha256: str(o, "source_sha256", at),
     parse: flag(o, "ast_parse", at),
