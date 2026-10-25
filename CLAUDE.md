@@ -269,7 +269,7 @@ every milestone. All lower checkpoints are historical.
   keeps eligibility CLI/endpoint adapters in his lane. Selection CLI #173
   `332f4f01` → `523d38a2` is merged after independent review: root four new plus
   eight binary cases and strict Clippy/fmt pass; four additional independent
-  guards pass and are retained separately at `d32caa37`.
+  guards pass and are preserved in #175 `d32caa37` → `9c7e8c0f`.
   `process-select-prepare` creates a self-contained capture; `process-select-check`
   rechecks it read-only. Output names the exact selected method/plan and normalized
   input/report/selection hashes. Next bind all eight records to one declared
@@ -292,6 +292,12 @@ every milestone. All lower checkpoints are historical.
   The provider session retains live reruns and reports; its Apify baseline pass
   is operator-reported and uses a handwritten parser; it is not model-generation
   evidence.
+- Eric's [separate research claim](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6391308515) owns
+  `experiments/strategy-adapter/**` and proposals `strategy-adapter.md` /
+  `iteration-algorithms.md` under `docs/invention-lab/proposals/`, on
+  `eric/strategy-adapter-split`. No forge/executor/core/kernel/UI edits are claimed.
+  Replay is author-reported only, not run or accepted here. His prior UI
+  ownership and pending UI request remain unchanged.
 - Ines remains unassigned by explicit user instruction.
 
 Separate `apps/stage` queue: #125 `811d0df2` → `c0c2cae1` is merged after

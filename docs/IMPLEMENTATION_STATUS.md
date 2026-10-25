@@ -11,8 +11,8 @@ weights. Event organization remains superseded. G0–G4 are still open.
 The revised app Goal was activated on October 24, 2026 after the stale record
 was cleared; the existing hourly continuation remains active.
 
-Main through `523d38a2560d9815636dd2d627bbe30a3c3c0de0`, tree
-`53b46379a71e56dac17d1da6757046e8f8229dbc`, includes the reviewed
+Main through `9c7e8c0f03ec10f726d3577c91ddd855b337a2ac`, tree
+`0e5c241403b59dbee944a14b10eb02c7ac8bc050`, includes the reviewed
 foundations below. Method generation merged at `d1be8443fee46e1196861926a963563f48407936`,
 whose tree `dc9d6adc19863d8584fd5af1fd11eae7552014eb` exactly matches the independently
 validated generation stack. Counts refer to the named source/composition, not a
@@ -23,7 +23,7 @@ combined main run.
 | Method adoption #155 `cba4bf00` → `0bf7a8e2`; authorization routes #159 `db0deeca` → `e7c6baf7` | Root composition `0b671510`, tree `24183518`, matched main; 23 scoped tests and strict Clippy/fmt pass. Receiver-owned exact policy pins, record invariants, disabled-receiver refusal and durable replay clear the prior holds. Authorization under the current grant is implemented; execution under it is not. Reacceptance after policy change remains proposed. |
 | Receiver IDs #163 `66118d2b` → `0df3e227`; guards #166 `00499186` → `c2fd8d12` | 22 mocked tests pass with real subprocess creation forbidden; original `e3f3779` and first-seed files unchanged. Namespaces run/attempt/scoring IDs by declared trial before intent, preserving deterministic preparation. No old evidence rewritten or runtime assurance established. |
 | Development selector #169 `1515b46f` → `47aef07f`; independent guards #170 `a8c42654` → `755d6c65` | Eight root selector tests, four preserved independent retained-record cases and 16 core verdict tests pass. [One arm/family and three rounds](invention-lab/contracts/process-selection.md), exact evidence checks, explicit missing/ineligible rows and deterministic selection; not a complete roster/chronology/endpoint or G4 result. |
-| Selection CLI #173 `332f4f01` → `523d38a2` | Independent source review clear; root four new + eight existing binary cases and strict Clippy/fmt pass. Four additional independent cases pass, retained separately at `d32caa37`. Create-only self-contained capture and read-only recheck expose exact selected method/plan and normalized input/report/selection hashes; no source execution or complete roster/chronology/governance claim. |
+| Selection CLI #173 `332f4f01` → `523d38a2` | Independent source review clear; root four new + eight existing binary cases and strict Clippy/fmt pass. Four additional independent cases pass, preserved in #175 `d32caa37` → `9c7e8c0f`. Create-only self-contained capture and read-only recheck expose exact selected method/plan and normalized input/report/selection hashes; no source execution or complete roster/chronology/governance claim. |
 | Fresh-panel preparation #164 `55e14cc4` → `a056ec65` | Eight pure file tests pass, all original `2da978bf` guards unchanged; stale/partial publication and selected-byte defects clear. Preparation-only staged publication, not trusted selection lineage, a cross-process no-replace guarantee or execution. |
 | Stage story #125 `811d0df2` → `c0c2cae1` | Independent 33 offline VM tests pass, original timing guard unchanged. Organization-scoped timing is corrected; this is presentation support, not authority or goal closure. |
 | Shared public-slot helper #171 `1d3d28e3` → `ef7cb923` | Root composition `8e39f291`, tree `110b43bf`, matches merged source: six core + eight selector + four unchanged independent cases pass, scoped strict Clippy/fmt. `assess_process_slot` is shared by selection; exact expected state, numeric usage and ordered public metrics are checked without hiding unknown/failed/overrun evidence. Public instances only; acceptance `decide` unchanged. These counts overlap the selector checks. |
@@ -354,6 +354,13 @@ Iteration #144 `fd35c2fe87fe5fac9400fd4b3591d6d915dac743` is unreviewed;
 earlier findings below apply to their named heads, not fresh reproductions.
 Dated direction/sponsor note #161 `c936bcf6` merged at `a9caea11` after
 source/delta and independent review; the current checkpoint remains authoritative. Ownership is unchanged.
+
+Eric's [acknowledged separate research lane](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6391308515) covers only
+`experiments/strategy-adapter/**`, `docs/invention-lab/proposals/strategy-adapter.md`
+and `docs/invention-lab/proposals/iteration-algorithms.md` on
+`eric/strategy-adapter-split`. The replay claim is author-reported only, not run
+or accepted here. No forge/executor/core/kernel/UI work is claimed; existing
+UI ownership and the pending request are unchanged.
 
 Ines stays unassigned. See the [current direction checkpoint](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6387556484).
 
