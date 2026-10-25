@@ -75,13 +75,16 @@ every milestone. All lower checkpoints are historical.
   Eight focused tests and strict Clippy/fmt independently pass; the original
   `8ad9d645` regressions are unchanged. This supplies feedback, not adoption.
   Retain B's explicit selection/local acceptance decision and intended responsibility;
-  a distinct B task and fresh A return remain required.
+  distinct B-task execution and a fresh A return remain required.
 - Eric (`EricZhu-31`) [acknowledged](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6386421464)
   the lab UI lane: `docs/invention-lab/ui.md` and `apps/web/src/invention-lab/**`,
-  without shared routes. #93 `c723533` / #94 `8eeb8db` only merged main;
-  their existing label/organization findings remain, with `78adef37` unchanged.
-  #99–#101 also remain held on precise ledger sums, foreign-execution scoring
-  attribution and cross-org lineage/checkpoint pairing; preserve `59c3e1c`.
+  without shared routes. #93 `05f77d2` merged at `85c5c11` after the label
+  regressions cleared. Last reviewed #94 `3abc0f4` remains held on organization
+  identity, preserving `78adef37`. #99 `425206c`, #100 `9cea7a2` and #101
+  `3a7af32` remain held on precise ledger sums, foreign-execution scoring and
+  cross-org lineage/checkpoint pairing; preserve `59c3e1c`. #109 `55bb894`
+  retains unsupported-version/SHA-only inspection holds from `f2ac45e5`.
+  Later pushes require exact-head review; these are source-specific findings.
   Do not transfer this lane implicitly. Archival stage presenter #108 `feb3da7`
   is held on visible hidden controls and a stale Live caption after failure;
   it does not advance the goal or revive the event-organizer direction.
@@ -130,10 +133,15 @@ every milestone. All lower checkpoints are historical.
   Finite-chain ceilings #103 and retained CLI #107 are merged; hashes prove
   no timing and do not predeclare the three previous calls. Optional generation
   chain guard #110 `4b57cfa` is merged at `0f277d7`: 34 focused checks pass
-  independently. Codex's next planned step is one operator-assigned, source-only
-  exploratory B revision using checked #102 feedback, an exact parent, immutable
-  request/settings and a separate prior budget; offline preparation comes first. Retain #98 decision context; this does not replace Henry's receiving
-  acceptance, distinct B task or fresh A return. No spent-operation replay.
+  independently. B's [exploratory source revision](docs/invention-lab/evidence/live-method-20261024-b-revision/README.md)
+  is now Generated: #112 preparation `163e952` was merged before one guarded
+  request; #113 result `e5d7ece` merged at `4bcd5c5`. Exact parent `8215c367`
+  and checked feedback `9218988f` yielded child `4f455dc6`, 6044 source bytes /
+  192 lines, changed bytes and AST parsing only. The operator assigned B the
+  distinct rough-transport task; no local adoption or autonomous selection is
+  implied. Usage: 1 call, 20,798 input / 5,741 output tokens, 40,223 ms; one
+  reservation spent. Henry next owns receiving acceptance, exact-bound execution/
+  scoring against parent and random control, and fresh A return. No replay.
   G0–G4 remain open.
   Retain input-token/wall, billing, global enforcement and history limits.
   Preserve Henry's runtime files; provider/settings reproducibility, complete

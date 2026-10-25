@@ -18,12 +18,15 @@ isolation. The receiving run used unmerged #65; #65/#57 remain unmerged without
 independent namespace-lifecycle assurance. The first trial's cost report excludes
 the two failed generations, reference run and second comparison.
 
-No local adoption/promotion, distinct B task, feedback-driven B revision or
-fresh-task A return has been demonstrated. Public feedback #102 is merged after
-independent policy/byte-boundary checks. A source-only exploratory B revision
-using this checked feedback is proposed; it does not replace receiving acceptance
-or the distinct B and fresh A tasks. Changed bytes or an accepted verdict against
-one control do not establish recursive improvement.
+[B's feedback-driven revision source (#112/#113)](invention-lab/evidence/live-method-20261024-b-revision/README.md)
+is now Generated: one operator-assigned exploratory request used the exact
+parent and checked #102 feedback for the distinct rough-transport task. Child
+`4f455dc6` has 6044 source bytes / 192 lines, changed bytes and AST parsing only.
+Its preparation was merged before the call. No B execution/scoring, local
+adoption/promotion or fresh-task A return has been demonstrated. Henry owns
+those receiving decisions and trials, including parent and random controls.
+Changed bytes or the parent's weak-control acceptance do not establish benefit;
+its rejection against random search remains part of the evidence.
 
 [Finite chain ceilings (#103)](invention-lab/contracts/chain-allocation.md) and
 [retained chain CLI files (#107)](invention-lab/contracts/chain-allocation.md#retained-cli-files)
