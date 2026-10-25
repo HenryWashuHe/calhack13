@@ -136,6 +136,7 @@ export function decodeGenerationStatus(v: unknown): GenerationStatus {
 
 /** Only the enum outcome of a generation checkpoint; returned text is skipped. */
 export interface CheckpointOutcome {
+  org_id: string;
   operation_id: string;
   phase: string;
   request_sha256: string;
@@ -153,6 +154,7 @@ export function decodeCheckpointOutcome(v: unknown): CheckpointOutcome {
     outcome = { kind, reason: kind === "returned" ? null : optStr(c, "reason", `${at}.completion.outcome`) };
   }
   return {
+    org_id: str(plan, "org_id", `${at}.plan`),
     operation_id: str(plan, "operation_id", `${at}.plan`),
     phase: str(o, "phase", at),
     request_sha256: str(o, "request_sha256", at),
