@@ -152,3 +152,21 @@ test("a root whose bytes were first seen as another family's control is still re
   assert.equal(out.verdicts[0].verdict, "rejected", "the 1/2 child does not beat the 2/2 root");
   assert.ok(verifyLedger(state.ledger).ok);
 });
+
+
+test("a proposal names its real source parent: a root-prompted candidate after a promotion keeps the root's identity; an unknown parent is dropped", () => {
+  const panel = (seed, n) => Array.from({ length: n }, (_, i) => `${seed}/${i}`);
+  const family = { id: "f", root: () => "root", instances: panel, score: (pkg, instance) => ({ success: pkg.source === "child" || (pkg.source === "grandchild" && instance.endsWith("/0")) }) };
+  const state = createState({ lab: "A", seed: "s" });
+  const first = runGeneration(state, { family, mutator: { propose: () => [{ source: "child" }] }, criterion, k: 1, heldout: 2 });
+  assert.equal(first.verdicts[0].verdict, "promoted");
+  const root = sha256("root"), child = sha256("child");
+  assert.equal(state.packages[child].parent, root, "the default parent is the incumbent that was handed over");
+  const second = runGeneration(state, { family, mutator: { propose: ({ parent }) => { assert.equal(parent.sha256, child); return [{ source: "grandchild", parent: root }, { source: "orphan", parent: "f".repeat(64) }, { source: "sibling" }]; } }, criterion, k: 3, heldout: 2 });
+  assert.equal(state.packages[sha256("grandchild")].parent, root, "a root-prompted candidate retains the root as its exact source parent");
+  assert.equal(state.packages[sha256("sibling")].parent, child, "an unnamed parent defaults to the incumbent");
+  assert.ok(second.dropped.some((d) => d.package === sha256("orphan") && /unknown proposal parent/.test(d.reason)), "an unknown parent is dropped, never guessed");
+  const rec = state.ledger.records.find((r) => r.type === "candidates_proposed" && r.generation === 2);
+  assert.deepEqual(rec.parents, { [sha256("grandchild")]: root, [sha256("sibling")]: child });
+  assert.ok(verifyLedger(state.ledger).ok);
+});

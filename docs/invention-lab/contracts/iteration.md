@@ -158,3 +158,13 @@ as input and returns the exported `MethodPackage` source. The plan the engine fr
 `verdict.json`. Costs stay where the lab accounts for them; the engine records counts, not money.
 None of this binding exists yet; it is the forge lane's call whether to host it there or let this
 engine drive the CLI.
+
+
+## Proposal source parent (2026-10-25)
+
+A mutator's proposal may name `parent`, the registered package hash of the source it was actually derived
+from; when absent it defaults to the incumbent the engine handed over. The engine validates the hash
+against its registered packages, records the mapping in `candidates_proposed.parents`, and drops a
+candidate whose parent it does not know rather than guessing a lineage. This lets a controlled arm prompt
+from the frozen root in every generation while an external selector retains the best candidate, without
+the retained lineage naming the promoted incumbent as the source.

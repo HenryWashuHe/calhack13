@@ -9,6 +9,7 @@ import { describe, expect, it } from "vitest";
 import { buildExchange } from "./exchange";
 import { EXCHANGE_LIMIT, ExchangePanel } from "./ExchangePanel";
 import { intake } from "./intake";
+import { firstPassEvidenceFiles as evidenceFiles } from "./test-fixtures/first-pass";
 import { buildLineage } from "./lineage";
 import { LineagePanel } from "./LineagePanel";
 import { decodePackageFile, type ExactRef } from "./records";
@@ -46,21 +47,6 @@ function candidate(over: Record<string, unknown> = {}) {
   };
 }
 const json = (name: string, v: unknown) => ({ name, text: JSON.stringify(v) });
-function evidenceFiles() {
-  const out: { name: string; text: string; bytes: Uint8Array }[] = [];
-  const walk = (dir: string) => {
-    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
-      const p = path.join(dir, e.name);
-      if (e.isDirectory()) walk(p);
-      else if (!/\.(md|txt)$|SHA256SUMS$/.test(e.name)) {
-        const bytes = new Uint8Array(fs.readFileSync(p));
-        out.push({ name: path.relative(root, p), text: new TextDecoder().decode(bytes), bytes });
-      }
-    }
-  };
-  walk(root);
-  return out;
-}
 const view = (files: { name: string; text: string; bytes?: Uint8Array }[]) => {
   const i = intake(files);
   const l = buildLineage(i.records);
