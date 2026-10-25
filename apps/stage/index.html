@@ -43,6 +43,12 @@ button { font: inherit; }
 .beat.fade { opacity: .2; transform: translateY(4px); }
 .sub { font-family: var(--serif); font-size: 17px; line-height: 1.5; color: var(--paper-dim); max-width: 60ch; margin-top: 10px; }
 .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: flex-end; }
+/* One header, three modes: only the buttons the mode can use are shown. Every button stays in the page so keys and probes keep working. */
+#idle { display: none; }
+body[data-stage="idle"] :is(#prev, #play, #next, #backreplay, #present, #silent) { display: none; }
+body[data-stage="replay"] :is(#backreplay) { display: none; }
+body:is([data-stage="live"], [data-stage="connecting"], [data-stage="live-error"]) :is(#playreplay, #prev, #play, #next, #golive) { display: none; }
+#explainbtn { min-width: 40px; font-weight: 700; }
 .btn { border: 1px solid transparent; background: var(--ink-3); color: var(--paper); border-radius: 10px; padding: 10px 14px; cursor: pointer; min-height: 44px; font-size: 14px; transition: background .2s, border-color .2s, transform .1s; }
 .btn:hover { background: var(--ink-4); }
 .btn:active { transform: translateY(1px); }
@@ -332,26 +338,27 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
     <div>
       <div class="brand">GENESIS <span id="mode" class="mode">No source selected</span></div>
       <h1 id="beat" class="beat">Organizations that build, verify, share and improve capabilities.</h1>
-      <p id="sub" class="sub">Connect two running kernels to draw them live, or play the historical fixture replay. The invention-lab direction is a proposal with contracts under review; nothing here claims it ran.</p>
+      <p id="sub" class="sub">Press Go live to draw the two running organizations, or Replay for the recorded case. The planner proposes; the kernel decides; every step is on the record.</p>
       <div class="proof" id="proof" aria-label="What is real in this scene"></div>
     </div>
     <div class="controls" role="group" aria-label="Playback">
-      <button class="btn" id="playreplay" type="button">Play fixture replay</button>
+      <button class="btn" id="playreplay" type="button">Replay</button>
+      <button class="btn primary" id="golive" type="button" title="Connect to the running kernels with the saved settings">Go live</button>
       <button class="btn" id="prev" type="button">Back</button>
       <button class="btn primary" id="play" type="button">Play</button>
       <button class="btn" id="next" type="button">Next step</button>
-      <button class="btn" id="backreplay" type="button">Back to replay</button>
+      <button class="btn" id="backreplay" type="button">Replay</button>
       <button class="btn" id="idle" type="button">Clear</button>
       <button class="btn" id="present" type="button" aria-pressed="false">Present</button>
       <button class="btn" id="silent" type="button" aria-pressed="false" title="Press S at any time">Silent</button>
-      <button class="btn" id="explainbtn" type="button" aria-pressed="false" title="Press ? at any time">What am I looking at?</button>
+      <button class="btn" id="explainbtn" type="button" aria-pressed="false" title="What am I looking at? (press ?)" aria-label="What am I looking at?">?</button>
     </div>
   </header>
   <div class="dots" id="dots" role="list" aria-label="Chapters"></div>
   <div class="progress" id="progress" aria-hidden="true"></div>
 
   <div class="disrupt" id="disrupt" role="group" aria-label="Throw a disruption at the replay" hidden>
-    <span>Throw a disruption (scripted transcript, not a live call):</span>
+    <span>Throw a disruption (scripted):</span>
     <button class="btn" id="d-cater" type="button"><kbd>1</kbd>Caterer cancels</button>
     <button class="btn" id="d-shuttle" type="button"><kbd>2</kbd>Shuttle falls through</button>
     <button class="btn" id="d-hostile" type="button"><kbd>3</kbd>Hostile instruction</button>
@@ -412,7 +419,7 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
       <div class="chat" id="chat"></div>
       <form class="judge" id="judgeform" hidden autocomplete="off" aria-label="Throw a live disruption at Org A">
         <input class="field" id="judgetext" type="text" maxlength="200" placeholder="Throw a live disruption at Org A, e.g. the caterer cancelled for Nov 14" aria-label="What happened">
-        <button class="btn primary" id="judgesend" type="submit">Report live</button>
+        <button class="btn primary" id="judgesend" type="submit">Report</button>
         <span class="status" id="judgestatus">Live: posts one observation to Org A with the agent token; the planner model decides.</span>
       </form>
     </div>
@@ -440,7 +447,7 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
   </footer>
 
   <details class="live">
-    <summary>Connect to a running kernel instead of the replay</summary>
+    <summary>Live kernel settings (the Go live button uses these)</summary>
     <form class="form" id="liveform">
       <label>Org A API<input class="field" id="urlA" type="url" value="http://127.0.0.1:7101/api/v1" autocomplete="off"></label>
       <label>Org A agent token<input class="field" id="tokA" type="password" value="org_a-agent" autocomplete="off"></label>
@@ -672,7 +679,7 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
   }
   function setToken(pos, text) { const tok = $("token"); if (!pos) { tok.hidden = true; return; } tok.hidden = false; if (text) tok.textContent = text; tok.style.setProperty("--pos", pos === "a" ? "6%" : "94%"); }
   function setGap(label) { const g = $("gap"); g.hidden = !label; if (label) { g.textContent = label; g.classList.toggle("installed", label === "INSTALLED"); } }
-  function setBadge(text, live) { const m = $("mode"); m.textContent = text; m.classList.toggle("live", !!live); }
+  function setBadge(text, live) { const m = $("mode"); m.textContent = text; m.classList.toggle("live", !!live); if (body && body.setAttribute) body.setAttribute("data-stage", app.mode); }
 
   // ---- mode ownership ----
   const app = { mode: "idle", gen: 0, labSeed: 0, labRun: 0, scene: 0, timer: null, liveTimer: null, cursors: { A: 0, B: 0 }, tail: [], seen: 0, seenIds: new Set(), tick: 0, applied: 0, thrown: [], present: false, prevRoles: {}, obsAt: new Map(), live: null, liveChat: [], lastJudge: 0, lastJudgeObs: null, answers: new Map(), ackKey: null, explain: false, thinkTimer: null, thinkStart: 0, liveOrgA: null, changes: new Map(), lastChange: null, latestA: null };
@@ -885,7 +892,7 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
     app.mode = "idle"; setBadge("No source selected", false); setReplayControls(false);
     $("headA").textContent = "Organization A"; $("headB").textContent = "Organization B";
     $("beat").textContent = "Organizations that build, verify, share and improve capabilities.";
-    $("sub").textContent = "Connect two running kernels to draw them live, or play the historical fixture replay (the venue regression workload, every provider a development stub). The invention-lab direction is a proposal with contracts under review; nothing here claims it ran.";
+    $("sub").textContent = "Go live draws the two running organizations; Replay plays the recorded case. The planner proposes, the kernel decides, every step is on the record.";
     renderTree($("treeA"), []); renderTree($("treeB"), []);
     $("revA").textContent = ""; $("revB").textContent = ""; $("missionA").textContent = "No source selected."; $("missionB").textContent = "No source selected.";
     $("noteA").hidden = true; setToken(null); setGap(null);
@@ -903,6 +910,7 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
   for (const id of Object.keys(DISRUPTIONS)) $(id).addEventListener("click", () => throwDisruption(id));
   $("present").addEventListener("click", () => setPresent(!app.present));
   $("silent").addEventListener("click", () => setSilent(!app.silent));
+  $("golive").addEventListener("click", () => { const f = $("liveform"); if (f.requestSubmit) f.requestSubmit(); else if (f.handlers && f.handlers.submit) f.handlers.submit({ preventDefault() {} }); });
   $("explainbtn").addEventListener("click", () => setExplain(!app.explain));
   document.addEventListener("keydown", (e) => {
     if (e.target && e.target.closest && e.target.closest("input")) return;
