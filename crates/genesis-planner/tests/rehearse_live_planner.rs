@@ -228,7 +228,7 @@ async fn rehearse_two_organizations_with_a_live_planner() {
         constitution: constitution_path.clone(),
     };
     let _a_proc = a.spawn(&bin, &registry_url, None);
-    let mut b_proc = b.spawn(&bin, &registry_url, None);
+    let b_proc = b.spawn(&bin, &registry_url, None);
     wait_up(&a.url()).await;
     wait_up(&b.url()).await;
     let (a_api, b_api) = (a.api(), b.api());
@@ -444,10 +444,8 @@ async fn rehearse_two_organizations_with_a_live_planner() {
     };
     let receiver_path = state.join("b-receiver.json");
     write(&receiver_path, &json!(receiver));
-    drop(std::mem::replace(
-        &mut b_proc,
-        b.spawn(&bin, &registry_url, Some(&receiver_path)),
-    ));
+    drop(b_proc);
+    let _b_proc = b.spawn(&bin, &registry_url, Some(&receiver_path));
     wait_up(&b.url()).await;
 
     let intent = |key: &str, role: &str, decision: Value| {
