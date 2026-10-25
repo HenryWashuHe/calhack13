@@ -34,7 +34,7 @@ test("one app-scoped POST then exact-run GET; journal omits key and output", asy
   const fetchImpl = async (url, options) => {
     calls.push({ url, options });
     if (options.method === "POST") return response({ id: RUN, appId: APP, status: "pending" }, 202);
-    return response({ id: RUN, appId: APP, status: "completed",
+    return response({ id: RUN, status: "completed",
       result: { text: "private generated answer" }, usage: { credits: 2 } });
   };
   const result = await runTrigger({ appId: APP, inputs, out, key: KEY,
@@ -47,6 +47,7 @@ test("one app-scoped POST then exact-run GET; journal omits key and output", asy
   assert.equal(calls[0].options.headers.Authorization, `Bearer ${KEY}`);
   assert.deepEqual(JSON.parse(calls[0].options.body), { inputs });
   assert.equal(calls[1].url, `https://agent.creao.ai/api/v1/apps/${APP}/runs/${RUN}`);
+  assert.match(calls[1].options.headers["User-Agent"], /Mozilla\/5\.0/);
   const saved = readFileSync(out, "utf8");
   assert.equal(saved.includes(KEY), false);
   assert.equal(saved.includes("private generated answer"), false);
@@ -107,4 +108,11 @@ test("rejects wrong key, redirect and mismatched provider identity", async (t) =
     allowCredits: true, fetchImpl: async () => response({ id: RUN,
       appId: "00000000-0000-4000-8000-000000000002", status: "pending" }, 202) });
   assert.equal(mismatch.phase, "needs_reconciliation");
+  const out3 = fixture(t);
+  const mismatchedGet = await runTrigger({ appId: APP, inputs, out: out3, key: KEY,
+    allowCredits: true, fetchImpl: async (_url, options) => options.method === "POST"
+      ? response({ id: RUN, appId: APP, status: "pending" }, 202)
+      : response({ id: RUN, appId: "00000000-0000-4000-8000-000000000002",
+        status: "completed" }) });
+  assert.match(mismatchedGet.reason, /poll_failed/);
 });
