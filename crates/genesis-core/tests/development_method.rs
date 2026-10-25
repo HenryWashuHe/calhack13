@@ -197,7 +197,8 @@ fn acceptance_roles_and_comparison_plan_trial_arm_are_not_interchangeable() {
     for mut purpose in [purposes[1].clone(), purposes[3].clone()] {
         match &mut purpose {
             ExecutionPurpose::Acceptance { plan, .. }
-            | ExecutionPurpose::Comparison { plan, .. } => plan.sha256 = "b".repeat(64),
+            | ExecutionPurpose::Comparison { plan, .. }
+            | ExecutionPurpose::Invocation { plan, .. } => plan.sha256 = "b".repeat(64),
             ExecutionPurpose::Ordinary {} => unreachable!(),
         }
         purposes.push(purpose);

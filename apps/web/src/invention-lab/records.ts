@@ -170,6 +170,9 @@ export interface RevisionObservation {
   child: ExactRef;
   org_id: string;
   operation_id: string;
+  /** The exact generation request that produced the child; binds the
+   * observation to one status record, not just to its operation. */
+  request_sha256: string | null;
   transport: string;
   source_changed: boolean;
 }
@@ -184,6 +187,7 @@ export function decodeRevisionObservation(v: unknown): RevisionObservation {
     child: decodeRef(o.child, `${at}.child`),
     org_id: str(o, "org_id", at),
     operation_id: str(o, "operation_id", at),
+    request_sha256: optStr(o, "request_sha256", at),
     transport: str(o, "transport", at),
     source_changed: o.source_changed,
   };
@@ -267,6 +271,8 @@ export interface ExecutionReceipt {
   /** The method the executor reports it actually ran. */
   actual_method: ExactRef;
   actual_environment: ExactRef;
+  /** The task family the binding names (e.g. `ravine-crossing`). */
+  public_task: ExactRef;
   purpose: Purpose;
   outcome: string;
   outputs: ExactRef[];
@@ -288,6 +294,7 @@ export function decodeExecutionReceipt(v: unknown): ExecutionReceipt {
     bound_method: decodeRef(b.method, `${at}.binding.method`),
     actual_method: decodeRef(o.actual_method, `${at}.actual_method`),
     actual_environment: decodeRef(o.actual_environment, `${at}.actual_environment`),
+    public_task: decodeRef(b.public_task, `${at}.binding.public_task`),
     purpose: decodePurpose(b.purpose, `${at}.binding.purpose`),
     outcome: str(o, "outcome", at),
     outputs: refs(o.outputs, `${at}.outputs`),
@@ -305,6 +312,22 @@ export interface EvaluationReceipt {
   metrics: ExactRef | null;
   reason: string | null;
   usage: Record<UsageDimension, Usage>;
+  /** The scoring context the request named (task, rule, instance set, ...). */
+  context: ScoringContext;
+  /** The context the scorer reports it used; absent unless it scored or judged
+   * the output invalid. */
+  observed_context: ScoringContext | null;
+}
+/** A scoring context: named exact references (`public_task`, `scoring_rule`, ...). */
+export type ScoringContext = Record<string, ExactRef>;
+function decodeContext(v: unknown, at: string): ScoringContext {
+  const o = obj(v, at);
+  return Object.fromEntries(Object.keys(o).map((k) => [k, decodeRef(o[k], `${at}.${k}`)]));
+}
+export function sameContext(a: ScoringContext, b: ScoringContext): boolean {
+  const ka = Object.keys(a).sort();
+  const kb = Object.keys(b).sort();
+  return ka.length === kb.length && ka.every((k, i) => k === kb[i] && refKey(a[k]!) === refKey(b[k]!));
 }
 export function decodeEvaluationReceipt(v: unknown): EvaluationReceipt {
   const at = "evaluation";
@@ -317,6 +340,11 @@ export function decodeEvaluationReceipt(v: unknown): EvaluationReceipt {
     execution_sha256: str(r, "execution_sha256", `${at}.request`),
     output: decodeRef(r.output, `${at}.request.output`),
     purpose: decodePurpose(r.purpose, `${at}.request.purpose`),
+    context: decodeContext(r.context, `${at}.request.context`),
+    observed_context:
+      o.observed_context === null || o.observed_context === undefined
+        ? null
+        : decodeContext(o.observed_context, `${at}.observed_context`),
     outcome: kind,
     metrics: kind === "scored" ? decodeRef(out.metrics, `${at}.outcome.metrics`) : null,
     reason: kind === "scored" ? null : optStr(out, "reason", `${at}.outcome`),
@@ -432,6 +460,13 @@ export function decodeStaticInspection(v: unknown): StaticInspection {
 export interface TrialPlan {
   ref: ExactRef;
   criterion: ExactRef;
+  /** `scoring_instances.kind`: `development` (the public development panel) or
+   * `hidden_commitment` (a hidden panel revealed only to the scorer). */
+  scoring_kind: string;
+  /** Ordered public development instance ids, as the plan lists them. */
+  development_instances: string[];
+  /** The scoring context the plan froze; a score of one of its runs must name exactly this. */
+  context: ScoringContext;
 }
 export const TRIAL_PLAN_FIELDS = [
   "id", "version", "criterion", "development_instances", "scoring_instances",
@@ -449,5 +484,63 @@ export function decodeTrialPlan(v: unknown): TrialPlan {
       sha256: canonicalSha256({ domain: "genesis.development_trial_plan", version: 1, plan: o }),
     },
     criterion: decodeRef(o.criterion, `${at}.criterion`),
+    scoring_kind: str(obj(o.scoring_instances, `${at}.scoring_instances`), "kind", `${at}.scoring_instances`),
+    development_instances: ((): string[] => {
+      if (!Array.isArray(o.development_instances)) throw new DecodeError(`${at}.development_instances: expected array`);
+      return o.development_instances.map((d, i) => str(obj(d, `${at}.development_instances[${i}]`), "id", `${at}.development_instances[${i}]`));
+    })(),
+    context: decodeContext(o.context, `${at}.context`),
+  };
+}
+
+/** The only metrics identity this view counts: the scorer's `lab-scoring-metrics/1`
+ * artifact. Any other domain, schema, id or version is unsupported, even when
+ * its digest names bytes this view could read. */
+export const METRICS_IDENTITY = {
+  domain: "genesis-lab",
+  schema: "lab-scoring-metrics/1",
+  id: "lab-scoring-metrics/1",
+  version: "1",
+} as const;
+export function isSupportedMetricsRef(r: ExactRef): boolean {
+  return (
+    r.domain === METRICS_IDENTITY.domain &&
+    r.schema === METRICS_IDENTITY.schema &&
+    r.id === METRICS_IDENTITY.id &&
+    r.version === METRICS_IDENTITY.version
+  );
+}
+
+/** A scoring metrics artifact (`lab-scoring-metrics/1`), identified by the
+ * SHA-256 of its exact bytes, which a scored evaluation names. Each row is one
+ * scored instance; only the recorded boolean `success` is counted. `of` and
+ * `success_count` are the scorer's own totals, kept to check the rows. */
+export interface MetricsArtifact {
+  sha256: string;
+  instances: { instance: string; success: boolean }[];
+  of: number | null;
+  success_count: number | null;
+}
+export function isMetricsShape(o: Obj): boolean {
+  return (
+    Array.isArray(o.instances) &&
+    o.instances.length > 0 &&
+    o.instances.every((r) => typeof r === "object" && r !== null && "instance" in r && "success" in r)
+  );
+}
+export function decodeMetricsArtifact(bytes: Uint8Array): MetricsArtifact {
+  const at = "metrics";
+  const o = obj(JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes)), at);
+  if (!Array.isArray(o.instances) || o.instances.length === 0)
+    throw new DecodeError(`${at}.instances: expected a non-empty array`);
+  return {
+    sha256: sha256Hex(bytes),
+    instances: o.instances.map((r, i) => {
+      const row = obj(r, `${at}.instances[${i}]`);
+      if (typeof row.success !== "boolean") throw new DecodeError(`${at}.instances[${i}].success: expected boolean`);
+      return { instance: str(row, "instance", `${at}.instances[${i}]`), success: row.success };
+    }),
+    of: o.of === undefined ? null : nat(o, "of", at),
+    success_count: o.success_count === undefined ? null : nat(o, "success_count", at),
   };
 }

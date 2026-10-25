@@ -72,30 +72,50 @@ Trusted acceptance scoring lives in the separate `../scoring` crate.
 `namespaces` mode (root only):
 
 - **Enforced:**
-  - new network, mount and PID namespaces;
-  - every existing mount remounted read-only where the kernel allows it (a
-    mount that refuses keeps its mode);
-  - private tmpfs over `/home`, `/root`, `/tmp`, `/var/tmp`, `/dev/shm` and
-    `/run`;
-  - the method runs as `nobody` with `no_new_privs`;
-  - the whole PID namespace is killed at the limit.
+  - new network, IPC, mount and PID namespaces, then a chroot into a minimal
+    method root built for this run. Read-only, it holds only the interpreter
+    and its standard library (any `site-packages`/`dist-packages` inside it
+    masked empty), `sh`, `prlimit`, `setpriv`, the shared libraries those and
+    the stdlib extension modules link, `/etc/ld.so.cache` and
+    `/dev/{null,zero,random,urandom}`. There is no `/proc`, `/home`, `/run`,
+    `/var`, host `/tmp` or other mount in it, and setup refuses to start if
+    any socket file is inside it;
+  - the only writable place is a private tmpfs `/tmp`, with the package's
+    source files in `/tmp/work`;
+  - only stdin, stdout and stderr cross into the namespace: every other
+    descriptor the executor holds (say, a directory or socket its launcher
+    left open) is marked close-on-exec first, so none can lead out of the
+    chroot. This requires Linux `close_range(CLOSE_RANGE_CLOEXEC)` support
+    (Linux 5.11+) and permission to call it. Failure refuses startup; there
+    is no partial walk based on the launcher's current descriptor limit,
+    which may be lower than descriptors it already holds. `namespaces` is
+    unsupported on non-Linux hosts; `none` mode is unchanged;
+  - the method runs as `nobody` with `no_new_privs`, so it can't leave the
+    chroot;
+  - at the deadline or after the outcome, the executor attempts to SIGKILL
+    the namespace's first process with kill(2). Whole-tree termination
+    evidence requires a confirming stop outcome and successful launcher
+    reap; a launcher-only fallback remains unconfirmed and cannot authorize
+    hidden scoring;
   - resource limits set with prlimit before the privilege drop: 1 GiB address
     space, 64 processes for `nobody`, 64 MiB per written file, 256 open files.
+- **Model use is measured zero in this mode.** With no network, no socket file
+  or IPC peer, and no files beyond the interpreter image and the method's own
+  source, no external model or model service is reachable. Whatever the
+  method computes itself is its own work.
+- **Not enforced:** any syscall filter; a CPU quota beyond the wall time. The
+  process limit is per user, so concurrent runs share it. A method can
+  compute its own physics inside its wall time, so `simulation_steps` meters
+  evaluator calls only.
 
-  The method can't see the evaluator, its sources, the slot state or other
-  runs in those hidden directories, and can't reach the network. Its writes
-  land in the private tmpfs mounts and vanish at exit, unless a mount refused
-  the read-only remount.
-- **Not enforced:** reads of the rest of the read-only system; filesystem Unix
-  sockets on readable paths; any syscall filter; a CPU quota beyond the wall
-  time. The process limit is per user, so concurrent runs share it.
-- **Model use is recorded as `unknown` in every mode.** No network is not proof
-  of no model: a local model or service reachable through the filesystem isn't
-  excluded. A method can compute its own physics inside its
-  wall time, so `simulation_steps` meters evaluator calls only.
+Running the root-gated tests: the pinned interpreter must live under `/usr`,
+but not under `/usr/local`, `/root` or `/opt`. The method root exposes the
+interpreter image's directory chain, and the probes assert those paths stay
+invisible, so an interpreter installed there (for example a `uv` build under
+`/root/.local`) makes them fail even though the sandbox is working.
 
-`none` mode has no isolation at all. The plan pins the mode through the
-environment digest.
+`none` mode has no isolation at all, and model use stays `unknown`. The plan
+pins the mode through the environment digest.
 
 ## Seed methods are controls
 
