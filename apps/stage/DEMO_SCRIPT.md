@@ -125,3 +125,36 @@ status. A connectivity chip, a development stub, an export implementation, or a
 historical fixture does not establish authenticated cloud execution or sponsor
 qualification. Use the sponsor notes and `docs/IMPLEMENTATION_STATUS.md` for
 specific remaining evidence instead of presenting every integration as live.
+
+## Two-tab operating plan (what to press, when to switch)
+
+Both tabs use port 7778. Tab 1 is the visual presentation; Tab 2 is the case file.
+Switch when a judge asks for a detail that the animation cannot establish.
+
+| Moment | Tab | Press | Explain |
+|---|---|---|---|
+| Before projection | 1 | Open `network.html?live=1&mission=<mission ID>`, enter token, `F` | Wait for a successful authenticated kernel poll |
+| Before judges arrive | 2 | Open `index.html`, Go live, `P`, `S` | Confirm source, mission and current organization |
+| 0:00 | 1 | Nothing | The opening and evidence labels |
+| 0:30 | 1 | `I`, select mission if asked, type disruption, Enter | Wait for a receipt; describe the actual decision |
+| 1:00 | 1 | Optionally submit the inspection instruction | A refusal is an observed outcome, not a promised result |
+| 1:30 | 1 | **`L`, then `2`** | Author-retained factory extract; stub providers |
+| 2:00 | 1 | `3` | Separate selection panels and fresh-panel controls |
+| 2:45 | 1 | `4` | Illustrative hand-off; counts are concept data |
+| 3:15 | 1 | `5` | Selective network improvement is the destination |
+| 3:45 | 1 | Stay | Moonshot and current limitations |
+
+`Space` pauses the drawing, not the running kernel or network polling.
+
+| Question | Do | Point at |
+|---|---|---|
+| Is this connected? | Tab 2, live | Connection badge, revision and event log; a badge does not establish provider identity |
+| What did the planner decide? | Tab 2 | Actual decision card and lifecycle status, including no-change or failure |
+| Where are the improvement numbers? | Tab 2, Replay, Lab chapter | Current seed, panels, ledger reference and explicit provenance |
+| How could B inherit? | Tab 2, Replay, Handoff/Inheritance | Historical fixture mechanism, labeled as such; separate from evidence of a live hand-off |
+| Which scene is real? | Either tab | Read the exact source chip and details; color alone does not establish execution |
+| Back to the show | Tab 1 | `R` restarts a recorded/scripted/concept act; leave live with `L` first |
+
+Avoid reloads during the slot. Do not send a duplicate report to compensate for
+an unknown outcome; inspect the event log first. Tab 2 has its own reporting
+controls and cooldown, distinct from Tab 1's receipt and unknown-outcome checks.
