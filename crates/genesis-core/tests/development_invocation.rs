@@ -118,3 +118,6 @@ fn a_blank_grant_identity_is_refused() {
     let slots = vec![slot("use", json!({"kind":"invocation","grant":extra}))];
     assert!(plan(slots, json!({"kind":"development"})).is_err());
 }
+
+#[path = "common/review_invocation.rs"]
+mod review_invocation;
