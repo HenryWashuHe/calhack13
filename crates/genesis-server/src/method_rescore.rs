@@ -515,9 +515,9 @@ impl MethodReexecutor {
                     )))
                 }
             }
-            if wall_ms(&fresh).is_none_or(|ms| ms > grant) {
+            if fits(&retained, grant) && !fits(&fresh, grant) {
                 return Err(fail(format!(
-                    "re-running the {slot} slot here did not fit its development grant"
+                    "the retained {slot} execution fits its grant but re-running it here did not"
                 )));
             }
             files.insert(receipt_rel, sha(&retained));
