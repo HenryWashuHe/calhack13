@@ -197,3 +197,25 @@ causality, chain admission/cost binding, chronology/exhaustive history, provider
 sampling and runtime/adoption authority unverified. Hashes describe consistency
 under trusted host storage, not authenticated authorship. This is neither a
 complete process-comparison validation nor an executed comparison or G4 result.
+
+### Retaining origins through the cohort CLI
+
+The existing `process-cohort-prepare` manifest accepts an optional
+`"generation_origins":"origins.json"` path, relative to that manifest. It loads
+and validates the full generation-origins object above alongside the eight
+selections before publication. With origins supplied, the self-contained capture
+uses `genesis-retained-process-cohort/2` and stores both original histories and
+the recomputed generation report. `process-cohort-check` checks both reports
+without consulting input files or acquiring a writer lock. An inconsistent
+schema, original checkpoint/pin or saved report fails the check.
+
+The summary adds `generation_origins_sha256` and `generation_report_sha256`.
+It contains no source text. Both are canonical parsed-JSON hashes; retain the
+complete cohort digest independently. Input and aggregate capture limits remain
+8 MiB. Without the optional path, historical `/1` capture bytes and summary
+fields remain unchanged; that path checks cohort consistency only.
+
+Common-base equality cannot establish that the host-approved base excludes old
+feedback or fresh-panel knowledge. Inspect and publish that base independently.
+A valid capture is not a complete experiment, authenticated chronology or an
+execution/adoption grant. In particular, a retained unknown cost stays unknown.
