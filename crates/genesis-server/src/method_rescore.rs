@@ -401,9 +401,7 @@ impl MethodRescorer {
         // whether the result fits its scoring grant. A claim that it fits must
         // also hold here.
         let grant = plan.scoring_grant.wall_time_ms;
-        let here = wall_ms(&fresh).ok_or_else(|| fail("rescoring measured no wall time"))?;
-        let claims_fit = wall_ms(&json(posted)?).is_some_and(|ms| ms <= grant);
-        if claims_fit && here > grant {
+        if fits(&json(posted)?, grant) && !fits(&fresh, grant) {
             return Err(fail(
                 "the posted evaluation fits its scoring grant but rescoring here did not",
             ));
