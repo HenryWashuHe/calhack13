@@ -8,6 +8,10 @@ Linux `close_range(CLOEXEC)` or refuse startup; the bounded descriptor fallback
 is removed and the environment-policy identity changes. Mode None is unchanged.
 Composition `91e6e174` passes independent compile/format checks only. Neither
 original PR is on main; exact-head independent Linux assurance is open.
+The later Linux report covers older `31001949` / `6c468f5` only. It is a same-host
+separate-agent report relayed by Henry, with no raw logs/binary digest and limited
+assertion/heartbeat evidence; it does not validate current heads or independent
+organizational/kernel operation. The snapshot records the source-only audit.
 #211 is merged at `a1c25118` after 21/21 store cases on the reviewed composition.
 #199 is merged at `ac516528` after 78/78 inert Stage cases; #203 is merged at
 `60b4d10c` after 80/80 inert Stage cases. Their prior scoped findings are cleared;
