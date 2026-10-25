@@ -13,9 +13,9 @@ minimal-root chroot, `close_range`-required descriptor policy and #57's terminat
 
 ## Left
 - [x] Executor suite as root (`executor-85073cc.log.txt`): test/clippy/fmt exit 0. 48 tests: 8 lib (7 `termination_evidence_tests`) + 40 integration, 0 failed/ignored. Root-gated suites ran: namespace_lifecycle 3, namespace_stop_without_kill 1, review_namespace_escape 7, sandbox 1. No `nobody` processes after. `lab-exec` sha256 in `BINARIES.sha256`.
-- [ ] Scoring suite as root, plus strict clippy and fmt (raw log here).
-- [ ] `indep_hidden_closure.rs` with the positive case asserting a `Scored` outcome (file added here; run pending).
-- [ ] sha256 of the tested `lab-exec` / `lab-score` binaries.
+- [x] Scoring suite as root (`scoring-85073cc-skip1.log.txt`): test exit 0, with ONE test skipped (see Finding below). Author-only clippy `-D warnings` and fmt exit 0; also 0 with my test added. Ignored tests: `review_executor_child_process` (subprocess entry point) and one historical verdict probe. No `nobody` processes after.
+- [x] `indep_hidden_closure.rs` (copy here) ran inside that suite, 2/2 pass. The positive case now asserts `EvaluationOutcome::Scored`. Refusals are checked for: missing termination record, whole_tree=false, receipt-sha mismatch, wrong salt; none mode is refused as uncertified.
+- [x] sha256 of `lab-exec` and `lab-score` in `BINARIES.sha256`.
 
 ## Not done in this round (scope note)
 I am not reworking the round-1 escape-probe harness (`indep_linux_probe_orch.py`), as the
@@ -27,3 +27,13 @@ none-mode controls are positive observations.
 Correction to round 1: the author suite does cover the deadline path
 (`namespace_lifecycle.rs::a_detached_descendant_does_not_outlive_a_namespace_run_killed_at_its_deadline`).
 My round-1 claim that it didn't was wrong.
+
+## Finding: container restarts during `review_hidden_closure`
+Two full scoring runs were cut off by container restarts (`f9c3dc6` and main `85073cc`).
+Both partial logs (`partial-scoring-*-killed.log.txt`) end at the same point: inside
+`tests/review_hidden_closure.rs`, right after its ignored subprocess entry point is listed,
+while `a_recovered_receipt_does_not_prove_the_method_stopped_before_hidden_scoring` runs.
+In round 1 (`6c468f5`) that test passed in 0.15 s with no restart. I did not investigate the
+cause. The completed run skips only that test (`--skip`), so it is **not** covered by this round.
+The cause may be infrastructure or something in that test's process-group cleanup; it should be
+checked separately, e.g. in a disposable VM.

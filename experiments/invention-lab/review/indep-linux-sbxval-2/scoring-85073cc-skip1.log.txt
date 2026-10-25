@@ -1,0 +1,175 @@
+head=85073cc6208800e15b5cc96b742bfba07ef325b9 uid=0 kernel=6.18.44-fc-v153 python3=Python 3.14.0 date=2026-10-25T07:30:35Z
+### cargo test --locked --all-targets -- --skip a_recovered_receipt_does_not_prove_the_method_stopped_before_hidden_scoring  (includes added tests/indep_hidden_closure.rs)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.69s
+     Running unittests src/lib.rs (/tmp/claude-0/target-indep/debug/deps/genesis_lab_score-8a20f940d5386e1f)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/lab-score.rs (/tmp/claude-0/target-indep/debug/deps/lab_score-ad725f63ff11a115)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/eligibility_cli.rs (/tmp/claude-0/target-indep/debug/deps/eligibility_cli-1cddb99ffc6eb498)
+
+running 2 tests
+test a_different_expected_plan_refuses_the_same_records ... ok
+test retained_slots_are_assessed_against_their_expected_plan ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.78s
+
+     Running tests/feedback.rs (/tmp/claude-0/target-indep/debug/deps/feedback-01bb9508c3da0627)
+
+running 5 tests
+test an_oversized_experiment_design_is_listed_by_digest_and_the_document_fits ... ok
+test a_tampered_artifact_or_mismatched_records_are_refused ... ok
+test an_unscored_slot_has_no_feedback ... ok
+test feedback_lists_public_experiments_the_submission_and_its_scores ... ok
+test hidden_comparison_plans_never_yield_feedback ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 10.00s
+
+     Running tests/generation_rehearsal.rs (/tmp/claude-0/target-indep/debug/deps/generation_rehearsal-72abc668b1739bc5)
+
+running 1 test
+test generation_to_verdict_runs_end_to_end_offline ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 11.60s
+
+     Running tests/hidden.rs (/tmp/claude-0/target-indep/debug/deps/hidden-04c412ec4f1e06f8)
+
+running 4 tests
+test a_parent_only_termination_does_not_close_the_comparison ... ok
+test a_slot_without_output_has_nothing_to_score ... ok
+test a_closed_comparison_is_scored_on_the_committed_draw_and_validates ... ok
+test hidden_scoring_refuses_before_simulating_anything ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 8.85s
+
+     Running tests/indep_hidden_closure.rs (/tmp/claude-0/target-indep/debug/deps/indep_hidden_closure-1a21e0e07c2fe7f1)
+
+running 2 tests
+test none_mode_is_never_certified_whole_tree_so_hidden_scoring_refuses ... ok
+test namespaces_closure_scores_only_with_observed_whole_tree_termination ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 16.24s
+
+     Running tests/review_eligibility_cli.rs (/tmp/claude-0/target-indep/debug/deps/review_eligibility_cli-e7073374ddd9ee58)
+
+running 3 tests
+test foreign_slot_and_same_digest_foreign_method_identity_are_refused ... ok
+test unknown_usage_and_absent_scoring_are_retained_without_zero_or_writes ... ok
+test oversized_valid_json_is_refused_before_assessment ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.28s
+
+     Running tests/review_feedback_public_boundary.rs (/tmp/claude-0/target-indep/debug/deps/review_feedback_public_boundary-b416280e4a2bd41d)
+
+running 3 tests
+test exact_public_records_still_produce_bound_deterministic_feedback ... ok
+test public_feedback_refuses_valid_hidden_comparison_records ... ok
+test public_feedback_fits_the_revision_public_document_byte_limit_or_refuses ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.29s
+
+     Running tests/review_hidden_closure.rs (/tmp/claude-0/target-indep/debug/deps/review_hidden_closure-c13d5519b570e595)
+
+running 1 test
+test review_executor_child_process ... ignored, Subprocess entry point invoked only by the supervised closure test
+
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/review_scoring_boundaries.rs (/tmp/claude-0/target-indep/debug/deps/review_scoring_boundaries-30bff9b3442559c4)
+
+running 2 tests
+test zero_scoring_wall_grant_refuses_before_simulation_or_artifacts ... ok
+test unsupported_scoring_context_is_not_certified_as_observed ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.90s
+
+     Running tests/review_scoring_overrun_accounting.rs (/tmp/claude-0/target-indep/debug/deps/review_scoring_overrun_accounting-9615c71b7697395d)
+
+running 1 test
+test a_final_instance_overrun_retains_accounting_and_is_not_validated ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.20s
+
+     Running tests/review_verdict_boundaries.rs (/tmp/claude-0/target-indep/debug/deps/review_verdict_boundaries-46ab39ec72ac3bf3)
+
+running 4 tests
+test a_failed_development_attempt_with_a_scored_partial_output_is_not_accepted ... ignored, Historical policy probe only: adoption.md does not forbid confirmed failure with scoreable output
+test unknown_executor_outcome_with_known_usage_is_not_accepted ... ok
+test unknown_development_accounting_is_not_an_acceptance ... ok
+test unnamed_extra_metric_rows_cannot_invent_candidate_successes ... ok
+
+test result: ok. 3 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 47.65s
+
+     Running tests/review_verdict_precedence.rs (/tmp/claude-0/target-indep/debug/deps/review_verdict_precedence-a3e848a1b9fad45d)
+
+running 2 tests
+test an_invalid_candidate_does_not_hide_an_unknown_control_execution ... ok
+test an_invalid_design_does_not_hide_an_unknown_candidate_execution ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 18.36s
+
+     Running tests/revision_rehearsal.rs (/tmp/claude-0/target-indep/debug/deps/revision_rehearsal-af105cda477d0173)
+
+running 1 test
+test revision_is_judged_against_its_exact_parent_offline ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 11.48s
+
+     Running tests/scoring.rs (/tmp/claude-0/target-indep/debug/deps/scoring-8e3345793ab3cdd4)
+
+running 4 tests
+test a_wall_grant_that_runs_out_mid_scoring_is_retained_as_failed ... ok
+test failed_or_unknown_worker_runs_are_never_aggregated_as_scored ... ok
+test scoring_refuses_substituted_bytes_a_short_grant_and_missing_output ... ok
+test a_retained_output_is_scored_on_every_public_instance_and_validates ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.97s
+
+     Running tests/scoring_guards.rs (/tmp/claude-0/target-indep/debug/deps/scoring_guards-b3f535552da75590)
+
+running 1 test
+test an_acceptance_plan_mixing_task_families_is_refused ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.18s
+
+     Running tests/verdict.rs (/tmp/claude-0/target-indep/debug/deps/verdict-cfae339bd82001e5)
+
+running 4 tests
+test missing_or_failed_evidence_is_insufficient_and_an_invalid_candidate_is_rejected ... ok
+test a_candidate_that_beats_the_control_by_the_margin_is_accepted_and_ties_are_not ... ok
+test substituted_criterion_metrics_or_slots_are_refused ... ok
+test unknown_model_usage_needs_an_explicit_criterion_allowance has been running for over 60 seconds
+test unknown_model_usage_needs_an_explicit_criterion_allowance ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 95.48s
+
+     Running unittests examples/pc1_fixture.rs (/tmp/claude-0/target-indep/debug/examples/pc1_fixture-6a49dd15720d7f1a)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+test_exit=0
+### nobody processes after tests
+### lab-score sha256
+3ebebe06e92e747d8a1c00b86ef036e1f9da4622e7689c15620d27251bc17bba  /tmp/claude-0/target-indep/debug/lab-score
+### author-only clippy
+    Checking genesis-forge v0.1.0 (/home/claude/xwt/indep-main/crates/genesis-forge)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 49.64s
+clippy_author_exit=0
+### author-only fmt
+fmt_author_exit=0
+### with indep test clippy
+    Checking genesis-lab-score v0.1.0 (/home/claude/xwt/indep-main/experiments/invention-lab/scoring)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.32s
+clippy_with_indep_exit=0
+### with indep test fmt
+fmt_with_indep_exit=0
+end
