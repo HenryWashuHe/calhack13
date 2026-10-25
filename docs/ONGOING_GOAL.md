@@ -257,44 +257,62 @@ details in the handoff instead of copying an ever-growing transcript.
 
 ## Direction update, October 24, 2026 (evening, Pacific)
 
-Relayed by the ACP lane from the owner's decisions in chat today; append-only, the
-objective and gates above are unchanged.
+Relayed by the ACP lane from the owner's decisions in chat today; append-only. The objective,
+the G0–G4 gates and the independently accepted A→B→A completion contract above are unchanged and
+remain authoritative. The current ownership and status ledger is the
+[#162 checkpoint in AGENT_HANDOFF.md](AGENT_HANDOFF.md); this section adds direction notes and
+does not restate or replace it.
 
-- **How we tell it.** Lead with governance and measurement: an AI organization that
-  changes shape under evidence, within its constitution, and keeps what it learns with
-  provenance. Self-evolution is what this harness enables and has honestly measured, not a
-  headline claim: two real generations ran today and both were rejected against seeded
-  random search by predeclared trials. Nothing synthetic or scripted is ever presented as
-  a result; proof chips on the stage say what is real in every scene.
-- **Demo surface.** `apps/stage` is the main demo screen (#108 merged; #125 story pass
-  and #126 live judge input in review): the fixture replay with judge-triggered
-  disruptions, presenter mode, and live mode on the dev stack where a judge types a
-  disruption and the running planner answers on screen. The replay is the safety net.
-- **Research direction.** Make the iteration loop a real optimizer, domain-free and
-  transferable: the iteration contract and synthetic reference (#144, proposed and
-  exploratory pending interface review), the regression analysis of generation 2 (#160),
-  then the strategy/adapter split of method packages, a per-family frontier with several
-  candidates per generation, attributed same-family feedback with no strategy direction in
-  prompts, held-out panels regenerated every round, a screening cascade before full
-  trials, and a final fresh confirmation panel. Predeclared success metrics: per-family
-  frontier success over rounds; families where the frontier beats seeded random search
-  (target: two); families a strategy wins outside the family it was introduced in, which
-  measures transfer directly.
+- **How we tell it.** Lead with governance and measurement: an organization that re-plans
+  under evidence within its constitution, keeps what it builds with provenance, and measures
+  every change against declared controls. Self-evolution is presented as what this harness
+  enables and has measured, not as a result: the two generations run on October 24 were
+  rejected against seeded random search by predeclared trials, and the later hidden check
+  (parent 12/12 vs 9/12 on rough-transport, 1/12 vs 10/12 on ravine-crossing, #165) is one
+  reading on one family pair, not a trend. Nothing synthetic or scripted is presented as a
+  result; the stage's proof chips say what is real in every scene.
+- **Demo surface, with its review state.** `apps/stage` is the desired demo surface. Merged:
+  #108 (archival replay, judge-triggered scripted disruptions, presenter mode). Held, fixes
+  pushed and awaiting re-review: [#125](https://github.com/HenryWashuHe/genesis-history-experiment/pull/125#issuecomment-6388432868)
+  (organization-scoped decision timing, fixed at `811d0df`) and
+  [#126](https://github.com/HenryWashuHe/genesis-history-experiment/pull/126#issuecomment-6388485715)
+  (live judge input: four receipt and ordering findings, fixed at `957edf8`). Until those are
+  reviewed and merged, the ready demo path is the merged replay; the live judge path is desired,
+  not ready. Live mode draws two local dev kernels with provider stubs; it is not sponsor
+  evidence and does not revive event organizing as the lab demonstration or a gate.
+- **Research direction, labelled.** The owner asked that the iteration loop become a real
+  optimizer, domain-free and transferable. What exists is a **pilot scope**: an iteration
+  contract and synthetic reference held under review
+  ([#144](https://github.com/HenryWashuHe/genesis-history-experiment/pull/144#issuecomment-6389109865),
+  fixes at `fd35c2f`), a regression analysis of generation 2 (#160, under review; one observed
+  mechanism, the selection estimator, and plausible contributors, not established causes), and
+  a proposed strategy/adapter split of method packages that belongs to the forge lane. The
+  proposed success measures (per-family frontier over rounds; families where the frontier beats
+  seeded random search; families a strategy wins outside the one it was introduced in) are
+  research outcomes for that pilot. They do not substitute for the canonical G4 comparisons
+  (no-accumulation, task-tool and development-workflow controls, local-history comparison, total
+  costs and uncertainty) or for the accepted A→B→A chain.
 - **Division of work tonight.** Stage, Devpost and README wording: the polishing member.
-  Analysis, engine contract and reference, paper-ablation notes: the research side (ACP
-  lane). Forge, executor and kernel: untouched without a claim accepted on issue #1.
-- **Sponsors, each with a job in the demo and an honest status.**
-  Fetch.ai (ASI:One, Agentverse, uAgents) is the conversation and the channel between
-  organizations: evidence arrives through the ASI:One mission agent (adapter merged, live
-  planner behind it; the public agent still needs the owner's Agentverse login), and
-  specialist contracts and inter-lab offers ride agent-to-agent messages. Elastic (Agent
-  Builder, Elasticsearch) is the organization's memory and a second planner: the event
-  log and ledgers are searchable evidence, and an organization can run its planner on
-  Agent Builder (`GENESIS_LLM_PROVIDER=elastic`) while another runs on Anthropic, one
-  constitution, two minds (gate blocked on a data key without create-index privilege).
-  Apify is the capability factory: the venue-availability capability is a real Actor,
-  built, pinned and oracle-verified (gate passed, 3/3 cases); in the lab, Actors are the
-  executable adapter layer for web-data task families. CREAO is the persistent role: the
-  Venue monitor exists as a real hosted agent created today; persistent roles are what
-  survive a temporary team dissolving (reconciliation path merged; readiness not yet
-  verified). The stage shows each in the scene where it acts, with its status chip.
+  Analysis, iteration contract and reference, paper-ablation notes: the ACP lane. Forge,
+  executor, kernel and adoption authority: unchanged owners; nothing there without a claim
+  accepted on issue #1.
+- **Sponsors: implemented, operator-reported, planned.** Kept apart on purpose.
+  *Fetch.ai (ASI:One, Agentverse, uAgents).* Implemented: the ASI:One mission adapter (#3/#5)
+  with the local loopback stand-in exercised against the live planner. Operator-reported: none
+  beyond that. Planned: the public agent (needs the owner's Agentverse login) and any inter-lab
+  message carriage; the merged exact-method exchange is the registry HTTP API and client
+  (#132/#133), not agent messages.
+  *Elastic (Agent Builder, Elasticsearch).* Implemented: a planner provider option
+  (`GENESIS_LLM_PROVIDER=elastic`) and the smoke gate. Operator-reported: the data key lacks
+  create-index privilege, so the gate is blocked. Planned: searchable event and ledger memory,
+  and one organization planning on Agent Builder while another plans on Anthropic.
+  *Apify.* Operator-reported: one live Actor build and run, 3/3 cases, scored by a handwritten
+  baseline parser ([source report](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6382245294));
+  this is historical sponsor evidence from the venue workload, not a verified capability
+  factory. Planned: Actors as an executable adapter layer for web-data task families.
+  *CREAO.* Operator-reported: one hosted agent created by the v2 gate
+  ([report](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6386785969));
+  it was not bound into any organization and its creation run remains unresolved; the later
+  reconciliation implementation does not retroactively recover it. Planned: persistent roles that
+  survive a temporary team dissolving.
+  Venue artifacts are historical sponsor evidence and are labelled so on the stage.
