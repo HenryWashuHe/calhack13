@@ -107,6 +107,8 @@ pub struct AppState {
     pub gap_adoption_policy: Option<Arc<crate::capability_gap_adoption::GapAdoptionPolicy>>,
     pub acquisition_runtime: Arc<crate::capability_acquisition_runtime::AcquisitionRuntime>,
     pub(crate) adoption_gate: Arc<Mutex<()>>,
+    /// Trusted receiver configuration for method adoption; off unless set.
+    pub method_receiver: Option<Arc<crate::method_adoption::MethodReceiver>>,
 }
 
 /// Result of a kernel mutation.
