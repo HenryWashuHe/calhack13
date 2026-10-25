@@ -491,6 +491,15 @@ async fn malformed_local_requests_are_refused_before_network() {
             .error,
         "registry_invalid_request"
     );
+    bad_candidate.dependencies[1].sha256 = "b".repeat(64);
+    assert_eq!(
+        client
+            .fetch_method_candidate(&bad_candidate)
+            .await
+            .unwrap_err()
+            .error,
+        "registry_invalid_request"
+    );
     for which in 0..3 {
         let invalid_origin = RegistryClient::new(format!("{}/foreign", server.url), TOKEN);
         assert_eq!(
