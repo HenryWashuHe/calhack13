@@ -1,0 +1,416 @@
+{
+ "config": {
+  "generations": 5,
+  "k": 4,
+  "heldout": 20,
+  "screen": 3,
+  "factor": 2,
+  "target": 1.2,
+  "seed": "smoke-1",
+  "stall": 3,
+  "mock": false,
+  "effort": "medium",
+  "model": "claude-sonnet-5-5"
+ },
+ "controls": [
+  {
+   "id": "fixed-spt",
+   "package": "79e109cb0a1ced1fbd3541c45b33e428d5abf71df00ba2b7e380d8e5c1b93349",
+   "source": "(op) => -op.duration",
+   "evidence": null
+  },
+  {
+   "id": "fixed-mwkr",
+   "package": "985d11d8b287fc2283c1d78f0a911c8e27cd18bebc70f14e3a00e4e4a9b8d05e",
+   "source": "(op) => op.remainingWork",
+   "evidence": null
+  },
+  {
+   "id": "fixed-lpt",
+   "package": "ea2f53ee39032e0bd05c353cb7634227254011f072be104a5d4fce5bd4325969",
+   "source": "(op) => op.duration",
+   "evidence": null
+  },
+  {
+   "id": "random-search",
+   "package": "780548138190ab2575e2f15c70c310cc1ba4e6972f59615aced75393bbde546d",
+   "source": "(op) => (-0.96 * op.duration) + (0.58 * op.remainingWork) + (-0.19 * op.remainingOps) + (0.19 * op.machineRemainingLoad) + (0.47 * op.waiting)",
+   "evidence": {
+    "samples": 67,
+    "panel_instances": 6,
+    "training_success_count": 5,
+    "training_mean_progress": 0.8812970561098545,
+    "evaluations": 402
+   }
+  }
+ ],
+ "generations": [
+  {
+   "generation": 1,
+   "plan": "1aaaebc456257239fc8913677115b0cc4e231cb341682f4360e7df4e7389ed1c",
+   "incumbent": 9,
+   "controls": [
+    {
+     "slot": "control:0:fixed-spt",
+     "success_count": 9
+    },
+    {
+     "slot": "control:1:fixed-mwkr",
+     "success_count": 8
+    },
+    {
+     "slot": "control:2:fixed-lpt",
+     "success_count": 3
+    },
+    {
+     "slot": "control:3:random-search",
+     "success_count": 14
+    }
+   ],
+   "candidates": [
+    {
+     "slot": "candidate:0",
+     "success_count": 14,
+     "verdict": "rejected"
+    },
+    {
+     "slot": "candidate:1",
+     "success_count": 11,
+     "verdict": "rejected"
+    },
+    {
+     "slot": "candidate:2",
+     "success_count": 10,
+     "verdict": "rejected"
+    },
+    {
+     "slot": "candidate:3",
+     "success_count": 9,
+     "verdict": "rejected"
+    }
+   ],
+   "of": 20,
+   "promoted": null,
+   "dropped": []
+  },
+  {
+   "generation": 2,
+   "plan": "76c44576a6d43e7fad23799f7cd8e52c76cdb2a04ce6557463b2ddec9a6b65e4",
+   "incumbent": 9,
+   "controls": [
+    {
+     "slot": "control:0:fixed-spt",
+     "success_count": 9
+    },
+    {
+     "slot": "control:1:fixed-mwkr",
+     "success_count": 14
+    },
+    {
+     "slot": "control:2:fixed-lpt",
+     "success_count": 4
+    },
+    {
+     "slot": "control:3:random-search",
+     "success_count": 16
+    }
+   ],
+   "candidates": [
+    {
+     "slot": "candidate:0",
+     "success_count": 15,
+     "verdict": "rejected"
+    },
+    {
+     "slot": "candidate:1",
+     "success_count": 15,
+     "verdict": "rejected"
+    },
+    {
+     "slot": "candidate:2",
+     "success_count": 15,
+     "verdict": "rejected"
+    },
+    {
+     "slot": "candidate:3",
+     "success_count": 14,
+     "verdict": "rejected"
+    }
+   ],
+   "of": 20,
+   "promoted": null,
+   "dropped": []
+  },
+  {
+   "generation": 3,
+   "plan": "41536a4a6a3ced237dcaa8ebba7ae21af4bb0d05eaff092ff22b375fd4c204b8",
+   "incumbent": 11,
+   "controls": [
+    {
+     "slot": "control:0:fixed-spt",
+     "success_count": 11
+    },
+    {
+     "slot": "control:1:fixed-mwkr",
+     "success_count": 18
+    },
+    {
+     "slot": "control:2:fixed-lpt",
+     "success_count": 1
+    },
+    {
+     "slot": "control:3:random-search",
+     "success_count": 18
+    }
+   ],
+   "candidates": [
+    {
+     "slot": "candidate:0",
+     "success_count": 16,
+     "verdict": "rejected"
+    },
+    {
+     "slot": "candidate:1",
+     "success_count": 18,
+     "verdict": "rejected"
+    },
+    {
+     "slot": "candidate:2",
+     "success_count": 18,
+     "verdict": "rejected"
+    },
+    {
+     "slot": "candidate:3",
+     "success_count": 18,
+     "verdict": "rejected"
+    }
+   ],
+   "of": 20,
+   "promoted": null,
+   "dropped": []
+  }
+ ],
+ "calls": [
+  {
+   "generation": 1,
+   "stop_reason": "end_turn",
+   "model": "claude-sonnet-5-5",
+   "candidates": 8,
+   "usage": {
+    "input_tokens": 788,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 0
+    },
+    "iterations": [
+     {
+      "input_tokens": 788,
+      "output_tokens": 487,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0,
+      "cache_creation": {
+       "ephemeral_5m_input_tokens": 0,
+       "ephemeral_1h_input_tokens": 0
+      },
+      "type": "message",
+      "model": null
+     }
+    ],
+    "output_tokens": 487,
+    "output_tokens_details": {
+     "thinking_tokens": 0
+    },
+    "service_tier": "standard",
+    "inference_geo": "global",
+    "speed": "standard"
+   }
+  },
+  {
+   "generation": 2,
+   "stop_reason": "end_turn",
+   "model": "claude-sonnet-5-5",
+   "candidates": 8,
+   "usage": {
+    "input_tokens": 4989,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 0
+    },
+    "iterations": [
+     {
+      "input_tokens": 4989,
+      "output_tokens": 542,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0,
+      "cache_creation": {
+       "ephemeral_5m_input_tokens": 0,
+       "ephemeral_1h_input_tokens": 0
+      },
+      "type": "message",
+      "model": null
+     }
+    ],
+    "output_tokens": 542,
+    "output_tokens_details": {
+     "thinking_tokens": 0
+    },
+    "service_tier": "standard",
+    "inference_geo": "global",
+    "speed": "standard"
+   }
+  },
+  {
+   "generation": 3,
+   "stop_reason": "end_turn",
+   "model": "claude-sonnet-5-5",
+   "candidates": 8,
+   "usage": {
+    "input_tokens": 4998,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 0
+    },
+    "iterations": [
+     {
+      "input_tokens": 4998,
+      "output_tokens": 638,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0,
+      "cache_creation": {
+       "ephemeral_5m_input_tokens": 0,
+       "ephemeral_1h_input_tokens": 0
+      },
+      "type": "message",
+      "model": null
+     }
+    ],
+    "output_tokens": 638,
+    "output_tokens_details": {
+     "thinking_tokens": 0
+    },
+    "service_tier": "standard",
+    "inference_geo": "global",
+    "speed": "standard"
+   }
+  }
+ ],
+ "usage": {
+  "input_tokens": 10775,
+  "output_tokens": 1667,
+  "calls": 3,
+  "failures": 0
+ },
+ "screening": {
+  "evaluations": 72,
+  "rounds": [
+   {
+    "generation": 1,
+    "proposed": 8,
+    "kept": 4,
+    "panel": 3,
+    "dropped": [
+     {
+      "source": "(op, ctx) => op.remainingWork",
+      "success_count": 3,
+      "mean_progress": 0.8660771547524139
+     },
+     {
+      "source": "(op, ctx) => op.remainingWork * 1000 + op.machineRemainingLoad",
+      "success_count": 3,
+      "mean_progress": 0.8660771547524139
+     },
+     {
+      "source": "(op, ctx) => op.remainingWork + 0.5 * op.machineRemainingLoad",
+      "success_count": 3,
+      "mean_progress": 0.8660771547524139
+     },
+     {
+      "source": "(op, ctx) => op.remainingWork / op.remainingOps + 0.02 * op.machineRemainingLoad + 0.01 * op.remainingWork",
+      "success_count": 2,
+      "mean_progress": 0.8286109593525364
+     }
+    ]
+   },
+   {
+    "generation": 2,
+    "proposed": 8,
+    "kept": 4,
+    "panel": 3,
+    "dropped": [
+     {
+      "source": "(op, ctx) => op.remainingWork * 2 + op.machineRemainingLoad - op.duration + op.waiting * 0.2",
+      "success_count": 3,
+      "mean_progress": 0.9349665450203687
+     },
+     {
+      "source": "(op, ctx) => op.remainingWork + op.machineRemainingLoad - op.duration * 0.5",
+      "success_count": 3,
+      "mean_progress": 0.9349665450203687
+     },
+     {
+      "source": "(op, ctx) => op.remainingWork * 2 + op.machineRemainingLoad - op.duration * 1.3 - op.readyAt * 0.1",
+      "success_count": 3,
+      "mean_progress": 0.9349665450203687
+     },
+     {
+      "source": "(op, ctx) => op.remainingWork * op.machineRemainingLoad / 100 + op.remainingWork - op.duration",
+      "success_count": 3,
+      "mean_progress": 0.9345508409863155
+     }
+    ]
+   },
+   {
+    "generation": 3,
+    "proposed": 8,
+    "kept": 4,
+    "panel": 3,
+    "dropped": [
+     {
+      "source": "(op, ctx) => op.remainingWork * 4 + op.machineRemainingLoad * 2 + op.remainingOps * 8 - op.duration * 3",
+      "success_count": 2,
+      "mean_progress": 0.8869990746672362
+     },
+     {
+      "source": "(op, ctx) => op.remainingWork * op.machineRemainingLoad / 100 + op.remainingWork + op.remainingOps * 4 - op.duration",
+      "success_count": 2,
+      "mean_progress": 0.8869990746672362
+     },
+     {
+      "source": "(op, ctx) => op.remainingWork * 3 + op.machineRemainingLoad * 2 - op.duration * 2 + op.remainingOps * 5 + op.waiting * 0.2",
+      "success_count": 2,
+      "mean_progress": 0.8824564879164475
+     },
+     {
+      "source": "(op, ctx) => op.remainingWork * 2.5 + op.machineRemainingLoad * 1.5 + op.remainingOps * 5 - op.duration * 1.5 - op.readyAt * 0.1",
+      "success_count": 2,
+      "mean_progress": 0.8824564879164475
+     }
+    ]
+   }
+  ]
+ },
+ "evaluations": 540,
+ "model_calls": 3,
+ "confirmation": null,
+ "ledger_verify": {
+  "ok": true,
+  "head": "c1dbbfd561caba23db0ee46cef320acc87263aa81497bb328d870da9f60c25a9"
+ },
+ "elastic": {
+  "sent": true,
+  "status": 200,
+  "indexed": 0,
+  "failed": 46,
+  "errors": true,
+  "first_error": {
+   "type": "security_exception",
+   "reason": "action [indices:admin/auto_create] is unauthorized for API key id [59zwa6EBbxBEehIF6QiF] of user [2108621152] on indices [genesis-iteration-ledger], this action is granted by the index privileges [aut"
+  }
+ }
+}
