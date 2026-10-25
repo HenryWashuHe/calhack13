@@ -64,7 +64,42 @@ pub fn acceptance_plan_for(
     instances: u64,
     grant: ResourceGrant,
 ) -> TrialPlan {
-    let development_instances: Vec<_> = (0..instances)
+    acceptance_plan_from(
+        family,
+        methods,
+        sandbox,
+        interpreter_version,
+        0,
+        instances,
+        grant,
+    )
+}
+
+/// As [`acceptance_plan_for`], on seeds `first_seed..first_seed + instances`:
+/// this is another public development panel, visible to the method while it
+/// runs. A previously unused range can test a frozen method on a fresh task;
+/// it is not hidden design scoring or evidence of method non-access. Seed 0
+/// gives exactly the plan `acceptance_plan_for` builds. Panics if the range
+/// overflows `u64` or reaches
+/// the reserved hidden-seed domain (top bit set), so a public plan can never
+/// name an instance `refs::resolve_instance` refuses.
+pub fn acceptance_plan_from(
+    family: Family,
+    methods: &ExampleMethods,
+    sandbox: Mode,
+    interpreter_version: &str,
+    first_seed: u64,
+    instances: u64,
+    grant: ResourceGrant,
+) -> TrialPlan {
+    let end = first_seed
+        .checked_add(instances)
+        .expect("seed range overflows u64");
+    assert!(
+        instances == 0 || !genesis_lab_eval::score::is_hidden_seed(end - 1),
+        "seed range reaches the reserved hidden-seed domain"
+    );
+    let development_instances: Vec<_> = (first_seed..end)
         .map(|s| refs::instance_ref(family, s))
         .collect();
     let ids: Vec<_> = development_instances.iter().map(|r| r.id.clone()).collect();
@@ -80,7 +115,11 @@ pub fn acceptance_plan_for(
         purpose: TrialPurpose::Acceptance { role },
     };
     TrialPlan {
-        id: format!("example-{}-acceptance", family.name()),
+        id: if first_seed == 0 {
+            format!("example-{}-acceptance", family.name())
+        } else {
+            format!("example-{}-acceptance-from-{first_seed}", family.name())
+        },
         version: "1".into(),
         criterion: content(
             "lab-criterion/1",
