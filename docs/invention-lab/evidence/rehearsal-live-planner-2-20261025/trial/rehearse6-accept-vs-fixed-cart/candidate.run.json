@@ -1,0 +1,42 @@
+{
+  "outcome": "output_generated",
+  "outputs": [
+    {
+      "domain": "genesis-lab",
+      "id": "output",
+      "schema": "lab-design/1",
+      "sha256": "bdc7417ec8158ef5ad606161766d5abbe525b73eaa504d16f7904c71d03c5aa0",
+      "version": "1"
+    }
+  ],
+  "transcript": {
+    "domain": "genesis",
+    "id": "candidate",
+    "schema": "development-experiment-transcript/1",
+    "sha256": "21ed8b7d273c24789b2961e2c84391d983a155034e78d232f01ce7cccf81e058",
+    "version": "1"
+  },
+  "transcript_path": "/home/claude/genesis-history-experiment/docs/invention-lab/evidence/rehearsal-live-planner-2-20261025/trial/rehearse6-accept-vs-fixed-cart/candidate/transcript.json",
+  "usage": {
+    "input_tokens": {
+      "kind": "measured",
+      "value": 0
+    },
+    "model_calls": {
+      "kind": "measured",
+      "value": 0
+    },
+    "output_tokens": {
+      "kind": "measured",
+      "value": 0
+    },
+    "simulation_steps": {
+      "kind": "measured",
+      "value": 52382
+    },
+    "wall_time_ms": {
+      "kind": "measured",
+      "value": 1301
+    }
+  }
+}

@@ -1,0 +1,126 @@
+[
+  {
+    "body": {
+      "error": "unauthorized",
+      "message": "missing or invalid bearer token"
+    },
+    "status": 401,
+    "who": "A's operator token on B"
+  },
+  {
+    "body": {
+      "authority_sha256": "95c7752771524311d7fcde36ddbd5aaeb88db7c6e5a7c5485d4f821861695207",
+      "client_request_id": "lead-adopts",
+      "compatibility": {
+        "protocol": {
+          "domain": "genesis-lab",
+          "id": "genesis-lab-exec-lines",
+          "schema": "lab-protocol/1",
+          "sha256": "d3b90c36b32e89b4e3d191dc018717301a4afc386ac915123cf5cf86250c550d",
+          "version": "1"
+        },
+        "runtime": {
+          "domain": "genesis-lab",
+          "id": "python3",
+          "schema": "lab-runtime/1",
+          "sha256": "0b21e795ac528c0f9cbe99e28ca1125af0c4dc5b87f53224abfe2a2ae5a69491",
+          "version": "1"
+        }
+      },
+      "created_at": "2026-10-25T08:30:13.942397691Z",
+      "grant": {
+        "assignment_id": "asg_1730136bcd0c4d58bac51c135ced19ee",
+        "epoch": 1,
+        "responsibility_id": "rsp_10c34e929dc848abba941635f3441b86",
+        "role_id": "role_9649bd2660b94b2fa9ec2ea25b1ffde0"
+      },
+      "id": "madopt_406cd678cfbd4e2d990a657a836a1a4b",
+      "intent_sha256": "27a666301c92e643326a4c7dcc7dc3dad2eede6277bb822b72d8ed9c2f8799d1",
+      "lease_expires_at": null,
+      "mission_id": "mis_6f0171db2f964fcda0fe65187b67c6b2",
+      "mission_sha256": "103eadc72e853014967bad6ab228d81dcbdab324601a2399f929c589adbf8654",
+      "org_id": "org_example_b",
+      "outcome": {
+        "evidence": {
+          "acceptance": {
+            "acceptance": "accepted",
+            "candidate": 4,
+            "control": 2,
+            "of": 6
+          },
+          "criterion": {
+            "domain": "genesis-lab",
+            "id": "success-count-margin",
+            "schema": "lab-criterion/1",
+            "sha256": "a8860670941bdd19344404d7dfa685262c8894a9108af89a80cc7e854de79797",
+            "version": "1"
+          },
+          "dependencies": [],
+          "environment": {
+            "domain": "genesis-lab",
+            "id": "genesis-lab-exec/namespaces",
+            "schema": "lab-environment/1",
+            "sha256": "eea594d411dd74e146bf8e2a99e4c7b6f6c0249eb67a640d090df0a2554ec74f",
+            "version": "0.1.0"
+          },
+          "evaluator": {
+            "domain": "genesis-lab",
+            "id": "genesis-lab-eval",
+            "schema": "lab-evaluator/1",
+            "sha256": "1f03d1b6499721e6ddae6e600b688c123a8684e34c56f53cde8104d361246f42",
+            "version": "0.1.0"
+          },
+          "files": {
+            "candidate-score/artifacts/1b2e00334126433d3840fdf96477b413115b8a3c26c6e575757bc5d67d0eecb6": "1b2e00334126433d3840fdf96477b413115b8a3c26c6e575757bc5d67d0eecb6",
+            "candidate-score/evaluation.json": "f4f043227f92f548aea60a619533b4c01a394898fc03446c72bfb232d5d4a698",
+            "candidate/receipt.json": "691d66820b6b58f775805cebc139fd4a451940eb7ddc5db861df66a3790a282b",
+            "control-score/artifacts/846e29c1603ea4e6fb37f70ecdaf35190851ff2f9109acd2208dcc0738b5f718": "846e29c1603ea4e6fb37f70ecdaf35190851ff2f9109acd2208dcc0738b5f718",
+            "control-score/evaluation.json": "049b418ff282575d095d23b2c6e66b7b410a703d1db953229e9989331732a136",
+            "control/receipt.json": "865ef1d9348c5f2268d55fb8660ab44bfe2d78e171d27cb4bf4133492b0f4b0c",
+            "criterion.json": "a8860670941bdd19344404d7dfa685262c8894a9108af89a80cc7e854de79797",
+            "plan.json": "62054780669ff92083b9e06f6cf78182124e857434ae6236ebc5730189ed5e57"
+          },
+          "method": {
+            "domain": "genesis",
+            "id": "receiver-revised-method",
+            "schema": "development-method-source/1",
+            "sha256": "4f455dc6e625bdaf554d567bdd7f0bc0c7b601a1ea6332d4e7a13e02005db14d",
+            "version": "0.1.0"
+          },
+          "plan": {
+            "domain": "genesis",
+            "id": "receive-rehearse6-accept-vs-fixed-cart",
+            "schema": "development-trial-plan/1",
+            "sha256": "783b47cf74093d89482c83249d367773abb3c169a7c42418b23966b55d377ef6",
+            "version": "1"
+          },
+          "public_task": {
+            "domain": "genesis-lab",
+            "id": "rough-transport",
+            "schema": "lab-task/1",
+            "sha256": "7ea1854c2b359837033ade75434e2ca165465492792fbb66efaf21117758456b",
+            "version": "1"
+          },
+          "publisher": "org_example_a",
+          "trial": "rehearse6-accept-vs-fixed-cart"
+        },
+        "outcome": "adopted"
+      },
+      "publisher": "org_example_a",
+      "reference": {
+        "domain": "genesis",
+        "id": "receiver-revised-method",
+        "schema": "development-method-source/1",
+        "sha256": "4f455dc6e625bdaf554d567bdd7f0bc0c7b601a1ea6332d4e7a13e02005db14d",
+        "version": "0.1.0"
+      },
+      "requirement_id": "req_2d1dbd8187ac48c78b5479c284726e25",
+      "requirement_sha256": "9c6f2c19dd8d048a5477a7d4780a1502fee5edcaa0193909e4ea374c26d26b05",
+      "responsibility_id": "rsp_10c34e929dc848abba941635f3441b86",
+      "role_id": "role_9649bd2660b94b2fa9ec2ea25b1ffde0",
+      "schema_version": 2
+    },
+    "status": 201,
+    "who": "B's lead"
+  }
+]
