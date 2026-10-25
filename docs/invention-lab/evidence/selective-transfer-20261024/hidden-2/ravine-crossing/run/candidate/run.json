@@ -1,0 +1,21 @@
+{
+  "started": true,
+  "method": {
+    "domain": "genesis",
+    "schema": "development-method-source/1",
+    "id": "generated-method",
+    "version": "0.1.0",
+    "sha256": "8215c3679a06724069759bcbdaa576b64ec0ef1251c5238a797c0cb34962b944"
+  },
+  "submission": {
+    "domain": "genesis-lab",
+    "schema": "lab-design/1",
+    "id": "output",
+    "version": "1",
+    "sha256": "cd7ce0791d658a524e3f192a37f794ea699fcab57afa7839cc3b9427dafa7b4c"
+  },
+  "sealed": true,
+  "finished": true,
+  "terminated": "the executor reaped the sandbox's first process; the kernel ends every process in its PID namespace with it",
+  "terminated_tree": true
+}

@@ -1,0 +1,20 @@
+{
+  "receiver_org": "org_example_b",
+  "decision": "local confirmation trial of A's unchanged parent on fresh public seeds; no adoption, installation or invocation",
+  "predeclared": "https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6390339775",
+  "spec_commit": "220f764",
+  "spec_sha256": "9d23de584031ec159310ba11515da549211893c21c42091dea736f552c6d0d65",
+  "parent_package_sha256": "8215c3679a06724069759bcbdaa576b64ec0ef1251c5238a797c0cb34962b944",
+  "random_search_package_sha256": "06777e8ed363a1f77c41d31e6e746c29f08e1850041353dfb6453a91d1aaee8d",
+  "executor_source": "6636596 (PR #65 head, unmerged)",
+  "lab_exec_sha256": "59e77e1cf649352ee9121ba6e2a8bf1e41f1870be06af072ff0dc78af61cc51e",
+  "lab_score_sha256": "5f8a9f676dca96c41bc425b5c629345959739525d75cbe0316e0a6a7fccdc75b",
+  "receive_tool": "experiments/invention-lab/scoring/tools/receive.py at 66118d2 (PR #163, unmerged)",
+  "sandbox": "namespaces (net, ipc, mount, pid; per-run minimal chroot root; nobody, no_new_privs)",
+  "runtime_ref_sha256": "0b21e795ac528c0f9cbe99e28ca1125af0c4dc5b87f53224abfe2a2ae5a69491",
+  "runtime_build_used": "python-build-standalone cpython-3.14.0-linux-x86_64-gnu, at /usr/lib/py314, symlinked as python3 only for the run",
+  "host": "Linux 6.18.44 x86_64, util-linux 2.39.3, root",
+  "seeds": "public 3000..3011 per family; disjoint from 0..5, 1000..1011 and the #163 smoke",
+  "criterion": "success-count-margin, min_margin 1, no unknown usage allowed",
+  "runs": "one run per slot; no reruns, no selection, no edits"
+}

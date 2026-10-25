@@ -174,6 +174,10 @@ details.live summary { cursor: pointer; color: var(--chalk-dim); }
 .hint { font-size: 12px; color: var(--chalk-dim); margin-top: 10px; max-width: 80ch; }
 .status { font-family: var(--mono); font-size: 12px; color: var(--mint); }
 .status.bad { color: var(--rose); }
+/* Live judge input: one observation to Org A with the agent token, live mode only */
+.judge { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 10px; align-items: center; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); }
+.judge[hidden] { display: none; }
+.judge .status { grid-column: 1 / -1; }
 
 /* Disruptions a judge can throw at the replay (scripted transcripts, never live) */
 .disrupt { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 13px; color: var(--chalk-dim); }
@@ -272,6 +276,11 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
     <div class="track">
       <h3><span>The conversation (ASI:One)</span><span>agent token only</span></h3>
       <div class="chat" id="chat"></div>
+      <form class="judge" id="judgeform" hidden autocomplete="off" aria-label="Throw a live disruption at Org A">
+        <input class="field" id="judgetext" type="text" maxlength="200" placeholder="Throw a live disruption at Org A, e.g. the caterer cancelled for Nov 14" aria-label="What happened">
+        <button class="btn primary" id="judgesend" type="submit">Report live</button>
+        <span class="status" id="judgestatus">Live: posts one observation to Org A with the agent token; the planner model decides.</span>
+      </form>
     </div>
   </section>
 
@@ -469,7 +478,7 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
   function setBadge(text, live) { const m = $("mode"); m.textContent = text; m.classList.toggle("live", !!live); }
 
   // ---- mode ownership ----
-  const app = { mode: "idle", gen: 0, scene: 0, timer: null, liveTimer: null, cursors: { A: 0, B: 0 }, tail: [], seen: 0, seenIds: new Set(), tick: 0, applied: 0, thrown: [], present: false, prevRoles: {}, obsAt: new Map() };
+  const app = { mode: "idle", gen: 0, scene: 0, timer: null, liveTimer: null, cursors: { A: 0, B: 0 }, tail: [], seen: 0, seenIds: new Set(), tick: 0, applied: 0, thrown: [], present: false, prevRoles: {}, obsAt: new Map(), live: null, liveChat: [], lastJudge: 0, lastJudgeObs: null, answers: new Map(), ackKey: null };
   const TAIL = 200;
   const body = document.body || null;
 
@@ -552,6 +561,7 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
     app.gen += 1; clearInterval(app.liveTimer); app.liveTimer = null;
     app.mode = "replay"; setBadge("Historical fixture replay", false); setReplayControls(true);
     $("livestatus").textContent = ""; $("livestatus").classList.remove("bad");
+    app.live = null; $("judgeform").hidden = true;
     renderScene(app.scene);
   }
   function enterIdle() {
@@ -567,6 +577,7 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
     renderLineage([], "Nothing to show until a source is selected."); renderEvents([], 0, "0 events"); renderChat([]);
     renderAudit(null, 12, "not checked"); $("livestatus").textContent = ""; $("livestatus").classList.remove("bad");
     renderProof([]); hideDecision(); app.prevRoles = {}; $("progress").classList.remove("running");
+    app.live = null; $("judgeform").hidden = true;
     caption("No source selected");
   }
 
@@ -679,6 +690,7 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
       $("revA").textContent = "r" + sa.revision; $("revB").textContent = "r" + sb.revision;
       const mA = Object.values(sa.missions || {})[0], mB = Object.values(sb.missions || {})[0];
       $("missionA").textContent = mA ? mA.goal : "No mission"; $("missionB").textContent = mB ? mB.goal : "No mission";
+      app.live = { cfg, gen, missionA: mA ? mA.mission_id : null }; $("judgeform").hidden = false;
       $("noteA").hidden = true;
       const gaps = Object.values(sa.capability_gaps || {});
       if (gaps.length) { const st = typeof gaps[0].status === "object" ? gaps[0].status.state : gaps[0].status; setGap(String(st).toUpperCase()); } else setGap(null);
@@ -688,7 +700,7 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
       const firstA = Object.values(sa.installations || {}).find(accepted);
       if (inh.adopted) setToken("b", inh.adopted); else if (firstA) setToken("a", key(firstA)); else setToken(null);
       // incremental event cursors; bounded visible tail
-      let fresh = 0;
+      let fresh = 0, ack = null; // ack: the judge's own answer seen in this poll, re-rendered after every event is applied
       for (const [org, list] of [["A", ea], ["B", eb]]) {
         for (const e of list) {
           const id = org + e.seq;
@@ -702,10 +714,16 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
             // The card shows the kernel's own timestamps: decision minus the observation it answers, when both are in the log.
             const at = app.obsAt.get(org + ":" + p.observation_id), decided = Date.parse(e.timestamp);
             const seconds = Number.isFinite(at) && Number.isFinite(decided) && decided >= at ? (decided - at) / 1000 : undefined;
-            showDecision({ verdict: String(p.verdict || "").replace(/_/g, " "), why: p.summary, source: "live kernel " + (org === "A" ? (sa.org_id || "A") : (sb.org_id || "B")), model: p.model || "model unknown", when: seconds === undefined ? "" : `decided ${seconds.toFixed(1)} s after the evidence` });
+            const verdict = String(p.verdict || "").replace(/_/g, " ");
+            const card = { verdict, why: p.summary, source: "live kernel " + (org === "A" ? (sa.org_id || "A") : (sb.org_id || "B")), model: p.model || "model unknown", when: seconds === undefined ? "" : `decided ${seconds.toFixed(1)} s after the evidence` };
+            showDecision(card);
+            if (p.observation_id) app.answers.set(org + ":" + p.observation_id, card); // the complete answer, keyed by organization and observation
+            if (org === "A" && p.observation_id && p.observation_id === app.lastJudgeObs) ack = org + ":" + p.observation_id;
           }
         }
       }
+      if (ack) { app.ackKey = ack; judgeStatus(`The planner answered: ${app.answers.get(ack).verdict}. See the decision card.`); }
+      if (app.ackKey && app.answers.has(app.ackKey)) showDecision(app.answers.get(app.ackKey)); // while the status points at it, the card stays the judge's own answer, whatever later polls bring
       app.tail.sort((x, y) => String(x[3]).localeCompare(String(y[3])));
       if (app.tail.length > TAIL) app.tail.splice(0, app.tail.length - TAIL);
       renderEvents(app.tail.map((r) => r.slice(0, 3)), Math.min(fresh, TAIL), app.seen > TAIL ? `last ${TAIL} of ${app.seen} events` : `${app.seen} events`);
@@ -713,7 +731,7 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
       renderAudit(null, Math.max(12, last + 1), `r0–r${sa.revision} stored; the invariant audit is not run by this page (use genesis audit)`);
       $("beat").textContent = "Live: this is the kernel's own state and event log."; $("sub").textContent = "Roles, bindings and installations are drawn exactly as the two organizations report them. DEV STUB bindings are development stand-ins. Inheritance is drawn only for an exact version B accepted that A accepted and published.";
       $("livestatus").textContent = "connected · " + new Date().toLocaleTimeString(); $("livestatus").classList.remove("bad");
-      caption(`Live kernel · ${sa.org_id || "A"} r${sa.revision} · ${sb.org_id || "B"} r${sb.revision} · disruptions come from the ASI:One agent or the local stand-in, not from this page`);
+      caption(`Live kernel · ${sa.org_id || "A"} r${sa.revision} · ${sb.org_id || "B"} r${sb.revision} · Report live posts evidence to Org A with the agent token; the planner decides`);
     } catch (err) {
       if (gen !== app.gen || seq < app.applied) return;
       app.applied = seq;
@@ -728,9 +746,11 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
     renderTree($("treeA"), []); renderTree($("treeB"), []);
     $("revA").textContent = "r?"; $("revB").textContent = "r?"; $("missionA").textContent = "Waiting for the kernel…"; $("missionB").textContent = "Waiting for the kernel…";
     $("noteA").hidden = true; setToken(null); setGap(null);
-    renderLineage([], "Waiting for the kernel…"); renderEvents([], 0, "0 events"); renderChat([{ org: "Live mode reads the kernel only. Use the ASI:One agent or the local chat stand-in for the conversation." }]);
+    app.liveChat = [{ org: "Live mode reads the kernel only. The ASI:One agent, the local chat stand-in and the Report live box below can record evidence; nothing here can commit." }];
+    renderLineage([], "Waiting for the kernel…"); renderEvents([], 0, "0 events"); renderChat(app.liveChat);
+    app.live = null; app.lastJudgeObs = null; $("judgeform").hidden = true; $("judgestatus").textContent = "Live: posts one observation to Org A with the agent token; the planner model decides."; $("judgestatus").classList.remove("bad");
     renderAudit(null, 12, "not checked by this page"); $("beat").textContent = "Connecting to the kernel…"; $("sub").textContent = "Nothing is shown until the first response arrives.";
-    renderProof([]); hideDecision(); app.prevRoles = {}; app.obsAt = new Map(); $("progress").classList.remove("running");
+    renderProof([]); hideDecision(); app.prevRoles = {}; app.obsAt = new Map(); app.answers = new Map(); app.ackKey = null; $("progress").classList.remove("running");
     caption("Connecting to the kernel");
   }
   $("liveform").addEventListener("submit", (e) => {
@@ -740,6 +760,44 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
     setBadge("Connecting to kernel", true); setReplayControls(false); clearForLive();
     clearInterval(app.liveTimer); tick(cfg, gen); app.liveTimer = setInterval(() => tick(cfg, gen), 2000);
   });
+  // The judge's live disruption: exactly one observation per submit, agent token only, live mode only,
+  // one every JUDGE_COOLDOWN_MS, 200 characters. The planner's answer arrives through the normal poll.
+  const JUDGE_COOLDOWN_MS = 10000;
+  function judgeStatus(text, bad) { $("judgestatus").textContent = text; $("judgestatus").classList.toggle("bad", !!bad); }
+  async function judgeSubmit(e) {
+    e.preventDefault();
+    const live = app.live;
+    if (app.mode !== "live" || !live) return;
+    const summary = String($("judgetext").value || "").trim().slice(0, 200);
+    if (!summary) return judgeStatus("Type what happened, in one sentence.", true);
+    if (!live.missionA) return judgeStatus("Org A has no mission to attach evidence to.", true);
+    const wait = JUDGE_COOLDOWN_MS - (Date.now() - app.lastJudge);
+    if (wait > 0) return judgeStatus(`Wait ${Math.ceil(wait / 1000)} s before the next one.`, true);
+    app.lastJudge = Date.now(); $("judgesend").disabled = true; judgeStatus("Recording…");
+    const gen = live.gen;
+    try {
+      const r = await fetch(`${live.cfg.urlA}/missions/${encodeURIComponent(live.missionA)}/observations`, {
+        method: "POST", headers: { Authorization: "Bearer " + live.cfg.tokA, "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ source: "stage-judge", summary, evidence_ref: "stage://judge/" + Date.now() }),
+      });
+      const rec = await r.json().catch(() => ({}));
+      if (gen !== app.gen) return; // a newer connection or the replay owns the screen; a failed read alone never discards a receipt
+      if (!r.ok) return judgeStatus(`The kernel refused it: HTTP ${r.status} ${rec && rec.error ? rec.error : ""}`.trim(), true);
+      const id = typeof rec.observation_id === "string" && /^[A-Za-z0-9_.:-]{3,128}$/.test(rec.observation_id) ? rec.observation_id : null; // a receipt needs an identity, not a particular spelling
+      if (!id) return judgeStatus(`The kernel answered HTTP ${r.status} without an observation id. Delivery is unconfirmed and the report may have been recorded. The text is kept; check the kernel log before sending another report.`, true);
+      app.lastJudgeObs = id;
+      app.liveChat = [...app.liveChat, { you: "report " + summary }, { org: `Recorded as evidence ${id} for Org A's mission (live). The planner is reading it now; its verdict appears in the decision card.` }];
+      renderChat(app.liveChat); $("judgetext").value = "";
+      const early = app.answers.get("A:" + id); // the planner may have answered before this receipt arrived
+      app.ackKey = early ? "A:" + id : null; // a new report withdraws the previous link
+      if (early) showDecision(early);
+      judgeStatus(early ? `The planner answered: ${early.verdict}. See the decision card.` : `Recorded ${id} · waiting for the planner`);
+    } catch (err) {
+      if (gen !== app.gen) return;
+      judgeStatus("Delivery is unconfirmed; the report may have been recorded. The text is kept; check the kernel log before sending another report. " + (err && err.message ? err.message : "Response unavailable."), true);
+    } finally { $("judgesend").disabled = false; }
+  }
+  $("judgeform").addEventListener("submit", judgeSubmit);
   $("backreplay").addEventListener("click", enterReplay);
   $("playreplay").addEventListener("click", () => { app.scene = 0; resetDisruptions(); enterReplay(); });
   $("idle").addEventListener("click", enterIdle);
