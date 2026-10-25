@@ -148,6 +148,67 @@ class InvokeTests(unittest.TestCase):
                          "--out", str(self.root / "other")])
         self.assertEqual(len(Org.requests), 1)
 
+    def scored_run(self):
+        self.prepare()
+        calls, run = self.fake_lab_exec()
+        with patch.object(invoke.subprocess, "run", run):
+            invoke.main(self.run_args())
+        Org.responses["/result"] = (200, {"id": "mrun_1", "status": "completed",
+                                          "result": {"attachment": {"kind": "attached"}}})
+
+    def fake_lab_score(self, evaluation=True):
+        calls = []
+
+        def run(args, stdout, stderr):
+            calls.append(args)
+            if evaluation:
+                os.makedirs(args[5])
+                Path(args[5], "evaluation.json").write_text(json.dumps({"evaluation": 1}))
+            return type("Done", (), {"returncode": 0})()
+        return calls, run
+
+    def test_score_runs_lab_score_once_and_posts_the_evaluation(self):
+        self.scored_run()
+        calls, run = self.fake_lab_score()
+        with patch.object(invoke.subprocess, "run", run):
+            invoke.main(["score", str(self.dir), "--lab-score", "lab-score"])
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(calls[0][1:4], ["score", str(self.dir / "plan.json"), "use"])
+        self.assertEqual(Org.requests[-1][0], "/api/v1/method-runs/mrun_1/result")
+        self.assertEqual(Org.requests[-1][2], {"evaluation": 1})
+        self.assertTrue((self.dir / "result.json").exists())
+        # Never scored twice.
+        with patch.object(invoke.subprocess, "run", run), self.assertRaises(SystemExit):
+            invoke.main(["score", str(self.dir), "--lab-score", "lab-score"])
+        self.assertEqual(len(calls), 1)
+
+    def test_score_needs_an_accepted_receipt_and_an_evaluation(self):
+        self.prepare()
+        calls, run = self.fake_lab_score()
+        with patch.object(invoke.subprocess, "run", run), self.assertRaises(SystemExit):
+            invoke.main(["score", str(self.dir), "--lab-score", "lab-score"])
+        self.assertEqual(calls, [])
+        self.scored_run_after_prepare()
+        calls, run = self.fake_lab_score(evaluation=False)
+        before = len(Org.requests)
+        with patch.object(invoke.subprocess, "run", run), self.assertRaises(SystemExit):
+            invoke.main(["score", str(self.dir), "--lab-score", "lab-score"])
+        self.assertEqual(len(Org.requests), before, "nothing posted without an evaluation")
+
+    def scored_run_after_prepare(self):
+        calls, run = self.fake_lab_exec()
+        with patch.object(invoke.subprocess, "run", run):
+            invoke.main(self.run_args())
+        Org.responses["/result"] = (200, {"result": {"attachment": {"kind": "attached"}}})
+
+    def test_a_refused_result_is_kept(self):
+        self.scored_run()
+        Org.responses["/result"] = (422, {"error": "method_run_binding"})
+        calls, run = self.fake_lab_score()
+        with patch.object(invoke.subprocess, "run", run), self.assertRaises(SystemExit):
+            invoke.main(["score", str(self.dir), "--lab-score", "lab-score"])
+        self.assertTrue((self.dir / "result-refused.json").exists())
+
 
 if __name__ == "__main__":
     unittest.main()
