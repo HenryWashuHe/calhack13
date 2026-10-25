@@ -51,8 +51,9 @@ fn configured(app: &AppState) -> ApiResult<std::sync::Arc<crate::method_adoption
     })
 }
 
-/// The cheap checks, before anything is executed for a decision: the
-/// requirement has a receiver pin naming this publisher, and the retained
+/// The cheap checks, before anything is executed for a decision: the current
+/// owner has a live grant and required scope, the requirement has a receiver
+/// pin naming this publisher, and the retained
 /// trial passes assessment's own selection, compatibility, environment,
 /// evaluator and dependency checks under exactly that pinned plan. The store
 /// repeats all of this inside its transaction. Returns the pinned plan.
@@ -73,17 +74,17 @@ fn pre_assess(
                 "this requirement has no receiver-pinned acceptance plan for this publisher".into(),
             ))
         })?;
-    let org = app
+    let state = app
         .store
         .current_state()
-        .map_err(|_| ApiError::internal("organization state is unavailable"))?
-        .org_id;
+        .map_err(|_| ApiError::internal("organization state is unavailable"))?;
+    crate::method_adoption_store::adoption_authority(&state, body, Utc::now()).map_err(error)?;
     let selected = SelectedMethod {
         publisher: body.publisher.clone(),
         reference: body.reference.clone(),
         package_json: package_json.into(),
     };
-    let evidence = assess_selected(receiver, &org, &selected, trial).map_err(refuse)?;
+    let evidence = assess_selected(receiver, &state.org_id, &selected, trial).map_err(refuse)?;
     if evidence.plan != pin.plan {
         return Err(refuse(MethodAcceptanceError::Binding(
             "the trial is not this requirement's pinned acceptance plan".into(),
