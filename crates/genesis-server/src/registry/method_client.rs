@@ -43,9 +43,9 @@ fn validate_candidate(candidate: &MethodCandidate) -> ApiResult<()> {
 
 impl RegistryClient {
     /// Publish public source once. The configured token determines the remote
-    /// publisher; this independently supplied expectation checks its response.
-    /// Any error, including an identity mismatch, may follow a committed write;
-    /// this expectation cannot prevent a misconfigured token's publication.
+    /// publisher. This expectation is sent as a pre-write check and also checked
+    /// against the response. Older servers may ignore it; transport/response
+    /// errors can still follow a committed write, so reconcile before retrying.
     pub async fn publish_method(
         &self,
         expected_publisher: &OrgId,
@@ -60,6 +60,7 @@ impl RegistryClient {
         let response = self
             .http
             .post(url)
+            .query(&[("expected_publisher", expected_publisher.as_str())])
             .bearer_auth(&self.token)
             .json(publication)
             .send()
