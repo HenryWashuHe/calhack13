@@ -364,6 +364,7 @@ pub fn build_org(cfg: &OrgConfig, providers: Option<ProviderSet>) -> anyhow::Res
         readiness: specialist::ReadinessRegistry::default(),
         method_receiver: None,
         method_rescorer: None,
+        method_reexecutor: None,
     })
 }
 

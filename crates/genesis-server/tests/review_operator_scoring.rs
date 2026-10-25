@@ -15,7 +15,7 @@ use genesis_core::ids::{ObservationId, OrgId, RequirementId};
 use genesis_core::lifecycle::RequirementStatus;
 use genesis_core::model::{Observation, Owner, Requirement};
 use genesis_server::method_adoption::{AcceptancePin, MethodReceiver};
-use genesis_server::method_rescore::MethodRescorer;
+use genesis_server::method_rescore::{MethodReexecutor, MethodRescorer};
 use genesis_server::registry::{self, RegistryState};
 use genesis_server::store::EventMeta;
 use genesis_server::{build_org, serve_org, OrgConfig};
@@ -144,16 +144,31 @@ fn stand_in(
     (path, hex(script.as_bytes()))
 }
 
+/// How the re-executor is configured for one decision.
+enum Executor {
+    None,
+    /// A stand-in that writes the pristine retained receipt for each slot, as
+    /// a deterministic re-run would.
+    Pristine,
+    /// The stand-in, with no control package held by the receiver.
+    NoPackages,
+    /// The stand-in, with the receiver's pin naming another plan.
+    WrongPin,
+    /// The real executor at this path (the build the plan's environment pins),
+    /// finding the pinned runtime on this `PATH`.
+    Real(String, String),
+}
+
 /// Serves B with one assigned requirement and the retained trial (forged or
 /// not), asks to adopt A's child method with it, and returns the response.
 async fn decide(forged: bool, scorer: Scorer) -> (u16, Value) {
-    decide_with(forged, None, scorer).await
+    decide_with(forged, None, scorer, Executor::None).await
 }
 
 /// Replace the candidate's retained output with the parent method's output on
-/// the same panel (from the retained trial vs the parent), then rescore that
-/// slot honestly with the real scorer so every record stays consistent.
-fn swap_candidate_output(trial: &Path, lab_score: &str) {
+/// the same panel (from the retained trial vs the parent), then, given a real
+/// scorer, rescore that slot honestly so every record stays consistent.
+fn swap_candidate_output(trial: &Path, lab_score: Option<&str>) {
     let parent_trial = Path::new(&format!(
         "{EVIDENCE}/live-method-20261024-b-revision-receiver"
     ))
@@ -179,6 +194,9 @@ fn swap_candidate_output(trial: &Path, lab_score: &str) {
         serde_json::to_vec_pretty(&receipt).unwrap(),
     )
     .unwrap();
+    let Some(lab_score) = lab_score else {
+        return;
+    };
     std::fs::remove_dir_all(trial.join("candidate-score")).unwrap();
     let status = std::process::Command::new(lab_score)
         .arg("score")
@@ -192,7 +210,14 @@ fn swap_candidate_output(trial: &Path, lab_score: &str) {
     assert!(status.success());
 }
 
-async fn decide_with(forged: bool, swap: Option<&str>, scorer: Scorer) -> (u16, Value) {
+/// `swap`: `None` leaves the candidate's output; `Some(None)` swaps it without
+/// rescoring; `Some(Some(lab_score))` swaps it and rescores it honestly.
+async fn decide_with(
+    forged: bool,
+    swap: Option<Option<&str>>,
+    scorer: Scorer,
+    executor: Executor,
+) -> (u16, Value) {
     let dir = tempfile::tempdir().unwrap();
     let state = RegistryState::open(
         dir.path().join("registry.db"),
@@ -246,6 +271,13 @@ async fn decide_with(forged: bool, swap: Option<&str>, scorer: Scorer) -> (u16, 
     }
     if let Some(lab_score) = swap {
         swap_candidate_output(&trial, lab_score);
+    }
+    let packages = dir.path().join("packages");
+    std::fs::create_dir(&packages).unwrap();
+    let receiving = format!("{EVIDENCE}/live-method-20261024-b-revision-receiver");
+    let control = std::fs::read(format!("{receiving}/random-search.package.json")).unwrap();
+    if !matches!(executor, Executor::NoPackages) {
+        std::fs::write(packages.join(format!("{}.json", hex(&control))), &control).unwrap();
     }
     let plan: Value =
         serde_json::from_slice(&std::fs::read(trial.join("plan.json")).unwrap()).unwrap();
@@ -318,10 +350,16 @@ async fn decide_with(forged: bool, swap: Option<&str>, scorer: Scorer) -> (u16, 
         acceptance_plans: vec![AcceptancePin {
             requirement_id: requirement.clone(),
             publisher: OrgId::new("org_example_a"),
-            plan: serde_json::from_value::<TrialPlan>(plan.clone())
-                .unwrap()
-                .reference()
-                .unwrap(),
+            plan: {
+                let mut pinned = serde_json::from_value::<TrialPlan>(plan.clone())
+                    .unwrap()
+                    .reference()
+                    .unwrap();
+                if matches!(executor, Executor::WrongPin) {
+                    pinned.sha256 = "0".repeat(64);
+                }
+                pinned
+            },
         }],
     }));
     app.method_rescorer = match scorer {
@@ -355,6 +393,41 @@ async fn decide_with(forged: bool, swap: Option<&str>, scorer: Scorer) -> (u16, 
                 timeout_ms: None,
             })
         }
+    }
+    .map(Arc::new);
+    app.method_reexecutor = match executor {
+        Executor::None => None,
+        Executor::Pristine | Executor::NoPackages | Executor::WrongPin => {
+            // It checks it was handed the right package for the slot, then
+            // writes the retained receipt, as a deterministic re-run would.
+            let script = format!(
+                "#!/bin/sh\nset -e\n[ \"$1\" = run ] && [ -f \"$2\" ] && [ \"$6\" = namespaces ]\n\
+                 case \"$3\" in candidate) want={};; control) want={};; *) exit 3;; esac\n\
+                 [ \"$(/usr/bin/sha256sum \"$4\" | /usr/bin/cut -c1-64)\" = \"$want\" ]\n\
+                 /bin/mkdir -p \"$5\"\n/bin/cp {}/$3/receipt.json \"$5/receipt.json\"\n",
+                child.sha256,
+                hex(&control),
+                pristine.display()
+            );
+            let path = dir.path().join("executor.sh");
+            std::fs::write(&path, &script).unwrap();
+            Some(MethodReexecutor {
+                path,
+                sha256: hex(script.as_bytes()),
+                sandbox: "namespaces".into(),
+                packages,
+                path_env: None,
+                timeout_ms: None,
+            })
+        }
+        Executor::Real(path, path_env) => Some(MethodReexecutor {
+            sha256: hex(&std::fs::read(&path).unwrap()),
+            path: path.into(),
+            sandbox: "namespaces".into(),
+            packages,
+            path_env: Some(path_env),
+            timeout_ms: None,
+        }),
     }
     .map(Arc::new);
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
@@ -441,8 +514,90 @@ async fn the_real_lab_score_reproduces_the_retained_trial_and_refuses_the_forger
 #[ignore = "needs a built lab-score; set GENESIS_TEST_LAB_SCORE"]
 async fn rescoring_does_not_catch_a_substituted_output() {
     let path = std::env::var("GENESIS_TEST_LAB_SCORE").expect("GENESIS_TEST_LAB_SCORE");
-    let (status, decided) = decide_with(false, Some(&path), Scorer::Real(path.clone())).await;
+    let (status, decided) = decide_with(
+        false,
+        Some(Some(&path)),
+        Scorer::Real(path.clone()),
+        Executor::None,
+    )
+    .await;
     assert_eq!(status, 201, "{decided}");
     assert_eq!(decided["outcome"]["outcome"], "adopted", "{decided}");
     assert!(decided["outcome"]["evidence"]["rescorer"].is_string());
+}
+
+#[tokio::test]
+async fn a_pinned_reexecutor_refuses_a_substituted_output() {
+    // Swapped without rescoring, the retained candidate evaluation no longer
+    // names the receipt, so the cheap pre-check refuses before anything runs.
+    // An honestly rescored swap passes that and is refused by re-execution
+    // itself; that needs the real tools (the ignored test below).
+    let (status, body) = decide_with(false, Some(None), Scorer::Genuine, Executor::Pristine).await;
+    refused(status, &body, "do not bind the selection");
+}
+
+#[tokio::test]
+async fn reproduced_execution_and_scoring_decide_on_the_trials_own_verdict() {
+    let (status, decided) = decide_with(false, None, Scorer::Genuine, Executor::Pristine).await;
+    assert_eq!(status, 201, "{decided}");
+    assert_eq!(decided["outcome"]["outcome"], "not_applicable", "{decided}");
+    let evidence = &decided["outcome"]["evidence"];
+    assert!(evidence["reexecutor"].is_string() && evidence["rescorer"].is_string());
+    // Forged scoring is still caught after a clean re-execution.
+    let (status, body) = decide_with(true, None, Scorer::Genuine, Executor::Pristine).await;
+    refused(status, &body, "retained control scoring does not reproduce");
+}
+
+#[tokio::test]
+async fn nothing_is_re_executed_under_a_plan_the_receiver_did_not_pin() {
+    // Refused by the pre-check, before the executor is started.
+    let (status, body) = decide_with(false, None, Scorer::Genuine, Executor::WrongPin).await;
+    assert_eq!(status, 422, "{body}");
+    assert_eq!(body["error"], "method_acceptance", "{body}");
+    assert!(
+        body["message"]
+            .as_str()
+            .unwrap_or_default()
+            .contains("pinned acceptance plan"),
+        "{body}"
+    );
+}
+
+#[tokio::test]
+async fn the_control_package_must_be_held_by_the_receiver() {
+    let (status, body) = decide_with(false, None, Scorer::Genuine, Executor::NoPackages).await;
+    refused(status, &body, "holds no package for the control method");
+}
+
+/// `GENESIS_TEST_LAB_EXEC=<lab-exec built at 635fd3b5> GENESIS_TEST_LAB_SCORE=<lab-score>
+/// GENESIS_TEST_RUNTIME_PATH=<PATH holding the pinned python3> cargo test -p
+/// genesis-server --test review_operator_scoring -- --ignored`. Runs the
+/// retained methods in the namespace sandbox.
+#[tokio::test]
+#[ignore = "needs the pinned lab-exec, lab-score and runtime; runs methods in the sandbox"]
+async fn the_real_executor_reproduces_the_trial_and_refuses_the_substitution() {
+    let var = |k: &str| std::env::var(k).unwrap_or_else(|_| panic!("{k}"));
+    let (exec, score, path) = (
+        var("GENESIS_TEST_LAB_EXEC"),
+        var("GENESIS_TEST_LAB_SCORE"),
+        var("GENESIS_TEST_RUNTIME_PATH"),
+    );
+    let real = || Executor::Real(exec.clone(), path.clone());
+    let (status, decided) = decide_with(false, None, Scorer::Real(score.clone()), real()).await;
+    assert_eq!(status, 201, "{decided}");
+    assert_eq!(decided["outcome"]["outcome"], "not_applicable", "{decided}");
+    assert!(decided["outcome"]["evidence"]["reexecutor"].is_string());
+    // The honest-rescore substitution that rescoring alone lets through.
+    let (status, body) = decide_with(
+        false,
+        Some(Some(&score)),
+        Scorer::Real(score.clone()),
+        real(),
+    )
+    .await;
+    refused(
+        status,
+        &body,
+        "retained candidate execution does not reproduce",
+    );
 }

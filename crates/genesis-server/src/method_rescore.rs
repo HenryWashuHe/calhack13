@@ -31,6 +31,8 @@ const SLOTS: [&str; 2] = ["candidate", "control"];
 const MAX_SCORER_BYTES: u64 = 256 * 1024 * 1024;
 const MAX_OUTPUT_BYTES: u64 = 16 * 1024 * 1024;
 const DEFAULT_TIMEOUT_MS: u64 = 600_000;
+/// How much longer than a plan's wall grant the server waits for the executor.
+const EXECUTOR_MARGIN_MS: u64 = 60_000;
 /// Linux `ETXTBSY`: a forked child elsewhere still held the copy open.
 const TEXT_BUSY: i32 = 26;
 
@@ -43,6 +45,32 @@ pub struct MethodRescorer {
     pub sha256: String,
     #[serde(default)]
     pub timeout_ms: Option<u64>,
+}
+
+/// Trusted operator configuration for re-execution: the executor
+/// (`lab-exec` interface: `run <plan> <slot> <package> <state-dir> <sandbox>`),
+/// its pin, the sandbox mode, and a directory of receiver-held control
+/// packages, each named `<sha256>.json` after its bytes. The candidate always
+/// comes from the selected registry offer.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct MethodReexecutor {
+    pub path: PathBuf,
+    pub sha256: String,
+    pub sandbox: String,
+    pub packages: PathBuf,
+    /// `PATH` for the executor (it finds the pinned runtime there).
+    #[serde(default)]
+    pub path_env: Option<String>,
+    #[serde(default)]
+    pub timeout_ms: Option<u64>,
+}
+
+/// The retained receipts one re-execution reproduced, by trial-relative path.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReexecutedTrial {
+    pub executor_sha256: String,
+    pub files: BTreeMap<String, String>,
 }
 
 /// The retained bytes one rescore was given, by trial-relative path.
@@ -433,6 +461,153 @@ impl RescoredTrial {
     }
 }
 
+impl MethodReexecutor {
+    fn package(
+        &self,
+        slot: &str,
+        method_sha256: &str,
+        candidate: &[u8],
+    ) -> Result<Vec<u8>, MethodAcceptanceError> {
+        let bytes = if slot == "candidate" {
+            candidate.to_vec()
+        } else {
+            if method_sha256.len() != 64 || !method_sha256.bytes().all(|b| b.is_ascii_hexdigit()) {
+                return Err(fail(format!("the {slot} method has no usable digest")));
+            }
+            bounded(
+                &self.packages.join(format!("{method_sha256}.json")),
+                MAX_OUTPUT_BYTES,
+            )
+            .map_err(|_| {
+                fail(format!(
+                    "this organization holds no package for the {slot} method"
+                ))
+            })?
+        };
+        if sha(&bytes) != method_sha256 {
+            return Err(fail(format!("the {slot} package is not the plan's method")));
+        }
+        Ok(bytes)
+    }
+
+    /// Re-runs every slot that has a retained execution receipt and requires
+    /// the fresh receipt to equal it (wall time aside). Blocking: call it off
+    /// the async runtime and outside any store lock.
+    ///
+    /// Nothing runs unless the retained plan is the receiver's own pinned plan
+    /// for this requirement (`pinned`), so the operator can't choose the grants,
+    /// instances or settings offered code runs under. Only the namespaces
+    /// sandbox is accepted, and the server waits at least the plan's wall grant
+    /// plus a margin, so the executor's own deadline ends a method first.
+    pub fn reexecute_trial(
+        &self,
+        records_root: &Path,
+        trial: &str,
+        pinned: &genesis_core::development_method::ExactContentRef,
+        candidate_package: &[u8],
+    ) -> Result<ReexecutedTrial, MethodAcceptanceError> {
+        if self.sandbox != "namespaces" {
+            return Err(fail("re-execution runs only in the namespaces sandbox"));
+        }
+        let read = |rel: &str| read_retained(records_root, trial, rel);
+        let plan_bytes =
+            read("plan.json")?.ok_or_else(|| MethodAcceptanceError::Record("plan.json".into()))?;
+        let plan: TrialPlan = serde_json::from_slice(&plan_bytes)
+            .map_err(|_| MethodAcceptanceError::Record("plan.json".into()))?;
+        if plan.reference().ok().as_ref() != Some(pinned) {
+            return Err(fail(
+                "the retained plan is not this requirement's pinned plan; nothing was run",
+            ));
+        }
+        let grant = plan.development_grant.wall_time_ms;
+        let timeout = self
+            .timeout_ms
+            .unwrap_or(DEFAULT_TIMEOUT_MS)
+            .max(grant.saturating_add(EXECUTOR_MARGIN_MS));
+        let work = Scratch::new()?;
+        let executor = install(&self.path, &self.sha256, work.path(), "executor")?;
+        let mut files = BTreeMap::new();
+        files.insert("plan.json".to_string(), sha(&plan_bytes));
+        let plan_path = work.path().join("plan.json");
+        std::fs::write(&plan_path, &plan_bytes).map_err(|_| fail("could not stage the plan"))?;
+        for slot in SLOTS {
+            let receipt_rel = format!("{slot}/receipt.json");
+            let Some(retained) = read(&receipt_rel)? else {
+                continue;
+            };
+            let method = plan
+                .slots
+                .iter()
+                .find(|s| s.slot_id == slot)
+                .map(|s| s.method.sha256.clone())
+                .ok_or_else(|| fail(format!("the plan has no {slot} slot")))?;
+            let package = work.path().join(format!("{slot}.package.json"));
+            std::fs::write(&package, self.package(slot, &method, candidate_package)?)
+                .map_err(|_| fail("could not stage the package"))?;
+            let state = work.path().join(slot);
+            let args = [
+                "run".as_ref(),
+                plan_path.as_os_str(),
+                slot.as_ref(),
+                package.as_os_str(),
+                state.as_os_str(),
+                self.sandbox.as_ref(),
+            ];
+            let context = format!(" on the {slot} slot");
+            run_tool(
+                (&executor, &self.sha256),
+                &args,
+                self.path_env.as_deref(),
+                timeout,
+                ("executor", &context),
+                work.path(),
+            )?;
+            let receipt = state.join("receipt.json");
+            if !receipt.exists() {
+                return Err(fail(format!("the executor left no receipt{context}")));
+            }
+            let fresh = bounded(&receipt, MAX_OUTPUT_BYTES)?;
+            match (comparable(&fresh), comparable(&retained)) {
+                (Some(a), Some(b)) if a == b => {}
+                _ => {
+                    return Err(fail(format!(
+                        "the retained {slot} execution does not reproduce"
+                    )))
+                }
+            }
+            if fits(&retained, grant) && !fits(&fresh, grant) {
+                return Err(fail(format!(
+                    "the retained {slot} execution fits its grant but re-running it here did not"
+                )));
+            }
+            files.insert(receipt_rel, sha(&retained));
+        }
+        Ok(ReexecutedTrial {
+            executor_sha256: self.sha256.clone(),
+            files,
+        })
+    }
+}
+
+impl ReexecutedTrial {
+    /// The assessment must have read exactly the receipts that were
+    /// reproduced, and no receipt the re-execution didn't see.
+    pub fn binds(&self, evidence: &AcceptanceEvidence) -> Result<(), MethodAcceptanceError> {
+        let unseen = evidence
+            .files
+            .keys()
+            .any(|k| k.ends_with("/receipt.json") && !self.files.contains_key(k));
+        let changed = self
+            .files
+            .iter()
+            .any(|(k, v)| evidence.files.get(k) != Some(v));
+        if unseen || changed {
+            return Err(fail("the retained records changed after re-execution"));
+        }
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -467,6 +642,7 @@ mod tests {
                 .collect(),
             acceptance: Acceptance::Rejected { reason: "r".into() },
             rescorer: None,
+            reexecutor: None,
         }
     }
 

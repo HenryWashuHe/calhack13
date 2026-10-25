@@ -51,6 +51,48 @@ fn configured(app: &AppState) -> ApiResult<std::sync::Arc<crate::method_adoption
     })
 }
 
+/// The cheap checks, before anything is executed for a decision: the current
+/// owner has a live grant and required scope, the requirement has a receiver
+/// pin naming this publisher, and the retained
+/// trial passes assessment's own selection, compatibility, environment,
+/// evaluator and dependency checks under exactly that pinned plan. The store
+/// repeats all of this inside its transaction. Returns the pinned plan.
+fn pre_assess(
+    app: &AppState,
+    receiver: &crate::method_adoption::MethodReceiver,
+    body: &CreateMethodAdoption,
+    trial: &str,
+    package_json: &str,
+) -> ApiResult<genesis_core::development_method::ExactContentRef> {
+    use crate::method_adoption::{assess_selected, MethodAcceptanceError, SelectedMethod};
+    let refuse = |e: MethodAcceptanceError| error(MethodAdoptionError::Acceptance(e));
+    let pin = receiver
+        .acceptance_plan(&body.requirement_id)
+        .filter(|p| p.publisher == body.publisher)
+        .ok_or_else(|| {
+            refuse(MethodAcceptanceError::Binding(
+                "this requirement has no receiver-pinned acceptance plan for this publisher".into(),
+            ))
+        })?;
+    let state = app
+        .store
+        .current_state()
+        .map_err(|_| ApiError::internal("organization state is unavailable"))?;
+    crate::method_adoption_store::adoption_authority(&state, body, Utc::now()).map_err(error)?;
+    let selected = SelectedMethod {
+        publisher: body.publisher.clone(),
+        reference: body.reference.clone(),
+        package_json: package_json.into(),
+    };
+    let evidence = assess_selected(receiver, &state.org_id, &selected, trial).map_err(refuse)?;
+    if evidence.plan != pin.plan {
+        return Err(refuse(MethodAcceptanceError::Binding(
+            "the trial is not this requirement's pinned acceptance plan".into(),
+        )));
+    }
+    Ok(pin.plan.clone())
+}
+
 pub async fn create(
     State(app): State<AppState>,
     principal: Principal,
@@ -85,8 +127,24 @@ pub async fn create(
                 .package_json
         }
     };
-    // The rescore runs a subprocess, so it happens before any lock; the store
-    // then checks assessment read the same bytes.
+    // Re-execution and the rescore run subprocesses, so they happen before
+    // any lock; the store then checks assessment read the same bytes.
+    let reexecuted = match (&body.decision, app.method_reexecutor.clone()) {
+        (MethodDecision::Adopt { trial }, Some(executor)) => {
+            let pinned = pre_assess(&app, &receiver, &body, trial, &package_json)?;
+            let (root, trial) = (receiver.records_root.clone(), trial.clone());
+            let package = package_json.clone().into_bytes();
+            let joined = tokio::task::spawn_blocking(move || {
+                executor.reexecute_trial(&root, &trial, &pinned, &package)
+            })
+            .await;
+            let reexecuted = joined
+                .map_err(|_| ApiError::internal("method re-execution did not complete"))?
+                .map_err(|e| error(MethodAdoptionError::Acceptance(e)))?;
+            Some(reexecuted)
+        }
+        _ => None,
+    };
     let rescored = match (&body.decision, app.method_rescorer.clone()) {
         (MethodDecision::Adopt { trial }, Some(rescorer)) => {
             let (root, trial) = (receiver.records_root.clone(), trial.clone());
@@ -107,6 +165,7 @@ pub async fn create(
             &package_json,
             &receiver,
             rescored.as_ref(),
+            reexecuted.as_ref(),
             Utc::now(),
         )
         .map_err(error)?;

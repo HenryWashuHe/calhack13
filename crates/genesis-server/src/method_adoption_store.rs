@@ -6,7 +6,9 @@
 //! invocation, and only while the requirement, mission and owner grant it was
 //! bound to are unchanged. Records pin the exact reference; a newer
 //! publication never upgrades one. Nothing here executes a method.
-use crate::capability_adoption_store::{authority_snapshot, state, AdoptionError, AdoptionFence};
+use crate::capability_adoption_store::{
+    authority_snapshot, state, AdoptionError, AdoptionFence, AuthoritySnapshot,
+};
 use crate::capability_authority::authorize_current;
 use crate::method_adoption::{
     assess_selected, Acceptance, AcceptanceEvidence, MethodAcceptanceError, MethodReceiver,
@@ -139,6 +141,34 @@ fn require_method_scope(
     authorize_current(state, role, responsibility, Some(METHOD_SCOPE), now)
         .map(|_| ())
         .map_err(|_| E::ScopeMissing)
+}
+
+/// The same current owner, grant and scope checks apply before re-execution
+/// and again inside the final decision transaction after asynchronous work.
+pub(crate) fn adoption_authority(
+    state: &OrgState,
+    intent: &CreateMethodAdoption,
+    now: DateTime<Utc>,
+) -> Result<AuthoritySnapshot> {
+    let snapshot = authority_snapshot(
+        state,
+        &intent.mission_id,
+        &intent.requirement_id,
+        &intent.role_id,
+        &intent.responsibility_id,
+        now,
+    )
+    .map_err(adoption_error)?;
+    // A delegated executor may not decide on behalf of the requirement owner.
+    let owner = state
+        .requirements
+        .get(&intent.requirement_id)
+        .map(|r| &r.owner);
+    if owner != Some(&Owner::Role(intent.role_id.clone())) {
+        return Err(E::Authority(AdoptionFence::AuthorityChanged));
+    }
+    require_method_scope(state, &intent.role_id, &intent.responsibility_id, now)?;
+    Ok(snapshot)
 }
 
 fn adoption_error(error: AdoptionError) -> E {
@@ -390,18 +420,19 @@ impl Store {
         receiver: &MethodReceiver,
         now: DateTime<Utc>,
     ) -> Result<(MethodAdoptionRecord, bool)> {
-        self.create_method_adoption_rescored(intent, package_json, receiver, None, now)
+        self.create_method_adoption_rescored(intent, package_json, receiver, None, None, now)
     }
 
-    /// As [`Self::create_method_adoption`]; when `rescored` is given, an
-    /// adoption's assessment must have read exactly the bytes that rescore
-    /// reproduced, and the evidence records the rescorer.
+    /// As [`Self::create_method_adoption`]; when `rescored` or `reexecuted`
+    /// is given, an adoption's assessment must have read exactly the bytes
+    /// they reproduced, and the evidence records the pinned tools.
     pub fn create_method_adoption_rescored(
         &self,
         intent: &CreateMethodAdoption,
         package_json: &str,
         receiver: &MethodReceiver,
         rescored: Option<&crate::method_rescore::RescoredTrial>,
+        reexecuted: Option<&crate::method_rescore::ReexecutedTrial>,
         now: DateTime<Utc>,
     ) -> Result<(MethodAdoptionRecord, bool)> {
         let ids = [
@@ -442,25 +473,7 @@ impl Store {
             return Ok((previous, false));
         }
         let state = state(&tx).map_err(adoption_error)?;
-        let snapshot = authority_snapshot(
-            &state,
-            &intent.mission_id,
-            &intent.requirement_id,
-            &intent.role_id,
-            &intent.responsibility_id,
-            now,
-        )
-        .map_err(adoption_error)?;
-        // The decision belongs to the requirement's owner, not to a delegated
-        // executor working for it.
-        let owner = state
-            .requirements
-            .get(&intent.requirement_id)
-            .map(|r| r.owner.clone());
-        if owner != Some(Owner::Role(intent.role_id.clone())) {
-            return Err(E::Authority(AdoptionFence::AuthorityChanged));
-        }
-        require_method_scope(&state, &intent.role_id, &intent.responsibility_id, now)?;
+        let snapshot = adoption_authority(&state, intent, now)?;
         let outcome = match &intent.decision {
             MethodDecision::Decline { reason } => MethodAdoptionOutcome::Declined {
                 reason: reason.clone(),
@@ -490,6 +503,10 @@ impl Store {
                 if let Some(rescored) = rescored {
                     rescored.binds(&evidence)?;
                     evidence.rescorer = Some(rescored.rescorer_sha256.clone());
+                }
+                if let Some(reexecuted) = reexecuted {
+                    reexecuted.binds(&evidence)?;
+                    evidence.reexecutor = Some(reexecuted.executor_sha256.clone());
                 }
                 if evidence.plan != *pinned {
                     return Err(MethodAcceptanceError::Binding(
