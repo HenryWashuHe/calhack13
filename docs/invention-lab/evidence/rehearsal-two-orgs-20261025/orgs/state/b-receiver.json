@@ -1,0 +1,49 @@
+{
+  "acceptance_plans": [
+    {
+      "plan": {
+        "domain": "genesis",
+        "id": "receive-rehearse3-accept-vs-fixed-cart",
+        "schema": "development-trial-plan/1",
+        "sha256": "d12b613e602d93e18562e4372ea8bd519e79fc171578d90468946e18d121dd69",
+        "version": "1"
+      },
+      "publisher": "org_example_a",
+      "requirement_id": "req_6a358f118e2d4234a59f8ed2a0c799c7"
+    }
+  ],
+  "allowed_dependencies": [],
+  "environments": [
+    {
+      "domain": "genesis-lab",
+      "id": "genesis-lab-exec/namespaces",
+      "schema": "lab-environment/1",
+      "sha256": "276d5465fc476cb531027be8030f6f81dbbae2d0734c9bce8eb207e70fd5534e",
+      "version": "0.1.0"
+    }
+  ],
+  "evaluators": [
+    {
+      "domain": "genesis-lab",
+      "id": "genesis-lab-eval",
+      "schema": "lab-evaluator/1",
+      "sha256": "1f03d1b6499721e6ddae6e600b688c123a8684e34c56f53cde8104d361246f42",
+      "version": "0.1.0"
+    }
+  ],
+  "protocol": {
+    "domain": "genesis-lab",
+    "id": "genesis-lab-exec-lines",
+    "schema": "lab-protocol/1",
+    "sha256": "d3b90c36b32e89b4e3d191dc018717301a4afc386ac915123cf5cf86250c550d",
+    "version": "1"
+  },
+  "records_root": "/home/claude/xwt/rehearse/docs/invention-lab/evidence/rehearsal-two-orgs-20261025/trial",
+  "runtime": {
+    "domain": "genesis-lab",
+    "id": "python3",
+    "schema": "lab-runtime/1",
+    "sha256": "0b21e795ac528c0f9cbe99e28ca1125af0c4dc5b87f53224abfe2a2ae5a69491",
+    "version": "1"
+  }
+}
