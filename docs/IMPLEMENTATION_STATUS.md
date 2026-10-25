@@ -31,9 +31,13 @@ ACP #198 `adf43e07` is held after [review 5641631281](https://github.com/HenryWa
 56 original VM tests pass; three `b8da38d5` guards fail on inferred planner
 activity, foreign pending-card replacement and Explain CSS applying to `body`.
 #199 `5567f827` decision strip is unreviewed and depends on held #198. No browser,
-live POST or provider/runtime ran. New #148 `62c2a0c3` and #149 `6e08ba9` await review. Previous findings remain tied
-to old sources. Scheduling-study #201 `557127b4` is unreviewed; its offline
-calibration/replay counts are author-reported, not verified here or formal evidence.
+live POST or provider/runtime ran. #148 `62c2a0c3` and #149 `6e08ba9` have new
+holds after prior findings clear: full-reference/scoring-context binding, request-
+cost attribution and unknown-panel labels. Final inert stack: 133 pass, four fail,
+one exporter skip; typecheck passes. Scheduling-study #201 `557127b4` is held
+on source/seed binding and lifecycle ordering: six original tests and one new
+control pass, four new guards fail. Trusted local synthetic scheduler/static
+policy only; the author's pilot results were not reproduced or accepted.
 CodeRabbit config #202 `6640fac8` → `038b8ce9` is merged after official-key review,
 with no app tests. Explicit bot commands and App installation remain separate.
 
