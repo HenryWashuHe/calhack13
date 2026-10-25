@@ -1,6 +1,9 @@
 //! Offline JSON captures only: no generation, provider, scorer or method runs.
 use genesis_core::digest::canonical_sha256;
-use genesis_forge::{process_cohort::*, process_selection::*, process_selection_record::*};
+use genesis_forge::{
+    process_cohort::*, process_generation_origins::*, process_selection::*,
+    process_selection_record::*,
+};
 use serde_json::{json, Value};
 use std::{
     fs,
@@ -10,6 +13,9 @@ use std::{
 };
 
 static NEXT: AtomicU64 = AtomicU64::new(0);
+#[allow(dead_code)]
+#[path = "common/process_origins.rs"]
+mod fixture;
 struct Case {
     path: PathBuf,
     declaration: CohortDeclaration,
@@ -64,10 +70,13 @@ impl Case {
         for (i, selection) in case.selections.iter().enumerate() {
             case.write(&format!("input/selection-{i}.json"), &json!(selection));
         }
-        case.write("input/manifest.json", &json!({
-            "schema":"genesis-process-cohort-input/1", "declaration":"declaration.json",
-            "selections":(0..8).map(|i|format!("selection-{i}.json")).collect::<Vec<_>>()
-        }));
+        case.write(
+            "input/manifest.json",
+            &json!({
+                "schema":"genesis-process-cohort-input/1", "declaration":"declaration.json",
+                "selections":(0..8).map(|i|format!("selection-{i}.json")).collect::<Vec<_>>()
+            }),
+        );
         case
     }
     fn write(&self, file: &str, value: &Value) {
@@ -82,6 +91,18 @@ impl Case {
         manifest["generation_origins"] = "origins.json".into();
         self.write("input/manifest.json", &manifest);
     }
+    fn generated() -> Self {
+        let (origins, selections) = fixture::fixture();
+        let mut case = Self::new();
+        case.declaration = fixture::declaration(&selections);
+        case.selections = selections;
+        case.write("input/declaration.json", &json!(case.declaration));
+        for (i, selection) in case.selections.iter().enumerate() {
+            case.write(&format!("input/selection-{i}.json"), &json!(selection));
+        }
+        case.enable_origins(&json!(origins));
+        case
+    }
     fn run(&self, command: &str) -> Output {
         let mut cmd = Command::new(env!("CARGO_BIN_EXE_genesis-forge"));
         cmd.current_dir(&self.path)
@@ -93,12 +114,22 @@ impl Case {
     }
     fn prepare(&self) -> Value {
         let out = self.run("process-cohort-prepare");
-        assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
+        assert!(
+            out.status.success(),
+            "{}",
+            String::from_utf8_lossy(&out.stderr)
+        );
         serde_json::from_slice(&out.stdout).unwrap()
     }
     fn refuses_before_publication(&self) {
         assert!(!self.run("process-cohort-prepare").status.success());
         assert!(!self.path.join("cohort.json").exists());
+        assert!(!self.path.join("cohort.json.lock").exists());
+    }
+    fn refuses_readonly(&self) {
+        let original = fs::read(self.path.join("cohort.json")).unwrap();
+        assert!(!self.run("process-cohort-check").status.success());
+        assert_eq!(fs::read(self.path.join("cohort.json")).unwrap(), original);
         assert!(!self.path.join("cohort.json.lock").exists());
     }
 }
@@ -111,7 +142,8 @@ impl Drop for Case {
 #[test]
 fn legacy_capture_bytes_and_summary_identity_remain_unchanged() {
     let case = Case::new();
-    let report = serde_json::to_value(assess_cohort(&case.declaration, &case.selections).unwrap()).unwrap();
+    let report =
+        serde_json::to_value(assess_cohort(&case.declaration, &case.selections).unwrap()).unwrap();
     // Frozen /1 field order and compact newline encoding, before optional origins existed.
     let expected = format!(
         "{{\"schema\":\"genesis-retained-process-cohort/1\",\"declaration\":{},\"selections\":{},\"report\":{}}}\n",
@@ -120,7 +152,10 @@ fn legacy_capture_bytes_and_summary_identity_remain_unchanged() {
         serde_json::to_string(&report).unwrap()
     );
     let summary = case.prepare();
-    assert_eq!(fs::read(case.path.join("cohort.json")).unwrap(), expected.as_bytes());
+    assert_eq!(
+        fs::read(case.path.join("cohort.json")).unwrap(),
+        expected.as_bytes()
+    );
     let retained: Value = serde_json::from_str(&expected).unwrap();
     assert_eq!(summary["cohort_sha256"], canonical_sha256(&retained));
     assert_eq!(summary["report_sha256"], canonical_sha256(&report));
@@ -128,7 +163,10 @@ fn legacy_capture_bytes_and_summary_identity_remain_unchanged() {
     assert!(summary.get("generation_report_sha256").is_none());
     let checked = case.run("process-cohort-check");
     assert!(checked.status.success());
-    assert_eq!(serde_json::from_slice::<Value>(&checked.stdout).unwrap(), summary);
+    assert_eq!(
+        serde_json::from_slice::<Value>(&checked.stdout).unwrap(),
+        summary
+    );
 }
 
 #[test]
@@ -168,9 +206,114 @@ fn schema_v1_cannot_smuggle_null_or_partial_origin_fields() {
         let mut retained = case.read("cohort.json");
         retained[field] = value;
         case.write("cohort.json", &retained);
-        let original = fs::read(case.path.join("cohort.json")).unwrap();
-        assert!(!case.run("process-cohort-check").status.success());
-        assert_eq!(fs::read(case.path.join("cohort.json")).unwrap(), original);
-        assert!(!case.path.join("cohort.json.lock").exists());
+        case.refuses_readonly();
+    }
+}
+
+#[test]
+fn v2_retains_originals_and_unknown_usage_without_needing_source_files_or_locks() {
+    let case = Case::generated();
+    let origins = case.read("input/origins.json");
+    let typed: GenerationOrigins = serde_json::from_value(origins.clone()).unwrap();
+    let report = assess_generation_origins(&typed, &case.declaration, &case.selections).unwrap();
+    let summary = case.prepare();
+    let retained = case.read("cohort.json");
+    assert_eq!(retained["schema"], "genesis-retained-process-cohort/2");
+    assert_eq!(retained["generation_origins"], origins);
+    assert_eq!(retained["generation_report"], report);
+    assert_eq!(
+        report["positions"][0]["usage"]["input_tokens"]["kind"],
+        "unknown"
+    );
+    assert_eq!(summary["cohort_sha256"], canonical_sha256(&retained));
+    assert_eq!(
+        summary["generation_origins_sha256"],
+        canonical_sha256(&origins)
+    );
+    assert_eq!(
+        summary["generation_report_sha256"],
+        canonical_sha256(&report)
+    );
+    assert!(!summary.to_string().contains("inert source fixture"));
+    let original = fs::read(case.path.join("cohort.json")).unwrap();
+    assert!(!case.run("process-cohort-prepare").status.success());
+    assert_eq!(fs::read(case.path.join("cohort.json")).unwrap(), original);
+    fs::remove_dir_all(case.path.join("input")).unwrap();
+    fs::write(case.path.join("cohort.json.lock"), b"existing writer").unwrap();
+    let checked = case.run("process-cohort-check");
+    assert!(
+        checked.status.success(),
+        "{}",
+        String::from_utf8_lossy(&checked.stderr)
+    );
+    assert_eq!(
+        serde_json::from_slice::<Value>(&checked.stdout).unwrap(),
+        summary
+    );
+    assert_eq!(fs::read(case.path.join("cohort.json")).unwrap(), original);
+    assert_eq!(
+        fs::read(case.path.join("cohort.json.lock")).unwrap(),
+        b"existing writer"
+    );
+}
+
+#[test]
+fn recheck_rejects_schema_downgrade_missing_fields_and_tampered_originals_or_reports() {
+    let case = Case::generated();
+    case.prepare();
+    let valid = case.read("cohort.json");
+    for variant in 0..10 {
+        let mut retained = valid.clone();
+        match variant {
+            0 => retained["schema"] = "genesis-retained-process-cohort/1".into(),
+            1 => {
+                retained
+                    .as_object_mut()
+                    .unwrap()
+                    .remove("generation_origins");
+            }
+            2 => {
+                retained
+                    .as_object_mut()
+                    .unwrap()
+                    .remove("generation_report");
+            }
+            3 => retained["generation_origins"] = Value::Null,
+            4 => retained["generation_report"] = Value::Null,
+            5 => {
+                retained["generation_report"]["positions"][0]["usage"]["input_tokens"] =
+                    json!({"kind":"measured", "value":0})
+            }
+            6 => {
+                retained["generation_origins"]["positions"][0]["prepared_checkpoint_sha256"] =
+                    "f".repeat(64).into()
+            }
+            7 => {
+                retained["declaration"]["selections"][0]["selection_sha256"] = "f".repeat(64).into()
+            }
+            8 => retained["report"]["declaration_sha256"] = "f".repeat(64).into(),
+            _ => {
+                retained["generation_origins"]["schema"] =
+                    "genesis-process-generation-origins/99".into()
+            }
+        }
+        case.write("cohort.json", &retained);
+        case.refuses_readonly();
+    }
+}
+
+#[test]
+fn valid_json_with_wrong_initial_pin_or_absence_cannot_publish() {
+    for variant in 0..2 {
+        let case = Case::generated();
+        let mut origins = case.read("input/origins.json");
+        if variant == 0 {
+            origins["positions"][0]["prepared_checkpoint_sha256"] = "f".repeat(64).into();
+        } else {
+            origins["positions"][0]["snapshot"] = Value::Null;
+            origins["positions"][0]["no_method_reason"] = "caller asserts absent".into();
+        }
+        case.write("input/origins.json", &origins);
+        case.refuses_before_publication();
     }
 }

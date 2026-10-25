@@ -108,8 +108,11 @@ pub fn run(args: &Arguments) -> Result<u8, String> {
         ) {
             ("genesis-retained-process-cohort/1", None, None) => {}
             ("genesis-retained-process-cohort/2", Some(origins), Some(saved)) => {
-                let report =
-                    assess_generation_origins(origins, &retained.declaration, &retained.selections)?;
+                let report = assess_generation_origins(
+                    origins,
+                    &retained.declaration,
+                    &retained.selections,
+                )?;
                 if &report != saved {
                     return Err("retained generation report differs from recomputed origins".into());
                 }
