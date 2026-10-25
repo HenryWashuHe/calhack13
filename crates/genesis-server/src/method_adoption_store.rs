@@ -16,7 +16,7 @@ use chrono::{DateTime, Utc};
 use genesis_core::development_method::ExactContentRef;
 use genesis_core::engine::DispatchGrant;
 use genesis_core::ids::*;
-use genesis_core::model::OrgState;
+use genesis_core::model::{OrgState, Owner};
 use genesis_verification::{decode_json, json_sha256};
 use rusqlite::{params, Connection, OptionalExtension, TransactionBehavior};
 use serde::{Deserialize, Serialize};
@@ -148,6 +148,20 @@ pub struct MethodAdoptionRecord {
     pub reference: ExactContentRef,
     pub outcome: MethodAdoptionOutcome,
     pub created_at: DateTime<Utc>,
+    /// The receiver runtime and protocol the method was checked against when
+    /// this decision was made. Absent only in schema 1 records, which predate
+    /// it and so can't show current compatibility: they never authorize.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub compatibility: Option<Compatibility>,
+}
+
+/// What the receiver could run when it decided: a change to either fences
+/// the decision, as `assess_selected` would now refuse the same package.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Compatibility {
+    pub runtime: ExactContentRef,
+    pub protocol: ExactContentRef,
 }
 
 impl MethodAdoptionRecord {
@@ -158,10 +172,51 @@ impl MethodAdoptionRecord {
             .outcome
             .evidence()
             .is_none_or(|e| e.method == self.reference && e.publisher == self.publisher);
-        if self.schema_version != 1 || !self.outcome.consistent() || !bound {
+        let versioned = match self.schema_version {
+            1 => self.compatibility.is_none(),
+            2 => self.compatibility.is_some(),
+            _ => false,
+        };
+        if !versioned || !self.outcome.consistent() || !bound {
             return Err(E::InvalidRecord);
         }
         Ok(())
+    }
+
+    /// Everything besides the grant that fences this record: a change to any
+    /// of these makes it stop authorizing, so it must not block a fresh
+    /// decision under the same assignment and epoch either. From schema 2 that
+    /// includes the receiver policy the decision was made under (the pinned
+    /// plan and the runtime/protocol), so a fresh acceptance under a changed
+    /// policy is a new decision, not a duplicate. Schema 1 keeps its original
+    /// digest so stored rows still match.
+    fn fence_sha256(&self) -> Result<String> {
+        let authority = (
+            &self.requirement_sha256,
+            &self.mission_sha256,
+            &self.authority_sha256,
+            &self.lease_expires_at,
+        );
+        match &self.compatibility {
+            None => digest(&authority),
+            Some(compatibility) => digest(&(
+                authority,
+                self.outcome.evidence().map(|e| &e.plan),
+                compatibility,
+            )),
+        }
+    }
+
+    /// Whether `receiver` still runs what this decision was checked against.
+    pub fn compatible_with(&self, receiver: &MethodReceiver) -> bool {
+        self.compatibility
+            .as_ref()
+            .is_some_and(|c| c.runtime == receiver.runtime && c.protocol == receiver.protocol)
+    }
+
+    /// The retained acceptance this decision was derived from, if any.
+    pub fn acceptance_evidence(&self) -> Option<&AcceptanceEvidence> {
+        self.outcome.evidence()
     }
 
     /// The current owner grant this adopted method may run under, or why not.
@@ -206,15 +261,33 @@ fn digest<T: Serialize>(value: &T) -> Result<String> {
 }
 
 fn load(conn: &Connection, id: &str) -> Result<MethodAdoptionRecord> {
-    type Row = (String, String, String, String, String);
+    type Row = (String, String, String, String, String, [String; 3], i64);
     let row: Option<Row> = conn
         .query_row(
-            "SELECT record_json,outcome,client_request_id,publisher,method_sha256 FROM method_adoptions WHERE id=?1 AND length(CAST(record_json AS BLOB))<=?2",
+            "SELECT record_json,outcome,client_request_id,publisher,method_sha256,requirement_id,assignment_id,fence_sha256,epoch FROM method_adoptions WHERE id=?1 AND length(CAST(record_json AS BLOB))<=?2",
             params![id, MAX_RECORD_BYTES as i64],
-            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?)),
+            |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                    [row.get(5)?, row.get(6)?, row.get(7)?],
+                    row.get(8)?,
+                ))
+            },
         )
         .optional()?;
-    let (json, outcome, client_request_id, publisher, sha256) = row.ok_or(E::NotFound)?;
+    let (
+        json,
+        outcome,
+        client_request_id,
+        publisher,
+        sha256,
+        [requirement, assignment, fence],
+        epoch,
+    ) = row.ok_or(E::NotFound)?;
     let record: MethodAdoptionRecord =
         decode_json(json.as_bytes()).map_err(|_| E::InvalidRecord)?;
     record.validate()?;
@@ -223,6 +296,10 @@ fn load(conn: &Connection, id: &str) -> Result<MethodAdoptionRecord> {
         || record.client_request_id != client_request_id
         || record.publisher.as_str() != publisher
         || record.reference.sha256 != sha256
+        || record.requirement_id.as_str() != requirement
+        || record.grant.assignment_id.as_str() != assignment
+        || record.grant.epoch as i64 != epoch
+        || record.fence_sha256()? != fence
     {
         return Err(E::InvalidRecord);
     }
@@ -231,7 +308,52 @@ fn load(conn: &Connection, id: &str) -> Result<MethodAdoptionRecord> {
 
 impl Store {
     pub fn init_method_adoptions(&self) -> Result<()> {
-        self.lock().execute_batch("CREATE TABLE IF NOT EXISTS method_adoptions(ordinal INTEGER PRIMARY KEY AUTOINCREMENT,id TEXT NOT NULL UNIQUE,client_request_id TEXT NOT NULL UNIQUE,requirement_id TEXT NOT NULL,assignment_id TEXT NOT NULL,epoch INTEGER NOT NULL,publisher TEXT NOT NULL,method_sha256 TEXT NOT NULL,outcome TEXT NOT NULL,record_json TEXT NOT NULL);CREATE UNIQUE INDEX IF NOT EXISTS method_adoption_adopted ON method_adoptions(requirement_id,assignment_id,epoch,publisher,method_sha256) WHERE outcome='adopted';")?;
+        let mut conn = self.lock();
+        let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        tx.execute_batch("CREATE TABLE IF NOT EXISTS method_adoptions(ordinal INTEGER PRIMARY KEY AUTOINCREMENT,id TEXT NOT NULL UNIQUE,client_request_id TEXT NOT NULL UNIQUE,requirement_id TEXT NOT NULL,assignment_id TEXT NOT NULL,epoch INTEGER NOT NULL,publisher TEXT NOT NULL,method_sha256 TEXT NOT NULL,fence_sha256 TEXT NOT NULL,outcome TEXT NOT NULL,record_json TEXT NOT NULL);")?;
+        // A table created before the fence column existed (#155/#159): add
+        // it, backfill each row from its own record and rebuild the index,
+        // all in this transaction. Record bytes and identities are unchanged.
+        let has_fence: bool = tx.query_row(
+            "SELECT COUNT(*)>0 FROM pragma_table_info('method_adoptions') WHERE name='fence_sha256'",
+            [],
+            |row| row.get(0),
+        )?;
+        if !has_fence {
+            tx.execute_batch(
+                "ALTER TABLE method_adoptions ADD COLUMN fence_sha256 TEXT NOT NULL DEFAULT ''",
+            )?;
+            let rows = {
+                let mut query = tx.prepare("SELECT id,record_json FROM method_adoptions")?;
+                let rows = query
+                    .query_map([], |row| {
+                        Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+                    })?
+                    .collect::<rusqlite::Result<Vec<_>>>()?;
+                rows
+            };
+            for (id, json) in rows {
+                let record: MethodAdoptionRecord =
+                    decode_json(json.as_bytes()).map_err(|_| E::InvalidRecord)?;
+                record.validate()?;
+                tx.execute(
+                    "UPDATE method_adoptions SET fence_sha256=?1 WHERE id=?2",
+                    params![record.fence_sha256()?, id],
+                )?;
+            }
+        }
+        let index: Option<String> = tx
+            .query_row(
+                "SELECT sql FROM sqlite_master WHERE type='index' AND name='method_adoption_adopted'",
+                [],
+                |row| row.get(0),
+            )
+            .optional()?;
+        if index.is_some_and(|sql| !sql.contains("fence_sha256")) {
+            tx.execute_batch("DROP INDEX method_adoption_adopted")?;
+        }
+        tx.execute_batch("CREATE UNIQUE INDEX IF NOT EXISTS method_adoption_adopted ON method_adoptions(requirement_id,assignment_id,epoch,fence_sha256,publisher,method_sha256) WHERE outcome='adopted';")?;
+        tx.commit()?;
         Ok(())
     }
 
@@ -291,6 +413,15 @@ impl Store {
             now,
         )
         .map_err(adoption_error)?;
+        // The decision belongs to the requirement's owner, not to a delegated
+        // executor working for it.
+        let owner = state
+            .requirements
+            .get(&intent.requirement_id)
+            .map(|r| r.owner.clone());
+        if owner != Some(Owner::Role(intent.role_id.clone())) {
+            return Err(E::Authority(AdoptionFence::AuthorityChanged));
+        }
         let outcome = match &intent.decision {
             MethodDecision::Decline { reason } => MethodAdoptionOutcome::Declined {
                 reason: reason.clone(),
@@ -301,13 +432,20 @@ impl Store {
                     reference: intent.reference.clone(),
                     package_json: package_json.into(),
                 };
-                let pinned = receiver
+                let pin = receiver
                     .acceptance_plan(&intent.requirement_id)
                     .ok_or_else(|| {
                         MethodAcceptanceError::Binding(
                             "this requirement has no receiver-pinned acceptance plan".into(),
                         )
                     })?;
+                if pin.publisher != intent.publisher {
+                    return Err(MethodAcceptanceError::Binding(
+                        "this requirement's pinned acceptance names another publisher".into(),
+                    )
+                    .into());
+                }
+                let pinned = &pin.plan;
                 let evidence =
                     Box::new(assess_selected(receiver, &state.org_id, &selected, trial)?);
                 if evidence.plan != *pinned {
@@ -335,7 +473,7 @@ impl Store {
             return Err(E::Limit);
         }
         let record = MethodAdoptionRecord {
-            schema_version: 1,
+            schema_version: 2,
             id: format!("madopt_{}", uuid::Uuid::new_v4().simple()),
             client_request_id: intent.client_request_id.clone(),
             intent_sha256,
@@ -353,13 +491,17 @@ impl Store {
             reference: intent.reference.clone(),
             outcome,
             created_at: now,
+            compatibility: Some(Compatibility {
+                runtime: receiver.runtime.clone(),
+                protocol: receiver.protocol.clone(),
+            }),
         };
         let json = serde_json::to_string(&record).map_err(|_| E::InvalidRecord)?;
         if json.len() > MAX_RECORD_BYTES {
             return Err(E::InvalidRecord);
         }
         let inserted = tx.execute(
-            "INSERT INTO method_adoptions(id,client_request_id,requirement_id,assignment_id,epoch,publisher,method_sha256,outcome,record_json) VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9)",
+            "INSERT INTO method_adoptions(id,client_request_id,requirement_id,assignment_id,epoch,publisher,method_sha256,fence_sha256,outcome,record_json) VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)",
             params![
                 record.id,
                 record.client_request_id,
@@ -368,6 +510,7 @@ impl Store {
                 record.grant.epoch as i64,
                 record.publisher.as_str(),
                 record.reference.sha256,
+                record.fence_sha256()?,
                 record.outcome.label(),
                 json
             ],
