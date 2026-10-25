@@ -100,15 +100,15 @@ button { font: inherit; }
 .focus { box-shadow: inset 0 0 0 1px var(--signal), 0 0 28px color-mix(in srgb, var(--signal) 16%, transparent); }
 /* Explain overlay: numbered callouts on the regions and a card that names them */
 body.explain [data-n]::before { content: attr(data-n); position: absolute; top: -10px; left: -10px; z-index: 5; width: 26px; height: 26px; border-radius: 50%; background: var(--signal); color: var(--paper-deep); font-family: var(--mono); font-weight: 600; font-size: 13px; display: grid; place-items: center; box-shadow: 0 0 0 4px var(--paper); }
-.explain { position: fixed; inset: 0; z-index: 20; display: grid; place-items: end center; padding: 24px max(16px, env(safe-area-inset-right, 0px)) calc(24px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); background: linear-gradient(to top, color-mix(in srgb, var(--paper-deep) 92%, transparent), transparent 60%); pointer-events: none; }
-.explain[hidden] { display: none; }
+#explain { position: fixed; inset: 0; z-index: 20; display: grid; place-items: end center; padding: 24px max(16px, env(safe-area-inset-right, 0px)) calc(24px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); background: linear-gradient(to top, color-mix(in srgb, var(--paper-deep) 92%, transparent), transparent 60%); pointer-events: none; }
+#explain[hidden] { display: none; }
 .explain-card { pointer-events: auto; max-width: 760px; width: 100%; background: var(--paper-deep); border: 1px solid var(--signal); border-radius: 12px; padding: 16px 20px; display: grid; gap: 10px; box-shadow: 0 24px 60px rgba(0, 0, 0, .45); }
 .explain-card h2 { font-family: var(--display); font-size: 18px; font-weight: 700; }
 .explain-card ol { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px 18px; font-size: 13px; }
 .explain-card li { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 8px; align-items: baseline; }
 .explain-card li b { font-family: var(--mono); color: var(--paper-deep); background: var(--signal); border-radius: 50%; width: 22px; height: 22px; display: grid; place-items: center; font-size: 12px; }
 .explain-card p { font-size: 12px; color: var(--chalk-dim); }
-/* Thinking: the planner is reading the evidence */
+/* Pending receipt: waiting for the matching planner decision, without inferring activity. */
 .decision.thinking { border-style: dashed; }
 .decision.thinking .d-k b::after { content: ""; display: inline-block; width: .6em; height: .6em; margin-left: 8px; border-radius: 50%; border: 2px solid var(--signal); border-top-color: transparent; animation: spin 1s linear infinite; vertical-align: middle; }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -589,16 +589,16 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
   }
   function hideDecision() { stopThinking(); $("decision").hidden = true; }
   function setFocus(list) { for (const r of REGIONS) { const on = list.includes(r); $(r).classList.toggle("focus", list.length > 0 && on); $(r).classList.toggle("dim", list.length > 0 && !on); } }
-  // Thinking: between a recorded report and the planner's answer, the card says so and counts the seconds.
+  // Between a recorded report and its matching answer, count time since receipt, not planner work.
   function startThinking(id, org) {
     stopThinking();
     const card = $("decision"); card.hidden = false; card.classList.add("thinking");
     const line = (tag, cls, text) => { const n = document.createElement(tag); n.className = cls; n.textContent = text; return n; };
-    const head = line("span", "d-k", "Planner decision · "); head.appendChild(line("b", "", "reading the evidence"));
-    const src = line("span", "d-src", `live kernel ${org} · ${id} · 0 s`);
-    card.replaceChildren(head, src, line("p", "d-why", "The planner is reading the new evidence against the organization's constitution, roles and open requirements. The verdict appears here with the model's name."));
+    const head = line("span", "d-k", "Planner decision · "); head.appendChild(line("b", "", "waiting for answer"));
+    const src = line("span", "d-src", `live kernel ${org} · ${id} · 0 s since receipt`);
+    card.replaceChildren(head, src, line("p", "d-why", "The kernel recorded this observation. Waiting for a matching planner decision; this receipt does not report planner activity."));
     app.thinkStart = Date.now();
-    app.thinkTimer = setInterval(() => { src.textContent = `live kernel ${org} · ${id} · ${Math.max(0, Math.round((Date.now() - app.thinkStart) / 1000))} s`; }, 1000);
+    app.thinkTimer = setInterval(() => { src.textContent = `live kernel ${org} · ${id} · ${Math.max(0, Math.round((Date.now() - app.thinkStart) / 1000))} s since receipt`; }, 1000);
   }
   function stopThinking() { if (app.thinkTimer) { clearInterval(app.thinkTimer); app.thinkTimer = null; } $("decision").classList.remove("thinking"); }
   function setExplain(on) { app.explain = on; $("explain").hidden = !on; if (body) body.classList.toggle("explain", on); $("explainbtn").setAttribute("aria-pressed", String(on)); }
@@ -788,9 +788,11 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
             const seconds = Number.isFinite(at) && Number.isFinite(decided) && decided >= at ? (decided - at) / 1000 : undefined;
             const verdict = String(p.verdict || "").replace(/_/g, " ");
             const card = { verdict, why: p.summary, source: "live kernel " + (org === "A" ? (sa.org_id || "A") : (sb.org_id || "B")), model: p.model || "model unknown", when: seconds === undefined ? "" : `decided ${seconds.toFixed(1)} s after the evidence` };
-            showDecision(card);
+            const answersReport = org === "A" && p.observation_id && p.observation_id === app.lastJudgeObs;
+            // Keep a submitted report pinned until its own answer arrives; other decisions stay in the log.
+            if (!app.lastJudgeObs || answersReport) showDecision(card);
             if (p.observation_id) app.answers.set(org + ":" + p.observation_id, card); // the complete answer, keyed by organization and observation
-            if (org === "A" && p.observation_id && p.observation_id === app.lastJudgeObs) ack = org + ":" + p.observation_id;
+            if (answersReport) ack = org + ":" + p.observation_id;
           }
         }
       }
@@ -858,7 +860,7 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
       const id = typeof rec.observation_id === "string" && /^[A-Za-z0-9_.:-]{3,128}$/.test(rec.observation_id) ? rec.observation_id : null; // a receipt needs an identity, not a particular spelling
       if (!id) return judgeStatus(`The kernel answered HTTP ${r.status} without an observation id. Delivery is unconfirmed and the report may have been recorded. The text is kept; check the kernel log before sending another report.`, true);
       app.lastJudgeObs = id;
-      app.liveChat = [...app.liveChat, { you: "report " + summary }, { org: `Recorded as evidence ${id} for Org A's mission (live). The planner is reading it now; its verdict appears in the decision card.` }];
+      app.liveChat = [...app.liveChat, { you: "report " + summary }, { org: `Recorded as evidence ${id} for Org A's mission (live). Waiting for a matching planner decision; its verdict appears in the decision card.` }];
       renderChat(app.liveChat); $("judgetext").value = "";
       const early = app.answers.get("A:" + id); // the planner may have answered before this receipt arrived
       app.ackKey = early ? "A:" + id : null; // a new report withdraws the previous link
