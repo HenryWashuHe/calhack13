@@ -118,13 +118,13 @@ pub async fn authorize(
     let Json(body) =
         body.map_err(|_| ApiError::bad_request("invalid method invocation request"))?;
     // A disabled receiver issues no new invocation grants; reads stay available.
-    configured(&app)?;
+    let receiver = configured(&app)?;
     let _guard = app.kernel.lock().await;
     let state = app
         .store
         .current_state()
         .map_err(|_| ApiError::internal("organization state is unavailable"))?;
-    let grant =
-        authorize_method_invocation(&app.store, &state, &body, Utc::now()).map_err(error)?;
+    let grant = authorize_method_invocation(&app.store, &state, &receiver, &body, Utc::now())
+        .map_err(error)?;
     Ok(Json(json!(grant)))
 }
