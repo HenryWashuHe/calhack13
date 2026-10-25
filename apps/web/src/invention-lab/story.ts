@@ -24,11 +24,12 @@ export interface Step {
   verdicts: string[];
 }
 
-/** A trial's word: its recorded verdict, or "ineligible" when every one of its
- * runs failed the process-slot rule (no reading is allowed then), or "no verdict". */
-function verdictWords(trials: Trial[]): string[] {
+/** A trial's word: its recorded verdict, or "ineligible" when any of its runs
+ * failed the process-slot rule (a comparison with an ineligible candidate or
+ * control slot has no reading, whatever its verdict says), or "no verdict". */
+export function verdictWords(trials: Trial[]): string[] {
   return trials.map((t) =>
-    t.executions.length > 0 && t.executions.every((e) => ineligibility(e.receipt.outcome, e.receipt.usage) !== null)
+    t.executions.some((e) => ineligibility(e.receipt.outcome, e.receipt.usage) !== null)
       ? "ineligible"
       : (t.verdict?.verdict ?? "no verdict"),
   );
