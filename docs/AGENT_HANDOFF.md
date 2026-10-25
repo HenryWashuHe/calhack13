@@ -1,6 +1,15 @@
 # GENESIS implementation handoff
 
-## Current checkpoint: generation-origin binding merged; governed loop remains open
+## Current review handoff — October 25, 2026
+
+Use [the main `a177ba5e` review snapshot](reviews/pr-queue-2026-10-25.md) for
+current source-specific routing; the older frozen checkpoint follows unchanged.
+Henry retains runtime/adoption and analysis ownership; Eric retains lab UI and
+his separately claimed research lane; ACP retains Stage. Codex coordinates
+review and its existing core-contract lane. Ines remains unassigned.
+G0–G4 are open, and the native app Goal reports `paused`.
+
+## Historical checkpoint: generation-origin binding merged; governed loop remains open
 
 **Networked recursive capability improvement with fixed model weights** remains
 the chosen direction. Work in

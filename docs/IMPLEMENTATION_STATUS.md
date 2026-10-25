@@ -1,6 +1,14 @@
 # Implementation status
 
-## Active repository checkpoint
+## Current review checkpoint — October 25, 2026
+
+At main `a177ba5e`, [the review queue snapshot](reviews/pr-queue-2026-10-25.md)
+records merged #210, #207 merged with unresolved shape findings, the #199 hold
+and pending review of updated #203. It supersedes routing below, not retained evidence.
+All G0–G4 remain open; the native app Goal reports `paused`. No new provider,
+paid, generated-method, evaluator or namespace run is claimed by this checkpoint.
+
+## Historical repository checkpoint — main `0cc38e6`
 
 **Frozen snapshot: main `0cc38e6`, nine open PRs before this checkpoint:**
 #204, #203, #199, #181, #180, #144, #65, #57 and draft #7.
