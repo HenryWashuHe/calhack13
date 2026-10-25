@@ -225,9 +225,13 @@ that selection and exact source into the receiver's bounded revision input and
 ordinary Prepared checkpoint, without receiver acceptance. G2/G3 still need
 organizational authority, local selection and adoption evidence. Henry [acknowledged the vertical slice](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388913830)
 tying recomputed receiver acceptance to requirement/responsibility/current owner
-grant, pinned invocation, decline and stale/revoked controls. This connection
-remains unimplemented; Henry owns it, with [pure verdict #146 now merged](https://github.com/HenryWashuHe/genesis-history-experiment/pull/146)
-as a prerequisite. Actual invocation and justified specialist creation remain
+grant, pinned invocation, decline and stale/revoked controls. His new
+[server acceptance #154](https://github.com/HenryWashuHe/genesis-history-experiment/pull/154)
+`cc099833` and [adoption-store #155](https://github.com/HenryWashuHe/genesis-history-experiment/pull/155)
+`df286ad4` are unmerged under independent review, without clearance. Retarget
+the stacked branches to main as dependencies merge and check their composition;
+[pure verdict #146](https://github.com/HenryWashuHe/genesis-history-experiment/pull/146)
+is already merged as a prerequisite. Actual invocation and justified specialist creation remain
 future work, not removed completion requirements. Codex
 [has claimed an intake integration](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6389431891)
 from exact selected method and receiver-owned need to one atomic ordinary
