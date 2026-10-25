@@ -115,6 +115,7 @@ impl Fixture {
         .unwrap();
         records.receiver.acceptance_plans.push(AcceptancePin {
             requirement_id: intent.requirement_id.clone(),
+            publisher: intent.publisher.clone(),
             plan: pinned.reference().unwrap(),
         });
         Self {
@@ -334,3 +335,248 @@ fn a_stored_record_that_breaks_its_invariants_is_refused_on_load() {
     }
     assert_eq!(f.store.method_adoption(&adopted.id).unwrap(), adopted);
 }
+
+/// Applies one direct state change as the next revision.
+fn commit(f: &Fixture, change: impl FnOnce(&mut OrgState)) {
+    let mut state = f.store.current_state().unwrap();
+    let base = state.revision;
+    state.revision += 1;
+    change(&mut state);
+    f.store
+        .commit_state(base, &state, vec![], &EventMeta::default(), vec![], |_| {
+            Ok(())
+        })
+        .unwrap();
+}
+
+// Independent review of `db0deec` (three confirmed findings, regression first).
+
+#[test]
+fn a_record_that_no_longer_authorizes_does_not_block_readopting() {
+    // Requirement, mission or authority changes that keep the assignment and
+    // epoch fence the old record; a fresh decision under the still-current
+    // grant must be possible.
+    let f = Fixture::new();
+    let (adopted, _) = f.create(&f.intent).unwrap();
+    let requirement = f.intent.requirement_id.clone();
+    commit(&f, |s| {
+        s.requirements
+            .get_mut(&requirement)
+            .unwrap()
+            .summary
+            .push_str(" v2")
+    });
+    let state = f.store.current_state().unwrap();
+    assert!(adopted.authorize(&state, f.now).is_err());
+    let mut again = f.intent.clone();
+    again.client_request_id = "adopt-after-edit".into();
+    let (readopted, new) = f.create(&again).unwrap();
+    assert!(new);
+    assert!(readopted.authorize(&state, f.now).is_ok());
+    // While a record still authorizes, a second one for the same binding is refused.
+    let mut third = f.intent.clone();
+    third.client_request_id = "adopt-third".into();
+    assert!(matches!(f.create(&third).unwrap_err(), E::AlreadyAdopted));
+}
+
+#[test]
+fn the_pin_names_the_publisher_the_receiver_evaluated() {
+    // The trial records carry no publisher, so identical bytes republished by
+    // another organization must not get an adopted record from this trial.
+    let f = Fixture::new();
+    let mut copycat = f.intent.clone();
+    copycat.client_request_id = "adopt-copycat".into();
+    copycat.publisher = OrgId::new("org_example_c");
+    assert!(matches!(
+        f.create(&copycat).unwrap_err(),
+        E::Acceptance(MethodAcceptanceError::Binding(_))
+    ));
+    assert!(f.create(&f.intent).is_ok());
+}
+
+#[test]
+fn only_the_requirement_owner_adopts() {
+    // A delegated executor runs work for the owner; the adoption decision and
+    // its grant stay with the owner.
+    let f = Fixture::new();
+    let owner = f.intent.role_id.clone();
+    let exec = RoleId::new("executor-role");
+    let responsibility = f.intent.responsibility_id.clone();
+    commit(&f, |s| {
+        let mut role = s.roles[&owner].clone();
+        role.role_id = exec.clone();
+        role.name = "Executor".into();
+        s.roles.insert(exec.clone(), role);
+        s.responsibilities
+            .get_mut(&responsibility)
+            .unwrap()
+            .executor = Some(genesis_core::model::Executor::Role(exec.clone()));
+    });
+    let mut by_executor = f.intent.clone();
+    by_executor.client_request_id = "adopt-by-executor".into();
+    by_executor.role_id = exec;
+    assert!(matches!(
+        f.create(&by_executor).unwrap_err(),
+        E::Authority(_)
+    ));
+    let (adopted, _) = f.create(&f.intent).unwrap();
+    assert!(adopted
+        .authorize(&f.store.current_state().unwrap(), f.now)
+        .is_ok());
+}
+
+#[test]
+fn indexed_binding_columns_must_match_the_stored_record() {
+    let f = Fixture::new();
+    let (adopted, _) = f.create(&f.intent).unwrap();
+    for (column, value) in [
+        ("requirement_id", "other-requirement".to_string()),
+        ("assignment_id", "other-assignment".to_string()),
+        ("epoch", "99".to_string()),
+    ] {
+        let conn = f.store.lock();
+        let original: String = conn
+            .query_row(
+                &format!("SELECT CAST({column} AS TEXT) FROM method_adoptions WHERE id=?1"),
+                [&adopted.id],
+                |r| r.get(0),
+            )
+            .unwrap();
+        conn.execute(
+            &format!("UPDATE method_adoptions SET {column}=?1 WHERE id=?2"),
+            rusqlite::params![value, adopted.id],
+        )
+        .unwrap();
+        drop(conn);
+        assert!(
+            matches!(
+                f.store.method_adoption(&adopted.id).unwrap_err(),
+                E::InvalidRecord
+            ),
+            "{column}"
+        );
+        f.store
+            .lock()
+            .execute(
+                &format!("UPDATE method_adoptions SET {column}=?1 WHERE id=?2"),
+                rusqlite::params![original, adopted.id],
+            )
+            .unwrap();
+    }
+    assert_eq!(f.store.method_adoption(&adopted.id).unwrap(), adopted);
+}
+
+/// Rewrites a stored record as the schema 1 shape #155/#159 wrote (no
+/// compatibility), on the pre-fence table and index those PRs created.
+fn downgrade_to_schema_one(f: &Fixture, id: &str) {
+    let conn = f.store.lock();
+    let json: String = conn
+        .query_row(
+            "SELECT record_json FROM method_adoptions WHERE id=?1",
+            params![id],
+            |row| row.get(0),
+        )
+        .unwrap();
+    let mut record: Value = serde_json::from_str(&json).unwrap();
+    record["schema_version"] = json!(1);
+    record.as_object_mut().unwrap().remove("compatibility");
+    conn.execute(
+        "UPDATE method_adoptions SET record_json=?1 WHERE id=?2",
+        params![record.to_string(), id],
+    )
+    .unwrap();
+    conn.execute_batch(
+        "DROP INDEX method_adoption_adopted;
+         ALTER TABLE method_adoptions DROP COLUMN fence_sha256;
+         CREATE UNIQUE INDEX method_adoption_adopted ON method_adoptions(requirement_id,assignment_id,epoch,publisher,method_sha256) WHERE outcome='adopted';",
+    )
+    .unwrap();
+}
+
+fn ask(f: &Fixture) -> crate::method_invocation::MethodInvocationRequest {
+    crate::method_invocation::MethodInvocationRequest {
+        role_id: f.intent.role_id.clone(),
+        responsibility_id: f.intent.responsibility_id.clone(),
+        publisher: f.intent.publisher.clone(),
+        reference: f.intent.reference.clone(),
+    }
+}
+
+#[test]
+fn a_migrated_schema_one_adoption_is_kept_but_never_authorizes() {
+    let f = Fixture::new();
+    let (adopted, _) = f.create(&f.intent).unwrap();
+    downgrade_to_schema_one(&f, &adopted.id);
+    f.store.init_method_adoptions().unwrap();
+    // Migrating twice is a no-op.
+    f.store.init_method_adoptions().unwrap();
+    let old = f.store.method_adoption(&adopted.id).unwrap();
+    assert!(old.compatibility.is_none());
+    assert_eq!(old.id, adopted.id);
+    // Replay still returns the original decision under its key.
+    assert_eq!(f.create(&f.intent).unwrap().0.id, adopted.id);
+    // It can't show current runtime/protocol compatibility, so it fences.
+    let state = f.store.current_state().unwrap();
+    let ask = ask(&f);
+    assert!(crate::method_invocation::authorize_method_invocation(
+        &f.store,
+        &state,
+        &f.records.receiver,
+        &ask,
+        f.now
+    )
+    .is_err());
+    // A fresh decision under the same policy is not blocked by it, and that
+    // one authorizes.
+    let fresh = CreateMethodAdoption {
+        client_request_id: "after-migration".into(),
+        ..f.intent.clone()
+    };
+    let (new, created) = f.create(&fresh).unwrap();
+    assert!(created && new.id != adopted.id);
+    let grant = crate::method_invocation::authorize_method_invocation(
+        &f.store,
+        &state,
+        &f.records.receiver,
+        &ask,
+        f.now,
+    )
+    .unwrap();
+    assert_eq!(grant.adoption_id, new.id);
+    // ...and the same policy can't adopt the same method twice.
+    let again = CreateMethodAdoption {
+        client_request_id: "after-migration-again".into(),
+        ..f.intent.clone()
+    };
+    assert!(matches!(f.create(&again), Err(E::AlreadyAdopted)));
+}
+
+#[test]
+fn a_migration_that_meets_a_bad_record_changes_nothing() {
+    let f = Fixture::new();
+    let (adopted, _) = f.create(&f.intent).unwrap();
+    downgrade_to_schema_one(&f, &adopted.id);
+    f.store
+        .lock()
+        .execute(
+            "UPDATE method_adoptions SET record_json='{}' WHERE id=?1",
+            params![adopted.id],
+        )
+        .unwrap();
+    assert!(f.store.init_method_adoptions().is_err());
+    let columns: i64 = f
+        .store
+        .lock()
+        .query_row(
+            "SELECT COUNT(*) FROM pragma_table_info('method_adoptions') WHERE name='fence_sha256'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(columns, 0, "the failed migration must roll back");
+}
+
+// Independent review probes: retained fixtures and in-memory/SQLite contracts only.
+// No method source, evaluator, provider or runtime is executed.
+#[path = "review_policy.rs"]
+mod review_policy;
