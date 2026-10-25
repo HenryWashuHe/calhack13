@@ -1,5 +1,27 @@
 # Invention labs: proposed GENESIS demonstration
 
+## Current review snapshot — October 25, 2026
+
+The [latest review batch](reviews/pr-queue-2026-10-25.md#current-manual-review-batch--october-25-2026)
+merged the research-runner correction (#228), Stage session/event/report binding
+(#246/#254), and prospective assignment/pre-trial-pin/process-eligibility fixes
+(#248/#253 and #250/#255). The author's #248 run records adoption after 4/6
+versus 2/6, with no invocation retained. #249/#256 now retains checked author-run
+B1/B2 adoption/use records, including the missing method.develop authority
+condition. #250's corrected prospective driver was not run here; no retained
+declared attempt-2 run exists. Two earlier author-reported stand-in checks are
+unretained and not evidence. Source corrections and inert
+checks do not establish independent organizations, an accepted recursive return,
+or benefit. Henry owns the adoption-scope authority correction; source review
+of `f52210ab` is clear, but it is not merged and main still lacks that policy.
+
+The demonstration below remains the target. G0–G4 are open; automation and native
+Goal remain paused. This manually authorized review performed no provider,
+method, evaluator/scorer, driver or namespace execution. The older closeout
+context is preserved below and does not describe the latest queue.
+
+## Earlier closeout context
+
 Manual closeout now adds full trial-slot/evaluator identity checks (#231) and a
 pre-write publisher expectation (#233). The evidence UI cannot borrow a plan's
 verdict for a foreign execution; a mismatched typed publisher cannot silently
