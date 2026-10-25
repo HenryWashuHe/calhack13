@@ -28,6 +28,7 @@ aside p { margin: 0; color: var(--dim); font-size: 13.5px; line-height: 1.5; }
 aside dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; font-size: 12px; }
 aside dt { color: var(--dim); } aside dd { margin: 0; font-family: var(--mono); font-size: 11px; word-break: break-all; }
 aside .hint { color: var(--dim); font-size: 12px; }
+.scope { grid-column: 1 / -1; display: grid; gap: 8px; } .scope p { max-width: none; color: var(--dim); font-size: 13px; line-height: 1.5; margin: 0; } a { color: var(--accent); }
 @media (max-width: 900px) { main { grid-template-columns: 1fr; } aside { position: static; } }
 
 /* diagram */
@@ -62,7 +63,7 @@ svg.focus .edge.on .lbl { fill-opacity: 1; font-size: 11.5px; }
 <main>
   <header>
     <h1>GENESIS: the iteration core and where each sponsor sits</h1>
-    <div class="legend"><span class="core">core loop</span><span class="sponsor">sponsor, live evidence</span><span class="partial">live runs, kernel binding in progress</span></div>
+    <div class="legend"><span class="core">core loop</span><span class="sponsor">sponsor, live evidence</span><span class="partial">conditional / pending · readiness unverified</span></div>
   </header>
   <figure>
     <svg id="d" viewBox="0 0 1240 680" role="img" aria-label="GENESIS architecture: a judge talks to a Fetch.ai agent; the kernel and planner govern change; Apify and CREAO provision tools and roles; Elastic indexes the record; the lab iterates methods and hands verified bundles to a second organization over Fetch.ai">
@@ -78,39 +79,43 @@ svg.focus .edge.on .lbl { fill-opacity: 1; font-size: 11.5px; }
   <aside id="panel" aria-live="polite">
     <h2>Hover a box or an arrow</h2>
     <span class="chip core">GENESIS</span>
-    <p>Green is the core iteration loop: evidence enters, the planner proposes, the kernel decides, the lab improves methods on sealed tests, a verified bundle leaves, a second organization re-tests before adopting.</p>
-    <p class="hint">Every arrow is a path that ran during Cal Hacks 13.0. Chips say what the evidence is.</p>
+    <p>Networked recursive capability improvement with fixed model weights. The planner proposes; the Rust kernel checks authority and records changes. Apify supplies executable capabilities, CREAO runs frozen role contracts on a published app, Elastic supports retrieval. Receiving organizations check exact bundles and decide locally.</p>
+    <p class="hint">Arrows show interfaces, not proof that every connection ran together. Solid green is implemented and exercised; dashed is conditional or pending. Chips name the dated evidence.</p>
   </aside>
+  <section class="scope">
+    <p>The ambition is a network that improves its own capability-development methods without changing model weights. Implemented interfaces, local fixtures, author-run outcomes and authenticated provider checkpoints support different claims. A→B→A development-method return, general network benefit and live CREAO role readiness remain unproved; the displayed single job-shop seed is not a controlled benefit result. Elastic keys are not isolated per organization. Green sponsor boxes refer to separately recorded live checkpoints; current availability is not monitored by this page.</p>
+    <p>Evidence and scope: <a href="https://github.com/HenryWashuHe/calhack13/blob/main/docs/IMPLEMENTATION_STATUS.md">implementation status</a> · <a href="https://github.com/HenryWashuHe/calhack13/blob/main/docs/ONGOING_GOAL.md">completion gates</a> · <a href="https://github.com/HenryWashuHe/calhack13/blob/main/docs/CREAO_TRIGGER_SMOKE.md">Trigger smoke</a> · <a href="https://github.com/HenryWashuHe/calhack13/blob/main/docs/invention-lab/analysis/jobshop-smoke-20261025.md">recorded job-shop seed and controls</a> · <a href="https://github.com/HenryWashuHe/calhack13/issues/1">dated operator checkpoints</a>.</p>
+  </section>
 </main>
 <script>
 (() => {
   const N = {
     judge:   { x: 20,  y: 262, w: 130, h: 60,  kind: "plain",   t: "judge / operator", s: ["one sentence"],
                role: "A person types one sentence of evidence. Nothing else is scripted.", chip: ["live", "live"], ids: {} },
-    fetch:   { x: 200, y: 240, w: 190, h: 104, kind: "sponsor", t: "Fetch.ai ASI:One agent", s: ["Agentverse mailbox", "chat protocol"], c: ["live", "live · relayed in 84 s"],
-               role: "The door into an organization and the channel between organizations. A sentence becomes an observation; the planner's committed decision is relayed back; verified bundles travel as agent-carried offers.",
-               chip: ["live", "live · end-to-end transcript 2026-10-25"], ids: { agent: "agent1q284muxcdleukm2vrh670nljfp5hl8f25ew8d78jkzxf0j3w2gut2jyj9nl", bridge: "services/fetch-bridge" } },
-    kernel:  { x: 450, y: 196, w: 330, h: 190, kind: "core",    t: "GENESIS kernel (Rust)", s: ["organization state · roles · authority", "", "", "", "append-only event log · revision r34 live", "only the kernel commits · a refusal is recorded"],
+    fetch:   { x: 200, y: 240, w: 190, h: 104, kind: "sponsor", t: "Fetch.ai chat agent", s: ["Agentverse mailbox", "chat protocol"], c: ["live", "reported relay · 84 s"],
+               role: "The implemented conversational door: a judge's report becomes an observation and the planner's decision is relayed back. Bundle handoff between organizations is intended: the iteration engine exports offer messages, but the bridge does not yet send or parse those exported offers.",
+               chip: ["live", "operator-reported checkpoint 2026-10-25: report acknowledged in 5 s, decision relayed in 84 s"], ids: { agent: "agent1q284muxcdleukm2vrh670nljfp5hl8f25ew8d78jkzxf0j3w2gut2jyj9nl", bridge: "services/fetch-bridge" } },
+    kernel:  { x: 450, y: 196, w: 330, h: 190, kind: "core",    t: "GENESIS kernel (Rust)", s: ["organization state · roles · authority", "", "", "", "append-only log · recorded snapshot r34", "only the kernel commits · a refusal is recorded"],
                role: "Holds the organization: roles, authority, responsibilities. Any proposal walks PROPOSED → VALIDATED → PROVISIONING → READY → COMMITTED, or is REJECTED on its own branch. Models propose; the kernel decides and records.",
-               chip: ["live", "live · Org A revision 34, 8 roles"], ids: { "Org A": "127.0.0.1:7101", "Org B": "127.0.0.1:7102" } },
+               chip: ["live", "recorded snapshot: Org A revision 34, 8 roles"], ids: { "Org A": "127.0.0.1:7101", "Org B": "127.0.0.1:7102" } },
     planner: { x: 490, y: 40,  w: 250, h: 90,  kind: "core",    t: "planner (Claude Sonnet 5.5)", s: ["reads evidence, proposes on a", "5-rung ladder · cannot commit"],
                role: "Reads the evidence and proposes one rung: no change, reuse a role, attach a capability, recruit a specialist, create a role. It can refuse. It can never commit.",
                chip: ["live", "live · recorded factory run 2026-10-25"], ids: { model: "claude-sonnet-5-5" } },
     apify:   { x: 880, y: 150, w: 200, h: 92,  kind: "sponsor", t: "Apify Actor", s: ["built · pinned · oracle 3/3"], c: ["live", "live gate passed"],
                role: "The tool supply. A missing web capability is generated as an Actor, built, pinned by version and verified against an oracle before a role may use it.",
                chip: ["live", "live gate 2026-10-24 · run 20261024085438"], ids: { actor: "n8kB1hNqgzkddvWKp", build: "D5hU7kSdSc20L08g3 (0.1.1)", link: "console.apify.com/actors/n8kB1hNqgzkddvWKp" } },
-    creao:   { x: 880, y: 272, w: 200, h: 96,  kind: "partial", t: "CREAO hosted agent", s: ["Method Revision Analyst", "persistent role"], c: ["partial", "runs live · binding in progress"],
-               role: "The role that outlives any one team. Given a frozen method, one trial observation and the evaluator's feedback, it returns one bounded revision hypothesis with one fresh test. Two console runs completed through the API Trigger; the kernel's provisioning is moving from the v2 API to the Trigger path.",
-               chip: ["partial", "2 console runs · kernel binding in progress"], ids: { agent: "9880ad7c-fa2a-4a88-8c82-40eed5f81560", run: "agent.creao.ai/share/45e3804d4b325b821557d8d70509b633" } },
-    elastic: { x: 490, y: 470, w: 250, h: 112, kind: "sponsor", t: "Elastic", s: ["genesis-iteration-ledger · 429 docs", "genesis-evidence-* · Agent Builder", "specialist searches the evidence"], c: ["live", "live · gate passed"],
+    creao:   { x: 880, y: 272, w: 200, h: 96,  kind: "partial", t: "CREAO API Trigger", s: ["Method Revision Analyst", "frozen role contract on a published app"], c: ["partial", "role readiness unverified"],
+               role: "API Trigger invokes a prepublished app for a GENESIS-owned responsibility: given a frozen method, one trial observation and the evaluator's feedback, the Method Revision Analyst returns one bounded revision hypothesis with one fresh test. Each job resends its exact bootstrap contract; kernel grants, gateway readiness and domain checks remain separate. Backend migration #270 is merged with loopback validation; it ran no paid POST and did not establish demo kernel binding or live readiness.",
+               chip: ["partial", "2 Trigger runs reported (2026-10-24, 2026-10-25) · readiness unverified"], ids: { agent: "9880ad7c-fa2a-4a88-8c82-40eed5f81560", run: "agent.creao.ai/share/45e3804d4b325b821557d8d70509b633" } },
+    elastic: { x: 490, y: 470, w: 250, h: 112, kind: "sponsor", t: "Elastic", s: ["ledger · 429 docs reported", "genesis-evidence-* · Agent Builder", "specialist searches the evidence"], c: ["live", "recorded live gate passed"],
                role: "Institutional memory. Kernel events and the lab's chain-hashed ledgers are indexed; an Agent Builder specialist answers from the evidence index instead of from memory.",
-               chip: ["live", "live gate 2026-10-25 · run 20261025103959"], ids: { indices: "genesis-iteration-ledger · genesis-evidence-* · genesis-capabilities" } },
+               chip: ["live", "operator-reported checkpoint: gate 20261025103959 passed"], ids: { indices: "genesis-iteration-ledger · genesis-evidence-* · genesis-capabilities" } },
     lab:     { x: 20,  y: 420, w: 400, h: 190, kind: "core",    t: "lab: iteration engine (Node)", s: [],
-               role: "The improvement loop. The model proposes k methods; sealed panels score them; controls stay in the room; a candidate survives only if it beats the incumbent, and is confirmed on a fresh panel before it leaves as a sealed bundle. Generated code runs in an OS sandbox with no key and no network.",
-               chip: ["live", "7 recorded runs · job-shop 19/20 vs random 14"], ids: { results: "scripts/iteration/results/", analysis: "docs/invention-lab/analysis/jobshop-smoke-20261025.md" } },
-    orgB:    { x: 880, y: 450, w: 200, h: 112, kind: "core",    t: "organization B", s: ["its own kernel + planner", "re-tests on its own problems", "adopts only on a local win"], c: ["live", "one inheritance ran A→B→A"],
-               role: "Trusts nothing. It checks the sealed record, re-tests the method on its own problems against its own methods, and only then adopts it and assigns an owner. A's score travels with the bundle and is never trusted.",
-               chip: ["live", "inheritance A→B→A ran end to end"], ids: { kernel: "127.0.0.1:7102 · revision 5" } },
+               role: "The improvement loop. The model proposes k methods; sealed panels score them; controls stay in the room; a candidate survives only if it beats the incumbent, and is confirmed on a fresh panel before it leaves as a sealed bundle. Generated code runs in a bounded runner with host isolation limits. The displayed job-shop seed is one recorded seed, not a controlled benefit result.",
+               chip: ["live", "one recorded seed: 19/20 vs random 14/20 · 7 runs on record"], ids: { results: "scripts/iteration/results/", analysis: "docs/invention-lab/analysis/jobshop-smoke-20261025.md" } },
+    orgB:    { x: 880, y: 450, w: 200, h: 112, kind: "core",    t: "organization B", s: ["its own kernel + planner", "re-tests on its own problems", "accepts or declines locally"], c: ["partial", "recursive return remains open"],
+               role: "Checks the exact bundle and decides locally: it re-tests the method on its own problems against its own methods before any adoption. Cross-organization fixtures and author-run records exist; a completed A→B→A development-method return remains open.",
+               chip: ["partial", "fixtures and author-run records · A→B→A return open"], ids: { kernel: "127.0.0.1:7102 · revision 5" } },
   };
   const E = [
     { id: "chat",    from: "judge",   to: "fetch",   lbl: "chat",            p: "M150 292 L198 292", core: true },
@@ -119,13 +124,13 @@ svg.focus .edge.on .lbl { fill-opacity: 1; font-size: 11.5px; }
     { id: "evid",    from: "kernel",  to: "planner", lbl: "evidence",        p: "M590 194 L590 132", core: true },
     { id: "prop",    from: "planner", to: "kernel",  lbl: "proposal",        p: "M640 132 L640 194", core: true },
     { id: "tool",    from: "kernel",  to: "apify",   lbl: "adds a tool",     p: "M782 232 L878 200" },
-    { id: "role",    from: "kernel",  to: "creao",   lbl: "adds a role",     p: "M782 330 L878 330", dashed: true },
+    { id: "role",    from: "kernel",  to: "creao",   lbl: "binds a role",    p: "M782 330 L878 330", dashed: true },
     { id: "log",     from: "kernel",  to: "elastic", lbl: "event log",       p: "M560 388 L560 468" },
     { id: "mission", from: "kernel",  to: "lab",     lbl: "mission · method to improve", p: "M450 370 C 380 400, 330 400, 280 418", core: true },
     { id: "ledger",  from: "lab",     to: "elastic", lbl: "ledger",          p: "M422 520 L488 520" },
-    { id: "bundle",  from: "lab",     to: "orgB",    lbl: "verified bundle → Fetch.ai offer (sealed, with ledger)", p: "M420 440 C 560 392, 740 418, 878 470", core: true, accent: true },
+    { id: "bundle",  from: "lab",     to: "orgB",    lbl: "planned offer handoff · export exists, relay pending", p: "M420 440 C 560 392, 740 418, 878 470", core: true, dashed: true },
     { id: "revise",  from: "creao",   to: "lab",     lbl: "revision hypothesis",  p: "M900 368 C 900 660, 520 690, 422 596", dashed: true },
-    { id: "back",    from: "orgB",    to: "kernel",  lbl: "adoption recorded · offer back to A", p: "M980 450 C 980 410, 820 400, 780 372", core: true },
+    { id: "back",    from: "orgB",    to: "kernel",  lbl: "A→B→A return · open", p: "M980 450 C 980 410, 820 400, 780 372", core: true, dashed: true },
   ];
   const core = new Set(["kernel", "planner", "lab", "orgB", "fetch"]);
   const svg = document.getElementById("d"), gE = document.getElementById("edges"), gN = document.getElementById("nodes"), gP = document.getElementById("pulses");
@@ -166,7 +171,7 @@ svg.focus .edge.on .lbl { fill-opacity: 1; font-size: 11.5px; }
       g.append(el("circle", { cx: x, cy: y, r: 4, fill: "#5BD0BA" }));
       const ox = i === 1 ? 10 : i === 3 ? -10 : 0, oy = i === 0 ? -12 : i === 2 ? 18 : 4;
       g.append(txt(x + ox, y + oy, s, "s", i === 1 ? "start" : i === 3 ? "end" : "middle")); }
-    g.append(txt(l.x + l.w / 2, l.y + l.h - 12, "7 recorded runs · 19/20 vs random 14 · sandboxed", "c live"));
+    g.append(txt(l.x + l.w / 2, l.y + l.h - 12, "one recorded seed: 19/20 vs random 14/20 · bounded runner", "c live"));
     // traveling dot on the ring
     const dot = el("circle", { r: 3.5, class: "pulse" }); const mo = el("animateMotion", { dur: "6s", repeatCount: "indefinite", path: `M ${cx} ${cy - r} a ${r} ${r} 0 1 1 -0.01 0` }); dot.append(mo); g.append(dot);
     l.el.append(g); })();
@@ -181,12 +186,12 @@ svg.focus .edge.on .lbl { fill-opacity: 1; font-size: 11.5px; }
     panel.innerHTML = `<h2>${esc(title)}</h2><span class="chip ${chip[0]}">${esc(chip[1])}</span><p>${esc(role)}</p>${dl ? `<dl>${dl}</dl>` : ""}`;
   };
   const idle = () => { svg.classList.remove("focus"); for (const e of E) { e.el.classList.remove("on"); e.line.classList.remove("flow"); } for (const n of Object.values(N)) n.el.classList.remove("on");
-    panel.innerHTML = `<h2>Hover a box or an arrow</h2><span class="chip core">GENESIS</span><p>Green is the core iteration loop: evidence enters, the planner proposes, the kernel decides, the lab improves methods on sealed tests, a verified bundle leaves, a second organization re-tests before adopting.</p><p class="hint">Every arrow is a path that ran during Cal Hacks 13.0. Chips say what the evidence is.</p>`; };
+    panel.innerHTML = `<h2>Hover a box or an arrow</h2><span class="chip core">GENESIS</span><p>Networked recursive capability improvement with fixed model weights. The planner proposes; the Rust kernel checks authority and records changes. Apify supplies executable capabilities, CREAO runs frozen role contracts on a published app, Elastic supports retrieval. Receiving organizations check exact bundles and decide locally.</p><p class="hint">Arrows show interfaces, not proof that every connection ran together. Solid green is implemented and exercised; dashed is conditional or pending. Chips name the dated evidence.</p>`; };
   const focusNode = (id) => { const n = N[id]; svg.classList.add("focus"); n.el.classList.add("on");
     for (const e of E) { const on = e.from === id || e.to === id; e.el.classList.toggle("on", on); e.line.classList.toggle("flow", on); if (on) { N[e.from].el.classList.add("on"); N[e.to].el.classList.add("on"); } }
     show(n.t, n.chip, n.role, n.ids); };
   const focusEdge = (id) => { const e = E.find((x) => x.id === id); svg.classList.add("focus"); e.el.classList.add("on"); e.line.classList.add("flow"); N[e.from].el.classList.add("on"); N[e.to].el.classList.add("on");
-    show(e.lbl, e.core ? ["live", "core loop"] : e.dashed ? ["partial", "ran · not yet verified live"] : ["live", "data path"], `${N[e.from].t} → ${N[e.to].t}.`, {}); };
+    show(e.lbl, e.dashed ? ["partial", "conditional / pending"] : e.core ? ["live", "core loop"] : ["live", "implemented interface"], `${N[e.from].t} → ${N[e.to].t}.`, {}); };
   let pinned = null;
   const enter = (ev) => { const g = ev.target.closest("[data-id]"); if (!g || pinned) return; for (const e of E) { e.el.classList.remove("on"); e.line.classList.remove("flow"); } for (const n of Object.values(N)) n.el.classList.remove("on");
     g.classList.contains("node") ? focusNode(g.dataset.id) : focusEdge(g.dataset.id); };
