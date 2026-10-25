@@ -24,10 +24,11 @@ Cause 6 is "finding 1" of the strategy/adapter proposal (`strategy-adapter.md`, 
 3 and 4 are plausible contributors, not established causes; only cause 5 is observed in the retained
 records (the report's own grading).
 
-## What #144 already covers
+## What #144 intends to cover
 
-Read from `docs/invention-lab/contracts/iteration.md` and `scripts/iteration/engine.mjs` at
-`fd35c2f`:
+The intended behaviors below are read from `docs/invention-lab/contracts/iteration.md` and
+`scripts/iteration/engine.mjs` at `fd35c2f`. They are not independently established guarantees;
+this proposal does not clear #144's [outstanding review findings](https://github.com/HenryWashuHe/genesis-history-experiment/pull/144#pullrequestreview-5641446964):
 
 - **Several candidates per generation.** `k` candidates (default 4) are proposed from the incumbent
   and its id-free attributed feedback before any instance is drawn. This is a (1 + λ) loop: λ = k
@@ -70,9 +71,10 @@ between the two targets, so a gain can be attributed to one part.
   loop must beat a frontier that still contains the loop. Cause 6 partly: adapter-targeted
   candidates can change features without touching the loop.
 - **Needs:** the frontier becomes a set; the promotion rule names the member displaced; the ledger
-  records each candidate's target. In the lab an arm costs one development run plus scoring on the
-  panel (#144, "Binding to the lab tools"), so a generation costs λ + μ + controls runs. It must be
-  priced in the chain allocation before it is declared.
+  records each candidate's target. Price every slot in the declared plans, each with a development
+  run plus scoring. The current emitter makes a separate acceptance plan per candidate/control
+  pairing, so repeated candidates and controls require separately bound runs; λ + μ + controls
+  alone is not the run count. Reserve the full sum in the chain allocation before work starts.
 
 ### B. Quality-diversity archive: family × strategy-behavior cells
 
@@ -113,8 +115,9 @@ rung the survivors, the incumbent and every control run on one full frozen panel
 rung can promote**. Across families, an optional bandit gives the next generation's budget to
 families with a better promotion record, with a declared floor so no family is starved.
 
-- **Adds over #144:** the evaluations saved by not scoring weak candidates on the full panel go to
-  a larger final panel. That attacks cause 4 without raising the total.
+- **Adds over #144:** scoring fewer weak candidates may leave budget for a larger final panel.
+  Equal or lower total cost is conditional on a predeclared allocation that includes every new
+  development run, scoring run and repeated control at every rung; it is not established here.
 - **Answers:** cause 4. Cause 5 at the outer layer: rung decisions compare candidates only on
   identical instances, nothing is promoted from a partial rung, and no rule ranks fewer trials
   above more. The outer loop must not repeat the child's estimator.
@@ -155,9 +158,9 @@ any search algorithm.
 
 ## Recommendation
 
-1. **A + D first.** A supplies the population and the strategy/adapter attribution. D supplies a
-   larger deciding panel at the same cost. Both are outer-layer changes to #144's loop and need no
-   change to the executor or scorer.
+1. **A + D first.** A supplies the population and the strategy/adapter attribution. D may support a
+   larger deciding panel if the full run and scoring allocation permits it; equal cost is not
+   assumed. Both are outer-layer changes to #144's loop and need no change to the executor or scorer.
 2. **B as A's storage** once A runs: draw A's μ parents from behavior cells, not from the top μ.
 3. **C after A is stable** on at least one family, where stable is declared in advance (for
    example, no frontier change over a fixed number of generations, with a confirmation panel
@@ -169,9 +172,10 @@ any search algorithm.
 
 Declared now, before any run, for whichever options are run:
 
-1. **Per-family frontier success over rounds.** For each family and round, the frontier's success
-   count on #144's final fresh confirmation panel, with the controls on the same panel. Only
-   confirmation numbers are quoted; selection panels are not.
+1. **Final confirmed frontier success by family.** At the end of each independently predeclared
+   loop, confirm its frontier once against the controls on a fresh panel never used for selection.
+   Do not reuse that final panel over rounds. Any learning curve uses separately labeled adaptive
+   development/selection counts, not repeated confirmation measurements.
 2. **Families where the frontier beats seeded random search.** An `accepted` verdict in a
    predeclared trial on a fresh panel, with seeded random search as the control, as in the retained
    `vs-random-search` trials.
@@ -181,14 +185,16 @@ Declared now, before any run, for whichever options are run:
 
 Always reported alongside: evaluations, development runs, generation calls, simulation steps and
 the chain cost records; every rejected and `insufficient` verdict. A round with no promotion, and a
-loop that ends on its root, are results. Today the starting point is zero for metric 2: no retained
-trial on `main` accepts a generated method against seeded random search
-(`docs/invention-lab/evidence/live-method-20261024-a-return/README.md`, "Result").
+loop that ends on its root, are results. As a reference baseline, [PR #165](https://github.com/HenryWashuHe/genesis-history-experiment/pull/165)
+records author-run acceptance of the unchanged parent on rough-transport against seeded random
+search: public 12/12 versus 7/12, and hidden attempt 2, 12/12 versus 9/12. Those retained results
+cover one family; they are not outcomes of these proposed algorithms, strategy transfer or
+recursive improvement.
 
 ## Dependencies
 
-- **#144 (ACP lane and contracts lane):** the interface agreement this builds on. Nothing here
-  changes #144's engine.
+- **#144 (ACP lane and contracts lane):** the proposed interface this builds on, pending review
+  and owner agreement. Nothing here changes #144's engine.
 - **Forge / generation:** candidates with `target: strategy | adapter`; admission and chain
   allocation for λ > 1 per generation and for rung schedules.
 - **Executor and scoring:** unchanged. Rungs and islands are ordinary predeclared trials.
