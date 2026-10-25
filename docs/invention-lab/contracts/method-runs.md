@@ -43,7 +43,6 @@ A proposed plan is accepted only if all of these hold:
   acceptance evidence.
 - Its model settings equal the accepted plan's.
 - Its development and scoring grants are no larger than the accepted plan's.
-
 - Its plan, run, attempt and scoring ids are used by no other run, and its
   run, attempt and scoring ids differ from the accepted trial's.
 - Its frozen record leaves 64 KiB for the receipt, so a run that starts can
