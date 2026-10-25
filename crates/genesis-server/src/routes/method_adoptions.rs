@@ -84,10 +84,30 @@ pub async fn create(
                 .package_json
         }
     };
+    // The rescore runs a subprocess, so it happens before any lock; the store
+    // then checks assessment read the same bytes.
+    let rescored = match (&body.decision, app.method_rescorer.clone()) {
+        (MethodDecision::Adopt { trial }, Some(rescorer)) => {
+            let (root, trial) = (receiver.records_root.clone(), trial.clone());
+            let joined =
+                tokio::task::spawn_blocking(move || rescorer.rescore_trial(&root, &trial)).await;
+            let rescored = joined
+                .map_err(|_| ApiError::internal("method rescoring did not complete"))?
+                .map_err(|e| error(MethodAdoptionError::Acceptance(e)))?;
+            Some(rescored)
+        }
+        _ => None,
+    };
     let _guard = app.kernel.lock().await;
     let (record, created) = app
         .store
-        .create_method_adoption(&body, &package_json, &receiver, Utc::now())
+        .create_method_adoption_rescored(
+            &body,
+            &package_json,
+            &receiver,
+            rescored.as_ref(),
+            Utc::now(),
+        )
         .map_err(error)?;
     let status = if created {
         StatusCode::CREATED

@@ -38,6 +38,7 @@ pub mod method_adoption;
 pub mod method_adoption_store;
 pub mod method_invocation;
 pub mod method_invocation_run;
+pub mod method_rescore;
 pub mod outbox;
 pub mod projection;
 pub mod registry;
@@ -362,6 +363,7 @@ pub fn build_org(cfg: &OrgConfig, providers: Option<ProviderSet>) -> anyhow::Res
         provision_timeout: cfg.provision_timeout,
         readiness: specialist::ReadinessRegistry::default(),
         method_receiver: None,
+        method_rescorer: None,
     })
 }
 
