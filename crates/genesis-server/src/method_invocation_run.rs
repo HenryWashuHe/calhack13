@@ -41,6 +41,10 @@ const RECEIPT_ALLOWANCE: usize = 64 * 1024;
 const BINDING_ALLOWANCE: usize = RECEIPT_ALLOWANCE / 4;
 /// Room kept, beside the receipt's, for the run's one evaluation receipt.
 const EVALUATION_ALLOWANCE: usize = 32 * 1024;
+/// The frozen scoring identity gets at most half the evaluation allowance.
+/// The other half remains for the output, metrics, trace and usage, whose
+/// values are not known at prepare time and still have to fit the full cap.
+const EVALUATION_BINDING_ALLOWANCE: usize = EVALUATION_ALLOWANCE / 2;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -254,6 +258,35 @@ fn run_budget(usage: &Usage, grant: &ResourceGrant) -> Result<RunBudget> {
     })
 }
 
+/// Count the actual serialized fields an evaluation must repeat, including
+/// both scoring-context copies. Null marks only values supplied after the
+/// run; this is a size envelope, never an evaluation or an evidence record.
+fn frozen_evaluation_bytes(plan: &TrialPlan) -> Result<usize> {
+    let slot = &plan.slots[0];
+    let binding = plan
+        .expected_binding(&slot.slot_id)
+        .map_err(|_| E::InvalidRecord)?;
+    let digest = "0".repeat(64);
+    let envelope = serde_json::json!({
+        "request": {
+            "request_id": slot.scoring_request_id,
+            "execution_sha256": digest,
+            "output": null,
+            "context": plan.context,
+            "purpose": binding.purpose,
+            "budget": plan.scoring_grant,
+        },
+        "request_sha256": digest,
+        "observed_context": plan.context,
+        "outcome": { "kind": "scored", "metrics": null },
+        "trace": null,
+        "usage": null,
+    });
+    serde_json::to_vec(&envelope)
+        .map(|bytes| bytes.len())
+        .map_err(|_| E::InvalidRecord)
+}
+
 fn load(conn: &Connection, id: &str) -> Result<MethodRunRecord> {
     let row: Option<(String, String, String)> = conn
         .query_row(
@@ -362,6 +395,11 @@ impl Store {
         if binding_bytes.len() > BINDING_ALLOWANCE {
             return Err(E::Plan(
                 "the run binding leaves no room for its receipt; shorten the plan's identifiers",
+            ));
+        }
+        if frozen_evaluation_bytes(&record.plan)? > EVALUATION_BINDING_ALLOWANCE {
+            return Err(E::Plan(
+                "the scoring identity leaves no room for its evaluation; shorten the scoring request or context identifiers",
             ));
         }
         let mut conn = self.lock();
