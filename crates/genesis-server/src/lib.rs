@@ -34,6 +34,9 @@ pub mod capability_scenario;
 pub mod capability_store;
 pub mod elastic_jobs;
 pub mod error;
+pub mod method_adoption;
+pub mod method_adoption_store;
+pub mod method_invocation;
 pub mod outbox;
 pub mod projection;
 pub mod registry;
@@ -58,6 +61,8 @@ pub mod creao_readiness;
 
 /// Readiness proven by backend-observed gateway receipts.
 pub mod gateway_readiness;
+
+pub mod method_development_intake;
 
 use app::AppState;
 use auth::Tokens;
@@ -283,8 +288,10 @@ pub fn build_org(cfg: &OrgConfig, providers: Option<ProviderSet>) -> anyhow::Res
     let (tx, _) = broadcast::channel(1024);
     let kernel = Arc::new(Mutex::new(()));
     store.init_capability_runs()?;
+    store.init_method_development()?;
     store.init_capability_pins()?;
     store.init_capability_adoptions()?;
+    store.init_method_adoptions()?;
     store.init_capability_invocations()?;
     store.init_venue_assessments()?;
     store.init_venue_monitors()?;
@@ -352,6 +359,7 @@ pub fn build_org(cfg: &OrgConfig, providers: Option<ProviderSet>) -> anyhow::Res
         automatic_venue_recovery: false,
         provision_timeout: cfg.provision_timeout,
         readiness: specialist::ReadinessRegistry::default(),
+        method_receiver: None,
     })
 }
 

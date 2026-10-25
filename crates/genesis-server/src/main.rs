@@ -21,6 +21,8 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
 
+mod method_cli;
+
 #[derive(Parser)]
 #[command(name = "genesis", about = "GENESIS organization kernel")]
 struct Cli {
@@ -30,6 +32,8 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
+    /// Publish, discover or fetch exact development-method source; no execution or adoption.
+    Method(method_cli::MethodArgs),
     /// Serve one organization instance. Set APIFY_TOKEN to enable real Apify execution.
     Org(Box<OrgArgs>),
     /// Demonstrate acquisition and independent inheritance across two fresh organizations.
@@ -122,6 +126,11 @@ struct OrgArgs {
     /// publication (verified by this organization's own suite) before synthesis.
     #[arg(long, value_name = "FILE", requires = "registry_url")]
     gap_adoption_policy: Option<PathBuf>,
+    /// Trusted JSON receiver configuration (runtime, protocol, environments,
+    /// evaluators, allowed dependencies, retained-records root) enabling
+    /// method adoption decisions and the invocation check.
+    #[arg(long, value_name = "FILE", requires = "registry_url")]
+    method_receiver: Option<PathBuf>,
     #[arg(long, env = "GENESIS_REGISTRY_URL")]
     registry_url: Option<String>,
     #[arg(long, env = "GENESIS_REGISTRY_TOKEN")]
@@ -139,6 +148,7 @@ struct OrgArgs {
 
 fn init_tracing() {
     tracing_subscriber::fmt()
+        .with_writer(std::io::stderr)
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()
                 .unwrap_or_else(|_| "info,tower_http=info".into()),
@@ -247,6 +257,7 @@ fn org_providers(
 async fn main() -> anyhow::Result<()> {
     init_tracing();
     match Cli::parse().command {
+        Command::Method(args) => args.run().await,
         Command::Scenario { spec, org_a, org_b } => {
             let spec: ScenarioSpec = load_trusted_json(&spec)?;
             let token_a = secret_from_env("GENESIS_ORG_A_OPERATOR_TOKEN")?
@@ -276,6 +287,7 @@ async fn main() -> anyhow::Result<()> {
                 gap_acquisition_policy,
                 gap_finalization_policy,
                 gap_adoption_policy,
+                method_receiver,
                 registry_url,
                 registry_token,
                 operator_token,
@@ -361,7 +373,13 @@ async fn main() -> anyhow::Result<()> {
                     .context("configuring the acquisition Apify client")?;
                 config.automatic = auto_acquire;
             }
-            let app = genesis_server::attach_elastic_from_env(build_org(&cfg, Some(providers))?)?;
+            let mut app =
+                genesis_server::attach_elastic_from_env(build_org(&cfg, Some(providers))?)?;
+            app.method_receiver = method_receiver
+                .as_deref()
+                .map(load_trusted_json::<genesis_server::method_adoption::MethodReceiver>)
+                .transpose()?
+                .map(Arc::new);
             let listener = tokio::net::TcpListener::bind(&bind).await?;
             tracing::info!(org = %cfg.org_id, %bind, "organization listening");
             genesis_server::serve_org(app, listener).await

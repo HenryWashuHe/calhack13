@@ -9,6 +9,7 @@ mod changes;
 mod events;
 mod gateway;
 pub(crate) mod jobs;
+mod method_adoptions;
 mod org;
 mod search;
 mod venue_assessments;
@@ -30,6 +31,14 @@ pub fn router(state: AppState) -> Router {
         .route("/organization/audit", get(org::audit))
         .route("/missions", post(org::create_mission))
         .route("/missions/{id}/observations", post(org::add_observation))
+        .route(
+            "/missions/{id}/method-development",
+            post(crate::method_development_intake::create).layer(DefaultBodyLimit::max(16 * 1024)),
+        )
+        .route(
+            "/missions/{id}/method-development/{request_id}",
+            get(crate::method_development_intake::get),
+        )
         .route("/missions/{id}/requirements", post(org::add_requirement))
         .route("/contracts/{id}/state", post(org::update_contract))
         .route("/planner/decisions", post(org::planner_decision))
@@ -114,6 +123,12 @@ pub fn router(state: AppState) -> Router {
             get(adoptions::candidates),
         )
         .route("/capability-adoptions/{id}/step", post(adoptions::step))
+        .route("/method-adoptions", post(method_adoptions::create))
+        .route("/method-adoptions/{id}", get(method_adoptions::status))
+        .route(
+            "/method-invocations/authorize",
+            post(method_adoptions::authorize),
+        )
         .route(
             "/capability-installations/{id}/acceptance",
             post(capabilities::acceptance),
