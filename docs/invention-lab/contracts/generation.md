@@ -28,13 +28,38 @@ public documents at 128 KiB each, with at most sixteen extra public inputs.
 
 `settings` requires `model`, `max_tokens` (1–16384), `timeout_ms` (1–120000), and
 `sampling: "provider_default"`. The adapter sends one non-streaming Anthropic
-Messages request, API version `2023-06-01`, with no tools, thinking configuration
-or sampling parameters. Unsupported sampling variants fail during deserialization.
+Messages request, API version `2023-06-01`, with no tools or sampling parameters.
+Without `reasoning`, it also omits thinking configuration. Unsupported sampling
+variants fail during deserialization.
 This explicit provider-default policy **does not pin sampling behavior or prove
 fixed model weights**, even when the returned model identifier matches. It is not
-sufficient for G4 fixed-settings claims; select and review a supported explicit
-sampling policy before a controlled comparison. No alias-to-version substitution
-is accepted in the returned model field.
+sufficient for G4 fixed-settings claims. No alias-to-version substitution is
+accepted in the returned model field.
+
+For `claude-sonnet-5-5`, a plan may now set a closed optional policy:
+
+```json
+"reasoning": {"mode": "adaptive", "effort": "high"}
+```
+
+The adapter submits `thinking: {"type":"adaptive"}` and
+`output_config: {"effort":"high"}`. Supported effort values are `low`, `medium`,
+`high`, `xhigh` and `max`; other modes/fields/values fail to deserialize. Explicit
+policy on another model fails before request construction. Support is bounded to
+this documented model; existing absent-policy requests retain their old behavior.
+Omitting the field preserves historical serialized checkpoint/request identities.
+The exact policy is bound into the plan, request, checkpoint, generation roster
+and submitted wire bytes. A different effort cannot enter the same frozen roster.
+
+The [official Sonnet 5.5 migration guide](https://platform.claude.com/docs/en/models/sonnet-5-5/migration-guide)
+and [effort reference](https://platform.claude.com/docs/en/build-with-claude/effort)
+(checked October 24, 2026) document these fields. Non-default sampling parameters
+are unsupported on this model; this adapter does not invent temperature control.
+Explicit reasoning freezes client choices, **not hosted weights or stochastic
+behavior**. A controlled comparison still needs a predeclared supported model
+policy, equal settings/budgets, repetitions, retained failures and an explicit
+provider-drift limitation. This increment makes no live provider call and does
+not retroactively upgrade the four exploratory attempts to G4 evidence.
 
 The request record hashes the exact submitted JSON bytes plus the prompt,
 settings and API version. Completion evidence records the observed model/message
@@ -46,6 +71,35 @@ survives malformed source, truncation, tool output or a model mismatch. Missing 
 ambiguous usage remains `Unknown`, never zero. Duplicate or malformed envelopes
 are rejected and their ambiguous usage is unknown. Token counters describe the
 provider's reported fields, not a bill or independent metering proof.
+
+Protocol failures now optionally retain `diagnostic`: the first rejected check
+(`response_unavailable`, `invalid_json`, `invalid_envelope`, `model_mismatch`,
+`stop_reason`, `stop_sequence`, `output_limit`, `content_shape`, `content_count`,
+`content_type`, `text_limit`, or `citations`) and an allowlisted `stop_reason`.
+Recognized stops are `end_turn`, `max_tokens`, `stop_sequence` and `tool_use`;
+other strings become `other`. Absent/null stops, or envelopes rejected before
+identity validation, retain no stop value. Raw rejected content, headers, error
+bodies and unknown provider strings are not stored by this diagnostic.
+The same optional object appears in read-only `method-generate-status` output.
+It does not change acceptance, uncertainty, usage or retry rules. Reaching the
+token cap alone does not imply truncation: only the observed stop is reported.
+Historical checkpoints without diagnostics retain their serialized identities;
+the field stays absent on reserialization and old status output is unchanged.
+The first [live failure](../evidence/live-method-20261024/README.md) therefore
+still has no recoverable rejection detail and must not be replayed.
+
+The [Sonnet 5.5 migration guide](https://platform.claude.com/docs/en/models/sonnet-5-5/migration-guide)
+documents adaptive thinking by default. The single-turn parser now accepts a
+strictly typed prefix of `thinking` / `redacted_thinking` blocks followed by exactly
+one final text block. There are at most 16 blocks; thinking text, opaque signatures
+and encrypted data are each capped at 800 KiB. Empty thinking text is valid;
+signatures and encrypted data must be nonempty strings. Unknown fields/types,
+duplicate JSON keys, tool blocks, absent/multiple text and reasoning after text
+are rejected. Thinking payloads are discarded, never exported or persisted;
+their usage remains included in the provider's total output count. The request,
+model/settings, stop checks and terminal no-retry rules are unchanged.
+This is a documented format compatibility fix, not evidence of what was in an
+unretained failed response, and it does not establish fixed-settings comparison.
 
 There is one attempted POST, a transport deadline and output-token ceiling;
 there is no hard input-token ceiling beyond the prompt's byte bound. A generated

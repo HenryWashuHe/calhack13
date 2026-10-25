@@ -1,0 +1,187 @@
+{
+  "request": {
+    "request_id": "score-control",
+    "execution_sha256": "2dcbd65fedb4887b142b75cdb8b46724d40b1950908f355243557c3a103ea7f8",
+    "output": {
+      "domain": "genesis-lab",
+      "schema": "lab-design/1",
+      "id": "output",
+      "version": "1",
+      "sha256": "2483f08f8ec33f4144a4a6105842bd9e2da7702275592140c3aca35c2ac61cec"
+    },
+    "context": {
+      "public_task": {
+        "domain": "genesis-lab",
+        "schema": "lab-task/1",
+        "id": "rough-transport",
+        "version": "1",
+        "sha256": "7ea1854c2b359837033ade75434e2ca165465492792fbb66efaf21117758456b"
+      },
+      "evaluator": {
+        "domain": "genesis-lab",
+        "schema": "lab-evaluator/1",
+        "id": "genesis-lab-eval",
+        "version": "0.1.0",
+        "sha256": "1f03d1b6499721e6ddae6e600b688c123a8684e34c56f53cde8104d361246f42"
+      },
+      "environment": {
+        "domain": "genesis-lab",
+        "schema": "lab-scoring-env/1",
+        "id": "genesis-lab-score/1",
+        "version": "1",
+        "sha256": "e51f2c6f4227fdf5f2dd82ea4a1d92654bc7433c31ef262c7a1589ec14a2c99d"
+      },
+      "generator": {
+        "domain": "genesis-lab",
+        "schema": "lab-generator/1",
+        "id": "rough-transport",
+        "version": "1",
+        "sha256": "7ea1854c2b359837033ade75434e2ca165465492792fbb66efaf21117758456b"
+      },
+      "instance_set": {
+        "domain": "genesis-lab",
+        "schema": "lab-instance-set/1",
+        "id": "development",
+        "version": "1",
+        "sha256": "8ce5438f7200c58f5c67ed9cf22d8677db3f93147b938fdc170a64411e28fbd0"
+      },
+      "design_schema": {
+        "domain": "genesis-lab",
+        "schema": "lab-design-schema/1",
+        "id": "language-1",
+        "version": "1",
+        "sha256": "45413d253546f0e3b5b72109558e86c2b261070507034093006846092ead8bc9"
+      },
+      "metric_schema": {
+        "domain": "genesis-lab",
+        "schema": "lab-metric-schema/1",
+        "id": "v1",
+        "version": "1",
+        "sha256": "561ea19f741981fbaf2d143d1907e3ac2da8817473ec421af8d8fbad22a4d975"
+      },
+      "scoring_rule": {
+        "domain": "genesis-lab",
+        "schema": "lab-scoring-rule/1",
+        "id": "rough-transport",
+        "version": "1",
+        "sha256": "919434eb04d49739e3837a6b7c258757022cf50a24b1aebb3dbde5002c9409f3"
+      }
+    },
+    "purpose": {
+      "kind": "acceptance",
+      "plan": {
+        "domain": "genesis",
+        "schema": "development-trial-plan/1",
+        "id": "rough-transport-child-vs-parent",
+        "version": "1",
+        "sha256": "4a9eb4894ad71f13183d947daf75ada74bf372e86f4cfb517c0ac41ea47b1eb9"
+      },
+      "role": "control"
+    },
+    "budget": {
+      "model_calls": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "wall_time_ms": 600000,
+      "simulation_steps": 14400
+    }
+  },
+  "request_sha256": "729dd43b797bf777b70f031ce034b97a18ba00ea28fa231c6a2d1f84e733bea1",
+  "observed_context": {
+    "public_task": {
+      "domain": "genesis-lab",
+      "schema": "lab-task/1",
+      "id": "rough-transport",
+      "version": "1",
+      "sha256": "7ea1854c2b359837033ade75434e2ca165465492792fbb66efaf21117758456b"
+    },
+    "evaluator": {
+      "domain": "genesis-lab",
+      "schema": "lab-evaluator/1",
+      "id": "genesis-lab-eval",
+      "version": "0.1.0",
+      "sha256": "1f03d1b6499721e6ddae6e600b688c123a8684e34c56f53cde8104d361246f42"
+    },
+    "environment": {
+      "domain": "genesis-lab",
+      "schema": "lab-scoring-env/1",
+      "id": "genesis-lab-score/1",
+      "version": "1",
+      "sha256": "e51f2c6f4227fdf5f2dd82ea4a1d92654bc7433c31ef262c7a1589ec14a2c99d"
+    },
+    "generator": {
+      "domain": "genesis-lab",
+      "schema": "lab-generator/1",
+      "id": "rough-transport",
+      "version": "1",
+      "sha256": "7ea1854c2b359837033ade75434e2ca165465492792fbb66efaf21117758456b"
+    },
+    "instance_set": {
+      "domain": "genesis-lab",
+      "schema": "lab-instance-set/1",
+      "id": "development",
+      "version": "1",
+      "sha256": "8ce5438f7200c58f5c67ed9cf22d8677db3f93147b938fdc170a64411e28fbd0"
+    },
+    "design_schema": {
+      "domain": "genesis-lab",
+      "schema": "lab-design-schema/1",
+      "id": "language-1",
+      "version": "1",
+      "sha256": "45413d253546f0e3b5b72109558e86c2b261070507034093006846092ead8bc9"
+    },
+    "metric_schema": {
+      "domain": "genesis-lab",
+      "schema": "lab-metric-schema/1",
+      "id": "v1",
+      "version": "1",
+      "sha256": "561ea19f741981fbaf2d143d1907e3ac2da8817473ec421af8d8fbad22a4d975"
+    },
+    "scoring_rule": {
+      "domain": "genesis-lab",
+      "schema": "lab-scoring-rule/1",
+      "id": "rough-transport",
+      "version": "1",
+      "sha256": "919434eb04d49739e3837a6b7c258757022cf50a24b1aebb3dbde5002c9409f3"
+    }
+  },
+  "outcome": {
+    "kind": "scored",
+    "metrics": {
+      "domain": "genesis-lab",
+      "schema": "lab-scoring-metrics/1",
+      "id": "lab-scoring-metrics/1",
+      "version": "1",
+      "sha256": "3fd40d9f053921113d0dcbb3d6fcf4acc3d86eb219d51135c4f71ce8f63a5f7a"
+    }
+  },
+  "trace": {
+    "domain": "genesis-lab",
+    "schema": "lab-scoring-trace/1",
+    "id": "lab-scoring-trace/1",
+    "version": "1",
+    "sha256": "ef4dab675d80007093a5fa2560f4ec579d54883d0f378edf8d5a10939627d592"
+  },
+  "usage": {
+    "model_calls": {
+      "kind": "measured",
+      "value": 0
+    },
+    "input_tokens": {
+      "kind": "measured",
+      "value": 0
+    },
+    "output_tokens": {
+      "kind": "measured",
+      "value": 0
+    },
+    "wall_time_ms": {
+      "kind": "measured",
+      "value": 3722
+    },
+    "simulation_steps": {
+      "kind": "measured",
+      "value": 5205
+    }
+  }
+}

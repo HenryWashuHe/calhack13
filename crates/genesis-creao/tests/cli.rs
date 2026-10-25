@@ -146,6 +146,72 @@ fn step_requires_environment_credentials_without_mutating_prepared_record() {
     );
 }
 #[test]
+fn blank_api_version_allows_offline_recovery_without_provider_requests() {
+    let dir = tempfile::tempdir().unwrap();
+    let db = dir.path().join("org.sqlite");
+    let quota = dir.path().join("account.sqlite");
+    let input = dir.path().join("spec.json");
+    std::fs::write(&input, serde_json::to_vec(&spec()).unwrap()).unwrap();
+    output(prepare(&db, &input));
+    for version in ["", "  "] {
+        let recovered = output(
+            command()
+                .args(["recover", "--db"])
+                .arg(&db)
+                .args([
+                    "--org",
+                    "org_a",
+                    "--account",
+                    "shared-demo-account",
+                    "--quota-db",
+                ])
+                .arg(&quota)
+                .env("CREAO_ACCOUNT_API_KEY", "cr_sk_synthetic_test_only")
+                .env("CREAO_API_VERSION", version)
+                .output()
+                .unwrap(),
+        );
+        assert_eq!(recovered["recovered"], 0);
+        assert_eq!(recovered["provider_requests"], 0);
+    }
+}
+#[test]
+fn reconcile_agent_refuses_unrelated_prepared_work_before_network() {
+    let dir = tempfile::tempdir().unwrap();
+    let db = dir.path().join("org.sqlite");
+    let quota = dir.path().join("account.sqlite");
+    let input = dir.path().join("spec.json");
+    std::fs::write(&input, serde_json::to_vec(&spec()).unwrap()).unwrap();
+    let prepared = output(prepare(&db, &input));
+    let result = command()
+        .args(["reconcile-agent", "--db"])
+        .arg(&db)
+        .args([
+            "--org",
+            "org_a",
+            "--operation",
+            "cli-create",
+            "--account",
+            "shared-demo-account",
+            "--quota-db",
+        ])
+        .arg(&quota)
+        .args(["--agent-id", "00000000-0000-4000-8000-000000000001"])
+        .env("CREAO_ACCOUNT_API_KEY", "cr_sk_synthetic_test_only")
+        .env("CREAO_API_VERSION", "v1")
+        .output()
+        .unwrap();
+    assert!(!result.status.success());
+    assert!(String::from_utf8_lossy(&result.stderr).contains("needs reconciliation"));
+    let current = command()
+        .args(["status", "--db"])
+        .arg(&db)
+        .args(["--org", "org_a", "--operation", "cli-create"])
+        .output()
+        .unwrap();
+    assert_eq!(output(current), prepared);
+}
+#[test]
 fn token_endpoint_and_blind_retry_flags_are_not_supported() {
     for flag in ["--token", "--api-key", "--base-url", "--force-retry"] {
         let result = command()
