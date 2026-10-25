@@ -92,14 +92,15 @@ function generationStep(a: string, attempts: Attempt[]): Step {
 }
 
 /** The generation record of one revision: same organization and operation as
- * the revision observation, the exact request it names when it names one, and,
+ * the revision observation, the exact request it names, and
  * when the record names a package, exactly the child. */
 function revisionAttempt(l: Lineage, r: Extract<Edge, { kind: "revised_from" }>): Attempt | null {
   const matching = l.attempts.filter(
     (x) =>
       x.status.org_id === r.org_id &&
       x.status.operation_id === r.operation_id &&
-      (r.request_sha256 === null || x.status.request_sha256 === r.request_sha256) &&
+      r.request_sha256 !== null &&
+      x.status.request_sha256 === r.request_sha256 &&
       (x.status.package === null || refKey(x.status.package) === r.to),
   );
   return matching.length === 1 ? matching[0]! : null;
