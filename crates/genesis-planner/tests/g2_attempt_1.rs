@@ -66,41 +66,46 @@ struct Http {
     http: reqwest::Client,
 }
 impl Http {
+    /// A transport failure comes back as status 0 with its description, never a panic.
     async fn post(&self, path: &str, body: &Value) -> (u16, Value) {
-        let r = self
+        match self
             .http
             .post(format!("{}{path}", self.base))
             .bearer_auth(&self.token)
             .json(body)
             .send()
             .await
-            .unwrap();
-        (r.status().as_u16(), r.json().await.unwrap_or(Value::Null))
+        {
+            Ok(r) => (r.status().as_u16(), r.json().await.unwrap_or(Value::Null)),
+            Err(e) => (0, json!({"transport_error": e.to_string()})),
+        }
     }
     async fn get_status(&self, path: &str) -> (u16, Value) {
-        let r = self
+        match self
             .http
             .get(format!("{}{path}", self.base))
             .bearer_auth(&self.token)
             .send()
             .await
-            .unwrap();
-        (r.status().as_u16(), r.json().await.unwrap_or(Value::Null))
+        {
+            Ok(r) => (r.status().as_u16(), r.json().await.unwrap_or(Value::Null)),
+            Err(e) => (0, json!({"transport_error": e.to_string()})),
+        }
     }
     async fn get(&self, path: &str) -> Value {
         self.get_status(path).await.1
     }
 }
 
-async fn wait_up(addr: &str) {
+async fn wait_up(addr: &str) -> Result<(), String> {
     let addr = addr.trim_start_matches("http://");
     for _ in 0..400 {
         if tokio::net::TcpStream::connect(addr).await.is_ok() {
-            return;
+            return Ok(());
         }
         tokio::time::sleep(Duration::from_millis(25)).await;
     }
-    panic!("{addr} did not come up");
+    Err(format!("{addr} did not come up"))
 }
 
 struct OrgProc {
@@ -304,7 +309,7 @@ async fn run_b_stages(
         constitution: s.constitution.clone(),
     };
     let b_proc = b.spawn(&s.bin, &s.registry_url, None);
-    wait_up(&b.url()).await;
+    wait_up(&b.url()).await?;
     let api = b.api();
     let founding = read_checked(&s.dir.join(format!("founding-{name}.json")))?;
     ensure!(
@@ -537,7 +542,7 @@ async fn run_b_stages(
     // Stop and reap the old B before its replacement binds the same port.
     drop(b_proc);
     let _b_proc = b.spawn(&s.bin, &s.registry_url, Some(&receiver_path));
-    wait_up(&b.url()).await;
+    wait_up(&b.url()).await?;
 
     // Stage 5. Controls first: a token B never issued, and a role or grant
     // that doesn't hold this work. Then the owner asks to adopt with the
@@ -743,7 +748,7 @@ async fn g2_attempt_1() {
             .spawn()
             .unwrap(),
     );
-    wait_up(&registry_url).await;
+    wait_up(&registry_url).await.unwrap();
     let a = OrgProc {
         id: "org_example_a",
         tokens: "org_example_a".into(),
@@ -754,7 +759,7 @@ async fn g2_attempt_1() {
         constitution: constitution_path.clone(),
     };
     let _a_proc = a.spawn(&bin, &registry_url, None);
-    wait_up(&a.url()).await;
+    wait_up(&a.url()).await.unwrap();
     let a_api = a.api();
     let (status, a_mission) = a_api
         .post(
@@ -870,6 +875,6 @@ async fn g2_attempt_1() {
     // A's state is its own.
     let a_state = a_api.get("/organization").await;
     write(&out.join("a-organization-at-end.json"), &a_state);
-    assert!(a_state["requirements"].as_object().unwrap().is_empty());
     write(&out.join("summary.json"), &results);
+    assert!(a_state["requirements"].as_object().unwrap().is_empty());
 }
