@@ -85,12 +85,18 @@ Trusted acceptance scoring lives in the separate `../scoring` crate.
   - only stdin, stdout and stderr cross into the namespace: every other
     descriptor the executor holds (say, a directory or socket its launcher
     left open) is marked close-on-exec first, so none can lead out of the
-    chroot;
+    chroot. This requires Linux `close_range(CLOSE_RANGE_CLOEXEC)` support
+    (Linux 5.11+) and permission to call it. Failure refuses startup; there
+    is no partial walk based on the launcher's current descriptor limit,
+    which may be lower than descriptors it already holds. `namespaces` is
+    unsupported on non-Linux hosts; `none` mode is unchanged;
   - the method runs as `nobody` with `no_new_privs`, so it can't leave the
     chroot;
-  - at the deadline or after the outcome, the namespace's first process is
-    SIGKILLed with kill(2), which ends every process in the namespace, and
-    `execute` returns only after the kernel has torn it down;
+  - at the deadline or after the outcome, the executor attempts to SIGKILL
+    the namespace's first process with kill(2). Whole-tree termination
+    evidence requires a confirming stop outcome and successful launcher
+    reap; a launcher-only fallback remains unconfirmed and cannot authorize
+    hidden scoring;
   - resource limits set with prlimit before the privilege drop: 1 GiB address
     space, 64 processes for `nobody`, 64 MiB per written file, 256 open files.
 - **Model use is measured zero in this mode.** With no network, no socket file
