@@ -14,9 +14,12 @@
 //! `Rejected`.
 use crate::development_evaluation::{EvaluationOutcome, EvaluationReceipt, RequestStatus};
 use crate::development_method::{
-    AcceptanceRole, BudgetAssessment, ExecutionOutcome, ExecutionReceipt, ResourceUsage,
+    AcceptanceRole, BudgetAssessment, ContractError, ExactContentRef, ExecutionOutcome,
+    ExecutionReceipt, ResourceGrant, ResourceUsage, Usage,
 };
-use crate::development_trial::{assess_trials, TrialEvidence, TrialPlan, TrialPurpose};
+use crate::development_trial::{
+    assess_trials, ScoringInstances, TrialEvidence, TrialPlan, TrialPurpose,
+};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
@@ -132,6 +135,143 @@ fn successes(
         }
     }
     Ok(successes)
+}
+
+/// A bound public-slot observation under process-comparison/1's eligibility
+/// rule, not an acceptance verdict, execution grant or complete experiment.
+#[derive(Debug, Serialize)]
+pub struct ProcessSlotAssessment {
+    pub schema: &'static str,
+    pub plan: ExactContentRef,
+    pub slot_id: String,
+    pub method: ExactContentRef,
+    pub execution: ExecutionOutcome,
+    pub scoring: Option<EvaluationOutcome>,
+    pub development_usage: Usage,
+    pub scoring_usage: Option<Usage>,
+    pub development_steps: Option<u64>,
+    pub development_overrun: bool,
+    pub scoring_within_grant: bool,
+    pub successes: Option<u64>,
+    pub eligible: bool,
+    pub reasons: Vec<String>,
+}
+
+fn process_overrun(usage: &Usage, grant: &ResourceGrant) -> Result<bool, String> {
+    usage.validate().map_err(|e| e.to_string())?;
+    match usage.assess(grant) {
+        Ok(_) => Ok(false),
+        Err(ContractError::BudgetExceeded(_)) => Ok(true),
+        Err(e) => Err(e.to_string()),
+    }
+}
+
+/// Rebuild identities from the independently retained expected public plan.
+/// Missing scoring/metrics stay absent; malformed or mismatched evidence is an
+/// error. Every observed outcome/usage survives even when it is ineligible.
+///
+/// Unlike `decide`, eligibility requires OutputGenerated and all five known
+/// execution usage fields. Only scoring must be within its grant under this
+/// frozen rule; a development overrun is reported, never authorized. The caller
+/// still pins the protocol's roster, controls, model settings, grants and timing.
+/// HiddenCommitment is refused: its scoring instance order cannot be inferred
+/// from a public plan's development instances.
+pub fn assess_process_slot(
+    plan: &TrialPlan,
+    slot_id: &str,
+    evidence: &SlotEvidence,
+) -> Result<ProcessSlotAssessment, String> {
+    if !matches!(plan.scoring_instances, ScoringInstances::Development {}) {
+        return Err("process eligibility requires public Development instances".into());
+    }
+    let binding = plan.expected_binding(slot_id).map_err(|e| e.to_string())?;
+    let execution = &evidence.execution;
+    execution
+        .validate_identity_against(&binding)
+        .map_err(|e| e.to_string())?;
+    let mut result = ProcessSlotAssessment {
+        schema: "genesis-process-slot-assessment/1",
+        plan: plan.reference().map_err(|e| e.to_string())?,
+        slot_id: slot_id.into(),
+        method: binding.method.clone(),
+        execution: execution.outcome,
+        scoring: None,
+        development_usage: execution.usage.clone(),
+        scoring_usage: None,
+        development_steps: match execution.usage.simulation_steps {
+            ResourceUsage::Measured { value } => Some(value),
+            ResourceUsage::Unknown { .. } => None,
+        },
+        development_overrun: process_overrun(&execution.usage, &plan.development_grant)?,
+        scoring_within_grant: false,
+        successes: None,
+        eligible: false,
+        reasons: Vec::new(),
+    };
+    if let Some(scoring) = &evidence.scoring {
+        let request = plan
+            .evaluation_request_for_accounting(slot_id, execution)
+            .map_err(|e| e.to_string())?
+            .ok_or("scoring without retained output")?;
+        scoring
+            .validate_identity_against(&request, execution, &binding)
+            .map_err(|e| e.to_string())?;
+        result.scoring = Some(scoring.outcome.clone());
+        result.scoring_usage = Some(scoring.usage.clone());
+        result.scoring_within_grant = matches!(
+            scoring.usage.assess(&plan.scoring_grant),
+            Ok(BudgetAssessment::WithinLimits)
+        );
+        match &scoring.outcome {
+            EvaluationOutcome::Scored { metrics } => {
+                if metrics.domain != "genesis-lab"
+                    || metrics.schema != "lab-scoring-metrics/1"
+                    || metrics.id != "lab-scoring-metrics/1"
+                    || metrics.version != "1"
+                {
+                    return Err("unsupported metrics identity".into());
+                }
+                if let Some(bytes) = &evidence.metrics {
+                    if bytes.len() > 1024 * 1024 {
+                        return Err("metrics exceed 1 MiB".into());
+                    }
+                    let instances: Vec<_> = plan
+                        .development_instances
+                        .iter()
+                        .map(|r| r.id.clone())
+                        .collect();
+                    result.successes = Some(successes(scoring, Some(bytes), &instances)?);
+                }
+            }
+            _ if evidence.metrics.is_some() => return Err("metrics without Scored receipt".into()),
+            _ => {}
+        }
+    } else if evidence.metrics.is_some() {
+        return Err("metrics without scoring receipt".into());
+    }
+    if execution.outcome != ExecutionOutcome::OutputGenerated {
+        result
+            .reasons
+            .push(format!("execution outcome {:?}", execution.outcome));
+    }
+    let unknown = unknown_usage(execution);
+    if !unknown.is_empty() {
+        result
+            .reasons
+            .push(format!("development usage unknown: {}", unknown.join(", ")));
+    }
+    if !result.scoring_within_grant {
+        result
+            .reasons
+            .push("scoring usage is missing, unknown or over grant".into());
+    }
+    if result.successes.is_none() {
+        result
+            .reasons
+            .push("no validated Scored success count".into());
+    }
+    result.eligible = result.reasons.is_empty();
+    Ok(result)
 }
 
 pub fn decide(
