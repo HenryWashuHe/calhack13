@@ -479,3 +479,6 @@ fn run_and_attempt_ids_are_never_reused() {
         E::Plan(_)
     ));
 }
+
+#[path = "review_completion.rs"]
+mod review_completion;
