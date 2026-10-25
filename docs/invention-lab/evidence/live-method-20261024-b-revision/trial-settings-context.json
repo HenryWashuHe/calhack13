@@ -1,0 +1,1 @@
+{"reference":{"domain":"genesis-lab","id":"b-source-only-no-runtime","schema":"lab-trial-settings/1","sha256":"6fa9e94ba6c7d50eb65a819c332b4612c9c29ba43194b0c025e45ca32a1891f8","version":"1"},"text":"No execution or scoring is allocated in this source-only declaration. Future runtime trials require separate prior declarations; this is not a complete A-to-B-to-A budget."}
