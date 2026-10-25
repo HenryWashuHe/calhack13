@@ -1,0 +1,74 @@
+{
+  "allocation": {
+    "contracts": {},
+    "gaps": {},
+    "responsibilities": {
+      "method-work": "rsp_73284e1b636546d5bd18ab6794217af8"
+    },
+    "roles": {
+      "method-owner": "role_7fd23923fdd745fe9b1408c92370d2f7"
+    }
+  },
+  "change_id": "chg_ddbf2b4dd2a94a1caf465e68283b3b96",
+  "committed_revision": 4,
+  "created_at": "2026-10-25T05:19:01.030899782Z",
+  "errors": [],
+  "operations": {},
+  "proposal": {
+    "budget_limit_cents": 10000,
+    "expected_org_revision": 3,
+    "operations": [
+      {
+        "authority": {
+          "budget_cents": 1000,
+          "scopes": [
+            "method.develop"
+          ]
+        },
+        "charter": "Evaluate and use the selected rough-transport method",
+        "justification": "independent_ownership",
+        "key": "method-owner",
+        "name": "Method specialist",
+        "op": "CreateRole",
+        "provider": "elastic",
+        "reports_to": {
+          "kind": "existing",
+          "role_id": "role_c7f3e93dfebf47f1a463d101d10675d3"
+        }
+      },
+      {
+        "op": "AssignResponsibility",
+        "owner": {
+          "key": "method-owner",
+          "kind": "new"
+        },
+        "target": {
+          "key": "method-work",
+          "kind": "from_requirement",
+          "purpose": "Develop rough-transport cart designs with a method another lab published",
+          "requirement_id": "req_d324ef5bc1ac41d581dc3c0860837f97",
+          "termination": "Beats the fixed cart by one success on six fresh public instances",
+          "trigger": "new method evidence"
+        }
+      }
+    ],
+    "rationale": "The mission needs continuing, accountable ownership of this method. Assign accountable development work; selection grants no execution rights.",
+    "trigger_evidence_ids": [
+      "obs_31c59524882e4865937801840a87c777"
+    ]
+  },
+  "provisioned": {
+    "method-owner": {
+      "config_digest": "85387f6568f2672d16e621e68198f9a5c391e6b92a30dcd88c083392e7f53670",
+      "conversation_ref": null,
+      "provider": "dev_stub",
+      "provider_agent_id": "devstub-elastic-f134e8fbf65545ed829c779b7de9cf41"
+    }
+  },
+  "ready": [
+    "method-owner"
+  ],
+  "status": "COMMITTED",
+  "submitted_by": "agent",
+  "updated_at": "2026-10-25T05:19:01.033010474Z"
+}

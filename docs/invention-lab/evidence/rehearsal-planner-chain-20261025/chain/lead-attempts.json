@@ -1,0 +1,16 @@
+[
+  {
+    "body": {
+      "error": "method_authority",
+      "message": "method authority changed or expired: AuthorityChanged"
+    },
+    "status": 409
+  },
+  {
+    "body": {
+      "error": "method_authority",
+      "message": "method authority changed or expired: RequirementChanged"
+    },
+    "status": 409
+  }
+]

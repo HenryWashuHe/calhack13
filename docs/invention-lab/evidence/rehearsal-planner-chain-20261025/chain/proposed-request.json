@@ -1,0 +1,12 @@
+{
+  "publisher": "org_example_a",
+  "reference": {
+    "domain": "genesis",
+    "id": "receiver-revised-method",
+    "schema": "development-method-source/1",
+    "sha256": "4f455dc6e625bdaf554d567bdd7f0bc0c7b601a1ea6332d4e7a13e02005db14d",
+    "version": "0.1.0"
+  },
+  "responsibility_id": "rsp_73284e1b636546d5bd18ab6794217af8",
+  "role_id": "role_7fd23923fdd745fe9b1408c92370d2f7"
+}
