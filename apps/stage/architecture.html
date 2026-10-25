@@ -20,13 +20,13 @@ h1 { font-size: 20px; margin: 0; letter-spacing: -.01em; font-weight: 600; }
 .legend .partial::before { border-top-style: dashed; border-color: var(--amber); }
 figure { margin: 0; min-width: 0; border: 1px solid var(--faint); border-radius: 14px; background: var(--panel); padding: 10px; }
 figure svg { width: 100%; height: auto; display: block; color: var(--fg); font-family: var(--mono); }
-aside { position: sticky; top: 12px; border: 1px solid var(--faint); border-radius: 14px; background: var(--panel); padding: 16px; min-height: 300px; display: grid; gap: 10px; align-content: start; }
+aside { position: sticky; top: 12px; border: 1px solid var(--faint); border-radius: 14px; background: var(--panel); padding: 16px; min-height: 300px; display: grid; gap: 10px; align-content: start; min-width: 0; overflow-wrap: anywhere; }
 aside h2 { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -.01em; }
-aside .chip { display: inline-block; font-family: var(--mono); font-size: 11px; padding: 3px 8px; border-radius: 999px; border: 1px solid currentColor; width: max-content; }
+aside .chip { display: inline-block; font-family: var(--mono); font-size: 11px; padding: 3px 8px; border-radius: 999px; border: 1px solid currentColor; width: fit-content; max-width: 100%; white-space: normal; line-height: 1.4; }
 aside .chip.live { color: var(--accent); } aside .chip.partial { color: var(--amber); } aside .chip.core { color: var(--fg); opacity: .8; }
 aside p { margin: 0; color: var(--dim); font-size: 13.5px; line-height: 1.5; }
-aside dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; font-size: 12px; }
-aside dt { color: var(--dim); } aside dd { margin: 0; font-family: var(--mono); font-size: 11px; word-break: break-all; }
+aside dl { margin: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 10px; font-size: 12px; min-width: 0; }
+aside dt { color: var(--dim); } aside dd { margin: 0; min-width: 0; font-family: var(--mono); font-size: 11px; word-break: break-all; }
 aside .hint { color: var(--dim); font-size: 12px; }
 .scope { grid-column: 1 / -1; display: grid; gap: 8px; } .scope p { max-width: none; color: var(--dim); font-size: 13px; line-height: 1.5; margin: 0; } a { color: var(--accent); }
 @media (max-width: 900px) { main { grid-template-columns: 1fr; } aside { position: static; } }
@@ -145,7 +145,7 @@ svg.focus .edge.on .lbl { fill-opacity: 1; font-size: 11.5px; }
     g.append(line, hit);
     gE.append(g);
     const L = line.getTotalLength(), m = line.getPointAtLength(L / 2);
-    const side = { log: ["start", 8, 4], evid: ["end", -8, 4], prop: ["start", 8, 4], verdict: ["middle", 0, 14], revise: ["middle", 0, 14], back: ["start", 14, -4] }[e.id] || ["middle", 0, -7];
+    const side = { log: ["start", 8, 4], evid: ["end", -8, 4], prop: ["start", 8, 4], verdict: ["middle", 0, 14], revise: ["middle", 0, 14], back: ["start", 14, -4], bundle: ["middle", 0, -12] }[e.id] || ["middle", 0, -7];
     g.append(txt(m.x + side[1], m.y + side[2], e.lbl, "lbl", side[0]));
     e.el = g; e.line = line;
   }
