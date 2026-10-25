@@ -23,7 +23,7 @@ use genesis_core::ids::{OrgId, RequirementId, ResponsibilityId, RoleId};
 use genesis_core::model::OrgState;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct MethodInvocationRequest {
     pub role_id: RoleId,
@@ -32,7 +32,8 @@ pub struct MethodInvocationRequest {
     pub reference: ExactContentRef,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct MethodInvocationGrant {
     pub adoption_id: String,
     pub requirement_id: RequirementId,
