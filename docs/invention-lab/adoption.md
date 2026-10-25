@@ -30,8 +30,8 @@ instead of inventing their fields.
 
 Throughout, three statuses are kept apart: **on main** (merged), **open PR**
 (pushed with tests, not merged, so not yet main's wire contract) and
-**proposed** (no wire value yet). Nothing here is a claim that a method has been adopted, executed or shown to
-improve anything.
+**proposed** (no integrated wire value yet). Receiving execution records exist;
+no governed method adoption or improvement has been established.
 
 ## What exists today, and what this extends
 
@@ -89,7 +89,10 @@ the existing one fits.
 ## Decision procedure
 
 For one adoption intent (one requirement, one role, one frozen authority
-binding, one acceptance suite), in rank order over at most five candidates:
+binding, one acceptance suite), in rank order over at most five candidates.
+The status column describes the existing Actor/server path and proposed method
+integration. The standalone sidecar already implements parts of steps 2, 5, 6
+and 9, as detailed under [Implementation boundary](#implementation-boundary):
 
 | Step | Check | On failure (decision) | Status (check / decision value) |
 | --- | --- | --- | --- |
@@ -105,7 +108,8 @@ binding, one acceptance suite), in rank order over at most five candidates:
 | 10 | First candidate passing 1–9 | `selected` → local acceptance | check and value on main |
 
 Steps 1–4, 9 and 10 and their decision values are on main (decision log
-from #8, legacy #116). Steps 5–8 are new and must be decided **before** anything executes. They never
+from #8, legacy #116). Steps 5–8 are new to the server integration and must be
+decided **before** anything executes. They never
 use similarity. Their reasons name the mismatched requirement (e.g. "needs
 design language 2, this organization runs 1"), never hidden evaluation data.
 
@@ -233,6 +237,14 @@ Unchanged from adopt-first for task capabilities, and explicit per rule:
 
 ## Walkthrough: A → B → A
 
+This is the proposed integrated behavior, not a completed run or the registry
+wire schema. Current `MethodPublication` carries an exact package reference,
+canonical package JSON, intent and applicability. Environment and dependencies
+are bound by that package; acceptance policy and budgets belong to receiver
+records. Derivation currently lives in separate exact-parent revision evidence,
+not a `derived_from` field in the publication. The richer manifest descriptions
+below remain proposed.
+
 1. **A publishes method v1** after developing it on its ravine tasks. Its
    manifest carries kind, environment, dependency digests, declared budget,
    evaluator requirement, applicability claims and derivation (#18).
@@ -287,6 +299,10 @@ the #18/#22 contracts. Names are placeholders where those drafts don't fix them 
 The standalone sidecar (`genesis-lab-adopt`) implements decision steps 2, 5, 6
 (runtime, protocol and allowed dependencies) and 9, plus the
 acceptance-experiment conclusion against the receiver's own trusted scorer.
+`conclude_selected` validates caller-retained records and recomputes the verdict;
+it does not authenticate their execution origin. A server integration must
+resolve evidence from receiver-controlled retention, not trust caller-authored
+receipts merely because their hashes agree.
 Steps 7 (budget policy) and 8 (evaluator requirement resolved by the receiver)
 and the `dependency_unavailable` path are not implemented.
 
@@ -295,9 +311,10 @@ the receiver's existing requirement, responsibility, current role grant and
 epoch through the existing authority snapshot, not a new registry or
 controller. The receiver's acceptance must be recomputed from retained records,
 never taken as a caller-authored flag. Invocation must check the pinned
-accepted version and current authority each time. This needs explicit claims
-on the server files in issue #1, and the kernel, registry and executor stay
-with their owners. No UI, simulator or evaluator code is part of this lane.
+accepted version and current authority each time. Henry has acknowledged the scoped server work in issue #1; Codex approved the
+pure core-verdict move as its first prerequisite. These are assigned changes,
+not implemented authority. The kernel, registry and executor stay with their
+owners. No UI, simulator or evaluator code is part of this lane.
 
 ## Acceptance scenarios for the implementation
 
