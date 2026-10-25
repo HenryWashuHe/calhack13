@@ -236,3 +236,6 @@ fn intent_bounds_count_limit_and_organization_are_enforced() {
         E::Authority(AdoptionFence::AuthorityChanged)
     ));
 }
+
+#[path = "review_selected_acceptance.rs"]
+mod review_selected_acceptance;
