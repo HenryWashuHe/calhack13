@@ -87,12 +87,12 @@ test("the beat renders every seed: five generations, the incumbent and four cand
   assert.match(section, /id="labhead">[^<]*sealed panel/i);
 });
 
-test("the seed switch tells the truth: later generations helped in two seeds and not in the third", () => {
+test("the seed switch reports promotion history without inferring fresh-panel improvement", () => {
   const h = open();
   pick(h, 0);
   assert.match(h.get("labsummary").textContent, /smoke-2/);
   assert.match(h.get("labsummary").textContent, /generation 1/);
-  assert.match(h.get("labsummary").textContent, /did not improve/);
+  assert.match(h.get("labsummary").textContent, /not a fresh-panel comparison with earlier frontiers/);
   pick(h, 1);
   assert.match(h.get("labsummary").textContent, /every generation/);
   assert.match(h.get("labsummary").textContent, /frontier came from generation 5/);
