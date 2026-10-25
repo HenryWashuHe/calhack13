@@ -50,6 +50,32 @@ the proposal asked of the generator, so I'm not adjusting the ranges.
 Tuning them further after seeing a 6-of-6 separation would only fit the
 calibration seeds.
 
+## Confirmation
+
+Frozen at `e2ade73` (`confirmation/freeze.json`, sha256 `38f26861…`) and
+announced on issue #1 before it ran. Run once, seeds 51000..51071, twelve
+panels of six (`confirmation/result.json`):
+
+| arm | per panel | total of 72 |
+|---|---|---|
+| portfolio_search | 3 5 4 5 6 5 4 3 5 6 6 6 | 58 |
+| random_search | 1 1 2 2 1 1 2 1 2 2 1 2 | 18 |
+| parent `2483f08f` | 1 2 4 3 4 1 3 1 3 4 5 4 | 35 |
+| five-wheel | 2 1 0 2 0 1 1 3 0 2 1 1 | 14 |
+
+Every panel was available for every arm. Portfolio beats random by margin
+one on 12 of 12 panels with no losses, so the predeclared reading is
+**discriminating**.
+
+What that means, narrowly: on this family the two hand-written search
+controls separate, in the offline emulation, under the v1 grant. It says
+nothing yet about generated methods, the executor or any benefit. Two
+limits worth knowing before anyone uses it: portfolio hits 6/6 on four of
+the twelve panels, so a method better than portfolio has little room on
+those; and random search is weak here (never above 2/6), so beating it is
+a low bar. A useful comparison of developed methods on this family would
+pin portfolio, not random search, as the control.
+
 ## Not covered
 
 Executor or `lab-score` builds against this evaluator, generated methods,

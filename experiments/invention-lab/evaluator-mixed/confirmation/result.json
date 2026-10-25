@@ -1,0 +1,515 @@
+{
+ "family": "mixed-terrain",
+ "evaluator": {
+  "evaluator": "genesis-lab-eval-mixed@0.1.0",
+  "evaluator_sha256": "316908f707b071bbb0bc51cc8fb90e1d51393fe0a1b53528b76e0822f17c4ed9",
+  "family": "mixed-terrain",
+  "family_version": 1,
+  "files": [
+   "Cargo.toml",
+   "Cargo.lock",
+   "src/lib.rs",
+   "src/family.rs",
+   "src/sim.rs",
+   "src/score.rs"
+  ],
+  "v1_evaluator_sha256": "1f03d1b6499721e6ddae6e600b688c123a8684e34c56f53cde8104d361246f42"
+ },
+ "seeds": [
+  51000,
+  51071
+ ],
+ "grant": 72000,
+ "arms": {
+  "portfolio_search": {
+   "panels": [
+    {
+     "seeds": [
+      51000,
+      51005
+     ],
+     "experiments": 60,
+     "steps_used": 69904,
+     "successes": 3,
+     "kind": "cart"
+    },
+    {
+     "seeds": [
+      51006,
+      51011
+     ],
+     "experiments": 64,
+     "steps_used": 69715,
+     "successes": 5,
+     "kind": "cart"
+    },
+    {
+     "seeds": [
+      51012,
+      51017
+     ],
+     "experiments": 60,
+     "steps_used": 70028,
+     "successes": 4,
+     "kind": "cart"
+    },
+    {
+     "seeds": [
+      51018,
+      51023
+     ],
+     "experiments": 54,
+     "steps_used": 69637,
+     "successes": 5,
+     "kind": "cart"
+    },
+    {
+     "seeds": [
+      51024,
+      51029
+     ],
+     "experiments": 31,
+     "steps_used": 36120,
+     "successes": 6,
+     "kind": "cart"
+    },
+    {
+     "seeds": [
+      51030,
+      51035
+     ],
+     "experiments": 81,
+     "steps_used": 71350,
+     "successes": 5,
+     "kind": "cart"
+    },
+    {
+     "seeds": [
+      51036,
+      51041
+     ],
+     "experiments": 63,
+     "steps_used": 70234,
+     "successes": 4,
+     "kind": "cart"
+    },
+    {
+     "seeds": [
+      51042,
+      51047
+     ],
+     "experiments": 39,
+     "steps_used": 70675,
+     "successes": 3,
+     "kind": "cart"
+    },
+    {
+     "seeds": [
+      51048,
+      51053
+     ],
+     "experiments": 63,
+     "steps_used": 71545,
+     "successes": 5,
+     "kind": "cart"
+    },
+    {
+     "seeds": [
+      51054,
+      51059
+     ],
+     "experiments": 56,
+     "steps_used": 60828,
+     "successes": 6,
+     "kind": "cart"
+    },
+    {
+     "seeds": [
+      51060,
+      51065
+     ],
+     "experiments": 36,
+     "steps_used": 40795,
+     "successes": 6,
+     "kind": "cart"
+    },
+    {
+     "seeds": [
+      51066,
+      51071
+     ],
+     "experiments": 48,
+     "steps_used": 42484,
+     "successes": 6,
+     "kind": "cart"
+    }
+   ],
+   "per_panel": [
+    3,
+    5,
+    4,
+    5,
+    6,
+    5,
+    4,
+    3,
+    5,
+    6,
+    6,
+    6
+   ],
+   "total": 58
+  },
+  "random_search": {
+   "panels": [
+    {
+     "seeds": [
+      51000,
+      51005
+     ],
+     "experiments": 38,
+     "steps_used": 64861,
+     "successes": 1,
+     "kind": "cart"
+    },
+    {
+     "seeds": [
+      51006,
+      51011
+     ],
+     "experiments": 38,
+     "steps_used": 69307,
+     "successes": 1,
+     "kind": "cart"
+    },
+    {
+     "seeds": [
+      51012,
+      51017
+     ],
+     "experiments": 38,
+     "steps_used": 61895,
+     "successes": 2,
+     "kind": "cart"
+    },
+    {
+     "seeds": [
+      51018,
+      51023
+     ],
+     "experiments": 38,
+     "steps_used": 59775,
+     "successes": 2,
+     "kind": "cart"
+    },
+    {
+     "seeds": [
+      51024,
+      51029
+     ],
+     "experiments": 38,
+     "steps_used": 63435,
+     "successes": 1,
+     "kind": "cart"
+    },
+    {
+     "seeds": [
+      51030,
+      51035
+     ],
+     "experiments": 38,
+     "steps_used": 51255,
+     "successes": 1,
+     "kind": "cart"
+    },
+    {
+     "seeds": [
+      51036,
+      51041
+     ],
+     "experiments": 38,
+     "steps_used": 59709,
+     "successes": 2,
+     "kind": "cart"
+    },
+    {
+     "seeds": [
+      51042,
+      51047
+     ],
+     "experiments": 38,
+     "steps_used": 58806,
+     "successes": 1,
+     "kind": "cart"
+    },
+    {
+     "seeds": [
+      51048,
+      51053
+     ],
+     "experiments": 38,
+     "steps_used": 64464,
+     "successes": 2,
+     "kind": "cart"
+    },
+    {
+     "seeds": [
+      51054,
+      51059
+     ],
+     "experiments": 38,
+     "steps_used": 59102,
+     "successes": 2,
+     "kind": "cart"
+    },
+    {
+     "seeds": [
+      51060,
+      51065
+     ],
+     "experiments": 36,
+     "steps_used": 70460,
+     "successes": 1,
+     "kind": "cart"
+    },
+    {
+     "seeds": [
+      51066,
+      51071
+     ],
+     "experiments": 38,
+     "steps_used": 61755,
+     "successes": 2,
+     "kind": "cart"
+    }
+   ],
+   "per_panel": [
+    1,
+    1,
+    2,
+    2,
+    1,
+    1,
+    2,
+    1,
+    2,
+    2,
+    1,
+    2
+   ],
+   "total": 18
+  },
+  "parent_2483f08f": {
+   "panels": [
+    {
+     "seeds": [
+      51000,
+      51005
+     ],
+     "successes": 1
+    },
+    {
+     "seeds": [
+      51006,
+      51011
+     ],
+     "successes": 2
+    },
+    {
+     "seeds": [
+      51012,
+      51017
+     ],
+     "successes": 4
+    },
+    {
+     "seeds": [
+      51018,
+      51023
+     ],
+     "successes": 3
+    },
+    {
+     "seeds": [
+      51024,
+      51029
+     ],
+     "successes": 4
+    },
+    {
+     "seeds": [
+      51030,
+      51035
+     ],
+     "successes": 1
+    },
+    {
+     "seeds": [
+      51036,
+      51041
+     ],
+     "successes": 3
+    },
+    {
+     "seeds": [
+      51042,
+      51047
+     ],
+     "successes": 1
+    },
+    {
+     "seeds": [
+      51048,
+      51053
+     ],
+     "successes": 3
+    },
+    {
+     "seeds": [
+      51054,
+      51059
+     ],
+     "successes": 4
+    },
+    {
+     "seeds": [
+      51060,
+      51065
+     ],
+     "successes": 5
+    },
+    {
+     "seeds": [
+      51066,
+      51071
+     ],
+     "successes": 4
+    }
+   ],
+   "per_panel": [
+    1,
+    2,
+    4,
+    3,
+    4,
+    1,
+    3,
+    1,
+    3,
+    4,
+    5,
+    4
+   ],
+   "total": 35
+  },
+  "reference_five_wheel": {
+   "panels": [
+    {
+     "seeds": [
+      51000,
+      51005
+     ],
+     "successes": 2
+    },
+    {
+     "seeds": [
+      51006,
+      51011
+     ],
+     "successes": 1
+    },
+    {
+     "seeds": [
+      51012,
+      51017
+     ],
+     "successes": 0
+    },
+    {
+     "seeds": [
+      51018,
+      51023
+     ],
+     "successes": 2
+    },
+    {
+     "seeds": [
+      51024,
+      51029
+     ],
+     "successes": 0
+    },
+    {
+     "seeds": [
+      51030,
+      51035
+     ],
+     "successes": 1
+    },
+    {
+     "seeds": [
+      51036,
+      51041
+     ],
+     "successes": 1
+    },
+    {
+     "seeds": [
+      51042,
+      51047
+     ],
+     "successes": 3
+    },
+    {
+     "seeds": [
+      51048,
+      51053
+     ],
+     "successes": 0
+    },
+    {
+     "seeds": [
+      51054,
+      51059
+     ],
+     "successes": 2
+    },
+    {
+     "seeds": [
+      51060,
+      51065
+     ],
+     "successes": 1
+    },
+    {
+     "seeds": [
+      51066,
+      51071
+     ],
+     "successes": 1
+    }
+   ],
+   "per_panel": [
+    2,
+    1,
+    0,
+    2,
+    0,
+    1,
+    1,
+    3,
+    0,
+    2,
+    1,
+    1
+   ],
+   "total": 14
+  }
+ },
+ "result": {
+  "reading": "discriminating",
+  "wins": 12,
+  "losses": 0,
+  "of": 12
+ }
+}
