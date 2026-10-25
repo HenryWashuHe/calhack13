@@ -1580,3 +1580,12 @@ The [kernel integration checkpoint](KERNEL_CAPABILITY_HANDOFF.md) records a pass
 temporary combined workspace (181 tests plus one documentation example), required
 executor/report wiring, and two optional JSON feature-unification findings for
 Claude. This is not a kernel ownership transfer.
+
+## Direction update, October 24, 2026 (evening)
+
+See the dated section at the end of [ONGOING_GOAL.md](ONGOING_GOAL.md#direction-update-october-24-2026-evening-pacific):
+governance-and-measurement framing; `apps/stage` as the desired demo surface with #125/#126
+held and fixes pushed; the iteration pilot scope (#144 held, fixes pushed; #160 under review)
+labelled as a proposal under the canonical G4 contract; tonight's division of work; and each
+sponsor's implemented, operator-reported and planned roles kept apart. The checkpoint above
+remains the ownership and status ledger; lanes and gates are unchanged.
