@@ -90,6 +90,29 @@ button { font: inherit; }
 .mode { font-family: var(--mono); font-size: 12px; color: var(--paper-deep); background: var(--signal); border-radius: 4px; padding: 3px 8px; }
 .mode.live { background: var(--mint); }
 
+/* Captions: one plain line under every panel saying what it is */
+.cap { font-size: 12px; color: var(--chalk-dim); margin: -8px 0 12px; max-width: 48ch; line-height: 1.35; }
+.channel .cap, .track .cap { margin-top: -4px; }
+.audit .cap { max-width: none; margin: 0; }
+/* Focus: the panels doing the work in this beat stay bright; the rest step back */
+.org, .channel, .track, .audit { position: relative; transition: opacity .4s, box-shadow .4s; }
+.dim { opacity: .4; }
+.focus { box-shadow: inset 0 0 0 1px var(--signal), 0 0 28px color-mix(in srgb, var(--signal) 16%, transparent); }
+/* Explain overlay: numbered callouts on the regions and a card that names them */
+body.explain [data-n]::before { content: attr(data-n); position: absolute; top: -10px; left: -10px; z-index: 5; width: 26px; height: 26px; border-radius: 50%; background: var(--signal); color: var(--paper-deep); font-family: var(--mono); font-weight: 600; font-size: 13px; display: grid; place-items: center; box-shadow: 0 0 0 4px var(--paper); }
+.explain { position: fixed; inset: 0; z-index: 20; display: grid; place-items: end center; padding: 24px max(16px, env(safe-area-inset-right, 0px)) calc(24px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); background: linear-gradient(to top, color-mix(in srgb, var(--paper-deep) 92%, transparent), transparent 60%); pointer-events: none; }
+.explain[hidden] { display: none; }
+.explain-card { pointer-events: auto; max-width: 760px; width: 100%; background: var(--paper-deep); border: 1px solid var(--signal); border-radius: 12px; padding: 16px 20px; display: grid; gap: 10px; box-shadow: 0 24px 60px rgba(0, 0, 0, .45); }
+.explain-card h2 { font-family: var(--display); font-size: 18px; font-weight: 700; }
+.explain-card ol { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px 18px; font-size: 13px; }
+.explain-card li { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 8px; align-items: baseline; }
+.explain-card li b { font-family: var(--mono); color: var(--paper-deep); background: var(--signal); border-radius: 50%; width: 22px; height: 22px; display: grid; place-items: center; font-size: 12px; }
+.explain-card p { font-size: 12px; color: var(--chalk-dim); }
+/* Thinking: the planner is reading the evidence */
+.decision.thinking { border-style: dashed; }
+.decision.thinking .d-k b::after { content: ""; display: inline-block; width: .6em; height: .6em; margin-left: 8px; border-radius: 50%; border: 2px solid var(--signal); border-top-color: transparent; animation: spin 1s linear infinite; vertical-align: middle; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
 /* Stage */
 .stage { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, 300px) minmax(0, 1fr); gap: 0; border: 1px solid var(--line); border-radius: 10px; background: color-mix(in srgb, var(--paper-deep) 72%, transparent); overflow: hidden; }
 .org { padding: 18px 20px 22px; min-width: 0; }
@@ -191,6 +214,7 @@ details.live summary { cursor: pointer; color: var(--chalk-dim); }
 .caption { display: none; }
 body.present { font-size: 17px; padding-block: 12px 56px; }
 body.present .brand, body.present details.live, body.present #idle, body.present #backreplay, body.present .disrupt span { display: none; }
+body.present .cap { font-size: 14px; }
 body.present .dot { font-size: 13px; padding: 6px 12px; }
 body.present .decision .d-k { font-size: 18px; } body.present .decision .d-why { font-size: 15px; }
 body.present .beat { font-size: clamp(34px, 4.6vw, 64px); max-width: 24ch; }
@@ -210,6 +234,8 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
 }
 @media (prefers-reduced-motion: reduce) {
   .role.new, .ev.new, .role.changed, .decision { animation: none; }
+  .decision.thinking .d-k b::after { animation: none; }
+  .org, .channel, .track, .audit { transition: none; }
   .progress.running::after { animation-duration: 0s; width: 100%; }
   .token { transition: none; }
 }
@@ -231,6 +257,7 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
       <button class="btn" id="backreplay" type="button">Back to replay</button>
       <button class="btn" id="idle" type="button">Clear</button>
       <button class="btn" id="present" type="button" aria-pressed="false">Present</button>
+      <button class="btn" id="explainbtn" type="button" aria-pressed="false" title="Press ? at any time">What am I looking at?</button>
     </div>
   </header>
   <div class="dots" id="dots" role="list" aria-label="Chapters"></div>
@@ -244,14 +271,16 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
   </div>
 
   <section class="stage" aria-label="Two organizations">
-    <div class="org" id="orgA">
+    <div class="org" id="orgA" data-n="1">
       <div class="org-head"><h2 id="headA">Organization A</h2><span class="rev" id="revA"></span></div>
+      <p class="cap" id="cap-orgA">The organization that gets hit: its roles, the authority each one holds, and who owns what right now.</p>
       <p class="mission" id="missionA">No source selected.</p>
       <div class="tree" id="treeA"></div>
       <p class="note" id="noteA" hidden></p>
     </div>
-    <div class="channel">
+    <div class="channel" id="channel" data-n="2">
       <h3>What travels between them</h3>
+      <p class="cap" id="cap-channel">What crosses from one organization to another, and what the planner decided about the latest evidence.</p>
       <div class="rail" aria-label="Capability position">
         <span class="label l">Org A</span><span class="label c">registry</span><span class="label r">Org B</span>
         <span class="token" id="token" hidden>cap_venue_availability@1.0.0</span>
@@ -260,8 +289,9 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
       <div class="decision" id="decision" hidden aria-live="polite"></div>
       <div class="lineage"><ul id="lineage"><li class="empty">No capability yet. The organizations only know what their constitutions say.</li></ul></div>
     </div>
-    <div class="org" id="orgB">
+    <div class="org" id="orgB" data-n="3">
       <div class="org-head"><h2 id="headB">Organization B</h2><span class="rev" id="revB"></span></div>
+      <p class="cap" id="cap-orgB">A different mission and budget. It can only inherit what it verifies itself, never A's private state.</p>
       <p class="mission" id="missionB">No source selected.</p>
       <div class="tree" id="treeB"></div>
       <p class="note" id="noteB" hidden></p>
@@ -269,12 +299,14 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
   </section>
 
   <section class="tracks">
-    <div class="track">
+    <div class="track" id="trackEvents" data-n="4">
       <h3><span>What the organization recorded</span><span id="evcount"></span></h3>
+      <p class="cap" id="cap-events">The record: every event the kernel wrote, in order, nothing edited after the fact.</p>
       <div class="events" id="events"></div>
     </div>
-    <div class="track">
+    <div class="track" id="trackChat" data-n="5">
       <h3><span>The conversation (ASI:One)</span><span>agent token only</span></h3>
+      <p class="cap" id="cap-chat">Evidence goes in, status comes out. This token can record evidence; it cannot commit a change.</p>
       <div class="chat" id="chat"></div>
       <form class="judge" id="judgeform" hidden autocomplete="off" aria-label="Throw a live disruption at Org A">
         <input class="field" id="judgetext" type="text" maxlength="200" placeholder="Throw a live disruption at Org A, e.g. the caterer cancelled for Nov 14" aria-label="What happened">
@@ -284,8 +316,9 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
     </div>
   </section>
 
-  <footer class="audit">
+  <footer class="audit" id="auditbar" data-n="6">
     <span>Kernel audit</span>
+    <span class="cap" id="cap-audit">The audit: every stored revision replayed against the kernel's invariants.</span>
     <div class="cells" id="cells" aria-hidden="true"></div>
     <span class="line" id="auditline">r0 checked against 27 invariants</span>
   </footer>
@@ -302,6 +335,21 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
     </form>
     <p class="hint">Live mode reads both organizations and their event logs with the agent token every two seconds and draws exactly what the kernels say, including DEV STUB bindings; nothing from the replay is shown while connecting or disconnected. Inheritance is drawn only for an exact version Org B accepted that Org A also accepted and published. It works when this page is served next to the kernel (for example from the repository); the hosted viewer blocks requests to other hosts.</p>
   </details>
+</div>
+<div class="explain" id="explain" hidden role="dialog" aria-label="What each part of the screen is">
+  <div class="explain-card">
+    <h2>What you are looking at</h2>
+    <ol>
+      <li><b>1</b><span>Organization A, the one that gets hit. Cards are roles; each shows its provider, its authority and what it owns.</span></li>
+      <li><b>2</b><span>The channel. A capability travels here from A to the registry to B, and the planner's latest decision is shown as a card.</span></li>
+      <li><b>3</b><span>Organization B, a different mission. It inherits only an exact version it verified itself.</span></li>
+      <li><b>4</b><span>The record. Every kernel event in order; green rows are commits and passes, red rows are refusals and fences.</span></li>
+      <li><b>5</b><span>The conversation. Evidence enters through ASI:One or the Report live box; the token can record, never commit.</span></li>
+      <li><b>6</b><span>The audit. Stored revisions replayed against 27 invariants in the fixture run; live mode says the audit is not run by this page.</span></li>
+      <li><b>7</b><span>The headline and chips above. Green chips are the real kernel in this scene; dashed amber chips are a fixture stand-in or a proposal.</span></li>
+    </ol>
+    <p>Keys: ← → step · space plays · 1 2 3 throw a disruption · P presenter · ? this card · Esc closes</p>
+  </div>
 </div>
 <div class="caption" id="caption" aria-live="polite"></div>
 
@@ -441,6 +489,11 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
     ["Audit", [["real", "r0–r11 replayed against 27 invariants"], ["proposal", "method lineage across labs: contracts in review, not run"]]],
   ];
 
+  // Which panels do the work in each scene; everything else steps back. The thesis and live mode show it all.
+  const REGIONS = ["orgA", "channel", "orgB", "trackEvents", "trackChat", "auditbar"];
+  const FOCUS = [[], ["trackChat", "trackEvents"], ["trackEvents", "orgA"], ["orgA", "trackEvents"], ["channel", "orgA", "trackEvents"], ["orgA", "trackEvents"], ["channel", "orgB", "trackChat"], ["auditbar", "channel"]];
+  const DISRUPT_FOCUS = ["channel", "orgA", "trackChat"];
+
   const $ = (id) => document.getElementById(id);
   const provLabel = { internal: "internal", elastic: "Elastic Agent Builder", creao: "CREAO", fetch: "Fetch specialist", dev_stub: "DEV STUB" };
   function esc(s) { return String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
@@ -478,7 +531,7 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
   function setBadge(text, live) { const m = $("mode"); m.textContent = text; m.classList.toggle("live", !!live); }
 
   // ---- mode ownership ----
-  const app = { mode: "idle", gen: 0, scene: 0, timer: null, liveTimer: null, cursors: { A: 0, B: 0 }, tail: [], seen: 0, seenIds: new Set(), tick: 0, applied: 0, thrown: [], present: false, prevRoles: {}, obsAt: new Map(), live: null, liveChat: [], lastJudge: 0, lastJudgeObs: null, answers: new Map(), ackKey: null };
+  const app = { mode: "idle", gen: 0, scene: 0, timer: null, liveTimer: null, cursors: { A: 0, B: 0 }, tail: [], seen: 0, seenIds: new Set(), tick: 0, applied: 0, thrown: [], present: false, prevRoles: {}, obsAt: new Map(), live: null, liveChat: [], lastJudge: 0, lastJudgeObs: null, answers: new Map(), ackKey: null, explain: false, thinkTimer: null, thinkStart: 0, liveOrgA: null };
   const TAIL = 200;
   const body = document.body || null;
 
@@ -498,6 +551,7 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
     const owns = app.thrown.map((id) => DISRUPTIONS[id].coordOwns).filter(Boolean);
     spotlight($("treeA"), s.a.map((r) => r.id === "coord" && owns.length ? { ...r, owns: r.owns + "; " + owns.join("; ") + " (scripted)" } : r), "A"); spotlight($("treeB"), s.b, "B");
     renderProof(CHAPTERS[i][1]);
+    setFocus(headline ? DISRUPT_FOCUS : FOCUS[i] || []);
     if (!headline) hideDecision();
     $("missionA").textContent = "Run the campus hack night for 120 attendees on Nov 14. Budget $5,000, venue within 2 miles. (fixture)";
     $("missionB").textContent = "Host a 300-person regional conference in March. Different mission, different budget, no shared state. (fixture)";
@@ -527,12 +581,27 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
   }
   function showDecision(d) {
     // One card for every planner verdict, whatever its source; the source line says which it is.
+    stopThinking();
     const card = $("decision"); card.hidden = false;
     const line = (tag, cls, text) => { const n = document.createElement(tag); n.className = cls; n.textContent = text; return n; };
     const head = line("span", "d-k", (d.model ? "Planner decision" : "Kernel decision") + " · "); head.appendChild(line("b", "", d.verdict));
     card.replaceChildren(head, line("span", "d-src", d.source + (d.model ? " · " + d.model : "") + (d.when ? " · " + d.when : "")), line("p", "d-why", d.why || ""));
   }
-  function hideDecision() { $("decision").hidden = true; }
+  function hideDecision() { stopThinking(); $("decision").hidden = true; }
+  function setFocus(list) { for (const r of REGIONS) { const on = list.includes(r); $(r).classList.toggle("focus", list.length > 0 && on); $(r).classList.toggle("dim", list.length > 0 && !on); } }
+  // Thinking: between a recorded report and the planner's answer, the card says so and counts the seconds.
+  function startThinking(id, org) {
+    stopThinking();
+    const card = $("decision"); card.hidden = false; card.classList.add("thinking");
+    const line = (tag, cls, text) => { const n = document.createElement(tag); n.className = cls; n.textContent = text; return n; };
+    const head = line("span", "d-k", "Planner decision · "); head.appendChild(line("b", "", "reading the evidence"));
+    const src = line("span", "d-src", `live kernel ${org} · ${id} · 0 s`);
+    card.replaceChildren(head, src, line("p", "d-why", "The planner is reading the new evidence against the organization's constitution, roles and open requirements. The verdict appears here with the model's name."));
+    app.thinkStart = Date.now();
+    app.thinkTimer = setInterval(() => { src.textContent = `live kernel ${org} · ${id} · ${Math.max(0, Math.round((Date.now() - app.thinkStart) / 1000))} s`; }, 1000);
+  }
+  function stopThinking() { if (app.thinkTimer) { clearInterval(app.thinkTimer); app.thinkTimer = null; } $("decision").classList.remove("thinking"); }
+  function setExplain(on) { app.explain = on; $("explain").hidden = !on; if (body) body.classList.toggle("explain", on); $("explainbtn").setAttribute("aria-pressed", String(on)); }
   // Spotlight: a role card is "changed" when the previous render drew the same role differently.
   const sig = (r) => [r.state || "", r.cap || "", r.owns || ""].join("|");
   function spotlight(container, roles, prevKey) {
@@ -576,7 +645,7 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
     $("noteA").hidden = true; setToken(null); setGap(null);
     renderLineage([], "Nothing to show until a source is selected."); renderEvents([], 0, "0 events"); renderChat([]);
     renderAudit(null, 12, "not checked"); $("livestatus").textContent = ""; $("livestatus").classList.remove("bad");
-    renderProof([]); hideDecision(); app.prevRoles = {}; $("progress").classList.remove("running");
+    renderProof([]); hideDecision(); app.prevRoles = {}; $("progress").classList.remove("running"); setFocus([]); setExplain(false);
     app.live = null; $("judgeform").hidden = true;
     caption("No source selected");
   }
@@ -587,8 +656,11 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
   $("play").addEventListener("click", play);
   for (const id of Object.keys(DISRUPTIONS)) $(id).addEventListener("click", () => throwDisruption(id));
   $("present").addEventListener("click", () => setPresent(!app.present));
+  $("explainbtn").addEventListener("click", () => setExplain(!app.explain));
   document.addEventListener("keydown", (e) => {
     if (e.target && e.target.closest && e.target.closest("input")) return;
+    if (e.key === "?") return setExplain(!app.explain);
+    if (e.key === "Escape" && app.explain) return setExplain(false);
     if (e.key === "Escape" && app.present) return setPresent(false);
     if (e.key === "p" || e.key === "P") return setPresent(!app.present);
     if (app.mode !== "replay") return;
@@ -690,7 +762,7 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
       $("revA").textContent = "r" + sa.revision; $("revB").textContent = "r" + sb.revision;
       const mA = Object.values(sa.missions || {})[0], mB = Object.values(sb.missions || {})[0];
       $("missionA").textContent = mA ? mA.goal : "No mission"; $("missionB").textContent = mB ? mB.goal : "No mission";
-      app.live = { cfg, gen, missionA: mA ? mA.mission_id : null }; $("judgeform").hidden = false;
+      app.live = { cfg, gen, missionA: mA ? mA.mission_id : null }; app.liveOrgA = sa.org_id || "A"; $("judgeform").hidden = false;
       $("noteA").hidden = true;
       const gaps = Object.values(sa.capability_gaps || {});
       if (gaps.length) { const st = typeof gaps[0].status === "object" ? gaps[0].status.state : gaps[0].status; setGap(String(st).toUpperCase()); } else setGap(null);
@@ -750,7 +822,7 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
     renderLineage([], "Waiting for the kernel…"); renderEvents([], 0, "0 events"); renderChat(app.liveChat);
     app.live = null; app.lastJudgeObs = null; $("judgeform").hidden = true; $("judgestatus").textContent = "Live: posts one observation to Org A with the agent token; the planner model decides."; $("judgestatus").classList.remove("bad");
     renderAudit(null, 12, "not checked by this page"); $("beat").textContent = "Connecting to the kernel…"; $("sub").textContent = "Nothing is shown until the first response arrives.";
-    renderProof([]); hideDecision(); app.prevRoles = {}; app.obsAt = new Map(); app.answers = new Map(); app.ackKey = null; $("progress").classList.remove("running");
+    renderProof([]); hideDecision(); app.prevRoles = {}; app.obsAt = new Map(); app.answers = new Map(); app.ackKey = null; $("progress").classList.remove("running"); setFocus([]);
     caption("Connecting to the kernel");
   }
   $("liveform").addEventListener("submit", (e) => {
@@ -790,7 +862,7 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
       renderChat(app.liveChat); $("judgetext").value = "";
       const early = app.answers.get("A:" + id); // the planner may have answered before this receipt arrived
       app.ackKey = early ? "A:" + id : null; // a new report withdraws the previous link
-      if (early) showDecision(early);
+      if (early) showDecision(early); else startThinking(id, live.cfg.urlA ? (app.liveOrgA || "org_a") : "org_a");
       judgeStatus(early ? `The planner answered: ${early.verdict}. See the decision card.` : `Recorded ${id} · waiting for the planner`);
     } catch (err) {
       if (gen !== app.gen) return;
