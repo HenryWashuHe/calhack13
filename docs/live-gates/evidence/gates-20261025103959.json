@@ -1,0 +1,60 @@
+{
+  "schema": "genesis-live-gates/1",
+  "run": "20261025103959",
+  "results": {
+    "elastic": {
+      "gate": "elastic",
+      "started_at": "2026-10-25T10:39:59.106Z",
+      "finished_at": "2026-10-25T10:40:26.122Z",
+      "status": "passed",
+      "duration_ms": 27013,
+      "evidence": {
+        "org": "genesis-smoke-103959",
+        "agent_id": "genesis-genesis-smoke-103959-smoke-bb3725dd2a61bff4",
+        "reconcile_agent_id": "genesis-genesis-smoke-103959-smoke-bb3725dd2a61bff4",
+        "evidence_doc": "genesis-smoke-103959:observation:smoke-1792924799",
+        "conversation_id": "a04fe879-a6d2-4e88-bba7-a44707073651",
+        "converse_status": "completed",
+        "steps": [
+          {
+            "step": "data config",
+            "ok": true
+          },
+          {
+            "step": "evidence index",
+            "ok": true
+          },
+          {
+            "step": "evidence search",
+            "ok": true
+          },
+          {
+            "step": "agent builder config",
+            "ok": true
+          },
+          {
+            "step": "create specialist",
+            "ok": true
+          },
+          {
+            "step": "reconcile (no duplicate)",
+            "ok": true
+          },
+          {
+            "step": "readiness",
+            "ok": true
+          },
+          {
+            "step": "converse uses evidence tool",
+            "ok": true
+          },
+          {
+            "step": "cleanup agent",
+            "ok": true
+          }
+        ]
+      },
+      "note": "--skip-capabilities: the shared capability index write was not exercised. --cleanup deletes the agent only."
+    }
+  }
+}
