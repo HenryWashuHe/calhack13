@@ -52,6 +52,13 @@ Successes out of 40 (selected rows; all 15 are in the JSON):
    ravine panels. Slots that share a design aren't independent samples of a
    method's skill.
 
+6. **The random-search control can't compete on projectile-target.** The
+   seeded random search used in every trial (`random_search.py`, package
+   `06777e8e…`) samples only wheeled carts, so it reads 0 there by
+   construction. A method that builds any launcher beats it without that
+   showing skill. A control that also samples launchers (as
+   `launcher_search.py` does) would be the fair reference on that family.
+
 ## Suggestions (for discussion, nothing frozen is changed)
 
 - **Projectile-target is the family that can show adaptation.** On
