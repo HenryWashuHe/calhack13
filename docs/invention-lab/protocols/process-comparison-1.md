@@ -97,9 +97,12 @@ documents that `lab-score feedback` produces for round k's four candidate
 slots, in the family order above; each refused family is listed as absent with
 its refusal. If all four are refused, round k+1 and every later W round are
 recorded as `no_feedback`, are not requested, and keep their unused capacity
-(same retention rule as `no_parent`). If the revision contract can't carry the
-produced documents as checked public inputs, the run stops before W2 and the
-protocol is amended; nothing is improvised mid-run.
+(same retention rule as `no_parent`). The documents go in the generation plan's
+`public_inputs` (at most 16, so four fit). If preparing round k+1 with all of
+them is refused by the generation contract's bounds (the encoded plan is
+capped at 256 KiB), that round is recorded `preparation_refused`, sends no
+request and keeps its capacity, and later W rounds are `no_parent`. Documents
+are never dropped or trimmed to make a plan fit.
 
 ## Selection (frozen before the fresh panel)
 
@@ -179,7 +182,7 @@ adoption.
 
 Every spec, snapshot, receipt, ledger, transcript, scoring record, verdict,
 feedback document and summary is retained, including failures, feedback
-refusals, `not_run`, `no_parent`, `no_feedback`, `no_candidate` and unused
-capacity. Chain-level costs come from
+refusals, `not_run`, `no_parent`, `no_feedback`, `preparation_refused`,
+`no_candidate` and unused capacity. Chain-level costs come from
 `genesis-forge method-chain-cost-assess` over the declared chain. Per-trial
 reports are never summed by hand.
