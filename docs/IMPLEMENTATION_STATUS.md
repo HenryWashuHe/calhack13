@@ -11,8 +11,8 @@ weights. Event organization remains superseded. G0–G4 are still open.
 The revised app Goal was activated on October 24, 2026 after the stale record
 was cleared; the existing hourly continuation remains active.
 
-Main through `d18591ad6eb97f0eb59a3c70dea097878f8fb10b`, tree
-`e457ac0b472fe7531906e042ae2f1d9638e12810`, includes the reviewed
+Main through `86505a09c076d1f759c8963f70ae7027f3b3b2da`, tree
+`0c85d6726c9b3314810ac1d6fb9f5fb2faf15284`, includes the reviewed
 foundations below. Method generation merged at `d1be8443fee46e1196861926a963563f48407936`,
 whose tree `dc9d6adc19863d8584fd5af1fd11eae7552014eb` exactly matches the independently
 validated generation stack. Counts refer to the named source/composition, not a
@@ -20,6 +20,7 @@ combined main run.
 
 | Work | Validation and evidence boundary |
 | --- | --- |
+| Explicit generation-only stages #153 `2efdca90` → `86505a09` | Behavior `7c2fb3b`: root 40 focused tests (36 existing/author cases plus four independent regressions), scoped strict Clippy/fmt pass; [independent exact-head source review](https://github.com/HenryWashuHe/genesis-history-experiment/pull/153#pullrequestreview-5639985373) clear. Original 241-line `5596b771` guard preserved unchanged in `2efdca90`. Zero slots require zero development/scoring grants and cannot bind a trial; missing/uncertain generation and historical nonzero-slot stages without trial evidence retain unknowns. Original #113 hashes/records unchanged. Local accounting only, no provider/runtime work or G4 closure. |
 | Revision input #150 `6376713a` → `a5f87bfe` | Root 18 focused tests and scoped strict Clippy/fmt pass; independent source/guide review clear. [Generic bounded bundle](invention-lab/contracts/revision.md#bundled-input) delegates existing prepare/observe logic, preserves legacy identities and refuses conflicting modes before effects. No provider/source execution. |
 | Selected-source bridge #151 `54283b57` → `d18591ad` | Behavior `7d0d30f`: root 25 scoped tests (five new including two independent, four legacy CLI, 16 binary) and strict Clippy/fmt; independent final source/guide review clear. [Exact fetch → retained revision input](invention-lab/contracts/method-registry.md#selected-parent-to-revision-input) preserves receiver fields and publisher-qualified metadata. Original 88-line guard retained, including 14+2 inputs and overflow refusal. Prepared only, no model run, adoption or G2/G3 closure. |
 | Pure core verdict #146 `0c9a5533` → `c6870504` | Existing 253-line decision implementation moved to core, equivalent modulo import prefixes; scorer compatibility re-export and three original regression files unchanged. Root full core tests, strict all-target core Clippy/fmt and standalone scorer `cargo check --tests` pass. Scorer check was compile-only; no lab tests executed in review. Prerequisite for Henry's authority slice, not acceptance/authority evidence. |
@@ -226,6 +227,13 @@ audit #124 is merged; Henry retains any future pre-experiment enforcement.
 Whole-chain cost assembly #127 and its [read-only CLI #130](invention-lab/contracts/chain-allocation.md#read-only-chain-cost-cli)
 are merged, preserving unknowns and local overruns without counting nested totals
 twice. These are accounting mechanisms, not a new experiment result.
+Merged #153 permits an explicit zero-trial-slot generation stage, so complete
+generation evidence can have known costs while later trials occupy separate
+stages. It does not reinterpret earlier allocations or erase missing costs.
+Henry's [requested receiver-ID follow-up](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6389372825)
+must derive unique run, attempt and scoring IDs from each predeclared trial
+identity before execution; repeated preparation of the same trial stays stable.
+This is requested work in his receiver lane, not an implemented correction.
 [Method registry API #132](https://github.com/HenryWashuHe/genesis-history-experiment/pull/132)
 is merged: authenticated publisher, bounded source-free keyword metadata search
 and full-reference fetch in the existing process. [Typed client #133](invention-lab/contracts/method-registry.md#typed-organization-client)
@@ -243,6 +251,12 @@ existing-owner control. This server connection is not implemented; Henry keeps
 ownership, with [pure core verdict #146 now merged](https://github.com/HenryWashuHe/genesis-history-experiment/pull/146)
 as a prerequisite. Execution under the grant and justified specialist creation
 remain later completion work. The W/F pilot alone cannot close organizational evolution.
+Codex [has claimed the intake integration](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6389431891):
+source-free exact selection and receiver-owned need are to be retained atomically
+with one ordinary observation, replay/conflict handling and existing planner/saga
+wakeup. The new module and minimal init/router wiring are active work, not merged
+or demonstrated. Separate scripted-planner controls will test orchestration, not
+model judgment; Henry retains adoption and current-grant authority.
 A fixed-pool search-policy ablation remains a separate proposed mechanism study,
 with task-artifact and identical-information local controls; it is not full G4
 or a restriction on capability development. Henry is preparing a corrected K=3
