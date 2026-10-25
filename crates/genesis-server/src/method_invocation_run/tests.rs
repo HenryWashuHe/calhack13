@@ -482,3 +482,6 @@ fn run_and_attempt_ids_are_never_reused() {
 
 #[path = "review_completion.rs"]
 mod review_completion;
+
+#[path = "result_tests.rs"]
+mod result_tests;

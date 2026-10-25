@@ -165,3 +165,57 @@ Independently retain/publish these pins before downstream fresh-panel work.
 As with the selection CLI, an output-stream failure can follow successful capture:
 inspect/recheck the retained destination instead of inventing a new destination.
 The preceding trust, chronology, authority and evidence limitations still apply.
+
+## Generation origins (library)
+
+`process_generation_origins::assess_generation_origins` joins the validated cohort
+with `genesis-process-generation-origins/1`: one `base` MethodSynthesisPlan and
+exactly six `positions`, keyed by `arm` and one-based `round`. Each position holds
+an independently retained `prepared_checkpoint_sha256`, optional original
+`snapshot`, optional original `revision` (MethodRevisionInput), and an explicit
+`no_method_reason` when no source was generated. A never-prepared position can
+have no pin; an observed snapshot always requires its original Prepared pin.
+
+The function rechecks cohort pins and complete original sessions. It derives each
+Generated package and matches its full reference and ordered dependencies to all
+four corresponding development trials. Generated source cannot disappear as
+NoMethod, and failed, rejected, pending, unknown or missing attempts cannot supply
+a method. It retains those phases and nullable usage instead of inventing zeros.
+Attempts and Prepared pins cannot be reused across positions.
+
+The base requires the protocol's Sonnet 5.5 adaptive/high settings. W1/F1/F2/F3
+must match its complete plan except operation and target names/version. W2/W3 use
+the existing exact-parent revision input and must bind the immediately preceding
+generated package; their base documents, runtime, dependencies and settings stay
+fixed. Additional revision feedback and instructions are retained but their
+provenance and completeness are **not** validated by this check. Trial-level
+model-settings references remain separate from source-generation settings.
+
+The source-free report names all six origins, methods, parent references and
+observed phases/usage. It expressly leaves feedback provenance, absence-reason
+causality, chain admission/cost binding, chronology/exhaustive history, provider
+sampling and runtime/adoption authority unverified. Hashes describe consistency
+under trusted host storage, not authenticated authorship. This is neither a
+complete process-comparison validation nor an executed comparison or G4 result.
+
+### Retaining origins through the cohort CLI
+
+The existing `process-cohort-prepare` manifest accepts an optional
+`"generation_origins":"origins.json"` path, relative to that manifest. It loads
+and validates the full generation-origins object above alongside the eight
+selections before publication. With origins supplied, the self-contained capture
+uses `genesis-retained-process-cohort/2` and stores both original histories and
+the recomputed generation report. `process-cohort-check` checks both reports
+without consulting input files or acquiring a writer lock. An inconsistent
+schema, original checkpoint/pin or saved report fails the check.
+
+The summary adds `generation_origins_sha256` and `generation_report_sha256`.
+It contains no source text. Both are canonical parsed-JSON hashes; retain the
+complete cohort digest independently. Input and aggregate capture limits remain
+8 MiB. Without the optional path, historical `/1` capture bytes and summary
+fields remain unchanged; that path checks cohort consistency only.
+
+Common-base equality cannot establish that the host-approved base excludes old
+feedback or fresh-panel knowledge. Inspect and publish that base independently.
+A valid capture is not a complete experiment, authenticated chronology or an
+execution/adoption grant. In particular, a retained unknown cost stays unknown.
