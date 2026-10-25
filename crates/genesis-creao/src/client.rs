@@ -32,6 +32,7 @@ pub struct CreaoClient {
     limits: Limits,
     limiter: AccountLimiter,
     api_version: ApiVersion,
+    trigger_app_id: Option<String>,
 }
 impl fmt::Debug for CreaoClient {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -52,6 +53,9 @@ impl CreaoClient {
         limiter: AccountLimiter,
         version: ApiVersion,
     ) -> Result<Self, Error> {
+        if version == ApiVersion::Trigger {
+            return Err(error(ErrorKind::InvalidConfiguration, Stage::Configuration));
+        }
         Self::configured(
             token,
             limits,
@@ -59,6 +63,50 @@ impl CreaoClient {
             &format!("https://developer.creao.ai/{}", version.path()),
             false,
             version,
+            None,
+        )
+    }
+    /// Runs one prepublished app with its app-scoped `capi_` credential.
+    /// An override must be the exact official runs URL for this app.
+    pub fn new_trigger(
+        token: &str,
+        app_id: &str,
+        runs_url: Option<&str>,
+        limits: Limits,
+        limiter: AccountLimiter,
+    ) -> Result<Self, Error> {
+        let default_url = format!("https://agent.creao.ai/api/v1/apps/{app_id}/runs");
+        // Compare before URL parsing can normalize ports, casing or dot paths.
+        if runs_url.is_some_and(|url| url != default_url) {
+            return Err(error(ErrorKind::InvalidConfiguration, Stage::Configuration));
+        }
+        Self::configured(
+            token,
+            limits,
+            limiter,
+            runs_url.unwrap_or(&default_url),
+            false,
+            ApiVersion::Trigger,
+            Some(app_id),
+        )
+    }
+
+    /// Literal-loopback fixture transport; never use a live credential here.
+    pub fn for_local_testing_trigger(
+        token: &str,
+        app_id: &str,
+        limits: Limits,
+        limiter: AccountLimiter,
+        runs_url: &str,
+    ) -> Result<Self, Error> {
+        Self::configured(
+            token,
+            limits,
+            limiter,
+            runs_url,
+            true,
+            ApiVersion::Trigger,
+            Some(app_id),
         )
     }
     /// Only literal loopback HTTP URLs ending in `/v1` are permitted. Never use
@@ -69,7 +117,7 @@ impl CreaoClient {
         limiter: AccountLimiter,
         base: &str,
     ) -> Result<Self, Error> {
-        Self::configured(token, limits, limiter, base, true, ApiVersion::V1)
+        Self::configured(token, limits, limiter, base, true, ApiVersion::V1, None)
     }
     pub fn for_local_testing_v2(
         token: &str,
@@ -77,7 +125,7 @@ impl CreaoClient {
         limiter: AccountLimiter,
         base: &str,
     ) -> Result<Self, Error> {
-        Self::configured(token, limits, limiter, base, true, ApiVersion::V2)
+        Self::configured(token, limits, limiter, base, true, ApiVersion::V2, None)
     }
     fn configured(
         token: &str,
@@ -86,9 +134,16 @@ impl CreaoClient {
         base: &str,
         local: bool,
         api_version: ApiVersion,
+        trigger_app_id: Option<&str>,
     ) -> Result<Self, Error> {
         let invalid = || error(ErrorKind::InvalidConfiguration, Stage::Configuration);
         let base = Url::parse(base).map_err(|_| invalid())?;
+        let trigger = api_version == ApiVersion::Trigger;
+        let expected_path = match trigger_app_id {
+            Some(id) if trigger && uuid(id) => format!("/api/v1/apps/{id}/runs"),
+            None if !trigger => format!("/{}", api_version.path()),
+            _ => return Err(invalid()),
+        };
         let loopback = base
             .host_str()
             .and_then(|host| {
@@ -100,14 +155,19 @@ impl CreaoClient {
         if (local && (base.scheme() != "http" || !loopback))
             || (!local
                 && (base.scheme() != "https"
-                    || base.host_str() != Some("developer.creao.ai")
+                    || base.host_str()
+                        != Some(if trigger {
+                            "agent.creao.ai"
+                        } else {
+                            "developer.creao.ai"
+                        })
                     || base.port().is_some()))
-            || base.path() != format!("/{}", api_version.path())
+            || base.path() != expected_path
             || base.query().is_some()
             || base.fragment().is_some()
             || !base.username().is_empty()
             || base.password().is_some()
-            || !token.starts_with("cr_sk_")
+            || !token.starts_with(if trigger { "capi_" } else { "cr_sk_" })
             || !(7..=4096).contains(&token.len())
             || !token
                 .bytes()
@@ -123,13 +183,17 @@ impl CreaoClient {
         let mut authorization =
             HeaderValue::from_str(&format!("Bearer {token}")).map_err(|_| invalid())?;
         authorization.set_sensitive(true);
-        let client = Client::builder()
+        let mut builder = Client::builder()
             .timeout(limits.request_timeout)
             .redirect(reqwest::redirect::Policy::none())
             .retry(reqwest::retry::never())
-            .no_proxy()
-            .build()
-            .map_err(|_| invalid())?;
+            .no_proxy();
+        if trigger {
+            // The official GET route currently rejects Node/default clients
+            // at its CDN; match the observed, documented live-gate workaround.
+            builder = builder.user_agent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36");
+        }
+        let client = builder.build().map_err(|_| invalid())?;
         Ok(Self {
             client,
             base,
@@ -137,6 +201,7 @@ impl CreaoClient {
             limits,
             limiter,
             api_version,
+            trigger_app_id: trigger_app_id.map(str::to_owned),
         })
     }
     pub fn api_version(&self) -> ApiVersion {
@@ -145,11 +210,20 @@ impl CreaoClient {
     pub fn account_namespace(&self) -> &str {
         self.limiter.namespace()
     }
+    pub fn trigger_app_id(&self) -> Option<&str> {
+        self.trigger_app_id.as_deref()
+    }
+
+    pub(crate) fn accepts_request_app(&self, request: &OperationRequest) -> bool {
+        self.trigger_app_id.as_deref().is_none_or(
+            |app| matches!(request, OperationRequest::CreateRun(run) if run.agent_id == app),
+        )
+    }
 
     /// Inspect an existing personal agent. This is a provider readiness input,
     /// not an organizational role activation or a proof that guarded writes ran.
     pub async fn get_agent(&self, agent_id: &str) -> Result<AgentObservation, Error> {
-        if !uuid(agent_id) {
+        if self.api_version == ApiVersion::Trigger || !uuid(agent_id) {
             return Err(error(ErrorKind::InvalidRequest, Stage::Configuration));
         }
         let raw = self
@@ -188,6 +262,9 @@ impl CreaoClient {
         request: &OperationRequest,
         guard: Option<&PreEffectGuard>,
     ) -> Result<RunTicket, Error> {
+        if !self.accepts_request_app(request) {
+            return Err(error(ErrorKind::InvalidRequest, Stage::Configuration));
+        }
         let payload = request.payload_for(self.api_version, self.limits.max_input_bytes)?;
         if self.contains_credential(&payload) {
             return Err(error(ErrorKind::InvalidRequest, Stage::Configuration));
@@ -201,7 +278,11 @@ impl CreaoClient {
         let raw = self
             .request(
                 Method::POST,
-                request.path(),
+                if self.api_version == ApiVersion::Trigger {
+                    ""
+                } else {
+                    request.path()
+                },
                 Some(bytes),
                 kind,
                 Stage::Submission,
@@ -261,6 +342,9 @@ impl CreaoClient {
         ticket: &RunTicket,
         guard: Option<&PreEffectGuard>,
     ) -> Result<RunObservation, Error> {
+        if !self.accepts_request_app(request) {
+            return Err(error(ErrorKind::TicketMismatch, Stage::Configuration));
+        }
         let payload = request.payload_for(self.api_version, self.limits.max_input_bytes)?;
         ticket.validate_for_account(request, self.limiter.namespace())?;
         if ticket.api_version != self.api_version {
@@ -274,7 +358,9 @@ impl CreaoClient {
         {
             return Err(error(ErrorKind::TicketMismatch, Stage::Configuration));
         }
-        let poll_path = if self.api_version == ApiVersion::V2
+        let poll_path = if self.api_version == ApiVersion::Trigger {
+            ticket.run_id.clone()
+        } else if self.api_version == ApiVersion::V2
             && matches!(request, OperationRequest::CreateAgent(_))
         {
             let agent_id = ticket
@@ -349,7 +435,13 @@ impl CreaoClient {
             return Err(error(ErrorKind::DeadlineExceeded, stage));
         }
         let mut url = self.base.clone();
-        url.set_path(&format!("/{}/{path}", self.api_version.path()));
+        if self.api_version == ApiVersion::Trigger {
+            if !path.is_empty() {
+                url.set_path(&format!("{}/{path}", self.base.path()));
+            }
+        } else {
+            url.set_path(&format!("/{}/{path}", self.api_version.path()));
+        }
         let post = method == Method::POST;
         let mut request = self
             .client
