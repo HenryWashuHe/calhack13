@@ -579,7 +579,7 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
   function setBadge(text, live) { const m = $("mode"); m.textContent = text; m.classList.toggle("live", !!live); }
 
   // ---- mode ownership ----
-  const app = { mode: "idle", gen: 0, scene: 0, timer: null, liveTimer: null, cursors: { A: 0, B: 0 }, tail: [], seen: 0, seenIds: new Set(), tick: 0, applied: 0, thrown: [], present: false, prevRoles: {}, obsAt: new Map(), live: null, liveChat: [], lastJudge: 0, lastJudgeObs: null, answers: new Map(), ackKey: null, explain: false, thinkTimer: null, thinkStart: 0, liveOrgA: null, changes: new Map(), lastChange: null, decisionChange: null };
+  const app = { mode: "idle", gen: 0, scene: 0, timer: null, liveTimer: null, cursors: { A: 0, B: 0 }, tail: [], seen: 0, seenIds: new Set(), tick: 0, applied: 0, thrown: [], present: false, prevRoles: {}, obsAt: new Map(), live: null, liveChat: [], lastJudge: 0, lastJudgeObs: null, answers: new Map(), ackKey: null, explain: false, thinkTimer: null, thinkStart: 0, liveOrgA: null, changes: new Map(), lastChange: null, latestA: null };
   const TAIL = 200;
   const body = document.body || null;
 
@@ -652,6 +652,36 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
     const tail = model ? ` · ${model}${typeof seconds === "number" ? ` · planner call ${seconds.toFixed(1)} s` : ""}` : "";
     renderLadder(m.rung, (why || m.why || "") + tail, { refused: !!m.rejected });
     renderPipeline(m.stage, { rejected: !!m.rejected, why: m.pipewhy || "" });
+  }
+  // Live: ladder and pipeline describe the decision on the card. Selection order: the judge's own answer when the
+  // status points at it; else, with no report pending, the latest Org A decision; a pending report selects nothing.
+  // Only before any decision does the strip fall back to the latest change, named. A selected decision that attached
+  // no change (escalated, rejected, no change) never borrows an older change's pipeline.
+  function pipelineWhy(key, c) {
+    return `${key} · ` + (c.rejected ? "kernel: " + ((c.reasons || []).join("; ") || "refused") : c.failed ? "failed at " + STAGES[c.stage].toLowerCase() + ": " + ((c.reasons || []).join("; ") || "no reason recorded") + " (not a refusal)" : c.status && STAGES.indexOf(c.status) < 0 ? `recorded status ${c.status}` : c.stage === 4 ? "committed" : "in flight: " + STAGES[c.stage].toLowerCase());
+  }
+  function selectedMech() {
+    if (app.ackKey && app.answers.has(app.ackKey)) return app.answers.get(app.ackKey).mech || null;
+    if (app.lastJudgeObs) return undefined;
+    return app.latestA ? app.latestA.mech : null;
+  }
+  function renderMechanismLive() {
+    const m = selectedMech();
+    if (m === undefined) { renderLadder(null, "Waiting for the planner's answer to the report."); renderPipeline(null, { why: "Waiting for the planner's answer to the report." }); return; }
+    if (m === null) {
+      const c = app.lastChange ? app.changes.get(app.lastChange) : null;
+      renderLadder(null, c ? "No planner decision yet; the kernel is processing a change." : "No planner decision yet.");
+      if (c) renderPipeline(c.stage, { rejected: c.rejected, failed: c.failed, why: pipelineWhy(app.lastChange, c) }); else renderPipeline(null, { why: "No change in flight." });
+      return;
+    }
+    const c = m.change_id ? app.changes.get(m.change_id) : null;
+    const errs = m.kernel_errors.length ? ` · kernel pushed back: ${m.kernel_errors.join("; ")}` : "";
+    const tail = ` · ${m.model}` + (m.change_id ? ` · ${m.change_id}` : "");
+    if (m.verdict === "no change") renderLadder(0, `${m.summary}${tail}`);
+    else if (!c) renderLadder(null, `Planner ${m.verdict}: ${m.summary}${errs}${tail}. No rung was chosen; this is not a no-change decision.`);
+    else renderLadder(rungFor(c.ops), `${m.summary}${errs}${tail}`, { refused: !!c.rejected });
+    if (c) renderPipeline(c.stage, { rejected: c.rejected, failed: c.failed, why: pipelineWhy(m.change_id, c) });
+    else renderPipeline(null, { why: m.verdict === "no change" ? "No change: the planner left the organization as it is." : `This ${m.verdict} decision attached no change.` });
   }
   function setFocus(list) { for (const r of REGIONS) { const on = list.includes(r); $(r).classList.toggle("focus", list.length > 0 && on); $(r).classList.toggle("dim", list.length > 0 && !on); } }
   // Between a recorded report and its matching answer, count time since receipt, not planner work.
@@ -856,22 +886,16 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
               : { ...c, stage: Math.max(0, from), rejected: false, failed: String(p.to) === "FAILED", reasons: p.reasons || [], status: String(p.to) });
             app.lastChange = p.change_id;
           }
-          if (org === "A" && e.type === "planner_decision") {
-            const c = p.change_id ? app.changes.get(p.change_id) : null;
-            const verdictText = String(p.verdict || "").replace(/_/g, " ");
-            const errs = Array.isArray(p.kernel_errors) && p.kernel_errors.length ? ` · kernel pushed back: ${p.kernel_errors.slice(0, 3).join("; ")}` : "";
-            const tail = ` · ${p.model || "model unknown"}` + (p.change_id ? ` · ${p.change_id}` : "");
-            if (verdictText === "no change") { renderLadder(0, `${p.summary || ""}${tail}`); app.decisionChange = null; app.lastChange = null; }
-            else if (!p.change_id || !c) { renderLadder(null, `Planner ${verdictText}: ${p.summary || ""}${errs}${tail}. No rung was chosen; this is not a no-change decision.`); app.decisionChange = null; }
-            else { renderLadder(rungFor(c.ops), `${p.summary || ""}${errs}${tail}`, { refused: !!c.rejected }); app.decisionChange = p.change_id; }
-          }
           if (e.type === "observation_recorded" && p.observation_id) app.obsAt.set(org + ":" + p.observation_id, Date.parse(e.timestamp)); // timing is scoped to the organization whose log it came from
           if (e.type === "planner_decision") {
             // The card shows the kernel's own timestamps: decision minus the observation it answers, when both are in the log.
             const at = app.obsAt.get(org + ":" + p.observation_id), decided = Date.parse(e.timestamp);
             const seconds = Number.isFinite(at) && Number.isFinite(decided) && decided >= at ? (decided - at) / 1000 : undefined;
             const verdict = String(p.verdict || "").replace(/_/g, " ");
-            const card = { verdict, why: p.summary, source: "live kernel " + (org === "A" ? (sa.org_id || "A") : (sb.org_id || "B")), model: p.model || "model unknown", when: seconds === undefined ? "" : `decided ${seconds.toFixed(1)} s after the evidence` };
+            const card = { verdict, why: p.summary, source: "live kernel " + (org === "A" ? (sa.org_id || "A") : (sb.org_id || "B")), model: p.model || "model unknown", when: seconds === undefined ? "" : `decided ${seconds.toFixed(1)} s after the evidence`,
+              // The mechanism travels with the card, so ladder and pipeline always describe the decision on display.
+              mech: org === "A" ? { verdict, change_id: typeof p.change_id === "string" && p.change_id ? p.change_id : null, summary: p.summary || "", model: p.model || "model unknown", kernel_errors: Array.isArray(p.kernel_errors) ? p.kernel_errors.slice(0, 3) : [] } : null };
+            if (org === "A") app.latestA = card;
             const answersReport = org === "A" && p.observation_id && p.observation_id === app.lastJudgeObs;
             // Keep a submitted report pinned until its own answer arrives; other decisions stay in the log.
             if (!app.lastJudgeObs || answersReport) showDecision(card);
@@ -882,10 +906,7 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
       }
       if (ack) { app.ackKey = ack; judgeStatus(`The planner answered: ${app.answers.get(ack).verdict}. See the decision card.`); }
       if (app.ackKey && app.answers.has(app.ackKey)) showDecision(app.answers.get(app.ackKey)); // while the status points at it, the card stays the judge's own answer, whatever later polls bring
-      { // The pipeline follows the displayed decision's own change; before any decision, the latest change, named.
-        const key = app.decisionChange || app.lastChange; const c = key ? app.changes.get(key) : null;
-        if (c) renderPipeline(c.stage, { rejected: c.rejected, failed: c.failed, why: `${key} · ` + (c.rejected ? "kernel: " + ((c.reasons || []).join("; ") || "refused") : c.failed ? "failed at " + STAGES[c.stage].toLowerCase() + ": " + ((c.reasons || []).join("; ") || "no reason recorded") + " (not a refusal)" : c.status && STAGES.indexOf(c.status) < 0 ? `recorded status ${c.status}` : c.stage === 4 ? "committed" : "in flight: " + STAGES[c.stage].toLowerCase()) });
-        else renderPipeline(null, { why: "No change in flight." }); }
+      renderMechanismLive();
       app.tail.sort((x, y) => String(x[3]).localeCompare(String(y[3])));
       if (app.tail.length > TAIL) app.tail.splice(0, app.tail.length - TAIL);
       renderEvents(app.tail.map((r) => r.slice(0, 3)), Math.min(fresh, TAIL), app.seen > TAIL ? `last ${TAIL} of ${app.seen} events` : `${app.seen} events`);
@@ -912,7 +933,7 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
     renderLineage([], "Waiting for the kernel…"); renderEvents([], 0, "0 events"); renderChat(app.liveChat);
     app.live = null; app.lastJudgeObs = null; $("judgeform").hidden = true; $("judgestatus").textContent = "Live: posts one observation to Org A with the agent token; the planner model decides."; $("judgestatus").classList.remove("bad");
     renderAudit(null, 12, "not checked by this page"); $("beat").textContent = "Connecting to the kernel…"; $("sub").textContent = "Nothing is shown until the first response arrives.";
-    renderProof([]); hideDecision(); app.prevRoles = {}; app.obsAt = new Map(); app.answers = new Map(); app.ackKey = null; $("progress").classList.remove("running"); setFocus([]); app.changes = new Map(); app.lastChange = null; app.decisionChange = null; renderLadder(null); renderPipeline(null, { why: "Waiting for the kernel." });
+    renderProof([]); hideDecision(); app.prevRoles = {}; app.obsAt = new Map(); app.answers = new Map(); app.ackKey = null; $("progress").classList.remove("running"); setFocus([]); app.changes = new Map(); app.lastChange = null; app.latestA = null; renderLadder(null); renderPipeline(null, { why: "Waiting for the kernel." });
     caption("Connecting to the kernel");
   }
   $("liveform").addEventListener("submit", (e) => {
@@ -953,6 +974,7 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
       const early = app.answers.get("A:" + id); // the planner may have answered before this receipt arrived
       app.ackKey = early ? "A:" + id : null; // a new report withdraws the previous link
       if (early) showDecision(early); else startThinking(id, live.cfg.urlA ? (app.liveOrgA || "org_a") : "org_a");
+      renderMechanismLive();
       judgeStatus(early ? `The planner answered: ${early.verdict}. See the decision card.` : `Recorded ${id} · waiting for the planner`);
     } catch (err) {
       if (gen !== app.gen) return;
