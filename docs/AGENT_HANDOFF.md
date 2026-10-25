@@ -1,5 +1,33 @@
 # GENESIS implementation handoff
 
+## Current queue closeout — October 25, 2026
+
+Main `06715e4c` includes reviewed #259 and #261–#269. The
+[review ledger](reviews/pr-queue-2026-10-25.md#current-queue-closeout--october-25-2026)
+records exact merge commits and separate source/inert/static checks. The
+`method.develop` policy is implemented, including invocation checks. Optional
+rescoring and re-execution remain operator-configured; re-execution now checks
+current organizational authority before offered code can be staged.
+
+### Current ownership and next work
+
+- Codex completed the user's manual queue closeout with direct fixes on
+  existing PR branches: no new PRs or additional coordination comments. #267's
+  audit corrections are merged with 16 independent pure/mocked checks. Only
+  #260 and preservation draft #7 remain open. #260 is at
+  `5a5eae0d`: 184 exact paths recovered, 780/1,450 manifest entries present and
+  matching, 670 original artifacts/logs/SQLite files still missing. Preserve the
+  original manifest and obtain original external files before reconsidering it.
+- Henry retains runtime/adoption/evaluator ownership; Eric retains web/research;
+  ACP retains Stage and the running demo. No new experiment, provider call or
+  live-process restart is assigned. Ines remains unassigned.
+- Draft #7 and historical evidence remain preserved. The controlled job-shop
+  rehearsal is author-run evidence checked here through bytes and arithmetic,
+  not an independently repeated experiment or recursive network result.
+- Automation and the native Goal remain paused. G0–G4 remain open. Existing
+  CREAO deployment instructions below still apply; no live readiness claim is
+  added by this review.
+
 ## Current CREAO migration handoff — October 25, 2026
 
 The user explicitly requested replacement of backend Developer v2 calls with
@@ -7,7 +35,9 @@ API Trigger using the Desktop configuration. Codex completed that isolated lane
 at `951cbfc1`; [validation and limitations](IMPLEMENTATION_STATUS.md#creao-api-trigger-migration--october-25-2026)
 record 119 Rust and 47 Node cases, workspace compilation and separate read-only
 HTTP 200 evidence. Private credentials are configured only in the ignored local
-`.env`; no keys or real app identifiers are committed.
+`.env`. Migration commit `951cbfc1` committed no secret keys or real app IDs;
+#268 separately retains public team-provided submission identifiers. Secret keys
+remain uncommitted.
 
 - Use `CREAO_TRIGGER_API_KEY`, `CREAO_TRIGGER_APP_ID`, optional exact
   `CREAO_TRIGGER_RUNS_URL`, and fresh per-org Trigger journals. Old v1/v2 records
@@ -25,25 +55,24 @@ HTTP 200 evidence. Private credentials are configured only in the ignored local
 
 The earlier review snapshots below remain historical.
 
-## Current manual review batch — October 25, 2026
+## Historical manual review batch — before #259
 
 The user authorized this manual review/fix/merge pass; keep automation and the
 native Goal paused. #228, #246/#254, #248/#253 and #250/#255 are merged with
 scoped inert/pure/compile checks. #249/#256 is merged at `85526ea1` after
 independent static archive/binding audit; its author-run outcomes remain separate
 from those checks and expose the method.develop authority gap.
-Use the [current review table](reviews/pr-queue-2026-10-25.md#current-manual-review-batch--october-25-2026)
+Use the [earlier review table](reviews/pr-queue-2026-10-25.md#current-manual-review-batch--october-25-2026)
 for exact sources, counts and limitations. No experiment was run or assigned by
 this closeout, and G0–G4 remain open.
 
-### Current ownership and next work
+### Historical ownership at that snapshot
 
 - Henry retains runtime/evaluator/scoring/adoption. His
   [adoption-scope claim](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6395990305)
-  addresses method.develop authority after his G2 run. Source `f52210ab` is
-  reviewed but unmerged; main still lacks that policy. Implementation and the
-  legacy-adoption/fresh-invocation coverage follow-up remain Henry's lane. Do not duplicate that lane or treat the
-  historical run as governed by the later correction.
+  addressed method.develop authority after his G2 run. Source `f52210ab` was
+  unmerged at this earlier snapshot; #259 is now merged with prior-adoption
+  coverage. Do not treat the historical run as governed by the later correction.
 - ACP retains `apps/stage/**`; #246's session/event/report corrections are now
   merged, with 134 inert tests and no real kernel/API or browser validation.
 - Eric retains the web lab UI and research runner/protocol. #228's scoped holds

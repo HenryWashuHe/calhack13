@@ -2,13 +2,16 @@
 
 **Networked recursive capability improvement with fixed model weights.**
 
-Active repository: [genesis-history-experiment](https://github.com/HenryWashuHe/genesis-history-experiment). See the
+Active repository: [calhack13](https://github.com/HenryWashuHe/calhack13)
+(renamed from genesis-history-experiment; existing links redirect). See the
 [migration map](REPOSITORY_MIGRATION.md) for old/new PR numbers and preserved work.
 
 Status: the user authorized manual PR closeout with subagent fixes. The recurring
 automation is paused at the user's request; the native app Goal also reports `paused`. No completion is claimed. This is the durable repository objective and completion contract,
 read alongside current [ownership](AGENT_HANDOFF.md#current-ownership-and-next-work)
-and [coordination issue #1](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1).
+and [coordination issue #1](https://github.com/HenryWashuHe/calhack13/issues/1).
+This manual closeout updates existing PR branches only: no new PRs or additional
+coordination comments. No new experiment is assigned.
 
 The stale app Goal was cleared and the revised G0–G4 objective created on
 October 24, 2026 under the user's standing request, with no invented token budget.
@@ -40,9 +43,9 @@ Event organization is not the product, demo requirement or completion gate.
 | --- | --- | --- | --- |
 | G0: shared contracts | A versioned method interface, exact artifact/dependency identity, evaluator/task contract, resource accounting and separate execution/evaluation/adoption records | Reviewed contracts and compatibility/unknown-outcome cases agreed by affected owners; selected runtime/evaluator documented | Open: records, source loader, corrected #13/#14 proposals, simulator and #42/#43 executor foundations/session merged; runtime/acceptance scoring merged; receiver-bound adoption #64 merged; #57/#65 namespace lifecycle validation remains incomplete; complete enforcement/compatibility remain open |
 | G1: executable development | A develops or improves an executable method through the governed process and uses it to develop a capability/design | Generated/changed method source and derivation, runnable executor, independently scored outputs, enforced limits, receipts and meaningful failure/restart tests; a supplied seed alone is a control | Open: simulator, source-generation plumbing and #42–#46/#48 executor/acceptance stack merged. A live model-generated package is retained; #98 receiving execution/scoring records are merged after independent consistency checks. Local adoption, enforced limits and G1 closure remain open |
-| G2: independent inheritance | B discovers, locally checks and uses A's exact method on a distinct task, with justified organizational responsibility | Separate state/grants, exact invocation/acceptance evidence, a justified role change and an existing-owner control, appropriate non-reuse with scored task outcome | Open: #116 retains checked exact-parent/child trials on distinct rough-transport; child loses to parent/random control. Authenticated registry source API/client/CLI #132/#133/#141 and intake/planner integration #157/#158 are merged; scripted new-specialist/existing-owner/no-change controls exercise the organizational path. Receiver-bound adoption/current-grant authorization #155/#159, compatibility #179 and operator run lifecycle #186 are merged. #211 implements scored-output/responsibility binding; #215 retains historical scripted records with incomplete artifact coverage. The #249 archive adds checked author-run B1/B2 adoption/use records and exposes a method.develop authority gap. Receipts remain operator-reported; selective inheritance with independent organizational evidence remains unproved |
+| G2: independent inheritance | B discovers, locally checks and uses A's exact method on a distinct task, with justified organizational responsibility | Separate state/grants, exact invocation/acceptance evidence, a justified role change and an existing-owner control, appropriate non-reuse with scored task outcome | Open: #116 retains checked exact-parent/child trials on distinct rough-transport; child loses to parent/random control. Authenticated registry source API/client/CLI #132/#133/#141 and intake/planner integration #157/#158 are merged; scripted new-specialist/existing-owner/no-change controls exercise the organizational path. Receiver-bound adoption/current-grant authorization #155/#159, compatibility #179 and operator run lifecycle #186 are merged. #211 implements scored-output/responsibility binding; #215 retains historical scripted records with incomplete artifact coverage. The #249 archive adds checked author-run B1/B2 adoption/use records and exposes a historical method.develop authority gap; #259 now enforces that scope and #264–#266 add optional local rescore/re-execution checks. Receipts remain operator-reported; selective inheritance with independent organizational evidence remains unproved |
 | G3: recursive return | B develops an executable revision; in at least one chain A independently accepts and executes that frozen revision to develop a later capability on a fresh return task | Genuine method changes/derivation, pinned versions, local acceptance and execution evidence closing A → B → A; declines remain valid controls but do not close this gate; positive improvement is not required | Open: #113 retains actual model-generated B revision source from exact parent and checked public feedback, with changed bytes and AST parsing only. #116 B execution/scoring records are checked, without adoption; #117 A-return records are checked and retain rejection in every comparison. An accepted return remains unestablished; #72 is still a handwritten fixture |
-| G4: controlled evaluation | Reproducible comparison of no accumulation, task-capability accumulation and development-method accumulation, plus a fair local-history control for network benefit | Fixed model/settings and trusted evaluators, isolated state/holdouts, predeclared criteria, repeated task orders, costs/latency/interventions/failures and uncertainty reported | Open: accounting, pre-result rosters, optional generation reservations, admission-aware trial/cost join and structural stage allocation/retained binding #85/#86 and finite-chain ceilings/retained CLI #103/#107 are merged, as are post-run catalogue #124, whole-chain cost library/CLI #127/#130 and explicit generation-only stages #153. Runtime entry consumption, prior host retention of one authoritative chain, provider-default sampling, exhaustive history, broader enforcement and controlled comparison remain open. No positive recursive-benefit result exists |
+| G4: controlled evaluation | Reproducible comparison of no accumulation, task-capability accumulation and development-method accumulation, plus a fair local-history control for network benefit | Fixed model/settings and trusted evaluators, isolated state/holdouts, predeclared criteria, repeated task orders, costs/latency/interventions/failures and uncertainty reported | Open: accounting, pre-result rosters, optional generation reservations, admission-aware trial/cost join and structural stage allocation/retained binding #85/#86 and finite-chain ceilings/retained CLI #103/#107 are merged, as are post-run catalogue #124, whole-chain cost library/CLI #127/#130 and explicit generation-only stages #153. Runtime entry consumption, prior host retention of one authoritative chain, provider-default sampling, exhaustive history, broader enforcement and controlled comparison remain open. #269 publishes a positive within-family feedback-versus-independent rehearsal, with random search stronger on four of five panels; static review is not experimental replication. No positive recursive-benefit result exists |
 | Delivery | Reviewable, runnable work and an honest demonstration | Focused merged PRs, reproducible commands, source revisions, updated implementation inventory and explicitly labeled fixture/native/cloud evidence | Open |
 
 Completion means the mechanism and evaluation gates are fulfilled and their
@@ -68,9 +71,10 @@ At the start of every resumed cycle, and again before a merge or new assignment:
    assigned, acknowledged, active, blocked and done. Ines remains unassigned until
    the user changes that instruction.
 4. Implement or review the scoped change, run appropriate checks, preserve
-   independent regressions, and commit/push working increments. Open focused PRs
-   and merge ready exact heads under the user's existing authorization. Do not
-   infer readiness from author-reported tests alone.
+   independent regressions, and commit/push working increments. For this manual
+   closeout, update existing PR branches and merge ready exact heads; do not
+   open new PRs or post comments. Do not infer readiness from author-reported
+   tests alone.
 5. Update the evidence ledger and handoff with source/head, checks, result,
    limitations and next step. Check that the work advanced its chosen gate.
    If it did not, stop expanding that branch and select a better next step.
@@ -104,7 +108,27 @@ failures or input that is actually required.
 
 ## Current milestone ledger
 
-### Current manual review batch — October 25, 2026
+### Current queue closeout — October 25, 2026
+
+Main `06715e4c` includes #259 and #264–#266: current scope checks and optional
+receiver-owned rescoring/re-execution advance G0/G2 authority and evidence
+checking. Before re-execution, the server now rejects stale or mismatched
+organizational authority; final transaction checks remain. These source/fixture
+checks do not prove independent operation or close a gate.
+
+#269's retained author-run job-shop rehearsal compares feedback with equal-call
+independent generation in one synthetic family. Static byte/binding/accounting
+review preserves its +0.05 primary difference and random-control weakness;
+it does not establish G3/G4 or network benefit. Stage/gate corrections and exact
+merge identities are in the [current ledger](reviews/pr-queue-2026-10-25.md#current-queue-closeout--october-25-2026).
+#267 is merged with 16 independent pure/mocked audit checks; historical audit
+records were preserved and no experiment repeated. Only #260 and draft #7 remain
+open. #260 has 780/1,450 original manifest entries present and matching; its 670
+missing entries require original external files. Draft #7 stays preserved.
+No new PR, comment, provider call or experiment is assigned by this closeout.
+Automation/native Goal remain paused and all completion gates remain open.
+
+### Historical manual review batch — before #259
 
 #228 → `ddd17dbf`, #246/#254 → `96ff87be`, #248/#253 → `397788d4`, and
 #250/#255 → `f0791575` are merged; [the current review table](reviews/pr-queue-2026-10-25.md#current-manual-review-batch--october-25-2026)
@@ -116,9 +140,10 @@ These corrections improve diagnostic,
 UI and prospective driver integrity; they do not create new experiment evidence.
 #248's checked author archive retains adoption after 4/6 versus 2/6, without an
 invocation. #250's input snapshot, pre-trial receiver pin and process-eligibility
-checks were not exercised in a real run. Henry retains the announced adoption-
-scope authority correction: `f52210ab` has clear source review but is not merged;
-main still lacks that policy. Historical records cannot inherit later fixes.
+checks were not exercised in a real run. Henry's announced adoption-scope
+authority correction was unmerged at that earlier snapshot; #259 now
+implements it with prior-adoption coverage. Historical records cannot inherit
+later fixes.
 Main `85526ea1` passes 321 web tests, TypeScript and workspace all-target
 compilation; these checks add no runtime or external assurance.
 G0–G4 remain open; automation and native Goal remain paused. This manual batch

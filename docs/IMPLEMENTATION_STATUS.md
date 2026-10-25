@@ -1,5 +1,34 @@
 # Implementation status
 
+## Current queue closeout — October 25, 2026
+
+Main `06715e4c` now includes the conditional `method.develop` adoption and
+invocation policy (#259), optional receiver rescoring (#264), invocation-result
+rescoring (#265) and optional pinned re-execution (#266). Re-execution checks
+current owner/grant/scope before staging and repeats the checks before commit.
+Thirteen adoption API cases and the pinned-plan admission case pass after the
+correction; these use retained data and absent tool paths, not actual execution.
+The [review ledger](reviews/pr-queue-2026-10-25.md#current-queue-closeout--october-25-2026)
+separates all other checks, exact sources, merges and limits.
+
+Stage token fallback and sponsor labeling, bounded Elastic smoke IDs and the
+job-shop evidence publication are also merged (#261–#263, #268–#269). The
+published author-run rehearsal has a narrow feedback-versus-independent result;
+static review verifies its retained accounting and arithmetic. Random search
+wins four of five panels. This is not an accepted recursive return or G4 result.
+Historical sponsor calls remain author-reported; no new provider call was made.
+
+#267's audit correction is merged: 16 independent pure/mocked tests pass,
+including stale-output, failure, malformed/empty, path and missing-receipt cases.
+Static classification finds 43 trials and three explicitly excluded generation
+plans; the historical audit is unchanged and no actual execution was repeated.
+Only #260 and preservation draft #7 remain open. #260 at `5a5eae0d` has
+184 original paths restored, 780/1,450 manifest entries matching, and 670 still
+missing. Original external files are required; the historical manifest
+is unchanged. Draft #7 remains preserved. The manual task permits
+existing-branch fixes and ready merges, with no new PRs/comments. Automation and
+the native Goal remain paused; G0–G4 are open.
+
 ## CREAO API Trigger migration — October 25, 2026
 
 Source `951cbfc1` changes production server, CLI and live gate to app-scoped
@@ -29,10 +58,10 @@ not restarted; they need the new code/environment on their next controlled start
 G0–G4 and recursive-benefit claims remain open. Automation and native Goal stay
 paused.
 
-## Current manual review batch — October 25, 2026
+## Historical manual review batch — before #259
 
 #228 (`ddd17dbf`), #246/#254 (`96ff87be`), #248/#253 (`397788d4`) and
-#250/#255 (`f0791575`) are merged. The [current review table](reviews/pr-queue-2026-10-25.md#current-manual-review-batch--october-25-2026)
+#250/#255 (`f0791575`) are merged. The [earlier review table](reviews/pr-queue-2026-10-25.md#current-manual-review-batch--october-25-2026)
 records exact sources and separate checks: 54 inert runner cases, 134 inert Stage
 cases, four pure assignment guards and six pure ABA driver guards. They are not
 one aggregate suite. #249/#256 is also merged at `85526ea1`: independent static
@@ -50,8 +79,9 @@ versus 2/6 with adoption but no invocation; its hash/binding checks are not an
 independently reproduced run. #250's corrected prospective driver was not run
 here; no retained declared attempt-2 run exists. Two earlier author-reported
 stand-in checks are unretained and not evidence. Henry's separately claimed
-adoption-scope `f52210ab` has clear source review but is not merged;
-main still lacks that method.develop policy. Henry retains implementation.
+adoption-scope `f52210ab` was source-reviewed but unmerged at this earlier
+snapshot; #259 now implements the policy with prior-adoption coverage. Henry
+retains the broader lane.
 Test-contract-only #257 `c7c13ff0` merged at `ff10865f`; root independently
 passes four inert-source CLI loopback cases for the #233 pre-write refusal.
 Neither correction changes the historical run. Main `85526ea1`
