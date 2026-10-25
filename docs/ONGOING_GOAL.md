@@ -104,9 +104,10 @@ failures or input that is actually required.
 
 | Milestone | Owner and evidence | Next action |
 | --- | --- | --- |
+| Retained whole-roster CLI, G4 prerequisite | Codex #191 `b6750eec9d6f6360965812ff24fe855d9feee57b` → `b16f8eb7b00c322b49efb3d5c9c41e084ca04adb`; independent #192 `1eb15a88` → `8493a8ce`. Root 21 initial scoped cases, 20 overlapping independent checks and 12 final composition cases pass, scoped strict Clippy/fmt | Bounded create-only capture/read-only recheck names canonical cohort/declaration/report hashes and eight selected references/absence. Final tree `1a3fce96` matches `416ff677`. Generation provenance, chain costs, fresh-panel consumption, chronology and governance remain open; not an experiment result. |
 | Public eligibility adapter, G4 prerequisite | Henry #174 `f67ae448d2bbc1578edc092356fd68ea3801d4f4` → `73d039b500e25ced05d20e22fdc5a27b693403ae`; five focused tests plus three inert-file checks and scoped strict Clippy/fmt clear the size/path hold | Shared typed assessment only. Endpoint #168 still needs family-specific policy, full method identity and ordered/not-run roster fixes; no scorer/evaluator execution or G4 claim. |
 | Invocation identity, G2 prerequisite | Henry #185 `811c6f5ca84bb1914f1e1a7979df962b37803487` → `b1b2c8f2e3f5d1489ed2db61905ccef479fbd1d0`; independent guards #188 `e4824046` → `68604b92`; 23 pure core tests and scoped strict Clippy pass | Claimed grant identity only. #179 policy/store corrections and draft #186 governed invocation remain Henry-owned and unmerged; no execution/adoption proof or gate closure. |
-| Whole development roster, G4 prerequisite | Codex #187 `da669296849afb0c1317d3c3681bfcf7bb357ff3` → `bb9f7c2873ffa29eed7629447712566121a2d272`; independent #189 `d2304309cf7ed98bb477503e1d4b6e6db3ee5c26` → `899de43d68f66cc07d39414f44bf7c792f022031`. Final composition `4b0d330a`, tree `04ee987a`, passes 30 scoped forge cases and strict Clippy/fmt | Eight selections/24 positions bind round methods, controls, runtime settings, family policy and numeric trial grants. Next bounded operator capture/chain links; generation provenance, fresh-panel consumption, chronology and governance remain open. No provider/runtime execution or G4 claim. |
+| Whole development roster, G4 prerequisite | Codex #187 `da669296849afb0c1317d3c3681bfcf7bb357ff3` → `bb9f7c2873ffa29eed7629447712566121a2d272`; independent #189 `d2304309cf7ed98bb477503e1d4b6e6db3ee5c26` → `899de43d68f66cc07d39414f44bf7c792f022031`. Final composition `4b0d330a`, tree `04ee987a`, passes 30 scoped forge cases and strict Clippy/fmt | Eight selections/24 positions bind round methods, controls, runtime settings, family policy and numeric trial grants. Operator capture/check is supplied by #191; generation/chain links, fresh-panel consumption, chronology and governance remain open. No provider/runtime execution or G4 claim. |
 | Canonical framing and status separation | Legacy #127/#131 already present in new main `e1f2264` with identical source tree | Maintain claim/evidence distinctions; no event-organizer revival |
 | Repository continuity, delivery prerequisite | #17 merged at `6d1b7dc`, source `0d9775b`: 140 links/anchors checked; new issue #1 and hourly target; all twelve repair WIP files preserved in draft #7 at `110a107` | Work/push here; reconcile later legacy deltas without overwriting newer destination work |
 | Live-gate tooling prerequisite | #16 merged at `66fc95b8`, source `bd706a2`: 24 offline tests passed, nine baseline regressions reproduced | Escaped-path execution and public evidence redaction fixed; no protocol alias or live workflow result implied |
@@ -283,8 +284,9 @@ round methods/controls/runtime settings, family-specific policy and exact grants
 The final composition passes 30 scoped forge cases and strict Clippy/fmt. This is not six-operation generation admission or exhaustive
 history: generation-settings/feedback provenance, chain costs, fresh-panel
 consumption, independent publication/chronology and governance remain open.
-Codex is developing the bounded operator cohort capture/check CLI; it is not
-implemented in this checkpoint. Henry retains endpoint and invocation authority.
+Codex's bounded operator cohort capture/check CLI #191 `b6750eec` → `b16f8eb7`
+and independent #192 guards at `8493a8ce` are merged. No provider/runtime execution
+or gate closure is claimed. Henry retains endpoint and invocation authority.
 Preparation #164 is merged. Eligibility CLI #174 clears its size/path hold;
 endpoint #168 `99b2c8b0` remains held on family-specific policy, full method identity
 and ordered/not-run roster binding (one mocked control passes, seven subcases fail).

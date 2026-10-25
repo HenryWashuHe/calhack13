@@ -278,9 +278,12 @@ every milestone. All lower checkpoints are historical.
   `bb9f7c28` are merged; #189 preserves independent `d2304309` guards at
   `899de43d`. The final composition passes 30 scoped forge tests and strict
   Clippy/fmt. Eight selections bind round methods, controls, runtime settings,
-  family policy and numeric trial grants. Codex is developing bounded operator
-  cohort capture/check CLI under its scoped claim; generation provenance, fresh-panel consumption,
-  chronology and governance remain open. No new implementation is claimed.
+  family policy and numeric trial grants. Bounded cohort capture/check CLI #191
+  `b6750eec` → `b16f8eb7` and independent #192 guards at `8493a8ce` are merged.
+  Root 21 initial scoped checks, 20 overlapping independent checks and 12 final
+  composition checks pass, with scoped strict Clippy/fmt. Generation provenance,
+  chain costs, fresh-panel consumption, chronology and governance remain open;
+  no new runtime result is claimed.
   #160's regression analysis is merged as retrospective explanation, not a new
   trial, mechanism fix or proof the proposed #144 iteration engine works.
   No new model request is declared.
@@ -313,10 +316,11 @@ A's card while the acknowledged A status still links to it. All 47 existing
 VM tests pass; two later-poll guards fail in preserved `75c67a6`.
 Dated direction/sponsor note #161 `c936bcf6` merged at `a9caea11` after
 source/delta and independent review; the current checkpoint remains authoritative.
-ACP #144 has newer `51b342ea` under pure Node re-review. The earlier `fd35c2fe`
-hold covers confirmation/recovery budgets, ancestry, canonical encoding and
-emitter IDs (38 old cases pass, six pure guards fail at `3032a412`); it is not a
-fresh failure claim against the new head. These changes
+ACP #144 `51b342ea` remains held after substantive earlier fixes: 54 existing
+synthetic Node tests pass, but three new guards fail at `db25f0b8`. Resumption
+loses invalid observation positions, primitive/frozen callback errors erase
+partial work, and ancestor metadata displaces later verified source bytes.
+These are finite inert-callback checks, not runtime or improvement evidence. These changes
 transfer no ownership or adoption authority.
 
 Legacy task numbers are historical references in the migration map. Current
