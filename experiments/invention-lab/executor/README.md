@@ -69,6 +69,12 @@ Trusted acceptance scoring lives in the separate `../scoring` crate.
 
 ## Isolation, exactly
 
+`namespaces` requires Linux `close_range(CLOSE_RANGE_CLOEXEC)` support (Linux
+5.11+) and permission to call it. Failure refuses startup. A partial walk based
+on the current descriptor limit cannot cover descriptors opened before that
+limit was lowered, so it is not used. This mode is unsupported on non-Linux
+hosts; `none` mode is unchanged.
+
 `namespaces` mode (root only):
 
 - **Enforced:**
