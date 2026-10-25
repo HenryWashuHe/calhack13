@@ -230,6 +230,14 @@ Unchanged from adopt-first for task capabilities, and explicit per rule:
   trusted evaluator's content digest (even under an unchanged version label),
   or a dependency digest the receiver resolves.
   This is separate from fencing stale jobs and is not on main.
+- **Method adoption records** (server, #155/#159 and #179): a decision stops
+  authorizing when its requirement, mission, authority or lease changes, or
+  when the receiver's policy moves away from it. That covers the pinned plan
+  for the requirement, the runtime and protocol, and the accepted
+  environments, evaluators and dependencies. Nothing is rewritten. A fresh
+  accepted decision under the changed policy is a new record. Schema 1
+  records, written before the runtime and protocol were retained, are kept
+  and still replay, but they never authorize: adopt again.
 - v1 and v2 may both be `accepted`. Which one a development run uses is an
   explicit, recorded choice (planner or policy), never "the newest".
 - Retiring v1 stops new runs under it. It does not erase its receipts or the

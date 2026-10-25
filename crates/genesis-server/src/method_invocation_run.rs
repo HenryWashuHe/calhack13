@@ -34,6 +34,10 @@ const MAX_RECORD_BYTES: usize = 1024 * 1024;
 /// Room kept in every prepared record for its one receipt, so a run that
 /// starts can always be completed. A larger receipt is refused on its own.
 const RECEIPT_ALLOWANCE: usize = 64 * 1024;
+/// Every matching receipt repeats the frozen binding, so the binding gets at
+/// most a quarter of the receipt allowance. The rest is for the actual
+/// method/environment, usage, outcome and outputs.
+const BINDING_ALLOWANCE: usize = RECEIPT_ALLOWANCE / 4;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -301,6 +305,18 @@ impl Store {
         if json.len() > MAX_RECORD_BYTES - RECEIPT_ALLOWANCE {
             return Err(E::InvalidInput);
         }
+        // A run that starts must be able to record a terminal receipt, and
+        // every receipt carries this binding.
+        let binding = record
+            .plan
+            .expected_binding(&record.plan.slots[0].slot_id)
+            .map_err(|_| E::InvalidRecord)?;
+        let binding_bytes = serde_json::to_vec(&binding).map_err(|_| E::InvalidRecord)?;
+        if binding_bytes.len() > BINDING_ALLOWANCE {
+            return Err(E::Plan(
+                "the run binding leaves no room for its receipt; shorten the plan's identifiers",
+            ));
+        }
         let mut conn = self.lock();
         let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
         let count: i64 = tx.query_row("SELECT count(*) FROM method_runs", [], |r| r.get(0))?;
@@ -385,6 +401,21 @@ impl Store {
         receiver: &MethodReceiver,
         now: DateTime<Utc>,
     ) -> Result<MethodRunRecord> {
+        self.retain_method_run_receipt(id, receipt, state, Some(receiver), now)
+    }
+
+    /// [`Self::complete_method_run`], with the receiver optional. With none
+    /// configured (new execution disabled) the receipt is still retained, as
+    /// completed after fence: disabling stops new authority, it doesn't
+    /// discard the result of a run already started.
+    pub fn retain_method_run_receipt(
+        &self,
+        id: &str,
+        receipt: &ExecutionReceipt,
+        state: &OrgState,
+        receiver: Option<&MethodReceiver>,
+        now: DateTime<Utc>,
+    ) -> Result<MethodRunRecord> {
         let mut record = self.method_run(id)?;
         if record.status != MethodRunStatus::Started {
             return Err(E::Status(record.status));
@@ -409,7 +440,9 @@ impl Store {
             },
             Err(e) => return Err(E::Receipt(e.to_string())),
         });
-        record.status = if still_authorized(self, state, receiver, &record, now) {
+        let authorized =
+            receiver.is_some_and(|receiver| still_authorized(self, state, receiver, &record, now));
+        record.status = if authorized {
             MethodRunStatus::Completed
         } else {
             MethodRunStatus::CompletedAfterFence
