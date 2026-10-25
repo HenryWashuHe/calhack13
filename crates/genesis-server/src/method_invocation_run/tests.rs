@@ -273,3 +273,25 @@ fn receipts_must_bind_to_the_frozen_plan_and_unknown_is_final() {
             .unwrap();
     assert_eq!(done.receipt.unwrap().outcome, ExecutionOutcome::Unknown);
 }
+
+#[test]
+fn a_changed_retained_acceptance_plan_bounds_nothing() {
+    // The accepted plan is re-read from the receiver's records; if its bytes
+    // no longer match the adoption's evidence, no invocation is frozen.
+    let r = Run::new();
+    let plan = r.plan();
+    let path = r
+        .f
+        .records
+        .receiver
+        .records_root
+        .join("vs-fixed-cart/plan.json");
+    let mut retained: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+    retained["development_grant"]["simulation_steps"] = serde_json::json!(1_000_000);
+    std::fs::write(&path, serde_json::to_vec(&retained).unwrap()).unwrap();
+    assert!(matches!(
+        r.prepare(&r.intent("tampered", plan)).unwrap_err(),
+        E::InvalidRecord
+    ));
+}
