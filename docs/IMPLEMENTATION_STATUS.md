@@ -2,14 +2,17 @@
 
 ## Current review checkpoint — October 25, 2026
 
-At main `96240fe5`, [the priority review snapshot](reviews/pr-queue-2026-10-25.md)
+At main `60b4d10c`, [the priority review snapshot](reviews/pr-queue-2026-10-25.md)
 records #220 merged into #65 and #221 into #57. Both now require successful
 Linux `close_range(CLOEXEC)` or refuse startup; the bounded descriptor fallback
 is removed and the environment-policy identity changes. Mode None is unchanged.
 Composition `91e6e174` passes independent compile/format checks only. Neither
 original PR is on main; exact-head independent Linux assurance is open.
-Prepared #211/#199/#203 fixes are also unmerged. The user prioritized #57/#65
-and authorized bounded fixes, tests and merges when ready; this adds no claim
+#211 is merged at `a1c25118` after 21/21 store cases on the reviewed composition.
+#199 is merged at `ac516528` after 78/78 inert Stage cases; #203 is merged at
+`60b4d10c` after 80/80 inert Stage cases. Their prior scoped findings are cleared;
+these overlapping runs do not establish browser/visual readiness. The user
+prioritized #57/#65 and authorized bounded fixes, tests and merges when ready; this adds no claim
 of namespace, descriptor, evaluator, generated-method or provider execution.
 G0–G4 remain open and the native app Goal reports `paused`.
 
