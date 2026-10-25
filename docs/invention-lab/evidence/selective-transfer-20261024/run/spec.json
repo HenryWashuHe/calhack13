@@ -1,0 +1,34 @@
+{
+  "instances": 12,
+  "org_id": "org_example_b",
+  "packages": {
+    "parent": {
+      "path": "../live-method-20261024-generated/method-package.json",
+      "sha256": "8215c3679a06724069759bcbdaa576b64ec0ef1251c5238a797c0cb34962b944"
+    },
+    "random-search": {
+      "path": "random-search.package.json",
+      "sha256": "06777e8ed363a1f77c41d31e6e746c29f08e1850041353dfb6453a91d1aaee8d"
+    }
+  },
+  "sandbox": "namespaces",
+  "schema": "lab-receive-spec/1",
+  "simulation_steps": 72000,
+  "trials": [
+    {
+      "candidate": "parent",
+      "control": "random-search",
+      "family": "rough-transport",
+      "first_seed": 3000,
+      "id": "st-rough-transport"
+    },
+    {
+      "candidate": "parent",
+      "control": "random-search",
+      "family": "ravine-crossing",
+      "first_seed": 3000,
+      "id": "st-ravine-crossing"
+    }
+  ],
+  "wall_time_ms": 60000
+}
