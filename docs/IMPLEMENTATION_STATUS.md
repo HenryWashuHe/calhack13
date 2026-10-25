@@ -11,8 +11,8 @@ weights. Event organization remains superseded. G0–G4 are still open.
 The revised app Goal was activated on October 24, 2026 after the stale record
 was cleared; the existing hourly continuation remains active.
 
-Main through `a9caea11deb2085b9a8960f7233049b66c3b058f`, tree
-`7c390b40f66781a32540140b563907bed0f03511`, includes the reviewed
+Main through `523d38a2560d9815636dd2d627bbe30a3c3c0de0`, tree
+`53b46379a71e56dac17d1da6757046e8f8229dbc`, includes the reviewed
 foundations below. Method generation merged at `d1be8443fee46e1196861926a963563f48407936`,
 whose tree `dc9d6adc19863d8584fd5af1fd11eae7552014eb` exactly matches the independently
 validated generation stack. Counts refer to the named source/composition, not a
@@ -23,6 +23,7 @@ combined main run.
 | Method adoption #155 `cba4bf00` → `0bf7a8e2`; authorization routes #159 `db0deeca` → `e7c6baf7` | Root composition `0b671510`, tree `24183518`, matched main; 23 scoped tests and strict Clippy/fmt pass. Receiver-owned exact policy pins, record invariants, disabled-receiver refusal and durable replay clear the prior holds. Authorization under the current grant is implemented; execution under it is not. Reacceptance after policy change remains proposed. |
 | Receiver IDs #163 `66118d2b` → `0df3e227`; guards #166 `00499186` → `c2fd8d12` | 22 mocked tests pass with real subprocess creation forbidden; original `e3f3779` and first-seed files unchanged. Namespaces run/attempt/scoring IDs by declared trial before intent, preserving deterministic preparation. No old evidence rewritten or runtime assurance established. |
 | Development selector #169 `1515b46f` → `47aef07f`; independent guards #170 `a8c42654` → `755d6c65` | Eight root selector tests, four preserved independent retained-record cases and 16 core verdict tests pass. [One arm/family and three rounds](invention-lab/contracts/process-selection.md), exact evidence checks, explicit missing/ineligible rows and deterministic selection; not a complete roster/chronology/endpoint or G4 result. |
+| Selection CLI #173 `332f4f01` → `523d38a2` | Independent source review clear; root four new + eight existing binary cases and strict Clippy/fmt pass. Four additional independent cases pass, retained separately at `d32caa37`. Create-only self-contained capture and read-only recheck expose exact selected method/plan and normalized input/report/selection hashes; no source execution or complete roster/chronology/governance claim. |
 | Fresh-panel preparation #164 `55e14cc4` → `a056ec65` | Eight pure file tests pass, all original `2da978bf` guards unchanged; stale/partial publication and selected-byte defects clear. Preparation-only staged publication, not trusted selection lineage, a cross-process no-replace guarantee or execution. |
 | Stage story #125 `811d0df2` → `c0c2cae1` | Independent 33 offline VM tests pass, original timing guard unchanged. Organization-scoped timing is corrected; this is presentation support, not authority or goal closure. |
 | Shared public-slot helper #171 `1d3d28e3` → `ef7cb923` | Root composition `8e39f291`, tree `110b43bf`, matches merged source: six core + eight selector + four unchanged independent cases pass, scoped strict Clippy/fmt. `assess_process_slot` is shared by selection; exact expected state, numeric usage and ordered public metrics are checked without hiding unknown/failed/overrun evidence. Public instances only; acceptance `decide` unchanged. These counts overlap the selector checks. |
@@ -285,13 +286,13 @@ now governs selection and the positive endpoint, excluding Failed, Interrupted
 and Unknown executions even if scored; observed results/costs remain retained.
 This clears the previous wording hold, with no execution/test or G4 claim.
 Pure selection #169/#170 and shared typed slot assessment #171 are merged.
-Codex's [claimed next slice](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6391230947)
-adds create-only selection preparation and read-only recomputation through the
-existing selector. Open #173 `332f4f01` has four new plus eight binary tests
-and Clippy/fmt passing under root; independent review is pending. It is unmerged.
-Numeric six-slot/chain ceilings,
-full four-family input/selection roster, adaptive Prepared chronology and a bound
-fresh-panel endpoint remain open.
+Selection CLI #173 `332f4f01` is merged at `523d38a2`. Its self-contained capture
+retains typed inputs and the derived report; read-only recheck recomputes equality.
+Output names exact selected method/plan and normalized input/report/selection
+hashes. Next bind all eight records to a declared common generation/control/
+settings/budget roster before fresh-panel spec/endpoint consumption. Numeric
+six-slot/chain ceilings, adaptive Prepared chronology, externally pinned digests
+and governance remain open; no source execution or gate closure is established.
 Receiver ID mechanics are merged, but runtime assurance remains a prerequisite.
 Preparation #164 `55e14cc4` clears stale/partial publication and selected-byte
 pinning with eight pure tests and is merged at `a056ec65`; its description is

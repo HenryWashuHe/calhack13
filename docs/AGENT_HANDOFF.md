@@ -11,8 +11,8 @@ issue #4/task numbers below are historical. Preserve rewritten ancestry.
 
 The [ongoing goal](ONGOING_GOAL.md), revised app Goal and hourly continuation are
 active. The stale app record was cleared and replaced on October 24, 2026. Main
-through `a9caea11deb2085b9a8960f7233049b66c3b058f`, tree
-`7c390b40f66781a32540140b563907bed0f03511`, includes the experimental core
+through `523d38a2560d9815636dd2d627bbe30a3c3c0de0`, tree
+`53b46379a71e56dac17d1da6757046e8f8229dbc`, includes the experimental core
 contracts, source loader, corrected adoption proposal/UI, simulator primitives,
 #50–#52 method-source generation, #42/#43 executor foundations/session and #56
 accounting identity checks plus #58/#59 declared combined-cost assessment and
@@ -62,7 +62,7 @@ source/delta and independent review; the current checkpoint remains authoritativ
 | Henry's core Claude | #46/#48/#64/#70/#72 merged; #98 `cb29a95` receiving records merged after independent checks; #102 `c8bf7a0` checked public feedback merged at `7accefd3` | Own execution/scoring/adoption and receiving-side record plumbing. Retain B's explicit selection/local acceptance decision and intended responsibility, including the rejected random-search comparison. #116 retains checked rough-transport trials of frozen child `4f455dc6`, rejected against parent/random control. Local acceptance remains unestablished; #117 checked A-return records are Rejected in every comparison. Retain prior declarations and all negative results; do not edit forge. #57/#65 are separate unmerged assurance work. |
 | Eric / Eric's Claude | #93/#94/#99/#100/#101/#109 merged; real-evidence #123 integrated through #128 | `docs/invention-lab/ui.md` and `apps/web/src/invention-lab/**`, no shared routes. #123 `7196d5c` → parent merge `4515f728`; #128 `2f0b6734` → main `a3be74d0`, identical web bytes. Independent 81 tests/13 files and typecheck pass, original regressions unchanged. Preserve `78adef37`, `59c3e1c`, `f2ac45e5` and `0672dcbe`. The separate `apps/stage` queue does not transfer this lane. [MethodOffer/MethodSearchResults intake](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388858370) is requested next, awaiting acknowledgment/exact files: publisher-qualified identity and canonical bytes, no inferred authentication or adoption. |
 | ACP Claude session | #3/#5 and stage #20 merged; [Stage lane explicitly claimed](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388347592) | Own bridge and `apps/stage/**`; #125 is merged after 33 offline VM checks; #126 remains held on acknowledgment/card attribution as below. [New iteration files](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6389024893) remain proposed/exploratory pending existing-contract interface agreement, not a second default orchestrator. Reconcile held #4 routing/status/demo docs with merged #3/#5, local executor/scorer and issue #1. Preserve the superseded event-organizer boundary. Eric [withdrew only his separate Stage claim](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388539814), leaving his lab UI lane intact. |
-| Codex main chat | Contracts/generation/accounting, registry/revision bridge and organizational intake merged; selector #169/#170 merged | Own pure one-arm/family development selection and full-loop integration through existing contracts. Next bind complete roster, numeric capacity, generation chronology and frozen selection handoff; use merged #171 instead of duplicating eligibility. [Current claim](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6391230947): create-only `process-select-prepare` and read-only `process-select-check` around the existing selector; not merged yet. Henry retains evaluator/runtime/adoption/endpoint authority, Eric retains UI. No provider request is declared. |
+| Codex main chat | Contracts/generation/accounting, registry/revision bridge, intake and selection #169/#170/#171/#173 merged | Own selection/roster integration through existing contracts. Self-contained create-only selection capture/read-only recheck now exists. Next bind all eight records to one declared generation/control/settings/budget roster before fresh-panel spec/endpoint use; chronology and governance remain open. Use merged #171, not duplicate eligibility. Henry retains evaluator/runtime/adoption/endpoint authority, Eric retains UI. No provider request is declared. |
 | EricZhu-31 / Codex provider session | #104 nullable-ticket correction and #137 Trigger smoke are merged; [separate provider slice](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388887582) | #137 source `23316324cd0879f861ea8fdf0bf4bed3e20bf935` → `1cb8135420e1c8a5522b39fbf7f330814ae27136`: independent 35 offline Node tests pass; three original guards unchanged, prior durability/bounds/polling holds cleared. Keep team `capi_`/app-ID Trigger separate from Developer API adapters. Live CREAO is author-reported private evidence, not independently inspected or goal closure. This provider claim does not acknowledge the lab UI request; ACP retains bridge/hosted-gate evidence. |
 | Ines | Unassigned by explicit user instruction | Do not infer identity from another collaborator handle. |
 
@@ -208,10 +208,13 @@ reviews clear the prior eligibility hold: selection and positive endpoint share
 one rule excluding Failed/Interrupted/Unknown executions even if scored, while
 retaining observed outcomes and costs. Protocol-only, no execution/tests or G4.
 The three-round selector #169/#170 and shared typed slot helper #171 are merged.
-Codex's selection CLI #173 `332f4f01` is under independent review, not merged.
-Root four new plus eight binary cases and Clippy/fmt pass; no execution is claimed.
-Complete roster/numeric ceilings, four-family input parity, adaptive Prepared
-chronology, frozen selection export and a bound fresh endpoint remain integration gates. Receiver IDs are corrected; runtime assurance remains open.
+Selection CLI #173 `332f4f01` → `523d38a2` is merged after independent review.
+Self-contained create-only capture/read-only recheck exposes the exact selected
+method/plan and normalized input/report/selection hashes. Next bind all eight
+selection records to a declared common generation/control/settings/budget roster
+before fresh-panel specs/endpoint; four-family input parity, adaptive Prepared
+chronology and governance remain gates. Receiver IDs are corrected; runtime
+assurance remains open.
 Public-range #121/#136 is merged with the reserved-seed
 hold cleared; metadata/preflight and mocked checks do not hide inputs or establish
 an evaluation result. Freeze
@@ -404,6 +407,19 @@ ordered public metric rows. Selection calls it; acceptance `decide` is unchanged
 The [Henry handoff](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6391178472)
 reserves eligibility CLI and endpoint integration for his lane. Hidden contexts
 are refused; this is not hidden scoring or an independent result reproduction.
+
+Selection CLI #173 source `332f4f01d6a4f5bb9dcd24dbbbbcf90a1345e503` merged
+at `523d38a2560d9815636dd2d627bbe30a3c3c0de0` after
+[independent review 5640730477](https://github.com/HenryWashuHe/genesis-history-experiment/pull/173#pullrequestreview-5640730477).
+Root four new plus eight existing binary tests and strict Clippy/fmt pass.
+Four additional independent cases pass and are retained separately in
+`d32caa375f73211705fadcffb6c8004f200368f8`; no combined main-suite count is claimed.
+The [capture/check commands](invention-lab/contracts/process-selection.md#operator-capture-and-read-only-check)
+use the same selector, include all three original positions and emit exact
+selected method/plan plus normalized input/report/selection hashes. They do not
+load/execute source or prove authentic chronology. Downstream consumers must
+bind the externally pinned selection digests and all eight records to the common
+frozen generation/control/settings/budget roster before fresh-panel specs/endpoint.
 
 Preparation #164 corrected source `55e14cc41a4f2d1d7d0a5de3f566c571b7ba1f1b`
 clears the narrow stale/partial publication and selected-byte pinning findings:

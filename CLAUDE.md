@@ -255,7 +255,7 @@ every milestone. All lower checkpoints are historical.
   guards and 16 core verdict checks pass. The scope is one arm/family and three
   rounds, retaining missing/failed/unknown evidence and deterministic tie-breaks.
   Complete six-operation/four-family roster, numeric ceilings, adaptive Prepared
-  chronology, frozen selection export and runtime assurance remain open.
+  chronology and runtime assurance remain open.
   Preparation #164 `55e14cc4` clears its prior publication/byte-pin defects
   with eight pure file tests and is merged at `a056ec65`; its PR description
   is corrected.
@@ -266,13 +266,15 @@ every milestone. All lower checkpoints are historical.
   validation or gate closure. #171 `1d3d28e3` → `ef7cb923` merges the shared typed
   `assess_process_slot`: 18 pure checks and scoped strict Clippy/fmt pass. Henry's
   [consumer handoff](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6391178472)
-  keeps eligibility CLI/endpoint adapters in his lane. Codex's
-  [next claimed slice](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6391230947)
-  is create-only `process-select-prepare` plus read-only `process-select-check`,
-  retaining/recomputing the existing three-round selector inputs and report.
-  It is open as #173 `332f4f01`: root four new plus eight binary cases and
-  Clippy/fmt pass; independent review is pending. It does not cover the full
-  24-cell roster and is not merged.
+  keeps eligibility CLI/endpoint adapters in his lane. Selection CLI #173
+  `332f4f01` → `523d38a2` is merged after independent review: root four new plus
+  eight binary cases and strict Clippy/fmt pass; four additional independent
+  guards pass and are retained separately at `d32caa37`.
+  `process-select-prepare` creates a self-contained capture; `process-select-check`
+  rechecks it read-only. Output names the exact selected method/plan and normalized
+  input/report/selection hashes. Next bind all eight records to one declared
+  generation/control/settings/budget roster before fresh-panel specs/endpoint.
+  Local capture proves neither chronology nor governance; G0–G4 stay open.
   #160's regression analysis is merged as retrospective explanation, not a new
   trial, mechanism fix or proof the proposed #144 iteration engine works.
   No new model request is declared.
