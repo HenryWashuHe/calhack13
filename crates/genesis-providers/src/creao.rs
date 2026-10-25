@@ -1,6 +1,7 @@
 //! Durable CREAO specialist operations at the provider boundary. The kernel must
 //! authorize dispatch and independently prove readiness/domain results. Native
 //! creation deliberately does not implement the synchronous RoleProvisioner trait.
+//! API Trigger binds a published app through a bootstrap run; it creates no app.
 
 use crate::{PreEffectGuard, ProviderError, ProvisionRequest};
 use async_trait::async_trait;
@@ -86,7 +87,9 @@ impl fmt::Debug for SpecialistExecutionReceipt {
 }
 
 /// Progress is provider evidence only. In particular, Created requires a separate
-/// readiness check before the kernel can activate a role.
+/// readiness check before the kernel can activate a role. For API Trigger it
+/// means an existing published app completed the role-bound bootstrap run, not
+/// that CREAO created or modified an agent.
 #[derive(Clone, Debug, Serialize)]
 #[serde(tag = "state", rename_all = "snake_case")]
 pub enum SpecialistProgress {
@@ -193,6 +196,98 @@ impl CreaoSpecialist {
             .map_err(runtime_error)
     }
 
+    fn provision_spec(&self, request: &ProvisionRequest) -> Result<OperationSpec, ProviderError> {
+        if request.role.provider != Provider::Creao || request.org_id.as_str() != self.org_id() {
+            return Err(rejected(
+                "CREAO role operation belongs to a different provider or organization",
+            ));
+        }
+        let context = json!({"org_id":request.org_id,"change_id":request.change_id,"role_id":request.role.role_id});
+        let native_request = if let Some(app_id) = self.runtime.trigger_app_id() {
+            OperationRequest::CreateRun(RunRequest {
+                agent_id: app_id.to_owned(),
+                input: json!({
+                    "schema_version":1,
+                    "task":"genesis_role_bootstrap",
+                    "instructions":"Process this GENESIS role contract for this run only. This invokes an existing published app; do not create or modify an app or agent, or persist shared role/conversation state. Native completion does not prove readiness or grant organization authority. Use the published app's preconfigured GENESIS gateway skill only when an explicit challenge supplies a receipt endpoint and challenge-bound receipt. Readiness is determined by that gateway callback, never by this response. Require an explicit GENESIS job and scoped grant for mission work; do not claim task success without returned evidence.",
+                    "role_contract":request,
+                    "context":{"org_id":request.org_id,"change_id":request.change_id,
+                        "role_id":request.role.role_id,"config_digest":request.config_digest()},
+                }),
+                model: None,
+                conversation_id: None,
+                workspace_id: None,
+            })
+        } else {
+            OperationRequest::CreateAgent(CreateAgentRequest {
+                input:format!("Create a persistent operational specialist for GENESIS using this role contract: {}. Provider creation does not grant organization authority. Configure a GENESIS readiness gateway skill that, when explicitly invoked with a readiness challenge, sends only the supplied challenge-bound readiness receipt to its supplied GENESIS endpoint. This readiness POST is the sole exception to requiring an explicit GENESIS job and scoped grant before calling a gateway; it never grants mission authority. Require an explicit GENESIS job and scoped grant for all mission work. Do not claim the skill is installed or readiness is proven without returned evidence. Do not claim task success without returned evidence.",serde_json::to_string(request).map_err(runtime_error)?),
+                model:None,conversation_id:None,
+            })
+        };
+        Ok(OperationSpec {
+            schema_version: 1,
+            api_version: self.runtime.api_version(),
+            operation_id: operation_id("role", context),
+            org_id: request.org_id.to_string(),
+            role_id: request.role.role_id.to_string(),
+            account_namespace: self.runtime.account_namespace().to_owned(),
+            purpose: OperationPurpose::Provision {
+                change_id: request.change_id.to_string(),
+                config_digest: request.config_digest(),
+            },
+            request: native_request,
+        })
+    }
+
+    /// Resolve a trusted, completed bootstrap. Replay uses the provision pinned
+    /// in the saved job intent, never whichever role contract was created later.
+    fn trigger_contract(
+        &self,
+        job: &Job,
+        binding: &AgentBinding,
+        execution_id: &str,
+    ) -> Result<(ProvisionRequest, Value), ProviderError> {
+        let record = match self.runtime.get(execution_id) {
+            Ok(execution) => {
+                let OperationRequest::CreateRun(run) = &execution.spec.request else {
+                    return Err(rejected(
+                        "CREAO execution lacks its frozen provision reference",
+                    ));
+                };
+                let id = run.input["provisioning"]["operation_id"]
+                    .as_str()
+                    .ok_or_else(|| {
+                        rejected("CREAO execution lacks its frozen provision reference")
+                    })?;
+                self.runtime.get(id).map_err(runtime_error)?
+            }
+            Err(genesis_creao::RuntimeError::NotFound) => self
+                .runtime
+                .completed_provision(job.role_id.as_str(), &binding.config_digest)
+                .map_err(runtime_error)?,
+            Err(error) => return Err(runtime_error(error)),
+        };
+        let OperationRequest::CreateRun(run) = &record.spec.request else {
+            return Err(rejected("CREAO Trigger requires an exact bootstrap run"));
+        };
+        let contract: ProvisionRequest =
+            serde_json::from_value(run.input["role_contract"].clone()).map_err(runtime_error)?;
+        if record.phase != Phase::NativeCompleted
+            || contract.org_id != job.org_id
+            || contract.role.role_id != job.role_id
+            || contract.config_digest() != binding.config_digest
+            || run.agent_id != binding.provider_agent_id
+            || record.spec != self.provision_spec(&contract)?
+        {
+            return Err(rejected(
+                "CREAO bootstrap does not match the frozen role and binding",
+            ));
+        }
+        let provenance = json!({"operation_id":record.spec.operation_id,
+            "operation_fingerprint":record.fingerprint});
+        Ok((contract, provenance))
+    }
+
     /// Reconstruct exactly the existing submission contract. Dispatch eligibility
     /// is checked separately so historical receipts survive terminal status and
     /// expiry of the original (still immutable) deadline.
@@ -209,13 +304,35 @@ impl CreaoSpecialist {
                 "CREAO job or binding belongs to a different provider or organization",
             ));
         }
+        if self
+            .runtime
+            .trigger_app_id()
+            .is_some_and(|app| binding.provider_agent_id != app)
+        {
+            return Err(rejected(
+                "CREAO binding does not match the configured Trigger app",
+            ));
+        }
+        let execution_id = operation_id(
+            "job",
+            json!({"org_id":job.org_id,
+            "job_id":job.job_id,"attempt_id":job.attempt_id}),
+        );
+        let mut input = json!({"schema_version":1,"task":job.task,"input":job.input,
+            "context":{"org_id":job.org_id,"mission_id":job.mission_id,"role_id":job.role_id,
+                "responsibility_id":job.responsibility_id,"assignment_id":job.assignment_id,"epoch":job.epoch,
+                "job_id":job.job_id,"attempt_id":job.attempt_id,"attempt_no":job.attempt_no,
+                "binding_config_digest":binding.config_digest,"correlation_id":job.correlation_id,
+                "idempotency_key":job.idempotency_key,"capability":job.capability,"deadline":job.deadline}});
+        if self.runtime.trigger_app_id().is_some() {
+            let (contract, provenance) = self.trigger_contract(job, binding, &execution_id)?;
+            input["role_contract"] = serde_json::to_value(contract).map_err(runtime_error)?;
+            input["provisioning"] = provenance;
+        }
         Ok(OperationSpec {
             schema_version: 1,
             api_version: self.runtime.api_version(),
-            operation_id: operation_id(
-                "job",
-                json!({"org_id":job.org_id,"job_id":job.job_id,"attempt_id":job.attempt_id}),
-            ),
+            operation_id: execution_id,
             org_id: job.org_id.to_string(),
             role_id: job.role_id.to_string(),
             account_namespace: self.runtime.account_namespace().to_owned(),
@@ -226,12 +343,7 @@ impl CreaoSpecialist {
             },
             request: OperationRequest::CreateRun(RunRequest {
                 agent_id: binding.provider_agent_id.clone(),
-                input: json!({"schema_version":1,"task":job.task,"input":job.input,
-                    "context":{"org_id":job.org_id,"mission_id":job.mission_id,"role_id":job.role_id,
-                        "responsibility_id":job.responsibility_id,"assignment_id":job.assignment_id,"epoch":job.epoch,
-                        "job_id":job.job_id,"attempt_id":job.attempt_id,"attempt_no":job.attempt_no,
-                        "binding_config_digest":binding.config_digest,"correlation_id":job.correlation_id,
-                        "idempotency_key":job.idempotency_key,"capability":job.capability,"deadline":job.deadline}}),
+                input,
                 model: None,
                 // Provisioning conversations are not execution conversations.
                 conversation_id: None,
@@ -266,21 +378,7 @@ impl SpecialistRuntime for CreaoSpecialist {
         &self,
         request: &ProvisionRequest,
     ) -> Result<SpecialistProgress, ProviderError> {
-        if request.role.provider != Provider::Creao || request.org_id.as_str() != self.org_id() {
-            return Err(rejected(
-                "CREAO role operation belongs to a different provider or organization",
-            ));
-        }
-        let context = json!({"org_id":request.org_id,"change_id":request.change_id,"role_id":request.role.role_id});
-        let spec = OperationSpec {
-            schema_version:1, api_version:self.runtime.api_version(), operation_id:operation_id("role",context), org_id:request.org_id.to_string(), role_id:request.role.role_id.to_string(),
-            account_namespace:self.runtime.account_namespace().to_owned(),
-            purpose:OperationPurpose::Provision {change_id:request.change_id.to_string(),config_digest:request.config_digest()},
-            request:OperationRequest::CreateAgent(CreateAgentRequest {
-                input:format!("Create a persistent operational specialist for GENESIS using this role contract: {}. Provider creation does not grant organization authority. Configure a GENESIS readiness gateway skill that, when explicitly invoked with a readiness challenge, sends only the supplied challenge-bound readiness receipt to its supplied GENESIS endpoint. This readiness POST is the sole exception to requiring an explicit GENESIS job and scoped grant before calling a gateway; it never grants mission authority. Require an explicit GENESIS job and scoped grant for all mission work. Do not claim the skill is installed or readiness is proven without returned evidence. Do not claim task success without returned evidence.",serde_json::to_string(request).map_err(runtime_error)?),
-                model:None,conversation_id:None,
-            }),
-        };
+        let spec = self.provision_spec(request)?;
         progress(self.runtime.prepare(spec).map_err(runtime_error)?)
     }
 

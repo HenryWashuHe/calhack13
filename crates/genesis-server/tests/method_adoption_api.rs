@@ -79,14 +79,27 @@ struct Org {
 
 /// Two roles, each owning one responsibility with its own assigned requirement.
 fn bootstrap(app: &AppState) -> (genesis_core::ids::MissionId, [Org; 2]) {
+    bootstrap_with(
+        app,
+        &["capability.venue_lookup"],
+        &["capability.venue_lookup"],
+    )
+}
+
+/// As [`bootstrap`], with each role's scopes given.
+fn bootstrap_with(
+    app: &AppState,
+    designer_scopes: &[&str],
+    other_scopes: &[&str],
+) -> (genesis_core::ids::MissionId, [Org; 2]) {
     let initial = app.store.current_state().unwrap();
     let plan: MissionBootstrap = serde_json::from_value(json!({
         "goal":"Transport over rough terrain",
         "roles":[
             {"key":"designer","name":"Designer","charter":"Design carts",
-             "authority":{"scopes":["capability.venue_lookup"],"budget_cents":100}},
+             "authority":{"scopes":designer_scopes,"budget_cents":100}},
             {"key":"other","name":"Other","charter":"Other work",
-             "authority":{"scopes":["capability.venue_lookup"],"budget_cents":100}}],
+             "authority":{"scopes":other_scopes,"budget_cents":100}}],
         "responsibilities":[
             {"purpose":"Rough transport designs","owner":"designer"},
             {"purpose":"Other designs","owner":"other"}]
@@ -508,3 +521,224 @@ async fn adoption_authorizes_only_the_owner_for_the_exact_version_under_current_
 
 #[path = "common/review_method_adoption_api.rs"]
 mod review_method_adoption_api;
+
+/// g2-attempt-1 found that a role without `method.develop` could adopt and
+/// invoke a method in an organization whose constitution reserves that scope.
+/// There, adoption and invocation now require it of the deciding role; an
+/// organization whose constitution never grants it is unaffected (above).
+#[tokio::test]
+async fn adoption_requires_method_develop_where_the_constitution_reserves_it() {
+    let dir = tempfile::tempdir().unwrap();
+    let state = RegistryState::open(
+        dir.path().join("registry.db"),
+        [("a-token".into(), OrgId::new("org_example_a"))].into(),
+        vec!["b-token".into()],
+    )
+    .unwrap();
+    let (registry_url, _registry) = serve(registry::router(state)).await;
+    let v1_json = std::fs::read_to_string(format!(
+        "{EVIDENCE}/live-method-20261024-b-revision/method-package.json"
+    ))
+    .unwrap();
+    let envelope: Value = serde_json::from_str(&v1_json).unwrap();
+    let field = |k: &str| {
+        serde_json::from_value::<ExactContentRef>(envelope["package"][k].clone()).unwrap()
+    };
+    let v1 = ExactContentRef {
+        domain: "genesis".into(),
+        schema: "development-method-source/1".into(),
+        id: envelope["package"]["id"].as_str().unwrap().into(),
+        version: envelope["package"]["version"].as_str().unwrap().into(),
+        sha256: "4f455dc6e625bdaf554d567bdd7f0bc0c7b601a1ea6332d4e7a13e02005db14d".into(),
+    };
+    let publish = format!("{registry_url}/registry/v1/methods");
+    assert_eq!(
+        call(&publish, "a-token", publication(&v1_json, &v1))
+            .await
+            .0,
+        201
+    );
+    let mut config = OrgConfig::dev("org_example_b", "Receiving organization");
+    config.db = Some(dir.path().join("b.sqlite"));
+    config.registry_url = Some(registry_url.clone());
+    config.registry_token = Some("b-token".into());
+    config.constitution.scopes = ["method.develop", "mission.coordinate"]
+        .into_iter()
+        .map(String::from)
+        .collect();
+    let mut app = build_org(&config, None).unwrap();
+    let records = dir.path().join("records");
+    let receiving = format!("{EVIDENCE}/live-method-20261024-b-revision-receiver");
+    copy_dir(
+        &Path::new(&receiving).join("vs-fixed-cart"),
+        &records.join("b-fixed-cart"),
+    );
+    let plan: Value =
+        serde_json::from_slice(&std::fs::read(records.join("b-fixed-cart/plan.json")).unwrap())
+            .unwrap();
+    // The designer holds method.develop; the other role doesn't. Each owns its
+    // own requirement, and both requirements pin the same accepting plan.
+    let (mission, [holder, lacking]) =
+        bootstrap_with(&app, &["method.develop"], &["mission.coordinate"]);
+    let pin = |org: &Org| AcceptancePin {
+        requirement_id: org.requirement.clone(),
+        publisher: OrgId::new("org_example_a"),
+        plan: serde_json::from_value::<TrialPlan>(plan.clone())
+            .unwrap()
+            .reference()
+            .unwrap(),
+    };
+    app.method_receiver = Some(Arc::new(MethodReceiver {
+        runtime: field("runtime"),
+        protocol: field("protocol"),
+        environments: vec![
+            serde_json::from_value(plan["development_environment"].clone()).unwrap(),
+        ],
+        evaluators: vec![serde_json::from_value(plan["context"]["evaluator"].clone()).unwrap()],
+        allowed_dependencies: vec![],
+        records_root: records,
+        acceptance_plans: vec![pin(&holder), pin(&lacking)],
+    }));
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let base = format!("http://{}/api/v1", listener.local_addr().unwrap());
+    let served = app.clone();
+    tokio::spawn(async move { serve_org(served, listener).await.unwrap() });
+    let token = config.tokens.operator.clone();
+    let intent = |key: &str, org: &Org| {
+        json!({"client_request_id":key,"mission_id":mission,"requirement_id":org.requirement,
+            "role_id":org.role,"responsibility_id":org.responsibility,
+            "publisher":"org_example_a","reference":v1,
+            "decision":{"decision":"adopt","trial":"b-fixed-cart"}})
+    };
+    let adoptions = format!("{base}/method-adoptions");
+    let authorize = format!("{base}/method-invocations/authorize");
+    let ask = |org: &Org| {
+        json!({"role_id":org.role,"responsibility_id":org.responsibility,
+            "publisher":"org_example_a","reference":v1})
+    };
+
+    // The owner without the scope can't adopt, even with an accepting trial,
+    // and so has nothing to invoke.
+    let (status, body) = call(&adoptions, &token, intent("lacking", &lacking)).await;
+    assert_eq!(
+        (status, body["error"].clone()),
+        (403, json!("method_scope")),
+        "{body}"
+    );
+    assert_eq!(call(&authorize, &token, ask(&lacking)).await.0, 409);
+    // The owner holding it adopts and is authorized.
+    let (status, adopted) = call(&adoptions, &token, intent("holder", &holder)).await;
+    assert_eq!(
+        (status, adopted["outcome"]["outcome"].clone()),
+        (201, json!("adopted")),
+        "{adopted}"
+    );
+    assert_eq!(call(&authorize, &token, ask(&holder)).await.0, 200);
+}
+
+/// An adoption recorded before the constitution reserved `method.develop` is
+/// not grandfathered: once the scope is reserved, a role without it can no
+/// longer invoke. Here the existing authority fence refuses first (the
+/// constitution is part of the frozen authority); the authorize-time scope
+/// check additionally covers records a pre-#259 build wrote under a
+/// constitution that already reserved the scope.
+#[tokio::test]
+async fn a_prior_adoption_without_the_scope_cannot_invoke_once_the_scope_is_reserved() {
+    let dir = tempfile::tempdir().unwrap();
+    let state = RegistryState::open(
+        dir.path().join("registry.db"),
+        [("a-token".into(), OrgId::new("org_example_a"))].into(),
+        vec!["b-token".into()],
+    )
+    .unwrap();
+    let (registry_url, _registry) = serve(registry::router(state)).await;
+    let v1_json = std::fs::read_to_string(format!(
+        "{EVIDENCE}/live-method-20261024-b-revision/method-package.json"
+    ))
+    .unwrap();
+    let envelope: Value = serde_json::from_str(&v1_json).unwrap();
+    let field = |k: &str| {
+        serde_json::from_value::<ExactContentRef>(envelope["package"][k].clone()).unwrap()
+    };
+    let v1 = ExactContentRef {
+        domain: "genesis".into(),
+        schema: "development-method-source/1".into(),
+        id: envelope["package"]["id"].as_str().unwrap().into(),
+        version: envelope["package"]["version"].as_str().unwrap().into(),
+        sha256: "4f455dc6e625bdaf554d567bdd7f0bc0c7b601a1ea6332d4e7a13e02005db14d".into(),
+    };
+    let publish = format!("{registry_url}/registry/v1/methods");
+    assert_eq!(
+        call(&publish, "a-token", publication(&v1_json, &v1))
+            .await
+            .0,
+        201
+    );
+    // The demo constitution doesn't grant method.develop, so a role without it
+    // may adopt, as before.
+    let mut config = OrgConfig::dev("org_example_b", "Receiving organization");
+    config.db = Some(dir.path().join("b.sqlite"));
+    config.registry_url = Some(registry_url.clone());
+    config.registry_token = Some("b-token".into());
+    let mut app = build_org(&config, None).unwrap();
+    let records = dir.path().join("records");
+    copy_dir(
+        &Path::new(&format!(
+            "{EVIDENCE}/live-method-20261024-b-revision-receiver"
+        ))
+        .join("vs-fixed-cart"),
+        &records.join("b-fixed-cart"),
+    );
+    let plan: Value =
+        serde_json::from_slice(&std::fs::read(records.join("b-fixed-cart/plan.json")).unwrap())
+            .unwrap();
+    let (mission, [owner, _other]) = bootstrap(&app);
+    app.method_receiver = Some(Arc::new(MethodReceiver {
+        runtime: field("runtime"),
+        protocol: field("protocol"),
+        environments: vec![
+            serde_json::from_value(plan["development_environment"].clone()).unwrap(),
+        ],
+        evaluators: vec![serde_json::from_value(plan["context"]["evaluator"].clone()).unwrap()],
+        allowed_dependencies: vec![],
+        records_root: records,
+        acceptance_plans: vec![AcceptancePin {
+            requirement_id: owner.requirement.clone(),
+            publisher: OrgId::new("org_example_a"),
+            plan: serde_json::from_value::<TrialPlan>(plan.clone())
+                .unwrap()
+                .reference()
+                .unwrap(),
+        }],
+    }));
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let base = format!("http://{}/api/v1", listener.local_addr().unwrap());
+    let served = app.clone();
+    tokio::spawn(async move { serve_org(served, listener).await.unwrap() });
+    let token = config.tokens.operator.clone();
+    let adopt = json!({"client_request_id":"legacy","mission_id":mission,
+        "requirement_id":owner.requirement,"role_id":owner.role,
+        "responsibility_id":owner.responsibility,"publisher":"org_example_a","reference":v1,
+        "decision":{"decision":"adopt","trial":"b-fixed-cart"}});
+    let (status, adopted) = call(&format!("{base}/method-adoptions"), &token, adopt).await;
+    assert_eq!(
+        (status, adopted["outcome"]["outcome"].clone()),
+        (201, json!("adopted")),
+        "{adopted}"
+    );
+    let authorize = format!("{base}/method-invocations/authorize");
+    let ask = json!({"role_id":owner.role,"responsibility_id":owner.responsibility,
+        "publisher":"org_example_a","reference":v1});
+    assert_eq!(call(&authorize, &token, ask.clone()).await.0, 200);
+    // The constitution now reserves the scope; the role, grant, requirement
+    // and receiver are untouched.
+    mutate(&app, |s| {
+        s.constitution.scopes.insert("method.develop".into());
+    });
+    let (status, body) = call(&authorize, &token, ask).await;
+    assert!(
+        (status, &body["error"]) == (403, &json!("method_scope"))
+            || (status, &body["error"]) == (409, &json!("method_authority")),
+        "{status} {body}"
+    );
+}
