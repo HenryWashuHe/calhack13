@@ -158,7 +158,7 @@ const status = (org: string, op: string, transport: string, phase = "generated",
 describe("#149 board", () => {
   it("D6 does not tell loopback-fixture generations as the model being asked", () => {
     const l = buildLineage({ generations: [{ status: status("org_a", "op-a", "loopback_fixture") }] });
-    const first = story(l, "org_a", "org_b")[0].text;
+    const first = story(l, "org_a", "org_b")[0]!.text;
     const html = renderToStaticMarkup(<ResultsBoard lineage={l} orgA="org_a" orgB="org_b" />);
     const visible = html.split("All records behind this board")[0];
     expect(first).not.toContain("asked the model"); // actual: "org_a asked the model for a development method 1 times; ..."
@@ -180,7 +180,7 @@ describe("#149 board", () => {
     const files = evidenceFiles();
     const rec = intake(files).records;
     rec.generations.push({ status: status("org_example_b", "b-other", "anthropic_https", "failed", 7) });
-    const s = story(buildLineage(rec), "org_example_a", "org_example_b")[2].text;
+    const s = story(buildLineage(rec), "org_example_a", "org_example_b")[2]!.text;
     expect(s).toContain("(1 model calls"); // actual: "(8 model calls, ..."
   });
 });
