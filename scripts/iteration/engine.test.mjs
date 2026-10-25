@@ -136,3 +136,19 @@ test("passing on: a frontier package travels with its lineage, and the adopting 
   assert.equal(c.state.frontier[c.family.id].package.origin, "lab_a", "provenance is kept");
   assert.ok(c.state.ledger.records.some((r) => r.type === "adoption"), "the adoption and its re-verification are on C's ledger");
 });
+
+test("a root whose bytes were first seen as another family's control is still registered for its own family, with its control provenance kept", () => {
+  const panel = (seed, n) => Array.from({ length: n }, (_, i) => `${seed}/${i}`);
+  const shared = "shared-rule";
+  const control = { id: "fixed-shared", package: { sha256: sha256(shared), source: shared, origin: "control", parent: null, generation: 0 } };
+  const first = { id: "first", root: () => "first-root", instances: panel, score: (pkg) => ({ success: pkg.source === "first-child" }) };
+  const second = { id: "second", root: () => shared, instances: panel, score: (pkg, instance) => ({ success: pkg.source === shared || instance.endsWith("/0") }) };
+  const state = createState({ lab: "A", seed: "s" });
+  runGeneration(state, { family: first, mutator: { propose: () => [{ source: "first-child" }] }, controls: [control], criterion, k: 1, heldout: 2 });
+  const out = runGeneration(state, { family: second, mutator: { propose: () => [{ source: "second-child" }] }, criterion, k: 1, heldout: 2 });
+  const roots = state.ledger.records.filter((r) => r.type === "root_registered").map((r) => [r.family, r.package]);
+  assert.deepEqual(roots, [["first", sha256("first-root")], ["second", sha256(shared)]], "each family registers its root once, even when the bytes were already known");
+  assert.equal(state.packages[sha256(shared)].origin, "control", "first provenance wins");
+  assert.equal(out.verdicts[0].verdict, "rejected", "the 1/2 child does not beat the 2/2 root");
+  assert.ok(verifyLedger(state.ledger).ok);
+});
