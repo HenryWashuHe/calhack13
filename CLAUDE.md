@@ -14,7 +14,9 @@
 #204, #203, #199, #181, #180, #144, #65, #57 and draft #7.
 #201 `f41e99e9` merged at `05f84f2d`; its earlier source/seed/lifecycle findings
 are cleared, while author pilot results remain unverified. #180 `c5e916b8` is held;
-#181 `f1df31b5` clears its own finding but inherits #180. #203 is unreviewed.
+#181 `f1df31b5` clears its own finding but inherits #180. #203 `abc55ce4`
+passes 58 inert VM cases; it awaits #199 corrections and integration of #206.
+This is source review, with browser/visual validation still outstanding.
 #204 `d5d6f7fe` is held on immutable-version conflicts and nested-reference parsing:
 94 original cases pass; with seven guards, 96/101 pass and five fail; typecheck passes.
 

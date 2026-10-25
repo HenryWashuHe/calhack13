@@ -67,7 +67,9 @@ source/delta and independent review; the current checkpoint remains authoritativ
 #204, #203, #199, #181, #180, #144, #65, #57 and draft #7.
 #201 `f41e99e9` merged at `05f84f2d`; its earlier source/seed/lifecycle findings
 are cleared, while author pilot results remain unverified. #180 `c5e916b8` is held;
-#181 `f1df31b5` clears its own finding but inherits #180. #203 is unreviewed.
+#181 `f1df31b5` clears its own finding but inherits #180. #203 `abc55ce4`
+passes 58 inert VM cases; it awaits #199 corrections and integration of #206.
+This is source review, with browser/visual validation still outstanding.
 #204 `d5d6f7fe` is held on immutable-version conflicts and nested-reference parsing:
 94 original cases pass; with seven guards, 96/101 pass and five fail; typecheck passes.
 
@@ -89,7 +91,7 @@ no merge, local check or scheduling proposal closes a goal gate.
 corrected scheduling-study #201 and corrective #205/#206 are merged. #148/#149/
 #184 retain unresolved findings despite merge. #199/#144 remain held; #180 has
 fresh lifecycle/deadline/cleanup findings and #181 inherits that hold. #204 is held,
-#203 unreviewed, and #57/#65 retain their namespace-assurance boundary.
+#203 awaits parent/integration corrections, and #57/#65 retain their namespace-assurance boundary.
 
 | Owner/session | Active lane and acknowledgment | Scope / next deliverable |
 | --- | --- | --- |
@@ -302,6 +304,15 @@ improved development or budget compliance.
 
 ### Evidence for this checkpoint
 
+[Stage redesign #203](https://github.com/HenryWashuHe/genesis-history-experiment/pull/203)
+`abc55ce47efb0812608cc70dfde5465fadabd205` was reviewed relative to #199
+`5567f827`: 58 inert VM cases pass; no additional correctness blocker was
+found in that delta. It scopes the inherited stage CSS collision. Include
+`section.stage` in reduced-motion transition suppression. Two integration
+conflicts with #206 must preserve overlay-only `#explain` selectors and
+expanded focus behavior, receipt-only wording and observation matching.
+No browser/visual validation; #199 outcome/change-ID holds remain.
+
 Generation-origin library #196 source `76ed5d3a0d15d1065c5f3786b8d8cd1be9518956`
 merged at `f5a7bd7469e4007809043aedd6c95862418c0a30`; optional capture CLI #197
 source `a7e36f0729539026cdeceeab63492f97d7297d7a` merged at
@@ -326,7 +337,7 @@ independently reviewed. Both prior document findings clear: finite observations
 are not equivalence/cap proof; corrected/pinned calibration comes first, with
 unavailable panels explicit and full controls/builds/scoring/panels/grants frozen.
 This is proposal-only review, not runs, implementation or gate closure.
-ACP Prior #198 source `adf43e07d9d9903f81790a185075eb269fcf74e0` had findings now cleared by #206 after
+Prior ACP #198 source `adf43e07d9d9903f81790a185075eb269fcf74e0` had findings now cleared by #206 after
 [review 5641631281](https://github.com/HenryWashuHe/genesis-history-experiment/pull/198#pullrequestreview-5641631281).
 On that source, all 56 original VM cases passed; three guards `b8da38d593ed91d0ccc9e0a3b9ae4fed5930a3b0`
 failed on receipt-inferred planner activity, an unrelated decision replacing the
