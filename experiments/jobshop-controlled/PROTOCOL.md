@@ -96,6 +96,12 @@ engine ledger is saved and verified after each generation. The final panel
 stays sealed until all 50 request outcomes are known and the selected rule
 hashes are frozen. A crash, missing record, unknown provider charge, model
 mismatch or ledger failure stops the run without opening the final panel.
+Before reading a key or constructing controls, this entrypoint rejects a dirty
+checkout and any host without the recorded macOS `sandbox-exec`/network-denied
+mode. The manifest pins the reviewed commit, all loaded source file bytes,
+Node executable digest/version, OS release/architecture and observed sandbox
+description; the replay verifier checks those bindings. This host gate does not
+claim that the still-reviewed sandbox policy is stronger than its actual rules.
 All process and result records are English. Existing ACP smoke results,
 offline tests and this run are reported separately.
 

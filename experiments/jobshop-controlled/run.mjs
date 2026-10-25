@@ -1,15 +1,26 @@
 // Prospective, paired judged-demo rehearsal. See PROTOCOL.md before using a key.
 import fs from "node:fs";
 import path from "node:path";
+import os from "node:os";
+import { createHash } from "node:crypto";
 import { spawnSync, execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { canon, createState, runGeneration, sha256, verifyLedger } from "../../scripts/iteration/engine.mjs";
 import { jobshopFamily, jobshopControls, featureDoc } from "../../scripts/iteration/families/jobshop.mjs";
+import { describeSandbox } from "../../scripts/iteration/families/sandbox.mjs";
 import { claudeMutator } from "../../scripts/iteration/mutators/claude.mjs";
 import { cascade } from "../../scripts/iteration/cascade.mjs";
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
+const REPO = path.resolve(ROOT, "../..");
 const CALL = path.join(ROOT, "provider-call.mjs");
+export const SOURCE_FILES = [
+  "experiments/jobshop-controlled/PROTOCOL.md", "experiments/jobshop-controlled/run.mjs",
+  "experiments/jobshop-controlled/provider-call.mjs", "experiments/jobshop-controlled/verify.mjs",
+  "scripts/iteration/engine.mjs", "scripts/iteration/cascade.mjs",
+  "scripts/iteration/mutators/claude.mjs", "scripts/iteration/families/jobshop.mjs",
+  "scripts/iteration/families/sandbox.mjs", "scripts/iteration/families/rule-child.mjs", "package.json",
+];
 const MODEL = "claude-sonnet-5-5";
 const EFFORT = "medium";
 const MAX_OUTPUT = 8000;
@@ -77,6 +88,19 @@ class Journal {
   close() { fs.closeSync(this.fd); }
 }
 function sourceHead() { return execFileSync("git", ["rev-parse", "HEAD"], { cwd: ROOT, encoding: "utf8" }).trim(); }
+export function admitSandbox(sandbox, platform) {
+  if (platform !== "darwin" || sandbox?.os !== "sandbox-exec" || sandbox?.network !== "denied") throw new Error("this rehearsal requires the recorded macOS OS sandbox");
+  return sandbox;
+}
+function sourceManifest() {
+  const status = execFileSync("git", ["status", "--porcelain", "--untracked-files=all"], { cwd: REPO, encoding: "utf8" });
+  if (status.trim()) throw new Error("source checkout is dirty; commit or remove local changes before a paid run");
+  const sandbox = admitSandbox(describeSandbox(), process.platform);
+  const hashFile = (file) => createHash("sha256").update(fs.readFileSync(file)).digest("hex");
+  return { source_head: sourceHead(), source_files: Object.fromEntries(SOURCE_FILES.map((name) => [name, hashFile(path.join(REPO, name))])),
+    runtime: { node: process.version, executable: fs.realpathSync(process.execPath), executable_sha256: hashFile(process.execPath),
+      platform: process.platform, arch: process.arch, os_release: os.release() }, sandbox };
+}
 export function frozenPanels(seed) {
   const family = jobshopFamily({ id: "jobshop-10x5", seed });
   const selection = Array.from({ length: ROUNDS }, (_, i) => {
@@ -120,10 +144,11 @@ function main() {
   const fullReserve = PER_CALL_MICRO_USD * CALL_COUNT;
   if (fullReserve > RUN_CAP || priorMicro + fullReserve > STUDY_CAP) throw new Error("full predeclared request reserve exceeds a dollar ceiling");
   if (fs.existsSync(output)) throw new Error("output directory already exists");
+  const source = sourceManifest(); // admission and byte identity before a key is read or any output is created
   const key = loadKey(envFile); // stays in this process memory, not process.env or a result file
   fs.mkdirSync(output, { recursive: false, mode: 0o700 });
   const manifest = {
-    schema: "jobshop-controlled/1", source_head: sourceHead(), protocol_sha256: sha256(fs.readFileSync(path.join(ROOT, "PROTOCOL.md"), "utf8")),
+    schema: "jobshop-controlled/1", ...source, protocol_sha256: sha256(fs.readFileSync(path.join(ROOT, "PROTOCOL.md"), "utf8")),
     model: MODEL, effort: EFFORT, max_output_tokens: MAX_OUTPUT, fallbacks: "disabled", calls: CALL_COUNT,
     generations: ROUNDS, candidates_kept: 4, candidates_screened: 8, selection_instances: 20, final_instances: 60,
     seeds: SEEDS, panels: Object.fromEntries(SEEDS.map((seed) => [seed, frozenPanels(seed)])),
