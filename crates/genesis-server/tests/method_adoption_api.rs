@@ -522,6 +522,9 @@ async fn adoption_authorizes_only_the_owner_for_the_exact_version_under_current_
 #[path = "common/review_method_adoption_api.rs"]
 mod review_method_adoption_api;
 
+#[path = "common/review_reexecution_authority.rs"]
+mod review_reexecution_authority;
+
 /// g2-attempt-1 found that a role without `method.develop` could adopt and
 /// invoke a method in an organization whose constitution reserves that scope.
 /// There, adoption and invocation now require it of the deciding role; an
