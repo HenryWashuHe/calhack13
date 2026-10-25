@@ -78,8 +78,8 @@ every milestone. All lower checkpoints are historical.
   [Henry's acknowledged product milestone](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388913830)
   connects selected method/receiver acceptance to requirement/responsibility/current
   owner grant, pinned invocation, decline/revocation and an existing-owner control.
-  The [pure core verdict move is approved](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388954682)
-  as a prerequisite; the server connection, execution under its grant and justified
+  [Pure core verdict #146](https://github.com/HenryWashuHe/genesis-history-experiment/pull/146)
+  is merged at `c6870504`; the server connection, execution under its grant and justified
   specialist creation remain future work in Henry's lane.
   #116 B-task records are now checked; local adoption and an accepted fresh
   A return remain unestablished. Receiving wrapper #118 `68bc82d0` merged at
@@ -194,8 +194,8 @@ every milestone. All lower checkpoints are historical.
   and strict Clippy overlap. Explicit publish/search/selected fetch only, no
   automatic `.env` loading or journal; any publication error may follow a write.
   #142 adds three passing boundary cases, preserving its 144-line file unchanged.
-  Henry's acknowledged authority slice has an approved pure verdict move as its
-  prerequisite; none of the server adoption/invocation connection is merged.
+  Henry's acknowledged authority slice now has its pure verdict prerequisite
+  merged in #146; none of the server adoption/invocation connection is merged.
   Eric's [MethodOffer UI intake increment](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388858370)
   is requested, not acknowledged. CREAO Trigger #137 is separately held on
   durability, bounded response reads and concurrent reconciliation; no live run.
@@ -204,9 +204,10 @@ every milestone. All lower checkpoints are historical.
   The fixed-pool
   policy experiment remains a separate proposed mechanism diagnostic, not a restriction
   on the moonshot. Henry is preparing a K=3 workflow-versus-fresh protocol with
-  public fresh-task assessment. [Protocol #135 is held](https://github.com/HenryWashuHe/genesis-history-experiment/pull/135#issuecomment-6388962594)
-  on adaptive preparation, selection, missing pairs and canonical random reference;
-  no model request is declared. Public-range #121/#136 is merged, clearing the
+  public fresh-task assessment. [Protocol #135 `e5f7c326` is held](https://github.com/HenryWashuHe/genesis-history-experiment/pull/135#issuecomment-6389154691)
+  on conflicting Failed+Scored eligibility and an unspecified Interrupted rule;
+  prior preparation/reporting holds are addressed. No model request is declared.
+  Public-range #121/#136 is merged, clearing the
   reserved-seed finding with metadata/preflight and mocked checks only. A new range
   is public to the method, not a hidden holdout. G2/G3 still need separately
   evidenced organizational authority, local selection and adoption.
