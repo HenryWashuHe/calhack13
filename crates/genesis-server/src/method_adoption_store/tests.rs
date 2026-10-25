@@ -466,6 +466,116 @@ fn indexed_binding_columns_must_match_the_stored_record() {
     assert_eq!(f.store.method_adoption(&adopted.id).unwrap(), adopted);
 }
 
+/// Rewrites a stored record as the schema 1 shape #155/#159 wrote (no
+/// compatibility), on the pre-fence table and index those PRs created.
+fn downgrade_to_schema_one(f: &Fixture, id: &str) {
+    let conn = f.store.lock();
+    let json: String = conn
+        .query_row(
+            "SELECT record_json FROM method_adoptions WHERE id=?1",
+            params![id],
+            |row| row.get(0),
+        )
+        .unwrap();
+    let mut record: Value = serde_json::from_str(&json).unwrap();
+    record["schema_version"] = json!(1);
+    record.as_object_mut().unwrap().remove("compatibility");
+    conn.execute(
+        "UPDATE method_adoptions SET record_json=?1 WHERE id=?2",
+        params![record.to_string(), id],
+    )
+    .unwrap();
+    conn.execute_batch(
+        "DROP INDEX method_adoption_adopted;
+         ALTER TABLE method_adoptions DROP COLUMN fence_sha256;
+         CREATE UNIQUE INDEX method_adoption_adopted ON method_adoptions(requirement_id,assignment_id,epoch,publisher,method_sha256) WHERE outcome='adopted';",
+    )
+    .unwrap();
+}
+
+fn ask(f: &Fixture) -> crate::method_invocation::MethodInvocationRequest {
+    crate::method_invocation::MethodInvocationRequest {
+        role_id: f.intent.role_id.clone(),
+        responsibility_id: f.intent.responsibility_id.clone(),
+        publisher: f.intent.publisher.clone(),
+        reference: f.intent.reference.clone(),
+    }
+}
+
+#[test]
+fn a_migrated_schema_one_adoption_is_kept_but_never_authorizes() {
+    let f = Fixture::new();
+    let (adopted, _) = f.create(&f.intent).unwrap();
+    downgrade_to_schema_one(&f, &adopted.id);
+    f.store.init_method_adoptions().unwrap();
+    // Migrating twice is a no-op.
+    f.store.init_method_adoptions().unwrap();
+    let old = f.store.method_adoption(&adopted.id).unwrap();
+    assert!(old.compatibility.is_none());
+    assert_eq!(old.id, adopted.id);
+    // Replay still returns the original decision under its key.
+    assert_eq!(f.create(&f.intent).unwrap().0.id, adopted.id);
+    // It can't show current runtime/protocol compatibility, so it fences.
+    let state = f.store.current_state().unwrap();
+    let ask = ask(&f);
+    assert!(crate::method_invocation::authorize_method_invocation(
+        &f.store,
+        &state,
+        &f.records.receiver,
+        &ask,
+        f.now
+    )
+    .is_err());
+    // A fresh decision under the same policy is not blocked by it, and that
+    // one authorizes.
+    let fresh = CreateMethodAdoption {
+        client_request_id: "after-migration".into(),
+        ..f.intent.clone()
+    };
+    let (new, created) = f.create(&fresh).unwrap();
+    assert!(created && new.id != adopted.id);
+    let grant = crate::method_invocation::authorize_method_invocation(
+        &f.store,
+        &state,
+        &f.records.receiver,
+        &ask,
+        f.now,
+    )
+    .unwrap();
+    assert_eq!(grant.adoption_id, new.id);
+    // ...and the same policy can't adopt the same method twice.
+    let again = CreateMethodAdoption {
+        client_request_id: "after-migration-again".into(),
+        ..f.intent.clone()
+    };
+    assert!(matches!(f.create(&again), Err(E::AlreadyAdopted)));
+}
+
+#[test]
+fn a_migration_that_meets_a_bad_record_changes_nothing() {
+    let f = Fixture::new();
+    let (adopted, _) = f.create(&f.intent).unwrap();
+    downgrade_to_schema_one(&f, &adopted.id);
+    f.store
+        .lock()
+        .execute(
+            "UPDATE method_adoptions SET record_json='{}' WHERE id=?1",
+            params![adopted.id],
+        )
+        .unwrap();
+    assert!(f.store.init_method_adoptions().is_err());
+    let columns: i64 = f
+        .store
+        .lock()
+        .query_row(
+            "SELECT COUNT(*) FROM pragma_table_info('method_adoptions') WHERE name='fence_sha256'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(columns, 0, "the failed migration must roll back");
+}
+
 // Independent review probes: retained fixtures and in-memory/SQLite contracts only.
 // No method source, evaluator, provider or runtime is executed.
 #[path = "review_policy.rs"]
