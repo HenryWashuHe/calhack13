@@ -331,6 +331,25 @@ impl Store {
     pub fn method_adoption(&self, id: &str) -> Result<MethodAdoptionRecord> {
         load(&self.lock(), id)
     }
+
+    /// Every `adopted` record for one publisher and exact method digest, oldest
+    /// first. Callers still compare the full reference and binding.
+    pub fn adopted_methods(
+        &self,
+        publisher: &OrgId,
+        sha256: &str,
+    ) -> Result<Vec<MethodAdoptionRecord>> {
+        let conn = self.lock();
+        let mut query = conn.prepare(
+            "SELECT id FROM method_adoptions WHERE publisher=?1 AND method_sha256=?2 AND outcome='adopted' ORDER BY ordinal",
+        )?;
+        let ids = query
+            .query_map(params![publisher.as_str(), sha256], |row| {
+                row.get::<_, String>(0)
+            })?
+            .collect::<rusqlite::Result<Vec<_>>>()?;
+        ids.iter().map(|id| load(&conn, id)).collect()
+    }
 }
 
 #[cfg(test)]

@@ -36,6 +36,7 @@ pub mod elastic_jobs;
 pub mod error;
 pub mod method_adoption;
 pub mod method_adoption_store;
+pub mod method_invocation;
 pub mod outbox;
 pub mod projection;
 pub mod registry;
@@ -355,6 +356,7 @@ pub fn build_org(cfg: &OrgConfig, providers: Option<ProviderSet>) -> anyhow::Res
         automatic_venue_recovery: false,
         provision_timeout: cfg.provision_timeout,
         readiness: specialist::ReadinessRegistry::default(),
+        method_receiver: None,
     })
 }
 
