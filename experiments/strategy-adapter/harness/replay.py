@@ -4,14 +4,15 @@
 Starting a method executes its source. Every command that does so names the
 execution boundary with --isolation; there is no default:
 
-  namespaces  the boundary lab-exec uses for `namespaces` runs, copied from
+  namespaces  an earlier lab-exec boundary, copied from
               experiments/invention-lab/executor/src/sandbox.rs (needs root and
               util-linux unshare): no network, every mount read-only where the
               kernel allows it, private /home /root /tmp /var/tmp /dev/shm /run,
               the method runs as nobody with no_new_privs under prlimit. At the
-              end of every run the namespace's first process is SIGKILLed and
-              unshare's exit, which follows the end of the whole namespace, is
-              awaited; if it is not observed the run raises. Not enforced: reads of the
+              end of every run namespace-init stopping is attempted and
+              unshare is reaped. Closure requires a successful natural launcher
+              exit or a delivered init signal followed by launcher exit;
+              otherwise the run raises. Not enforced: reads of the
               rest of the read-only system, a syscall filter, filesystem Unix
               sockets. It is not proof that no model was used.
   host        `python3 method.py` directly on this host with only PATH set. No
@@ -65,8 +66,9 @@ MAX_REQUESTS = 4096
 MAX_OUTPUT = 16 << 20
 STAGE_ROOT = Path('/run/genesis-lab-replay')
 
-# Copy of the setup in experiments/invention-lab/executor/src/sandbox.rs
-# (`Mode::Namespaces`); the executor stays authoritative. Run as root inside
+# Snapshot of the setup in executor/src/sandbox.rs at 135a89d1, before
+# lab-exec's minimal-root change. This is not its current isolation boundary.
+# The executor stays authoritative. Run as root inside
 # fresh network, mount and PID namespaces before dropping to nobody.
 NAMESPACES_SETUP = r"""set -e
 mount --bind / /
@@ -141,25 +143,32 @@ def _in_other_pid_namespace(pid):
 
 def _end_namespace(p, wait=10):
     """SIGKILL the namespace's first process, which ends every process in it,
-    then wait for unshare: it exits only after its child, and the kernel lets
-    that first process exit only after the rest of the namespace is gone. So
-    unshare's exit is the observed end of the whole tree. Killing unshare or
+    then wait for unshare: its normal child-wait path ends after its child,
+    and the kernel lets that first process exit only after the rest of the
+    namespace is gone. Killing unshare or
     its process group instead would not do this: a method can leave the group,
     and the setpriv credential change clears unshare's --kill-child signal.
-    Returns whether unshare's exit was observed within `wait` seconds."""
+    A nonzero launcher exit alone is not closure evidence: the launcher may
+    have been killed while its namespace still lives. Require a delivered
+    init signal and a later launcher exit, or a successful natural child-wait
+    exit. Returns whether that observation was made within `wait` seconds."""
     deadline = time.monotonic() + wait
-    while p.poll() is None:
+    init_stopped = False
+    while True:
+        status = p.poll()
+        if status is not None:
+            return init_stopped or status == 0
         for pid in _namespace_inits(p.pid):
             # Only a process in another PID namespace is a namespace's first process.
             if _in_other_pid_namespace(pid):
                 try:
                     os.kill(pid, signal.SIGKILL)
+                    init_stopped = True
                 except (ProcessLookupError, PermissionError):
                     pass
         if time.monotonic() >= deadline:
             return False
         time.sleep(0.005)
-    return True
 
 
 def _stop(p):
