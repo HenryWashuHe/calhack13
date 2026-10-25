@@ -3,30 +3,39 @@
 exactly as the frozen protocol defines them
 (docs/invention-lab/protocols/process-comparison-1.md, § Endpoints).
 
-    pc1_report.py <fresh-out-dir> [<not-run.json>]
+    pc1_report.py --spec-sha256 HEX [--not-run FILE] [--lab-score PATH] <fresh-out-dir>
 
-<fresh-out-dir> is `receive.py`'s output for the fresh stage (trials named
-`fresh-<family>-<plan>`, plan one of primary, w-random, f-random,
-parent-random). <not-run.json> is the list `pc1_specs.py fresh` wrote for
-plans that were never run. Prints one JSON report. Standard library only;
-reads retained files and runs nothing.
+<fresh-out-dir> is `receive.py`'s output for the fresh stage. It retains the
+spec bytes it ran (`spec.json`); --spec-sha256 is the hash posted on issue #1
+before the run, and the retained spec must match it. --not-run is the list
+`pc1_specs.py fresh` wrote beside that spec. --lab-score (or $LAB_SCORE) is
+the `lab-score` binary. Prints one JSON report and runs no method or scorer.
 
-Eligibility is the protocol's one rule, applied here to the retained files
-independently of any other implementation so the two can be compared:
-execution `output_generated` with every usage field measured, a `scored`
-scoring receipt whose measured usage is within the plan's scoring grant, and
-a success count known from the metrics artifact (digest checked, one boolean
-row per scoring instance). Anything else is ineligible and its observed
-result is still reported. Nothing here reads a verdict as improvement.
+This file only aggregates. Per slot, eligibility is the shared Rust
+assessment (`lab-score eligibility`, i.e. genesis_core::assess_process_slot),
+which binds each execution and scoring receipt to the expected plan and reads
+typed usage; nothing here re-derives it from loose JSON. What this file adds is
+binding every retained plan to the pinned spec before anything is counted:
+the exact 16-plan roster less declared not-run plans, plan ids, the 12-instance
+fresh panel from seed 1000, the spec's package digests as slot methods, the
+receiving organization and run identities, the spec's development grant, and
+one shared evaluator/criterion/environment/scoring policy across all plans.
+A record that does not bind makes the reading `unbound`, never a number.
 """
+import argparse
+import copy
 import hashlib
 import json
 import os
+import subprocess
 import sys
+import tempfile
 
 FAMILIES = ("ravine-crossing", "rough-transport", "return-mix", "projectile-target")
 PLANS = ("primary", "w-random", "f-random", "parent-random")
-USAGE = ("model_calls", "input_tokens", "output_tokens", "wall_time_ms", "simulation_steps")
+FRESH_INSTANCES, FIRST_SEED = 12, 1000
+# Family-specific context; everything else in a plan must agree across all plans.
+FAMILY_CONTEXT = ("public_task", "generator", "scoring_rule", "instance_set")
 
 
 def load(path):
@@ -37,94 +46,209 @@ def load(path):
         return None
 
 
-def slot_record(trial_dir, plan, slot):
-    """The protocol's eligibility for one slot, with what was observed."""
-    reasons = []
-    receipt = load(os.path.join(trial_dir, slot, "receipt.json"))
-    outcome = receipt.get("outcome") if isinstance(receipt, dict) else None
-    if receipt is None:
-        reasons.append("no execution receipt")
-    elif outcome != "output_generated":
-        reasons.append(f"execution {outcome}")
-    if isinstance(receipt, dict):
-        usage = receipt.get("usage") or {}
-        unknown = [k for k in USAGE if (usage.get(k) or {}).get("kind") != "measured"]
-        if unknown:
-            reasons.append("execution usage not measured: " + ", ".join(unknown))
-    score_dir = os.path.join(trial_dir, slot + "-score")
-    evaluation = load(os.path.join(score_dir, "evaluation.json"))
-    successes, of = None, None
-    if evaluation is None:
-        reasons.append("no scoring receipt")
-    else:
-        result = evaluation.get("outcome") or {}
-        if result.get("kind") != "scored":
-            reasons.append(f"scoring {result.get('kind')}")
-        grant = plan.get("scoring_grant") or {}
-        used = evaluation.get("usage") or {}
-        for k in USAGE:
-            u = used.get(k) or {}
-            if u.get("kind") != "measured":
-                reasons.append(f"scoring usage {k} not measured")
-            elif not isinstance(grant.get(k), int) or u.get("value", 0) > grant[k]:
-                reasons.append(f"scoring {k} over its grant")
-        metrics_ref = result.get("metrics") or {}
-        digest = metrics_ref.get("sha256")
-        path = os.path.join(score_dir, "artifacts", str(digest))
-        try:
-            with open(path, "rb") as f:
-                data = f.read()
-        except OSError:
-            data = None
-        if result.get("kind") == "scored":
-            expected = [i.get("id") for i in plan.get("development_instances") or []]
-            if data is None or hashlib.sha256(data).hexdigest() != digest:
-                reasons.append("metrics artifact missing or not its digest")
-            else:
-                rows = (load(path) or {}).get("instances")
-                ok = (isinstance(rows, list) and len(rows) == len(expected)
-                      and all(isinstance(r, dict) and r.get("instance") == e
-                              and isinstance(r.get("success"), bool)
-                              for r, e in zip(rows, expected)))
-                if ok:
-                    successes, of = sum(r["success"] for r in rows), len(rows)
-                else:
-                    reasons.append("success count unknown from the metrics")
-    return {"eligible": not reasons, "reasons": reasons, "outcome": outcome,
-            "observed_successes": successes, "of": of}
+def sides(family, name):
+    return {"primary": (f"w-{family}", f"f-{family}"),
+            "w-random": (f"w-{family}", "random-search"),
+            "f-random": (f"f-{family}", "random-search"),
+            "parent-random": ("parent", "random-search")}[name]
 
 
-def trial_record(out, family, name, not_run):
-    tid = f"fresh-{family}-{name}"
-    if tid in not_run:
-        return {"trial": tid, "status": "not_run", "reason": not_run[tid]}
-    d = os.path.join(out, tid)
-    plan = load(os.path.join(d, "plan.json"))
+def lab_score_path(explicit=None):
+    path = explicit or os.environ.get("LAB_SCORE")
+    if not path:
+        raise SystemExit("pc1_report: pass --lab-score or set LAB_SCORE")
+    return path
+
+
+def assess(trial_dir, plan, slot, lab_score):
+    """The shared assessment for one slot against `plan`, or the refusal."""
+    with tempfile.TemporaryDirectory(prefix="pc1-plan-") as tmp:
+        expected = os.path.join(tmp, "plan.json")
+        with open(expected, "w") as f:
+            json.dump(plan, f)
+        done = subprocess.run(
+            [lab_score, "eligibility", expected, slot, os.path.join(trial_dir, slot),
+             os.path.join(trial_dir, slot + "-score")],
+            capture_output=True, text=True, timeout=120)
+    if done.returncode != 0:
+        return None, (done.stderr.strip() or f"exit {done.returncode}")[:500]
+    try:
+        return json.loads(done.stdout), None
+    except ValueError:
+        return None, "assessment output is not JSON"
+
+
+def slot_record(trial_dir, plan, slot, lab_score=None):
+    """One slot's eligibility from the shared assessment, with what was observed."""
+    instances = len(plan.get("development_instances") or []) if isinstance(plan, dict) else 0
+    if not os.path.exists(os.path.join(trial_dir, slot, "receipt.json")):
+        return {"eligible": False, "reasons": ["no execution receipt"], "outcome": None,
+                "observed_successes": None, "of": instances, "assessment": None}
+    result, refusal = assess(trial_dir, plan, slot, lab_score_path(lab_score))
+    if result is None:
+        return {"eligible": False, "reasons": ["assessment refused: " + refusal],
+                "outcome": None, "observed_successes": None, "of": instances,
+                "assessment": None}
+    reasons = list(result["reasons"])
+    if not os.path.exists(os.path.join(trial_dir, slot + "-score", "evaluation.json")):
+        reasons.insert(0, "no scoring receipt")
+    return {"eligible": result["eligible"] is True and not reasons, "reasons": reasons,
+            "outcome": result["execution"], "observed_successes": result["successes"],
+            "of": instances, "assessment": result}
+
+
+def spec_problems(spec, not_run):
+    """The retained spec against the protocol's fresh roster and the not-run list."""
+    if not isinstance(spec, dict) or spec.get("schema") != "lab-receive-spec/1":
+        return ["no retained lab-receive-spec/1 spec.json"], {}
+    problems = []
+    if spec.get("instances") != FRESH_INSTANCES:
+        problems.append(f"spec instances must be {FRESH_INSTANCES}")
+    packages = spec.get("packages") if isinstance(spec.get("packages"), dict) else {}
+    allowed = {"random-search", "parent"} | {f"{a}-{f}" for a in "wf" for f in FAMILIES}
+    if set(packages) - allowed or not {"random-search", "parent"} <= set(packages):
+        problems.append("spec packages are not the fresh-stage names")
+    trials = {t.get("id"): t for t in spec.get("trials") or [] if isinstance(t, dict)}
+    expected = {}
+    for fam in FAMILIES:
+        for name in PLANS:
+            tid = f"fresh-{fam}-{name}"
+            cand, ctrl = sides(fam, name)
+            missing = [s for s in (cand, ctrl) if s not in packages]
+            if missing:
+                if tid in trials:
+                    problems.append(f"{tid} is in the spec without package {missing}")
+                elif not_run.get(tid) != "no_candidate: " + ", ".join(missing):
+                    problems.append(f"{tid} lacks {missing} but is not declared not run")
+                continue
+            if tid in not_run:
+                problems.append(f"{tid} is declared not run but the spec has its packages")
+            t = trials.get(tid)
+            if t != {"id": tid, "family": fam, "candidate": cand, "control": ctrl,
+                     "first_seed": FIRST_SEED}:
+                problems.append(f"{tid} is not the protocol's spec entry")
+            expected[tid] = (fam, cand, ctrl)
+    extra = set(trials) - set(expected)
+    if extra or len(trials) != len(spec.get("trials") or []):
+        problems.append(f"spec has unexpected or repeated trials: {sorted(extra)}")
+    return problems, expected
+
+
+def plan_problems(plan, spec, tid, fam, cand, ctrl):
+    """The retained plan against what the pinned spec and receive.py determine."""
     if not isinstance(plan, dict):
+        return ["plan.json missing or not JSON"]
+    problems = []
+    pid = f"receive-{tid}"
+    if plan.get("id") != pid:
+        problems.append("plan id is not receive-<trial>")
+    ids = [i.get("id") for i in plan.get("development_instances") or [] if isinstance(i, dict)]
+    if ids != [f"{fam}/1/{FIRST_SEED + i}" for i in range(FRESH_INSTANCES)]:
+        problems.append(f"instances are not the frozen fresh panel {fam}/1/1000..1011")
+    if plan.get("scoring_instances") != {"kind": "development"}:
+        problems.append("scoring instances are not the public panel")
+    context = plan.get("context") or {}
+    if any((context.get(k) or {}).get("id") != fam for k in ("public_task", "generator",
+                                                              "scoring_rule")):
+        problems.append("task context is not this family")
+    grant = plan.get("development_grant") or {}
+    if (grant.get("simulation_steps"), grant.get("wall_time_ms")) != (
+            spec.get("simulation_steps"), spec.get("wall_time_ms")) or any(
+            grant.get(k) != 0 for k in ("model_calls", "input_tokens", "output_tokens")):
+        problems.append("development grant differs from the spec")
+    slots = plan.get("slots") or []
+    if [s.get("slot_id") for s in slots] != ["candidate", "control"]:
+        return problems + ["slots are not candidate then control"]
+    for s, name, pkg in ((slots[0], "candidate", cand), (slots[1], "control", ctrl)):
+        m = s.get("method") or {}
+        if (m.get("domain"), m.get("schema"), m.get("sha256")) != (
+                "genesis", "development-method-source/1", spec["packages"][pkg]["sha256"]):
+            problems.append(f"{name} method is not spec package {pkg}")
+        if (s.get("org_id"), s.get("run_id"), s.get("attempt_id"),
+                s.get("scoring_request_id")) != (
+                spec.get("org_id"), f"run-{pid}-{name}", f"att_{pid}_{name}",
+                f"score-{pid}-{name}"):
+            problems.append(f"{name} organization or run identities differ")
+        if s.get("purpose") != {"kind": "acceptance", "role": name} or s.get("dependencies"):
+            problems.append(f"{name} purpose or dependencies differ")
+    return problems
+
+
+def policy(plan):
+    """What every fresh plan must share: all but identities, panel and task."""
+    p = copy.deepcopy(plan)
+    for k in ("id", "development_instances", "slots"):
+        p.pop(k, None)
+    for k in FAMILY_CONTEXT:
+        (p.get("context") or {}).pop(k, None)
+    return p
+
+
+def trial_record(out, tid, expected, spec, lab_score):
+    fam, cand, ctrl = expected
+    d = os.path.join(out, tid)
+    if not os.path.isdir(d):
         return {"trial": tid, "status": "missing"}
-    return {"trial": tid, "status": "run",
-            "verdict": load(os.path.join(d, "verdict.json")),
-            "candidate": slot_record(d, plan, "candidate"),
-            "control": slot_record(d, plan, "control")}
+    plan = load(os.path.join(d, "plan.json"))
+    problems = plan_problems(plan, spec, tid, fam, cand, ctrl)
+    record = {"trial": tid, "status": "unbound" if problems else "run", "problems": problems,
+              "verdict": load(os.path.join(d, "verdict.json"))}
+    if isinstance(plan, dict):
+        record["candidate"] = slot_record(d, plan, "candidate", lab_score)
+        record["control"] = slot_record(d, plan, "control", lab_score)
+        record["policy"] = hashlib.sha256(
+            json.dumps(policy(plan), sort_keys=True).encode()).hexdigest()
+    return record
 
 
-def contribution(slot):
+def contribution(trial, side):
     """An ineligible slot contributes 0 and blocks the positive reading."""
-    return slot["observed_successes"] if slot["eligible"] else 0
+    s = trial[side]
+    return s["observed_successes"] if s["eligible"] else 0
 
 
-def report(out, not_run_list=()):
-    not_run = {r["trial"]: r.get("reason") for r in not_run_list}
-    families = {f: {p: trial_record(out, f, p, not_run) for p in PLANS} for f in FAMILIES}
+def report(out, not_run_list=(), spec_sha256=None, lab_score=None):
+    not_run = {r.get("trial"): r.get("reason") for r in not_run_list if isinstance(r, dict)}
+    unbound = []
+    try:
+        with open(os.path.join(out, "spec.json"), "rb") as f:
+            spec_bytes = f.read()
+    except OSError:
+        spec_bytes = b""
+    retained_sha = hashlib.sha256(spec_bytes).hexdigest()
+    if spec_sha256 is not None and spec_sha256 != retained_sha:
+        unbound.append("retained spec.json is not the posted spec")
+    try:
+        spec = json.loads(spec_bytes)
+    except ValueError:
+        spec = None
+    problems, expected = spec_problems(spec, not_run)
+    unbound += problems
+    families = {f: {} for f in FAMILIES}
+    for fam in FAMILIES:
+        for name in PLANS:
+            tid = f"fresh-{fam}-{name}"
+            if tid in expected:
+                families[fam][name] = trial_record(out, tid, expected[tid], spec, lab_score)
+            else:
+                families[fam][name] = {"trial": tid, "status": "not_run",
+                                       "reason": not_run.get(tid)}
+                if os.path.exists(os.path.join(out, tid)):
+                    unbound.append(f"{tid} is declared not run but has records")
+    records = [t for fam in families.values() for t in fam.values()]
+    unbound += [f"{t['trial']}: {p}" for t in records for p in t.get("problems", [])]
+    if len({t["policy"] for t in records if "policy" in t}) > 1:
+        unbound.append("plans differ in evaluator, criterion, environment or grants")
     primaries = [families[f]["primary"] for f in FAMILIES]
-    complete = all(t["status"] == "run" for t in primaries)
+    complete = not unbound and all(t["status"] == "run" for t in primaries)
     ran = [t for t in primaries if t["status"] == "run"]
-    w_sum = sum(contribution(t["candidate"]) for t in ran)
-    f_sum = sum(contribution(t["control"]) for t in ran)
+    w_sum = sum(contribution(t, "candidate") for t in ran)
+    f_sum = sum(contribution(t, "control") for t in ran)
     primary_eligible = complete and all(t["candidate"]["eligible"] and t["control"]["eligible"]
                                         for t in primaries)
     refs = [families[f]["parent-random"] for f in FAMILIES]
-    ref_ok = all(t["status"] == "run" and t["control"]["eligible"] for t in refs)
+    ref_ok = not unbound and all(t["status"] == "run" and t["control"]["eligible"]
+                                 for t in refs)
     ref_sum = sum(t["control"]["observed_successes"] for t in refs) if ref_ok else None
     conditions = {
         "1_primary_complete": complete,
@@ -133,7 +257,9 @@ def report(out, not_run_list=()):
         "4_w_exceeds_f_by_2": complete and w_sum - f_sum >= 2,
         "5_w_at_least_reference": ref_ok and w_sum >= ref_sum,
     }
-    if all(conditions.values()):
+    if unbound:
+        reading = "unbound"
+    elif all(conditions.values()):
         reading = "positive_exploratory"
     elif not (complete and primary_eligible and ref_ok):
         reading = "incomplete"
@@ -142,25 +268,37 @@ def report(out, not_run_list=()):
     return {
         "schema": "pc1-fresh-report/1",
         "protocol": "process-comparison/1",
+        "spec_sha256": retained_sha,
+        "spec_pinned": spec_sha256 is not None and not unbound,
+        "unbound": unbound,
         "primary": {"complete": complete, "w_sum": w_sum, "f_sum": f_sum,
                     "difference": w_sum - f_sum if complete else None,
-                    "of": 12 * len(ran)},
+                    "of": FRESH_INSTANCES * len(ran)},
         "reference": {"all_eligible": ref_ok, "sum": ref_sum},
         "positive_reading": conditions,
         "reading": reading,
-        "note": ("Null, negative and incomplete are reported as such; 'not_positive' leaves "
-                 "that label to the reader with the numbers above. No significance test."),
+        "note": ("Null, negative, incomplete and unbound are reported as such; 'not_positive' "
+                 "leaves that label to the reader with the numbers above. No significance "
+                 "test. Plan evaluator/environment identities are checked for agreement "
+                 "across plans, not against an external pin."),
         "families": families,
     }
 
 
 def main(argv):
-    if len(argv) not in (2, 3):
-        sys.exit("usage: pc1_report.py <fresh-out-dir> [<not-run.json>]")
-    not_run = load(argv[2]) if len(argv) == 3 else []
+    p = argparse.ArgumentParser(prog="pc1_report.py")
+    p.add_argument("--spec-sha256", required=True)
+    p.add_argument("--not-run")
+    p.add_argument("--lab-score")
+    p.add_argument("out")
+    a = p.parse_args(argv[1:])
+    if len(a.spec_sha256) != 64 or set(a.spec_sha256) - set("0123456789abcdef"):
+        sys.exit("pc1_report: --spec-sha256 must be a lowercase hex SHA-256")
+    not_run = load(a.not_run) if a.not_run else []
     if not isinstance(not_run, list):
         sys.exit("pc1_report: not-run file must be a JSON list")
-    json.dump(report(argv[1], not_run), sys.stdout, indent=2, sort_keys=True)
+    result = report(a.out, not_run, a.spec_sha256, lab_score_path(a.lab_score))
+    json.dump(result, sys.stdout, indent=2, sort_keys=True)
     sys.stdout.write("\n")
 
 
