@@ -30,7 +30,7 @@ async-trait = "0.1"
 axum = { version = "0.8", features = ["macros"] }
 chrono = { version = "0.4", default-features = false, features = ["clock", "serde", "std"] }
 futures = "0.3"
-reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "rustls-tls-native-roots"] }
 rusqlite = { version = "0.32", features = ["bundled"] }
 schemars = { version = "0.8", features = ["chrono", "preserve_order"] }
 serde = { version = "1", features = ["derive"] }
