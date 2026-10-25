@@ -161,6 +161,41 @@ fn os<T: Into<OsString>>(v: T) -> OsString {
     v.into()
 }
 
+/// A recorded requirement can precede its asynchronous assignment commit.
+/// Read only the requested observation's unambiguous, assigned responsibility.
+pub(crate) fn assigned_work(
+    org: &Value,
+    mission: &str,
+    observation: &str,
+) -> Option<(String, String, String)> {
+    let mut matches = org["requirements"].as_object()?.values().filter(|r| {
+        r["mission_id"] == mission
+            && r["triggering_evidence"]
+                .as_array()
+                .is_some_and(|ids| ids.iter().any(|id| id == observation))
+    });
+    let requirement = matches.next()?;
+    if matches.next().is_some()
+        || requirement["status"] != "ASSIGNED"
+        || requirement["owner"]["kind"] != "role"
+    {
+        return None;
+    }
+    let id = requirement["requirement_id"].as_str()?;
+    let owner = requirement["owner"]["id"].as_str()?;
+    let mut responsibilities = org["responsibilities"].as_object()?.values().filter(|r| {
+        r["requirement_id"] == id
+            && r["mission_id"] == mission
+            && r["owner"] == requirement["owner"]
+            && r["status"] == "OPEN"
+    });
+    let responsibility = responsibilities.next()?["responsibility_id"].as_str()?;
+    if responsibilities.next().is_some() {
+        return None;
+    }
+    Some((id.into(), owner.into(), responsibility.into()))
+}
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 #[ignore = "rehearsal: needs REHEARSAL_DIR, GENESIS_BIN, PLANNER_BIN, GENESIS_LLM_*, LAB_EXEC, LAB_SCORE, RECEIVE_PY and INVOKE_PY"]
 async fn rehearse_two_organizations_with_a_live_planner() {
@@ -376,44 +411,28 @@ async fn rehearse_two_organizations_with_a_live_planner() {
     let once = planner("once", true);
     std::fs::write(out.join("planner-once.stdout"), &once.stdout).unwrap();
     std::fs::write(out.join("planner-once.stderr"), &once.stderr).unwrap();
-    assert!(
-        once.status.success(),
-        "{}",
-        String::from_utf8_lossy(&once.stderr)
-    );
     // Whatever it decided, wait for the kernel to settle, then read B's state.
     let mut org = Value::Null;
+    let mut assigned = None;
     for _ in 0..240 {
         org = b_api.get("/organization").await;
-        if !org["requirements"].as_object().unwrap().is_empty() {
+        assigned = assigned_work(&org, &mission, &observation);
+        if assigned.is_some() || !once.status.success() {
             break;
         }
         tokio::time::sleep(Duration::from_millis(250)).await;
     }
     write(&out.join("b-organization-after-planner.json"), &org);
-    let Some(requirement) = org["requirements"]
-        .as_object()
-        .unwrap()
-        .values()
-        .next()
-        .cloned()
-    else {
-        // No requirement: the planner made no change (or it never committed).
-        // That is the result; the run stops here.
+    let Some((requirement_id, owner, responsibility)) = assigned else {
+        write(
+            &out.join("planner-stop.json"),
+            &json!({"status":"stopped","observation_id":observation,
+                "reason":"no matching committed assignment observed",
+                "planner_exit_success":once.status.success()}),
+        );
         return;
     };
-    let requirement_id = requirement["requirement_id"].as_str().unwrap().to_string();
-    let owner = requirement["owner"]["id"].as_str().unwrap().to_string();
     let owner_is_lead = owner == lead;
-    let responsibility = org["responsibilities"]
-        .as_object()
-        .unwrap()
-        .values()
-        .find(|r| r["requirement_id"] == requirement["requirement_id"])
-        .unwrap()["responsibility_id"]
-        .as_str()
-        .unwrap()
-        .to_string();
 
     // B's receiving trial, only after that commit.
     let trial_out = dir.join("trial");
