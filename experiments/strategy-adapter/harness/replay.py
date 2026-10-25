@@ -8,8 +8,10 @@ execution boundary with --isolation; there is no default:
               experiments/invention-lab/executor/src/sandbox.rs (needs root and
               util-linux unshare): no network, every mount read-only where the
               kernel allows it, private /home /root /tmp /var/tmp /dev/shm /run,
-              the method runs as nobody with no_new_privs under prlimit, and the
-              whole PID namespace dies with the run. Not enforced: reads of the
+              the method runs as nobody with no_new_privs under prlimit. At the
+              end of every run the namespace's first process is SIGKILLed and
+              unshare's exit, which follows the end of the whole namespace, is
+              awaited; if it is not observed the run raises. Not enforced: reads of the
               rest of the read-only system, a syscall filter, filesystem Unix
               sockets. It is not proof that no model was used.
   host        `python3 method.py` directly on this host with only PATH set. No
@@ -19,9 +21,12 @@ execution boundary with --isolation; there is no default:
 
 Every run is bounded. One absolute deadline from process start covers every
 read and write; a request line may not exceed 1 MiB (the executor's protocol
-limit); request count and total output are capped. On every exit path, normal
-or not, the process group is killed and reaped and the namespaces stage is
-removed. A host-mode descendant that leaves the process group is not reached.
+limit), checked again before each buffered request is answered (a slow oracle
+reply is not interrupted, but no later request is dispatched); request count and
+total output are capped. On every exit path, normal or not, the namespace is
+ended as above, the process group is killed and reaped, and the namespaces stage
+is removed, including when staging itself or termination fails. A host-mode
+descendant that leaves the process group is not reached.
 
   replay.py transcript --isolation MODE <plan.json> <run-dir> <method-dir>
       Serve the retained run in <run-dir> (transcript.json, artifacts/,
@@ -95,13 +100,66 @@ def _launch(method_dir, isolation):
     if isolation == 'namespaces':
         STAGE_ROOT.mkdir(mode=0o700, parents=True, exist_ok=True)
         stage = Path(tempfile.mkdtemp(prefix='run-', dir=STAGE_ROOT))
-        shutil.copytree(method_dir, stage / 'files', ignore=shutil.ignore_patterns('__pycache__'))
+        try:
+            shutil.copytree(method_dir, stage / 'files', ignore=shutil.ignore_patterns('__pycache__'))
+        except BaseException:
+            shutil.rmtree(stage, ignore_errors=True)
+            raise
         argv = ['unshare', '--net', '--mount', '--pid', '--fork', '--mount-proc', '--propagation', 'private',
                 '--kill-child=SIGKILL', '--', 'sh', '-c', NAMESPACES_SETUP]
         env = {'PATH': '/usr/local/bin:/usr/bin:/bin', 'LAB_STAGE': str(stage), 'LAB_ENTRY': 'method.py',
                'LAB_INTERPRETER': 'python3'}
         return argv, '/', env, stage
     raise ValueError('isolation must be one of %s, not %r' % (', '.join(ISOLATIONS), isolation))
+
+
+def _namespace_inits(pid):
+    """unshare's children: the PID namespace's first process. Same lookup as
+    executor/src/sandbox.rs `namespace_inits`, with a /proc scan fallback."""
+    try:
+        return [int(x) for x in Path('/proc/%d/task/%d/children' % (pid, pid)).read_text().split() if int(x) > 0]
+    except (OSError, ValueError):
+        pass
+    found = []
+    for d in Path('/proc').iterdir():
+        if d.name.isdigit():
+            try:
+                ppid = next(int(l.split()[1]) for l in (d / 'status').read_text().splitlines() if l.startswith('PPid:'))
+            except (OSError, ValueError, IndexError, StopIteration):
+                continue
+            if ppid == pid:
+                found.append(int(d.name))
+    return found
+
+
+def _in_other_pid_namespace(pid):
+    try:
+        return os.readlink('/proc/%d/ns/pid' % pid) != os.readlink('/proc/self/ns/pid')
+    except OSError:
+        return False
+
+
+def _end_namespace(p, wait=10):
+    """SIGKILL the namespace's first process, which ends every process in it,
+    then wait for unshare: it exits only after its child, and the kernel lets
+    that first process exit only after the rest of the namespace is gone. So
+    unshare's exit is the observed end of the whole tree. Killing unshare or
+    its process group instead would not do this: a method can leave the group,
+    and the setpriv credential change clears unshare's --kill-child signal.
+    Returns whether unshare's exit was observed within `wait` seconds."""
+    deadline = time.monotonic() + wait
+    while p.poll() is None:
+        for pid in _namespace_inits(p.pid):
+            # Only a process in another PID namespace is a namespace's first process.
+            if _in_other_pid_namespace(pid):
+                try:
+                    os.kill(pid, signal.SIGKILL)
+                except (ProcessLookupError, PermissionError):
+                    pass
+        if time.monotonic() >= deadline:
+            return False
+        time.sleep(0.005)
+    return True
 
 
 def _stop(p):
@@ -177,11 +235,15 @@ def run_method(method_dir, oracle, isolation, timeout=60, max_line=MAX_LINE, max
                 raise Stopped('more than %d bytes of output' % max_output)
             buf += chunk
             while b'\n' in buf:
+                if time.monotonic() >= deadline:
+                    raise Stopped('no end of output within %s s' % timeout)
                 line, buf = buf.split(b'\n', 1)
                 pending += answer(line + b'\n')
             if len(buf) > max_line:
                 raise Stopped('request line over %d bytes' % max_line)
         if buf:
+            if time.monotonic() >= deadline:
+                raise Stopped('no end of output within %s s' % timeout)
             answer(buf)  # a last request without a newline; nobody reads the reply
         p.stdin.close()
         while p.poll() is None:
@@ -190,10 +252,19 @@ def run_method(method_dir, oracle, isolation, timeout=60, max_line=MAX_LINE, max
             time.sleep(0.005)
         return lines, p.returncode
     finally:
-        if p is not None:
-            _stop(p)
-        if stage is not None:
-            shutil.rmtree(stage, ignore_errors=True)
+        ended = True
+        try:
+            if p is not None:
+                try:
+                    if isolation == 'namespaces':
+                        ended = _end_namespace(p)
+                finally:
+                    _stop(p)
+        finally:
+            if stage is not None:
+                shutil.rmtree(stage, ignore_errors=True)
+        if not ended:
+            raise Stopped('the PID namespace of process %d was not observed to end' % p.pid)
 
 
 class Retained:
