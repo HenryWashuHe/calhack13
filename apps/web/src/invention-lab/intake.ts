@@ -10,12 +10,14 @@ import {
   decodeEvaluationReceipt,
   decodeExecutionReceipt,
   decodeGenerationStatus,
+  decodeMetricsArtifact,
   decodePackageFile,
   decodeRevisionObservation,
   decodeStaticInspection,
   decodeTrialPlan,
   decodeVerdict,
   INSPECTION_SCHEMA,
+  isMetricsShape,
   PACKAGE_DOMAIN,
   REVISION_SCHEMA,
   TRIAL_PLAN_FIELDS,
@@ -48,6 +50,7 @@ export function intake(files: { name: string; text: string; bytes?: Uint8Array }
     packages: [],
     inspections: [],
     trials: [],
+    metrics: [],
   };
   const used: Note[] = [];
   const skipped: Note[] = [];
@@ -76,7 +79,7 @@ export function intake(files: { name: string; text: string; bytes?: Uint8Array }
     const o = v as Record<string, unknown>;
     const isVerdict = typeof o.verdict === "string" && !("outcome" in o);
     const identity =
-      o.domain === PACKAGE_DOMAIN
+      o.domain === PACKAGE_DOMAIN || isMetricsShape(o)
         ? `bytes ${sha256Hex(bytes ?? new TextEncoder().encode(text))}`
         : isVerdict
           ? `verdict ${folder(name)} ${canonicalSha256(o)}`
@@ -91,6 +94,9 @@ export function intake(files: { name: string; text: string; bytes?: Uint8Array }
       if (o.domain === PACKAGE_DOMAIN) {
         records.packages!.push(decodePackageFile(bytes ?? new TextEncoder().encode(text)));
         used.push({ file: name, note: "method package (identity hashed from the file bytes here)" });
+      } else if (isMetricsShape(o)) {
+        records.metrics!.push(decodeMetricsArtifact(bytes ?? new TextEncoder().encode(text)));
+        used.push({ file: name, note: "scoring metrics (identity hashed from the file bytes here)" });
       } else if (o.schema === INSPECTION_SCHEMA) {
         records.inspections!.push(decodeStaticInspection(o));
         used.push({ file: name, note: "static source inspection" });

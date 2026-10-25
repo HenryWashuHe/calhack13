@@ -7,6 +7,7 @@ import "../styles.css";
 import { intake, orgsIn, type Intake } from "./intake";
 import { buildLineage } from "./lineage";
 import { LineagePanel } from "./LineagePanel";
+import { ResultsBoard } from "./ResultsBoard";
 
 export function Preview({ initial }: { initial?: Intake }) {
   const [loaded, setLoaded] = useState<Intake | undefined>(initial);
@@ -66,7 +67,11 @@ export function Preview({ initial }: { initial?: Intake }) {
               ))}
             </ul>
           </details>
-          <LineagePanel lineage={lineage} orgA={orgA || undefined} orgB={orgB || undefined} />
+          {orgA && orgB ? (
+            <ResultsBoard lineage={lineage} orgA={orgA} orgB={orgB} />
+          ) : (
+            <LineagePanel lineage={lineage} />
+          )}
         </>
       )}
     </main>
