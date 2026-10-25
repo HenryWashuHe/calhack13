@@ -30,6 +30,20 @@ const charge = (usage) => {
   assert.ok(usage && Number.isSafeInteger(usage.input_tokens) && Number.isSafeInteger(usage.output_tokens));
   return usage.input_tokens * 2 + usage.output_tokens * 10;
 };
+// Exercise only the trusted prompt formatter with a captured, inert response.
+// Never import its dependencies or run an iteration, family, rule or child.
+const mutatorUrl = new URL("../../scripts/iteration/mutators/claude.mjs", import.meta.url);
+const mutatorSource = fs.readFileSync(mutatorUrl, "utf8").replace(/^import .*;\n/gm, "")
+  .replace(/^export /gm, "").replaceAll("import.meta.url", JSON.stringify(mutatorUrl.href));
+assert.doesNotMatch(mutatorSource, /^import /m);
+const formatter = { sha256, fileURLToPath, URL, process: { env: {} }, spawnSync: () => { throw new Error("provider/child execution forbidden"); } };
+vm.runInNewContext(mutatorSource + "\nglobalThis.makeMutator = claudeMutator;", formatter, { timeout: 1000 });
+function independentPrompt(round, source = "(op) => -op.duration") {
+  let captured;
+  const mutator = formatter.makeMutator({ task: "inert task", featureDoc: "inert fields", call: (request) => { captured = request; return { text: "" }; } });
+  mutator.propose({ parent: { source, sha256: sha256(source) }, feedback: null, k: 8, generation: round });
+  return captured.user;
+}
 function scoreRow(label, successes = 30) {
   const source = `inert retained source ${label}`; // never evaluated
   const scores = Array.from({ length: 60 }, (_, i) => ({ success: i < successes, detail: { ratio: i < successes ? 1.1 : 1.4 } }));
@@ -58,7 +72,8 @@ function fixture() {
       const rows = [];
       for (let round = 1; round <= 5; round++) {
         const index = requestIndex++, identity = { seed, arm, round };
-        files[`request-${String(index).padStart(3, "0")}.json`] = { model: manifest.model, max_tokens: 8000, output_config: { effort: "medium" }, identity: { ...identity } };
+        files[`request-${String(index).padStart(3, "0")}.json`] = { model: manifest.model, max_tokens: 8000, output_config: { effort: "medium" }, identity: { ...identity },
+          messages: [{ role: "user", content: independentPrompt(round) }] };
         const response = { model: manifest.model, stop_reason: "end_turn", usage: { input_tokens: 100, output_tokens: 10 } };
         files[`response-${String(index).padStart(3, "0")}.json`] = response;
         events.push({ event: "provider_pending", index, identity: { ...identity }, reserved_micro_usd: 204096 });
@@ -230,5 +245,19 @@ for (const [name, mutate] of [
 ]) test(`pre-submission error observation is rejected ${name}`, () => {
   const data = stoppedBeforeSubmission();
   mutate(data);
+  assert.throws(() => verify(data));
+});
+
+for (const [name, mutate] of [
+  ["a promoted parent under the same unscored heading", (request) => { request.messages[0].content = independentPrompt(1, "(op) => op.remainingWork"); }],
+  ["a retained score table", (request) => { request.messages[0].content += "\n| # | success | progress | detail |\n| 0 | yes | 1 | retained feedback |"; }],
+  ["a retained reflection", (request) => { request.messages[0].content += "\n## Last generation\nParent scored 2/20"; }],
+  ["a second context message", (request) => { request.messages.push({ role: "user", content: "previous candidate scored 19/20" }); }],
+  ["the wrong generation", (request) => { request.messages[0].content = independentPrompt(5); }],
+  ["a scored root", (request) => { request.messages[0].content = request.messages[0].content.replace("0/0 instances succeeded", "19/20 instances succeeded"); }],
+  ["a different candidate budget", (request) => { request.messages[0].content = request.messages[0].content.replace("Write 8 distinct candidates.", "Write 16 distinct candidates."); }],
+]) test(`independent request rejects ${name}`, () => {
+  const data = fixture();
+  mutate(data.files["request-005.json"]); // first independent arm, after five feedback positions
   assert.throws(() => verify(data));
 });
