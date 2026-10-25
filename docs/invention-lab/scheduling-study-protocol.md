@@ -1,5 +1,12 @@
 # Scheduling study: protocol and current evidence
 
+**October 25 status:** this 60-job/6-operation Opus study was not run. The
+separate [10-job/5-machine Sonnet rehearsal](../../experiments/jobshop-controlled/results/2026-10-25/README.md)
+is completed and published. The readiness review below is historical: #144,
+#57/#65, #180/#181 and the verifier corrections are now merged; independent
+runtime assurance and G0–G4 remain open. Preserve this study's proposed protocol
+and original calibration records; the smaller rehearsal does not satisfy it.
+
 **Status:** A prospective experiment with one completed **offline calibration**. No model-generated scheduling method, outer iteration, final hidden-panel run, or cross-organization transfer has been executed.
 
 ## Scientific question

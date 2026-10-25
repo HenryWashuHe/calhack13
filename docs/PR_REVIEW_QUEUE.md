@@ -1,6 +1,11 @@
-# PR review queue — October 23, 2026
+# PR review queue
 
-## Active repository checkpoint
+Current closeout: [October 25 review ledger](reviews/pr-queue-2026-10-25.md#current-queue-closeout--october-25-2026)
+and [implementation status](IMPLEMENTATION_STATUS.md). Work belongs in
+[calhack13](https://github.com/HenryWashuHe/calhack13). The checkpoints below
+retain prior source-specific findings; they are not the current open queue.
+
+## Historical repository checkpoint — October 23, 2026
 
 Work and reviews now belong in [genesis-history-experiment](https://github.com/HenryWashuHe/genesis-history-experiment)
 and [issue #1](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1).

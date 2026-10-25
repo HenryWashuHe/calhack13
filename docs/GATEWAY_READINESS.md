@@ -1,10 +1,10 @@
 # Gateway readiness receipts
 
-An asynchronously created agent (CREAO) is **not ready** because its creation
-run completed, or because the agent says so. GENESIS treats a role as ready
-only when the backend itself observes the created agent calling back through
-the GENESIS gateway. This document covers the kernel side, which is
-implemented, and its [CREAO provider probe](CREAO_READINESS.md).
+A CREAO app-bound role is **not ready** because its bootstrap run completed,
+or because the agent says so. The production API Trigger path uses a published
+app; it does not create an app. GENESIS treats the role as ready only when the
+backend observes the app calling back through the GENESIS gateway. This document
+covers the implemented kernel side, and its [CREAO provider probe](CREAO_READINESS.md).
 
 Code: `crates/genesis-server/src/gateway_readiness.rs`, routes in
 `crates/genesis-server/src/routes/gateway.rs`. It plugs into the

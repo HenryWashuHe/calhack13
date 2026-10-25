@@ -1,13 +1,17 @@
 # GENESIS
 
-Active development: [genesis-history-experiment](https://github.com/HenryWashuHe/genesis-history-experiment).
-Read [coordination issue #1](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1) and the
+Active development: [calhack13](https://github.com/HenryWashuHe/calhack13).
+Read [coordination issue #1](https://github.com/HenryWashuHe/calhack13/issues/1) and the
 [repository migration map](docs/REPOSITORY_MIGRATION.md) before taking work.
 
 ![tag:innovationlab](https://img.shields.io/badge/innovationlab-3D8BD3)
 ![tag:hackathon](https://img.shields.io/badge/hackathon-5F43F1)
 
 **Networked recursive capability improvement with fixed model weights.**
+
+Project timeline: **Friday, October 23 → Sunday, October 25, 2026 (Pacific)**.
+See the [Friday-start timeline](docs/PROJECT_TIMELINE.md) and
+[documentation guide](docs/README.md). Status reviewed against main `83e79c6a`.
 
 GENESIS is building infrastructure through which independent AI organizations
 create, verify, share, and improve executable capabilities—including the methods
@@ -22,15 +26,13 @@ versions, provenance and tested scope. Receiving organizations decide locally
 whether to adopt, adapt, or decline them.
 
 **Implemented foundations are not a demonstrated recursive-improvement system.**
-The current code supports governed organization changes, web-extraction Actor
-acquisition and verification, and independently checked inheritance between two
-organizations. Experimental simulator primitives, method-source generation and
-parent-bound revision preparation, a local process runtime, trusted public
-acceptance scoring and receiver-bound method-adoption mechanics are also merged.
-A source-free generation roster and offline CLI retain declared attempts before
-results. These foundations do not establish general untrusted-code isolation, a model-developed
-method's accepted A → B → A return, or measured recursive benefit. See the
-[evidence-backed implementation status](docs/IMPLEMENTATION_STATUS.md).
+The Rust kernel governs organizational changes and exact-version capabilities.
+Merged development-method support includes source generation and revision,
+registry exchange, receiver-controlled adoption, pinned invocation, experimental
+execution/scoring, and retained cost accounting. Actual generated-method records
+and a completed job-shop controlled rehearsal are published; their scopes differ.
+An accepted independent A → B → A return and general recursive benefit remain
+unproved. See [implementation status](docs/IMPLEMENTATION_STATUS.md).
 
 ## The proposed demonstration: invention labs
 
@@ -45,11 +47,11 @@ procedure helps it develop a better solution under the same model and budget.
 Moving machines make the result visible; method lineage and independent
 comparisons establish what happened.
 
-This is a **proposed demo, not existing functionality or a promised positive
-result**. Simulator primitives and method-source generation have local test
-evidence. Enforced method execution, independent adoption, recursive return and
-the controlled evaluation remain open. The [demo design](docs/INVENTION_LAB_DEMO.md)
-specifies the missing pieces and falsifiable gates. The former event-organizer demo is
+The complete demonstration remains **a research target, not a promised positive
+result**. Simulator, executor/scorer, method registry, adoption and invocation
+implementations are merged. Retained runs include failures and rejected returns;
+independent organizational operation, runtime assurance and G0–G4 remain open.
+The [demo design](docs/INVENTION_LAB_DEMO.md) specifies the missing pieces and falsifiable gates. The former event-organizer demo is
 superseded; its runtime code remains a historical integration fixture.
 
 ## How the capability network develops
@@ -87,15 +89,15 @@ The research goal is measurable improvement on a declared mix of tasks, with fai
 | Mechanism | Current support and boundary |
 | --- | --- |
 | Organizational evolution | The Rust kernel supports role creation/retirement, specialist recruitment, responsibility assignment/delegation, and capability attachment. Proposals pass authority and lifecycle checks before committing. |
-| Executable capability creation | The acquisition workflow generates TypeScript extraction candidates, packages source-bearing Apify Actors, pins builds/runs, and verifies outputs against an independently configured suite. The implemented executable artifact path is specialized to Apify Actors. |
+| Executable capability creation | The acquisition workflow generates TypeScript extraction candidates, packages source-bearing Apify Actors, pins builds/runs, and verifies outputs against an independently configured suite. This task-capability path is specialized to Apify Actors; development methods have a separate executable package/runtime contract. |
 | Bounded repair | Acquisition can perform one planned semantic repair after a fully collected rejection, preserving lineage and rerunning verification. This is not yet a general repair service for deployed capabilities across the network. |
 | Cross-organization inheritance | Immutable versioned manifests, shared discovery, adopt-before-acquire, and organization-local acceptance are implemented. A two-organization integration exercises A creating/publishing a capability and B adopting it without B synthesizing another copy. |
-| Persistent specialist work | Fetch supplies independent signed specialist exchanges; CREAO supplies persistent operational agents; Elastic supports organizational evidence, retrieval, and Agent Builder integrations. End-to-end live sponsor evidence remains a separate gate. |
+| Persistent specialist work | Fetch supplies independent signed specialist exchanges; CREAO runs app-backed role contracts; Elastic supports organizational evidence, retrieval, and Agent Builder integrations. End-to-end live sponsor evidence remains a separate gate. |
 | Recovery and control | SQLite journals, exact artifact/request identities, authority checks, bounded attempts, and reconciliation states protect the tested workflows. Ambiguous external effects can require operator attention; recovery does not mean every operation can safely be replayed. |
-| Development-method foundations | Exact packages/trial plans/accounting, source generation/revision, pre-result rosters, optional generation reservations and structural stage allocations are merged. Offline commands retain an exact trial binding and assess costs without dropping unsuccessful or unknown observations. Local runtime, public scoring and receiver-bound adoption mechanics have fixture evidence; two rehearsals return Rejected. Runtime entry checks, whole-chain budgets, provider billing/input-token/wall enforcement, authenticated chronology, complete history and recursive benefit remain open. |
-| Recursive composition and network healing | Enforced method execution, selective method inheritance, genuine method revision and measured improvement remain open. Shared repair advisories and controlled upgrades are separate future work. |
+| Development-method foundations | Exact source packages, generated revisions, registry publication/search/fetch, receiver-owned decisions, responsibility/grant binding, invocation records, optional rescoring/re-execution, and stage/chain cost accounting are merged. See the [method contract](docs/invention-lab/adoption.md). Retained evidence and local policy checks do not establish independently authenticated execution or complete spending history. |
+| Recursive composition and network healing | Accepted independent method return and measured network benefit remain open. Shared repair advisories, general dependency resolution and controlled deployed-capability upgrades remain future work. |
 
-A manifest already carries schemas, permissions, provenance, verification evidence, and optional role/workflow descriptions. Those descriptions do not yet constitute a general executable workflow package or dependency resolver. The network currently uses a shared registry service; it is not a decentralized peer-to-peer capability protocol.
+A manifest already carries schemas, permissions, provenance, verification evidence, and optional role/workflow descriptions. The separate development-method packages supply executable source and pinned runtime/evaluator references; manifest descriptions alone are not an executor or a general dependency resolver. The network currently uses a shared registry service; it is not a decentralized peer-to-peer capability protocol.
 
 Verification establishes behavior within the tested scope. It does not prove arbitrary generated code is safe, correct on every future input, or suitable for another organization's mission without that organization's checks.
 
@@ -114,9 +116,9 @@ proposed invention-lab demo or establish measured recursive improvement.
 The forge also provides offline preparation/status/export and one bounded model
 request for method source; see the [method-generation CLI contract](docs/invention-lab/contracts/generation.md).
 Its exact request survives restart, uncertain submissions never replay, and
-source validity is separate from provider accounting. This path has fixture
-evidence only. Provider-default sampling and separate generation costs are
-explicit limitations until the comparison settings and total budget are enforced.
+source validity is separate from provider accounting. [Retained live generation](docs/invention-lab/evidence/live-method-20261024-generated/README.md)
+records an actual model-produced package, following two failed attempts.
+Provider-default sampling and separate generation costs are explicit limitations until the comparison settings and total budget are enforced.
 An [optional admission journal](docs/invention-lab/contracts/generation-admission.md#cli)
 reserves declared requests and requested maximum output before the existing
 generation step. Failed or uncertain attempts retain their reservations; legacy
@@ -131,8 +133,10 @@ provider calls. The [stage-allocation CLI](docs/invention-lab/contracts/stage-al
 can also retain an allocation from unused Prepared attempts, followed by one
 exact trial binding. Optional `--allocation` checks that retained context during
 generation and cost assessment. These are cooperating local-file mechanisms;
-runtime consumption and complete budget allocation for an adaptive A → B → A
-chain remain open.
+[whole-chain allocations](docs/invention-lab/contracts/chain-allocation.md) and
+[operator invocation records](docs/invention-lab/contracts/method-runs.md) are
+implemented, while authenticated chronology, exhaustive spending and independent
+execution assurance remain open.
 
 ### Run the local inheritance rehearsal
 
@@ -154,9 +158,19 @@ bash scripts/check-capability-core.sh
 
 These checks use loopback provider simulations and the actual Apify SDK with local storage. Authenticated cloud runs, live model quality, and sponsor submission evidence are tracked separately in [live gates](docs/LIVE_GATES.md).
 
+## Published controlled rehearsal
+
+The [October 25 job-shop report](experiments/jobshop-controlled/results/2026-10-25/README.md)
+retains one preregistered, 50-request Sonnet 5.5 run and its local replay.
+Feedback iteration scored **231/300**, versus **216/300** for equal-call
+independent generation: a five-percentage-point difference on five paired seeds.
+Random search beat feedback on four of five panels. This narrow result does not
+establish cross-organization transfer, an accepted A → B → A loop, or G4.
+The operator-calculated API cost was **$0.515122**, not a final provider invoice.
+
 ## The most valuable next improvements
 
-1. **Execute a genuinely developed method.** Connect the merged generation/source contracts to an independently reviewed executor and evaluator. Enforce isolation and budgets, retain immutable evidence, and include generation costs. Handwritten seeds remain labeled controls.
+1. **Strengthen execution evidence.** Validate the merged executor/scorer on the supported Linux environment, retain complete source-bound records and generation costs, and distinguish operator-run evidence from independent assurance. Preserve handwritten controls and negative outcomes.
 2. **Close an independent A → B → A method loop.** Let B check and use A's exact method, develop its own executable revision, then let A independently accept and run that frozen revision on a fresh task. Preserve each organization's authority and valid non-reuse outcomes.
 3. **Measure selective and recursive benefit.** Compare the same base system without cross-task accumulation, with task capabilities, and with task capabilities plus inherited development workflows on held-out tasks. Freeze the model and trusted evaluation, count creation/verification/retrieval costs as well as execution, report regressions by task family, and gate promotion on criteria fixed before evaluation. Generated tests can supplement the evaluation; they cannot replace its trusted acceptance criteria.
 
@@ -173,7 +187,7 @@ The [documented goal and acceptance criteria](docs/RECURSIVE_CAPABILITY_IMPROVEM
 | **Fetch.ai** | Discovery, communication, and recruitment of independently running specialists. |
 | **Elastic Agent Builder on Serverless** | Organizational intelligence, specialist agents and skills, evidence retrieval, and searchable shared capabilities. |
 | **Apify** | Creation, build, and execution of missing web capabilities as software Actors. |
-| **CREAO** | Reusable operational agents and persistent specialized responsibilities. |
+| **CREAO** | Published-app API Trigger runs for GENESIS-owned responsibilities; exact bootstrap role contracts accompany jobs. Live gateway readiness remains a separate check. |
 | **GENESIS** | Organization structure, authority, budgets, lifecycle, capability identity, verification, and adoption decisions. |
 
 [Apify sponsor notes](docs/APIFY_SPONSOR_NOTES.md) explain meaningful-use evidence and the separate AI Chat category. [CREAO sponsor requirements](docs/CREAO_SPONSOR_NOTES.md) track actual core agent work, agent ID, and a genuine run share link. [Fetch sponsor requirements](docs/FETCH_SPONSOR_NOTES.md) track ACP, Agentverse discovery, and actual ASI:One use. Local signed-process results, loopback tests, and cloud-provider evidence must remain distinguishable.
@@ -185,7 +199,8 @@ The [documented goal and acceptance criteria](docs/RECURSIVE_CAPABILITY_IMPROVEM
 | Organization kernel, API, scheduler, capability gateway | Rust, Axum, Tokio |
 | Provider adapters and typed contracts | Rust, reqwest, serde |
 | Authoritative local state | SQLite, transactional mutations, durable journals/outbox |
-| Mission and organization interface | TypeScript, React |
+| Mission and organization interface | TypeScript, React; standalone HTML Stage views |
+| Experimental development methods | Python source packages, Rust executor/scorer, separate evaluator crates |
 | Generated Apify Actors | TypeScript with a fixed build scaffold |
 | Fetch agent transport | Python uAgents sidecar behind a typed local API |
 
@@ -193,6 +208,7 @@ The Rust kernel remains the authority boundary. Elastic, Apify, and CREAO integr
 
 ## Start here
 
+- [Documentation guide](docs/README.md), [project timeline](docs/PROJECT_TIMELINE.md), and [Stage demo](apps/stage/README.md): navigation, Friday-to-Sunday milestones, and labeled presentation modes.
 - [Implementation status](docs/IMPLEMENTATION_STATUS.md) and [proposed invention-lab demo](docs/INVENTION_LAB_DEMO.md): what exists, what is unmerged, and what remains a research target.
 - [Technical specification](docs/TECH_SPEC.md) and [research report](GENESIS-organization-evolution-research.md): architecture, original research, and design rationale. This README states the current product framing; older milestone/status prose in detailed guides should be read against the current handoff.
 - [Capability execution](docs/CAPABILITY_EXECUTION.md), [adopt-before-acquire](docs/CAPABILITY_GAP_ADOPTION.md), and [automatic finalization](docs/CAPABILITY_GAP_FINALIZER.md): publication, independent acceptance, and inheritance.

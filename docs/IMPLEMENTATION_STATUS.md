@@ -1,5 +1,8 @@
 # Implementation status
 
+Project timeline begins **Friday, October 23, 2026 (Pacific)**. See the
+[day-by-day timeline](PROJECT_TIMELINE.md) and [documentation guide](README.md).
+
 ## Current queue closeout — October 25, 2026
 
 Main `06715e4c` now includes the conditional `method.develop` adoption and

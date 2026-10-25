@@ -6,7 +6,8 @@ durable CLIs and the shared CREAO Trigger journal, then writes sanitized evidenc
 results and remaining limits are recorded below; local tests remain separate.
 
 ```sh
-cargo build -p genesis-forge -p genesis-fetch     # + genesis-elastic-smoke from the Elastic branch
+cargo build --bins -p genesis-forge -p genesis-fetch -p genesis-elastic
+export PATH="$PWD/target/debug:$PATH"
 set -a; source .env; set +a                                         # keys stay in the environment
 node scripts/live-gates/run.mjs                                     # free gates only: Elastic, Fetch
 node scripts/live-gates/run.mjs --allow-billable \
@@ -83,7 +84,18 @@ journals. Generic credential, consent, Apify, Fetch and Elastic regressions rema
 Historical live reports below keep their original protocol and do not validate
 this migrated gate.
 
-## Reported live checkpoint, October 24, 2026
+## Latest reported sponsor checkpoint — October 25, 2026
+
+The [Stage architecture evidence table](../apps/stage/architecture.html) records
+operator-reported public Fetch report/chat routing, the October 24 Apify 3/3
+baseline gate, and the October 25 Elastic gate with a converse/evidence-tool turn.
+CREAO has a team-reported app/share link and two completed runs; production
+API Trigger migration is merged, but live kernel role readiness and governed
+core work remain separate unestablished checks. These dated reports are not
+current uptime guarantees or a new independent run. Earlier failed/partial
+checkpoints below remain valid history. See [submission gaps](DEVPOST.md#sponsor-evidence).
+
+## Historical reported live checkpoint, October 24, 2026
 
 With owner consent recorded in [issue #1](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1),
 the first Apify rerun after #21 created a private Actor and a successful build;

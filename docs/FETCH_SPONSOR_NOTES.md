@@ -4,8 +4,8 @@ The [official hackpack](https://www.fetch.ai/events/hackathons/calhacks-13-0/hac
 checked October 23, 2026, requires Agentverse registration, Agent Chat Protocol
 (ACP), ASI:One discovery/use, meaningful tool or multi-agent execution, and the
 primary workflow entirely inside an ASI:One conversation. It also requires a
-public GitHub repository. The existing private repository remains private until
-the owner authorizes publication. Local signed messages alone do not satisfy
+public GitHub repository. The canonical submission repository is now public:
+[HenryWashuHe/calhack13](https://github.com/HenryWashuHe/calhack13). Local signed messages alone do not satisfy
 these requirements.
 
 The user's [resource pack](https://docs.google.com/document/d/1pbsW7tH946iooPZxhn2FOuWZ1UjlEfJu4Hi9CQQPBpo)

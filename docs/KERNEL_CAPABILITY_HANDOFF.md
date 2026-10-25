@@ -1,5 +1,11 @@
 # Kernel and capability integration checkpoint
 
+**Historical integration checkpoint.** The root workspace now includes all three
+capability crates, and server acquisition/adoption are implemented. Use
+[development setup](DEV.md), [capability execution](CAPABILITY_EXECUTION.md) and
+[implementation status](IMPLEMENTATION_STATUS.md). The branch instructions and
+counts below apply only to the dated source checkpoint.
+
 Checked October 21, 2026 against kernel branch `feat/kernel-ui` at `5c6fdc2` and
 capability branch `codex/capability-forge` at `65cc594`. Claude still owns kernel/UI;
 this record proposes integration changes without changing those paths.

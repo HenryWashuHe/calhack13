@@ -2,7 +2,7 @@
 
 ## Current review snapshot — October 25, 2026
 
-The [latest review batch](reviews/pr-queue-2026-10-25.md#current-manual-review-batch--october-25-2026)
+The [latest review batch](reviews/pr-queue-2026-10-25.md#current-queue-closeout--october-25-2026)
 merged the research-runner correction (#228), Stage session/event/report binding
 (#246/#254), and prospective assignment/pre-trial-pin/process-eligibility fixes
 (#248/#253 and #250/#255). The author's #248 run records adoption after 4/6
@@ -12,8 +12,11 @@ condition. #250's corrected prospective driver was not run here; no retained
 declared attempt-2 run exists. Two earlier author-reported stand-in checks are
 unretained and not evidence. Source corrections and inert
 checks do not establish independent organizations, an accepted recursive return,
-or benefit. Henry owns the adoption-scope authority correction; source review
-of `f52210ab` is clear, but it is not merged and main still lacks that policy.
+or benefit. The subsequent closeout merged #259
+(method.develop authority), #264/#265 (optional rescoring), and #266 (optional
+pinned re-execution with current authority checked before staging and commit).
+The [job-shop result](../experiments/jobshop-controlled/results/2026-10-25/README.md)
+is now published; its narrow feedback comparison does not close these gates.
 
 The demonstration below remains the target. G0–G4 are open; automation and native
 Goal remain paused. This manually authorized review performed no provider,

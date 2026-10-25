@@ -2,10 +2,10 @@
 
 **Networked recursive capability improvement with fixed model weights** is the
 canonical product and research framing. Status: open implementation and evaluation
-roadmap, not completed behavior or a demonstrated positive result. The user has resumed ongoing work under the [repository goal](ONGOING_GOAL.md)
-and its active hourly continuation. The older app Goal card remains paused until
-it can be replaced through the user-controlled lifecycle; it does not define the
-new product scope. Current [ownership](AGENT_HANDOFF.md#current-ownership-and-next-work)
+roadmap, not a demonstrated network-wide recursive result. The
+[repository goal](ONGOING_GOAL.md) retains G0–G4; automation and the native Goal
+are paused. The [project timeline](PROJECT_TIMELINE.md) starts Friday, October 23.
+The published job-shop rehearsal supports only its narrower comparison. Current [ownership](AGENT_HANDOFF.md#current-ownership-and-next-work)
 supersedes the earlier side-chat proposal. See [implementation status](IMPLEMENTATION_STATUS.md)
 for the evidence boundary and [invention labs](INVENTION_LAB_DEMO.md) for the proposed
 demonstration. Event organization is no longer a product or completion requirement.
@@ -48,11 +48,11 @@ The system can learn at the system level without weight updates. Call these exec
 | Capability contract | [CapabilityManifest](../crates/genesis-core/src/capability.rs) carries applicability, limitations, schemas, permissions, artifact identity, verification, and provenance | Structured preconditions, versioned environment/evaluator evidence, observed costs, and typed dependencies |
 | Independent inheritance | [Adopt-before-acquire](CAPABILITY_GAP_ADOPTION.md) searches the registry and uses receiving-organization acceptance | Explicit task-fit decisions and evaluation of appropriate non-reuse beyond configured capability rules |
 | Creation and repair | [Acquisition](CAPABILITY_ACQUISITION.md) builds extraction Actors and permits a bounded semantic repair | Deployed-capability failure handling, shared advisories, and independently adopted replacements |
-| Development knowledge | Manifests can carry workflow descriptions | Executable builder/test/repair packages and evidence that they improve later development |
+| Development knowledge | Executable source packages, method registry, receiver adoption and pinned invocation are merged | Independent return, general composition and evidence that inherited methods improve later development |
 | Organization changes | Roles, recruitment, delegation, retirement, and capability attachment | Use structural changes when new responsibility warrants them; reuse an existing owner when sufficient |
 | Evaluation | Two-organization inheritance tests and [planner evaluation](PLANNER_EVAL.md) exercise specific mechanisms | Controlled capability-transfer and recursive-improvement evaluation; existing fixtures do not establish this claim |
 
-The current generated capability artifact path is specialized to TypeScript web extraction on Apify. The proposed invention-lab demonstration needs a new simulator, development-method executor contract, and independent evaluator. Describing them in a manifest does not implement those runtimes. The shared registry is the present network mechanism, not a decentralized protocol.
+The task-capability path uses TypeScript web extraction on Apify. The separate invention-lab simulator, method packages, executor/scorer and receiver-policy implementations are now merged. Their retained records and remaining assurance gaps are tracked in [implementation status](IMPLEMENTATION_STATUS.md); they do not establish the complete independent method-return demonstration. The shared registry is the present network mechanism, not a decentralized protocol.
 
 ## Adoption with evidence
 
@@ -86,7 +86,7 @@ validation must be completed before publishing it as implemented. The old venue
 mission is not a prerequisite for the new product demonstration. Authenticated
 sponsor evidence remains a separate obligation for any sponsor claims.
 
-The [handoff](AGENT_HANDOFF.md#current-ownership-and-next-work) and [issue #4](https://github.com/HenryWashuHe/genesis/issues/4)
+The [handoff](AGENT_HANDOFF.md#current-ownership-and-next-work) and [issue #1](https://github.com/HenryWashuHe/calhack13/issues/1)
 record the current task split. Henry's core Claude retains adoption and the narrow
 terminal-run retry work; Eric retains the constitution audit and the next evidence
 UI design; the ACP author retains its regression corrections. Codex owns shared

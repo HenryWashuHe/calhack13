@@ -2,8 +2,22 @@
 
 How a receiving organization goes from a selected method to one governed run
 of it. Operator routes on the organization server; every step re-reads current
-state under the kernel lock. Nothing on the server builds a plan, runs a method
-or scores an output.
+state under the kernel lock. The default path records externally produced plans
+and receipts. Optional receiver-configured rescoring and re-execution can invoke
+local tools; they are disabled unless explicitly configured.
+
+## Optional verification — merged October 25, 2026
+
+`genesis org --method-rescorer FILE` configures pinned local rescoring for
+adoption trials and invocation results. `--method-reexecutor FILE` additionally
+re-executes the offered candidate against the receiver's pinned acceptance plan;
+it requires the rescorer. Current owner/grant/scope are checked before staging
+and again before commit. These paths may execute tools/code and are not offline
+record checks. See [source](../../../crates/genesis-server/src/method_rescore.rs)
+and [review evidence](../../IMPLEMENTATION_STATUS.md) for configuration and limits.
+Conditional `method.develop` permission checks apply at adoption/invocation;
+prior records do not bypass them. Operator-reported receipts alone are still
+not independent execution proof.
 
 ## 1. Adopt: `POST /method-adoptions`
 

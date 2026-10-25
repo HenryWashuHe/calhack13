@@ -46,6 +46,17 @@ See [runtime semantics](CREAO_RUNTIME.md) and [readiness](CREAO_READINESS.md).
 | Elastic Agent Builder | Organizational proposals and evidence/capability retrieval |
 | GENESIS Rust kernel | Authority, selective adoption, verification and lifecycle |
 
+## Recorded team app — October 25, 2026
+
+The [team-reported architecture record](../apps/stage/architecture.html) identifies
+**GENESIS Method Revision Analyst**, app `9880ad7c-fa2a-4a88-8c82-40eed5f81560`,
+with completed runs on October 24 and 25. The
+[run share link](https://agent.creao.ai/share/45e3804d4b325b821557d8d70509b633)
+has a reported November 24 expiry; the
+[install link](https://agent.creao.ai/install/9880ad7c-fa2a-4a88-8c82-40eed5f81560)
+identifies the app. This is separate from the old Developer agents and does not
+prove the migrated backend's live readiness or governed mission effects.
+
 ## Evidence still required
 
 - The live gate runs one synthetic selective-adoption check through API Trigger;
@@ -56,8 +67,8 @@ See [runtime semantics](CREAO_RUNTIME.md) and [readiness](CREAO_READINESS.md).
   production readiness, governed core work or A → B → A improvement.
 - Capture the actual app's build/save provenance on `agent.creao.ai`, meaningful
   frozen task inputs, native run IDs, independent verification and resulting
-  kernel effects. Obtain a genuine share link from CREAO; a private API URL or
-  run UUID is not a share link.
+  kernel effects. Use the actual run share link above only for the work it shows;
+  a private API URL or run UUID is not a substitute.
 - Put the actual agent ID and selected share link in the Devpost README and
   choose the CREAO track. These submission actions are separate from migration.
 

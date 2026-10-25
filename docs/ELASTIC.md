@@ -1,8 +1,9 @@
 # Elastic integration
 
-Status: implemented and tested against in-process fakes of the Elasticsearch
-REST subset and the Kibana Agent Builder API. **No live Elastic project has
-been called yet.** The live smoke test below is still required.
+Status: implemented with in-process tests of Elasticsearch and Agent Builder.
+Dated operator reports now include live Elastic execution; see [live gates](LIVE_GATES.md).
+Those reports do not certify a new environment or prove the full method-transfer
+workflow. Use the smoke test below to check the configured project.
 
 ## What it does
 

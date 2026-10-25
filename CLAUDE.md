@@ -1,14 +1,24 @@
 # GENESIS agent coordination
 
-> **Working repository: [genesis-history-experiment](https://github.com/HenryWashuHe/genesis-history-experiment).**
-> Push and open PRs here; coordinate in [issue #1](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1).
+> **Working repository: [calhack13](https://github.com/HenryWashuHe/calhack13).**
+> Push and open PRs here; coordinate in [issue #1](https://github.com/HenryWashuHe/calhack13/issues/1).
 > The owner moved active work here on October 23, 2026 (Pacific). Histories have
 > different commit identities; preserve this repository’s ancestry and verify
 > mapped-base tree deltas. See the [migration map](docs/REPOSITORY_MIGRATION.md)
 > for legacy PR numbers and preserved work. The proposed sync script is held;
 > do not assume it is ready. Historical checkpoints below retain old links.
 
-## Current direction and coordination
+## Current documentation checkpoint — October 25, 2026
+
+Use [implementation status](docs/IMPLEMENTATION_STATUS.md) and the
+[current handoff](docs/AGENT_HANDOFF.md#current-ownership-and-next-work).
+#57/#65, method adoption/invocation, #259/#264–#266 and CREAO API Trigger #270
+are merged. Automation and the native Goal remain paused; G0–G4 remain open.
+The public repository was renamed to calhack13; the Friday-start project
+[timeline](docs/PROJECT_TIMELINE.md) preserves original evidence dates.
+All lower snapshots retain their original source-specific status and assignments.
+
+## Historical direction and coordination
 
 **Frozen snapshot: main `0cc38e6`, nine open PRs before this checkpoint:**
 #204, #203, #199, #181, #180, #144, #65, #57 and draft #7.

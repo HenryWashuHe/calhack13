@@ -1,15 +1,19 @@
 # Working repository and migration checkpoint
 
-The owner moved active work to [genesis-history-experiment](https://github.com/HenryWashuHe/genesis-history-experiment) on October 23,
-2026 (Pacific). Use [coordination issue #1](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1) for ownership,
-current heads and handoffs. The former repository's issue #4 and tasks #122–#126
-are historical source references. **An old PR number is not the same PR here.**
+The canonical public repository is now [calhack13](https://github.com/HenryWashuHe/calhack13).
+On Friday, October 23, 2026 (Pacific), active work moved from `genesis` to
+`genesis-history-experiment`; that destination was subsequently renamed to
+`calhack13`. The rename preserves issue/PR history and existing links redirect.
+Use [coordination issue #1](https://github.com/HenryWashuHe/calhack13/issues/1),
+[current ownership](AGENT_HANDOFF.md#current-ownership-and-next-work), and the
+[Friday-start timeline](PROJECT_TIMELINE.md). Former `genesis` PR numbers still
+need the mapping below; a rename does not merge the two original histories.
 
-The local primary checkout is `/Users/apple/Documents/ChatGPT/genesis-history-experiment`.
-The existing hourly continuation now explicitly targets this repository and
-checkout. Its older paused app Goal is unchanged; [ONGOING_GOAL.md](ONGOING_GOAL.md)
-remains the authorized completion contract. Eric (`EricZhu-31`) has write access.
-Ines remains unassigned. Do not change repository visibility.
+The existing primary local checkout is `/Users/apple/Documents/ChatGPT/genesis-history-experiment`;
+its directory name need not match the canonical remote. Automation and the native
+Goal remain paused. [ONGOING_GOAL.md](ONGOING_GOAL.md) retains the completion
+contract; documentation maintenance does not resume experiments or automation.
+The lower migration, credential and preserved-work records are dated history.
 
 ## Current PR routing
 
@@ -89,7 +93,11 @@ Local-only old review compositions contain no additional implementation edits:
 and passed 135 bridge tests. Their source/regression branches are preserved.
 Do not import those raw legacy merge histories or call those counts a new test run.
 
-## Credentials and evidence
+## Historical credential checkpoint — October 23, 2026
+
+Production CREAO now uses [API Trigger](CREAO_RUNTIME.md), merged October 25.
+The v1/v2 compatibility limitation below describes the migration checkpoint,
+not current backend configuration.
 
 The supplied `.env` is stored only in the ignored local checkout with owner-only
 permissions. It is not part of this migration or any PR. Credentials are not
