@@ -29,7 +29,7 @@ const FAMILIES = {
   jobshop: { id: "jobshop-10x5", make: jobshop.jobshopFamily, controls: jobshop.jobshopControls, featureDoc: jobshop.featureDoc, target: 1.2, root: "SPT", subject: "a dispatching rule for job-shop scheduling",
     task: `The task: 10 jobs, 5 machines; every job visits every machine once in its own order, with integer processing times between 1 and 99. A greedy dispatcher runs the shop: whenever a machine is free and has ready operations, it starts the one with the HIGHEST priority value. Success on an instance means makespan <= target × lower bound, where the lower bound is the larger of the heaviest machine load and the longest job. Progress is lower_bound / makespan. Instances are drawn fresh and hidden every generation.` },
   binpack: { id: "binpack-100", make: binpack.binpackFamily, controls: binpack.binpackControls, featureDoc: binpack.featureDoc, target: undefined, root: "first-fit", subject: "a bin-choice rule for online bin packing",
-    task: `The task: 100 items with integer sizes between 1 and 50 arrive one at a time; bins have capacity 100. For each item, every open bin with enough room is a candidate; the rule scores each candidate and the item goes into the HIGHEST-scoring bin; if no open bin has room, a new bin is opened. Success on an instance means bins used <= target × lower bound, where the lower bound is ceil(total size / capacity). Progress is lower_bound / bins. Instances are drawn fresh and hidden every generation.` },
+    task: `The task: 100 items with integer sizes in the range given below arrive one at a time; bins have capacity 100. For each item, every open bin with enough room is a candidate; the rule scores each candidate and the item goes into the HIGHEST-scoring bin; if no open bin has room, a new bin is opened. Success on an instance means bins used <= target × lower bound, where the lower bound is ceil(total size / capacity). Progress is lower_bound / bins. Instances are drawn fresh and hidden every generation.` },
 };
 
 function mockMutator(spec) { // a local stand-in for dry runs: seeded linear rules from the family's own feature list, no model
@@ -49,11 +49,14 @@ function main() {
   const cfg = { family: spec.id, generations: num("generations", 5), k: num("k", 4), heldout: num("heldout", 20), screen: num("screen", 3), factor: num("factor", 2), target: arg("target", undefined) === undefined ? spec.target : num("target"), seed: String(arg("seed", "smoke-1")), stall: num("stall", 3), mock: arg("mock", false) === true, effort: String(arg("effort", "medium")), gate: String(arg("gate", "all")), model: process.env.GENESIS_LLM_MODEL || "claude-sonnet-5-5" };
   const out = String(arg("out", path.join("scripts", "iteration", "results", `${String(arg("family", "jobshop"))}-${cfg.seed}${cfg.mock ? "-mock" : ""}`)));
   fs.mkdirSync(out, { recursive: true });
-  const family = spec.make(cfg.target === undefined ? { id: spec.id, seed: cfg.seed } : { id: spec.id, seed: cfg.seed, target: cfg.target });
+  const sizes = arg("sizes", undefined) === undefined ? undefined : String(arg("sizes")).split(",").map(Number); // binpack only: item size range, e.g. --sizes 20,70
+  cfg.sizes = sizes || null;
+  const family = spec.make({ id: spec.id + (sizes ? `-${sizes.join("to")}` : ""), seed: cfg.seed, ...(cfg.target === undefined ? {} : { target: cfg.target }), ...(sizes ? { sizes } : {}) });
   const panel = 6, samples = Math.max(8, Math.ceil((cfg.k * cfg.heldout * cfg.generations) / panel)); // random search gets the loop's selection budget
   const controls = spec.controls(family, { randomSearch: { seed: cfg.seed + ":rs", samples, panel } });
   const calls = [];
-  const inner = cfg.mock ? mockMutator(spec) : claudeMutator({ subject: spec.subject, task: spec.task, featureDoc: spec.featureDoc, model: cfg.model, effort: cfg.effort, log: (e) => calls.push(e) });
+  const task = spec.task + (sizes ? ` Item sizes are integers in [${sizes[0]}, ${sizes[1]}].` : spec.id.startsWith("binpack") ? " Item sizes are integers in [1, 50]." : "");
+  const inner = cfg.mock ? mockMutator(spec) : claudeMutator({ subject: spec.subject, task, featureDoc: spec.featureDoc, model: cfg.model, effort: cfg.effort, log: (e) => calls.push(e) });
   const mutator = cascade(inner, { family, screenSeed: cfg.seed + ":screen", m: cfg.screen, factor: cfg.factor });
   const criterion = { rule: "success-count-margin", min_margin: 1 };
   const state = createState({ lab: "lab_a", seed: cfg.seed });

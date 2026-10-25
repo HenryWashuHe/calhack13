@@ -32,11 +32,12 @@ const unit = (key, counter) => draw(key, counter) / 0x100000000;
 const sum = (xs) => xs.reduce((a, b) => a + b, 0);
 const mean = (xs) => (xs.length ? sum(xs) / xs.length : 0);
 
-const MAX_SIZE = 50;
+const DEFAULT_SIZES = Object.freeze([1, 50]);
 
-/** The problem behind an instance string: `items` integer sizes in [1, 50] and the volume lower bound. */
-export function problemOf(instance, items, capacity) {
-  const sizes = Array.from({ length: items }, (_, i) => 1 + (draw(`${instance}/size`, i) % MAX_SIZE));
+/** The problem behind an instance string: `items` integer sizes in [min, max] (default [1, 50]) and the volume lower bound. */
+export function problemOf(instance, items, capacity, sizeRange = DEFAULT_SIZES) {
+  const [lo, hi] = sizeRange;
+  const sizes = Array.from({ length: items }, (_, i) => lo + (draw(`${instance}/size`, i) % (hi - lo + 1)));
   const total = sum(sizes);
   return { sizes, capacity, total, lower_bound: Math.ceil(total / capacity) };
 }
@@ -109,7 +110,8 @@ function outcome(p, bins, target) {
   return { success: bins <= target * p.lower_bound, progress: Math.min(1, p.lower_bound / bins), cost: 1, detail: { bins, lower_bound: p.lower_bound, ratio } };
 }
 
-export function binpackFamily({ id, seed, items = 100, capacity = 100, target = 1.02, timeoutMs = 200 }) {
+export function binpackFamily({ id, seed, items = 100, capacity = 100, target = 1.02, timeoutMs = 200, sizes = DEFAULT_SIZES }) {
+  if (!Array.isArray(sizes) || sizes.length !== 2 || !(Number.isInteger(sizes[0]) && Number.isInteger(sizes[1]) && sizes[0] >= 1 && sizes[1] >= sizes[0] && sizes[1] <= capacity)) throw new Error("sizes must be [min, max] integers within 1..capacity");
   const timeout = Math.max(1, Math.floor(timeoutMs));
   return {
     id,
@@ -118,7 +120,7 @@ export function binpackFamily({ id, seed, items = 100, capacity = 100, target = 
     instances: (instanceSeed, n) => Array.from({ length: n }, (_, i) => `${id}/${String(instanceSeed).slice(0, 8)}/${i}`),
     score: (pkg, instance) => {
       try {
-        const p = problemOf(instance, items, capacity);
+        const p = problemOf(instance, items, capacity, sizes);
         const priority = compileRule(pkg && pkg.source, timeout);
         return outcome(p, packUnderTimeout(p, priority, timeout), target);
       } catch (err) { return failure(err); }
