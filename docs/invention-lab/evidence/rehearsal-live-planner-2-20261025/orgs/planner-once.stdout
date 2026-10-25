@@ -1,0 +1,55 @@
+Proposed {
+    change: OrgChangeRecord {
+        change_id: ChangeId(
+            "chg_56cdd5dc02fc490d8b6654d60c822b16",
+        ),
+        status: Validated,
+        proposal: OrgChangeProposal {
+            expected_org_revision: 3,
+            trigger_evidence_ids: [
+                ObservationId(
+                    "obs_a5ef72d741674b0aa6a9997673b57d30",
+                ),
+            ],
+            rationale: "A need now exists to develop rough-transport cart designs using a method another lab published, judged against fresh public instances. This falls within the mission. The selected method is retained only as evidence; it is not installed or accepted, and someone must own evaluating it. The Lab lead is active and already holds method.develop. Its charter, \"evaluate reusable methods\", covers this work, so assigning it there gives one accountable owner with no new role, budget or scopes. A capability request is not possible: the evidence reference is an internal genesis reference, not a public URL to cite as an observed source. Nothing is installed to attach, and no distinct continuing work justifies a specialist.",
+            operations: [
+                AssignResponsibility {
+                    target: FromRequirement {
+                        key: "rough_cart_method_dev",
+                        requirement_id: RequirementId(
+                            "req_2d1dbd8187ac48c78b5479c284726e25",
+                        ),
+                        purpose: "Develop and evaluate rough-transport cart designs using the published external method, and determine whether the method is worth adopting.",
+                        trigger: "Method-development need observed (obs_a5ef72d741674b0aa6a9997673b57d30)",
+                        termination: "A design beats the fixed cart by at least one success on six fresh public instances, or the method is judged unsuitable and that judgment is recorded as evidence.",
+                    },
+                    owner: Existing {
+                        role_id: RoleId(
+                            "role_9649bd2660b94b2fa9ec2ea25b1ffde0",
+                        ),
+                    },
+                },
+            ],
+            budget_limit_cents: None,
+        },
+        allocation: KeyAllocation {
+            roles: {},
+            responsibilities: {
+                "rough_cart_method_dev": ResponsibilityId(
+                    "rsp_10c34e929dc848abba941635f3441b86",
+                ),
+            },
+            contracts: {},
+            gaps: {},
+        },
+        provisioned: {},
+        ready: {},
+        operations: {},
+        errors: [],
+        committed_revision: None,
+        submitted_by: "agent",
+        created_at: 2026-10-25T08:30:11.738056907Z,
+        updated_at: 2026-10-25T08:30:11.738062147Z,
+    },
+    attempts: 1,
+}
