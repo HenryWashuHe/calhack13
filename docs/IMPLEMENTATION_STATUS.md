@@ -8,8 +8,8 @@ Use the [migration map](REPOSITORY_MIGRATION.md) for legacy PRs. The
 [ongoing goal](ONGOING_GOAL.md) remains a bounded A → B → A executable
 development-method loop and honest controlled evaluation with fixed model
 weights. Event organization remains superseded. G0–G4 are still open.
-The native app Goal and existing hourly continuation are active; no completion
-is claimed. The repository completion contract is unchanged.
+The latest heartbeat resumes ongoing work, while the native app Goal currently
+reports `paused`; no completion is claimed. The repository completion contract is unchanged.
 
 The user-requested queue cleanup closed #176/#177/#178 as superseded, with
 code/test blobs preserved in #180/#181 and revised docs in #182/#183. #143 is
@@ -25,11 +25,20 @@ does not establish independent organizational transfer or goal completion.
 Proposal #195 `81bddd78` is held after [document review](https://github.com/HenryWashuHe/genesis-history-experiment/pull/195#pullrequestreview-5641553241):
 finite samples do not establish a family-wide cap; corrected/pinned #184
 calibration and declared controls/builds/scoring/budgets remain prerequisites.
-ACP #198 `adf43e07` is under review following its acknowledged Stage claim;
-the proposed decision strip is a follow-up, not completed implementation.
+ACP #198 `adf43e07` is held after [review 5641631281](https://github.com/HenryWashuHe/genesis-history-experiment/pull/198#pullrequestreview-5641631281):
+56 original VM tests pass; three `b8da38d5` guards fail on inferred planner
+activity, foreign pending-card replacement and Explain CSS applying to `body`.
+#199 `5567f827` decision strip is unreviewed and depends on held #198. No browser,
+live POST or provider/runtime ran. New #148 `62c2a0c3` and #168 `8e132a96` are
+unreviewed; #149 new `6e08ba9` also awaits review. Previous findings remain tied
+to old sources. Scheduling-study draft #201 `557127b4` is unreviewed; its offline
+calibration/replay counts are author-reported, not verified here or formal evidence.
+CodeRabbit config #202 `6640fac8` → `038b8ce9` is merged after official-key review,
+with no app tests. Explicit bot commands and App installation remain separate.
 
-Main through docs checkpoint #194 `80b7a42dbfde82d0559aa73f2b26dbf6ba702e2f`,
-tree `23029734327440ff41b881084b9e0192504bb50c`,
+Main through #179 `2a12e237085da516082071cb2bb07bea6ed6b8f0`, tree
+`b10536c4c511114b24f373c015cfeaf23054388d`, matches reviewed composition
+`0db8d3cd9219bc1caec69bd455b113c7aae1adbf` and
 includes the reviewed foundations below. Method generation merged at `d1be8443fee46e1196861926a963563f48407936`,
 whose tree `dc9d6adc19863d8584fd5af1fd11eae7552014eb` exactly matches the independently
 validated generation stack. Counts refer to the named source/composition, not a
@@ -37,13 +46,13 @@ combined main run.
 
 | Work | Validation and evidence boundary |
 | --- | --- |
-| Generation-origin join #196 `76ed5d3` — under review, not merged | Root 18 scoped library/cohort cases and static independent source review pass; adversarial review remains in progress. Original snapshots/Prepared pins bind all six positions to selected methods, common base policy and immediate workflow parents. Missing/unknown attempts remain explicit. Caller-retained identity does not authenticate origin, feedback completeness or chronology. |
-| Optional origins CLI #197 `a7e36f0` — under review, not merged | Author 27 scoped checks and root/independent nine CLI checks pass, with scoped strict Clippy/fmt; counts overlap. Optional `/2` captures retain originals and both reports, recompute them read-only and emit hashes. Legacy `/1` bytes stay unchanged. No source execution, recovery, provider call, fresh-panel use or gate closure. |
+| Generation-origin join #196 `76ed5d3` → `f5a7bd74`; guards #200 `8c6029c1` → `b8fef413` | Root 18 scoped library/cohort cases pass; eight unchanged independent guards pass on `af09cdb`, tree `f09c1267`. Original snapshots/Prepared pins bind six positions to selected methods, common base policy and immediate workflow parents. Missing/unknown attempts remain explicit. Caller-retained identity does not authenticate origin, feedback completeness or chronology. |
+| Optional origins CLI #197 `a7e36f0` → `97b108d4` | Author 27 scoped cases and root/independent nine CLI checks pass, with scoped strict Clippy/fmt; counts overlap. Optional `/2` captures retain originals and both reports, recompute them read-only and emit hashes. Legacy `/1` bytes stay unchanged. No source execution, recovery, provider call, fresh-panel use or gate closure. |
 | Complete-roster CLI #191 `b6750eec` → `b16f8eb7`; guards #192 `1eb15a88` → `8493a8ce` | Root 21 initial scoped cases, 20 overlapping independent checks and 12 final composition cases pass, including three preserved independent guards; scoped strict Clippy/fmt pass. Final tree `1a3fce96` matches composition `416ff677`. Bounded create-only capture/read-only recheck retains declaration/eight selections/report without original paths. Canonical hashes are local identities, not chronology, generation provenance, costs, authority or success. |
 | Public eligibility CLI #174 `f67ae448` → `73d039b5` | Five focused eligibility tests (including all three original independent guards), three additional inert-file checks and scoped strict Clippy/fmt pass. Bounded regular-file reads and validated digest paths clear the previous hold. Read-only typed assessment only, not scorer execution, trusted expected-state origin or endpoint closure. |
 | Invocation purpose #185 `811c6f5c` → `b1b2c8f2`; guards #188 `e4824046` → `68604b92` | 23 pure core cases and scoped strict Clippy pass, including three preserved independent receipt-boundary guards. A one-slot public Development plan pins claimed adoption/grant identity. This authenticates no authority, runs no method and supplies no acceptance pair or fresh comparison. |
 | Eight-selection development roster #187 `da669296` → `bb9f7c28`; guards #189 `d2304309` → `899de43d` | Final composition `4b0d330a` and main share tree `04ee987a`: 30 scoped forge tests and strict Clippy/fmt pass, including four independent guards. All eight selections/24 positions bind round methods/controls/runtime settings, per-family policy and numeric trial grants. Pure consistency only; operator capture is supplied by #191, while chain links, generation provenance, chronology, fresh-panel consumption and governance remain open. |
-| Method adoption #155 `cba4bf00` → `0bf7a8e2`; authorization routes #159 `db0deeca` → `e7c6baf7` | Root composition `0b671510`, tree `24183518`, matched main; 23 scoped tests and strict Clippy/fmt pass. Receiver-owned exact policy pins, record invariants, disabled-receiver refusal and durable replay clear the prior holds. Authorization under the current grant is implemented; execution under it is not. Policy reacceptance is proposed in held #179; draft #186 invocation integration is unmerged. |
+| Method adoption #155 `cba4bf00` → `0bf7a8e2`; authorization routes #159 `db0deeca` → `e7c6baf7` | Root composition `0b671510`, tree `24183518`, matched main; 23 scoped tests and strict Clippy/fmt pass. Receiver-owned exact policy pins, record invariants, disabled-receiver refusal and durable replay clear the prior holds. Authorization under the current grant is implemented; execution under it is not. Policy reacceptance and compatibility corrections are merged in #179; draft #186 invocation integration is unmerged. |
 | Receiver IDs #163 `66118d2b` → `0df3e227`; guards #166 `00499186` → `c2fd8d12` | 22 mocked tests pass with real subprocess creation forbidden; original `e3f3779` and first-seed files unchanged. Namespaces run/attempt/scoring IDs by declared trial before intent, preserving deterministic preparation. No old evidence rewritten or runtime assurance established. |
 | Development selector #169 `1515b46f` → `47aef07f`; independent guards #170 `a8c42654` → `755d6c65` | Eight root selector tests, four preserved independent retained-record cases and 16 core verdict tests pass. [One arm/family and three rounds](invention-lab/contracts/process-selection.md), exact evidence checks, explicit missing/ineligible rows and deterministic selection; not a complete roster/chronology/endpoint or G4 result. |
 | Selection CLI #173 `332f4f01` → `523d38a2` | Independent source review clear; root four new + eight existing binary cases and strict Clippy/fmt pass. Four additional independent cases pass, preserved in #175 `d32caa37` → `9c7e8c0f`. Create-only self-contained capture and read-only recheck expose exact selected method/plan and normalized input/report/selection hashes; no source execution or complete roster/chronology/governance claim. |
@@ -80,7 +89,7 @@ combined main run.
 | Optional chain generation guard #110 `4b57cfa` → `0f277d7` | Independent 34 focused tests pass; author 33 focused tests and strict Clippy/fmt. Optional retained-chain validation precedes recovery/credentials/reservation/provider calls. Counts overlap; cooperating commands only, no runtime-entry or global enforcement claim. |
 | Retained chain CLI (`f8b6919`, composition `42d15cd`) | Create-only whole-chain declaration and per-stage bindings; read-only checks reuse existing generation allocation and trial bindings. Full forge 221/42 plus independent 20 focused checks, strict Clippy/fmt. [Contract](invention-lab/contracts/chain-allocation.md#retained-cli-files). No automatic runtime consumption or controlled comparison. |
 | CREAO blank-version compatibility #96 source `dbec006da117a5a9f84389d85f27956f997bdf21`, merge `04b4c3756b03a4f5b3c7c7627a48717ccfdc7697` | Independently 68 CREAO Rust tests and 10 Node gate tests pass; the 10 Node cases were also separately rerun. Strict Clippy/fmt are author-validated. Unset/blank selects v1 consistently; explicit v2 stays opt-in and invalid nonblank versions fail. Offline only; no hosted completion or changed saved identities. |
-| Stage prerequisite / active-goal checkpoint #97 source `202e1fce4fb27418d6fe4898b6f57545de92f342`, merge `2dfc0993132385cc83227848b722fef08a7d01f0` | Ten independent stage/CLI/overflow/recovery cases pass; scoped strict Clippy/fmt. Existing checked arithmetic is shared through read-only accessors without changing valid serialization/hash domains. Current docs record the revised active app Goal; no gate closes. |
+| Stage prerequisite / active-goal checkpoint #97 source `202e1fce4fb27418d6fe4898b6f57545de92f342`, merge `2dfc0993132385cc83227848b722fef08a7d01f0` | Ten independent stage/CLI/overflow/recovery cases pass; scoped strict Clippy/fmt. Existing checked arithmetic is shared through read-only accessors without changing valid serialization/hash domains. That checkpoint recorded the then-active app Goal; no gate closes. |
 | Finite chain ceilings #103 source `7b65b066687c8636fce2a41097c29362b8bce8e5`, merge `c458c6eb49a4e3cbdc2cc2710930b0252eb29668` | Reviewed and merged tree `4a4a8b00585a894272910df082d7f52f7e7436da`. Author full forge run: 216 tests across 41 targets before three assertions were strengthened; strengthened five chain cases and final scoped strict Clippy pass. The earlier fmt pass preceded a final module-order cleanup; this checkpoint corrects that formatting-only issue and passes workspace fmt. Independent frozen-head review reran 15 chain/stage/CLI/recovery tests, all passed, zero ignored. Counts overlap. [Structural generation/trial-only ceilings](invention-lab/contracts/chain-allocation.md), not runtime enforcement or retrospective allocation. |
 | Execution/scoring records #18/#22 (`07961f1` / `7510b86`) | Composition `785a22c` / `4d64fe6`: 102 core tests and strict Clippy. Experimental records, not an executor. |
 | Trial plan #28 (`e47ee64`, source `f52f182`) and experiment ledger #32 (`8578759`, source `0fa3773`) | Composition `d386fb0` / tree `680cf27e`: 116 core tests and strict Clippy. Declared attempts, cumulative reservations/settlements, unknown usage and exact transcripts are represented. |
@@ -317,8 +326,8 @@ independent guards #189 at `899de43d`. The final composition passes 30 scoped
 forge cases and strict Clippy/fmt. Its declaration binds all
 24 development positions, common round method/control/runtime settings and
 family-specific policy with exact numeric grants. It is not the earlier six-call
-generation admission or a chain-cost/history proof. #196/#197 are the active,
-unmerged source-origin/base-policy/immediate-parent binding increment. Feedback
+generation admission or a chain-cost/history proof. #196/#197/#200 now add the
+merged source-origin/base-policy/immediate-parent binding increment. Feedback
 origin/completeness, chain admission/cost links, externally pinned chronology,
 fresh-panel consumption and governance remain open; no source execution or gate
 closure is established. Bounded operator
@@ -331,7 +340,7 @@ corrected. Trusted full selection lineage remains upstream. Eligibility CLI
 #174 `f67ae448` is merged at `73d039b5` after its bounded-read/path fix;
 [review 5641409679](https://github.com/HenryWashuHe/genesis-history-experiment/pull/174#pullrequestreview-5641409679)
 checks five focused tests plus three inert-file cases and scoped strict Clippy/fmt.
-Endpoint [#168 `99b2c8b0` remains held](https://github.com/HenryWashuHe/genesis-history-experiment/pull/168#pullrequestreview-5641419161):
+Endpoint #168 `8e132a96` is new and unreviewed. The [prior `99b2c8b0` hold](https://github.com/HenryWashuHe/genesis-history-experiment/pull/168#pullrequestreview-5641419161):
 legitimate family-specific policy is rejected, full method metadata is not pinned,
 and order/exact not-run complement is lost. Mocked eligible observations yield
 one passing control and seven failing subcases in `3ff7c98b`; original guards
@@ -346,10 +355,14 @@ Public `6636596` and hidden `b59d1eb1` builds are distinguished; attempt 2 follo
 seeing attempt 1. This retained-data check is not a rerun, independent secrecy/
 chronology proof, accepted recursive return or runtime/namespace clearance.
 
-#179 correction `4ddca616` is under review; the [prior `0946e6bc` hold](https://github.com/HenryWashuHe/genesis-history-experiment/pull/179#pullrequestreview-5641416602)
-on legacy schema migration, policy-fenced reacceptance and runtime/protocol
-compatibility fences. Eleven original store cases pass; four pure SQLite/record
-guards fail at `39a979a9`. Merged #185/#188 supplies invocation identity only;
+#179 `4ddca6163b03e42afb3294136a5d7cb74f337e55` merged at
+`2a12e237085da516082071cb2bb07bea6ed6b8f0`, clearing the previous migration,
+policy-reacceptance and runtime/protocol compatibility findings. Root 21 scoped
+cases (17 store and four API) pass with strict scoped Clippy; the 17 store cases
+pass again on final composition `0db8d3cd`, tree `b10536c4`, identical to main.
+All four original `39a979a9` guards are unchanged. Schema-1 read/replay remains
+supported, but method invocation requires a new compatibility decision; the old
+authorization helper checks ownership only. No runtime or provider was executed.
 [#186 `b069b129` is held](https://github.com/HenryWashuHe/genesis-history-experiment/pull/186#pullrequestreview-5641441324)
 on disabled-receiver final-receipt retention and accepting a frozen binding too
 large for its receipt cap. Twelve library and four HTTP controls pass; two new
