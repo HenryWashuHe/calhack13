@@ -11,18 +11,31 @@ const body = {
   messages: [{ role: "user", content: req.user }],
   output_config: { effort: req.effort },
 };
-const response = await fetch("https://api.anthropic.com/v1/messages", {
-  method: "POST",
-  headers: {
-    "content-type": "application/json",
-    "x-api-key": key,
-    "anthropic-version": "2023-06-01",
-  },
-  body: JSON.stringify(body),
-  signal: AbortSignal.timeout(170_000),
-});
-const json = await response.json();
-if (!response.ok) throw new Error(`Claude API HTTP ${response.status}: ${json?.error?.type || "unknown"}`);
+let response, json;
+try {
+  response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-api-key": key,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(170_000),
+  });
+  json = await response.json();
+} catch (error) {
+  // Never put the transport's message, JSON body or request headers in stderr.
+  // A body-read failure still retains an HTTP error status already received.
+  const timeout = error?.name === "TimeoutError";
+  if (response && !response.ok) throw new Error(`Claude API HTTP ${response.status}: unknown${timeout ? " (timeout)" : ""}`);
+  throw new Error(timeout ? "Claude API timeout" : "Claude API response unavailable");
+}
+if (!response.ok) {
+  const type = json?.error?.type;
+  const safeType = typeof type === "string" && /^[A-Za-z_]{1,48}$/.test(type) ? type : "unknown";
+  throw new Error(`Claude API HTTP ${response.status}: ${safeType}`);
+}
 process.stdout.write(JSON.stringify({
   id: json.id,
   model: json.model,

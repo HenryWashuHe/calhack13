@@ -108,8 +108,11 @@ export function admitKeyFile(keyPath, roots) {
 }
 /** The HTTP status and error type from provider-call's failure line, and nothing else from its output. */
 export function providerFailure(stderr) {
-  const m = /Claude API HTTP (\d{3}): ([A-Za-z_]{1,48})/.exec(String(stderr || ""));
+  const m = /^(?:Error: )?Claude API HTTP ([45]\d{2}): ([A-Za-z_]{1,48})(?: \(timeout\))?$/m.exec(String(stderr || ""));
   return m ? { http_status: Number(m[1]), error_type: m[2] } : { http_status: null, error_type: null };
+}
+function providerTimedOut(stderr) {
+  return /^(?:Error: )?Claude API (?:timeout|HTTP [45]\d{2}: [A-Za-z_]{1,48} \(timeout\))$/m.test(String(stderr || ""));
 }
 export function frozenPanels(seed) {
   const family = jobshopFamily({ id: "jobshop-10x5", seed });
@@ -195,7 +198,7 @@ function main() {
       if (result.error || result.status !== 0) {
         const failure = providerFailure(result.stderr);
         const err = new Error(`provider submission outcome unknown: ${result.error?.code || result.status}`);
-        err.provider = { ...failure, timeout: result.error?.code === "ETIMEDOUT", reserved_micro_usd: PER_CALL_MICRO_USD };
+        err.provider = { ...failure, timeout: result.error?.code === "ETIMEDOUT" || providerTimedOut(result.stderr), reserved_micro_usd: PER_CALL_MICRO_USD };
         throw err;
       }
       const response = JSON.parse(result.stdout);
