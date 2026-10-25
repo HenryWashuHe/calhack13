@@ -1,0 +1,23 @@
+{
+  "assignments": {},
+  "capability_gaps": {},
+  "constitution": {
+    "budget_cents": 1000000,
+    "max_active_contracts": 3,
+    "max_active_roles": 10,
+    "scopes": [
+      "method.develop",
+      "mission.coordinate"
+    ]
+  },
+  "contracts": {},
+  "installations": {},
+  "missions": {},
+  "name": "org_example_b",
+  "observations": {},
+  "org_id": "org_example_b",
+  "requirements": {},
+  "responsibilities": {},
+  "revision": 0,
+  "roles": {}
+}
