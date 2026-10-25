@@ -104,13 +104,14 @@ failures or input that is actually required.
 
 ## Current milestone ledger
 
-**Review checkpoint, October 25, 2026 — main `a177ba5e`:** #210 source
-`77a6fbb` is merged with 51/51 trusted handwritten tests; unchanged original
-calibration hashes are author-reported and unavailable locally. #209 is a
-receiving-side declaration, not clearance. [The review snapshot](reviews/pr-queue-2026-10-25.md)
-separates corrected findings from #207 (merged with unresolved shape failures),
-the #199 hold and pending #203 review. G0–G4 stay open; the native app Goal reports `paused`. No new paid run,
-provider call or generated-method execution is authorized or claimed here.
+**Review checkpoint, October 25, 2026 — main `b141cdcf`:** #144 is merged after
+62/62 inert Node checks; #212 clears #207's shape findings with 12 pure/mocked
+passes. #57/#65 fixups are on their PR branches only; independent Linux assurance
+remains open. #210 retains 51/51 trusted handwritten checks, with original
+calibration files absent locally; #209 is declaration only. [The review snapshot](reviews/pr-queue-2026-10-25.md)
+records exact sources, remaining #199/#203 holds and deferred new submissions.
+G0–G4 stay open; the native app Goal reports `paused`. No new paid run, provider
+call or generated-method execution is authorized or claimed here.
 
 ### Historical milestone snapshot — main `0cc38e6`
 
