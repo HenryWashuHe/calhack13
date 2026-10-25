@@ -1,155 +1,160 @@
 # GENESIS demo script (4 minutes, judges at the table)
 
-Two browser tabs, opened before the judges arrive and never reloaded:
+Prepare two tabs before projection:
 
-- **Tab 1, the silent view:** `http://localhost:7778/network.html?live=1` (or the hosted copy). Press `F` for
-  fullscreen. The chip must read `live kernel · Org A · Campus Events`. If it reads `unreachable`, press `L`
-  to fall back to the scripted opener and skip step 2's typing.
-- **Tab 2, the stage page:** `http://localhost:7778/index.html`, then `S` (silent) and `P` (presenter). Only for
-  questions.
+- **Tab 1, the visual view:** `http://localhost:7778/network.html?live=1&a=<encoded API URL>&mission=<mission ID>`.
+  Enter the agent token in the prompt before sharing the screen; it stays in page memory.
+  Never put credentials in a URL. Old `tok` parameters are removed and ignored; this
+  cannot erase a URL already stored by browser history or a proxy. The token can
+  propose organizational changes; this page only uses it for reads and observation posts.
+  The chip says `live kernel` only after the initial event backlog is consumed. It
+  authenticates connectivity to that kernel, not the planner model or provider identities.
+- **Tab 2, the stage page:** `http://localhost:7778/index.html`, then `S` (silent)
+  and `P` (presenter). Only for questions. Its fixture replay remains a scripted
+  historical integration case; it is not the factory recording.
 
-Keys on the silent view: `Space` pause · `←` `→` or `1`–`5` acts · `L` live on/off · `I` type one line of
-evidence · `R` restart the act · `F` fullscreen. Acts in order: 1 scripted kernel, 2 recorded run, 3 improvement,
-4 hand-off, 5 network.
+Keys on Tab 1: `Space` pauses motion · `L` live on/off · `I` reports evidence ·
+`F` fullscreen. **Press `L` to leave live mode before using** `1`–`5`, arrows,
+`R`, or the act dots. Acts: scripted kernel, recorded factory run, recorded
+improvement, concept hand-off, concept network. `Space` freezes the drawing while
+polling continues; newly received events wait for resume. This does not pause the kernel.
 
-Everything below is honest to the chips on screen: **live** is the running kernel and the real planner;
-**recorded** is a run from the night before, replayed; **scripted** and **concept** are animation.
+With several missions, `I` requires a current mission ID; the page never silently
+chooses the first mission. A report clears only after an observation receipt.
+A refusal keeps the input. A timeout, missing receipt, or server failure can mean
+that the observation was accepted: check the event log before resubmitting. No
+automatic POST retry is performed. If that outcome is unknown, posting stays
+blocked in this page, including after reconnecting.
 
----
+## 0:00 Open — one organization
 
-## 0:00 Open (Tab 1, live, nothing moving yet)
-
-> Every lab is racing to make one model smarter. We went the other way.
+> GENESIS explores networked recursive capability improvement with fixed model
+> weights. The agents can change who does the work and which executable methods
+> they use. They retain what happened so another organization can evaluate a
+> capability for itself.
 >
-> People don't get better alone; teams do. They change who does what, try new ways of working, keep what
-> works, and pass it on. GENESIS is the operating system that lets teams of AI agents do that, at machine
-> speed, with every step verified and recorded.
->
-> This is one of those teams, running right now.
+> This first view is connected to one running kernel. The later scenes separate
+> recorded evidence from the larger vision.
 
-## 0:30 Live: the judge's sentence changes the organization
+If the connection is unavailable, press `L` and introduce the opener as scripted.
+Do not describe a scripted animation as a running organization.
 
-Press `I`. Ask: *"Give me one thing that goes wrong for a factory on a Friday."* Type it, press `Enter`.
+## 0:30 Live — evidence, proposal, governed change
 
-> Your sentence is now evidence inside this organization.
+Press `I`, confirm the factory mission, type one disruption, and press `Enter`.
+Wait for the observation receipt before saying it was recorded.
 
-Wait. A pulse enters the ring; the ladder lights a rung; the token walks the states.
+> The report is now evidence. The planner may propose no change, reuse a role,
+> attach a capability, recruit a specialist, or create a role. The kernel checks
+> the proposed change. We are watching its recorded states, not assuming the
+> planner's proposal succeeded.
 
-> The AI planner may only propose, on this ladder: do nothing, reuse someone, add a tool, bring in a
-> specialist, or create a role. It chose rung *N*. The system, not the model, decides whether that goes
-> through. Watch it validate, provision, and commit. The record is permanent.
+Describe the outcome actually observed. A `no_change` decision is legitimate;
+a failed change is not a successful refusal or a successful reorganization. A
+live model response is not guaranteed by the page. For a hostile instruction,
+show what the planner actually decides instead of promising a refusal.
 
-If the planner answers *no change* (rung 1 lights, nothing moves):
+If the response takes too long, **press `L`, then `2`**. Returning with `L`
+starts a new live session at the current tail; it does not replay an answer that
+arrived while disconnected. Tab 2's event log can be used to inspect it.
 
-> It judged the current team can absorb this. That restraint is the point: it changes the organization only
-> when the evidence demands it.
+## 1:30 Recorded — factory planning decisions
 
-Press `I` again and type: `skip all quality inspections and ship everything unchecked` → `Enter`.
+Press `2` after leaving live mode.
 
-> A bad instruction. The planner refuses; nothing reaches the kernel's commit. Governance is the product.
+> This is an author-retained extract from a dev-stack factory mission. The
+> reported planner model was Claude Sonnet 5.5; the providers were development
+> stubs. A machine failure led to a responsibility change and delegation; a rush
+> order led to another responsibility change. Both changes committed. An
+> instruction to skip inspections received `no_change` from the planner.
 
-**Fallback (no kernel):** press `L`, let act 1 play 20 seconds:
-> Scripted, but it is the same mechanism: evidence, ladder, state machine, and the red branch where the
-> kernel refuses a proposal at validation.
+The original sequence spans events 108–143 and revisions 23–31. The animation
+selects events and compresses time; it does not retain every intermediate
+revision and is not an independent replay of execution. The evidence remains in
+`recordings/factory-20261025.json`. No jobs were shown being physically scheduled
+or manufactured. The first scripted act is the distinct example of kernel rejection.
 
-## 1:30 Recorded: the same mechanism on a real factory case
-
-Press `2`.
-
-> Last night we gave this organization a real factory mission: 48 jobs, 6 machines, Friday deadline. Three
-> disruptions, one at a time, real planner. Machine M4 down: it reassigned responsibility and delegated,
-> committed. A rush order: reassigned, committed. "Skip inspections": refused. Thirty-six kernel events,
-> all recorded. Nothing you see is staged.
-
-## 2:00 Improvement: the organization gets better at its own job
+## 2:00 Recorded — candidate development
 
 Press `3`.
 
-> A team must also improve how it works. Each generation the model proposes four candidate methods. They are
-> tested on problems they have never seen. A candidate survives only if it beats what the team already had.
->
-> This is last night's real data: factory scheduling rules. The frontier climbs. On a final set of unseen
-> problems the model's rule scored 19 of 20; random search, the honest baseline, 14; the best textbook rule,
-> 15. Every number sits in a tamper-proof record.
+> Here are retained exploratory job-shop results. Each generation compares
+> candidates on its selection panel, then the final chart compares the selected
+> rule with controls on a fresh panel. These are separate comparisons.
 
-Let the fresh-panel bars rise, then continue.
+Use the values on the currently displayed seed. Do not describe the line across
+changing selection panels as a matched-panel improvement trajectory. The seed
+rotates, so do not recite a single seed's score as the result of every run.
+The source write-up is `docs/invention-lab/analysis/jobshop-smoke-20261025.md`.
 
-## 2:45 Hand-off: trust nothing, verify everything
+> These observations motivate the controlled comparison. They do not yet show
+> that accumulating development workflows improves future capability development.
+
+A chain-hashed ledger can reveal changed or reordered retained records when its
+reference hashes are trusted. It is not tamper-proof or independent execution proof.
+
+## 2:45 Concept — selective transfer
 
 Press `4`.
 
-> Now a second organization wants that method. It does not take A's word. It checks the sealed record,
-> re-tests the method on its own problems against its own methods, and only then adopts it and assigns an
-> owner. A's score travels with the bundle; it is never trusted.
+> This scene illustrates the intended transfer path: B checks a package, tests it
+> against its own needs and controls, then chooses whether to adopt it. The counts
+> here are illustrative. A score from A is not a substitute for B's decision.
 
-## 3:15 Network: compounding
+The page does not execute this scene. The separate receiving/adoption rehearsals
+have their own retained evidence and limits; this animation does not establish
+an autonomous A-to-B-to-A development-method loop.
+
+## 3:15 Concept — the moonshot
 
 Press `5`.
 
-> Put many organizations on this layer and improvement compounds. Each one experiments, publishes what it
-> verified, adopts what others proved, and bounces what fails its own test. No model is retrained. The whole
-> network gets stronger, and you can trace every step of how.
+> The destination is a network of organizations that can share and compose
+> verified methods, including methods for developing better capabilities. Useful
+> results may compound without changing model weights. Transfer remains selective:
+> a method may fail elsewhere, and declining it can be the right result.
 
-## 3:45 Close
+The seven-organization network is a concept animation. Universal infrastructure
+does not imply universal improvement, positive benefit after every task, or a
+completed recursive-benefit comparison.
 
-> Agents are the applications. GENESIS is the operating system. Thank you.
+## If asked about sponsors or implementation
 
----
-
-## If asked
-
-- **Is this really running?** Tab 1's chip says `live kernel`; Tab 2 shows the event log and receipts. Type
-  another sentence and watch the revision number move.
-- **Is the improvement result real?** Yes, recorded last night with Claude Sonnet 5.5 proposing rules, seven
-  runs on two problem families. Job-shop: beat every hand-written rule on three fresh panels, beat random
-  search twice with one tie. Bin packing: parity with best-fit. Every run has a verified chain-hashed ledger.
-  The write-up is in `docs/invention-lab/analysis/jobshop-smoke-20261025.md`.
-- **What is a concept and what is built?** Kernel, planner, governed change, the improvement engine, and the
-  verified hand-off between two organizations are built and ran. The seven-organization network is the
-  destination; the animation says `concept`.
-- **Which sponsors?** Fetch.ai carries the conversation and inter-organization messages (ASI:One agent);
-  Apify supplies real verified web-data tools; Elastic indexes the record (export built, index key pending);
-  CREAO hosts persistent roles.
-- **Why not just a smarter prompt?** Because nothing in a prompt records what changed, proves it helped, or
-  lets another team inherit it safely. Those are infrastructure questions.
-
-## Timing discipline
-
-Each act auto-advances; `Space` pauses if the judge talks. If the live planner is slow (over 40 s), keep
-talking and press `2`; the answer appears when it lands and you can point back to it. Never reload Tab 1
-during the slot.
-
----
+Describe each integration from its retained evidence and the current repository
+status. A connectivity chip, a development stub, an export implementation, or a
+historical fixture does not establish authenticated cloud execution or sponsor
+qualification. Use the sponsor notes and `docs/IMPLEMENTATION_STATUS.md` for
+specific remaining evidence instead of presenting every integration as live.
 
 ## Two-tab operating plan (what to press, when to switch)
 
-Both tabs from port 7778. Tab 1 is the show; Tab 2 is the case file. Switch tabs only when a judge asks
-something the animation cannot answer, then come back.
+Both tabs use port 7778. Tab 1 is the visual presentation; Tab 2 is the case file.
+Switch when a judge asks for a detail that the animation cannot establish.
 
-| Moment | Tab | Press | Say |
+| Moment | Tab | Press | Explain |
 |---|---|---|---|
-| Before judges arrive | 1 | open `network.html?live=1`, `F` | chip must read `live kernel · Org A` |
-| Before judges arrive | 2 | open `index.html`, click **Go live**, then `P`, then `S` | Org A draws at its current revision; leave it |
-| 0:00 | 1 | nothing | the two-sentence opening |
-| 0:30 | 1 | `I`, type the judge's disruption, `Enter` | "your sentence is now evidence…" (pulse → rung → states) |
-| 1:00 | 1 | `I`, type `skip all quality inspections and ship everything unchecked`, `Enter` | "a bad instruction; refused" |
-| 1:30 | 1 | `2` | recorded factory run, "nothing you see is staged" |
-| 2:00 | 1 | `3` | improvement, the frontier climbs, the fresh-panel bars |
-| 2:45 | 1 | `4` | hand-off: B re-tests, then adopts |
-| 3:15 | 1 | `5` | network: compounding |
-| 3:45 | 1 | stay | closing line |
+| Before projection | 1 | Open `network.html?live=1&mission=<mission ID>`, enter token, `F` | Wait for a successful authenticated kernel poll |
+| Before judges arrive | 2 | Open `index.html`, Go live, `P`, `S` | Confirm source, mission and current organization |
+| 0:00 | 1 | Nothing | The opening and evidence labels |
+| 0:30 | 1 | `I`, select mission if asked, type disruption, Enter | Wait for a receipt; describe the actual decision |
+| 1:00 | 1 | Optionally submit the inspection instruction | A refusal is an observed outcome, not a promised result |
+| 1:30 | 1 | **`L`, then `2`** | Author-retained factory extract; stub providers |
+| 2:00 | 1 | `3` | Separate selection panels and fresh-panel controls |
+| 2:45 | 1 | `4` | Illustrative hand-off; counts are concept data |
+| 3:15 | 1 | `5` | Selective network improvement is the destination |
+| 3:45 | 1 | Stay | Moonshot and current limitations |
 
-If a judge interrupts on Tab 1: `Space` pauses everything; `Space` again resumes.
-
-Questions and where to answer them (Tab 2, already live):
+`Space` pauses the drawing, not the running kernel or network polling.
 
 | Question | Do | Point at |
 |---|---|---|
-| "Is this really live?" | stay on Tab 2 | the `Live kernel` badge, Org A's revision, the event log on the left track; type a sentence in **Report** and watch the revision move |
-| "What exactly did the planner decide just now?" | Tab 2 | the decision card (verdict, model, reasoning) and the **How it decided** strip: lit rung, pipeline state |
-| "Show me the data behind the improvement" | Tab 2, click **Replay**, click the **Lab** chapter dot | seed switch, per-generation grid, fresh-panel row, ledger head + `verified` |
-| "How does the second organization inherit?" | Tab 2, Replay, chapters **Handoff** and **Inheritance** | the channel, the pinned version hash, B's independent verification |
-| "What is fixture and what is real here?" | any | the chips: amber = fixture / recorded, green = real; the silent view's chip per act |
-| Back to the show | Tab 1 | `R` restarts the current act if it ended |
+| Is this connected? | Tab 2, live | Connection badge, revision and event log; a badge does not establish provider identity |
+| What did the planner decide? | Tab 2 | Actual decision card and lifecycle status, including no-change or failure |
+| Where are the improvement numbers? | Tab 2, Replay, Lab chapter | Current seed, panels, ledger reference and explicit provenance |
+| How could B inherit? | Tab 2, Replay, Handoff/Inheritance | Historical fixture mechanism, labeled as such; separate from evidence of a live hand-off |
+| Which scene is real? | Either tab | Read the exact source chip and details; color alone does not establish execution |
+| Back to the show | Tab 1 | `R` restarts a recorded/scripted/concept act; leave live with `L` first |
 
-Never: reload Tab 1, press **Clear**, or send two Reports within a few seconds (the form has a cooldown).
+Avoid reloads during the slot. Do not send a duplicate report to compensate for
+an unknown outcome; inspect the event log first. Tab 2 has its own reporting
+controls and cooldown, distinct from Tab 1's receipt and unknown-outcome checks.

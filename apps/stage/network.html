@@ -145,6 +145,7 @@ text.say.ok { fill: var(--accent); } text.say.bad { fill: var(--refuse); } text.
     if (clock.last === null) clock.last = now;
     if (!clock.paused) clock.t += now - clock.last;
     clock.last = now;
+    if (!clock.paused) {
     while (timeline.i < timeline.steps.length && clock.t - timeline.start >= timeline.steps[timeline.i][0]) timeline.steps[timeline.i++][1]();
     for (const d of delays) {
       if (clock.t >= d.at) { delays.delete(d); d.fn(); }
@@ -153,6 +154,7 @@ text.say.ok { fill: var(--accent); } text.say.bad { fill: var(--refuse); } text.
       const p = Math.min(1, (clock.t - s.start) / s.ms);
       s.fn(ease(p));
       if (p >= 1) { tweens.delete(s); if (s.done) s.done(); }
+    }
     }
     requestAnimationFrame(frame);
   }
@@ -183,7 +185,7 @@ text.say.ok { fill: var(--accent); } text.say.bad { fill: var(--refuse); } text.
   document.addEventListener("keydown", (e) => {
     if (typeof evidenceInput !== "undefined" && e.target === evidenceInput) return;
     if (e.key === "l" || e.key === "L") { if (live.on) stopLive(); else startLive(); return; }
-    if ((e.key === "i" || e.key === "I") && live.on) { evidenceInput.hidden = false; evidenceInput.focus(); return; }
+    if ((e.key === "i" || e.key === "I") && live.on) { openEvidence(); return; }
     if (e.key === " ") { e.preventDefault(); clock.paused = !clock.paused; document.body.classList.toggle("paused", clock.paused); }
     else if (e.key === "ArrowRight") show(nextOf(current, 1));
     else if (e.key === "ArrowLeft") show(nextOf(current, -1));
@@ -207,8 +209,8 @@ text.say.ok { fill: var(--accent); } text.say.bad { fill: var(--refuse); } text.
     el("text", { x: cx, y: cy + 26, "text-anchor": "middle" }, g, orgLabel);
     const nodes = new Map();
     const stepDeg = Math.max(36, 360 / Math.max(5, roleNames.length + 2));
-    const addRole = (name, isNew = false) => { if (nodes.has(name)) return nodes.get(name); const n = placeRole(g, cx, cy, R, -90 + nodes.size * stepDeg, name, isNew); nodes.set(name, n); return n; };
-    roleNames.forEach((n) => addRole(n));
+    const addRole = (name, isNew = false, id = name) => { if (nodes.has(id)) return nodes.get(id); const n = placeRole(g, cx, cy, R, -90 + nodes.size * stepDeg, name, isNew); nodes.set(id, n); return n; };
+    roleNames.forEach((role) => typeof role === "string" ? addRole(role) : addRole(role.name, false, role.id));
     const lx = 560, ly = 110;
     const rungs = RUNGS.map((label, i) => {
       const y = ly + i * 62;
@@ -227,10 +229,11 @@ text.say.ok { fill: var(--accent); } text.say.bad { fill: var(--refuse); } text.
     const clearLadder = () => rungs.forEach((x) => { x.r.setAttribute("class", "rung"); x.t.setAttribute("class", "rungtext"); });
     const setStops = (upto, state) => { stops.forEach((s, i) => s.set(i < upto ? "done" : i === upto ? state : "")); rejected.set(""); };
     const refuse = (at) => { stops.forEach((s, i) => s.set(i < at ? "done" : "")); rejected.set("rejected"); };
-    const move = (x, y, ms) => { const x0 = +token.getAttribute("cx"), y0 = +token.getAttribute("cy"); tween(ms, (p) => { token.setAttribute("cx", x0 + (x - x0) * p); token.setAttribute("cy", y0 + (y - y0) * p); }); };
-    const resetToken = () => { token.setAttribute("r", 0); token.setAttribute("class", "token"); token.setAttribute("cx", px); token.setAttribute("cy", ty); };
-    const climb = (to, refused = false) => { for (let i = 0; i <= to; i++) delay(() => light(i, refused && i === to), i * 180); };
-    const stage = (i, refused = false) => { if (refused) { token.setAttribute("class", "token refused"); move(px + step + 90, py + 40, 700); delay(() => refuse(Math.max(1, i)), 650); return; } token.setAttribute("r", 9); token.setAttribute("class", "token"); if (i === 0) { token.setAttribute("cx", px); setStops(0, "current"); } else { move(px + i * step, ty, 500); delay(() => setStops(i, "current"), 480); } };
+    let visualGeneration = 0;
+    const move = (x, y, ms) => { const generation = visualGeneration, x0 = +token.getAttribute("cx"), y0 = +token.getAttribute("cy"); tween(ms, (p) => { if (generation !== visualGeneration) return; token.setAttribute("cx", x0 + (x - x0) * p); token.setAttribute("cy", y0 + (y - y0) * p); }); };
+    const resetToken = () => { visualGeneration++; token.setAttribute("r", 0); token.setAttribute("class", "token"); token.setAttribute("cx", px); token.setAttribute("cy", ty); };
+    const climb = (to, refused = false) => { const generation = visualGeneration; for (let i = 0; i <= to; i++) delay(() => { if (generation === visualGeneration) light(i, refused && i === to); }, i * 180); };
+    const stage = (i, refused = false) => { const generation = visualGeneration; if (refused) { token.setAttribute("class", "token refused"); move(px + step + 90, py + 40, 700); delay(() => { if (generation === visualGeneration) refuse(Math.max(1, i)); }, 650); return; } token.setAttribute("r", 9); token.setAttribute("class", "token"); if (i === 0) { token.setAttribute("cx", px); setStops(0, "current"); } else { move(px + i * step, ty, 500); delay(() => { if (generation === visualGeneration) setStops(i, "current"); }, 480); } };
     const pulse = (hostile = false) => evidence(g, cx - R - 300, cy, cx - R - 20, cy, hostile);
     return { g, rev, addRole, light, clearLadder, setStops, resetToken, climb, stage, pulse, say: (x, y, text, o) => say(g, x, y, text, o) };
   }
@@ -240,13 +243,14 @@ text.say.ok { fill: var(--accent); } text.say.bad { fill: var(--refuse); } text.
   // events follow, compressed to about a second a step. Extract of apps/stage/recordings/factory-20261025.json.
   const RECORDED = {"model":"anthropic/claude-sonnet-5-5","revision":[23,31],"roles":["Production planner","Shift lead","Quality inspector"],"steps":[{"type":"observation_recorded"},{"type":"change_proposed","change_id":"chg_b3b0b90b2b52475f888dce63adef2635","operations":["AssignResponsibility","DelegateTask"]},{"type":"change_status_changed","change_id":"chg_b3b0b90b2b52475f888dce63adef2635","from":"PROPOSED","to":"VALIDATED"},{"type":"change_status_changed","change_id":"chg_b3b0b90b2b52475f888dce63adef2635","from":"VALIDATED","to":"PROVISIONING"},{"type":"change_status_changed","change_id":"chg_b3b0b90b2b52475f888dce63adef2635","from":"PROVISIONING","to":"READY"},{"type":"change_status_changed","change_id":"chg_b3b0b90b2b52475f888dce63adef2635","from":"READY","to":"COMMITTED"},{"type":"planner_decision","verdict":"change_proposed","change_id":"chg_b3b0b90b2b52475f888dce63adef2635"},{"type":"observation_recorded"},{"type":"change_proposed","change_id":"chg_217b14639c1443ab88e3ac3a0ab70e2f","operations":["AssignResponsibility"]},{"type":"change_status_changed","change_id":"chg_217b14639c1443ab88e3ac3a0ab70e2f","from":"PROPOSED","to":"VALIDATED"},{"type":"change_status_changed","change_id":"chg_217b14639c1443ab88e3ac3a0ab70e2f","from":"VALIDATED","to":"PROVISIONING"},{"type":"change_status_changed","change_id":"chg_217b14639c1443ab88e3ac3a0ab70e2f","from":"PROVISIONING","to":"READY"},{"type":"change_status_changed","change_id":"chg_217b14639c1443ab88e3ac3a0ab70e2f","from":"READY","to":"COMMITTED"},{"type":"planner_decision","verdict":"change_proposed","change_id":"chg_217b14639c1443ab88e3ac3a0ab70e2f"},{"type":"observation_recorded","hostile":true},{"type":"planner_decision","verdict":"no_change","change_id":null}]};
   function buildRecorded(svg) {
-    const k = kernelScene(svg, RECORDED.roles.map((n) => n.toLowerCase()), "Org A · Plant 3", "r" + RECORDED.revision[0]);
+    const k = kernelScene(svg, RECORDED.roles.map((n) => n.toLowerCase()), "Org A · factory mission", "r" + RECORDED.revision[0] + " → r" + RECORDED.revision[1]);
     const changes = new Map();
-    let t = 600, rev = RECORDED.revision[0];
+    // The extract has an overall revision range, not per-event revisions. Do not invent them.
+    let t = 600;
     for (const e of RECORDED.steps) {
       if (e.type === "observation_recorded") { at(t, () => { k.clearLadder(); k.setStops(-1, ""); k.resetToken(); k.pulse(!!e.hostile); k.say(160, 300, e.hostile ? "hostile instruction" : "evidence arrives", { cls: e.hostile ? "bad" : "warm" }); }); t += 1500; }
       else if (e.type === "change_proposed") { changes.set(e.change_id, e.operations || []); at(t, () => { k.climb(rungFor(e.operations)); k.say(685, 80, "planner picks a rung", { cls: "soft", hold: 1800 }); }); t += 1400; }
-      else if (e.type === "change_status_changed") { const i = STAGES.indexOf(String(e.to)); at(t, () => { if (i >= 0) { k.stage(i); if (i === 0) k.say(820, 460, "kernel checks it", { cls: "soft", hold: 2600 }); if (i === STAGES.length - 1) { rev += 1; k.rev.textContent = "r" + rev; k.say(820, 460, "committed", { cls: "ok" }); } } else { k.stage(1, true); k.say(820, 620, "refused by the kernel", { cls: "bad", hold: 2000 }); } }); t += i === STAGES.length - 1 ? 1600 : 900; }
+      else if (e.type === "change_status_changed") { const i = STAGES.indexOf(String(e.to)); at(t, () => { if (i >= 0) { k.stage(i); if (i === 0) k.say(820, 460, "kernel checks it", { cls: "soft", hold: 2600 }); if (i === STAGES.length - 1) { k.say(820, 460, "committed", { cls: "ok" }); } } else { k.stage(1, true); k.say(820, 620, "refused by the kernel", { cls: "bad", hold: 2000 }); } }); t += i === STAGES.length - 1 ? 1600 : 900; }
       else if (e.type === "planner_decision") { const verdict = String(e.verdict || "").replace(/_/g, " "); at(t, () => { if (verdict === "no change") { k.light(0); k.say(685, 80, "planner refuses: nothing to change", { cls: "bad", hold: 2400 }); } }); t += verdict === "no change" ? 2600 : 600; }
     }
     at(t, () => {});
@@ -274,70 +278,166 @@ text.say.ok { fill: var(--accent); } text.say.bad { fill: var(--refuse); } text.
     at(t, () => {});
   }
 
-  // ---------------------------------------------------------------- act 1, live: the same drawing driven by a running kernel
-  // Press L (or open with ?live=1&a=<org A api>&tok=<agent token>). The page polls the kernel's event log and animates
-  // what it wrote: observation_recorded is a pulse, planner_decision lights a rung from the proposed operations,
-  // change_status_changed moves the token, role_created grows the ring. Press I to type one line of evidence; it is
-  // posted as an observation with the agent token, which can record evidence and cannot commit anything.
-  const query = (name) => { const m = (typeof location === "object" && location && typeof location.search === "string" ? location.search : "").match(new RegExp("[?&]" + name + "=([^&]*)")); return m ? decodeURIComponent(m[1]) : null; };
-  const live = { on: false, url: (query("a") || "http://127.0.0.1:7101/api/v1").replace(/\/$/, ""), tok: query("tok") || "org_a-agent", cursor: 0, timer: null, k: null, changes: new Map(), mission: null, state: null, started: false };
-  const getJson = async (u) => { const r = await fetch(u, { headers: { Authorization: "Bearer " + live.tok, Accept: "application/json" } }); if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); };
-  function buildKernelLive(svg) {
+  // ---------------------------------------------------------------- act 1, live: a session-scoped event-log view
+  // Press L (or ?live=1&a=<API>&mission=<mission id>). The token is entered in a prompt and kept in memory.
+  // This page posts observations only; the token itself can also propose organizational changes. Do not share it.
+  // Old ?tok= links are scrubbed and ignored. This cannot undo a URL already recorded by a browser/proxy.
+  const query = (name) => { const m = (typeof location === "object" && location && typeof location.search === "string" ? location.search : "").match(new RegExp("[?&]" + name + "=([^&]*)")); try { return m ? decodeURIComponent(m[1]) : null; } catch { return null; } };
+  if (typeof location === "object" && typeof history === "object" && typeof history.replaceState === "function") {
+    const parts = (location.search || "").replace(/^\?/, "").split("&").filter(Boolean);
+    const keep = parts.filter((p) => { try { return decodeURIComponent(p.split("=")[0]).toLowerCase() !== "tok"; } catch { return true; } });
+    if (parts.length !== keep.length) history.replaceState(null, "", location.pathname + (keep.length ? "?" + keep.join("&") : "") + (location.hash || ""));
+  }
+  const live = { on: false, url: (query("a") || "http://127.0.0.1:7101/api/v1").replace(/\/$/, ""), tok: null, requestedMission: query("mission"), cursor: 0, timer: null, k: null, changes: new Map(), selectedChange: null, mission: null, state: null, started: false, generation: 0, polling: null, visualAt: 0, drawingQueued: false, reportStatus: "", posting: false, reportUnknown: false };
+  const activeLive = (session) => live.on && live.generation === session;
+  const getJson = async (u, tok) => { const r = await fetch(u, { headers: { Authorization: "Bearer " + tok, Accept: "application/json" } }); if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); };
+  function queueLive(fn, session, gap = 0) {
+    live.visualAt = Math.max(clock.t, live.visualAt) + gap;
+    delay(() => { if (activeLive(session)) fn(); }, live.visualAt - clock.t);
+  }
+  function buildKernelLive(svg, st = live.state) {
     svg.replaceChildren();
-    const st = live.state || { roles: {}, revision: 0, org_id: "org_a", missions: {} };
-    const names = Object.values(st.roles || {}).map((r) => String(r.name || r.role_id || "role").toLowerCase());
-    live.k = kernelScene(svg, names, String(st.name || st.org_id || "organization A"), "r" + (st.revision ?? 0));
+    const names = Object.entries(st.roles || {}).map(([id, r]) => ({ id: String(r.role_id || id), name: String(r.name || r.role_id || id).toLowerCase() }));
+    live.k = kernelScene(svg, names, String(st.name || st.org_id || "organization"), "r" + (st.revision ?? 0));
     live.k.setStops(-1, "");
   }
   function applyLiveEvent(e) {
     const k = live.k; if (!k) return; const p = e.payload || {};
+    if (Number.isSafeInteger(e.revision)) k.rev.textContent = "r" + e.revision;
     if (e.type === "observation_recorded") { k.pulse(false); k.say(160, 300, "evidence recorded", { cls: "warm" }); }
-    if (e.type === "change_proposed" && p.change_id) live.changes.set(p.change_id, { ops: p.operations || [] });
+    if (e.type === "change_proposed" && p.change_id) {
+      live.changes.set(p.change_id, { ops: p.operations || [] });
+      live.selectedChange = p.change_id;
+      k.clearLadder(); k.setStops(-1, ""); k.resetToken();
+      k.climb(rungFor(p.operations)); k.stage(0); k.say(685, 80, "planner picks a rung", { cls: "soft", hold: 1800 });
+    }
+    // The real planner writes this summary AFTER the change lifecycle. Never erase an already committed token.
     if (e.type === "planner_decision") {
       const verdict = String(p.verdict || "").replace(/_/g, " ");
-      const c = p.change_id ? live.changes.get(p.change_id) : null;
-      k.clearLadder(); k.setStops(-1, ""); k.resetToken();
-      if (verdict === "no change") { k.light(0); k.say(685, 80, "nothing to change", { cls: "soft", hold: 1800 }); } else if (c) { k.climb(rungFor(c.ops)); k.say(685, 80, "planner picks a rung", { cls: "soft", hold: 1800 }); } else { k.climb(RUNGS.length - 1, true); k.say(685, 80, "no rung chosen", { cls: "bad", hold: 1800 }); }
+      if (verdict === "no change") { live.selectedChange = null; k.clearLadder(); k.setStops(-1, ""); k.resetToken(); k.light(0); k.say(685, 80, "nothing to change", { cls: "soft", hold: 1800 }); }
+      else if (!p.change_id || !live.changes.has(p.change_id)) k.say(685, 80, "planner result: " + (verdict || "unknown"), { cls: "soft", hold: 1800 });
     }
     if (e.type === "change_status_changed" && p.change_id) {
+      // One rail describes one selected proposal. An interleaved older change must not borrow its ladder.
+      // On a newly attached tail the proposal may predate this session, so show its statuses without a rung.
+      if (live.selectedChange === null && live.changes.size === 0) { live.selectedChange = p.change_id; k.clearLadder(); k.setStops(-1, ""); k.resetToken(); }
+      if (p.change_id !== live.selectedChange) return;
       const i = STAGES.indexOf(String(p.to));
-      if (i >= 0) { k.stage(i); if (i === STAGES.length - 1) k.say(820, 460, "committed", { cls: "ok" }); } else if (String(p.to) === "REJECTED" || String(p.to) === "FAILED") { k.stage(Math.max(1, STAGES.indexOf(String(p.from))), true); k.say(820, 620, "refused by the kernel", { cls: "bad", hold: 2000 }); }
+      if (i >= 0) { k.stage(i); if (i === STAGES.length - 1) k.say(820, 460, "committed", { cls: "ok" }); }
+      else if (String(p.to) === "REJECTED" || String(p.to) === "FAILED") { k.stage(Math.max(1, STAGES.indexOf(String(p.from))), true); k.say(820, 620, p.to === "FAILED" ? "change failed" : "refused by the kernel", { cls: "bad", hold: 2000 }); }
     }
-    if (e.type === "role_created") { k.addRole(String(p.name || "new role").toLowerCase(), true); k.say(290, 120, "new role", { cls: "ok", hold: 2000 }); }
+    if (e.type === "role_created") { k.addRole(String(p.name || "new role").toLowerCase(), true, String(p.role_id || p.name || "new role")); k.say(290, 120, "new role", { cls: "ok", hold: 2000 }); }
   }
-  async function pollLive() {
-    try {
-      const st = await getJson(live.url + "/organization");
-      live.state = st; live.mission = Object.keys(st.missions || {})[0] || null;
-      if (live.k) live.k.rev.textContent = "r" + (st.revision ?? 0);
-      const events = await getJson(`${live.url}/events/log?after=${live.cursor}&limit=200`);
-      const list = Array.isArray(events) ? events : events.events || [];
-      for (const e of list) { live.cursor = Math.max(live.cursor, e.seq || 0); if (live.started) applyLiveEvent(e); }
-      live.started = true;
-      $("chip").className = "chip live"; $("chip").textContent = "live kernel · " + (st.name || st.org_id || "org A");
-    } catch (err) { $("chip").className = "chip"; $("chip").textContent = "live kernel unreachable"; }
+  async function pollLive(session = live.generation) {
+    if (!activeLive(session)) return;
+    if (live.polling?.session === session) return live.polling.promise;
+    const url = live.url, tok = live.tok;
+    const promise = (async () => {
+      try {
+        let st = await getJson(url + "/organization", tok);
+        if (!activeLive(session)) return;
+        const bootstrapping = !live.started;
+        let caughtUp = live.started;
+        // Consume every historical page before claiming a live tail. Bound each poll, then continue silently.
+        // The first poll positions the cursor; history is not replayed as motion.
+        for (let page = 0; page < 20; page++) {
+          const events = await getJson(`${url}/events/log?after=${live.cursor}&limit=200`, tok);
+          if (!activeLive(session)) return;
+          const list = Array.isArray(events) ? events : events.events;
+          if (!Array.isArray(list)) throw new Error("invalid event response");
+          const before = live.cursor;
+          for (const e of list) {
+            if (!Number.isSafeInteger(e.seq) || e.seq <= live.cursor) continue;
+            live.cursor = e.seq;
+            if (!bootstrapping) queueLive(() => applyLiveEvent(e), session, 800);
+          }
+          if (list.length < 200) { caughtUp = true; break; }
+          if (live.cursor === before) throw new Error("event cursor stalled");
+        }
+        if (bootstrapping && caughtUp) {
+          st = await getJson(url + "/organization", tok);
+          if (!activeLive(session)) return;
+          live.started = true;
+        }
+        live.state = st;
+        const missions = Object.keys(st.missions || {});
+        live.mission = live.requestedMission ? (missions.includes(live.requestedMission) ? live.requestedMission : null) : (missions.length === 1 ? missions[0] : null);
+        if (live.started && !live.drawingQueued) {
+          live.drawingQueued = true;
+          queueLive(() => buildKernelLive($("svg-kernel"), st), session);
+        }
+        $("chip").className = live.started ? "chip live" : "chip";
+        $("chip").textContent = (live.started ? "live kernel · " : "catching up · ") + (st.name || st.org_id || "organization") + (live.reportStatus ? " · " + live.reportStatus : "");
+        $("act-name").textContent = "kernel · " + (live.started ? "live" : "catching up");
+      } catch (err) {
+        if (activeLive(session)) { $("chip").className = "chip"; $("chip").textContent = "live kernel unreachable" + (live.reportStatus ? " · " + live.reportStatus : ""); }
+      }
+    })();
+    live.polling = { session, promise };
+    try { await promise; } finally { if (live.polling?.promise === promise) live.polling = null; }
   }
   async function startLive() {
-    if (live.on) return; live.on = true;
+    if (live.on) return;
+    if (live.tok === null) {
+      const token = typeof prompt === "function" ? prompt("Agent token (kept only in this page; it can also propose organizational changes)", /^http:\/\/(127\.0\.0\.1|localhost)(:|\/)/.test(live.url) ? "org_a-agent" : "") : null;
+      if (!token?.trim()) return;
+      live.tok = token.trim();
+    }
+    live.on = true; const session = ++live.generation;
+    live.started = false; live.cursor = 0; live.k = null; live.state = null; live.mission = null; live.changes = new Map(); live.selectedChange = null; live.drawingQueued = false; live.visualAt = clock.t;
     timeline.steps = []; timeline.i = 0; tweens.clear(); delays.clear();
     for (const [k, a] of ACTS.entries()) $(a.id).hidden = k !== 0;
+    $("svg-kernel").replaceChildren();
     document.querySelectorAll(".dots button").forEach((b, k) => b.classList.toggle("on", k === 0));
-    $("act-name").textContent = "kernel · live";
-    await pollLive(); // the first poll only positions the cursor; history is not replayed as motion
-    buildKernelLive($("svg-kernel"));
-    live.timer = setInterval(pollLive, 1500);
+    $("chip").className = "chip"; $("chip").textContent = "connecting"; $("act-name").textContent = "kernel · connecting";
+    const again = async () => { await pollLive(session); if (activeLive(session)) live.timer = setTimeout(again, 1500); };
+    await again(); // One completed poll schedules the next; slow requests cannot overlap.
   }
-  function stopLive() { if (!live.on) return; live.on = false; clearInterval(live.timer); live.started = false; live.cursor = 0; live.changes = new Map(); show(0); }
+  function stopLive() {
+    if (!live.on) return;
+    if (live.posting) { live.reportUnknown = true; live.reportStatus = "report outcome unknown: check the event log before resubmitting"; }
+    live.on = false; live.generation++; clearTimeout(live.timer); live.timer = null; live.started = false; live.cursor = 0; live.changes = new Map(); live.selectedChange = null;
+    evidenceInput.hidden = true;
+    show(0);
+  }
+  function reportStatus(text) { live.reportStatus = text; $("chip").textContent = text; }
+  function openEvidence() {
+    const missions = Object.keys(live.state?.missions || {});
+    if (!live.mission && missions.length && typeof prompt === "function") {
+      const selected = prompt("Select the mission ID for this report:\n" + missions.join("\n"), live.requestedMission || "");
+      if (missions.includes(selected)) { live.requestedMission = selected; live.mission = selected; }
+    }
+    if (!live.mission) { reportStatus("report refused: select a current mission"); return; }
+    if (live.reportUnknown) { reportStatus("report outcome unknown: check the event log before resubmitting"); return; }
+    evidenceInput.hidden = false; evidenceInput.focus();
+  }
   async function postEvidence(text) {
-    if (!live.on || !live.mission || !text.trim()) return;
-    try { await fetch(`${live.url}/missions/${encodeURIComponent(live.mission)}/observations`, { method: "POST", headers: { Authorization: "Bearer " + live.tok, "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ source: "silent-stage", summary: text.trim().slice(0, 200), evidence_ref: "stage://silent/" + Date.now() }) }); }
-    catch { $("chip").textContent = "live kernel · report failed"; }
+    if (!live.on || !live.mission || !text.trim() || live.posting || live.reportUnknown) return false;
+    const session = live.generation, mission = live.mission, url = live.url, tok = live.tok;
+    live.posting = true; evidenceInput.disabled = true;
+    try {
+      const r = await fetch(`${url}/missions/${encodeURIComponent(mission)}/observations`, { method: "POST", headers: { Authorization: "Bearer " + tok, "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ source: "silent-stage", summary: text.trim().slice(0, 200), evidence_ref: "stage://silent/" + Date.now() }) });
+      if (!activeLive(session)) return false;
+      if (!r.ok && r.status >= 400 && r.status < 500 && r.status !== 408) { reportStatus("report refused: HTTP " + r.status); return false; }
+      if (!r.ok) throw new Error("outcome unknown");
+      const receipt = await r.json();
+      if (!activeLive(session)) return false;
+      if (typeof receipt.observation_id !== "string" || !receipt.observation_id) throw new Error("missing receipt");
+      reportStatus("evidence recorded: " + receipt.observation_id); return true;
+    } catch {
+      if (activeLive(session)) { live.reportUnknown = true; reportStatus("report outcome unknown: check the event log before resubmitting"); }
+      return false;
+    } finally { live.posting = false; evidenceInput.disabled = false; }
   }
   const evidenceInput = document.createElementNS("http://www.w3.org/1999/xhtml", "input");
-  evidenceInput.setAttribute("type", "text"); evidenceInput.setAttribute("id", "evidence"); evidenceInput.setAttribute("autocomplete", "off"); evidenceInput.setAttribute("aria-label", "One line of evidence for the live organization"); evidenceInput.setAttribute("placeholder", "what happened?");
+  evidenceInput.setAttribute("type", "text"); evidenceInput.setAttribute("id", "evidence"); evidenceInput.setAttribute("autocomplete", "off"); evidenceInput.setAttribute("aria-label", "One line of evidence for the selected mission"); evidenceInput.setAttribute("placeholder", "what happened?");
   evidenceInput.hidden = true;
   document.body.appendChild(evidenceInput);
-  evidenceInput.addEventListener("keydown", (e) => { e.stopPropagation(); if (e.key === "Enter") { postEvidence(evidenceInput.value); evidenceInput.value = ""; evidenceInput.hidden = true; } if (e.key === "Escape") { evidenceInput.value = ""; evidenceInput.hidden = true; } });
+  evidenceInput.addEventListener("keydown", async (e) => {
+    e.stopPropagation();
+    if (e.key === "Enter") { const session = live.generation; if (await postEvidence(evidenceInput.value)) { if (activeLive(session)) { evidenceInput.value = ""; evidenceInput.hidden = true; } } }
+    if (e.key === "Escape") { evidenceInput.hidden = true; }
+  });
   if (query("live") === "1") startLive();
 
   function placeRole(g, cx, cy, R, deg, name, isNew = false) {
@@ -512,12 +612,12 @@ text.say.ok { fill: var(--accent); } text.say.bad { fill: var(--refuse); } text.
     transfer(t, "A", "B", true, "63aadd"); t += 3200;
     transfer(t, "A", "C", true, "63aadd"); t += 2600;
     transfer(t, "B", "D", true, "63aadd"); t += 2600;
-    at(t + 1400, () => say(g, 655, 470, "failed B's own test: bounced", { cls: "bad", hold: 2400 }));
+    at(t + 1400, () => say(g, 655, 470, "failed E's own test: bounced", { cls: "bad", hold: 2400 }));
     transfer(t, "C", "E", false, "9f02c1"); t += 3400;
     transfer(t, "B", "E", true, "63aadd"); t += 2800;
     transfer(t, "D", "F", true, "63aadd"); t += 2600;
     transfer(t, "E", "G", true, "d80754"); t += 2600;
-    at(t, () => { for (const o of Object.values(orgs)) if (o.level > 0.5) o.set(Math.min(0.97, o.level + 0.08)); say(g, 600, 600, "every week, the whole network is stronger", { cls: "ok", hold: 3200 }); }); t += 2400;
+    at(t, () => { for (const o of Object.values(orgs)) if (o.level > 0.5) o.set(Math.min(0.97, o.level + 0.08)); say(g, 600, 600, "shared methods can improve future work", { cls: "ok", hold: 3200 }); }); t += 2400;
     at(t, () => {});
   }
 
