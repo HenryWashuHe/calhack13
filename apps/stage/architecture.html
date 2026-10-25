@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>GENESIS Architecture</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+:root { --bg: #121619; --fg: #EEE9DE; --dim: rgba(238,233,222,.6); --line: rgba(238,233,222,.16); --accent: #5BD0BA; --fixture: #E7B35A; --refuse: #E3706C; --display: "Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif; --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace; color-scheme: dark; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--display); padding-block: 28px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+main { max-width: 1240px; margin: 0 auto; display: grid; gap: 22px; }
+h1 { font-size: 26px; margin: 0; letter-spacing: -.01em; }
+p { color: var(--dim); max-width: 72ch; line-height: 1.5; margin: 0; font-size: 15px; }
+figure { margin: 0; border: 1px solid var(--line); border-radius: 14px; padding: 14px; background: #181E23; }
+figure svg { max-width: 100%; height: auto; display: block; }
+figcaption { color: var(--dim); font-size: 13px; margin-top: 10px; line-height: 1.5; }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+th, td { text-align: left; vertical-align: top; padding: 8px 10px; border-top: 1px solid var(--line); }
+th { color: var(--dim); font-weight: 600; font-size: 12px; letter-spacing: .04em; }
+code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
+.ok { color: var(--accent); } .warm { color: var(--fixture); } .bad { color: var(--refuse); }
+.wrap { overflow-x: auto; }
+</style>
+</head>
+<body>
+<main>
+  <h1>GENESIS: where each sponsor sits in the mechanism</h1>
+  <p>One organization kernel in the middle. Evidence enters through a Fetch.ai agent, the planner proposes, the kernel decides and records. Roles are provisioned as Apify Actors or CREAO agents. The record is indexed in Elastic. The lab improves methods and hands verified bundles to another organization through Fetch.ai, which re-verifies before adopting.</p>
+  <figure>
+    <svg viewBox="0 0 1240 620" role="img" aria-label="Data paths between a judge, the Fetch.ai agent, the GENESIS kernel and planner, the Apify and CREAO providers, the Elastic index, the lab and a second organization" xmlns="http://www.w3.org/2000/svg" style="color: var(--fg)">
+      <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/></marker>
+        <marker id="arrow-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#5BD0BA"/></marker>
+      </defs>
+      <g font-family="IBM Plex Mono, Menlo, monospace" font-size="12" fill="currentColor">
+
+        <!-- judge -->
+        <rect x="20" y="250" width="130" height="60" rx="10" fill="none" stroke="currentColor" stroke-opacity=".5"/>
+        <text x="85" y="276" text-anchor="middle" font-weight="600">judge / operator</text>
+        <text x="85" y="294" text-anchor="middle" fill-opacity=".6">one sentence</text>
+
+        <!-- fetch agent -->
+        <rect x="200" y="235" width="190" height="90" rx="10" fill="none" stroke="#5BD0BA"/>
+        <text x="295" y="258" text-anchor="middle" font-weight="600">Fetch.ai ASI:One agent</text>
+        <text x="295" y="276" text-anchor="middle" fill-opacity=".6">Agentverse mailbox</text>
+        <text x="295" y="294" text-anchor="middle" fill-opacity=".6">agent1q284mux…</text>
+        <text x="295" y="312" text-anchor="middle" fill="#5BD0BA">live · relayed in 84 s</text>
+        <line x1="150" y1="280" x2="198" y2="280" stroke="currentColor" marker-end="url(#arrow)"/>
+        <text x="174" y="272" text-anchor="middle" font-size="11" fill-opacity=".7">chat</text>
+
+        <!-- kernel -->
+        <rect x="450" y="190" width="330" height="190" rx="12" fill="none" stroke="currentColor"/>
+        <text x="615" y="216" text-anchor="middle" font-weight="700" font-size="14">GENESIS kernel (Rust)</text>
+        <text x="615" y="238" text-anchor="middle" fill-opacity=".7">organization state · roles · authority</text>
+        <rect x="470" y="252" width="290" height="34" rx="8" fill="none" stroke="currentColor" stroke-opacity=".5"/>
+        <text x="615" y="274" text-anchor="middle" font-size="11">PROPOSED → VALIDATED → PROVISIONING → READY → COMMITTED</text>
+        <text x="615" y="312" text-anchor="middle" fill-opacity=".7">append-only event log · revision r34 live</text>
+        <text x="615" y="334" text-anchor="middle" fill-opacity=".7">only the kernel commits · a refusal is recorded</text>
+        <line x1="390" y1="280" x2="448" y2="280" stroke="currentColor" marker-end="url(#arrow)"/>
+        <text x="417" y="270" text-anchor="middle" font-size="11" fill-opacity=".7">report</text>
+        <line x1="448" y1="300" x2="390" y2="300" stroke="currentColor" stroke-dasharray="4 4" marker-end="url(#arrow)"/>
+        <text x="419" y="316" text-anchor="middle" font-size="11" fill-opacity=".7">verdict</text>
+
+        <!-- planner -->
+        <rect x="490" y="40" width="250" height="90" rx="10" fill="none" stroke="currentColor" stroke-opacity=".7"/>
+        <text x="615" y="66" text-anchor="middle" font-weight="600">planner (Claude Sonnet 5.5)</text>
+        <text x="615" y="86" text-anchor="middle" fill-opacity=".6">reads evidence, proposes on a</text>
+        <text x="615" y="104" text-anchor="middle" fill-opacity=".6">5-rung ladder · cannot commit</text>
+        <line x1="590" y1="188" x2="590" y2="132" stroke="currentColor" marker-end="url(#arrow)"/>
+        <text x="548" y="164" text-anchor="end" font-size="11" fill-opacity=".7">evidence</text>
+        <line x1="640" y1="132" x2="640" y2="188" stroke="currentColor" marker-end="url(#arrow)"/>
+        <text x="682" y="164" text-anchor="start" font-size="11" fill-opacity=".7">proposal</text>
+
+        <!-- providers: apify + creao -->
+        <rect x="880" y="150" width="200" height="90" rx="10" fill="none" stroke="#5BD0BA"/>
+        <text x="980" y="173" text-anchor="middle" font-weight="600">Apify Actor</text>
+        <text x="980" y="191" text-anchor="middle" fill-opacity=".6">built · pinned · oracle 3/3</text>
+        <text x="980" y="209" text-anchor="middle" fill-opacity=".6">n8kB1hNqgzkddvWKp</text>
+        <text x="980" y="227" text-anchor="middle" fill="#5BD0BA">live gate passed</text>
+        <line x1="782" y1="230" x2="878" y2="200" stroke="currentColor" marker-end="url(#arrow)"/>
+        <text x="830" y="203" text-anchor="middle" font-size="11" fill-opacity=".7">adds a tool</text>
+
+        <rect x="880" y="275" width="200" height="90" rx="10" fill="none" stroke="#E7B35A" stroke-dasharray="6 5"/>
+        <text x="980" y="298" text-anchor="middle" font-weight="600">CREAO hosted agent</text>
+        <text x="980" y="316" text-anchor="middle" fill-opacity=".6">persistent role</text>
+        <text x="980" y="334" text-anchor="middle" fill-opacity=".6">abd440e7… · 30a7b386…</text>
+        <text x="980" y="352" text-anchor="middle" fill="#E7B35A">created · readiness unverified</text>
+        <line x1="782" y1="330" x2="878" y2="330" stroke="currentColor" stroke-dasharray="4 4" marker-end="url(#arrow)"/>
+        <text x="830" y="322" text-anchor="middle" font-size="11" fill-opacity=".7">adds a role</text>
+
+        <!-- elastic -->
+        <rect x="490" y="470" width="250" height="110" rx="10" fill="none" stroke="#5BD0BA"/>
+        <text x="615" y="494" text-anchor="middle" font-weight="600">Elastic</text>
+        <text x="615" y="512" text-anchor="middle" fill-opacity=".6">genesis-iteration-ledger · 429 docs</text>
+        <text x="615" y="530" text-anchor="middle" fill-opacity=".6">genesis-evidence-* · Agent Builder</text>
+        <text x="615" y="548" text-anchor="middle" fill-opacity=".6">specialist searches the evidence</text>
+        <text x="615" y="568" text-anchor="middle" fill="#5BD0BA">live · gate passed</text>
+        <line x1="560" y1="382" x2="560" y2="468" stroke="currentColor" marker-end="url(#arrow)"/>
+        <text x="568" y="458" text-anchor="start" font-size="11" fill-opacity=".7">event log</text>
+
+        <!-- lab -->
+        <rect x="20" y="430" width="380" height="150" rx="12" fill="none" stroke="currentColor"/>
+        <text x="210" y="456" text-anchor="middle" font-weight="700" font-size="14">lab: iteration engine (Node)</text>
+        <text x="210" y="478" text-anchor="middle" fill-opacity=".7">model proposes k methods · sealed panels</text>
+        <text x="210" y="496" text-anchor="middle" fill-opacity=".7">controls stay in the room · chain-hashed ledger</text>
+        <text x="210" y="514" text-anchor="middle" fill-opacity=".7">fresh-panel confirmation · sealed bundle</text>
+        <text x="210" y="536" text-anchor="middle" fill-opacity=".7">generated code runs sandboxed, no key, no network</text>
+        <text x="210" y="562" text-anchor="middle" fill="#5BD0BA">7 recorded runs · job-shop 19/20 vs random 14</text>
+        <line x1="402" y1="505" x2="488" y2="505" stroke="currentColor" marker-end="url(#arrow)"/>
+        <text x="445" y="497" text-anchor="middle" font-size="11" fill-opacity=".7">ledger</text>
+
+        <!-- org B via fetch offer -->
+        <rect x="880" y="450" width="200" height="110" rx="10" fill="none" stroke="currentColor"/>
+        <text x="980" y="474" text-anchor="middle" font-weight="600">organization B</text>
+        <text x="980" y="492" text-anchor="middle" fill-opacity=".6">its own kernel + planner</text>
+        <text x="980" y="510" text-anchor="middle" fill-opacity=".6">re-tests on its own problems</text>
+        <text x="980" y="528" text-anchor="middle" fill-opacity=".6">adopts only on a local win</text>
+        <text x="980" y="548" text-anchor="middle" fill="#5BD0BA">one inheritance ran A→B→A</text>
+        <path d="M 400 450 C 520 400, 720 420, 878 470" fill="none" stroke="#5BD0BA" marker-end="url(#arrow-accent)"/>
+        <text x="660" y="398" text-anchor="middle" font-size="11" fill="#5BD0BA">verified bundle → Fetch.ai offer (sealed, with ledger)</text>
+
+        <!-- legend -->
+        <line x1="1040" y1="40" x2="1080" y2="40" stroke="currentColor"/><text x="1088" y="44" font-size="11" fill-opacity=".7">data path</text>
+        <line x1="1040" y1="62" x2="1080" y2="62" stroke="currentColor" stroke-dasharray="4 4"/><text x="1088" y="66" font-size="11" fill-opacity=".7">not yet verified live</text>
+        <rect x="1040" y="78" width="40" height="12" rx="3" fill="none" stroke="#5BD0BA"/><text x="1088" y="88" font-size="11" fill-opacity=".7">sponsor, live evidence</text>
+        <rect x="1040" y="100" width="40" height="12" rx="3" fill="none" stroke="#E7B35A" stroke-dasharray="6 5"/><text x="1088" y="110" font-size="11" fill-opacity=".7">sponsor, created only</text>
+      </g>
+    </svg>
+    <figcaption>Every arrow is a path that ran during Cal Hacks 13.0 except the dashed CREAO provisioning, which created hosted agents but never completed the readiness callback. Green boxes carry live evidence (gate run or end-to-end transcript); the amber dashed box carries creation evidence only.</figcaption>
+  </figure>
+
+  <div class="wrap">
+  <table>
+    <tr><th>Sponsor</th><th>Role in the mechanism</th><th>Evidence</th><th>Identifiers for the submission</th></tr>
+    <tr><td>Fetch.ai</td><td>The conversational door into an organization and the channel between organizations. A judge's sentence becomes an observation; verified method bundles travel as agent-carried offers.</td><td class="ok">Live: mailbox registered, a <code>report</code> through Agentverse acknowledged in 5 s, the planner's committed change relayed back in 84 s (2026-10-25).</td><td><code>agent1q284muxcdleukm2vrh670nljfp5hl8f25ew8d78jkzxf0j3w2gut2jyj9nl</code> · bridge <code>services/fetch-bridge</code></td></tr>
+    <tr><td>Apify</td><td>The capability factory: a missing web capability is generated as an Actor, built, pinned by version and verified against an oracle before a role may use it.</td><td class="ok">Live gate passed 2026-10-24 (run <code>20261024085438</code>): build SUCCEEDED, 3/3 oracle cases.</td><td>Actor <code>n8kB1hNqgzkddvWKp</code>, build <code>D5hU7kSdSc20L08g3</code> (0.1.1), account <code>genesis-eric</code>, private; link <code>https://console.apify.com/actors/n8kB1hNqgzkddvWKp</code></td></tr>
+    <tr><td>Elastic</td><td>The organization's memory and its searchable record: kernel events and the lab's chain-hashed ledgers are indexed; an Agent Builder specialist answers from the evidence index.</td><td class="ok">Live: 429 ledger documents indexed; gate passed 2026-10-25 (run <code>20261025103959</code>) including a converse turn that used the evidence tool.</td><td>indices <code>genesis-iteration-ledger</code>, <code>genesis-evidence-*</code>, <code>genesis-capabilities</code>; keys owned by the team</td></tr>
+    <tr><td>CREAO</td><td>Persistent roles: a hosted agent that keeps a responsibility running after the temporary team dissolves.</td><td class="warm">Created only: two hosted agents exist from the v2 API; the create response carries no agent id, so the kernel holds no binding and the readiness callback was never completed.</td><td>agents <code>abd440e7-3d97-419b-83b5-e3406e772b61</code>, <code>30a7b386-1942-4122-b7e3-b5b2fbde66d8</code>; no run share link</td></tr>
+  </table>
+  </div>
+  <p>Honesty line for every submission: the kernel, planner, governed change, the lab and one A→B→A inheritance ran; Fetch.ai, Apify and Elastic have live evidence; CREAO has creation evidence only. Nothing here claims per-organization isolation of the Elastic keys or a completed CREAO readiness check.</p>
+</main>
+</body>
+</html>
