@@ -91,8 +91,9 @@ random-search package (`06777e8e…`), under the strict criterion
 W's round-k development runs finish, and their feedback is produced, before
 round k+1 is requested.
 
-`lab-score feedback` refuses an unscored run (no retained output, scoring not
-`Scored`). So round k+1's feedback input is exactly the set of feedback
+`lab-score feedback` refuses a run without retained output or a `Scored`
+outcome. Feedback production follows that tool, not § Selection's eligibility
+rule. So round k+1's feedback input is exactly the set of feedback
 documents that `lab-score feedback` produces for round k's four candidate
 slots, in the family order above; each refused family is listed as absent with
 its refusal. If all four are refused, round k+1 and every later W round are
@@ -106,26 +107,29 @@ are never dropped or trimmed to make a plan fit.
 
 ## Selection (frozen before the fresh panel)
 
-For each arm and family, candidates are split by their development run on
-that family:
+**Eligible slot** (one rule, used for selection here and for the positive
+reading in § Endpoints): a slot whose run has execution outcome
+`OutputGenerated`, every execution usage field known, a `Scored` scoring
+receipt within its scoring grant, and a success count known from the retained
+metrics. Any other slot is **ineligible**: no method, `Failed`, `Interrupted`
+or `Unknown` execution (even if retained output was scored), unknown usage,
+scoring not `Scored` or over its grant, or an unknown success count. The
+observed outcome, and any scored successes of an ineligible slot, are still
+reported as observed.
 
-- **Scored:** the candidate slot's scoring receipt is `Scored` and its success
-  count is known from the retained metrics.
-- **Unscored:** anything else (generation produced no method, execution
-  `failed` or `unknown`, no output, scoring not `Scored`, or an unknown
-  success count).
-
-Only scored candidates are eligible. A valid score of 0 is eligible; an
-unscored run is never treated as 0. Among eligible candidates, the selection is
-the one with the most development successes. Ties are broken in order by:
-1. fewer development simulation steps on that family, where an unknown step
-   count ranks after every known one;
+For each arm and family, only candidates whose development slot on that
+family is eligible can be selected. A valid score of 0 is eligible; an
+ineligible slot is never treated as 0. Among eligible candidates, the
+selection is the one with the most development successes. Ties are broken in
+order by:
+1. fewer development simulation steps on that family (always known, since
+   eligibility requires known usage);
 2. earlier round;
 3. lexically smaller package SHA-256.
 
-If every candidate of an arm is unscored on a family (including an arm that
-produced no method at all), that arm's selection for that family is
-`no_candidate`. Unscored runs stay listed with their status. Nothing is rerun
+If no candidate of an arm has an eligible slot on a family (including an arm
+that produced no method at all), that arm's selection for that family is
+`no_candidate`. Ineligible slots stay listed with their status. Nothing is rerun
 to improve eligibility.
 
 ## Fresh-panel stage
@@ -149,8 +153,8 @@ regression-baseline plan (4) never depends on a selection and is always run.
     estimable**. Available per-family primary and companion results are still
     reported, but no positive reading is allowed and no secondary run is
     substituted for a missing pair.
-  - Within a primary plan that ran, an unknown, failed or no-output slot is
-    listed and contributes 0 to its arm's sum for reporting. It also makes the
+  - Within a primary plan that ran, an ineligible slot is listed with its
+    observed outcome and contributes 0 to its arm's sum. It also makes the
     positive reading unavailable (condition 2 below).
 - **Canonical random reference:** the control slots of the four
   regression-baseline plans (4), parent vs seeded random search. "Random
@@ -159,8 +163,8 @@ regression-baseline plan (4) never depends on a selection and is always run.
   the reference.
 - **Positive exploratory reading** only if all of these hold:
   1. the primary comparison is complete (all four primary plans ran);
-  2. every primary slot was scored (no unknown, failed or no-output slot);
-  3. all four reference slots were scored;
+  2. every primary slot is eligible;
+  3. all four reference slots are eligible;
   4. W's sum exceeds F's by at least 2;
   5. W's sum is at least the reference sum.
 
