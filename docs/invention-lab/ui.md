@@ -348,8 +348,8 @@ The registry's `MethodOffer` and `MethodSearchResults` responses
 (`crates/genesis-server/src/registry/methods.rs`, see
 [the exchange contract](contracts/method-registry.md)) are read when an
 organization kept them as files, for example the stdout of `genesis method fetch`
-or `genesis method search`. The decoders refuse unknown fields, like the
-registry's own records. Nothing here calls a registry, holds a token or offers a
+or `genesis method search`. The decoders refuse unknown fields, including inside
+every exact reference, as the registry's own records and `ExactContentRef` do. Nothing here calls a registry, holds a token or offers a
 control that publishes, fetches or adopts.
 
 Each publisher-qualified exact method is one row, in three separate states. None
@@ -363,8 +363,9 @@ implies the next:
   of the UTF-8 `package_json` equals the reference's hash *and* that package
   decodes to the same full five-field reference. Otherwise the row says why and
   a problem is listed. An offer that disagrees with its search hit on intent,
-  applicability, runtime, protocol or dependencies is a problem, and so are two
-  different offers for one publisher and version.
+  applicability, runtime, protocol or dependencies is a problem. So is any
+  second reference under one publisher, method id and version, which is the
+  registry's immutable key. Both rows stay so that either can be inspected.
 - **Local decision**: only a lab-adopt outcome that names this exact method. No
   exchange record creates an adoption, selection or improvement edge.
 
