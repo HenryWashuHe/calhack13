@@ -353,6 +353,43 @@ Attempt 1 is ineligible, because its model usage was not measured. Attempt 2
 reads 1/12 and 12/12 against 10/12 and 9/12. These are exploratory runs, not a
 ranking, a G4 comparison or a benefit claim.
 
+## Method exchange records
+
+The registry's `MethodOffer` and `MethodSearchResults` responses
+(`crates/genesis-server/src/registry/methods.rs`, see
+[the exchange contract](contracts/method-registry.md)) are read when an
+organization kept them as files, for example the stdout of `genesis method fetch`
+or `genesis method search`. The decoders refuse unknown fields, including inside
+every exact reference, as the registry's own records and `ExactContentRef` do. Nothing here calls a registry, holds a token or offers a
+control that publishes, fetches or adopts.
+
+Each publisher-qualified exact method is one row, in three separate states. None
+implies the next:
+
+- **Discovered**: a search hit. It carries public metadata only (intent,
+  applicability, runtime, protocol, dependencies) and no source. A truncated
+  search says more matches existed, and an untruncated one is still not proof
+  that nothing else matches.
+- **Fetched**: an offer. Its source is linked to a method only when the SHA-256
+  of the UTF-8 `package_json` equals the reference's hash *and* that package
+  decodes to the same full five-field reference. Otherwise the row says why and
+  a problem is listed. An offer that disagrees with its search hit on intent,
+  applicability, runtime, protocol or dependencies is a problem. So is any
+  second reference under one publisher, method id and version, which is the
+  registry's immutable key. Both rows stay so that either can be inspected.
+- **Local decision**: only a lab-adopt outcome that names this exact method. No
+  exchange record creates an adoption, selection or improvement edge.
+
+The publisher is the registry account that submitted the bytes, not their
+author, and a kept response is a record of what was returned, not proof of who
+sent it. The same reference from two publishers is two rows.
+
+Only the four lab-adopt tags (`adopted`, `not_applicable`,
+`insufficient_evidence`, `unknown`, the last three with a `reason`) are read as
+adoption outcomes. Any other `outcome` string is some other record, such as a
+`lab-exec run` result kept as `<slot>.run.json`, and is listed as not read. The
+server's `MethodAdoptionRecord` (#155) is not read yet.
+
 ## Attempt ledger
 
 Status records may carry the optional enum-only `diagnostic` from
