@@ -206,7 +206,9 @@ pub async fn complete_run(
 ) -> ApiResult<Json<Value>> {
     principal.require(&[Principal::Operator])?;
     let Json(receipt) = body.map_err(|_| ApiError::bad_request("invalid execution receipt"))?;
-    let receiver = configured(&app)?;
+    // No `configured` check: a disabled receiver grants nothing new, but a
+    // started run's receipt is still retained (as completed after fence).
+    let receiver = app.method_receiver.clone();
     let _guard = app.kernel.lock().await;
     let state = app
         .store
@@ -214,7 +216,7 @@ pub async fn complete_run(
         .map_err(|_| ApiError::internal("organization state is unavailable"))?;
     let record = app
         .store
-        .complete_method_run(&id, &receipt, &state, &receiver, Utc::now())
+        .retain_method_run_receipt(&id, &receipt, &state, receiver.as_deref(), Utc::now())
         .map_err(run_error)?;
     Ok(Json(json!(record)))
 }
