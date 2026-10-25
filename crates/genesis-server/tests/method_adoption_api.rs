@@ -263,6 +263,7 @@ async fn adoption_authorizes_only_the_owner_for_the_exact_version_under_current_
         records_root: records,
         acceptance_plans: vec![AcceptancePin {
             requirement_id: owner.requirement.clone(),
+            publisher: OrgId::new("org_example_a"),
             plan: serde_json::from_value::<TrialPlan>(plan.clone())
                 .unwrap()
                 .reference()
