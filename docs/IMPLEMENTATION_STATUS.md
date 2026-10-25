@@ -11,8 +11,8 @@ weights. Event organization remains superseded. G0–G4 are still open.
 The revised app Goal was activated on October 24, 2026 after the stale record
 was cleared; the existing hourly continuation remains active.
 
-Main through `c0c2cae16802d1d5001409bd39ed0c73e967db27`, tree
-`1c8d363a3c337d413287769c566e9ab6f81a38da`, includes the reviewed
+Main through `a9caea11deb2085b9a8960f7233049b66c3b058f`, tree
+`7c390b40f66781a32540140b563907bed0f03511`, includes the reviewed
 foundations below. Method generation merged at `d1be8443fee46e1196861926a963563f48407936`,
 whose tree `dc9d6adc19863d8584fd5af1fd11eae7552014eb` exactly matches the independently
 validated generation stack. Counts refer to the named source/composition, not a
@@ -351,7 +351,8 @@ Current supporting review: Stage #125 `811d0df2` is merged at `c0c2cae1`;
 #126 `957edf8b` is retargeted to main and held on acknowledgment/card attribution.
 Iteration #144 `fd35c2fe87fe5fac9400fd4b3591d6d915dac743` is unreviewed;
 earlier findings below apply to their named heads, not fresh reproductions.
-Sponsor framing #161 `c936bcf6` is under separate review. Ownership is unchanged.
+Dated direction/sponsor note #161 `c936bcf6` merged at `a9caea11` after
+source/delta and independent review; the current checkpoint remains authoritative. Ownership is unchanged.
 
 Ines stays unassigned. See the [current direction checkpoint](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6387556484).
 

@@ -296,7 +296,8 @@ Separate `apps/stage` queue: #125 `811d0df2` → `c0c2cae1` is merged after
 33 offline VM tests, with the original timing guard unchanged. #126 `957edf8b`,
 retargeted to main, remains held: a valid A acknowledgment points to B's card.
 All 45 original tests pass; two new guards fail in preserved `27afe99c`.
-Sponsor framing #161 `c936bcf6` is under separate review.
+Dated direction/sponsor note #161 `c936bcf6` merged at `a9caea11` after
+source/delta and independent review; the current checkpoint remains authoritative.
 ACP #144 has new unreviewed head `fd35c2fe`; preserve the emitter findings at
 `880f7bc` and original engine guards pending exact-head review. These changes
 transfer no ownership or adoption authority.
