@@ -330,6 +330,7 @@ version = "0.1.0"
 dependencies = [
  "genesis-core",
  "genesis-lab-eval",
+ "libc",
  "serde",
  "serde_json",
  "sha2",
