@@ -15,3 +15,6 @@ genesis-lab-eval = { path = "../evaluator" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
