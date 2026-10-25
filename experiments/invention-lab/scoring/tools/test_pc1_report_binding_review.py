@@ -60,7 +60,15 @@ def retained(out, missing=()):
                                                for i in range(12)]
             for key in ("public_task", "generator", "scoring_rule"):
                 plan["context"][key]["id"] = family
-            plan["scoring_grant"]["simulation_steps"] = 28800
+            # Fixture correction by Henry's Claude, requested in review 5641653972:
+            # the protocol's frozen scoring grant and the real margin-one
+            # criterion over this panel. No assertion changed.
+            plan["scoring_grant"] = {"model_calls": 0, "input_tokens": 0, "output_tokens": 0,
+                                     "wall_time_ms": 600000,
+                                     "simulation_steps": 14400 if family == "projectile-target" else 28800}
+            plan["criterion"]["sha256"] = write(directory_for(out, tid) / "criterion.json", {
+                "rule": "success-count-margin", "min_margin": 1,
+                "instances": [row["id"] for row in plan["development_instances"]]})
             for slot, role, package in zip(plan["slots"], ("candidate", "control"),
                                             (candidate, control)):
                 slot.update(org_id=frozen["org_id"], run_id=f"run-{plan['id']}-{role}",
@@ -69,10 +77,15 @@ def retained(out, missing=()):
                 slot["method"] = {"domain": "genesis", "schema": "development-method-source/1",
                                    "id": package, "version": "0.1.0",
                                    "sha256": packages[package]["sha256"]}
-            directory = out / tid
-            directory.mkdir()
-            write(directory / "plan.json", plan)
+            write(directory_for(out, tid) / "plan.json", plan)
     return not_run, write(out / "spec.json", frozen)
+
+
+def directory_for(out, tid):
+    """Fixture correction (Henry's Claude): the trial directory, created once."""
+    directory = out / tid
+    directory.mkdir(exist_ok=True)
+    return directory
 
 
 def assess_mock(_directory, plan, slot, _lab_score=None):

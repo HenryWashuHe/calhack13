@@ -34,6 +34,11 @@ import tempfile
 FAMILIES = ("ravine-crossing", "rough-transport", "return-mix", "projectile-target")
 PLANS = ("primary", "w-random", "f-random", "parent-random")
 FRESH_INSTANCES, FIRST_SEED = 12, 1000
+# process-comparison/1's frozen resource policy. Scoring steps are 12 episodes
+# of the family's maximum length (evaluator `Family::max_steps`).
+DEVELOPMENT_STEPS, DEVELOPMENT_WALL_MS, SCORING_WALL_MS = 72000, 60000, 600000
+EPISODE_STEPS = {"projectile-target": 1200}
+DEFAULT_EPISODE_STEPS = 2400
 # Family-specific context; everything else in a plan must agree across all plans.
 FAMILY_CONTEXT = ("public_task", "generator", "scoring_rule", "instance_set")
 
@@ -104,6 +109,9 @@ def spec_problems(spec, not_run):
     problems = []
     if spec.get("instances") != FRESH_INSTANCES:
         problems.append(f"spec instances must be {FRESH_INSTANCES}")
+    if (spec.get("simulation_steps"), spec.get("wall_time_ms")) != (
+            DEVELOPMENT_STEPS, DEVELOPMENT_WALL_MS):
+        problems.append("spec development grant is not the protocol's 72,000 steps / 60,000 ms")
     packages = spec.get("packages") if isinstance(spec.get("packages"), dict) else {}
     allowed = {"random-search", "parent"} | {f"{a}-{f}" for a in "wf" for f in FAMILIES}
     if set(packages) - allowed or not {"random-search", "parent"} <= set(packages):
@@ -158,12 +166,12 @@ def package_ref(out, spec, name):
 
 
 def criterion_problems(trial_dir, plan, ids):
-    """A retained criterion.json must be the executor's criterion for this panel."""
-    path = os.path.join(trial_dir, "criterion.json")
-    if not os.path.exists(path):
-        return []
-    with open(path, "rb") as f:
-        data = f.read()
+    """The retained criterion.json must be the executor's criterion for this panel."""
+    try:
+        with open(os.path.join(trial_dir, "criterion.json"), "rb") as f:
+            data = f.read()
+    except OSError:
+        return ["criterion.json is not retained"]
     expected = json.dumps({"instances": ids, "min_margin": 1, "rule": "success-count-margin"},
                           sort_keys=True, separators=(",", ":")).encode()
     criterion = plan.get("criterion") or {}
@@ -194,6 +202,12 @@ def plan_problems(out, plan, spec, tid, fam, cand, ctrl):
             spec.get("simulation_steps"), spec.get("wall_time_ms")) or any(
             grant.get(k) != 0 for k in ("model_calls", "input_tokens", "output_tokens")):
         problems.append("development grant differs from the spec")
+    expected_scoring = {"model_calls": 0, "input_tokens": 0, "output_tokens": 0,
+                        "wall_time_ms": SCORING_WALL_MS,
+                        "simulation_steps": FRESH_INSTANCES * EPISODE_STEPS.get(
+                            fam, DEFAULT_EPISODE_STEPS)}
+    if plan.get("scoring_grant") != expected_scoring:
+        problems.append("scoring grant is not the protocol's for this family")
     slots = plan.get("slots") or []
     if [s.get("slot_id") for s in slots] != ["candidate", "control"]:
         return problems + ["slots are not candidate then control"]

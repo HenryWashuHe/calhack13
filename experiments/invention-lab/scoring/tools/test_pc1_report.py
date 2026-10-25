@@ -83,6 +83,12 @@ def packages(tmp, missing):
     return selections, pkg("random-search"), pkg("parent")
 
 
+def criterion_bytes(plan):
+    ids = [i["id"] for i in plan["development_instances"]]
+    return json.dumps({"instances": ids, "min_margin": 1, "rule": "success-count-margin"},
+                      sort_keys=True, separators=(",", ":")).encode()
+
+
 def make_plan(spec, tid, fam, cand, ctrl, mutate=None):
     p = copy.deepcopy(TEMPLATE_PLAN)
     pid = f"receive-{tid}"
@@ -97,7 +103,13 @@ def make_plan(spec, tid, fam, cand, ctrl, mutate=None):
     p["development_grant"] = {"model_calls": 0, "input_tokens": 0, "output_tokens": 0,
                               "wall_time_ms": spec["wall_time_ms"],
                               "simulation_steps": spec["simulation_steps"]}
-    p["scoring_grant"] = {**p["scoring_grant"], "simulation_steps": 28800}
+    # The protocol's frozen scoring grant and the executor's margin-one
+    # criterion over this panel (written beside the plan by `trial`).
+    p["scoring_grant"] = {"model_calls": 0, "input_tokens": 0, "output_tokens": 0,
+                          "wall_time_ms": 600000,
+                          "simulation_steps": 12 * (1200 if fam == "projectile-target" else 2400)}
+    p["criterion"] = {**p["criterion"],
+                      "sha256": hashlib.sha256(criterion_bytes(p)).hexdigest()}
     for s, name, pkg in zip(p["slots"], ("candidate", "control"), (cand, ctrl)):
         s["method"] = {"domain": "genesis", "schema": "development-method-source/1",
                        "id": pkg, "version": "0.1.0", "sha256": spec["packages"][pkg]["sha256"]}
@@ -127,6 +139,7 @@ def trial(out, spec, tid, fam, cand, ctrl, cs, fs, overrides=None):
     plan = make_plan(spec, tid, fam, cand, ctrl, overrides.get("plan"))
     with open(os.path.join(d, "plan.json"), "w") as f:
         json.dump(plan, f)
+    Path(d, "criterion.json").write_bytes(criterion_bytes(plan))
     with open(os.path.join(d, "verdict.json"), "w") as f:
         json.dump({"verdict": "synthetic"}, f)
     slots = {name: slot_config(n, **overrides.get(name, {}))
