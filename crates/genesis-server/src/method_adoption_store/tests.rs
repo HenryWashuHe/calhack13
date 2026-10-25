@@ -16,16 +16,16 @@ fn plan_ref(records: &Records, trial: &str) -> ExactContentRef {
     plan.reference().unwrap()
 }
 
-struct Fixture {
-    records: Records,
+pub(crate) struct Fixture {
+    pub(crate) records: Records,
     path: PathBuf,
-    store: Store,
-    intent: CreateMethodAdoption,
-    now: DateTime<Utc>,
+    pub(crate) store: Store,
+    pub(crate) intent: CreateMethodAdoption,
+    pub(crate) now: DateTime<Utc>,
 }
 
 impl Fixture {
-    fn new() -> Self {
+    pub(crate) fn new() -> Self {
         let mut records = Records::new();
         let path = records.dir.path().join("org.sqlite");
         let now = DateTime::parse_from_rfc3339("2026-10-24T12:00:00Z")
@@ -126,7 +126,10 @@ impl Fixture {
             now,
         }
     }
-    fn create(&self, intent: &CreateMethodAdoption) -> Result<(MethodAdoptionRecord, bool)> {
+    pub(crate) fn create(
+        &self,
+        intent: &CreateMethodAdoption,
+    ) -> Result<(MethodAdoptionRecord, bool)> {
         self.store
             .create_method_adoption(intent, &package(), &self.records.receiver, self.now)
     }

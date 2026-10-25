@@ -488,4 +488,4 @@ impl Store {
 
 #[cfg(test)]
 #[path = "method_adoption_store/tests.rs"]
-mod tests;
+pub(crate) mod tests;

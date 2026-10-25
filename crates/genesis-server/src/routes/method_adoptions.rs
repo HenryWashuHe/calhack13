@@ -128,3 +128,102 @@ pub async fn authorize(
         .map_err(error)?;
     Ok(Json(json!(grant)))
 }
+
+fn run_error(error: crate::method_invocation_run::MethodRunError) -> ApiError {
+    use crate::method_invocation_run::MethodRunError as E;
+    let conflict = |code: &str, message: String| ApiError::new(StatusCode::CONFLICT, code, message);
+    match error {
+        E::InvalidInput => ApiError::bad_request("invalid method run request"),
+        E::Plan(_) | E::Receipt(_) => ApiError::new(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "method_run_binding",
+            error.to_string(),
+        ),
+        E::NotFound => ApiError::not_found("method run"),
+        E::IdempotencyConflict => conflict(
+            "idempotency_conflict",
+            "method run key is bound to another intent".into(),
+        ),
+        E::Limit => conflict("method_run_limit", error.to_string()),
+        E::Status(_) => conflict("method_run_status", error.to_string()),
+        E::Adoption(e) => self::error(e),
+        E::InvalidRecord | E::Db(_) => ApiError::internal("method run state is unavailable"),
+    }
+}
+
+/// Freeze one invocation plan under the current grant. Nothing runs here.
+pub async fn prepare_run(
+    State(app): State<AppState>,
+    principal: Principal,
+    body: Result<Json<crate::method_invocation_run::CreateMethodRun>, JsonRejection>,
+) -> ApiResult<(StatusCode, Json<Value>)> {
+    principal.require(&[Principal::Operator])?;
+    let Json(body) = body.map_err(|_| ApiError::bad_request("invalid method run request"))?;
+    let receiver = configured(&app)?;
+    let _guard = app.kernel.lock().await;
+    let state = app
+        .store
+        .current_state()
+        .map_err(|_| ApiError::internal("organization state is unavailable"))?;
+    let (record, created) = app
+        .store
+        .prepare_method_run(&body, &state, &receiver, Utc::now())
+        .map_err(run_error)?;
+    let status = if created {
+        StatusCode::CREATED
+    } else {
+        StatusCode::OK
+    };
+    Ok((status, Json(json!(record))))
+}
+
+/// Start a prepared run once, if its grant is still the current one.
+pub async fn start_run(
+    State(app): State<AppState>,
+    principal: Principal,
+    Path(id): Path<String>,
+) -> ApiResult<Json<Value>> {
+    principal.require(&[Principal::Operator])?;
+    let receiver = configured(&app)?;
+    let _guard = app.kernel.lock().await;
+    let state = app
+        .store
+        .current_state()
+        .map_err(|_| ApiError::internal("organization state is unavailable"))?;
+    let record = app
+        .store
+        .start_method_run(&id, &state, &receiver, Utc::now())
+        .map_err(run_error)?;
+    Ok(Json(json!(record)))
+}
+
+/// Record a started run's one execution receipt.
+pub async fn complete_run(
+    State(app): State<AppState>,
+    principal: Principal,
+    Path(id): Path<String>,
+    body: Result<Json<genesis_core::development_method::ExecutionReceipt>, JsonRejection>,
+) -> ApiResult<Json<Value>> {
+    principal.require(&[Principal::Operator])?;
+    let Json(receipt) = body.map_err(|_| ApiError::bad_request("invalid execution receipt"))?;
+    let receiver = configured(&app)?;
+    let _guard = app.kernel.lock().await;
+    let state = app
+        .store
+        .current_state()
+        .map_err(|_| ApiError::internal("organization state is unavailable"))?;
+    let record = app
+        .store
+        .complete_method_run(&id, &receipt, &state, &receiver, Utc::now())
+        .map_err(run_error)?;
+    Ok(Json(json!(record)))
+}
+
+pub async fn run_status(
+    State(app): State<AppState>,
+    principal: Principal,
+    Path(id): Path<String>,
+) -> ApiResult<Json<Value>> {
+    principal.require(&[Principal::Operator])?;
+    Ok(Json(json!(app.store.method_run(&id).map_err(run_error)?)))
+}
