@@ -194,6 +194,11 @@ every milestone. All lower checkpoints are historical.
   and strict Clippy overlap. Explicit publish/search/selected fetch only, no
   automatic `.env` loading or journal; any publication error may follow a write.
   #142 adds three passing boundary cases, preserving its 144-line file unchanged.
+  [Revision-input bridge #150/#151](docs/invention-lab/contracts/method-registry.md#selected-parent-to-revision-input)
+  is merged: exact selected source and publisher metadata enter the receiver's
+  bounded revision bundle and ordinary Prepared checkpoint. Receiver inputs and
+  legacy identities are preserved; local HTTP/pure preparation only, no new
+  generation, execution, adoption or G2/G3 closure.
   Henry's acknowledged authority slice now has its pure verdict prerequisite
   merged in #146; none of the server adoption/invocation connection is merged.
   Eric's [MethodOffer UI intake increment](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388858370)
