@@ -1,0 +1,21 @@
+{
+  "body": {
+    "adoption_id": "madopt_38501de9d43a429ea9d0f1c9c5574887",
+    "grant": {
+      "assignment_id": "asg_8e190fe6bc25472cad63305eb71389eb",
+      "epoch": 1,
+      "responsibility_id": "rsp_8e5da6433d9d43e2ac0a7fda353af0d3",
+      "role_id": "role_3fecc085225a47c08b156a72746ebc71"
+    },
+    "publisher": "org_example_a",
+    "reference": {
+      "domain": "genesis",
+      "id": "generated-method",
+      "schema": "development-method-source/1",
+      "sha256": "8215c3679a06724069759bcbdaa576b64ec0ef1251c5238a797c0cb34962b944",
+      "version": "0.1.0"
+    },
+    "requirement_id": "req_4da6556b15fd4be882ceeced46387687"
+  },
+  "status": 200
+}

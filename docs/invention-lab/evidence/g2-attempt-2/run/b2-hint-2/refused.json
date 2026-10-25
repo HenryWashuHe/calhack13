@@ -1,0 +1,18 @@
+[
+  {
+    "body": {
+      "error": "unauthorized",
+      "message": "missing or invalid bearer token"
+    },
+    "status": 401,
+    "who": "a bearer token B never issued"
+  },
+  {
+    "body": {
+      "error": "method_authority",
+      "message": "method authority changed or expired: AuthorityChanged"
+    },
+    "status": 409,
+    "who": "the lead, which does not own this responsibility"
+  }
+]

@@ -1,0 +1,12 @@
+{
+  "publisher": "org_example_a",
+  "reference": {
+    "domain": "genesis",
+    "id": "generated-method",
+    "schema": "development-method-source/1",
+    "sha256": "8215c3679a06724069759bcbdaa576b64ec0ef1251c5238a797c0cb34962b944",
+    "version": "0.1.0"
+  },
+  "responsibility_id": "rsp_cf8e954351b743f2bb6aa4fe906aaa26",
+  "role_id": "role_78562429e79842a3a8f12bd30e974b76"
+}

@@ -1,0 +1,162 @@
+{
+  "candidate": {
+    "development_overrun": false,
+    "development_steps": 34278,
+    "development_usage": {
+      "input_tokens": {
+        "kind": "measured",
+        "value": 0
+      },
+      "model_calls": {
+        "kind": "measured",
+        "value": 0
+      },
+      "output_tokens": {
+        "kind": "measured",
+        "value": 0
+      },
+      "simulation_steps": {
+        "kind": "measured",
+        "value": 34278
+      },
+      "wall_time_ms": {
+        "kind": "measured",
+        "value": 939
+      }
+    },
+    "eligible": true,
+    "execution": "output_generated",
+    "method": {
+      "domain": "genesis",
+      "id": "generated-method",
+      "schema": "development-method-source/1",
+      "sha256": "8215c3679a06724069759bcbdaa576b64ec0ef1251c5238a797c0cb34962b944",
+      "version": "0.1.0"
+    },
+    "plan": {
+      "domain": "genesis",
+      "id": "receive-b2-plain-1-pinned",
+      "schema": "development-trial-plan/1",
+      "sha256": "46ad2117af9a62440270b7cad8287e37fd6f5bd640873a46dd6d1ed29a931aa7",
+      "version": "1"
+    },
+    "reasons": [],
+    "schema": "genesis-process-slot-assessment/1",
+    "scoring": {
+      "kind": "scored",
+      "metrics": {
+        "domain": "genesis-lab",
+        "id": "lab-scoring-metrics/1",
+        "schema": "lab-scoring-metrics/1",
+        "sha256": "5ce98d983afe60493be2566c2d8834fe385b3c81ed502e236dd37b7aaa1c59e6",
+        "version": "1"
+      }
+    },
+    "scoring_usage": {
+      "input_tokens": {
+        "kind": "measured",
+        "value": 0
+      },
+      "model_calls": {
+        "kind": "measured",
+        "value": 0
+      },
+      "output_tokens": {
+        "kind": "measured",
+        "value": 0
+      },
+      "simulation_steps": {
+        "kind": "measured",
+        "value": 12494
+      },
+      "wall_time_ms": {
+        "kind": "measured",
+        "value": 82
+      }
+    },
+    "scoring_within_grant": true,
+    "slot_id": "candidate",
+    "successes": 10
+  },
+  "control": {
+    "development_overrun": false,
+    "development_steps": 0,
+    "development_usage": {
+      "input_tokens": {
+        "kind": "measured",
+        "value": 0
+      },
+      "model_calls": {
+        "kind": "measured",
+        "value": 0
+      },
+      "output_tokens": {
+        "kind": "measured",
+        "value": 0
+      },
+      "simulation_steps": {
+        "kind": "measured",
+        "value": 0
+      },
+      "wall_time_ms": {
+        "kind": "measured",
+        "value": 409
+      }
+    },
+    "eligible": true,
+    "execution": "output_generated",
+    "method": {
+      "domain": "genesis",
+      "id": "fixed-cart",
+      "schema": "development-method-source/1",
+      "sha256": "dc5b74f34698885641ca5c673ae80f00f8248ce2e073ac3fe1367d924fd2f3bd",
+      "version": "0.1.0"
+    },
+    "plan": {
+      "domain": "genesis",
+      "id": "receive-b2-plain-1-pinned",
+      "schema": "development-trial-plan/1",
+      "sha256": "46ad2117af9a62440270b7cad8287e37fd6f5bd640873a46dd6d1ed29a931aa7",
+      "version": "1"
+    },
+    "reasons": [],
+    "schema": "genesis-process-slot-assessment/1",
+    "scoring": {
+      "kind": "scored",
+      "metrics": {
+        "domain": "genesis-lab",
+        "id": "lab-scoring-metrics/1",
+        "schema": "lab-scoring-metrics/1",
+        "sha256": "843791c5e4fe1c0b703971765878cd502c5e189b9116e03287f79ee3e8a328b5",
+        "version": "1"
+      }
+    },
+    "scoring_usage": {
+      "input_tokens": {
+        "kind": "measured",
+        "value": 0
+      },
+      "model_calls": {
+        "kind": "measured",
+        "value": 0
+      },
+      "output_tokens": {
+        "kind": "measured",
+        "value": 0
+      },
+      "simulation_steps": {
+        "kind": "measured",
+        "value": 21469
+      },
+      "wall_time_ms": {
+        "kind": "measured",
+        "value": 180
+      }
+    },
+    "scoring_within_grant": true,
+    "slot_id": "control",
+    "successes": 6
+  },
+  "eligible": true,
+  "settled_verdict": true
+}

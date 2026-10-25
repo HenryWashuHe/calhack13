@@ -1,0 +1,55 @@
+Proposed {
+    change: OrgChangeRecord {
+        change_id: ChangeId(
+            "chg_74e70aeb74d84649ac14957d9acfcdac",
+        ),
+        status: Validated,
+        proposal: OrgChangeProposal {
+            expected_org_revision: 3,
+            trigger_evidence_ids: [
+                ObservationId(
+                    "obs_9495d47debc04fecb82ea8b698120ff9",
+                ),
+            ],
+            rationale: "The lab now needs rough-transport cart designs developed with a method another lab published. Adopting or running that method requires a role holding method.develop, and the existing Lab lead holds that scope and is chartered to evaluate reusable methods. The existing active Lab lead's charter (evaluate reusable methods) and method.develop scope already cover this work, so assigning the requirement to it gives a single accountable owner with no new role, scope or budget. No capability request is made: the evidence reference is not a public URL, so no observed source can be given, and the retained method selection is evidence, not an installed capability. Distinct continuing work that would justify a specialist role has not been shown.",
+            operations: [
+                AssignResponsibility {
+                    target: FromRequirement {
+                        key: "cart-method-development",
+                        requirement_id: RequirementId(
+                            "req_939761be7d8445418b69b1b98b637090",
+                        ),
+                        purpose: "Adopt and evaluate the published method to develop rough-transport cart designs that beat the fixed cart",
+                        trigger: "Receiver-owned capability-development need observed in obs_9495d47debc04fecb82ea8b698120ff9",
+                        termination: "A cart design beats the fixed cart by at least one success on twelve fresh public instances, or the method is rejected after evaluation",
+                    },
+                    owner: Existing {
+                        role_id: RoleId(
+                            "role_87be9ae7c8e74e1ca4c01974df8d30a2",
+                        ),
+                    },
+                },
+            ],
+            budget_limit_cents: None,
+        },
+        allocation: KeyAllocation {
+            roles: {},
+            responsibilities: {
+                "cart-method-development": ResponsibilityId(
+                    "rsp_b2143f0158a4488480c88d9f742f51af",
+                ),
+            },
+            contracts: {},
+            gaps: {},
+        },
+        provisioned: {},
+        ready: {},
+        operations: {},
+        errors: [],
+        committed_revision: None,
+        submitted_by: "agent",
+        created_at: 2026-10-25T12:24:01.724494033Z,
+        updated_at: 2026-10-25T12:24:01.724514527Z,
+    },
+    attempts: 1,
+}

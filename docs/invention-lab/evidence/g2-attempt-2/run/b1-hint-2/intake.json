@@ -1,0 +1,44 @@
+{
+  "body": {
+    "mission_id": "mis_dc7be1f71d6b43c8890d4758f57d83fc",
+    "observation_id": "obs_9495d47debc04fecb82ea8b698120ff9",
+    "org_id": "org_example_b",
+    "request": {
+      "acceptance": "Beats the fixed cart by one success on twelve fresh public instances",
+      "client_request_id": "b1-hint-2-selection",
+      "need": "Develop rough-transport cart designs with a method another lab published. Adopting or running the method requires a role holding method.develop",
+      "selection": {
+        "applicability": [
+          "lab family v1"
+        ],
+        "dependencies": [],
+        "intent": "cart design method, developed for ravine crossing",
+        "protocol": {
+          "domain": "genesis-lab",
+          "id": "genesis-lab-exec-lines",
+          "schema": "lab-protocol/1",
+          "sha256": "d3b90c36b32e89b4e3d191dc018717301a4afc386ac915123cf5cf86250c550d",
+          "version": "1"
+        },
+        "publisher": "org_example_a",
+        "reference": {
+          "domain": "genesis",
+          "id": "generated-method",
+          "schema": "development-method-source/1",
+          "sha256": "8215c3679a06724069759bcbdaa576b64ec0ef1251c5238a797c0cb34962b944",
+          "version": "0.1.0"
+        },
+        "runtime": {
+          "domain": "genesis-lab",
+          "id": "python3",
+          "schema": "lab-runtime/1",
+          "sha256": "0b21e795ac528c0f9cbe99e28ca1125af0c4dc5b87f53224abfe2a2ae5a69491",
+          "version": "1"
+        }
+      }
+    },
+    "request_sha256": "64037fe81d9e46f57052531b12d52e3153d55ef4ab895f64795ecbcdef8d7cfc",
+    "schema": "genesis-method-development-intake/1"
+  },
+  "status": 201
+}

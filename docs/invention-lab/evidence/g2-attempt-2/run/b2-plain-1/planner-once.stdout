@@ -1,0 +1,55 @@
+Proposed {
+    change: OrgChangeRecord {
+        change_id: ChangeId(
+            "chg_084035783a46431595870677b89ec338",
+        ),
+        status: Validated,
+        proposal: OrgChangeProposal {
+            expected_org_revision: 3,
+            trigger_evidence_ids: [
+                ObservationId(
+                    "obs_f8cfa206bae3403fa88d74056ec14c87",
+                ),
+            ],
+            rationale: "There is a new receiver-owned need: develop rough-transport cart designs using a method another lab published, with a measurable acceptance bar. This is mission work and needs one accountable owner. The retained method selection is only evidence; it is not an installed capability. The Lab lead is the only active role, and its charter already covers owning the lab and running rough-transport deliveries. Assigning the requirement there gives it one accountable owner without creating a role. A new role is not justified: there is no distinct continuing work or reason for separate execution yet. No capability is installed to attach. A capability request is not possible because the evidence reference is an internal genesis reference, not a public URL usable as an observed source. No specialists are known.",
+            operations: [
+                AssignResponsibility {
+                    target: FromRequirement {
+                        key: "rough_transport_cart_method",
+                        requirement_id: RequirementId(
+                            "req_9ab283cf97d346d0946d27aa7cc1a63f",
+                        ),
+                        purpose: "Develop rough-transport cart designs with the published method and show they beat the fixed cart",
+                        trigger: "Receiver-owned method-development need observed in obs_f8cfa206bae3403fa88d74056ec14c87",
+                        termination: "A cart design beats the fixed cart by at least one success on twelve fresh public instances, or the method is judged unusable and this is escalated",
+                    },
+                    owner: Existing {
+                        role_id: RoleId(
+                            "role_155f9c2721a2433eb9595bf4e84604fc",
+                        ),
+                    },
+                },
+            ],
+            budget_limit_cents: None,
+        },
+        allocation: KeyAllocation {
+            roles: {},
+            responsibilities: {
+                "rough_transport_cart_method": ResponsibilityId(
+                    "rsp_4284f63b261840dca0bcd7815057af2f",
+                ),
+            },
+            contracts: {},
+            gaps: {},
+        },
+        provisioned: {},
+        ready: {},
+        operations: {},
+        errors: [],
+        committed_revision: None,
+        submitted_by: "agent",
+        created_at: 2026-10-25T12:22:34.747397235Z,
+        updated_at: 2026-10-25T12:22:34.747408596Z,
+    },
+    attempts: 1,
+}

@@ -1,0 +1,7 @@
+{
+  "body": {
+    "error": "method_scope",
+    "message": "the deciding role does not hold `method.develop`, which this organization's constitution reserves for method work"
+  },
+  "status": 403
+}

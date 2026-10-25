@@ -1,0 +1,79 @@
+Proposed {
+    change: OrgChangeRecord {
+        change_id: ChangeId(
+            "chg_9e85d04349a246fb98d31b6d7c5ac757",
+        ),
+        status: Validated,
+        proposal: OrgChangeProposal {
+            expected_org_revision: 3,
+            trigger_evidence_ids: [
+                ObservationId(
+                    "obs_7a28c6aea5dd43c5a297eb9512701cc3",
+                ),
+            ],
+            rationale: "The lab now needs to develop rough-transport cart designs using a method another lab published, with a measurable bar: beat the fixed cart by one success on twelve fresh public instances. This is new continuing method-development work, and no current role holds the authority to develop methods. The Lab lead's charter covers rough-transport deliveries, but the role holds only mission.coordinate. No operation can add the method.develop scope to an existing role. No capability is installed, so there is nothing to attach. The evidence_ref is not a public URL, so a capability request has no valid observed_sources. The smallest valid change is one new role, reporting to the Lab lead, that holds only method.develop and a bounded budget. The justification is authority, and the role is the single accountable owner of the requirement.",
+            operations: [
+                CreateRole {
+                    key: "cart_method_dev",
+                    name: "Cart method developer",
+                    charter: "Develop and evaluate rough-transport cart designs using the best available published methods, and report results to the Lab lead.",
+                    authority: AuthorityGrant {
+                        scopes: {
+                            "method.develop",
+                        },
+                        budget_cents: 50000,
+                    },
+                    reports_to: Some(
+                        Existing {
+                            role_id: RoleId(
+                                "role_24b5160d8c9f407590fd9be1bf5e2d9b",
+                            ),
+                        },
+                    ),
+                    provider: Elastic,
+                    justification: Authority,
+                },
+                AssignResponsibility {
+                    target: FromRequirement {
+                        key: "rsp_cart_method",
+                        requirement_id: RequirementId(
+                            "req_eda2301856584c74af6a9605b62a9ebb",
+                        ),
+                        purpose: "Develop rough-transport cart designs with the published method and show they beat the fixed cart baseline",
+                        trigger: "Method-development need observed (obs_7a28c6aea5dd43c5a297eb9512701cc3)",
+                        termination: "A design beats the fixed cart by at least one success on twelve fresh public instances, or the Lab lead closes the need",
+                    },
+                    owner: New {
+                        key: "cart_method_dev",
+                    },
+                },
+            ],
+            budget_limit_cents: Some(
+                50000,
+            ),
+        },
+        allocation: KeyAllocation {
+            roles: {
+                "cart_method_dev": RoleId(
+                    "role_6361029318054a9498ebb476d0581512",
+                ),
+            },
+            responsibilities: {
+                "rsp_cart_method": ResponsibilityId(
+                    "rsp_094411e7f22c4949ae69797d14697006",
+                ),
+            },
+            contracts: {},
+            gaps: {},
+        },
+        provisioned: {},
+        ready: {},
+        operations: {},
+        errors: [],
+        committed_revision: None,
+        submitted_by: "agent",
+        created_at: 2026-10-25T12:23:27.066690179Z,
+        updated_at: 2026-10-25T12:23:27.066706178Z,
+    },
+    attempts: 1,
+}

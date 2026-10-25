@@ -1,0 +1,220 @@
+{
+  "controls": {
+    "mismatched_grant": 409,
+    "unknown_token": 401
+  },
+  "decision_error": "method_scope",
+  "decision_status": 403,
+  "eligibility": {
+    "candidate": {
+      "development_overrun": false,
+      "development_steps": 34278,
+      "development_usage": {
+        "input_tokens": {
+          "kind": "measured",
+          "value": 0
+        },
+        "model_calls": {
+          "kind": "measured",
+          "value": 0
+        },
+        "output_tokens": {
+          "kind": "measured",
+          "value": 0
+        },
+        "simulation_steps": {
+          "kind": "measured",
+          "value": 34278
+        },
+        "wall_time_ms": {
+          "kind": "measured",
+          "value": 939
+        }
+      },
+      "eligible": true,
+      "execution": "output_generated",
+      "method": {
+        "domain": "genesis",
+        "id": "generated-method",
+        "schema": "development-method-source/1",
+        "sha256": "8215c3679a06724069759bcbdaa576b64ec0ef1251c5238a797c0cb34962b944",
+        "version": "0.1.0"
+      },
+      "plan": {
+        "domain": "genesis",
+        "id": "receive-b2-plain-1-pinned",
+        "schema": "development-trial-plan/1",
+        "sha256": "46ad2117af9a62440270b7cad8287e37fd6f5bd640873a46dd6d1ed29a931aa7",
+        "version": "1"
+      },
+      "reasons": [],
+      "schema": "genesis-process-slot-assessment/1",
+      "scoring": {
+        "kind": "scored",
+        "metrics": {
+          "domain": "genesis-lab",
+          "id": "lab-scoring-metrics/1",
+          "schema": "lab-scoring-metrics/1",
+          "sha256": "5ce98d983afe60493be2566c2d8834fe385b3c81ed502e236dd37b7aaa1c59e6",
+          "version": "1"
+        }
+      },
+      "scoring_usage": {
+        "input_tokens": {
+          "kind": "measured",
+          "value": 0
+        },
+        "model_calls": {
+          "kind": "measured",
+          "value": 0
+        },
+        "output_tokens": {
+          "kind": "measured",
+          "value": 0
+        },
+        "simulation_steps": {
+          "kind": "measured",
+          "value": 12494
+        },
+        "wall_time_ms": {
+          "kind": "measured",
+          "value": 82
+        }
+      },
+      "scoring_within_grant": true,
+      "slot_id": "candidate",
+      "successes": 10
+    },
+    "control": {
+      "development_overrun": false,
+      "development_steps": 0,
+      "development_usage": {
+        "input_tokens": {
+          "kind": "measured",
+          "value": 0
+        },
+        "model_calls": {
+          "kind": "measured",
+          "value": 0
+        },
+        "output_tokens": {
+          "kind": "measured",
+          "value": 0
+        },
+        "simulation_steps": {
+          "kind": "measured",
+          "value": 0
+        },
+        "wall_time_ms": {
+          "kind": "measured",
+          "value": 409
+        }
+      },
+      "eligible": true,
+      "execution": "output_generated",
+      "method": {
+        "domain": "genesis",
+        "id": "fixed-cart",
+        "schema": "development-method-source/1",
+        "sha256": "dc5b74f34698885641ca5c673ae80f00f8248ce2e073ac3fe1367d924fd2f3bd",
+        "version": "0.1.0"
+      },
+      "plan": {
+        "domain": "genesis",
+        "id": "receive-b2-plain-1-pinned",
+        "schema": "development-trial-plan/1",
+        "sha256": "46ad2117af9a62440270b7cad8287e37fd6f5bd640873a46dd6d1ed29a931aa7",
+        "version": "1"
+      },
+      "reasons": [],
+      "schema": "genesis-process-slot-assessment/1",
+      "scoring": {
+        "kind": "scored",
+        "metrics": {
+          "domain": "genesis-lab",
+          "id": "lab-scoring-metrics/1",
+          "schema": "lab-scoring-metrics/1",
+          "sha256": "843791c5e4fe1c0b703971765878cd502c5e189b9116e03287f79ee3e8a328b5",
+          "version": "1"
+        }
+      },
+      "scoring_usage": {
+        "input_tokens": {
+          "kind": "measured",
+          "value": 0
+        },
+        "model_calls": {
+          "kind": "measured",
+          "value": 0
+        },
+        "output_tokens": {
+          "kind": "measured",
+          "value": 0
+        },
+        "simulation_steps": {
+          "kind": "measured",
+          "value": 21469
+        },
+        "wall_time_ms": {
+          "kind": "measured",
+          "value": 180
+        }
+      },
+      "scoring_within_grant": true,
+      "slot_id": "control",
+      "successes": 6
+    },
+    "eligible": true,
+    "settled_verdict": true
+  },
+  "executor": {
+    "executor": null,
+    "name": null,
+    "scopes": null
+  },
+  "instance": "b2-plain-1",
+  "lead": "role_155f9c2721a2433eb9595bf4e84604fc",
+  "need": "Develop rough-transport cart designs with a method another lab published",
+  "offer": "parent",
+  "owner": {
+    "charter": "Own the lab and run rough-transport deliveries",
+    "is_lead": true,
+    "name": "Lab lead",
+    "role_id": "role_155f9c2721a2433eb9595bf4e84604fc",
+    "scopes": [
+      "mission.coordinate"
+    ]
+  },
+  "planner": "assigned",
+  "planner_exit": 0,
+  "reported_vs_random": {
+    "candidate": 10,
+    "control": 3,
+    "of": 12,
+    "verdict": "accepted"
+  },
+  "requirement": {
+    "acceptance": "The developed cart design beats the fixed cart by at least one success on twelve fresh public instances.",
+    "mission_id": "mis_3f54bcd430e048ea9c96e80680e0e559",
+    "owner": {
+      "id": "role_155f9c2721a2433eb9595bf4e84604fc",
+      "kind": "role"
+    },
+    "requirement_id": "req_9ab283cf97d346d0946d27aa7cc1a63f",
+    "status": "ASSIGNED",
+    "summary": "Develop rough-transport cart designs using the externally published method retained as evidence 13c2cc13a51d868e1da86f796ab4aeb89d8996db1ef11d414d40013ccfdbf64a.",
+    "triggering_evidence": [
+      "obs_f8cfa206bae3403fa88d74056ec14c87"
+    ]
+  },
+  "stopped": "owner decision: 403 {\"error\":\"method_scope\",\"message\":\"the deciding role does not hold `method.develop`, which this organization's constitution reserves for method work\"}",
+  "trial": {
+    "id": "b2-plain-1-pinned",
+    "verdict": {
+      "candidate": 10,
+      "control": 6,
+      "of": 12,
+      "verdict": "accepted"
+    }
+  }
+}

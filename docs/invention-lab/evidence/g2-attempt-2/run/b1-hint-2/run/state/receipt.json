@@ -1,0 +1,122 @@
+{
+  "binding": {
+    "org_id": "org_example_b",
+    "run_id": "run-g2a2-b1-hint-2",
+    "attempt_id": "att_g2a2_b1_hint_2",
+    "method": {
+      "domain": "genesis",
+      "schema": "development-method-source/1",
+      "id": "generated-method",
+      "version": "0.1.0",
+      "sha256": "8215c3679a06724069759bcbdaa576b64ec0ef1251c5238a797c0cb34962b944"
+    },
+    "dependencies": [],
+    "public_task": {
+      "domain": "genesis-lab",
+      "schema": "lab-task/1",
+      "id": "rough-transport",
+      "version": "1",
+      "sha256": "7ea1854c2b359837033ade75434e2ca165465492792fbb66efaf21117758456b"
+    },
+    "evaluator": {
+      "domain": "genesis-lab",
+      "schema": "lab-evaluator/1",
+      "id": "genesis-lab-eval",
+      "version": "0.1.0",
+      "sha256": "1f03d1b6499721e6ddae6e600b688c123a8684e34c56f53cde8104d361246f42"
+    },
+    "model_settings": {
+      "domain": "genesis-lab",
+      "schema": "lab-model-settings/1",
+      "id": "none",
+      "version": "1",
+      "sha256": "22d87a28faebccda00538e6c2e78aab3a87e4749bd2e255572afdceefded8839"
+    },
+    "environment": {
+      "domain": "genesis-lab",
+      "schema": "lab-environment/1",
+      "id": "genesis-lab-exec/namespaces",
+      "version": "0.1.0",
+      "sha256": "eea594d411dd74e146bf8e2a99e4c7b6f6c0249eb67a640d090df0a2554ec74f"
+    },
+    "purpose": {
+      "kind": "invocation",
+      "plan": {
+        "domain": "genesis",
+        "schema": "development-trial-plan/1",
+        "id": "invoke-g2a2-b1-hint-2",
+        "version": "1",
+        "sha256": "3e771f833fcbd0d02fc6952aa9c157c076bcfece3624b8d15be1e4507ba2b29b"
+      },
+      "grant": {
+        "adoption_id": "madopt_6eb7fb046ac445e59605b26a2060ccde",
+        "requirement_id": "req_939761be7d8445418b69b1b98b637090",
+        "role_id": "role_87be9ae7c8e74e1ca4c01974df8d30a2",
+        "responsibility_id": "rsp_b2143f0158a4488480c88d9f742f51af",
+        "assignment_id": "asg_0a6cbec1523143488b601bf0f1bf0643",
+        "epoch": 1
+      }
+    },
+    "budget": {
+      "model_calls": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "wall_time_ms": 60000,
+      "simulation_steps": 72000
+    }
+  },
+  "binding_sha256": "5d6876a1c0aca06c36fe7ef453c74173714943bf94cd4ad0fd1ec2942f025a07",
+  "actual_method": {
+    "domain": "genesis",
+    "schema": "development-method-source/1",
+    "id": "generated-method",
+    "version": "0.1.0",
+    "sha256": "8215c3679a06724069759bcbdaa576b64ec0ef1251c5238a797c0cb34962b944"
+  },
+  "actual_environment": {
+    "domain": "genesis-lab",
+    "schema": "lab-environment/1",
+    "id": "genesis-lab-exec/namespaces",
+    "version": "0.1.0",
+    "sha256": "eea594d411dd74e146bf8e2a99e4c7b6f6c0249eb67a640d090df0a2554ec74f"
+  },
+  "outcome": "output_generated",
+  "outputs": [
+    {
+      "domain": "genesis-lab",
+      "schema": "lab-design/1",
+      "id": "output",
+      "version": "1",
+      "sha256": "2483f08f8ec33f4144a4a6105842bd9e2da7702275592140c3aca35c2ac61cec"
+    }
+  ],
+  "transcript": {
+    "domain": "genesis",
+    "schema": "development-experiment-transcript/1",
+    "id": "use",
+    "version": "1",
+    "sha256": "08b5f0b1112f10d041b2723410b731d7ffb9ea0a605eab47ddd66a616178fd15"
+  },
+  "usage": {
+    "model_calls": {
+      "kind": "measured",
+      "value": 0
+    },
+    "input_tokens": {
+      "kind": "measured",
+      "value": 0
+    },
+    "output_tokens": {
+      "kind": "measured",
+      "value": 0
+    },
+    "wall_time_ms": {
+      "kind": "measured",
+      "value": 566
+    },
+    "simulation_steps": {
+      "kind": "measured",
+      "value": 9254
+    }
+  }
+}
