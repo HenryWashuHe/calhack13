@@ -18,7 +18,8 @@ artifacts and databases. Present hashes and selected bindings are consistent;
 this does not establish independent organizational operation or G2 closure.
 
 #216 and preservation draft #7 remain open. Newly arrived #228 `3250e301`
-is unreviewed and stacked on #216; it is not a cleared experiment. #216
+is held on sandbox admission/recording and source identity, and inherits #216;
+it is not a cleared experiment. #216
 `e16277ad` retains three confinement/admission findings, reproduced by inert
 policy guards (one control passes, three fail); its author actively owns the fix.
 Current-head Linux assurance for merged #57/#65 remains open. This closeout ran

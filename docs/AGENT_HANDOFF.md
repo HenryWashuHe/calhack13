@@ -6,8 +6,9 @@ The user's current request is remaining-queue review, bounded fixes and merging
 ready work. [The closeout summary](reviews/pr-queue-2026-10-25.md#current-closeout--main-7ec75563)
 records merged #225/#226, #180/#181, #204, #215 and #219. Earlier scoped holds
 cleared by these exact sources are historical. #216 `e16277ad`, draft #7
-`110a1073` and newly arrived #228 `3250e301` remain open; #228 is unreviewed
-and stacked on held #216. Preserve the repair draft and branch;
+`110a1073` and newly arrived #228 `3250e301` remain open; source review holds
+#228 on sandbox admission/recording and source identity, in addition to #216.
+Preserve the repair draft and branch;
 independent implementation/full validation review remains incomplete.
 
 ### Current ownership and next work
