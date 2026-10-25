@@ -193,7 +193,10 @@ describe("controls (expected to pass)", () => {
   it("failed / unknown scoring outcomes are not counted", () => {
     for (const kind of ["failed", "unknown", "invalid"]) {
       const files = withMetrics((rows) => rows, (ev) => { ev.outcome = { kind, reason: "x" }; });
-      expect(revCell(files).text).toBe("metrics not supplied · 3/6");
+      // Eric's Claude: was "metrics not supplied · 3/6" for every kind. Codex's
+      // #148 P2 hold requires the outcome to be named instead; still not counted.
+      const named = { failed: "scoring failed", unknown: "scoring unknown", invalid: "output invalid" }[kind];
+      expect(revCell(files).text).toBe(`${named} · 3/6`);
     }
   });
   it("receipt naming a missing artifact is not counted", () => {
