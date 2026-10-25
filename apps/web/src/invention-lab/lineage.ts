@@ -101,7 +101,16 @@ export interface MethodNode {
 
 export type Edge =
   | { kind: "generated"; org_id: string; operation_id: string; to: string }
-  | { kind: "revised_from"; org_id: string; operation_id: string; from: string; to: string; source_changed: boolean }
+  | {
+      kind: "revised_from";
+      org_id: string;
+      operation_id: string;
+      /** The observation's exact generation request, when recorded. */
+      request_sha256: string | null;
+      from: string;
+      to: string;
+      source_changed: boolean;
+    }
   | {
       kind: "adoption";
       org_id: string;
@@ -174,10 +183,15 @@ export function buildLineage(records: LabRecords): Lineage {
     const gen = attempts.find((a) => a.status.org_id === r.org_id && a.status.operation_id === r.operation_id);
     if (gen?.status.package && refKey(gen.status.package) !== refKey(r.child))
       problems.push(`revision child differs from the package of operation ${r.operation_id} of ${r.org_id}`);
+    if (gen && r.request_sha256 !== null && gen.status.request_sha256 !== r.request_sha256)
+      problems.push(
+        `revision observation names request ${r.request_sha256.slice(0, 12)}, but the status of operation ${r.operation_id} of ${r.org_id} records ${gen.status.request_sha256?.slice(0, 12) ?? "none"}; its cost is not attributed`,
+      );
     edges.push({
       kind: "revised_from",
       org_id: r.org_id,
       operation_id: r.operation_id,
+      request_sha256: r.request_sha256,
       from: node(r.parent),
       to: node(r.child),
       source_changed: r.source_changed,
@@ -323,11 +337,15 @@ function scoreOf(e: Execution, plan: TrialPlan | null, metrics: Map<string, Metr
     reasons.push(why);
     problems.push(`evaluation ${v.request_id} of execution ${run}: ${why}; not counted`);
   };
+  const unchecked: string[] = [];
   for (const v of scored) {
     // Without the named bytes there is nothing to count, so nothing to refuse.
     const m = v.metrics ? metrics.get(v.metrics.sha256) : undefined;
-    if (!m) continue;
-    const why = contextProblem(e, v);
+    if (!m) {
+      unchecked.push(v.request_id);
+      continue;
+    }
+    const why = contextProblem(e, v, plan);
     if (why) {
       refuse(v, why);
       continue;
@@ -345,11 +363,15 @@ function scoreOf(e: Execution, plan: TrialPlan | null, metrics: Map<string, Metr
     return { kind: "conflict", counts };
   }
   const [only] = counted.entries();
+  if (only && unchecked.length > 0)
+    problems.push(
+      `execution ${run} is counted from one scoring, but ${unchecked.join(", ")} names metrics that were not supplied and could not be compared with it`,
+    );
   if (only) return { kind: "counted", successes: only[1].successes, of: only[1].of, metrics: only[0] };
   return reasons.length > 0 ? { kind: "rejected", reasons } : { kind: "metrics_missing" };
 }
 
-function contextProblem(e: Execution, v: EvaluationReceipt): string | null {
+function contextProblem(e: Execution, v: EvaluationReceipt, plan: TrialPlan | null): string | null {
   if (!v.metrics || !isSupportedMetricsRef(v.metrics))
     return `its metrics reference ${v.metrics ? `${v.metrics.schema} ${v.metrics.id}@${v.metrics.version}` : "is missing and"} is not the supported ${METRICS_IDENTITY.schema} identity`;
   const task = v.context.public_task;
@@ -358,6 +380,8 @@ function contextProblem(e: Execution, v: EvaluationReceipt): string | null {
     return `it was scored against task ${task ? `${task.id}@${task.version} ${task.sha256.slice(0, 12)}` : "(none named)"}, not the run's ${own.id}@${own.version} ${own.sha256.slice(0, 12)}`;
   if (!v.observed_context) return "the scorer's observed context is not recorded";
   if (!sameContext(v.context, v.observed_context)) return "the scorer's observed context differs from the requested one";
+  // Agreeing with the scorer's own request is not enough: the trial's plan froze its context.
+  if (plan && !sameContext(v.context, plan.context)) return `its scoring context differs from the one its trial plan ${plan.ref.id} froze`;
   return null;
 }
 

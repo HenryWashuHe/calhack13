@@ -65,6 +65,7 @@ function runTitle(r: RunResult): string {
 export function ResultsBoard({ lineage, orgA, orgB }: { lineage: Lineage; orgA: string; orgB: string }) {
   const steps = story(lineage, orgA, orgB);
   const matrix = buildMatrix(lineage);
+  const unknownPanels = matrix.rows.some((r) => [...r.cells.values()].flat().some((x) => x.panel === "unknown"));
   const label = (key: string, id: string, runs: RunResult[]) => {
     // A revision is also generated; name it by its parent link first.
     const revised = lineage.edges.find((e) => e.to === key && e.kind === "revised_from");
@@ -108,7 +109,7 @@ export function ResultsBoard({ lineage, orgA, orgB }: { lineage: Lineage; orgA: 
           <tr>
             <th scope="col">Method</th>
             {matrix.families.map((f) => (
-              <th scope="col" key={f}>{f}</th>
+              <th scope="col" key={f}>{matrix.familyLabels.get(f) ?? f}</th>
             ))}
           </tr>
         </thead>
@@ -128,7 +129,8 @@ export function ResultsBoard({ lineage, orgA, orgB }: { lineage: Lineage; orgA: 
                       <ul className="lab-runs" style={{ listStyle: "none", margin: 0, padding: 0 }}>
                         {runs.map((x, i) => (
                           <li key={i} title={runTitle(x)} data-panel={x.panel} data-eligible={x.ineligible ? "no" : "yes"}>
-                            {runText(x)} <small>{x.trial}</small>
+                            {runText(x)}
+                            {x.panel === "unknown" && " · panel not established"} <small>{x.trial}</small>
                           </li>
                         ))}
                       </ul>
@@ -142,9 +144,12 @@ export function ResultsBoard({ lineage, orgA, orgB }: { lineage: Lineage; orgA: 
       </table>
       <p className="lab-limit">
         One line per run, counted from the scoring metrics its evaluation names by hash. Runs marked hidden were scored on a
-        hidden committed panel, the others on public development instances. Runs marked ineligible are retained but
-        must not be read as results. Verdicts are scoring evidence under frozen criteria, not adoption decisions, a
-        ranking or a benefit claim.
+        hidden committed panel
+        {unknownPanels
+          ? "; runs marked “panel not established” have no supplied plan or development instance set saying which panel they used; the others were scored on public development instances"
+          : ", the others on public development instances"}
+        . Runs marked ineligible are retained but must not be read as results. Verdicts are scoring evidence under frozen
+        criteria, not adoption decisions, a ranking or a benefit claim.
       </p>
       <details>
         <summary>All records behind this board</summary>

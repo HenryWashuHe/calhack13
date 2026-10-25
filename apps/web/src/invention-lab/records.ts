@@ -170,6 +170,9 @@ export interface RevisionObservation {
   child: ExactRef;
   org_id: string;
   operation_id: string;
+  /** The exact generation request that produced the child; binds the
+   * observation to one status record, not just to its operation. */
+  request_sha256: string | null;
   transport: string;
   source_changed: boolean;
 }
@@ -184,6 +187,7 @@ export function decodeRevisionObservation(v: unknown): RevisionObservation {
     child: decodeRef(o.child, `${at}.child`),
     org_id: str(o, "org_id", at),
     operation_id: str(o, "operation_id", at),
+    request_sha256: optStr(o, "request_sha256", at),
     transport: str(o, "transport", at),
     source_changed: o.source_changed,
   };
@@ -465,6 +469,8 @@ export interface TrialPlan {
   scoring_kind: string;
   /** Ordered public development instance ids, as the plan lists them. */
   development_instances: string[];
+  /** The scoring context the plan froze; a score of one of its runs must name exactly this. */
+  context: ScoringContext;
 }
 export const TRIAL_PLAN_FIELDS = [
   "id", "version", "criterion", "development_instances", "scoring_instances",
@@ -487,6 +493,7 @@ export function decodeTrialPlan(v: unknown): TrialPlan {
       if (!Array.isArray(o.development_instances)) throw new DecodeError(`${at}.development_instances: expected array`);
       return o.development_instances.map((d, i) => str(obj(d, `${at}.development_instances[${i}]`), "id", `${at}.development_instances[${i}]`));
     })(),
+    context: decodeContext(o.context, `${at}.context`),
   };
 }
 
