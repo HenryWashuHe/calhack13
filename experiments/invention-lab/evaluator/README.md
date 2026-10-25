@@ -49,5 +49,8 @@ Calibration notes, local and small, with the 2000 N·m motor torque ceiling.
 method or a baseline. On development seeds 0–19 it crosses 13/20 ravines and
 passes 3/20 rough tracks; `designs/cart-long.json` crosses 0/20 ravines and
 passes 8/20 rough tracks. The projectile family hasn't been recalibrated since
-the torque ceiling. The same trace digests come out of debug and release builds
+the torque ceiling, but it is solvable under it: a random single-arm launcher
+search finds hits on each of seeds 20001–20005, and each such launcher solves
+only 2–8 of seeds 20000–20039
+([analysis](../../../docs/invention-lab/analysis/family-robustness/README.md)). The same trace digests come out of debug and release builds
 on x86_64; other architectures haven't been checked.
