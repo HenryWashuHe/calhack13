@@ -33,6 +33,11 @@ let policyDirPath = null;
 const policydir = () => (policyDirPath ||= fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "genesis-rule-policy-"))));
 
 /** System roots every process needs to read, plus the prefix the node binary was installed under. */
+/** Every path a confined child may read, beside its own work directory. Callers use it to keep secrets out of reach. */
+export function sandboxReadRoots() {
+  return [...runtimeReadRoots(), ITERATION_DIR];
+}
+
 function runtimeReadRoots() {
   const nodeReal = fs.realpathSync(process.execPath);
   const roots = ["/usr", "/bin", "/sbin", "/System", "/Library", "/private/etc", "/private/var/db", "/private/var/select", "/dev", path.dirname(path.dirname(nodeReal))];
