@@ -5,7 +5,7 @@
 
 import { LineagePanel } from "./LineagePanel";
 import type { Lineage } from "./lineage";
-import { buildMatrix, cellText } from "./matrix";
+import { buildMatrix, runText, type RunResult } from "./matrix";
 import { story, type Step } from "./story";
 
 const W = 168;
@@ -48,22 +48,51 @@ function StepDiagram({ steps }: { steps: Step[] }) {
   );
 }
 
+/** A run's role in its own trial: only acceptance control slots and control
+ * arms are controls. */
+function isControl(r: RunResult): boolean {
+  return r.role === "control" || r.role === "arm control";
+}
+
+function runTitle(r: RunResult): string {
+  const verdict = r.verdict ? `trial verdict on its candidate: ${r.verdict.verdict}` : "no trial verdict supplied";
+  const panel = r.panel === "hidden" ? "hidden committed panel" : r.panel === "development" ? "public development panel" : "panel not established";
+  return [`${r.trial} · ${r.role} · ${r.org}`, panel, verdict, r.ineligible ? `ineligible: ${r.ineligible}` : null]
+    .filter(Boolean)
+    .join("\n");
+}
+
 export function ResultsBoard({ lineage, orgA, orgB }: { lineage: Lineage; orgA: string; orgB: string }) {
   const steps = story(lineage, orgA, orgB);
   const matrix = buildMatrix(lineage);
-  const label = (key: string, id: string) => {
+  const label = (key: string, id: string, runs: RunResult[]) => {
     // A revision is also generated; name it by its parent link first.
     const revised = lineage.edges.find((e) => e.to === key && e.kind === "revised_from");
     if (revised) return `${revised.org_id}'s revision`;
     const generated = lineage.edges.find((e) => e.to === key && e.kind === "generated");
     if (generated) return `${generated.org_id}'s generated method`;
-    return `control: ${id}`;
+    // Without an origin record, a method is a control only if every one of its
+    // runs filled a control slot or arm; a role is per trial, not per method.
+    return runs.length > 0 && runs.every(isControl) ? `control: ${id}` : `origin not in these files: ${id}`;
   };
   return (
     <section className="lab-board">
       <h2>
         A → B → A records ({orgA} as A, {orgB} as B)
       </h2>
+      {lineage.problems.length > 0 && (
+        <div className="lab-problems" role="alert" style={{ border: "1px solid var(--bad)", borderRadius: 6, padding: "8px 12px", margin: "8px 0" }}>
+          <strong>
+            {lineage.problems.length} problem{lineage.problems.length === 1 ? "" : "s"} in these records. The steps and
+            results below are read with them excluded or marked:
+          </strong>
+          <ul>
+            {lineage.problems.map((p, i) => (
+              <li key={i}>{p}</li>
+            ))}
+          </ul>
+        </div>
+      )}
       <StepDiagram steps={steps} />
       <p className="lab-limit">Dots are trial verdicts: green accepted, red rejected. Dashed steps have no record.</p>
       <ol>
@@ -87,21 +116,35 @@ export function ResultsBoard({ lineage, orgA, orgB }: { lineage: Lineage; orgA: 
           {matrix.rows.map((r) => (
             <tr key={r.method.key}>
               <th scope="row">
-                {label(r.method.key, r.method.ref.id)} <code>{r.method.ref.sha256.slice(0, 8)}</code>
+                {label(r.method.key, r.method.ref.id, [...r.cells.values()].flat())} <code>{r.method.ref.sha256.slice(0, 8)}</code>
               </th>
-              {matrix.families.map((f) => (
-                <td key={f} title={(r.cells.get(f) ?? []).map((x) => `${x.trial} (${x.role}, ${x.org}): ${x.verdict?.verdict ?? "no verdict"}`).join("\n")}>
-                  {cellText(r.cells.get(f))}
-                </td>
-              ))}
+              {matrix.families.map((f) => {
+                const runs = r.cells.get(f) ?? [];
+                return (
+                  <td key={f}>
+                    {runs.length === 0 ? (
+                      "–"
+                    ) : (
+                      <ul className="lab-runs" style={{ listStyle: "none", margin: 0, padding: 0 }}>
+                        {runs.map((x, i) => (
+                          <li key={i} title={runTitle(x)} data-panel={x.panel} data-eligible={x.ineligible ? "no" : "yes"}>
+                            {runText(x)} <small>{x.trial}</small>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </td>
+                );
+              })}
             </tr>
           ))}
         </tbody>
       </table>
       <p className="lab-limit">
-        Counted from the scoring metrics each evaluation names by hash. Single exploratory runs on public development
-        instances; verdicts are scoring evidence under frozen criteria, not adoption decisions, a ranking or a benefit
-        claim.
+        One line per run, counted from the scoring metrics its evaluation names by hash. Runs marked hidden were scored on a
+        hidden committed panel, the others on public development instances. Runs marked ineligible are retained but
+        must not be read as results. Verdicts are scoring evidence under frozen criteria, not adoption decisions, a
+        ranking or a benefit claim.
       </p>
       <details>
         <summary>All records behind this board</summary>
