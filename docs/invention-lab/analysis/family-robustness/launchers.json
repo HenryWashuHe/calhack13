@@ -1,0 +1,43 @@
+{
+ "panel": [
+  20000,
+  20039
+ ],
+ "rows": [
+  {
+   "instance": 20001,
+   "tried": 20000,
+   "valid": 3372,
+   "hits": 1,
+   "first_hit_on_panel": 2
+  },
+  {
+   "instance": 20002,
+   "tried": 20000,
+   "valid": 10478,
+   "hits": 10,
+   "first_hit_on_panel": 5
+  },
+  {
+   "instance": 20003,
+   "tried": 20000,
+   "valid": 9509,
+   "hits": 2,
+   "first_hit_on_panel": 8
+  },
+  {
+   "instance": 20004,
+   "tried": 20000,
+   "valid": 8393,
+   "hits": 1,
+   "first_hit_on_panel": 7
+  },
+  {
+   "instance": 20005,
+   "tried": 20000,
+   "valid": 9500,
+   "hits": 19,
+   "first_hit_on_panel": 7
+  }
+ ]
+}
