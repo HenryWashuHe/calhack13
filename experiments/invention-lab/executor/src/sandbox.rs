@@ -255,19 +255,22 @@ fn namespace_inits(id: u32) -> Vec<i32> {
 /// Marks every descriptor above 2 close-on-exec, in the child between fork and
 /// exec. Marking rather than closing keeps the spawn error pipe working.
 fn cloexec_above_stdio() -> std::io::Result<()> {
-    // SAFETY: raw syscalls on integers; no allocation (async-signal-safe).
-    let rc = unsafe {
-        libc::syscall(
-            libc::SYS_close_range,
-            3u32,
-            u32::MAX,
-            libc::CLOSE_RANGE_CLOEXEC,
-        )
-    };
-    if rc == 0 {
-        return Ok(());
+    #[cfg(target_os = "linux")]
+    {
+        // SAFETY: raw syscalls on integers; no allocation (async-signal-safe).
+        let rc = unsafe {
+            libc::syscall(
+                libc::SYS_close_range,
+                3u32,
+                u32::MAX,
+                libc::CLOSE_RANGE_CLOEXEC,
+            )
+        };
+        if rc == 0 {
+            return Ok(());
+        }
     }
-    // Kernels before 5.11: walk up to the descriptor limit.
+    // Other Unix platforms and Linux kernels before 5.11: walk up to the descriptor limit.
     let mut lim = libc::rlimit {
         rlim_cur: 0,
         rlim_max: 0,
