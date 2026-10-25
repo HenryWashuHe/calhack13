@@ -478,7 +478,7 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
   function setBadge(text, live) { const m = $("mode"); m.textContent = text; m.classList.toggle("live", !!live); }
 
   // ---- mode ownership ----
-  const app = { mode: "idle", gen: 0, scene: 0, timer: null, liveTimer: null, cursors: { A: 0, B: 0 }, tail: [], seen: 0, seenIds: new Set(), tick: 0, applied: 0, thrown: [], present: false, prevRoles: {}, obsAt: new Map(), live: null, liveChat: [], lastJudge: 0, lastJudgeObs: null };
+  const app = { mode: "idle", gen: 0, scene: 0, timer: null, liveTimer: null, cursors: { A: 0, B: 0 }, tail: [], seen: 0, seenIds: new Set(), tick: 0, applied: 0, thrown: [], present: false, prevRoles: {}, obsAt: new Map(), live: null, liveChat: [], lastJudge: 0, lastJudgeObs: null, answers: new Map() };
   const TAIL = 200;
   const body = document.body || null;
 
@@ -716,7 +716,8 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
             const seconds = Number.isFinite(at) && Number.isFinite(decided) && decided >= at ? (decided - at) / 1000 : undefined;
             const verdict = String(p.verdict || "").replace(/_/g, " ");
             showDecision({ verdict, why: p.summary, source: "live kernel " + (org === "A" ? (sa.org_id || "A") : (sb.org_id || "B")), model: p.model || "model unknown", when: seconds === undefined ? "" : `decided ${seconds.toFixed(1)} s after the evidence` });
-            if (p.observation_id && p.observation_id === app.lastJudgeObs) judgeStatus(`The planner answered: ${verdict}. See the decision card.`);
+            if (p.observation_id) app.answers.set(org + ":" + p.observation_id, verdict);
+            if (org === "A" && p.observation_id && p.observation_id === app.lastJudgeObs) judgeStatus(`The planner answered: ${verdict}. See the decision card.`);
           }
         }
       }
@@ -727,7 +728,7 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
       renderAudit(null, Math.max(12, last + 1), `r0–r${sa.revision} stored; the invariant audit is not run by this page (use genesis audit)`);
       $("beat").textContent = "Live: this is the kernel's own state and event log."; $("sub").textContent = "Roles, bindings and installations are drawn exactly as the two organizations report them. DEV STUB bindings are development stand-ins. Inheritance is drawn only for an exact version B accepted that A accepted and published.";
       $("livestatus").textContent = "connected · " + new Date().toLocaleTimeString(); $("livestatus").classList.remove("bad");
-      caption(`Live kernel · ${sa.org_id || "A"} r${sa.revision} · ${sb.org_id || "B"} r${sb.revision} · disruptions come from the ASI:One agent or the local stand-in, not from this page`);
+      caption(`Live kernel · ${sa.org_id || "A"} r${sa.revision} · ${sb.org_id || "B"} r${sb.revision} · Report live posts evidence to Org A with the agent token; the planner decides`);
     } catch (err) {
       if (gen !== app.gen || seq < app.applied) return;
       app.applied = seq;
@@ -746,7 +747,7 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
     renderLineage([], "Waiting for the kernel…"); renderEvents([], 0, "0 events"); renderChat(app.liveChat);
     app.live = null; app.lastJudgeObs = null; $("judgeform").hidden = true; $("judgestatus").textContent = "Live: posts one observation to Org A with the agent token; the planner model decides."; $("judgestatus").classList.remove("bad");
     renderAudit(null, 12, "not checked by this page"); $("beat").textContent = "Connecting to the kernel…"; $("sub").textContent = "Nothing is shown until the first response arrives.";
-    renderProof([]); hideDecision(); app.prevRoles = {}; app.obsAt = new Map(); $("progress").classList.remove("running");
+    renderProof([]); hideDecision(); app.prevRoles = {}; app.obsAt = new Map(); app.answers = new Map(); $("progress").classList.remove("running");
     caption("Connecting to the kernel");
   }
   $("liveform").addEventListener("submit", (e) => {
@@ -777,15 +778,17 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
         body: JSON.stringify({ source: "stage-judge", summary, evidence_ref: "stage://judge/" + Date.now() }),
       });
       const rec = await r.json().catch(() => ({}));
-      if (gen !== app.gen || app.mode !== "live") return; // the judge left live mode meanwhile
+      if (gen !== app.gen) return; // a newer connection or the replay owns the screen; a failed read alone never discards a receipt
       if (!r.ok) return judgeStatus(`The kernel refused it: HTTP ${r.status} ${rec && rec.error ? rec.error : ""}`.trim(), true);
-      const id = rec.observation_id || "(no id returned)";
-      app.lastJudgeObs = rec.observation_id || null;
+      const id = typeof rec.observation_id === "string" && /^[A-Za-z0-9_.:-]{3,128}$/.test(rec.observation_id) ? rec.observation_id : null; // a receipt needs an identity, not a particular spelling
+      if (!id) return judgeStatus(`The kernel answered HTTP ${r.status} without an observation id, so this report is not recorded as evidence. The text is kept; try again or check the kernel log.`, true);
+      app.lastJudgeObs = id;
       app.liveChat = [...app.liveChat, { you: "report " + summary }, { org: `Recorded as evidence ${id} for Org A's mission (live). The planner is reading it now; its verdict appears in the decision card.` }];
       renderChat(app.liveChat); $("judgetext").value = "";
-      judgeStatus(`Recorded ${id} · waiting for the planner`);
+      const early = app.answers.get("A:" + id); // the planner may have answered before this receipt arrived
+      judgeStatus(early ? `The planner answered: ${early}. See the decision card.` : `Recorded ${id} · waiting for the planner`);
     } catch (err) {
-      if (gen !== app.gen || app.mode !== "live") return;
+      if (gen !== app.gen) return;
       judgeStatus("Could not reach the kernel: " + (err && err.message ? err.message : "blocked"), true);
     } finally { $("judgesend").disabled = false; }
   }
