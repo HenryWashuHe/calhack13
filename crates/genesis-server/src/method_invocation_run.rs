@@ -107,6 +107,10 @@ pub struct MethodRunResult {
     /// The evaluation's usage against the frozen scoring grant.
     pub scoring_budget: RunBudget,
     pub attachment: Attachment,
+    /// SHA-256 of this organization's pinned scorer when it reproduced the
+    /// evaluation before it was recorded; absent without a rescorer.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rescorer: Option<String>,
 }
 
 /// Whether the scored output counts as work done for the run's
@@ -551,6 +555,20 @@ impl Store {
         receiver: Option<&MethodReceiver>,
         now: DateTime<Utc>,
     ) -> Result<MethodRunRecord> {
+        self.record_method_run_result_rescored(id, evaluation, state, receiver, None, now)
+    }
+
+    /// As [`Self::record_method_run_result`], recording the digest of the
+    /// pinned scorer that reproduced `evaluation`, if one did.
+    pub fn record_method_run_result_rescored(
+        &self,
+        id: &str,
+        evaluation: &EvaluationReceipt,
+        state: &OrgState,
+        receiver: Option<&MethodReceiver>,
+        rescorer: Option<String>,
+        now: DateTime<Utc>,
+    ) -> Result<MethodRunRecord> {
         let mut record = self.method_run(id)?;
         if !matches!(
             record.status,
@@ -607,6 +625,7 @@ impl Store {
             evaluation: evaluation.clone(),
             scoring_budget,
             attachment,
+            rescorer,
         });
         record.updated_at = now;
         let mut conn = self.lock();
