@@ -176,6 +176,11 @@ impl MethodAdoptionRecord {
         ))
     }
 
+    /// The retained acceptance this decision was derived from, if any.
+    pub fn acceptance_evidence(&self) -> Option<&AcceptanceEvidence> {
+        self.outcome.evidence()
+    }
+
     /// The current owner grant this adopted method may run under, or why not.
     /// The invocation route always authorizes records reloaded from the store.
     pub fn authorize(&self, state: &OrgState, now: DateTime<Utc>) -> Result<DispatchGrant> {
