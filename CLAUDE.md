@@ -75,6 +75,10 @@ every milestone. All lower checkpoints are historical.
   Eight focused tests and strict Clippy/fmt independently pass; the original
   `8ad9d645` regressions are unchanged. This supplies feedback, not adoption.
   Retain B's explicit selection/local acceptance decision and intended responsibility;
+  the [next requested product milestone](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388567745)
+  connects selected method/receiver acceptance to the requirement, responsibility
+  and current role grant, with pinned invocation, local decline/revocation and an
+  existing-owner control. This request is not yet acknowledged; Henry keeps the lane.
   #116 B-task records are now checked; local adoption and an accepted fresh
   A return remain unestablished. Receiving wrapper #118 `68bc82d0` merged at
   `ec23efb5`: frozen package/spec bytes and atomic failure summaries clear all
@@ -91,7 +95,10 @@ every milestone. All lower checkpoints are historical.
   at `95256998`: 52 focused UI checks/typecheck pass, preserving all of
   `59c3e1c`. #109 `2cfb4058` merged at `5ed65deb`: 66 focused tests across
   11 files/typecheck pass, including all five original `f2ac45e5` cases unchanged.
-  Its separate `eric/lab-real-evidence` continuation is unreviewed.
+  Real-evidence intake #123 `7196d5c` is reviewed: 81 UI tests across 13
+  files/typecheck pass; original regressions remain unchanged. `4515f728` merged
+  into its parent branch only. #128 `2f0b6734` then integrated identical web
+  bytes into main at `a3be74d0`, with 81 tests/typecheck independently rerun.
   Do not transfer this lane implicitly. Archival stage presenter #108 `ece3c614`
   merged at `d810a670`: 22 Node checks and independent DOM probes pass on
   composition `1632f08`. It is supporting presentation, not goal progress or
@@ -160,11 +167,27 @@ every milestone. All lower checkpoints are historical.
   merged at `70a00d51`: supported Sonnet 5.5 adaptive effort is frozen into
   client requests; historical identities stay unchanged. This is locally tested,
   not a live request, fixed hosted weights or G4 result. No generation is declared.
-  Codex is implementing a pure retained-reference candidate-catalogue audit in
-  `genesis-core`; Henry retains runtime enforcement. The fixed-pool policy
-  experiment remains a separate proposed mechanism diagnostic, not a restriction
+  [Catalogue audit #124](docs/invention-lab/contracts/catalogue.md) is merged at
+  `2f9cfea9`: final `ed573c69` preserves the three independent `1c2bfd29`
+  cases. Author source `e6940b22` passed 142 core tests; 11 focused tests were
+  independently rerun, including those three cases. This is post-run reference
+  membership only, not byte verification or runtime enforcement. Whole-chain
+  cost assembly #127 `f5fad35` merged at `f335cc6`: full forge 243 tests across
+  47 targets and strict all-target Clippy/fmt pass, including three independent
+  cases. Original records are counted once; unknowns and local overruns remain.
+  Codex's [next scoped slice](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388541662)
+  is a read-only retained-file chain-cost CLI, not yet merged. The fixed-pool
+  policy experiment remains a separate proposed mechanism diagnostic, not a restriction
   on the moonshot. Henry is preparing a K=3 workflow-versus-fresh protocol with
-  public fresh-task assessment; no additional model request is declared.
+  public fresh-task assessment; the corrected protocol awaits freezing and no
+  additional model request is declared. #121 `7200921` remains held because
+  reserved seeds at or above 2^63 produce unusable public plans. A new seed range
+  is public to the method, not a hidden holdout. G2/G3 still need separately
+  evidenced organizational authority, local selection and adoption.
+  The W/F process pilot alone cannot close organizational evolution.
+  Predeclare all six operation/stage slots and full ceilings before work;
+  W rounds 2/3 acquire exact Prepared request hashes only after their declared
+  feedback exists. Do not fabricate future prompt hashes.
   Retain input-token/wall, billing, global enforcement and history limits.
   Preserve Henry's runtime files; provider/settings reproducibility, complete
   history, enforcement and end-to-end comparison remain open.
@@ -172,6 +195,11 @@ every milestone. All lower checkpoints are historical.
   is operator-reported and uses a handwritten parser; it is not model-generation
   evidence.
 - Ines remains unassigned by explicit user instruction.
+
+Separate `apps/stage` review queue: story #125 `973aa9c` remains held on
+organization-timing attribution. Stacked #126 `b7bdb18` is held on acknowledgment
+races, poll-failure evidence loss, cross-organization binding and malformed success.
+These changes do not transfer Eric's lab UI lane or establish adoption authority.
 
 Legacy task numbers are historical references in the migration map. Current
 assignments and exact file scopes are recorded in issue #1 and the handoff.
