@@ -2,15 +2,15 @@
 
 [TEAM_WORKSTREAMS.md](TEAM_WORKSTREAMS.md) originally made the four live API
 gates the first deliverable. This kit runs each gate with the repository's own
-durable CLIs and writes one sanitized evidence file. Reported partial live
+durable CLIs and the shared CREAO Trigger journal, then writes sanitized evidence. Reported partial live
 results and remaining limits are recorded below; local tests remain separate.
 
 ```sh
-cargo build -p genesis-forge -p genesis-creao -p genesis-fetch     # + genesis-elastic-smoke from the Elastic branch
+cargo build -p genesis-forge -p genesis-fetch     # + genesis-elastic-smoke from the Elastic branch
 set -a; source .env; set +a                                         # keys stay in the environment
 node scripts/live-gates/run.mjs                                     # free gates only: Elastic, Fetch
 node scripts/live-gates/run.mjs --allow-billable \
-  --portal-suite data/portal/trusted/suites/<suite>.json            # + Apify build/runs, CREAO agent
+  --portal-suite data/portal/trusted/suites/<suite>.json            # + Apify build/runs, CREAO app run
 ```
 
 Output: `data/live-gates/gates-<run>.json` (full sanitized record) and
@@ -21,31 +21,67 @@ when earlier build or run IDs exist; `partial` means unfinished evidence.
 
 Each run works in its own directory, `data/live-gates/apify/<run>/` and
 `data/live-gates/creao/<run>/`, so earlier checkpoints are never touched.
-CREAO's quota database is per account, not per run
-(`data/live-gates/creao/quota.sqlite`), so request/write debits and
-cooldowns carry across runs.
+CREAO uses `data/live-gates/creao/<run>/trigger.json`: the shared
+`runTrigger` helper journals intent before its one app-scoped POST and stores
+only IDs, hashes, the structured check outcome and provider-reported credits.
+The old Developer API agent-creation quota database is not used by this gate.
 
 For a run that stopped, the result records the next step as `resume` (a
 shell-quoted command using the absolute binary path) and `resume_argv` (the
-same thing as an array). It includes `--retry-read` only when the CLI's own
-last record explicitly allows a read retry, so running it advances the saved
-operation. Never rerun `prepare` for a stopped run.
+same thing as an array). Apify includes `--retry-read` only when the CLI's own
+last record explicitly allows it. CREAO resumes this runner with the same
+`--run-id`, app, exact synthetic inputs and validation contract: accepted runs
+continue GET polling only. An ambiguous POST requires reconciliation and is
+never replayed. A different run ID deliberately creates a different run and can
+consume credits again; it is not a retry. Never rerun `prepare` for a stopped
+Apify operation.
 
 | Gate | Credentials | What runs | Evidence recorded | Pass means |
 | --- | --- | --- | --- | --- |
 | Elastic | `ELASTICSEARCH_URL`, `ELASTIC_DATA_API_KEY`, `ELASTIC_KIBANA_URL`, `ELASTIC_MANAGEMENT_API_KEY` | `genesis-elastic-smoke --skip-capabilities --converse --cleanup` | agent ID, reconcile ID, evidence doc, conversation ID | every smoke step passed |
 | Fetch | `AGENTVERSE_API_KEY` | `genesis-fetch discover` | search ID, hit count, compatible addresses | reported as **partial**: authenticated discovery only |
 | Apify | `APIFY_TOKEN` + `--allow-billable` | `genesis-forge prepare` + one `step` at a time | actor, build, build number, run, dataset and failure phase | phase `verified` (oracle-checked runs) |
-| CREAO | `CREAO_ACCOUNT_API_KEY` + `--allow-billable` | `genesis-creao prepare` + one `step` at a time | operation, run ID, agent ID | phase `native_completed` |
+| CREAO | `CREAO_TRIGGER_API_KEY`, `CREAO_TRIGGER_APP_ID` + `--allow-billable` | shared app-scoped `runTrigger` POST, then GET polling | existing app ID, run ID, credits or explicit unknown, input/result hashes, check outcome and reason | completed run whose synthetic role/workflow response matches the declared local-decline check |
 
-The CREAO row above exercises the Developer API, not the team's `capi_` API
-Trigger. For a team-agent run using CREAO account credits, see the separate
-[API Trigger smoke](CREAO_TRIGGER_SMOKE.md). It requires an existing app ID and
-does not create an agent or substitute for the Developer API runtime gate.
+CREAO uses the existing published team agent on
+`https://agent.creao.ai/api/v1/apps/<app-id>/runs`, authenticated by its `capi_`
+Trigger key. Optional `CREAO_TRIGGER_RUNS_URL` must exactly equal that URL for
+`CREAO_TRIGGER_APP_ID`: other hosts/apps, userinfo, query strings, fragments,
+ports and path variations are refused before any call. `CREAO_API_VERSION` may
+be unset, blank or exactly `trigger`; other explicit values are refused before
+any request or journal creation. No `CREAO_ACCOUNT_API_KEY` or `CREAO_V2_API_KEY`
+fallback is used. Those historical
+keys and rotated Trigger keys remain covered by evidence redaction. See the
+[official Trigger contract](https://docs.creao.ai/pro/api-trigger) and
+[route comparison](https://docs.creao.ai/developer-api/api-paths).
 
-A gate without credentials or its binary is `not_tested`, never a pass.
-Billable gates need `--allow-billable`: CREAO creates a real agent with no
-delete endpoint, and Apify spends build and run credits.
+The benign synthetic input asks the persistent design-review role to assess a
+candidate with 2/6 local successes against its 4/6 control, retaining the existing
+owner and declining transfer. It forbids browsing, external actions and code
+execution. A completed native run is insufficient: the returned structured
+JSON must identify the declared responsibility and owner, preserve the scores,
+and choose `decline`. The retained check has a versioned identity; changing it
+requires a new contract ID. Raw model output is hashed, not saved by the helper.
+
+A passed gate establishes this limited synthetic response check. It does not
+create an agent or prove gateway readiness, core mission correctness, actual
+organizational adoption, a share link or sponsor qualification. `usage.credits`
+is recorded only when the provider returns a finite nonnegative number;
+otherwise `usage_reason=not_reported_by_provider` explicitly preserves the gap.
+The [standalone Trigger smoke](CREAO_TRIGGER_SMOKE.md) uses the same durable
+transport but does not automatically apply this gate's role/workflow check.
+
+A gate without required credentials (or a required binary for the other gates)
+is `not_tested`. CREAO needs no `genesis-creao` binary. Without `--allow-billable`
+it performs no request; with the flag it consumes CREAO account credits for one
+run of the configured existing app. Apify spends build and run credits.
+
+Historical migration note: the former gate created a Developer API agent and
+labeled `native_completed` a pass. Its creation/V2-specific tests were deliberately
+renamed for app-run identity, GET-only resume, terminal failure and separate
+journals. Generic credential, consent, Apify, Fetch and Elastic regressions remain.
+Historical live reports below keep their original protocol and do not validate
+this migrated gate.
 
 ## Reported live checkpoint, October 24, 2026
 
@@ -102,8 +138,8 @@ and layout drift is the variant that should force a semantic repair.
 
 ## Safety
 
-The kit only drives the CLIs. It never edits a checkpoint, never replays a
-POST, passes `--retry-read` only when the last record reports a retryable,
+The kit uses the existing CLIs and the shared Trigger helper. It never edits
+a checkpoint or replays a POST. Apify passes `--retry-read` only when the last record reports a retryable,
 non-ambiguous read (Forge reports that with exit 1, which does not stop the
 gate), and stops at the first unknown outcome (`needs_reconciliation`). Resume
 or reconcile with the CLI named in the result. Stdout is parsed into
@@ -119,9 +155,10 @@ The Apify checkpoint holds private source and outputs and stays local.
 - Elastic's shared capability index write (`--skip-capabilities`).
 - Anthropic model synthesis, which the acquisition path uses.
 
-Tests: `node --test scripts/live-gates/gates.test.mjs` drives stub CLIs
-(no network): missing credentials, billable consent, evidence parsing and
-scrubbing, CREAO polling with an explicit read retry, Apify stopping at an
-unknown outcome, partial versus rejected; plus Codex's review47 regressions
-(exit-1 read retry, terminal failures after earlier IDs, repeated runs in one
-output directory).
+Tests: `node --test scripts/live-gates/*.test.mjs` uses stub CLIs, injected
+fetch responses and loopback fixtures only. Coverage includes strict Trigger
+URL/key admission, credential and billable preflight, schema-checked synthetic
+results, retained credits/unknown usage, no duplicate POST after ambiguity,
+GET-only resume, current/previous-key redaction, stream limits and concurrent
+journal locking, plus the retained Apify/Fetch/Elastic and review47 regressions.
+Passing these checks is not evidence of a live provider run.

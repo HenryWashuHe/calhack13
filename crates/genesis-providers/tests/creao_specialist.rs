@@ -757,6 +757,7 @@ async fn review_receipt_hash_matches_wire(version: genesis_creao::ApiVersion) {
             limiter,
             &mock.base.replace("/v1", "/v2"),
         ),
+        genesis_creao::ApiVersion::Trigger => unreachable!("legacy wire regression only"),
     }
     .unwrap();
     let runtime = Runtime::new(client, store.clone(), Duration::from_millis(1)).unwrap();
@@ -777,6 +778,7 @@ async fn review_receipt_hash_matches_wire(version: genesis_creao::ApiVersion) {
     let (schema, hash_path, wire_path) = match version {
         genesis_creao::ApiVersion::V1 => (1, "runs", "/v1/runs"),
         genesis_creao::ApiVersion::V2 => (2, "/v2/runs", "/v2/runs"),
+        genesis_creao::ApiVersion::Trigger => unreachable!("legacy wire regression only"),
     };
     assert!(requests[0].starts_with(&format!("POST {wire_path} ")));
     let expected = genesis_verification::json_sha256(&json!({

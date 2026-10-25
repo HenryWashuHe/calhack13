@@ -1,11 +1,11 @@
 # CREAO team API Trigger smoke
 
-This is a separate smoke path for an agent made in
-`agent.creao.ai`. The current `genesis-creao` runtime and the CREAO gate in
-`scripts/live-gates/run.mjs` use the Developer API. The app API Trigger uses a
-`capi_` key, an app ID in the URL, and an `inputs` body. Do not alias a Developer
-Platform `cr_sk_` key into this path. See the [official API Trigger contract](https://docs.creao.ai/pro/api-trigger)
-and [API path comparison](https://docs.creao.ai/developer-api/api-paths).
+The backend runtime, organization server and main live gate now use the same
+app-scoped API Trigger contract. This standalone smoke retains its own bounded
+journal for one run. API Trigger uses a `capi_` key, app ID in the URL and an
+`inputs` body. Developer v1/v2 keys are not fallbacks. See the
+[backend guide](CREAO_RUNTIME.md), [official API Trigger contract](https://docs.creao.ai/pro/api-trigger)
+and [API comparison](https://docs.creao.ai/developer-api/api-paths).
 
 ## Before a credit-consuming call
 
@@ -21,7 +21,7 @@ and [API path comparison](https://docs.creao.ai/developer-api/api-paths).
 3. Put only the full `capi_` value in the private environment as
    `CREAO_TRIGGER_API_KEY`. Do not put it in a command argument, input file,
    issue, or report. Write a private JSON object with the agent's actual input
-   fields, for example `{ "task": "Assess this synthetic venue update" }`.
+   fields, for example `{ "task": "Assess this synthetic method comparison" }`.
    A placeholder input does not demonstrate core mission work.
 
 Offline preflight checks the app ID, input JSON and key prefix. It sends no
