@@ -1,6 +1,38 @@
 # GENESIS implementation handoff
 
-## Current review handoff — October 25, 2026
+## Current closeout handoff — main `7ec75563`
+
+The user's current request is remaining-queue review, bounded fixes and merging
+ready work. [The closeout summary](reviews/pr-queue-2026-10-25.md#current-closeout--main-7ec75563)
+records merged #225/#226, #180/#181, #204, #215 and #219. Earlier scoped holds
+cleared by these exact sources are historical. #216 `e16277ad`, draft #7
+`110a1073` and newly arrived #228 `3250e301` remain open; source review holds
+#228 on sandbox admission/recording and source identity, in addition to #216.
+Preserve the repair draft and branch;
+independent implementation/full validation review remains incomplete.
+
+### Current ownership and next work
+
+- ACP retains `apps/stage` and the actively revised iteration #216 lane. Its
+  [current hold](https://github.com/HenryWashuHe/genesis-history-experiment/pull/216#issuecomment-6394889852)
+  covers Linux admission without filesystem confinement, Darwin's broader read
+  policy and child-writable reused policy material; one inert control passes,
+  three guards fail. No actual sandbox or child was launched in that review.
+- Henry retains runtime/evaluator/scoring/adoption and analysis. #211 binding
+  and #215 historical scripted records are merged; independent organizational
+  evidence and current-head Linux assurance remain open.
+- Eric retains the web lab UI and research harness lane. His separate session
+  [announced `experiments/jobshop-controlled/**`](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6394860382),
+  with no provider request reported under that claim. Its budget/waiver report
+  belongs to that session; it supplies no execution authorization for this review.
+- Codex completed these bounded corrective reviews; no broader lane transfer
+  is implied. Ines remains unassigned.
+
+G0–G4 remain open and the native app Goal reports `paused`; human-authorized
+closeout is not goal completion. No namespace, evaluator/scorer, generated-method
+or provider execution was conducted or dispatched by this closeout.
+
+## Historical runtime handoff — October 25, 2026
 
 Use [the main `de453090` priority snapshot](reviews/pr-queue-2026-10-25.md).
 The owner directed merge without waiting for the external Linux report: #65 is
@@ -87,7 +119,7 @@ no method/runtime/provider execution.
 Dated direction/sponsor note #161 `c936bcf6` merged at `a9caea11` after
 source/delta and independent review; the current checkpoint remains authoritative. Ownership is unchanged.
 
-### Current ownership and next work
+### Historical ownership and next work — main `0cc38e6`
 
 **Frozen snapshot: main `0cc38e6`, nine open PRs before this checkpoint:**
 #204, #203, #199, #181, #180, #144, #65, #57 and draft #7.
