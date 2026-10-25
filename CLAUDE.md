@@ -50,9 +50,9 @@ migration atomicity and intermediate-schema index-name holds are cleared;
 mounts and trusted-directory storage remain experimental boundaries.
 
 **Ongoing work is resumed under [the repository goal](docs/ONGOING_GOAL.md).**
-The revised app Goal and existing hourly continuation are active. The stale Goal
-was cleared and replaced on October 24, 2026. The owner delegated direction while
-sleeping and reaffirmed the full moonshot. Preserve the G0–G4 completion contract,
+The user resumed work with a retry; the native app Goal last returned `blocked`,
+not complete. The existing hourly continuation remains active. The October 24
+replacement Goal and this repository contract retain the full moonshot. Preserve the G0–G4 completion contract,
 including selective transfer and honest null results. Preserve local repair WIP.
 
 
@@ -88,8 +88,12 @@ every milestone. All lower checkpoints are historical.
   Receiver-owned expected-plan pins, immutable record consistency, disabled
   receiver refusal and durable replay clear the earlier #155/#159 holds.
   Invocation authorization is implemented; executing the method under that grant
-  is not. Reacceptance after a policy change remains proposed. Henry retains
-  this authority/runtime lane and the remaining governed-loop integration.
+  is not. Pure invocation purpose #185 `811c6f5c` → `b1b2c8f2` and independent
+  guards #188 `e4824046` → `68604b92` are merged: 23 pure core cases and scoped
+  strict Clippy pass. Claimed grant identity is bound, not authenticated authority.
+  #179 `0946e6bc` is held on legacy-store migration, policy reacceptance and
+  runtime/protocol fences (11 old tests pass, four new guards fail). Draft #186
+  is separate unmerged invocation integration. Henry retains this lane.
   #116 B-task records are now checked; local adoption and an accepted fresh
   A return remain unestablished. Receiving wrapper #118 `68bc82d0` merged at
   `ec23efb5`: frozen package/spec bytes and atomic failure summaries clear all
@@ -259,22 +263,21 @@ every milestone. All lower checkpoints are historical.
   Preparation #164 `55e14cc4` clears its prior publication/byte-pin defects
   with eight pure file tests and is merged at `a056ec65`; its PR description
   is corrected.
-  This is preparation only, without trusted selection lineage. Endpoint #168
-  `9931a77d` is held on unbound receipts, malformed usage
-  and incorrect fresh panels. #165 `de40669c` is held on the wrong hidden-run
-  reproduction build; static manifest/artifact/slot checks pass without runtime
-  validation or gate closure. #171 `1d3d28e3` → `ef7cb923` merges the shared typed
-  `assess_process_slot`: 18 pure checks and scoped strict Clippy/fmt pass. Henry's
-  [consumer handoff](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6391178472)
-  keeps eligibility CLI/endpoint adapters in his lane. Selection CLI #173
-  `332f4f01` → `523d38a2` is merged after independent review: root four new plus
-  eight binary cases and strict Clippy/fmt pass; four additional independent
-  guards pass and are preserved in #175 `d32caa37` → `9c7e8c0f`.
-  `process-select-prepare` creates a self-contained capture; `process-select-check`
-  rechecks it read-only. Output names the exact selected method/plan and normalized
-  input/report/selection hashes. Next bind all eight records to one declared
-  generation/control/settings/budget roster before fresh-panel specs/endpoint.
-  Local capture proves neither chronology nor governance; G0–G4 stay open.
+  This is preparation only, without trusted selection lineage. Eligibility CLI
+  #174 `f67ae448` → `73d039b5` clears its bounded-read/path hold: five focused
+  tests, three temporary inert-file checks and scoped strict Clippy/fmt pass.
+  It delegates to merged typed `assess_process_slot`; no scorer ran. Endpoint
+  #168 `99b2c8b0` remains held on family-specific policy, full method identity
+  and ordered/not-run roster binding (one control passes, seven subcases fail).
+  #165 `15febb1e` fixes its reproduction-build provenance, but new first-grid-point
+  wording contradicts the retained hidden-2 trace. Static checks pass; no rerun.
+  Selection CLI #173/#175 and whole development roster #187 `da669296` →
+  `bb9f7c28` are merged; #189 preserves independent `d2304309` guards at
+  `899de43d`. The final composition passes 30 scoped forge tests and strict
+  Clippy/fmt. Eight selections bind round methods, controls, runtime settings,
+  family policy and numeric trial grants. Next Codex work is bounded operator
+  cohort capture/chain links; generation provenance, fresh-panel consumption,
+  chronology and governance remain open. No new implementation is claimed.
   #160's regression analysis is merged as retrospective explanation, not a new
   trial, mechanism fix or proof the proposed #144 iteration engine works.
   No new model request is declared.
@@ -301,13 +304,16 @@ every milestone. All lower checkpoints are historical.
 - Ines remains unassigned by explicit user instruction.
 
 Separate `apps/stage` queue: #125 `811d0df2` → `c0c2cae1` is merged after
-33 offline VM tests, with the original timing guard unchanged. #126 `957edf8b`,
-retargeted to main, remains held: a valid A acknowledgment points to B's card.
-All 45 original tests pass; two new guards fail in preserved `27afe99c`.
+33 offline VM tests, with the original timing guard unchanged. #126 `67071fc7`
+remains held after fixing the same-poll cases: a later unrelated B poll replaces
+A's card while the acknowledged A status still links to it. All 47 existing
+VM tests pass; two later-poll guards fail in preserved `75c67a6`.
 Dated direction/sponsor note #161 `c936bcf6` merged at `a9caea11` after
 source/delta and independent review; the current checkpoint remains authoritative.
-ACP #144 has new unreviewed head `fd35c2fe`; preserve the emitter findings at
-`880f7bc` and original engine guards pending exact-head review. These changes
+ACP #144 has newer `51b342ea` under pure Node re-review. The earlier `fd35c2fe`
+hold covers confirmation/recovery budgets, ancestry, canonical encoding and
+emitter IDs (38 old cases pass, six pure guards fail at `3032a412`); it is not a
+fresh failure claim against the new head. These changes
 transfer no ownership or adoption authority.
 
 Legacy task numbers are historical references in the migration map. Current
