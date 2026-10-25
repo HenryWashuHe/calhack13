@@ -3,6 +3,7 @@
 
     invoke.py prepare --org URL --key KEY --request REQ.json --plan PLAN.json --out DIR
     invoke.py run DIR --package PKG.json --lab-exec PATH --sandbox namespaces|none
+    invoke.py score DIR --lab-score PATH
 
 `prepare` asks the receiving organization to freeze the proposed one-slot
 invocation plan (POST /method-runs) and keeps its record in DIR, which must not
@@ -11,6 +12,11 @@ the server agrees the grant is still current does it run `lab-exec run` on the
 plan the server froze, then posts the execution receipt. A refused start runs
 nothing. A run that was already started is never started again: a lost runner
 is recovered with `lab-exec recover` and its receipt posted by hand.
+
+`score` runs `lab-score score` once on a completed run's frozen plan and
+receipt, then posts the evaluation (POST /method-runs/{id}/result). The server
+decides whether the scored output is attached to the responsibility; the
+score never stands in for an acceptance or a comparison.
 
 The operator token is read from $GENESIS_OPERATOR_TOKEN, never from argv.
 Standard library only.
@@ -106,6 +112,35 @@ def run(a):
                       "outcome": done["receipt"]["outcome"]}))
 
 
+def score(a):
+    completed = os.path.join(a.dir, "completed.json")
+    if not os.path.exists(completed):
+        die("this run has no accepted receipt; nothing to score")
+    if load(completed).get("status") != 200:
+        die("this run's receipt was refused; nothing to score")
+    for name in ("score", "result.json", "result-refused.json"):
+        if os.path.exists(os.path.join(a.dir, name)):
+            die(f"{name} exists: this run was already scored; never score twice")
+    record = load(os.path.join(a.dir, "run.json"))
+    org = load(os.path.join(a.dir, "org.json"))["url"]
+    [slot] = record["plan"]["slots"]
+    out = os.path.join(a.dir, "score")
+    with open(os.path.join(a.dir, "score.out.json"), "x") as so, \
+            open(os.path.join(a.dir, "score.err"), "x") as se:
+        code = subprocess.run([a.lab_score, "score", os.path.join(a.dir, "plan.json"),
+                               slot["slot_id"], os.path.join(a.dir, "state"), out],
+                              stdout=so, stderr=se).returncode
+    evaluation = os.path.join(out, "evaluation.json")
+    if not os.path.exists(evaluation):
+        die(f"lab-score exited {code} without an evaluation; nothing posted")
+    status, done = call(f"{org}/method-runs/{record['id']}/result", load(evaluation))
+    if status != 200:
+        write_new(os.path.join(a.dir, "result-refused.json"), {"status": status, "body": done})
+        die(f"result refused ({status})")
+    write_new(os.path.join(a.dir, "result.json"), done)
+    print(json.dumps({"id": record["id"], "attachment": done["result"]["attachment"]}))
+
+
 def main(argv=None):
     p = argparse.ArgumentParser(prog="invoke.py")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -117,8 +152,11 @@ def main(argv=None):
     r.add_argument("--package", required=True)
     r.add_argument("--lab-exec", required=True)
     r.add_argument("--sandbox", choices=("namespaces", "none"), required=True)
+    sc = sub.add_parser("score")
+    sc.add_argument("dir")
+    sc.add_argument("--lab-score", required=True)
     a = p.parse_args(argv)
-    (prepare if a.cmd == "prepare" else run)(a)
+    {"prepare": prepare, "run": run, "score": score}[a.cmd](a)
 
 
 if __name__ == "__main__":

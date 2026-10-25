@@ -438,6 +438,32 @@ async fn adoption_authorizes_only_the_owner_for_the_exact_version_under_current_
         (200, json!("completed")),
         "{done}"
     );
+    // Its scored output: #116's candidate evaluation rebound to this run's
+    // request. #116's evaluation as retained names #116's run and is refused.
+    let score_path = app
+        .method_receiver
+        .as_ref()
+        .unwrap()
+        .records_root
+        .join("b-fixed-cart/candidate-score/evaluation.json");
+    let mut evaluation: genesis_core::development_evaluation::EvaluationReceipt =
+        serde_json::from_slice(&std::fs::read(score_path).unwrap()).unwrap();
+    let result_url = format!("{runs}/{id}/result");
+    assert_eq!(call(&result_url, &token, json!(evaluation)).await.0, 422);
+    let request = frozen
+        .evaluation_request_for_accounting("use", &receipt)
+        .unwrap()
+        .unwrap();
+    evaluation.request_sha256 = request.identity_hash(&receipt, &receipt.binding).unwrap();
+    evaluation.request = request;
+    let (status, scored) = call(&result_url, &token, json!(evaluation)).await;
+    assert_eq!(status, 200, "{scored}");
+    assert_eq!(scored["result"]["attachment"]["kind"], "attached");
+    assert_eq!(
+        scored["result"]["attachment"]["responsibility_id"],
+        json!(owner.responsibility)
+    );
+    assert_eq!(call(&result_url, &token, json!(evaluation)).await.0, 409);
     // A run prepared under the grant, started after the epoch changed, is
     // fenced and never runs.
     let (_, second) = call(&runs, &token, run("r2")).await;
