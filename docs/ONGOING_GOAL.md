@@ -108,7 +108,9 @@ failures or input that is actually required.
 #204, #203, #199, #181, #180, #144, #65, #57 and draft #7.
 #201 `f41e99e9` merged at `05f84f2d`; its earlier source/seed/lifecycle findings
 are cleared, while author pilot results remain unverified. #180 `c5e916b8` is held;
-#181 `f1df31b5` clears its own finding but inherits #180. #203 is unreviewed.
+#181 `f1df31b5` clears its own finding but inherits #180. #203 `abc55ce4`
+passes 58 inert VM cases; it awaits #199 corrections and integration of #206.
+This is source review, with browser/visual validation still outstanding.
 #204 `d5d6f7fe` is held on immutable-version conflicts and nested-reference parsing:
 94 original cases pass; with seven guards, 96/101 pass and five fail; typecheck passes.
 
@@ -140,7 +142,7 @@ Eric #148/#149 and #180/#181; ACP #144 after #126 merged. #184 has unresolved fi
 calibration unknown-to-zero and timeout/failure handling before new research runs.
 Corrected proposal #195 `ec3bb5d8` is merged at `c113cfc5` after colleague merge
 and independent document review; no calibration/run or gate result follows.
-ACP Prior #198 source `adf43e07` had findings now cleared by #206 on three VM guards; #199 `5567f827` is also held on five
+Prior ACP #198 source `adf43e07` had findings now cleared by #206 on three VM guards; #199 `5567f827` is also held on five
 new guards: outcome labels, cross-change pipeline binding and CSS collision. #148 `62c2a0c3` / #149 `6e08ba9` have new holds after
 prior fixes: exact-reference/scoring-context checks, request-cost attribution and
 unknown-panel labels. The inert stack is 133 pass/four fail/one exporter skip;
@@ -154,7 +156,7 @@ or new execution are claimed. Existing lane ownership is unchanged; Ines remains
 
 | Milestone | Owner and evidence | Next action |
 | --- | --- | --- |
-| Frozen endpoint policy correction | #205 source `73ed916a59328863bf6ff45a6598efe1d1b2a10f` → `0cc38e6167282051eeca0f8c898da0495a091f55`: eight mocked methods pass, original `daf04dd5` guard file unchanged; 27 original test bodies AST-identical | Clears #168’s exact budget/criterion defects, not external policy authentication, fresh-panel consumption or G4. |
+| Frozen endpoint policy correction | #205 source `73ed916a59328863bf6ff45a6598efe1d1b2a10f` → `0cc38e6167282051eeca0f8c898da0495a091f55`: eight mocked test methods pass, original `daf04dd5` guard file unchanged; 27 original test bodies AST-identical | Clears #168’s exact budget/criterion defects, not external policy authentication, fresh-panel consumption or G4. |
 | Stage evidence correction | #206 source `3d8a4a603f6041b16a83092d3fcd12766085eb9e` → `281f66efc979eefcc4b165ae3a66c206b1f770b9`: root and independent reviewer each pass 61 inert Node cases | Clears #198’s three findings; #199’s own outcome/identity/CSS defects remain. No browser/live POST or authority claim. |
 | Generation-origin join, G4 prerequisite | Codex #196 `76ed5d3` → `f5a7bd74`; independent eight guards #200 `8c6029c1` → `b8fef413`. Root 18 scoped library/cohort checks pass; eight preserved independent guards pass again on `af09cdb`, tree `f09c1267` | [Six original positions](invention-lab/contracts/process-selection.md#generation-origins-library) bind snapshots/Prepared pins to all eight selections, common base policy and immediate workflow parents. Missing/unknown attempts stay explicit. Feedback provenance, chain admission/cost links, authentic origin and chronology remain unverified. |
 | Optional provenance capture, G4 prerequisite | Codex #197 `a7e36f0` → `97b108d4`: author 27 scoped checks; root and independent reviewer each pass nine CLI cases, with scoped strict Clippy/fmt. Counts overlap | Optional `/2` retains originals and both recomputed reports; `/1` bytes and summary stay compatible. Read-only recheck; no recovery, provider/generated-source execution, fresh-panel consumption or gate closure. |
