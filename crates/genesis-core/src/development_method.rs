@@ -4,7 +4,7 @@
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::ids::{AttemptId, OrgId};
+use crate::ids::{AssignmentId, AttemptId, OrgId, RequirementId, ResponsibilityId, RoleId};
 
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 pub enum ContractError {
@@ -89,6 +89,40 @@ pub enum ExecutionPurpose {
         trial_id: String,
         arm_id: String,
     },
+    /// One run of an adopted method under the receiver's invocation grant.
+    /// Naming the grant here makes the receipt state its own authority; the
+    /// grant is still checked by the receiver, never assumed from the receipt.
+    Invocation {
+        plan: ExactContentRef,
+        grant: InvocationGrant,
+    },
+}
+
+/// The receiver-side authority one invocation ran under.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct InvocationGrant {
+    pub adoption_id: String,
+    pub requirement_id: RequirementId,
+    pub role_id: RoleId,
+    pub responsibility_id: ResponsibilityId,
+    pub assignment_id: AssignmentId,
+    pub epoch: u64,
+}
+
+impl InvocationGrant {
+    pub fn validate(&self) -> Result<(), ContractError> {
+        for (value, name) in [
+            (self.adoption_id.as_str(), "adoption_id"),
+            (self.requirement_id.as_str(), "requirement_id"),
+            (self.role_id.as_str(), "role_id"),
+            (self.responsibility_id.as_str(), "responsibility_id"),
+            (self.assignment_id.as_str(), "assignment_id"),
+        ] {
+            nonblank(value, name)?;
+        }
+        Ok(())
+    }
 }
 
 impl ExecutionPurpose {
@@ -104,6 +138,10 @@ impl ExecutionPurpose {
                 plan.validate()?;
                 nonblank(trial_id, "trial_id")?;
                 nonblank(arm_id, "arm_id")
+            }
+            Self::Invocation { plan, grant } => {
+                plan.validate()?;
+                grant.validate()
             }
         }
     }

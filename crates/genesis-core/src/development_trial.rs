@@ -12,8 +12,18 @@ use std::collections::{BTreeMap, BTreeSet};
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum TrialPurpose {
-    Acceptance { role: AcceptanceRole },
-    Comparison { trial_id: String, arm_id: String },
+    Acceptance {
+        role: AcceptanceRole,
+    },
+    Comparison {
+        trial_id: String,
+        arm_id: String,
+    },
+    /// The single slot of a public Development plan that runs an adopted
+    /// method once under the named grant. Not an acceptance or comparison.
+    Invocation {
+        grant: InvocationGrant,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -103,6 +113,10 @@ impl TrialPlan {
                     trial_id: trial_id.clone(),
                     arm_id: arm_id.clone(),
                 },
+                TrialPurpose::Invocation { grant } => ExecutionPurpose::Invocation {
+                    plan,
+                    grant: grant.clone(),
+                },
             },
             budget: self.development_grant.clone(),
         }
@@ -135,6 +149,7 @@ impl TrialPlan {
         let mut acceptance_orgs = BTreeSet::new();
         let mut treatments = BTreeMap::new();
         let mut trials: BTreeMap<&str, BTreeSet<&str>> = BTreeMap::new();
+        let mut invocations = 0usize;
         for slot in &self.slots {
             nonblank(&slot.slot_id)?;
             nonblank(&slot.scoring_request_id)?;
@@ -168,7 +183,20 @@ impl TrialPlan {
                         return Err(EvaluationError::Duplicate);
                     }
                 }
+                TrialPurpose::Invocation { grant } => {
+                    grant.validate()?;
+                    invocations += 1;
+                }
             }
+        }
+        if invocations > 0 {
+            // Exactly one invocation slot, alone, scored on its public panel.
+            return match &self.scoring_instances {
+                ScoringInstances::Development {} if invocations == 1 && self.slots.len() == 1 => {
+                    Ok(())
+                }
+                _ => Err(invalid("an invocation plan has exactly one slot")),
+            };
         }
         match &self.scoring_instances {
             ScoringInstances::Development {}
