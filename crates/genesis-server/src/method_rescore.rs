@@ -336,68 +336,6 @@ impl RescoredTrial {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::method_adoption::Acceptance;
-    use genesis_core::development_method::ExactContentRef;
-    use genesis_core::ids::OrgId;
-
-    fn r(id: &str) -> ExactContentRef {
-        ExactContentRef {
-            domain: "d".into(),
-            schema: "s".into(),
-            id: id.into(),
-            version: "1".into(),
-            sha256: "0".repeat(64),
-        }
-    }
-
-    fn evidence(files: &[(&str, &str)]) -> AcceptanceEvidence {
-        AcceptanceEvidence {
-            trial: "t".into(),
-            publisher: OrgId::new("org_a"),
-            method: r("m"),
-            plan: r("p"),
-            criterion: r("c"),
-            public_task: r("task"),
-            evaluator: r("e"),
-            environment: r("env"),
-            dependencies: vec![],
-            files: files
-                .iter()
-                .map(|(k, v)| (k.to_string(), v.to_string()))
-                .collect(),
-            acceptance: Acceptance::Rejected { reason: "r".into() },
-            rescorer: None,
-            reexecutor: None,
-        }
-    }
-
-    #[test]
-    fn binding_requires_the_rescored_bytes_and_nothing_unseen() {
-        let rescored = RescoredTrial {
-            rescorer_sha256: "f".repeat(64),
-            files: [("plan.json", "1"), ("control-score/evaluation.json", "2")]
-                .iter()
-                .map(|(k, v)| (k.to_string(), v.to_string()))
-                .collect(),
-        };
-        let same = [("plan.json", "1"), ("control-score/evaluation.json", "2")];
-        assert!(rescored.binds(&evidence(&same)).is_ok());
-        // A file changed between the rescore and the assessment.
-        let changed = [("plan.json", "1"), ("control-score/evaluation.json", "3")];
-        assert!(rescored.binds(&evidence(&changed)).is_err());
-        // Scoring appeared that the rescore never saw.
-        let unseen = [
-            ("plan.json", "1"),
-            ("control-score/evaluation.json", "2"),
-            ("candidate-score/evaluation.json", "4"),
-        ];
-        assert!(rescored.binds(&evidence(&unseen)).is_err());
-    }
-}
-
 impl MethodReexecutor {
     fn package(
         &self,
@@ -513,5 +451,67 @@ impl ReexecutedTrial {
             return Err(fail("the retained records changed after re-execution"));
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::method_adoption::Acceptance;
+    use genesis_core::development_method::ExactContentRef;
+    use genesis_core::ids::OrgId;
+
+    fn r(id: &str) -> ExactContentRef {
+        ExactContentRef {
+            domain: "d".into(),
+            schema: "s".into(),
+            id: id.into(),
+            version: "1".into(),
+            sha256: "0".repeat(64),
+        }
+    }
+
+    fn evidence(files: &[(&str, &str)]) -> AcceptanceEvidence {
+        AcceptanceEvidence {
+            trial: "t".into(),
+            publisher: OrgId::new("org_a"),
+            method: r("m"),
+            plan: r("p"),
+            criterion: r("c"),
+            public_task: r("task"),
+            evaluator: r("e"),
+            environment: r("env"),
+            dependencies: vec![],
+            files: files
+                .iter()
+                .map(|(k, v)| (k.to_string(), v.to_string()))
+                .collect(),
+            acceptance: Acceptance::Rejected { reason: "r".into() },
+            rescorer: None,
+            reexecutor: None,
+        }
+    }
+
+    #[test]
+    fn binding_requires_the_rescored_bytes_and_nothing_unseen() {
+        let rescored = RescoredTrial {
+            rescorer_sha256: "f".repeat(64),
+            files: [("plan.json", "1"), ("control-score/evaluation.json", "2")]
+                .iter()
+                .map(|(k, v)| (k.to_string(), v.to_string()))
+                .collect(),
+        };
+        let same = [("plan.json", "1"), ("control-score/evaluation.json", "2")];
+        assert!(rescored.binds(&evidence(&same)).is_ok());
+        // A file changed between the rescore and the assessment.
+        let changed = [("plan.json", "1"), ("control-score/evaluation.json", "3")];
+        assert!(rescored.binds(&evidence(&changed)).is_err());
+        // Scoring appeared that the rescore never saw.
+        let unseen = [
+            ("plan.json", "1"),
+            ("control-score/evaluation.json", "2"),
+            ("candidate-score/evaluation.json", "4"),
+        ];
+        assert!(rescored.binds(&evidence(&unseen)).is_err());
     }
 }
