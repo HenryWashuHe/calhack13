@@ -1,0 +1,115 @@
+{
+  "body": {
+    "authority_sha256": "e77db805369e1a7007cfdee61ae9bc9af798b9f9981c4101f82d458de98af264",
+    "client_request_id": "owner-decides",
+    "compatibility": {
+      "protocol": {
+        "domain": "genesis-lab",
+        "id": "genesis-lab-exec-lines",
+        "schema": "lab-protocol/1",
+        "sha256": "d3b90c36b32e89b4e3d191dc018717301a4afc386ac915123cf5cf86250c550d",
+        "version": "1"
+      },
+      "runtime": {
+        "domain": "genesis-lab",
+        "id": "python3",
+        "schema": "lab-runtime/1",
+        "sha256": "0b21e795ac528c0f9cbe99e28ca1125af0c4dc5b87f53224abfe2a2ae5a69491",
+        "version": "1"
+      }
+    },
+    "created_at": "2026-10-25T06:07:12.334365981Z",
+    "grant": {
+      "assignment_id": "asg_f84e315ea87e403592ce4716941e8b89",
+      "epoch": 1,
+      "responsibility_id": "rsp_6ec3f2a10947453ab3b402a0b3509625",
+      "role_id": "role_983b135833e54233a3a88415ce090c89"
+    },
+    "id": "madopt_010d3edf620b40ac907c427f68141acb",
+    "intent_sha256": "937327e401e0b7539f94a47611173273b1f747cb171be8fbbf58dc08179f0d9e",
+    "lease_expires_at": null,
+    "mission_id": "mis_f3acba1dbf7947a0bd1ec816530a2728",
+    "mission_sha256": "e27e4065f81791518b059cd0677a6bec4eb76d477d0c65ced0a4bc8bf8d7c1f7",
+    "org_id": "org_example_b",
+    "outcome": {
+      "evidence": {
+        "acceptance": {
+          "acceptance": "accepted",
+          "candidate": 6,
+          "control": 2,
+          "of": 6
+        },
+        "criterion": {
+          "domain": "genesis-lab",
+          "id": "success-count-margin",
+          "schema": "lab-criterion/1",
+          "sha256": "d11955c2838905aa14ff50cd8402be70eece50a522ba57cd66c73ff6ab897ce2",
+          "version": "1"
+        },
+        "dependencies": [],
+        "environment": {
+          "domain": "genesis-lab",
+          "id": "genesis-lab-exec/namespaces",
+          "schema": "lab-environment/1",
+          "sha256": "276d5465fc476cb531027be8030f6f81dbbae2d0734c9bce8eb207e70fd5534e",
+          "version": "0.1.0"
+        },
+        "evaluator": {
+          "domain": "genesis-lab",
+          "id": "genesis-lab-eval",
+          "schema": "lab-evaluator/1",
+          "sha256": "1f03d1b6499721e6ddae6e600b688c123a8684e34c56f53cde8104d361246f42",
+          "version": "0.1.0"
+        },
+        "files": {
+          "candidate-score/artifacts/bb4736101d998f42a15332bfc9aff671ac078cc665a59665be0da3eb65cdb676": "bb4736101d998f42a15332bfc9aff671ac078cc665a59665be0da3eb65cdb676",
+          "candidate-score/evaluation.json": "a42181cd90d6193f8d1933899597704928988c7a3a46d0685a35ae1180898c05",
+          "candidate/receipt.json": "effecbdeab43342f87e909c101eab25e105a562291e7cc25e5d515cdda003df5",
+          "control-score/artifacts/9f5c681c25809caf8e1e7d957f98e98114ea884adcf41d4ebd93e221875be015": "9f5c681c25809caf8e1e7d957f98e98114ea884adcf41d4ebd93e221875be015",
+          "control-score/evaluation.json": "b3ec566f2012b1dd26620e53f72029d432d964d92e0e52626b8f127b45741237",
+          "control/receipt.json": "f1a0ef473610414ccba90095ae942a4068b328e139b558cf38187b4e2b3211c5",
+          "criterion.json": "d11955c2838905aa14ff50cd8402be70eece50a522ba57cd66c73ff6ab897ce2",
+          "plan.json": "a90a686be813845ab1da1a0cb988d017ae2d710d5951a4c9a38465f594b54bd5"
+        },
+        "method": {
+          "domain": "genesis",
+          "id": "receiver-revised-method",
+          "schema": "development-method-source/1",
+          "sha256": "4f455dc6e625bdaf554d567bdd7f0bc0c7b601a1ea6332d4e7a13e02005db14d",
+          "version": "0.1.0"
+        },
+        "plan": {
+          "domain": "genesis",
+          "id": "receive-rehearse3-accept-vs-fixed-cart",
+          "schema": "development-trial-plan/1",
+          "sha256": "d12b613e602d93e18562e4372ea8bd519e79fc171578d90468946e18d121dd69",
+          "version": "1"
+        },
+        "public_task": {
+          "domain": "genesis-lab",
+          "id": "rough-transport",
+          "schema": "lab-task/1",
+          "sha256": "7ea1854c2b359837033ade75434e2ca165465492792fbb66efaf21117758456b",
+          "version": "1"
+        },
+        "publisher": "org_example_a",
+        "trial": "rehearse3-accept-vs-fixed-cart"
+      },
+      "outcome": "adopted"
+    },
+    "publisher": "org_example_a",
+    "reference": {
+      "domain": "genesis",
+      "id": "receiver-revised-method",
+      "schema": "development-method-source/1",
+      "sha256": "4f455dc6e625bdaf554d567bdd7f0bc0c7b601a1ea6332d4e7a13e02005db14d",
+      "version": "0.1.0"
+    },
+    "requirement_id": "req_6a358f118e2d4234a59f8ed2a0c799c7",
+    "requirement_sha256": "82272571946888d3d1d8db283cbe03fdc3012896bad6f9806b4d3315c316619e",
+    "responsibility_id": "rsp_6ec3f2a10947453ab3b402a0b3509625",
+    "role_id": "role_983b135833e54233a3a88415ce090c89",
+    "schema_version": 2
+  },
+  "status": 201
+}

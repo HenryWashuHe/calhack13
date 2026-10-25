@@ -1,0 +1,99 @@
+{
+  "body": {
+    "authority_sha256": "e47e7fc86c426f6ab6c114aa2383ea5d6f4a3e95fdea9e1f49c8e112f1a1bf43",
+    "client_request_id": "rehearse-adopt",
+    "created_at": "2026-10-25T04:19:05.963409351Z",
+    "grant": {
+      "assignment_id": "asg_5570a311dd60465589ff910deff6a426",
+      "epoch": 1,
+      "responsibility_id": "rsp_57b51471c54845d8a273e72cfcd63dcb",
+      "role_id": "role_11798fc4ad2b405c8179504c50ccf62a"
+    },
+    "id": "madopt_1b37a9f69e2344bf90a9716201b70098",
+    "intent_sha256": "fc07ec7b5022e4d7a06f05a99d17b956244321f25d24fe1e87b88398a99e285b",
+    "lease_expires_at": null,
+    "mission_id": "mis_f2138683117642bd809e49da1c7f4516",
+    "mission_sha256": "29d6c1274b1b1193c660a990bfc91869a2f2a7c2dd27abc77c4bdae03329629a",
+    "org_id": "org_example_b",
+    "outcome": {
+      "evidence": {
+        "acceptance": {
+          "acceptance": "accepted",
+          "candidate": 6,
+          "control": 4,
+          "of": 6
+        },
+        "criterion": {
+          "domain": "genesis-lab",
+          "id": "success-count-margin",
+          "schema": "lab-criterion/1",
+          "sha256": "cfa4cc0df0b08d2597135cefc0e405fd371bdf4faa61d4b2be6561097baa9225",
+          "version": "1"
+        },
+        "dependencies": [],
+        "environment": {
+          "domain": "genesis-lab",
+          "id": "genesis-lab-exec/namespaces",
+          "schema": "lab-environment/1",
+          "sha256": "276d5465fc476cb531027be8030f6f81dbbae2d0734c9bce8eb207e70fd5534e",
+          "version": "0.1.0"
+        },
+        "evaluator": {
+          "domain": "genesis-lab",
+          "id": "genesis-lab-eval",
+          "schema": "lab-evaluator/1",
+          "sha256": "1f03d1b6499721e6ddae6e600b688c123a8684e34c56f53cde8104d361246f42",
+          "version": "0.1.0"
+        },
+        "files": {
+          "candidate-score/artifacts/622939b0368156c2cf2542d330c51b1363bc3aa4ebffd8cc8c2ed1de9e04f86e": "622939b0368156c2cf2542d330c51b1363bc3aa4ebffd8cc8c2ed1de9e04f86e",
+          "candidate-score/evaluation.json": "9953b2a2c38e1dfbe63f10b4c424cf952270f035a2fcbe64b62323db114dd1c5",
+          "candidate/receipt.json": "6edbc190ffa07023cb894a2c54446b16a7f1778ec8b5b0b782fe03a1c7279ef8",
+          "control-score/artifacts/214c0d38378f363ce7fda7d82567b34a7f47ee96e55f536305797c1edff0dc3d": "214c0d38378f363ce7fda7d82567b34a7f47ee96e55f536305797c1edff0dc3d",
+          "control-score/evaluation.json": "634fe8113aed427c35fce127235aa34c8cb9884a79fedd38c14d8566921c8eab",
+          "control/receipt.json": "5e78dd59cd21f0875631e6637330dcae9bca71a781b1b68384e285c7fbc155a5",
+          "criterion.json": "cfa4cc0df0b08d2597135cefc0e405fd371bdf4faa61d4b2be6561097baa9225",
+          "plan.json": "9142d0096b2aaf6b4329aa9f4f6e8f66143586462f1d9a42ff9d355bde8ca0c3"
+        },
+        "method": {
+          "domain": "genesis",
+          "id": "receiver-revised-method",
+          "schema": "development-method-source/1",
+          "sha256": "4f455dc6e625bdaf554d567bdd7f0bc0c7b601a1ea6332d4e7a13e02005db14d",
+          "version": "0.1.0"
+        },
+        "plan": {
+          "domain": "genesis",
+          "id": "receive-rehearse-accept-vs-fixed-cart",
+          "schema": "development-trial-plan/1",
+          "sha256": "b8e6b6f0d6e95b89d55ebd5fea580bb6b3d6ed6b300bd5abcd078df3b597a4da",
+          "version": "1"
+        },
+        "public_task": {
+          "domain": "genesis-lab",
+          "id": "rough-transport",
+          "schema": "lab-task/1",
+          "sha256": "7ea1854c2b359837033ade75434e2ca165465492792fbb66efaf21117758456b",
+          "version": "1"
+        },
+        "publisher": "org_example_a",
+        "trial": "rehearse-accept-vs-fixed-cart"
+      },
+      "outcome": "adopted"
+    },
+    "publisher": "org_example_a",
+    "reference": {
+      "domain": "genesis",
+      "id": "receiver-revised-method",
+      "schema": "development-method-source/1",
+      "sha256": "4f455dc6e625bdaf554d567bdd7f0bc0c7b601a1ea6332d4e7a13e02005db14d",
+      "version": "0.1.0"
+    },
+    "requirement_id": "method-1",
+    "requirement_sha256": "4530f48f765ab99e4d90bbf099feb4b89f9a1abcb9d3dfcf5eccdc45f5ba0247",
+    "responsibility_id": "rsp_57b51471c54845d8a273e72cfcd63dcb",
+    "role_id": "role_11798fc4ad2b405c8179504c50ccf62a",
+    "schema_version": 1
+  },
+  "status": 201
+}
