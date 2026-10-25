@@ -104,14 +104,17 @@ failures or input that is actually required.
 
 ## Current milestone ledger
 
-**Priority checkpoint, October 25, 2026 — main `60b4d10c`:** #220 source
+**Priority checkpoint, October 25, 2026 — main `de453090`:** #220 source
 `96eecb8a` merged into #65 at `d57efc82`; #221 source `6f55d399` merged into
 #57 at `f9c3dc6f`. Both refuse namespace startup without Linux
 `close_range(CLOEXEC)` success, remove the RLIMIT-bounded fallback and change
-the environment-policy identity; Mode None is unchanged. Independent static
-review and composition `91e6e174` all-target compile/format checks pass; root's
-seven pure termination tests separately pass for #57. Exact-head independent Linux assurance remains
-open, and neither original PR is on main. [The review snapshot](reviews/pr-queue-2026-10-25.md)
+the environment-policy identity; Mode None is unchanged. On current-main
+composition `b347f457` root passes scorer all-target compilation, strict all-target
+Clippy for both crates, formatting and seven pure termination tests. The 28 prior
+test files are unchanged. The owner directed merge without waiting for the
+remaining external Linux report: #65 merged at `4a37ffb7` (checked tree `c50d5f87`),
+then #57 at `de453090` (checked composition tree `b28208ed`). Independent Linux
+assurance remains open; the merge decision does not close G0–G4. [The review snapshot](reviews/pr-queue-2026-10-25.md)
 records merged #211/#199/#203 corrections: 21 store, 78 inert Stage and 80 inert
 Stage cases pass in their respective reviewed compositions. Those counts overlap;
 no combined suite or browser validation is claimed. Deferred research and newer
