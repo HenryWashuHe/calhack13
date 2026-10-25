@@ -12,7 +12,7 @@ minimal-root chroot, `close_range`-required descriptor policy and #57's terminat
 - [x] Fetched main, recorded sha, created worktrees.
 
 ## Left
-- [x] Executor suite as root (`executor-85073cc.log`): test/clippy/fmt exit 0. 48 tests: 8 lib (7 `termination_evidence_tests`) + 40 integration, 0 failed/ignored. Root-gated suites ran: namespace_lifecycle 3, namespace_stop_without_kill 1, review_namespace_escape 7, sandbox 1. No `nobody` processes after. `lab-exec` sha256 in `BINARIES.sha256`.
+- [x] Executor suite as root (`executor-85073cc.log.txt`): test/clippy/fmt exit 0. 48 tests: 8 lib (7 `termination_evidence_tests`) + 40 integration, 0 failed/ignored. Root-gated suites ran: namespace_lifecycle 3, namespace_stop_without_kill 1, review_namespace_escape 7, sandbox 1. No `nobody` processes after. `lab-exec` sha256 in `BINARIES.sha256`.
 - [ ] Scoring suite as root, plus strict clippy and fmt (raw log here).
 - [ ] `indep_hidden_closure.rs` with the positive case asserting a `Scored` outcome (file added here; run pending).
 - [ ] sha256 of the tested `lab-exec` / `lab-score` binaries.
