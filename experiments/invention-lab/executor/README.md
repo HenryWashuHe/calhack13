@@ -77,6 +77,10 @@ Trusted acceptance scoring lives in the separate `../scoring` crate.
     mount that refuses keeps its mode);
   - private tmpfs over `/home`, `/root`, `/tmp`, `/var/tmp`, `/dev/shm` and
     `/run`;
+  - only stdin, stdout and stderr cross into the namespace: every other
+    descriptor the executor holds (say, a directory or socket its launcher
+    left open) is marked close-on-exec first, so none can reach the hidden
+    directories;
   - the method runs as `nobody` with `no_new_privs`;
   - the whole PID namespace is killed at the limit.
   - resource limits set with prlimit before the privilege drop: 1 GiB address

@@ -172,7 +172,10 @@ fn sandbox_dir(mode: Mode, tag: &str) -> String {
         "/tmp/started".into()
     } else {
         std::env::temp_dir()
-            .join(format!("lab-exec-escape-flags-{tag}-{}", std::process::id()))
+            .join(format!(
+                "lab-exec-escape-flags-{tag}-{}",
+                std::process::id()
+            ))
             .display()
             .to_string()
     }
@@ -276,7 +279,8 @@ sys.exit(0)
 /// this test process, as a launching shell or supervisor might leave one.
 fn leak_host_directory(tag: &str) -> (std::fs::File, PathBuf) {
     use std::os::unix::fs::PermissionsExt;
-    let dir = PathBuf::from("/var/tmp").join(format!("lab-exec-secret-{tag}-{}", std::process::id()));
+    let dir =
+        PathBuf::from("/var/tmp").join(format!("lab-exec-secret-{tag}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).unwrap();
     std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o755)).unwrap();
