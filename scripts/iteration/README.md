@@ -16,9 +16,10 @@ contracts (method packages, trial plans, execution and scoring receipts, chain c
 - `synthetic-family.mjs`: a SYNTHETIC family, controls and mutator used only by the tests and the
   demo below. It proves the protocol, not any task.
 - `engine.test.mjs`: nine author probes; `emit.test.mjs`: six emitter probes.
-- `review-budget.test.mjs`, `review-provenance.test.mjs`, `review-resume-transfer.test.mjs` (Codex)
-  and `review-iteration.test.mjs`, `review-henry-probes.test.mjs`, `review-henry-probes2.test.mjs`
-  (Henry's Claude): the reviewers' 39 adversarial probes, retained byte-identical and passing.
+- `review-budget.test.mjs`, `review-provenance.test.mjs`, `review-resume-transfer.test.mjs`,
+  `review-partial-ancestor.test.mjs` (Codex) and `review-iteration.test.mjs`,
+  `review-henry-probes.test.mjs`, `review-henry-probes2.test.mjs` (Henry's Claude): the reviewers'
+  42 adversarial probes, retained byte-identical and passing.
 - `run-synthetic.mjs`: prints a ledger summary for a few generations and one adoption.
 
 ```sh
