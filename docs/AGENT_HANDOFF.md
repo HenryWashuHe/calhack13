@@ -2,13 +2,16 @@
 
 ## Current review handoff — October 25, 2026
 
-Use [the main `60b4d10c` priority snapshot](reviews/pr-queue-2026-10-25.md).
+Use [the main `f465ed0` priority snapshot](reviews/pr-queue-2026-10-25.md).
 #220/#221 are merged into the #65/#57 branches, respectively, not main;
-exact-head independent Linux assurance remains open. Composition `91e6e174`
-passes independent compile/format checks only. User priority remains #57/#65;
+current-head external Linux results remain pending. Composition `b347f457`
+passes root's compile/strict Clippy/format checks and seven pure termination tests,
+with 28 prior test files unchanged. The user's sole current priority is #57/#65;
 #144 is merged. The external Linux report is limited to older `31001949` /
 `6c468f5`, with no current-head assurance or root reproduction; retain the
 snapshot's source-only assertion/heartbeat limits and do not treat it as a gate pass.
+Henry's audit acknowledgment and Eric's testing announcement are not results;
+await review of the external current-head report before publication/merge readiness.
 Codex owns the scoped corrective work and review under the user's fix/test/merge
 request. #211/#199/#203 corrections are now merged; their respective reviewed
 compositions pass 21 store, 78 inert Stage and 80 inert Stage cases. Henry retains
