@@ -92,6 +92,16 @@ export function usageCharge(usage) {
   if (usage.input_tokens > INPUT_RESERVE || usage.output_tokens > MAX_OUTPUT || micro > PER_CALL_MICRO_USD) throw new Error("actual tokens exceeded the reserved request bound");
   return micro;
 }
+export function independentSampler(makeInner, rootSource) {
+  const root = { source: rootSource, sha256: sha256(rootSource) };
+  return {
+    observe() {},
+    propose(args) {
+      const fresh = makeInner();
+      return fresh.propose({ ...args, parent: root, feedback: null });
+    },
+  };
+}
 function scorePanel(family, instances, package_) {
   const scores = instances.map((instance) => family.score(package_, instance));
   const ratios = scores.map((x) => x?.detail?.ratio);
@@ -171,11 +181,7 @@ function main() {
         const makeInner = () => claudeMutator({ task: `${TASK}\nThis is independent repetition ${repetition + 1}.`, featureDoc, subject: "a dispatching rule for job-shop scheduling", model: MODEL,
           effort: EFFORT, call: (req) => call(req, context), log: (record) => journal.append({ event: "mutator_observation", identity: context, record }) });
         const learned = makeInner();
-        const independent = { usage: learned.usage, observe() {}, propose(args) {
-          const fresh = makeInner();
-          const source = family.root();
-          return fresh.propose({ ...args, parent: { source, sha256: sha256(source) }, feedback: null });
-        } };
+        const independent = independentSampler(makeInner, family.root());
         const mutator = cascade(arm === "feedback" ? learned : independent, { family, screenSeed: `${seed}:screen`, m: 3, factor: 2 });
         const rows = [];
         for (let round = 1; round <= ROUNDS; round++) {
