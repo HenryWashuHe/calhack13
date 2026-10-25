@@ -6,139 +6,198 @@
 <title>GENESIS Architecture</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <style>
-:root { --bg: #121619; --fg: #EEE9DE; --dim: rgba(238,233,222,.6); --line: rgba(238,233,222,.16); --accent: #5BD0BA; --fixture: #E7B35A; --refuse: #E3706C; --display: "Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif; --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace; color-scheme: dark; }
-body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--display); padding-block: 28px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
-main { max-width: 1240px; margin: 0 auto; display: grid; gap: 22px; }
-h1 { font-size: 26px; margin: 0; letter-spacing: -.01em; }
-p { color: var(--dim); max-width: 72ch; line-height: 1.5; margin: 0; font-size: 15px; }
-figure { margin: 0; border: 1px solid var(--line); border-radius: 14px; padding: 14px; background: #181E23; }
-figure svg { max-width: 100%; height: auto; display: block; }
-figcaption { color: var(--dim); font-size: 13px; margin-top: 10px; line-height: 1.5; }
-table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
-th, td { text-align: left; vertical-align: top; padding: 8px 10px; border-top: 1px solid var(--line); }
-th { color: var(--dim); font-weight: 600; font-size: 12px; letter-spacing: .04em; }
-code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
-.ok { color: var(--accent); } .warm { color: var(--fixture); } .bad { color: var(--refuse); }
-.wrap { overflow-x: auto; }
+:root { --bg: #121619; --panel: #181E23; --fg: #EEE9DE; --dim: rgba(238,233,222,.62); --faint: rgba(238,233,222,.14); --accent: #5BD0BA; --amber: #E7B35A; --red: #E3706C; --display: "Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif; --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace; color-scheme: dark; }
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--display); padding-block: 18px 28px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+main { max-width: 1360px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 18px; align-items: start; }
+header { grid-column: 1 / -1; display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+h1 { font-size: 20px; margin: 0; letter-spacing: -.01em; font-weight: 600; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-family: var(--mono); font-size: 11px; color: var(--dim); }
+.legend span::before { content: ""; display: inline-block; width: 22px; height: 0; border-top: 2px solid var(--fg); margin-right: 6px; vertical-align: middle; }
+.legend .core::before { border-color: var(--accent); }
+.legend .sponsor::before { border-color: var(--fg); opacity: .6; }
+.legend .partial::before { border-top-style: dashed; border-color: var(--amber); }
+figure { margin: 0; min-width: 0; border: 1px solid var(--faint); border-radius: 14px; background: var(--panel); padding: 10px; }
+figure svg { width: 100%; height: auto; display: block; color: var(--fg); font-family: var(--mono); }
+aside { position: sticky; top: 12px; border: 1px solid var(--faint); border-radius: 14px; background: var(--panel); padding: 16px; min-height: 300px; display: grid; gap: 10px; align-content: start; }
+aside h2 { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -.01em; }
+aside .chip { display: inline-block; font-family: var(--mono); font-size: 11px; padding: 3px 8px; border-radius: 999px; border: 1px solid currentColor; width: max-content; }
+aside .chip.live { color: var(--accent); } aside .chip.partial { color: var(--amber); } aside .chip.core { color: var(--fg); opacity: .8; }
+aside p { margin: 0; color: var(--dim); font-size: 13.5px; line-height: 1.5; }
+aside dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; font-size: 12px; }
+aside dt { color: var(--dim); } aside dd { margin: 0; font-family: var(--mono); font-size: 11px; word-break: break-all; }
+aside .hint { color: var(--dim); font-size: 12px; }
+@media (max-width: 900px) { main { grid-template-columns: 1fr; } aside { position: static; } }
+
+/* diagram */
+.node { cursor: pointer; outline: none; }
+.node rect { fill: var(--bg); stroke: currentColor; stroke-width: 1.2; transition: stroke-width .2s, fill .2s, opacity .25s; }
+.node.core rect { stroke: var(--accent); }
+.node.partial rect { stroke: var(--amber); stroke-dasharray: 6 5; }
+.node text { fill: currentColor; font-size: 12px; }
+.node .t { font-weight: 600; }
+.node .s { fill-opacity: .6; font-size: 11px; }
+.node .c { font-size: 11px; }
+.node .c.live { fill: var(--accent); } .node .c.partial { fill: var(--amber); }
+.edge path { fill: none; stroke: currentColor; stroke-width: 1.2; transition: stroke-width .2s, opacity .25s; }
+.edge.core path { stroke: var(--accent); }
+.edge.dashed path { stroke-dasharray: 5 5; }
+.edge .lbl { font-size: 10.5px; fill: currentColor; fill-opacity: .7; paint-order: stroke; stroke: var(--panel); stroke-width: 4px; stroke-linejoin: round; transition: opacity .25s, font-size .2s; }
+.edge .hit { fill: none; stroke: transparent; stroke-width: 14; cursor: pointer; }
+.flow { stroke-dasharray: 4 10; animation: flow 1.6s linear infinite; stroke-width: 2.4 !important; }
+@keyframes flow { to { stroke-dashoffset: -28; } }
+.pulse { fill: var(--accent); }
+svg.focus .node:not(.on), svg.focus .edge:not(.on) { opacity: .22; }
+svg.focus .node.on rect { stroke-width: 2.2; fill: #1C262A; }
+svg.focus .edge.on path.line { stroke-width: 2.2; }
+svg.focus .edge.on .lbl { fill-opacity: 1; font-size: 11.5px; }
+.node:focus-visible rect { stroke-width: 2.4; }
+.stage { transition: opacity .25s; }
+.ring { fill: none; stroke: var(--accent); stroke-opacity: .55; }
+@media (prefers-reduced-motion: reduce) { .flow { animation: none; } .pulse { display: none; } }
 </style>
 </head>
 <body>
 <main>
-  <h1>GENESIS: where each sponsor sits in the mechanism</h1>
-  <p>One organization kernel in the middle. Evidence enters through a Fetch.ai agent, the planner proposes, the kernel decides and records. Roles are provisioned as Apify Actors or CREAO agents. The record is indexed in Elastic. The lab improves methods and hands verified bundles to another organization through Fetch.ai, which re-verifies before adopting.</p>
+  <header>
+    <h1>GENESIS: the iteration core and where each sponsor sits</h1>
+    <div class="legend"><span class="core">core loop</span><span class="sponsor">sponsor, live evidence</span><span class="partial">live runs, kernel binding in progress</span></div>
+  </header>
   <figure>
-    <svg viewBox="0 0 1240 620" role="img" aria-label="Data paths between a judge, the Fetch.ai agent, the GENESIS kernel and planner, the Apify and CREAO providers, the Elastic index, the lab and a second organization" xmlns="http://www.w3.org/2000/svg" style="color: var(--fg)">
+    <svg id="d" viewBox="0 0 1240 680" role="img" aria-label="GENESIS architecture: a judge talks to a Fetch.ai agent; the kernel and planner govern change; Apify and CREAO provision tools and roles; Elastic indexes the record; the lab iterates methods and hands verified bundles to a second organization over Fetch.ai">
       <defs>
-        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/></marker>
-        <marker id="arrow-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#5BD0BA"/></marker>
+        <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker>
+        <marker id="ac" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#5BD0BA"/></marker>
       </defs>
-      <g font-family="IBM Plex Mono, Menlo, monospace" font-size="12" fill="currentColor">
-
-        <!-- judge -->
-        <rect x="20" y="250" width="130" height="60" rx="10" fill="none" stroke="currentColor" stroke-opacity=".5"/>
-        <text x="85" y="276" text-anchor="middle" font-weight="600">judge / operator</text>
-        <text x="85" y="294" text-anchor="middle" fill-opacity=".6">one sentence</text>
-
-        <!-- fetch agent -->
-        <rect x="200" y="235" width="190" height="90" rx="10" fill="none" stroke="#5BD0BA"/>
-        <text x="295" y="258" text-anchor="middle" font-weight="600">Fetch.ai ASI:One agent</text>
-        <text x="295" y="276" text-anchor="middle" fill-opacity=".6">Agentverse mailbox</text>
-        <text x="295" y="294" text-anchor="middle" fill-opacity=".6">agent1q284mux…</text>
-        <text x="295" y="312" text-anchor="middle" fill="#5BD0BA">live · relayed in 84 s</text>
-        <line x1="150" y1="280" x2="198" y2="280" stroke="currentColor" marker-end="url(#arrow)"/>
-        <text x="174" y="272" text-anchor="middle" font-size="11" fill-opacity=".7">chat</text>
-
-        <!-- kernel -->
-        <rect x="450" y="190" width="330" height="190" rx="12" fill="none" stroke="currentColor"/>
-        <text x="615" y="216" text-anchor="middle" font-weight="700" font-size="14">GENESIS kernel (Rust)</text>
-        <text x="615" y="238" text-anchor="middle" fill-opacity=".7">organization state · roles · authority</text>
-        <rect x="470" y="252" width="290" height="34" rx="8" fill="none" stroke="currentColor" stroke-opacity=".5"/>
-        <text x="615" y="274" text-anchor="middle" font-size="11">PROPOSED → VALIDATED → PROVISIONING → READY → COMMITTED</text>
-        <text x="615" y="312" text-anchor="middle" fill-opacity=".7">append-only event log · revision r34 live</text>
-        <text x="615" y="334" text-anchor="middle" fill-opacity=".7">only the kernel commits · a refusal is recorded</text>
-        <line x1="390" y1="280" x2="448" y2="280" stroke="currentColor" marker-end="url(#arrow)"/>
-        <text x="417" y="270" text-anchor="middle" font-size="11" fill-opacity=".7">report</text>
-        <line x1="448" y1="300" x2="390" y2="300" stroke="currentColor" stroke-dasharray="4 4" marker-end="url(#arrow)"/>
-        <text x="419" y="316" text-anchor="middle" font-size="11" fill-opacity=".7">verdict</text>
-
-        <!-- planner -->
-        <rect x="490" y="40" width="250" height="90" rx="10" fill="none" stroke="currentColor" stroke-opacity=".7"/>
-        <text x="615" y="66" text-anchor="middle" font-weight="600">planner (Claude Sonnet 5.5)</text>
-        <text x="615" y="86" text-anchor="middle" fill-opacity=".6">reads evidence, proposes on a</text>
-        <text x="615" y="104" text-anchor="middle" fill-opacity=".6">5-rung ladder · cannot commit</text>
-        <line x1="590" y1="188" x2="590" y2="132" stroke="currentColor" marker-end="url(#arrow)"/>
-        <text x="548" y="164" text-anchor="end" font-size="11" fill-opacity=".7">evidence</text>
-        <line x1="640" y1="132" x2="640" y2="188" stroke="currentColor" marker-end="url(#arrow)"/>
-        <text x="682" y="164" text-anchor="start" font-size="11" fill-opacity=".7">proposal</text>
-
-        <!-- providers: apify + creao -->
-        <rect x="880" y="150" width="200" height="90" rx="10" fill="none" stroke="#5BD0BA"/>
-        <text x="980" y="173" text-anchor="middle" font-weight="600">Apify Actor</text>
-        <text x="980" y="191" text-anchor="middle" fill-opacity=".6">built · pinned · oracle 3/3</text>
-        <text x="980" y="209" text-anchor="middle" fill-opacity=".6">n8kB1hNqgzkddvWKp</text>
-        <text x="980" y="227" text-anchor="middle" fill="#5BD0BA">live gate passed</text>
-        <line x1="782" y1="230" x2="878" y2="200" stroke="currentColor" marker-end="url(#arrow)"/>
-        <text x="830" y="203" text-anchor="middle" font-size="11" fill-opacity=".7">adds a tool</text>
-
-        <rect x="880" y="275" width="200" height="90" rx="10" fill="none" stroke="#E7B35A" stroke-dasharray="6 5"/>
-        <text x="980" y="298" text-anchor="middle" font-weight="600">CREAO hosted agent</text>
-        <text x="980" y="316" text-anchor="middle" fill-opacity=".6">Method Revision Analyst</text>
-        <text x="980" y="334" text-anchor="middle" fill-opacity=".6">9880ad7c… · 2 console runs</text>
-        <text x="980" y="352" text-anchor="middle" fill="#E7B35A">runs live · kernel binding pending</text>
-        <line x1="782" y1="330" x2="878" y2="330" stroke="currentColor" stroke-dasharray="4 4" marker-end="url(#arrow)"/>
-        <text x="830" y="322" text-anchor="middle" font-size="11" fill-opacity=".7">adds a role</text>
-
-        <!-- elastic -->
-        <rect x="490" y="470" width="250" height="110" rx="10" fill="none" stroke="#5BD0BA"/>
-        <text x="615" y="494" text-anchor="middle" font-weight="600">Elastic</text>
-        <text x="615" y="512" text-anchor="middle" fill-opacity=".6">genesis-iteration-ledger · 429 docs</text>
-        <text x="615" y="530" text-anchor="middle" fill-opacity=".6">genesis-evidence-* · Agent Builder</text>
-        <text x="615" y="548" text-anchor="middle" fill-opacity=".6">specialist searches the evidence</text>
-        <text x="615" y="568" text-anchor="middle" fill="#5BD0BA">live · gate passed</text>
-        <line x1="560" y1="382" x2="560" y2="468" stroke="currentColor" marker-end="url(#arrow)"/>
-        <text x="568" y="458" text-anchor="start" font-size="11" fill-opacity=".7">event log</text>
-
-        <!-- lab -->
-        <rect x="20" y="430" width="380" height="150" rx="12" fill="none" stroke="currentColor"/>
-        <text x="210" y="456" text-anchor="middle" font-weight="700" font-size="14">lab: iteration engine (Node)</text>
-        <text x="210" y="478" text-anchor="middle" fill-opacity=".7">model proposes k methods · sealed panels</text>
-        <text x="210" y="496" text-anchor="middle" fill-opacity=".7">controls stay in the room · chain-hashed ledger</text>
-        <text x="210" y="514" text-anchor="middle" fill-opacity=".7">fresh-panel confirmation · sealed bundle</text>
-        <text x="210" y="536" text-anchor="middle" fill-opacity=".7">generated code runs sandboxed, no key, no network</text>
-        <text x="210" y="562" text-anchor="middle" fill="#5BD0BA">7 recorded runs · job-shop 19/20 vs random 14</text>
-        <line x1="402" y1="505" x2="488" y2="505" stroke="currentColor" marker-end="url(#arrow)"/>
-        <text x="445" y="497" text-anchor="middle" font-size="11" fill-opacity=".7">ledger</text>
-
-        <!-- org B via fetch offer -->
-        <rect x="880" y="450" width="200" height="110" rx="10" fill="none" stroke="currentColor"/>
-        <text x="980" y="474" text-anchor="middle" font-weight="600">organization B</text>
-        <text x="980" y="492" text-anchor="middle" fill-opacity=".6">its own kernel + planner</text>
-        <text x="980" y="510" text-anchor="middle" fill-opacity=".6">re-tests on its own problems</text>
-        <text x="980" y="528" text-anchor="middle" fill-opacity=".6">adopts only on a local win</text>
-        <text x="980" y="548" text-anchor="middle" fill="#5BD0BA">one inheritance ran A→B→A</text>
-        <path d="M 400 450 C 520 400, 720 420, 878 470" fill="none" stroke="#5BD0BA" marker-end="url(#arrow-accent)"/>
-        <text x="660" y="398" text-anchor="middle" font-size="11" fill="#5BD0BA">verified bundle → Fetch.ai offer (sealed, with ledger)</text>
-
-        <!-- legend -->
-        <line x1="1040" y1="40" x2="1080" y2="40" stroke="currentColor"/><text x="1088" y="44" font-size="11" fill-opacity=".7">data path</text>
-        <line x1="1040" y1="62" x2="1080" y2="62" stroke="currentColor" stroke-dasharray="4 4"/><text x="1088" y="66" font-size="11" fill-opacity=".7">not yet verified live</text>
-        <rect x="1040" y="78" width="40" height="12" rx="3" fill="none" stroke="#5BD0BA"/><text x="1088" y="88" font-size="11" fill-opacity=".7">sponsor, live evidence</text>
-        <rect x="1040" y="100" width="40" height="12" rx="3" fill="none" stroke="#E7B35A" stroke-dasharray="6 5"/><text x="1088" y="110" font-size="11" fill-opacity=".7">sponsor, not bound to kernel</text>
-      </g>
+      <g id="edges"></g>
+      <g id="nodes"></g>
+      <g id="pulses"></g>
     </svg>
-    <figcaption>Every arrow is a path that ran during Cal Hacks 13.0 except the dashed CREAO provisioning: the console-built CREAO agent has two live runs of its own, but the kernel's binding to it is still being migrated. Green boxes carry live evidence (gate run or end-to-end transcript); the amber dashed box has live runs without a kernel binding.</figcaption>
   </figure>
-
-  <div class="wrap">
-  <table>
-    <tr><th>Sponsor</th><th>Role in the mechanism</th><th>Evidence</th><th>Identifiers for the submission</th></tr>
-    <tr><td>Fetch.ai</td><td>The conversational door into an organization and the channel between organizations. A judge's sentence becomes an observation; verified method bundles travel as agent-carried offers.</td><td class="ok">Live: mailbox registered, a <code>report</code> through Agentverse acknowledged in 5 s, the planner's committed change relayed back in 84 s (2026-10-25).</td><td><code>agent1q284muxcdleukm2vrh670nljfp5hl8f25ew8d78jkzxf0j3w2gut2jyj9nl</code> · bridge <code>services/fetch-bridge</code></td></tr>
-    <tr><td>Apify</td><td>The capability factory: a missing web capability is generated as an Actor, built, pinned by version and verified against an oracle before a role may use it.</td><td class="ok">Live gate passed 2026-10-24 (run <code>20261024085438</code>): build SUCCEEDED, 3/3 oracle cases.</td><td>Actor <code>n8kB1hNqgzkddvWKp</code>, build <code>D5hU7kSdSc20L08g3</code> (0.1.1), account <code>genesis-eric</code>, private; link <code>https://console.apify.com/actors/n8kB1hNqgzkddvWKp</code></td></tr>
-    <tr><td>Elastic</td><td>The organization's memory and its searchable record: kernel events and the lab's chain-hashed ledgers are indexed; an Agent Builder specialist answers from the evidence index.</td><td class="ok">Live: 429 ledger documents indexed; gate passed 2026-10-25 (run <code>20261025103959</code>) including a converse turn that used the evidence tool.</td><td>indices <code>genesis-iteration-ledger</code>, <code>genesis-evidence-*</code>, <code>genesis-capabilities</code>; keys owned by the team</td></tr>
-    <tr><td>CREAO</td><td>Persistent roles: a hosted agent built on agent.creao.ai that keeps the lab's method-revision analysis running as a reusable responsibility: it takes a frozen method, one trial observation and the evaluator's feedback and returns one bounded revision hypothesis plus one fresh test.</td><td class="warm">Agent runs live: the console-built agent has two completed runs through the API Trigger (2026-10-24 and 2026-10-25). Not yet bound to the kernel: the kernel's own CREAO provisioning used the v2 API, whose create response carries no id; the migration to the Trigger path is in progress. Two stray v2 agents (<code>abd440e7…</code>, <code>30a7b386…</code>) are not the submission agent.</td><td>agent <code>9880ad7c-fa2a-4a88-8c82-40eed5f81560</code> (GENESIS Method Revision Analyst) · run share link <code>https://agent.creao.ai/share/45e3804d4b325b821557d8d70509b633</code> · install link <code>https://agent.creao.ai/install/9880ad7c-fa2a-4a88-8c82-40eed5f81560</code></td></tr>
-  </table>
-  </div>
-  <p>Honesty line for every submission: the kernel, planner, governed change, the lab and one A→B→A inheritance ran; Fetch.ai, Apify and Elastic have live evidence; the CREAO agent has live runs but no kernel binding yet. Nothing here claims per-organization isolation of the Elastic keys or a completed CREAO readiness check.</p>
+  <aside id="panel" aria-live="polite">
+    <h2>Hover a box or an arrow</h2>
+    <span class="chip core">GENESIS</span>
+    <p>Green is the core iteration loop: evidence enters, the planner proposes, the kernel decides, the lab improves methods on sealed tests, a verified bundle leaves, a second organization re-tests before adopting.</p>
+    <p class="hint">Every arrow is a path that ran during Cal Hacks 13.0. Chips say what the evidence is.</p>
+  </aside>
 </main>
+<script>
+(() => {
+  const N = {
+    judge:   { x: 20,  y: 262, w: 130, h: 60,  kind: "plain",   t: "judge / operator", s: ["one sentence"],
+               role: "A person types one sentence of evidence. Nothing else is scripted.", chip: ["live", "live"], ids: {} },
+    fetch:   { x: 200, y: 240, w: 190, h: 104, kind: "sponsor", t: "Fetch.ai ASI:One agent", s: ["Agentverse mailbox", "chat protocol"], c: ["live", "live · relayed in 84 s"],
+               role: "The door into an organization and the channel between organizations. A sentence becomes an observation; the planner's committed decision is relayed back; verified bundles travel as agent-carried offers.",
+               chip: ["live", "live · end-to-end transcript 2026-10-25"], ids: { agent: "agent1q284muxcdleukm2vrh670nljfp5hl8f25ew8d78jkzxf0j3w2gut2jyj9nl", bridge: "services/fetch-bridge" } },
+    kernel:  { x: 450, y: 196, w: 330, h: 190, kind: "core",    t: "GENESIS kernel (Rust)", s: ["organization state · roles · authority", "", "", "", "append-only event log · revision r34 live", "only the kernel commits · a refusal is recorded"],
+               role: "Holds the organization: roles, authority, responsibilities. Any proposal walks PROPOSED → VALIDATED → PROVISIONING → READY → COMMITTED, or is REJECTED on its own branch. Models propose; the kernel decides and records.",
+               chip: ["live", "live · Org A revision 34, 8 roles"], ids: { "Org A": "127.0.0.1:7101", "Org B": "127.0.0.1:7102" } },
+    planner: { x: 490, y: 40,  w: 250, h: 90,  kind: "core",    t: "planner (Claude Sonnet 5.5)", s: ["reads evidence, proposes on a", "5-rung ladder · cannot commit"],
+               role: "Reads the evidence and proposes one rung: no change, reuse a role, attach a capability, recruit a specialist, create a role. It can refuse. It can never commit.",
+               chip: ["live", "live · recorded factory run 2026-10-25"], ids: { model: "claude-sonnet-5-5" } },
+    apify:   { x: 880, y: 150, w: 200, h: 92,  kind: "sponsor", t: "Apify Actor", s: ["built · pinned · oracle 3/3"], c: ["live", "live gate passed"],
+               role: "The tool supply. A missing web capability is generated as an Actor, built, pinned by version and verified against an oracle before a role may use it.",
+               chip: ["live", "live gate 2026-10-24 · run 20261024085438"], ids: { actor: "n8kB1hNqgzkddvWKp", build: "D5hU7kSdSc20L08g3 (0.1.1)", link: "console.apify.com/actors/n8kB1hNqgzkddvWKp" } },
+    creao:   { x: 880, y: 272, w: 200, h: 96,  kind: "partial", t: "CREAO hosted agent", s: ["Method Revision Analyst", "persistent role"], c: ["partial", "runs live · binding in progress"],
+               role: "The role that outlives any one team. Given a frozen method, one trial observation and the evaluator's feedback, it returns one bounded revision hypothesis with one fresh test. Two console runs completed through the API Trigger; the kernel's provisioning is moving from the v2 API to the Trigger path.",
+               chip: ["partial", "2 console runs · kernel binding in progress"], ids: { agent: "9880ad7c-fa2a-4a88-8c82-40eed5f81560", run: "agent.creao.ai/share/45e3804d4b325b821557d8d70509b633" } },
+    elastic: { x: 490, y: 470, w: 250, h: 112, kind: "sponsor", t: "Elastic", s: ["genesis-iteration-ledger · 429 docs", "genesis-evidence-* · Agent Builder", "specialist searches the evidence"], c: ["live", "live · gate passed"],
+               role: "Institutional memory. Kernel events and the lab's chain-hashed ledgers are indexed; an Agent Builder specialist answers from the evidence index instead of from memory.",
+               chip: ["live", "live gate 2026-10-25 · run 20261025103959"], ids: { indices: "genesis-iteration-ledger · genesis-evidence-* · genesis-capabilities" } },
+    lab:     { x: 20,  y: 420, w: 400, h: 190, kind: "core",    t: "lab: iteration engine (Node)", s: [],
+               role: "The improvement loop. The model proposes k methods; sealed panels score them; controls stay in the room; a candidate survives only if it beats the incumbent, and is confirmed on a fresh panel before it leaves as a sealed bundle. Generated code runs in an OS sandbox with no key and no network.",
+               chip: ["live", "7 recorded runs · job-shop 19/20 vs random 14"], ids: { results: "scripts/iteration/results/", analysis: "docs/invention-lab/analysis/jobshop-smoke-20261025.md" } },
+    orgB:    { x: 880, y: 450, w: 200, h: 112, kind: "core",    t: "organization B", s: ["its own kernel + planner", "re-tests on its own problems", "adopts only on a local win"], c: ["live", "one inheritance ran A→B→A"],
+               role: "Trusts nothing. It checks the sealed record, re-tests the method on its own problems against its own methods, and only then adopts it and assigns an owner. A's score travels with the bundle and is never trusted.",
+               chip: ["live", "inheritance A→B→A ran end to end"], ids: { kernel: "127.0.0.1:7102 · revision 5" } },
+  };
+  const E = [
+    { id: "chat",    from: "judge",   to: "fetch",   lbl: "chat",            p: "M150 292 L198 292", core: true },
+    { id: "obs",     from: "fetch",   to: "kernel",  lbl: "report", p: "M390 280 L448 280", core: true },
+    { id: "verdict", from: "kernel",  to: "fetch",   lbl: "verdict", p: "M448 306 L390 306", dashed: true },
+    { id: "evid",    from: "kernel",  to: "planner", lbl: "evidence",        p: "M590 194 L590 132", core: true },
+    { id: "prop",    from: "planner", to: "kernel",  lbl: "proposal",        p: "M640 132 L640 194", core: true },
+    { id: "tool",    from: "kernel",  to: "apify",   lbl: "adds a tool",     p: "M782 232 L878 200" },
+    { id: "role",    from: "kernel",  to: "creao",   lbl: "adds a role",     p: "M782 330 L878 330", dashed: true },
+    { id: "log",     from: "kernel",  to: "elastic", lbl: "event log",       p: "M560 388 L560 468" },
+    { id: "mission", from: "kernel",  to: "lab",     lbl: "mission · method to improve", p: "M450 370 C 380 400, 330 400, 280 418", core: true },
+    { id: "ledger",  from: "lab",     to: "elastic", lbl: "ledger",          p: "M422 520 L488 520" },
+    { id: "bundle",  from: "lab",     to: "orgB",    lbl: "verified bundle → Fetch.ai offer (sealed, with ledger)", p: "M420 440 C 560 392, 740 418, 878 470", core: true, accent: true },
+    { id: "revise",  from: "creao",   to: "lab",     lbl: "revision hypothesis",  p: "M900 368 C 900 660, 520 690, 422 596", dashed: true },
+    { id: "back",    from: "orgB",    to: "kernel",  lbl: "adoption recorded · offer back to A", p: "M980 450 C 980 410, 820 400, 780 372", core: true },
+  ];
+  const core = new Set(["kernel", "planner", "lab", "orgB", "fetch"]);
+  const svg = document.getElementById("d"), gE = document.getElementById("edges"), gN = document.getElementById("nodes"), gP = document.getElementById("pulses");
+  const el = (n, a = {}) => { const e = document.createElementNS("http://www.w3.org/2000/svg", n); for (const [k, v] of Object.entries(a)) e.setAttribute(k, v); return e; };
+  const txt = (x, y, s, cls, anchor = "middle") => { const t = el("text", { x, y, "text-anchor": anchor, class: cls }); t.textContent = s; return t; };
+
+  // edges
+  for (const e of E) {
+    const g = el("g", { class: `edge${e.core ? " core" : ""}${e.dashed ? " dashed" : ""}`, "data-id": e.id, tabindex: "0", "aria-label": `${e.lbl}: ${N[e.from].t} to ${N[e.to].t}` });
+    const line = el("path", { d: e.p, class: "line", "marker-end": e.core ? "url(#ac)" : "url(#a)" });
+    const hit = el("path", { d: e.p, class: "hit" });
+    g.append(line, hit);
+    gE.append(g);
+    const L = line.getTotalLength(), m = line.getPointAtLength(L / 2);
+    const side = { log: ["start", 8, 4], evid: ["end", -8, 4], prop: ["start", 8, 4], verdict: ["middle", 0, 14], revise: ["middle", 0, 14], back: ["start", 14, -4] }[e.id] || ["middle", 0, -7];
+    g.append(txt(m.x + side[1], m.y + side[2], e.lbl, "lbl", side[0]));
+    e.el = g; e.line = line;
+  }
+  // nodes
+  for (const [id, n] of Object.entries(N)) {
+    const g = el("g", { class: `node ${n.kind}`, "data-id": id, tabindex: "0", role: "button", "aria-label": n.t });
+    g.append(el("rect", { x: n.x, y: n.y, width: n.w, height: n.h, rx: 10 }));
+    const cx = n.x + n.w / 2; let y = n.y + 24;
+    g.append(txt(cx, y, n.t, "t")); y += 19;
+    for (const s of n.s) { if (s) g.append(txt(cx, y, s, "s")); y += 18; }
+    if (n.c) g.append(txt(cx, n.y + n.h - 10, n.c[1], "c " + n.c[0]));
+    gN.append(g); n.el = g;
+  }
+  // kernel state strip
+  (() => { const k = N.kernel; const g = el("g", { class: "stage", "pointer-events": "none" });
+    g.append(el("rect", { x: k.x + 20, y: k.y + 60, width: k.w - 40, height: 34, rx: 8, fill: "none", stroke: "currentColor", "stroke-opacity": ".5" }));
+    g.append(txt(k.x + k.w / 2, k.y + 82, "PROPOSED → VALIDATED → PROVISIONING → READY → COMMITTED", "s")); k.el.append(g); })();
+  // lab inner ring: the iteration loop
+  (() => { const l = N.lab, cx = l.x + 200, cy = l.y + 96, r = 40; const g = el("g", { class: "stage", "pointer-events": "none" });
+    g.append(el("circle", { cx, cy, r, class: "ring" }));
+    const stops = [["model proposes k methods", 0], ["sealed test", 1], ["keep only if better", 2], ["confirm fresh", 3]];
+    for (const [s, i] of stops) { const a = -Math.PI / 2 + i * Math.PI / 2, x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r;
+      g.append(el("circle", { cx: x, cy: y, r: 4, fill: "#5BD0BA" }));
+      const ox = i === 1 ? 10 : i === 3 ? -10 : 0, oy = i === 0 ? -12 : i === 2 ? 18 : 4;
+      g.append(txt(x + ox, y + oy, s, "s", i === 1 ? "start" : i === 3 ? "end" : "middle")); }
+    g.append(txt(l.x + l.w / 2, l.y + l.h - 12, "7 recorded runs · 19/20 vs random 14 · sandboxed", "c live"));
+    // traveling dot on the ring
+    const dot = el("circle", { r: 3.5, class: "pulse" }); const mo = el("animateMotion", { dur: "6s", repeatCount: "indefinite", path: `M ${cx} ${cy - r} a ${r} ${r} 0 1 1 -0.01 0` }); dot.append(mo); g.append(dot);
+    l.el.append(g); })();
+  // pulses on the core loop
+  for (const e of E) if (e.core) { const d = el("circle", { r: 3, class: "pulse" }); const mo = el("animateMotion", { dur: `${(e.line.getTotalLength() / 60).toFixed(1)}s`, repeatCount: "indefinite", begin: `${(Math.random() * 3).toFixed(1)}s`, path: e.p }); d.append(mo); gP.append(d); }
+
+  // interaction
+  const panel = document.getElementById("panel");
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const show = (title, chip, role, ids) => {
+    const dl = Object.entries(ids || {}).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("");
+    panel.innerHTML = `<h2>${esc(title)}</h2><span class="chip ${chip[0]}">${esc(chip[1])}</span><p>${esc(role)}</p>${dl ? `<dl>${dl}</dl>` : ""}`;
+  };
+  const idle = () => { svg.classList.remove("focus"); for (const e of E) { e.el.classList.remove("on"); e.line.classList.remove("flow"); } for (const n of Object.values(N)) n.el.classList.remove("on");
+    panel.innerHTML = `<h2>Hover a box or an arrow</h2><span class="chip core">GENESIS</span><p>Green is the core iteration loop: evidence enters, the planner proposes, the kernel decides, the lab improves methods on sealed tests, a verified bundle leaves, a second organization re-tests before adopting.</p><p class="hint">Every arrow is a path that ran during Cal Hacks 13.0. Chips say what the evidence is.</p>`; };
+  const focusNode = (id) => { const n = N[id]; svg.classList.add("focus"); n.el.classList.add("on");
+    for (const e of E) { const on = e.from === id || e.to === id; e.el.classList.toggle("on", on); e.line.classList.toggle("flow", on); if (on) { N[e.from].el.classList.add("on"); N[e.to].el.classList.add("on"); } }
+    show(n.t, n.chip, n.role, n.ids); };
+  const focusEdge = (id) => { const e = E.find((x) => x.id === id); svg.classList.add("focus"); e.el.classList.add("on"); e.line.classList.add("flow"); N[e.from].el.classList.add("on"); N[e.to].el.classList.add("on");
+    show(e.lbl, e.core ? ["live", "core loop"] : e.dashed ? ["partial", "ran · not yet verified live"] : ["live", "data path"], `${N[e.from].t} → ${N[e.to].t}.`, {}); };
+  let pinned = null;
+  const enter = (ev) => { const g = ev.target.closest("[data-id]"); if (!g || pinned) return; for (const e of E) { e.el.classList.remove("on"); e.line.classList.remove("flow"); } for (const n of Object.values(N)) n.el.classList.remove("on");
+    g.classList.contains("node") ? focusNode(g.dataset.id) : focusEdge(g.dataset.id); };
+  const leave = () => { if (!pinned) idle(); };
+  svg.addEventListener("pointerover", enter);
+  svg.addEventListener("pointerout", (ev) => { if (!ev.relatedTarget || !ev.relatedTarget.closest || !ev.relatedTarget.closest("[data-id]")) leave(); });
+  svg.addEventListener("focusin", enter);
+  svg.addEventListener("focusout", leave);
+  svg.addEventListener("click", (ev) => { const g = ev.target.closest("[data-id]"); if (!g) { pinned = null; idle(); return; } if (pinned === g.dataset.id) { pinned = null; idle(); return; } pinned = null; enter(ev); pinned = g.dataset.id; });
+  document.addEventListener("keydown", (ev) => { if (ev.key === "Escape") { pinned = null; idle(); } });
+})();
+</script>
 </body>
 </html>
