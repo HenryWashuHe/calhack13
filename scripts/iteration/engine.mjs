@@ -168,7 +168,15 @@ export function runGeneration(state, { family, mutator, candidates, k = 4, contr
       state.calls += 1;
       const feedback = frontier ? frontier.feedback : (state.rootFeedback || {})[family.id] || null;
       const out = mutator.propose({ parent: incumbent, feedback, k, generation });
-      proposed = (Array.isArray(out) ? out : []).slice(0, k).map((c, i) => register(state, makePackage(c.source, { parent: incumbent.sha256, origin: state.lab, generation, note: c.note || `candidate ${i}` })));
+      // A proposal names the source it was actually derived from (`parent`, a registered package hash); the default is
+      // the incumbent it was handed. A parent the engine does not know is a dropped candidate, never a guessed lineage.
+      const HEX64 = /^[0-9a-f]{64}$/;
+      proposed = [];
+      for (const [i, c] of (Array.isArray(out) ? out : []).slice(0, k).entries()) {
+        const parent = c.parent === undefined || c.parent === null ? incumbent.sha256 : String(c.parent);
+        if (!HEX64.test(parent) || !state.packages[parent]) { dropped.push({ package: sha256(String(c.source)), reason: `unknown proposal parent ${parent.slice(0, 12)}` }); continue; }
+        proposed.push(register(state, makePackage(c.source, { parent, origin: state.lab, generation, note: c.note || `candidate ${i}` })));
+      }
     }
     ctrlPkgs = controls.map((c) => ({ id: c.id, package: register(state, c.package) }));
     const excluded = new Set([incumbent.sha256, ...ctrlPkgs.map((c) => c.package.sha256)]);
@@ -178,7 +186,7 @@ export function runGeneration(state, { family, mutator, candidates, k = 4, contr
       else if (seen.has(p.sha256)) dropped.push({ package: p.sha256, reason: "duplicate candidate" });
       else { seen.add(p.sha256); kept.push(p); }
     }
-    append(state, { type: "candidates_proposed", generation, family: family.id, parent: incumbent.sha256, candidates: kept.map((p) => p.sha256), dropped, imported: !!candidates });
+    append(state, { type: "candidates_proposed", generation, family: family.id, parent: incumbent.sha256, candidates: kept.map((p) => p.sha256), parents: Object.fromEntries(kept.map((p) => [p.sha256, p.parent])), dropped, imported: !!candidates });
     if (!kept.length) return { plan: null, verdicts: [], dropped, promoted: null };
     // 2. The plan freezes arms, criterion and the sealed panel before any score exists.
     const arms = [{ slot: "incumbent", package: incumbent.sha256 }, ...ctrlPkgs.map((c, i) => ({ slot: `control:${i}:${c.id}`, package: c.package.sha256 })), ...kept.map((p, i) => ({ slot: "candidate:" + i, package: p.sha256 }))];
