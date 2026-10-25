@@ -11,8 +11,8 @@ weights. Event organization remains superseded. G0–G4 are still open.
 The revised app Goal was activated on October 24, 2026 after the stale record
 was cleared; the existing hourly continuation remains active.
 
-Main through `0f277d791b59b0bc7957751dc328cf99f5b89936`, tree
-`53d3dd7ce5b60e2213a4942d0f28531709b7d94c`, includes the reviewed
+Main through `85c5c11154391562ec7469c6385f1039605b66cc`, tree
+`f28c8c9dbe8334898d8566321c4687d11f374265`, includes the reviewed
 foundations below. Method generation merged at `d1be8443fee46e1196861926a963563f48407936`,
 whose tree `dc9d6adc19863d8584fd5af1fd11eae7552014eb` exactly matches the independently
 validated generation stack. Counts refer to the named source/composition, not a
@@ -20,6 +20,8 @@ combined main run.
 
 | Work | Validation and evidence boundary |
 | --- | --- |
+| Generated B source revision #112/#113 (`163e952` / `e5d7ece`), result merge `4bcd5c5` | Preparation merged before one request. Independently checked 34 final hashes, 23 unchanged prepared entries plus their manifest, 33 JSON records and six byte-identical read-only CLI outputs; all 36 input files unchanged by review. Child `4f455dc6`, changed source bytes and AST parsing only. Operator-assigned exploratory rough-transport work; no B execution/adoption/scoring or G3 closure. |
+| UI evidence labels #93 `05f77d2` → `85c5c11` | Own-property correction clears label regressions. Reviewed composition `478ad82`: 18 pass, two known downstream #94 failures, typecheck passes; unchanged independent `78adef37`. Other UI holds remain. |
 | Public feedback #102 `c8bf7a0` → `7accefd3` | Eight focused tests independently pass with strict Clippy/fmt, preserving `8ad9d645`. Hidden-policy and byte-cap holds cleared; read-only regeneration retains all 24 live-record experiments in 18,152 bytes. No source execution, adoption or revised-method result. |
 | Optional chain generation guard #110 `4b57cfa` → `0f277d7` | Independent 34 focused tests pass; author 33 focused tests and strict Clippy/fmt. Optional retained-chain validation precedes recovery/credentials/reservation/provider calls. Counts overlap; cooperating commands only, no runtime-entry or global enforcement claim. |
 | Retained chain CLI (`f8b6919`, composition `42d15cd`) | Create-only whole-chain declaration and per-stage bindings; read-only checks reuse existing generation allocation and trial bindings. Full forge 221/42 plus independent 20 focused checks, strict Clippy/fmt. [Contract](invention-lab/contracts/chain-allocation.md#retained-cli-files). No automatic runtime consumption or controlled comparison. |
@@ -150,7 +152,7 @@ exact generated package. This review did not execute source, run the scorer or
 call providers. The report covers the first trial only, excluding the two failed
 generation attempts, separate reference run and second comparison. It is not
 whole-experiment cost evidence. No recorded local adoption/promotion, distinct
-B task or fresh A return is established. Public feedback #102 source
+B-task execution or fresh A return is established. Public feedback #102 source
 `c8bf7a0e397d0a641239585ce5e50dcc292abd91` merged at
 `7accefd3cf5da521208f17fa1474001e92aa3753`. Both prior holds are cleared:
 Development-only policy is checked before record reads, and the document is
@@ -160,15 +162,29 @@ alongside strict Clippy/fmt. Read-only regeneration on copies of #98 records
 produced 18,152 bytes, all 24 experiments fully listed; 55 inputs stayed
 byte-identical. Hash `9218988fed77dba3ffc04ca583560f339672079c5ec8237bf61bc34ed4631472`
 is local content identity, not new execution or adoption evidence.
-Codex's proposed next step is a separately budgeted, source-only exploratory B
-revision using that checked feedback and exact parent. Henry retains receiving
-acceptance, distinct-task execution and the fresh A return.
+B's [exploratory source revision](invention-lab/evidence/live-method-20261024-b-revision/README.md)
+is now Generated. #112 preparation `163e952` merged before the single guarded
+request; #113 source `e5d7ece` merged at `4bcd5c5`. Exact parent `8215c367` and
+checked feedback `9218988f` yielded child `4f455dc6`: 6044 source bytes / 192
+lines, `source_changed: true`, AST parsing only. The operator assigned B the
+distinct rough-transport task; the parent's rejected random-search comparison
+remains negative context. No B execution, scoring, adoption or fresh A return is
+established. Henry owns those receiving decisions and trials with separate budgets.
+Usage: 1 Anthropic `claude-sonnet-5-5` call, 20,798 input / 5,741 output tokens,
+40,223 ms; one reservation remains spent. Four observed calls total 32,825 input /
+24,056 output tokens and 181,342 ms summed request time. This is arithmetic,
+not a prior combined grant or exhaustive billing, and excludes receiver costs.
 
-Eric retains the UI lane: #93 `c723533` / #94 `8eeb8db` only merged main;
-the same three regression failures and three passing controls from unchanged
-`78adef37` remain. #99 `795c6fe`, #100 `7b90b85` and #101 `7624e0c` are also
-held on exact ledger arithmetic, foreign-execution scoring attribution and
-cross-org lineage/checkpoint pairing. Preserve independent `59c3e1c` unchanged.
+Eric retains the UI lane. #93 `05f77d2` merged at `85c5c11` after label
+regressions cleared; reviewed composition `478ad82` with unchanged `78adef37`
+passes 18 cases/typecheck and retains two known #94 organization failures.
+Last reviewed #94 `3abc0f4`, #99 `425206c`, #100 `9cea7a2` and #101 `3a7af32`
+remain held: organization binding, exact ledger arithmetic, foreign-execution
+scoring and cross-org lineage/checkpoint pairing. Unchanged `59c3e1c` retains
+four failures/two controls; 28 author-focused tests and typecheck pass.
+#109 `55bb894` retains unsupported-version/SHA-only inspection holds from
+`632b291` / `f2ac45e5` (four failures/one control; 39 existing tests/typecheck
+passed there). Preserve these cases; later pushes require exact-head review.
 Archival stage presenter #108 `feb3da7` is held on visible hidden controls and
 stale Live caption after poll failure; it is separate from goal progress and
 revives no event-organizer direction. Eric's [separate CREAO ticket-reconciliation claim](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6387513389)
