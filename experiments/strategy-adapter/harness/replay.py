@@ -1,58 +1,199 @@
 #!/usr/bin/env python3
 """Offline checks for a method against the executor's line protocol.
 
-  replay.py transcript <plan.json> <run-dir> <method-dir>
+Starting a method executes its source. Every command that does so names the
+execution boundary with --isolation; there is no default:
+
+  namespaces  the boundary lab-exec uses for `namespaces` runs, copied from
+              experiments/invention-lab/executor/src/sandbox.rs (needs root and
+              util-linux unshare): no network, every mount read-only where the
+              kernel allows it, private /home /root /tmp /var/tmp /dev/shm /run,
+              the method runs as nobody with no_new_privs under prlimit, and the
+              whole PID namespace dies with the run. Not enforced: reads of the
+              rest of the read-only system, a syscall filter, filesystem Unix
+              sockets. It is not proof that no model was used.
+  host        `python3 method.py` directly on this host with only PATH set. No
+              isolation: the method can read and write what this user can and
+              reach the network. Only for source you trust, such as hand-written
+              fixtures; never for generated source you have not read.
+
+Every run is bounded. One absolute deadline from process start covers every
+read and write; a request line may not exceed 1 MiB (the executor's protocol
+limit); request count and total output are capped. On every exit path, normal
+or not, the process group is killed and reaped and the namespaces stage is
+removed. A host-mode descendant that leaves the process group is not reached.
+
+  replay.py transcript --isolation MODE <plan.json> <run-dir> <method-dir>
       Serve the retained run in <run-dir> (transcript.json, artifacts/,
       run.json) to the method in <method-dir>: worlds are rebuilt and checked
       against the plan's digests, and each experiment request must match the
       retained record (instance id and normalized design sha256) in order.
       Replies are the retained result artifacts. No simulator runs.
 
-  replay.py diff <method-dir-a> <method-dir-b> [cases]
+  replay.py diff --isolation MODE <method-dir-a> <method-dir-b> [cases]
       Run both methods against the same SYNTHETIC oracle (seeded outcomes,
       refusals, invalid/failed/unknown results, missing fields) and compare
       every request byte for byte. Synthetic outcomes are for equivalence
       only and are never scores.
 
-Standard library only.
+Standard library only, plus `unshare` for namespaces.
 """
 import hashlib
 import json
 import os
 import random
+import select
+import shutil
+import signal
 import subprocess
 import sys
+import tempfile
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import labworld  # noqa: E402
 
+ISOLATIONS = ('namespaces', 'host')
+MAX_LINE = 1 << 20
+MAX_REQUESTS = 4096
+MAX_OUTPUT = 16 << 20
+STAGE_ROOT = Path('/run/genesis-lab-replay')
 
-def run_method(method_dir, oracle, timeout=60):
-    """Drive `python3 method.py` in method_dir; return (request lines, exit code)."""
-    p = subprocess.Popen([sys.executable, 'method.py'], cwd=method_dir, stdin=subprocess.PIPE,
-                         stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True,
-                         env={'PATH': os.environ.get('PATH', '/usr/bin:/bin')})
-    lines = []
-    while True:
-        line = p.stdout.readline()
-        if not line:
-            break
-        lines.append(line)
+# Copy of the setup in experiments/invention-lab/executor/src/sandbox.rs
+# (`Mode::Namespaces`); the executor stays authoritative. Run as root inside
+# fresh network, mount and PID namespaces before dropping to nobody.
+NAMESPACES_SETUP = r"""set -e
+mount --bind / /
+awk '{print $5}' /proc/self/mountinfo | sort -u | while read -r m; do
+  mount -o remount,bind,ro "$m" 2>/dev/null || true
+done
+mount -t tmpfs -o size=64m,mode=755 none /home
+mount -t tmpfs -o size=1m,mode=700 none /root
+mount -t tmpfs -o size=256m,mode=1777 none /tmp
+mount -t tmpfs -o size=16m,mode=1777 none /var/tmp
+mount -t tmpfs -o size=16m,mode=1777 none /dev/shm
+mkdir -p /tmp/work
+cp -R "$LAB_STAGE/files/." /tmp/work/
+chmod -R a+rX /tmp/work
+mount -t tmpfs -o size=1m,mode=755 none /run
+cd /tmp/work
+exec prlimit --as=1073741824 --nproc=64 --fsize=67108864 --nofile=256 -- \
+  setpriv --reuid 65534 --regid 65534 --clear-groups --no-new-privs -- "$LAB_INTERPRETER" "/tmp/work/$LAB_ENTRY"
+"""
+
+
+class Stopped(RuntimeError):
+    """A run hit its deadline or a bound; its process group was killed and reaped."""
+
+
+def _launch(method_dir, isolation):
+    """(argv, cwd, env, stage) for one run of method.py under `isolation`."""
+    method_dir = Path(method_dir).resolve()
+    if isolation == 'host':
+        return [sys.executable, 'method.py'], str(method_dir), {'PATH': os.environ.get('PATH', '/usr/bin:/bin')}, None
+    if isolation == 'namespaces':
+        STAGE_ROOT.mkdir(mode=0o700, parents=True, exist_ok=True)
+        stage = Path(tempfile.mkdtemp(prefix='run-', dir=STAGE_ROOT))
+        shutil.copytree(method_dir, stage / 'files', ignore=shutil.ignore_patterns('__pycache__'))
+        argv = ['unshare', '--net', '--mount', '--pid', '--fork', '--mount-proc', '--propagation', 'private',
+                '--kill-child=SIGKILL', '--', 'sh', '-c', NAMESPACES_SETUP]
+        env = {'PATH': '/usr/local/bin:/usr/bin:/bin', 'LAB_STAGE': str(stage), 'LAB_ENTRY': 'method.py',
+               'LAB_INTERPRETER': 'python3'}
+        return argv, '/', env, stage
+    raise ValueError('isolation must be one of %s, not %r' % (', '.join(ISOLATIONS), isolation))
+
+
+def _stop(p):
+    """Close the pipes, kill the whole process group and reap the leader."""
+    for f in (p.stdin, p.stdout):
         try:
-            req = json.loads(line)
+            f.close()
+        except OSError:
+            pass
+    try:
+        os.killpg(p.pid, signal.SIGKILL)  # the group outlives a leader that already exited
+    except (ProcessLookupError, PermissionError):
+        pass
+    try:
+        p.wait(timeout=10)
+    except subprocess.TimeoutExpired:
+        raise Stopped('process %d did not exit after SIGKILL' % p.pid)
+
+
+def run_method(method_dir, oracle, isolation, timeout=60, max_line=MAX_LINE, max_requests=MAX_REQUESTS,
+               max_output=MAX_OUTPUT):
+    """Drive method.py in method_dir under `isolation`; return (request lines, exit code).
+
+    Raises Stopped when the deadline or a bound is hit, after cleanup."""
+    argv, cwd, env, stage = _launch(method_dir, isolation)
+    deadline = time.monotonic() + timeout
+    p = None
+    lines = []
+
+    def answer(line):
+        if len(line) > max_line:
+            raise Stopped('request line over %d bytes' % max_line)
+        if len(lines) >= max_requests:
+            raise Stopped('more than %d requests' % max_requests)
+        text = line.decode('utf-8', 'replace')
+        lines.append(text)
+        try:
+            req = json.loads(text)
         except ValueError:
             req = None
         reply = oracle.reply(req) if isinstance(req, dict) else {'ok': False, 'refused': 'request is not JSON'}
-        try:
-            p.stdin.write(json.dumps(reply) + '\n')
-            p.stdin.flush()
-        except BrokenPipeError:
-            break
-    p.stdin.close()
-    code = p.wait(timeout=timeout)
-    p.stdout.close()
-    return lines, code
+        return (json.dumps(reply) + '\n').encode()
+
+    try:
+        p = subprocess.Popen(argv, cwd=cwd, env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                             stderr=subprocess.DEVNULL, start_new_session=True)
+        out, inp = p.stdout.fileno(), p.stdin.fileno()
+        os.set_blocking(out, False)
+        os.set_blocking(inp, False)
+        buf, pending, total, writable = b'', b'', 0, True
+        while True:
+            left = deadline - time.monotonic()
+            if left <= 0:
+                raise Stopped('no end of output within %s s' % timeout)
+            r, w, _ = select.select([out], [inp] if pending and writable else [], [], left)
+            if w:
+                try:
+                    pending = pending[os.write(inp, pending):]
+                except BlockingIOError:
+                    pass
+                except BrokenPipeError:
+                    writable, pending = False, b''
+            if not r:
+                continue
+            try:
+                chunk = os.read(out, 1 << 16)
+            except BlockingIOError:
+                continue
+            if not chunk:
+                break
+            total += len(chunk)
+            if total > max_output:
+                raise Stopped('more than %d bytes of output' % max_output)
+            buf += chunk
+            while b'\n' in buf:
+                line, buf = buf.split(b'\n', 1)
+                pending += answer(line + b'\n')
+            if len(buf) > max_line:
+                raise Stopped('request line over %d bytes' % max_line)
+        if buf:
+            answer(buf)  # a last request without a newline; nobody reads the reply
+        p.stdin.close()
+        while p.poll() is None:
+            if time.monotonic() >= deadline:
+                raise Stopped('no exit within %s s' % timeout)
+            time.sleep(0.005)
+        return lines, p.returncode
+    finally:
+        if p is not None:
+            _stop(p)
+        if stage is not None:
+            shutil.rmtree(stage, ignore_errors=True)
 
 
 class Retained:
@@ -181,10 +322,10 @@ class Synthetic:
         return {'ok': False, 'refused': 'unknown op'}
 
 
-def diff(a, b, cases):
+def diff(a, b, cases, isolation):
     for seed in range(cases):
-        ra = run_method(a, Synthetic(seed))
-        rb = run_method(b, Synthetic(seed))
+        ra = run_method(a, Synthetic(seed), isolation)
+        rb = run_method(b, Synthetic(seed), isolation)
         if ra != rb:
             n = next((i for i, (x, y) in enumerate(zip(ra[0], rb[0])) if x != y), min(len(ra[0]), len(rb[0])))
             return {'identical': False, 'case': seed, 'first_difference_at_request': n}
@@ -192,15 +333,29 @@ def diff(a, b, cases):
 
 
 def main(argv):
-    if len(argv) == 5 and argv[1] == 'transcript':
-        oracle = Retained(argv[2], argv[3])
-        _, code = run_method(argv[4], oracle)
-        out = oracle.summary(code)
-    elif len(argv) in (4, 5) and argv[1] == 'diff':
-        out = diff(argv[2], argv[3], int(argv[4]) if len(argv) == 5 else 300)
-    else:
+    args = list(argv[1:])
+    isolation = None
+    if '--isolation' in args:
+        i = args.index('--isolation')
+        isolation = args[i + 1] if i + 1 < len(args) else None
+        del args[i:i + 2]
+    if isolation not in ISOLATIONS:
         print(__doc__, file=sys.stderr)
+        print('--isolation namespaces|host is required', file=sys.stderr)
         return 2
+    try:
+        if len(args) == 4 and args[0] == 'transcript':
+            oracle = Retained(args[1], args[2])
+            _, code = run_method(args[3], oracle, isolation)
+            out = oracle.summary(code)
+        elif len(args) in (3, 4) and args[0] == 'diff':
+            out = diff(args[1], args[2], int(args[3]) if len(args) == 4 else 300, isolation)
+        else:
+            print(__doc__, file=sys.stderr)
+            return 2
+    except Stopped as e:
+        out = {'identical': False, 'stopped': str(e)}
+    out['execution'] = {'isolation': isolation, 'host_execution': isolation == 'host'}
     print(json.dumps(out, indent=1))
     return 0 if out['identical'] else 1
 
