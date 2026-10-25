@@ -56,7 +56,8 @@ export function buildMatrix(l: Lineage): Matrix {
     });
     row.cells.set(family, results);
   }
-  return { families, rows: [...rows.values()] };
+  // Families in a fixed order; records carry no chronology to sort by.
+  return { families: families.sort(), rows: [...rows.values()] };
 }
 
 /** "1/6", "1/6 · 2/6" for differing runs, "metrics not supplied", "not scored", or "–". */
