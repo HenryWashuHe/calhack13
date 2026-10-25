@@ -9,12 +9,24 @@ with `lab-eval accept` and reports the histogram of success counts. A trial
 scores one submitted design on every panel instance, so the best sampled
 count describes what this finite random sample reached; it is not a bound on
 what a method that submits a launcher of this shape can reach. Evaluator
-processes that fail are omitted from the histogram, so a histogram summing to
-<designs> shows no failures occurred. Only the evaluator runs. Prints JSON.
+calls that fail, time out or print no count stop the run with an error: a
+histogram is never printed with a failure left out. Only the evaluator runs.
+Prints JSON.
 """
 import json, os, random, subprocess, sys, tempfile
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import mixed_search
+
+
+def lab(lab_eval, *args):
+    """One evaluator call's JSON; exits on a failed, slow or malformed call."""
+    try:
+        done = subprocess.run([lab_eval, *args], capture_output=True, text=True, timeout=120)
+        if done.returncode == 0:
+            return json.loads(done.stdout)
+    except (subprocess.TimeoutExpired, ValueError):
+        pass
+    sys.exit(f"panel_cap: evaluator call failed ({args[0]}); refusing a partial histogram")
 
 
 def main(argv):
@@ -24,17 +36,15 @@ def main(argv):
         path = os.path.join(tmp, "d.json")
         for first in map(int, argv[4:]):
             seeds = [str(s) for s in range(first, first + 6)]
-            worlds = [json.loads(subprocess.run([lab_eval, "instance", "projectile-target", s],
-                                                capture_output=True, text=True).stdout) for s in seeds]
+            worlds = [lab(lab_eval, "instance", "projectile-target", s) for s in seeds]
             hist = {}
             for _ in range(n):
                 with open(path, "w") as f:
                     json.dump(mixed_search.launcher(rnd, worlds[0]["rules"]), f)
-                done = subprocess.run([lab_eval, "accept", path, "projectile-target", *seeds],
-                                      capture_output=True, text=True)
-                if done.returncode == 0:
-                    k = json.loads(done.stdout)["succeeded"]
-                    hist[k] = hist.get(k, 0) + 1
+                k = lab(lab_eval, "accept", path, "projectile-target", *seeds).get("succeeded")
+                if isinstance(k, bool) or not isinstance(k, int):
+                    sys.exit("panel_cap: evaluator printed no success count; refusing a partial histogram")
+                hist[k] = hist.get(k, 0) + 1
             rows.append({"seeds": [first, first + 5],
                          "targets": [round(w["target_x"], 2) for w in worlds],
                          "best": max(hist) if hist else None,
