@@ -58,11 +58,16 @@ the engine itself is unchanged except for the root-hydration fix.
   boundary (a rule's top-level `this` reaches the host realm), so every rule, controls included, is scored in
   a child process with: an empty environment, an empty working directory, a wall-clock kill;
   `--disallow-code-generation-from-strings`, so `Function`/`eval` throw in every realm of the child; and an OS
-  sandbox where the host has one. On macOS that is `sandbox-exec` with a profile that denies all network,
-  denies reading the home directory, the temp trees and other volumes (the repository's `.env` and sibling
-  temp files are unreadable), allows reading only `scripts/iteration` and the child's work directory, and
-  allows writing only there. On Linux, `unshare -rn` removes the network only. The runner refuses a live run
-  when no OS sandbox exists unless `--allow-unsandboxed` is passed, and records the sandbox in `result.json`.
+  sandbox where the host has one. On macOS that is `sandbox-exec` with a profile whose read policy is
+  default-deny: every read is refused except the declared runtime roots (`/usr`, `/bin`, `/sbin`, `/System`,
+  `/Library`, `/private/etc`, `/private/var/db`, `/private/var/select`, `/dev`, the root directory entry and
+  the prefix the node binary lives under, e.g. `/opt/homebrew`), `scripts/iteration` and the child's work
+  directory; writes are allowed only in that work directory; all network is denied. So the repository's
+  `.env`, the home directory, temp trees, other volumes and any checkout under an undeclared root are
+  unreadable. The profile is written to a directory the child cannot write and regenerated for every child.
+  On Linux, `unshare -rn` removes the network only; `describeSandbox()` reports it as not confined. The runner
+  refuses a live run unless the sandbox confines both filesystem and network, or `--allow-unsandboxed` is
+  passed; either way `result.json` records `config.sandbox` and `config.unsandboxed`.
   The runner itself never loads `.env` into its environment; the key is handed only to the model-call child.
   Residual: CPU until the wall kill; on Linux, no filesystem confinement; `lab-exec`'s namespace mode (chroot,
   nobody, no network) remains the stronger boundary. Thrown values are reported through a bounded primitive

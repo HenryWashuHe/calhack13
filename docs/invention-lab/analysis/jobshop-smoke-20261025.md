@@ -19,8 +19,12 @@ boundary either: the child ran as the same user and could read the repository's 
 `families/sandbox.mjs` (second revision) every rule is scored in a child with an empty environment, code
 generation from strings disabled, and, on this macOS host, a `sandbox-exec` profile that denies all network
 and all reads outside the iteration scripts and the child's own work directory; the runner no longer loads
-the key into its own environment and refuses live runs on hosts without an OS sandbox. The recorded results
-are unchanged by this; they were produced without those boundaries.
+the key into its own environment and refuses live runs on hosts without an OS sandbox. A third revision, after
+Codex's policy review, made that read policy default-deny with declared runtime roots (the second revision's
+deny-list left any checkout under an undeclared root readable), moved the profile out of the child's writable
+directory and regenerates it per child, and stopped counting Linux `unshare -rn` (network only) as a sandbox
+for live admission. The recorded results are unchanged by all of this; they were produced without those
+boundaries, and every run here predates them.
 
 
 - Family `jobshop-10x5` (`scripts/iteration/families/jobshop.mjs`): 10 jobs × 5 machines, processing times
