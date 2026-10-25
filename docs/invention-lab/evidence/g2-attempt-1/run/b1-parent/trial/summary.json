@@ -1,0 +1,182 @@
+{
+  "authority": "receiving-side observations; not adoption or improvement",
+  "host_runtime": {
+    "domain": "genesis-lab",
+    "id": "python3",
+    "schema": "lab-runtime/1",
+    "sha256": "0b21e795ac528c0f9cbe99e28ca1125af0c4dc5b87f53224abfe2a2ae5a69491",
+    "version": "1"
+  },
+  "schema": "lab-receive-summary/1",
+  "spec_sha256": "cf9deecc3ae4c1c5edbff273ba39bb382db7bd23a2f4aa800bea409602497637",
+  "trials": [
+    {
+      "candidate": "parent",
+      "candidate_feedback": {
+        "domain": "genesis-lab",
+        "id": "candidate",
+        "schema": "lab-receiver-feedback/1",
+        "sha256": "f39b6a70837fd840e0d30ac83ccc9a37debbe6e75b32b99f30c7011e0b1da379",
+        "version": "1"
+      },
+      "control": "fixed-cart",
+      "family": "rough-transport",
+      "first_seed": 54000,
+      "slots": {
+        "candidate": {
+          "outcome": "output_generated",
+          "result": {
+            "of": 12,
+            "success_count": 12
+          },
+          "run_exit": 0,
+          "score_exit": 0,
+          "usage": {
+            "input_tokens": {
+              "kind": "measured",
+              "value": 0
+            },
+            "model_calls": {
+              "kind": "measured",
+              "value": 0
+            },
+            "output_tokens": {
+              "kind": "measured",
+              "value": 0
+            },
+            "simulation_steps": {
+              "kind": "measured",
+              "value": 8726
+            },
+            "wall_time_ms": {
+              "kind": "measured",
+              "value": 474
+            }
+          }
+        },
+        "control": {
+          "outcome": "output_generated",
+          "result": {
+            "of": 12,
+            "success_count": 4
+          },
+          "run_exit": 0,
+          "score_exit": 0,
+          "usage": {
+            "input_tokens": {
+              "kind": "measured",
+              "value": 0
+            },
+            "model_calls": {
+              "kind": "measured",
+              "value": 0
+            },
+            "output_tokens": {
+              "kind": "measured",
+              "value": 0
+            },
+            "simulation_steps": {
+              "kind": "measured",
+              "value": 0
+            },
+            "wall_time_ms": {
+              "kind": "measured",
+              "value": 371
+            }
+          }
+        }
+      },
+      "trial": "b1-parent-pinned",
+      "verdict": {
+        "candidate": 12,
+        "control": 4,
+        "of": 12,
+        "verdict": "accepted"
+      }
+    },
+    {
+      "candidate": "parent",
+      "candidate_feedback": {
+        "domain": "genesis-lab",
+        "id": "candidate",
+        "schema": "lab-receiver-feedback/1",
+        "sha256": "7f93192a2bdc4873908437edae6047bdd454ebfe85cb91f3728f93bc38848ebb",
+        "version": "1"
+      },
+      "control": "random-search",
+      "family": "rough-transport",
+      "first_seed": 54000,
+      "slots": {
+        "candidate": {
+          "outcome": "output_generated",
+          "result": {
+            "of": 12,
+            "success_count": 12
+          },
+          "run_exit": 0,
+          "score_exit": 0,
+          "usage": {
+            "input_tokens": {
+              "kind": "measured",
+              "value": 0
+            },
+            "model_calls": {
+              "kind": "measured",
+              "value": 0
+            },
+            "output_tokens": {
+              "kind": "measured",
+              "value": 0
+            },
+            "simulation_steps": {
+              "kind": "measured",
+              "value": 8726
+            },
+            "wall_time_ms": {
+              "kind": "measured",
+              "value": 502
+            }
+          }
+        },
+        "control": {
+          "outcome": "output_generated",
+          "result": {
+            "of": 12,
+            "success_count": 2
+          },
+          "run_exit": 0,
+          "score_exit": 0,
+          "usage": {
+            "input_tokens": {
+              "kind": "measured",
+              "value": 0
+            },
+            "model_calls": {
+              "kind": "measured",
+              "value": 0
+            },
+            "output_tokens": {
+              "kind": "measured",
+              "value": 0
+            },
+            "simulation_steps": {
+              "kind": "measured",
+              "value": 69980
+            },
+            "wall_time_ms": {
+              "kind": "measured",
+              "value": 1485
+            }
+          }
+        }
+      },
+      "trial": "b1-parent-vs-random",
+      "verdict": {
+        "candidate": 12,
+        "control": 2,
+        "of": 12,
+        "verdict": "accepted"
+      }
+    }
+  ]
+}

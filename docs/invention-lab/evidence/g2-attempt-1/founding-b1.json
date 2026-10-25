@@ -1,0 +1,23 @@
+{
+  "goal": "Develop physical designs with the best available methods",
+  "roles": [
+    {
+      "key": "lead",
+      "name": "Lab lead",
+      "charter": "Own the lab and evaluate reusable methods",
+      "authority": {
+        "scopes": [
+          "mission.coordinate",
+          "method.develop"
+        ],
+        "budget_cents": 10000
+      }
+    }
+  ],
+  "responsibilities": [
+    {
+      "purpose": "Coordinate the lab",
+      "owner": "lead"
+    }
+  ]
+}

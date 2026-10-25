@@ -1,0 +1,42 @@
+{
+  "outcome": "output_generated",
+  "outputs": [
+    {
+      "domain": "genesis-lab",
+      "id": "output",
+      "schema": "lab-design/1",
+      "sha256": "7a03fd84680c057f8583dfc888b0de6c53852f52acc8fd9536d0395d8416178a",
+      "version": "1"
+    }
+  ],
+  "transcript": {
+    "domain": "genesis",
+    "id": "control",
+    "schema": "development-experiment-transcript/1",
+    "sha256": "72e3f998b0a2fd8b6dc6d97c2f0441bf68aa84a0b1241728f84cf3136ca0ff2b",
+    "version": "1"
+  },
+  "transcript_path": "/home/claude/genesis-history-experiment/docs/invention-lab/evidence/g2-attempt-1/run/b1-same-cart/trial/b1-same-pinned/control/transcript.json",
+  "usage": {
+    "input_tokens": {
+      "kind": "measured",
+      "value": 0
+    },
+    "model_calls": {
+      "kind": "measured",
+      "value": 0
+    },
+    "output_tokens": {
+      "kind": "measured",
+      "value": 0
+    },
+    "simulation_steps": {
+      "kind": "measured",
+      "value": 0
+    },
+    "wall_time_ms": {
+      "kind": "measured",
+      "value": 402
+    }
+  }
+}

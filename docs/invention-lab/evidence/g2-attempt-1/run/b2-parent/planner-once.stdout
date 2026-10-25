@@ -1,0 +1,55 @@
+Proposed {
+    change: OrgChangeRecord {
+        change_id: ChangeId(
+            "chg_9f6098ba4c9e4790b75612ce25d2ed72",
+        ),
+        status: Validated,
+        proposal: OrgChangeProposal {
+            expected_org_revision: 3,
+            trigger_evidence_ids: [
+                ObservationId(
+                    "obs_01fbe467fbf74ff680f0180026a03329",
+                ),
+            ],
+            rationale: "The evidence sets a concrete, mission-relevant need: develop rough-transport cart designs using a method another lab published, and show they beat the fixed cart. The retained method selection is evidence only. It is not an installed capability or an accepted method, so the need requires an accountable owner rather than a new capability attachment. The Lab lead is the only active role, and its charter already covers rough-transport work. Assigning this requirement to it gives the requirement one accountable owner with no new roles, scopes or budget. A new specialist role is not justified because no distinct continuing responsibility has been shown, and the method being available does not by itself require organizational change. RequestCapability is not valid here because the evidence_ref is not a public URL, so no same-site observed sources can be cited.",
+            operations: [
+                AssignResponsibility {
+                    target: FromRequirement {
+                        key: "rough_transport_cart_method",
+                        requirement_id: RequirementId(
+                            "req_bd292238294d4e5ebd29d7d2a260cbdc",
+                        ),
+                        purpose: "Develop rough-transport cart designs with the externally published method and verify they beat the fixed cart baseline",
+                        trigger: "Receiver-owned capability-development need observed in obs_01fbe467fbf74ff680f0180026a03329",
+                        termination: "Developed design beats the fixed cart by at least one success on twelve fresh public instances, or the method is judged unsuitable and escalated",
+                    },
+                    owner: Existing {
+                        role_id: RoleId(
+                            "role_7534b6ed0d1d410a8be5de339eac87f6",
+                        ),
+                    },
+                },
+            ],
+            budget_limit_cents: None,
+        },
+        allocation: KeyAllocation {
+            roles: {},
+            responsibilities: {
+                "rough_transport_cart_method": ResponsibilityId(
+                    "rsp_24c3046258ed439bbcb24ac4e06eebdb",
+                ),
+            },
+            contracts: {},
+            gaps: {},
+        },
+        provisioned: {},
+        ready: {},
+        operations: {},
+        errors: [],
+        committed_revision: None,
+        submitted_by: "agent",
+        created_at: 2026-10-25T09:12:42.165416908Z,
+        updated_at: 2026-10-25T09:12:42.165421783Z,
+    },
+    attempts: 1,
+}
