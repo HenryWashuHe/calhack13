@@ -35,10 +35,12 @@ export interface MatrixRow {
 }
 
 export interface Matrix {
-  /** Column keys: the task id, or id@version with a hash prefix when one id
-   * appears under several exact references. */
+  /** Column keys, one per exact task reference: the task id when it is the only
+   * reference with that id, otherwise the id followed by the full reference. */
   families: string[];
   familyRefs: Map<string, ExactRef>;
+  /** What a column header shows; a key is never a display string. */
+  familyLabels: Map<string, string>;
   rows: MatrixRow[];
 }
 
@@ -48,15 +50,21 @@ export function buildMatrix(l: Lineage): Matrix {
     const t = e.receipt.public_task;
     ids.set(t.id, (ids.get(t.id) ?? new Set()).add(refKey(t)));
   }
-  const column = (t: ExactRef) => (ids.get(t.id)!.size > 1 ? `${t.id}@${t.version} ${t.sha256.slice(0, 8)}` : t.id);
+  // Key by the whole exact reference; labels may coincide (same id and version,
+  // a different domain or schema, or an equal hash prefix) without merging columns.
+  const column = (t: ExactRef) => (ids.get(t.id)!.size > 1 ? `${t.id}@${t.version}\u0000${refKey(t)}` : t.id);
+  const label = (t: ExactRef) =>
+    ids.get(t.id)!.size > 1 ? `${t.id}@${t.version} ${t.domain}/${t.schema} ${t.sha256.slice(0, 12)}` : t.id;
 
   const families: string[] = [];
   const familyRefs = new Map<string, ExactRef>();
+  const familyLabels = new Map<string, string>();
   const rows = new Map<string, MatrixRow>();
   for (const e of l.executions) {
     const family = column(e.receipt.public_task);
     if (!families.includes(family)) families.push(family);
     familyRefs.set(family, e.receipt.public_task);
+    familyLabels.set(family, label(e.receipt.public_task));
     const node = l.nodes.find((n) => n.key === e.method);
     if (!node) continue;
     const row = rows.get(node.key) ?? { method: node, cells: new Map<string, RunResult[]>() };
@@ -90,7 +98,7 @@ export function buildMatrix(l: Lineage): Matrix {
     row.cells.set(family, results);
   }
   // Families in a fixed order; records carry no chronology to sort by.
-  return { families: families.sort(), familyRefs, rows: [...rows.values()] };
+  return { families: families.sort(), familyRefs, familyLabels, rows: [...rows.values()] };
 }
 
 /** The process-slot eligibility rule (`assess_process_slot`): the execution
