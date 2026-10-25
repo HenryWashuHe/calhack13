@@ -118,13 +118,138 @@ pub async fn authorize(
     let Json(body) =
         body.map_err(|_| ApiError::bad_request("invalid method invocation request"))?;
     // A disabled receiver issues no new invocation grants; reads stay available.
-    configured(&app)?;
+    let receiver = configured(&app)?;
     let _guard = app.kernel.lock().await;
     let state = app
         .store
         .current_state()
         .map_err(|_| ApiError::internal("organization state is unavailable"))?;
-    let grant =
-        authorize_method_invocation(&app.store, &state, &body, Utc::now()).map_err(error)?;
+    let grant = authorize_method_invocation(&app.store, &state, &receiver, &body, Utc::now())
+        .map_err(error)?;
     Ok(Json(json!(grant)))
+}
+
+fn run_error(error: crate::method_invocation_run::MethodRunError) -> ApiError {
+    use crate::method_invocation_run::MethodRunError as E;
+    let conflict = |code: &str, message: String| ApiError::new(StatusCode::CONFLICT, code, message);
+    match error {
+        E::InvalidInput => ApiError::bad_request("invalid method run request"),
+        E::Plan(_) | E::Receipt(_) => ApiError::new(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "method_run_binding",
+            error.to_string(),
+        ),
+        E::NotFound => ApiError::not_found("method run"),
+        E::IdempotencyConflict => conflict(
+            "idempotency_conflict",
+            "method run key is bound to another intent".into(),
+        ),
+        E::Limit => conflict("method_run_limit", error.to_string()),
+        E::Status(_) => conflict("method_run_status", error.to_string()),
+        E::Adoption(e) => self::error(e),
+        E::InvalidRecord | E::Db(_) => ApiError::internal("method run state is unavailable"),
+    }
+}
+
+/// Freeze one invocation plan under the current grant. Nothing runs here.
+pub async fn prepare_run(
+    State(app): State<AppState>,
+    principal: Principal,
+    body: Result<Json<crate::method_invocation_run::CreateMethodRun>, JsonRejection>,
+) -> ApiResult<(StatusCode, Json<Value>)> {
+    principal.require(&[Principal::Operator])?;
+    let Json(body) = body.map_err(|_| ApiError::bad_request("invalid method run request"))?;
+    let receiver = configured(&app)?;
+    let _guard = app.kernel.lock().await;
+    let state = app
+        .store
+        .current_state()
+        .map_err(|_| ApiError::internal("organization state is unavailable"))?;
+    let (record, created) = app
+        .store
+        .prepare_method_run(&body, &state, &receiver, Utc::now())
+        .map_err(run_error)?;
+    let status = if created {
+        StatusCode::CREATED
+    } else {
+        StatusCode::OK
+    };
+    Ok((status, Json(json!(record))))
+}
+
+/// Start a prepared run once, if its grant is still the current one.
+pub async fn start_run(
+    State(app): State<AppState>,
+    principal: Principal,
+    Path(id): Path<String>,
+) -> ApiResult<Json<Value>> {
+    principal.require(&[Principal::Operator])?;
+    let receiver = configured(&app)?;
+    let _guard = app.kernel.lock().await;
+    let state = app
+        .store
+        .current_state()
+        .map_err(|_| ApiError::internal("organization state is unavailable"))?;
+    let record = app
+        .store
+        .start_method_run(&id, &state, &receiver, Utc::now())
+        .map_err(run_error)?;
+    Ok(Json(json!(record)))
+}
+
+/// Record a started run's one execution receipt.
+pub async fn complete_run(
+    State(app): State<AppState>,
+    principal: Principal,
+    Path(id): Path<String>,
+    body: Result<Json<genesis_core::development_method::ExecutionReceipt>, JsonRejection>,
+) -> ApiResult<Json<Value>> {
+    principal.require(&[Principal::Operator])?;
+    let Json(receipt) = body.map_err(|_| ApiError::bad_request("invalid execution receipt"))?;
+    // No `configured` check: a disabled receiver grants nothing new, but a
+    // started run's receipt is still retained (as completed after fence).
+    let receiver = app.method_receiver.clone();
+    let _guard = app.kernel.lock().await;
+    let state = app
+        .store
+        .current_state()
+        .map_err(|_| ApiError::internal("organization state is unavailable"))?;
+    let record = app
+        .store
+        .retain_method_run_receipt(&id, &receipt, &state, receiver.as_deref(), Utc::now())
+        .map_err(run_error)?;
+    Ok(Json(json!(record)))
+}
+
+/// Record a completed run's one evaluation and whether it attaches to the
+/// responsibility. Like receipts, no `configured` check: with the receiver
+/// disabled the evaluation is kept and attaches to nothing.
+pub async fn record_run_result(
+    State(app): State<AppState>,
+    principal: Principal,
+    Path(id): Path<String>,
+    body: Result<Json<genesis_core::development_evaluation::EvaluationReceipt>, JsonRejection>,
+) -> ApiResult<Json<Value>> {
+    principal.require(&[Principal::Operator])?;
+    let Json(evaluation) = body.map_err(|_| ApiError::bad_request("invalid evaluation receipt"))?;
+    let receiver = app.method_receiver.clone();
+    let _guard = app.kernel.lock().await;
+    let state = app
+        .store
+        .current_state()
+        .map_err(|_| ApiError::internal("organization state is unavailable"))?;
+    let record = app
+        .store
+        .record_method_run_result(&id, &evaluation, &state, receiver.as_deref(), Utc::now())
+        .map_err(run_error)?;
+    Ok(Json(json!(record)))
+}
+
+pub async fn run_status(
+    State(app): State<AppState>,
+    principal: Principal,
+    Path(id): Path<String>,
+) -> ApiResult<Json<Value>> {
+    principal.require(&[Principal::Operator])?;
+    Ok(Json(json!(app.store.method_run(&id).map_err(run_error)?)))
 }
