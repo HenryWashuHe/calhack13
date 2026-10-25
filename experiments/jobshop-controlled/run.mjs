@@ -19,7 +19,7 @@ export const SOURCE_FILES = [
   "experiments/jobshop-controlled/provider-call.mjs", "experiments/jobshop-controlled/verify.mjs",
   "scripts/iteration/engine.mjs", "scripts/iteration/cascade.mjs",
   "scripts/iteration/mutators/claude.mjs", "scripts/iteration/families/jobshop.mjs",
-  "scripts/iteration/families/sandbox.mjs", "scripts/iteration/families/rule-child.mjs", "package.json",
+  "scripts/iteration/families/sandbox.mjs", "scripts/iteration/families/rule-child.mjs",
 ];
 const MODEL = "claude-sonnet-5-5";
 const EFFORT = "medium";
