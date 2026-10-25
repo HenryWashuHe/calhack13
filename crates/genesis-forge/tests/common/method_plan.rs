@@ -26,6 +26,6 @@ pub fn plan() -> MethodSynthesisPlan {
     runtime:reference("fixture_runtime",b"runtime"),protocol:document("fixture_protocol","Read one public input; emit one output. This is a test-only protocol, not the lab ABI."),
     entrypoint:"method.py".into(),dependencies:vec![],public_task:document("public_task","Develop a candidate from the public input."),
     public_inputs:vec![document("input","public fixture")],instruction:"Generate a method, not a precomputed answer.".into(),
-    settings:TextModelSettings {model:"fixture-model-1".into(),max_tokens:512,timeout_ms:1000,sampling:Sampling::ProviderDefault},
+    settings:TextModelSettings {model:"fixture-model-1".into(),max_tokens:512,timeout_ms:1000,sampling:Sampling::ProviderDefault,reasoning:None},
 }
 }
