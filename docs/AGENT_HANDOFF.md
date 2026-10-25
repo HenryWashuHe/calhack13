@@ -50,7 +50,7 @@ Apify baseline do not close those gates. Event organizing remains superseded.
 
 | Owner/session | Active lane and acknowledgment | Scope / next deliverable |
 | --- | --- | --- |
-| Henry's core Claude | [Method-adoption/authority milestone acknowledged](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388913830) | [Pure core verdict move approved](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388954682) as a prerequisite; new method adoption/store/routes would recompute receiver acceptance and bind current requirement/responsibility/owner grant, then gate exact pinned invocation with decline/stale/revoked controls. Adoption docs #138 are reconciled; no server connection implemented yet. Missing qualified owner fails; specialist creation and execution under the grant remain later work. Henry retains the lane. |
+| Henry's core Claude | [Method-adoption/authority milestone acknowledged](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388913830) | [Pure core verdict #146 merged](https://github.com/HenryWashuHe/genesis-history-experiment/pull/146) as a prerequisite; new method adoption/store/routes would recompute receiver acceptance and bind current requirement/responsibility/owner grant, then gate exact pinned invocation with decline/stale/revoked controls. Adoption docs #138 are reconciled; no server connection implemented yet. Missing qualified owner fails; specialist creation and execution under the grant remain later work. Henry retains the lane. |
 | Henry's core Claude | Evaluator/executor active; simulator and #42–#45 executor stack merged | Own evaluator/executor. #57/#65 portable fixes clear their prior findings; namespace lifecycle assurance remains unverified after interrupted review. Preserve exact evidence limits and avoid claiming Linux enforcement. |
 | Henry's core Claude | #46/#48/#64/#70/#72 merged; #98 `cb29a95` receiving records merged after independent checks; #102 `c8bf7a0` checked public feedback merged at `7accefd3` | Own execution/scoring/adoption and receiving-side record plumbing. Retain B's explicit selection/local acceptance decision and intended responsibility, including the rejected random-search comparison. #116 retains checked rough-transport trials of frozen child `4f455dc6`, rejected against parent/random control. Local acceptance remains unestablished; #117 checked A-return records are Rejected in every comparison. Retain prior declarations and all negative results; do not edit forge. #57/#65 are separate unmerged assurance work. |
 | Eric / Eric's Claude | #93/#94/#99/#100/#101/#109 merged; real-evidence #123 integrated through #128 | `docs/invention-lab/ui.md` and `apps/web/src/invention-lab/**`, no shared routes. #123 `7196d5c` → parent merge `4515f728`; #128 `2f0b6734` → main `a3be74d0`, identical web bytes. Independent 81 tests/13 files and typecheck pass, original regressions unchanged. Preserve `78adef37`, `59c3e1c`, `f2ac45e5` and `0672dcbe`. The separate `apps/stage` queue does not transfer this lane. [MethodOffer/MethodSearchResults intake](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388858370) is requested next, awaiting acknowledgment/exact files: publisher-qualified identity and canonical bytes, no inferred authentication or adoption. |
@@ -170,9 +170,10 @@ with task-artifact and identical-information local controls; it is not full G4
 or a restriction on capability development. Henry is preparing a corrected K=3
 workflow-versus-fresh declaration across all four families, adaptive/high client
 effort, neither arm seeded with old feedback, and public fresh-task assessment.
-[Protocol #135 `25bbc94d` is held](https://github.com/HenryWashuHe/genesis-history-experiment/pull/135#issuecomment-6388962594)
-for adaptive preparation, deterministic selection, missing primary pairs and the
-canonical random reference. Public-range #121/#136 is merged with the reserved-seed
+[Protocol #135 `e5f7c326` is held](https://github.com/HenryWashuHe/genesis-history-experiment/pull/135#issuecomment-6389154691)
+on conflicting Failed+Scored eligibility and an unspecified Interrupted rule;
+prior adaptive-preparation, missing-pair and random-reference holds are addressed.
+Public-range #121/#136 is merged with the reserved-seed
 hold cleared; metadata/preflight and mocked checks do not hide inputs or establish
 an evaluation result. Freeze
 source/selection before assessment, retain failures and actual costs, and agree
@@ -287,13 +288,23 @@ follow a committed write. Local HTTP fixtures, not provider/source execution.
 pass with scoped strict Clippy/fmt, original 144 lines unchanged; mutation campaign
 is author-reported. Adoption-document reconciliation #138 `7975780d` merged at
 `1af21d2c`; Henry's acknowledged authority connection remains unimplemented.
+Pure verdict prerequisite #146 source `0c9a553388687dee6fd055f4768b277fbee30f19`
+merged at `c68705045748d74c2257489bdd84cc549e33d0f6`. Root core tests,
+strict all-target core Clippy/fmt and standalone scorer `cargo check --tests`
+pass; the latter is compile-only, with no lab tests executed in review. Existing
+253-line logic is equivalent modulo imports; scorer re-export and three original
+regression files are unchanged. This is not acceptance or local authority evidence.
 Optional flood-watch [#143 is held at `bc993197`](https://github.com/HenryWashuHe/genesis-history-experiment/pull/143#issuecomment-6389070775):
 unknown readings clear an active response; repeated episode IDs and lost pending
 transitions break recovery; downstream attachment is development-only, not verified
 inheritance. Preserve the 44-line `bac2427` file unchanged: two unknown-state
 regressions fail, one normal control and all seven original tests pass. It is not
-a replacement goal or a new Ines assignment. ACP iteration #144 `50e4405` remains
-under review pending existing-contract interface agreement.
+a replacement goal or a new Ines assignment. [ACP iteration #144 `bae6f509` is held](https://github.com/HenryWashuHe/genesis-history-experiment/pull/144#issuecomment-6389109865):
+all seven preserved independent regressions still fail; nine updated author tests
+pass. Final confirmation is repeatable/unbudgeted and needs predeclared instance
+disjointness; public development feedback is not receiver acceptance. Correct the
+method-run/output-scoring mapping and agree existing-contract interfaces before
+expanding the exploratory reference; no alternate orchestrator is authorized.
 
 #126 `b7bdb18` remains held on an early-decision race, poll-failure evidence loss,
 cross-organization acknowledgment and malformed success. Its four mocked failures

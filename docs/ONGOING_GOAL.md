@@ -168,6 +168,7 @@ failures or input that is actually required.
 | Method registry API, G2/G3 prerequisite | #132 final `bc1cdd9b518184b0915afc8d16e0963eaa205b04` → `26b6cc873f05de8a3d03e48bf2c01df065e77619`, tree `1bbd98c4686431f7e4ac174bc8e5e22d49c985c8`. Production `2039c5a4`: 14 author checks/3 targets plus three independent cases, scoped strict Clippy/fmt; original 224-line `703fcfd` file unchanged | Immutable publisher-qualified source, bounded metadata hints and full-reference fetch reuse the registry process/SQLite/auth. Local authenticated HTTP fixtures only, no source execution or acceptance. Typed client #133 follows below; no organizational-authority or G2/G3 closure. |
 | Typed method client, G2/G3 prerequisite | #133 `1f94f312b81b74c4e15a6dc6fae02f94323a32a5` → `995a7d703b0d000c828b0282a7f9aa95261d5aa3`, tree `d3075b60cf03aa1e8a4e2e0b16dc0de024b672af`. Author 19 focused cases at `125e260`; six final client cases independently pass, overlapping counts, strict all-target server Clippy/fmt | [Exact selected-source client](invention-lab/contracts/method-registry.md#typed-organization-client) preserves bounds, identity and no-retry/no-redirect behavior. Local fixture reaches A publication → B discovery/fetch → B revision Prepared only; no model execution, acceptance or organizational authority. |
 | Operator method exchange, G2/G3 prerequisite | #141 final `e938db0ab339653043188fc3f636baf8f782a04f`, tree `b427b635b55656e280764bd90be363ea4c31cb73` → `ec28434bcaea0454e60958f124cffdb1595a38d7`. Behavior `be639af`: four CLI plus 16 binary cases pass on final composition; four independent CLI checks, scoped strict Clippy/fmt overlap | [Existing-client CLI](invention-lab/contracts/method-registry.md#operator-cli), explicit selection and JSON stdout. No automatic `.env` load, journal, retry, adoption or source execution; publication error can follow a committed write. Loopback checks, no gate closure. |
+| Shared pure verdict, G2 prerequisite | [#146](https://github.com/HenryWashuHe/genesis-history-experiment/pull/146) source `0c9a553388687dee6fd055f4768b277fbee30f19` → `c68705045748d74c2257489bdd84cc549e33d0f6`: root full core tests, strict all-target core Clippy/fmt and standalone scorer compile-only `cargo check --tests` pass; original verdict tests unchanged | Existing decision logic moved without behavior change, with scorer re-export. No lab tests executed in review; no server authority connection, acceptance evidence or gate closure. |
 | Registry boundary guards, Delivery | #142 `59faaaf05a4a36beb78a0f7b98743464af91441d` → `f2b33d50610c19ee19a31965ad195fd54010bd9a`: three independent cases and scoped strict Clippy/fmt pass; original 144-line file unchanged | Exact query-limit, applicability and lookup boundaries; mutation campaign author-reported only. A complete literal query result is not universal semantic absence. |
 | Chain exact-fit guards, G4 prerequisite | #134 source `edf1a56d123daf3d4fe92e3cb12ec0b4247422e2` → `7955c957b91273a8effde3e2e88e6e07353ce5d1`: original 76-line file, two independent tests and scoped strict Clippy/fmt pass | Exact generation call/output capacity accepted, one-unit-short refused. Test-only; author mutation campaign not independently rerun. |
 | Public fresh-task ranges, G0/G4 plumbing | #121 `7981a46c1f35bf714c36985ed7499e9d5df1e9bb` → `58b8ba50a8d23af4da2eeb047b82b5fdf0dd9310`: seven scoped metadata/preflight tests, original 67-line guard unchanged and new 47-line CLI guard. #136 `5d71188b9f4a1b71985b92350793276446ebf4c5` → `03c16cb3b9e6067eae7ca52fb8688ee6224cddce`: nine committed mocks plus two independent mock checks, original 203-line regression unchanged | The CLI rejects reserved, crossing and overflow ranges before candidate reads/output creation. The wrapper reads package inputs first, then rejects invalid ranges before output creation or subprocess work. Public input panels, not hidden holdouts; no generated-method, scoring/namespace/provider execution or comparison result. |
@@ -214,13 +215,14 @@ exchange usable through explicit commands, without receiver acceptance. G2/G3 st
 selection and adoption evidence. Henry [acknowledged the vertical slice](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388913830)
 tying recomputed receiver acceptance to requirement/responsibility/current owner
 grant, pinned invocation, decline and stale/revoked controls. This connection
-remains unimplemented; Henry owns it, with the [pure verdict move approved](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388954682)
+remains unimplemented; Henry owns it, with [pure verdict #146 now merged](https://github.com/HenryWashuHe/genesis-history-experiment/pull/146)
 as a prerequisite. Actual invocation and justified specialist creation remain
 future work, not removed completion requirements.
 The W/F process pilot alone cannot close organizational evolution. ACP's new
 [iteration proposal](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6389024893)
-awaits existing-contract interface agreement; optional flood-watch #143 remains
-under review. Neither replaces these gates or authorizes another orchestrator.
+#144 remains held pending corrections and existing-contract interface agreement;
+optional flood-watch #143 is also held (details in the [handoff](AGENT_HANDOFF.md)).
+Neither replaces these gates or authorizes another orchestrator.
 A fixed-pool
 policy ablation remains a separate proposed mechanism study: task-artifact controls
 would isolate search-policy benefit; an identical-information local control would
@@ -228,8 +230,9 @@ measure delivery overhead. It is not full G4 or a limit on capability expressivi
 Henry is preparing a corrected K=3 workflow-versus-fresh protocol across four
 families, with public fresh-task assessment, explicit selection/failure outcomes
 and all costs retained. Client effort is adaptive/high; neither arm receives old
-#116/#117 feedback in round one. [Protocol #135 `25bbc94d` is held](https://github.com/HenryWashuHe/genesis-history-experiment/pull/135#issuecomment-6388962594)
-on adaptive preparation, selection, missing pairs and the canonical random reference.
+#116/#117 feedback in round one. [Protocol #135 `e5f7c326` is held](https://github.com/HenryWashuHe/genesis-history-experiment/pull/135#issuecomment-6389154691)
+on conflicting Failed+Scored eligibility and an unspecified Interrupted rule;
+prior preparation, missing-pair and random-reference holds are addressed.
 Public-range #121/#136 is merged and the reserved-seed hold is cleared. These are
 public instances, not hidden assessment; source/selection must freeze before assessment.
 Exact declarations and full chain ceilings must precede any new generation;
