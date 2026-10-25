@@ -6,6 +6,9 @@ weights, and passes the result on with its evidence. Node only, no dependencies,
 calls. Not a second orchestrator; its ledger and score objects do not replace the retained
 contracts (method packages, trial plans, execution and scoring receipts, chain cost records).
 
+- `emit.mjs`: `toTrialPlan`, `toCriterion`, `toVerdict`: the engine's plan and verdicts in the retained
+  `development-trial-plan/1`, `criterion.json` and `verdict.json` shapes; every `ExactContentRef`
+  and grant comes from the adapter, none is invented.
 - `engine.mjs`: `createState`, `runGeneration`, `run`, `confirm` (final fresh panel, never used
   for selection), `exportBundle`, `adopt`, `verifyLedger`.
 - `synthetic-family.mjs`: a SYNTHETIC family, controls and mutator used only by the tests and the
