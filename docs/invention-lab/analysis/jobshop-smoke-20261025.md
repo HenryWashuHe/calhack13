@@ -1,8 +1,8 @@
 # Smoke runs, 2026-10-25: the loop against seeded random search on two families
 
-Scope: six small live runs of the iteration engine on two real task families, written to
-`scripts/iteration/results/jobshop-smoke-1/` through `jobshop-smoke-4/` and `binpack-smoke-1/`,
-`binpack-smoke-2/` (`result.json`, `ledger.json`, `bundle.json`, sponsor exports). One seed per run,
+Scope: seven small live runs of the iteration engine on two real task families, written to
+`scripts/iteration/results/jobshop-smoke-1/` through `jobshop-smoke-4/` and `binpack-smoke-1/` through
+`binpack-smoke-3/` (`result.json`, `ledger.json`, `bundle.json`, sponsor exports). One seed per run,
 20-instance panels, five model calls at most. Runs after the first two were added at the owner's request.
 This is a smoke test of the mechanism, not evidence of recursive improvement, transfer between real
 organizations, or anything about other families.
@@ -162,7 +162,22 @@ over random search on twenty: the right direction and the right shape of rule, a
 cannot support. The model rediscovered best-fit in generation 1 of the saturated run and here found the
 standard refinement of it; that is a fair description of what one call per generation buys on this family.
 
-## What the six runs say, and what they do not
+## Second family, `binpack-smoke-3` (a second seed at sizes 20–70, target 1.08)
+
+| gen | incumbent | candidates | promoted |
+|---|---|---|---|
+| 1 | 6/20 (first-fit) | 5, 5, 6, 6 | none |
+| 2 | 8/20 | 11, 12, 12, 12 | yes, 12/20 |
+| 3–5 | 5, 9, 6 | never ≥ incumbent + 1 | none |
+
+Frontier: `(item, bin) => -bin.fits + (bin.fits >= 20 ? 15 : 0) + (bin.fits === 0 ? 500 : 0) - bin.index *
+0.001`, best-fit with a perfect-fit bonus and a preference for leaving room for another item. Confirmation
+on a fresh panel: **10/20**, below its 12/20 selection score. Same panel: best-fit 11/20, random-search
+11/20, first-fit 6/20, worst-fit 0/20. **A loss by one instance** against both best-fit and random
+search, with a marginally worse mean ratio (1.0833 against 1.0823). 5 calls, 21,226 input / 4,082 output
+tokens; ledger 60 records, verified.
+
+## What the seven runs say, and what they do not
 
 1. **The loop runs end to end on two real families with a real model, with only the family swapped**:
    sealed panels, frozen plans, verdicts for every candidate, promotions, fresh-panel confirmations, sealed
@@ -174,10 +189,11 @@ standard refinement of it; that is a fair description of what one call per gener
    1.120); run 4's rule beat it 18 to 12 (fixed-mwkr 15). The model rule beat every fixed rule on all three
    panels and had the best mean makespan ratio on all three (1.095, 1.085, 1.086). Three seeds, sixty
    fresh instances on job-shop: a consistent edge over hand-written rules and over random search. On bin
-   packing (one discriminating seed) the edge is one instance over best-fit and two over random search,
-   with the best mean ratio; the saturated first bin-packing run separated nothing. Two families, four
-   informative seeds: consistent direction, margins that a larger panel and more seeds would have to
-   confirm before anyone generalizes.
+   packing the two discriminating seeds split: one instance above best-fit and two above random search in
+   run 2, one instance below both in run 3; the saturated first run separated nothing. Two families, five
+   informative seeds: a clear edge on job-shop, parity with best-fit on bin packing, and margins on the
+   second family that are inside the noise of a 20-instance panel. The honest summary is that the loop
+   rediscovers the strong classical rule on bin packing and refines it without reliably beating it.
 3. **Whether later generations add anything depends on the seed.** In run 2 the gain came from generation
    1 and nothing after it: generations 2–5 never beat the incumbent by one instance. In run 3 every
    generation promoted, each child beating its parent on a sealed panel, and the frontier moved from a
@@ -195,15 +211,15 @@ standard refinement of it; that is a fair description of what one call per gener
    evaluations, and 18/20 on run 1's third panel. Any later claim must keep it.
 
 Not established: a statistically supported advantage over random search or best-fit (job-shop: two wins
-and a tie on three seeds; bin packing: one seed, a one-instance margin), transfer between organizations
+and a tie on three seeds; bin packing: one win and one loss by one instance), transfer between organizations
 (the bundles were exported but adopted by nobody), results on any further family, and anything about the
 forge lane's real method-generation path, which this engine does not touch. Improvement after generation 1
-was observed in three of four informative seeds.
+was observed in four of five informative seeds (counting run 3's generation-2 promotion).
 
 ## Files
 
 `scripts/iteration/results/jobshop-smoke-1/{result,ledger}.json`;
-`scripts/iteration/results/jobshop-smoke-2/`, `jobshop-smoke-3/`, `jobshop-smoke-4/`, `binpack-smoke-1/`
-and `binpack-smoke-2/`: `{result,ledger,bundle}.json`,
+`scripts/iteration/results/jobshop-smoke-2/`, `jobshop-smoke-3/`, `jobshop-smoke-4/`, `binpack-smoke-1/`,
+`binpack-smoke-2/` and `binpack-smoke-3/`: `{result,ledger,bundle}.json`,
 `fetch-offer.txt`, `fetch-observation.json`, `elastic-bulk.ndjson`. Reproduce the mechanism without model calls with
 `node scripts/iteration/run-jobshop.mjs --mock`; the live runs are not deterministic across model calls.
