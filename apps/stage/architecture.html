@@ -82,9 +82,9 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
 
         <rect x="880" y="275" width="200" height="90" rx="10" fill="none" stroke="#E7B35A" stroke-dasharray="6 5"/>
         <text x="980" y="298" text-anchor="middle" font-weight="600">CREAO hosted agent</text>
-        <text x="980" y="316" text-anchor="middle" fill-opacity=".6">persistent role</text>
-        <text x="980" y="334" text-anchor="middle" fill-opacity=".6">abd440e7… · 30a7b386…</text>
-        <text x="980" y="352" text-anchor="middle" fill="#E7B35A">created · readiness unverified</text>
+        <text x="980" y="316" text-anchor="middle" fill-opacity=".6">Method Revision Analyst</text>
+        <text x="980" y="334" text-anchor="middle" fill-opacity=".6">9880ad7c… · 2 console runs</text>
+        <text x="980" y="352" text-anchor="middle" fill="#E7B35A">runs live · kernel binding pending</text>
         <line x1="782" y1="330" x2="878" y2="330" stroke="currentColor" stroke-dasharray="4 4" marker-end="url(#arrow)"/>
         <text x="830" y="322" text-anchor="middle" font-size="11" fill-opacity=".7">adds a role</text>
 
@@ -123,10 +123,10 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
         <line x1="1040" y1="40" x2="1080" y2="40" stroke="currentColor"/><text x="1088" y="44" font-size="11" fill-opacity=".7">data path</text>
         <line x1="1040" y1="62" x2="1080" y2="62" stroke="currentColor" stroke-dasharray="4 4"/><text x="1088" y="66" font-size="11" fill-opacity=".7">not yet verified live</text>
         <rect x="1040" y="78" width="40" height="12" rx="3" fill="none" stroke="#5BD0BA"/><text x="1088" y="88" font-size="11" fill-opacity=".7">sponsor, live evidence</text>
-        <rect x="1040" y="100" width="40" height="12" rx="3" fill="none" stroke="#E7B35A" stroke-dasharray="6 5"/><text x="1088" y="110" font-size="11" fill-opacity=".7">sponsor, created only</text>
+        <rect x="1040" y="100" width="40" height="12" rx="3" fill="none" stroke="#E7B35A" stroke-dasharray="6 5"/><text x="1088" y="110" font-size="11" fill-opacity=".7">sponsor, not bound to kernel</text>
       </g>
     </svg>
-    <figcaption>Every arrow is a path that ran during Cal Hacks 13.0 except the dashed CREAO provisioning, which created hosted agents but never completed the readiness callback. Green boxes carry live evidence (gate run or end-to-end transcript); the amber dashed box carries creation evidence only.</figcaption>
+    <figcaption>Every arrow is a path that ran during Cal Hacks 13.0 except the dashed CREAO provisioning: the console-built CREAO agent has two live runs of its own, but the kernel's binding to it is still being migrated. Green boxes carry live evidence (gate run or end-to-end transcript); the amber dashed box has live runs without a kernel binding.</figcaption>
   </figure>
 
   <div class="wrap">
@@ -135,10 +135,10 @@ code { font-family: var(--mono); font-size: 12px; color: var(--fg); }
     <tr><td>Fetch.ai</td><td>The conversational door into an organization and the channel between organizations. A judge's sentence becomes an observation; verified method bundles travel as agent-carried offers.</td><td class="ok">Live: mailbox registered, a <code>report</code> through Agentverse acknowledged in 5 s, the planner's committed change relayed back in 84 s (2026-10-25).</td><td><code>agent1q284muxcdleukm2vrh670nljfp5hl8f25ew8d78jkzxf0j3w2gut2jyj9nl</code> · bridge <code>services/fetch-bridge</code></td></tr>
     <tr><td>Apify</td><td>The capability factory: a missing web capability is generated as an Actor, built, pinned by version and verified against an oracle before a role may use it.</td><td class="ok">Live gate passed 2026-10-24 (run <code>20261024085438</code>): build SUCCEEDED, 3/3 oracle cases.</td><td>Actor <code>n8kB1hNqgzkddvWKp</code>, build <code>D5hU7kSdSc20L08g3</code> (0.1.1), account <code>genesis-eric</code>, private; link <code>https://console.apify.com/actors/n8kB1hNqgzkddvWKp</code></td></tr>
     <tr><td>Elastic</td><td>The organization's memory and its searchable record: kernel events and the lab's chain-hashed ledgers are indexed; an Agent Builder specialist answers from the evidence index.</td><td class="ok">Live: 429 ledger documents indexed; gate passed 2026-10-25 (run <code>20261025103959</code>) including a converse turn that used the evidence tool.</td><td>indices <code>genesis-iteration-ledger</code>, <code>genesis-evidence-*</code>, <code>genesis-capabilities</code>; keys owned by the team</td></tr>
-    <tr><td>CREAO</td><td>Persistent roles: a hosted agent that keeps a responsibility running after the temporary team dissolves.</td><td class="warm">Created only: two hosted agents exist from the v2 API; the create response carries no agent id, so the kernel holds no binding and the readiness callback was never completed.</td><td>agents <code>abd440e7-3d97-419b-83b5-e3406e772b61</code>, <code>30a7b386-1942-4122-b7e3-b5b2fbde66d8</code>; no run share link</td></tr>
+    <tr><td>CREAO</td><td>Persistent roles: a hosted agent built on agent.creao.ai that keeps the lab's method-revision analysis running as a reusable responsibility: it takes a frozen method, one trial observation and the evaluator's feedback and returns one bounded revision hypothesis plus one fresh test.</td><td class="warm">Agent runs live: the console-built agent has two completed runs through the API Trigger (2026-10-24 and 2026-10-25). Not yet bound to the kernel: the kernel's own CREAO provisioning used the v2 API, whose create response carries no id; the migration to the Trigger path is in progress. Two stray v2 agents (<code>abd440e7…</code>, <code>30a7b386…</code>) are not the submission agent.</td><td>agent <code>9880ad7c-fa2a-4a88-8c82-40eed5f81560</code> (GENESIS Method Revision Analyst) · run share link <code>https://agent.creao.ai/share/45e3804d4b325b821557d8d70509b633</code> · install link <code>https://agent.creao.ai/install/9880ad7c-fa2a-4a88-8c82-40eed5f81560</code></td></tr>
   </table>
   </div>
-  <p>Honesty line for every submission: the kernel, planner, governed change, the lab and one A→B→A inheritance ran; Fetch.ai, Apify and Elastic have live evidence; CREAO has creation evidence only. Nothing here claims per-organization isolation of the Elastic keys or a completed CREAO readiness check.</p>
+  <p>Honesty line for every submission: the kernel, planner, governed change, the lab and one A→B→A inheritance ran; Fetch.ai, Apify and Elastic have live evidence; the CREAO agent has live runs but no kernel binding yet. Nothing here claims per-organization isolation of the Elastic keys or a completed CREAO readiness check.</p>
 </main>
 </body>
 </html>
