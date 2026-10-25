@@ -56,11 +56,17 @@ the engine itself is unchanged except for the root-hydration fix.
   job-shop; it is here to show the same engine, mutator, cascade and exports run unchanged on a second domain.
 - `families/sandbox.mjs` + `families/rule-child.mjs`: where generated rules run. `node:vm` is not a security
   boundary (a rule's top-level `this` reaches the host realm), so every rule, controls included, is scored in
-  a child process started with an empty environment, an empty working directory, a wall-clock timeout and
-  SIGKILL; the parent never evaluates model text, and the API key never enters the scoring process. Residual:
-  CPU until the wall timeout, and grandchildren that outlive the child's kill; `lab-exec`'s namespace mode is
-  the stronger boundary. Thrown values are reported through a bounded primitive diagnostic that invokes no
-  getters. Run directories are evidence: an occupied `--out` is refused before any write.
+  a child process with: an empty environment, an empty working directory, a wall-clock kill;
+  `--disallow-code-generation-from-strings`, so `Function`/`eval` throw in every realm of the child; and an OS
+  sandbox where the host has one. On macOS that is `sandbox-exec` with a profile that denies all network,
+  denies reading the home directory, the temp trees and other volumes (the repository's `.env` and sibling
+  temp files are unreadable), allows reading only `scripts/iteration` and the child's work directory, and
+  allows writing only there. On Linux, `unshare -rn` removes the network only. The runner refuses a live run
+  when no OS sandbox exists unless `--allow-unsandboxed` is passed, and records the sandbox in `result.json`.
+  The runner itself never loads `.env` into its environment; the key is handed only to the model-call child.
+  Residual: CPU until the wall kill; on Linux, no filesystem confinement; `lab-exec`'s namespace mode (chroot,
+  nobody, no network) remains the stronger boundary. Thrown values are reported through a bounded primitive
+  diagnostic that invokes no getters. Run directories are evidence: an occupied `--out` is refused before any write.
 - `mutators/claude.mjs`: the model mutator. One Messages API request per generation through a child
   process (`claude-call.mjs`, raw HTTP, key from `GENESIS_LLM_API_KEY`, server-side `fallbacks: "default"`)
   so the engine stays synchronous. The prompt follows the FunSearch/AlphaEvolve finding: scored programs,

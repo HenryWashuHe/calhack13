@@ -10,9 +10,9 @@ const CALL_SCRIPT = fileURLToPath(new URL("./claude-call.mjs", import.meta.url))
 const BLOCK = /=== CANDIDATE \d+ ===\s*```(?:js|javascript)?\s*([\s\S]*?)```/g;
 const FENCE = /```(?:js|javascript)\s*([\s\S]*?)```/g;
 
-/** Default transport: the child process. Returns {text, stop_reason, usage, refusal?}; throws on failure. */
-export function childCall(req) {
-  const r = spawnSync(process.execPath, [CALL_SCRIPT], { input: JSON.stringify(req), encoding: "utf8", timeout: (req.timeout_ms || 170000) + 10000, env: process.env, maxBuffer: 8 * 1024 * 1024 });
+/** Default transport: the child process. `env` is the only environment the call child gets (the key lives there, nowhere else). Returns {text, stop_reason, usage, refusal?}; throws on failure. */
+export function childCall(req, { env = process.env } = {}) {
+  const r = spawnSync(process.execPath, [CALL_SCRIPT], { input: JSON.stringify(req), encoding: "utf8", timeout: (req.timeout_ms || 170000) + 10000, env: { ...env, PATH: process.env.PATH || "" }, maxBuffer: 8 * 1024 * 1024 });
   if (r.error) throw r.error;
   if (r.status !== 0) throw new Error(r.stderr || `model call exited ${r.status}`);
   return JSON.parse(r.stdout);

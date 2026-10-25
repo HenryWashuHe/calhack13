@@ -9,7 +9,8 @@ import path from "node:path";
 import { createState, runGeneration, confirm, exportBundle, verifyLedger, sha256 } from "./engine.mjs";
 import { jobshopFamily, jobshopControls, featureDoc as jobshopDoc, FEATURES as jobshopFeatures, linearSource as jobshopLinear } from "./families/jobshop.mjs";
 import { binpackFamily, binpackControls, featureDoc as binpackDoc, FEATURES as binpackFeatures, linearSource as binpackLinear } from "./families/binpack.mjs";
-import { claudeMutator } from "./mutators/claude.mjs";
+import { claudeMutator, childCall } from "./mutators/claude.mjs";
+import { describeSandbox } from "./families/sandbox.mjs";
 import { cascade } from "./cascade.mjs";
 import { toBulk, post } from "./sponsors/elastic.mjs";
 import { toOffer, toChatText, toObservation } from "./sponsors/fetch-offer.mjs";
@@ -17,12 +18,15 @@ import { toOffer, toChatText, toObservation } from "./sponsors/fetch-offer.mjs";
 const arg = (name, dflt) => { const i = process.argv.indexOf("--" + name); return i < 0 ? dflt : process.argv[i + 1] === undefined || process.argv[i + 1].startsWith("--") ? true : process.argv[i + 1]; };
 const num = (name, dflt) => Number(arg(name, dflt));
 
-function loadEnv(file = ".env") { // only fills variables that are unset; never prints a value
-  if (!fs.existsSync(file)) return;
+// The model key never enters this process's environment: .env is read into a local map that is handed only to
+// the mutator's own child process. Rule-scoring children never see it (families/sandbox.mjs).
+function readEnv(file = ".env") {
+  const out = {};
+  if (!fs.existsSync(file)) return out;
   for (const line of fs.readFileSync(file, "utf8").split("\n")) {
-    const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/); if (!m || process.env[m[1]] !== undefined) continue;
-    process.env[m[1]] = m[2].replace(/^["']|["']$/g, "");
+    const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/); if (m) out[m[1]] = m[2].replace(/^["']|["']$/g, "");
   }
+  return out;
 }
 
 function familySpec(name) {
@@ -45,10 +49,14 @@ function reportPanel(family, instances, arms) { // report-only: every arm on the
 }
 
 function main() {
-  loadEnv();
+  const secrets = readEnv();
+  const modelEnv = { ...Object.fromEntries(Object.entries(secrets).filter(([k]) => /^(GENESIS_LLM_|ANTHROPIC_)/.test(k))), ...Object.fromEntries(Object.entries(process.env).filter(([k]) => /^(GENESIS_LLM_|ANTHROPIC_)/.test(k))) };
   const spec = familySpec(String(arg("family", "jobshop")));
   if (!spec) throw new Error("--family must be one of jobshop, binpack");
-  const cfg = { family: spec.id, generations: num("generations", 5), k: num("k", 4), heldout: num("heldout", 20), screen: num("screen", 3), factor: num("factor", 2), target: arg("target", undefined) === undefined ? spec.target : num("target"), seed: String(arg("seed", "smoke-1")), stall: num("stall", 3), mock: arg("mock", false) === true, effort: String(arg("effort", "medium")), gate: String(arg("gate", "all")), model: process.env.GENESIS_LLM_MODEL || "claude-sonnet-5-5" };
+  const cfg = { family: spec.id, generations: num("generations", 5), k: num("k", 4), heldout: num("heldout", 20), screen: num("screen", 3), factor: num("factor", 2), target: arg("target", undefined) === undefined ? spec.target : num("target"), seed: String(arg("seed", "smoke-1")), stall: num("stall", 3), mock: arg("mock", false) === true, effort: String(arg("effort", "medium")), gate: String(arg("gate", "all")), model: modelEnv.GENESIS_LLM_MODEL || "claude-sonnet-5-5", sandbox: typeof describeSandbox === "function" ? describeSandbox() : { os: "unknown" } }; // inert orchestration fixtures run without the families
+  // Generated rules run under an OS sandbox or not at all for live runs; --allow-unsandboxed records the exception.
+  if (!cfg.mock && cfg.sandbox.os === "none" && arg("allow-unsandboxed", false) !== true) throw new Error("no OS sandbox is available on this host for generated rules (macOS sandbox-exec or Linux unshare); pass --allow-unsandboxed to run anyway, which the result will record");
+  cfg.unsandboxed = cfg.sandbox.os === "none";
   const out = String(arg("out", path.join("scripts", "iteration", "results", `${String(arg("family", "jobshop"))}-${cfg.seed}${cfg.mock ? "-mock" : ""}`)));
   // A run directory is evidence: an occupied one is refused before any work or write, never overwritten.
   if (fs.existsSync(out) && fs.readdirSync(out).length) throw new Error(`refusing to reuse the occupied run directory ${out}; choose a new --seed or --out`);
@@ -60,7 +68,7 @@ function main() {
   const controls = spec.controls(family, { randomSearch: { seed: cfg.seed + ":rs", samples, panel } });
   const calls = [];
   const task = spec.task + (sizes ? ` Item sizes are integers in [${sizes[0]}, ${sizes[1]}].` : spec.id.startsWith("binpack") ? " Item sizes are integers in [1, 50]." : "");
-  const inner = cfg.mock ? mockMutator(spec) : claudeMutator({ subject: spec.subject, task, featureDoc: spec.featureDoc(), model: cfg.model, effort: cfg.effort, log: (e) => calls.push(e) });
+  const inner = cfg.mock ? mockMutator(spec) : claudeMutator({ subject: spec.subject, task, featureDoc: spec.featureDoc(), model: cfg.model, effort: cfg.effort, call: (req) => childCall(req, { env: modelEnv }), log: (e) => calls.push(e) });
   const mutator = cascade(inner, { family, screenSeed: cfg.seed + ":screen", m: cfg.screen, factor: cfg.factor });
   const criterion = { rule: "success-count-margin", min_margin: 1 };
   const state = createState({ lab: "lab_a", seed: cfg.seed });
@@ -95,10 +103,11 @@ function main() {
   } else result.confirmation = null;
   result.ledger_verify = verifyLedger(state.ledger);
   const bulk = toBulk(state.ledger, { exported_at: new Date().toISOString() });
+  const elasticEnv = { url: secrets.ELASTICSEARCH_URL || process.env.ELASTICSEARCH_URL, apiKey: secrets.ELASTIC_DATA_API_KEY || process.env.ELASTIC_DATA_API_KEY };
   fs.writeFileSync(path.join(out, "elastic-bulk.ndjson"), bulk.body);
   fs.writeFileSync(path.join(out, "ledger.json"), JSON.stringify(state.ledger, null, 1));
   fs.writeFileSync(path.join(out, "result.json"), JSON.stringify(result, null, 1));
-  return post(bulk).then((es) => { result.elastic = es; fs.writeFileSync(path.join(out, "result.json"), JSON.stringify(result, null, 1)); process.stdout.write(`${JSON.stringify({ frontier: result.frontier && result.frontier.selection_success_count, confirmation: result.confirmation, final_panel: result.final_panel_comparison && result.final_panel_comparison.rows.map((r) => `${r.id} ${r.success_count}/${r.of}`), evaluations: state.evaluations, screening: mutator.counts.evaluations, usage: inner.usage, elastic: es, ledger: { records: state.ledger.records.length, head: state.ledger.head, ok: result.ledger_verify.ok }, out }, null, 1)}\n`); });
+  return post(bulk, elasticEnv).then((es) => { result.elastic = es; fs.writeFileSync(path.join(out, "result.json"), JSON.stringify(result, null, 1)); process.stdout.write(`${JSON.stringify({ frontier: result.frontier && result.frontier.selection_success_count, confirmation: result.confirmation, final_panel: result.final_panel_comparison && result.final_panel_comparison.rows.map((r) => `${r.id} ${r.success_count}/${r.of}`), evaluations: state.evaluations, screening: mutator.counts.evaluations, usage: inner.usage, elastic: es, ledger: { records: state.ledger.records.length, head: state.ledger.head, ok: result.ledger_verify.ok }, out }, null, 1)}\n`); });
 }
 
 main().catch((err) => { process.stderr.write(`run failed: ${err && err.stack ? err.stack : err}\n`); process.exit(1); });
