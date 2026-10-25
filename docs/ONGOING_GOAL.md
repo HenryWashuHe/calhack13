@@ -113,8 +113,9 @@ tests. #215's first two bundles each lack 89 manifest artifacts; the third has
 reported experiments were not rerun. Counts belong to their named source scopes,
 not one aggregate main suite. #216 `e16277ad` remains held on confinement and
 reused writable policy, with one inert control passing and three guards failing;
-#7 remains a preservation draft; new #228 `3250e301` is unreviewed and stacked
-on held #216. G0–G4 remain open, native Goal `paused`.
+#7 remains a preservation draft; source review holds new #228 `3250e301` on
+sandbox admission/recording and source identity, plus its held #216 dependency.
+G0–G4 remain open, native Goal `paused`.
 No namespace, evaluator/scorer, method or provider execution was run or dispatched.
 
 ### Historical runtime milestone — main `de453090`
