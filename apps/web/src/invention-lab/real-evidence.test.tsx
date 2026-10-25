@@ -33,6 +33,25 @@ import refPlan from "../../../../docs/invention-lab/evidence/live-method-2026102
 import refCand from "../../../../docs/invention-lab/evidence/live-method-20261024-receiver/reference-random-search/candidate/receipt.json";
 import rsPackage from "../../../../docs/invention-lab/evidence/live-method-20261024-receiver/reference-random-search/rs.package.json";
 
+import bRsPlan from "../../../../docs/invention-lab/evidence/live-method-20261024-b-revision-receiver/vs-random-search/plan.json";
+import bRsVerdict from "../../../../docs/invention-lab/evidence/live-method-20261024-b-revision-receiver/vs-random-search/verdict.json";
+import bRsCand from "../../../../docs/invention-lab/evidence/live-method-20261024-b-revision-receiver/vs-random-search/candidate/receipt.json";
+import bRsCandScore from "../../../../docs/invention-lab/evidence/live-method-20261024-b-revision-receiver/vs-random-search/candidate-score/evaluation.json";
+import bRsCtrl from "../../../../docs/invention-lab/evidence/live-method-20261024-b-revision-receiver/vs-random-search/control/receipt.json";
+import bRsCtrlScore from "../../../../docs/invention-lab/evidence/live-method-20261024-b-revision-receiver/vs-random-search/control-score/evaluation.json";
+import aRsPlan from "../../../../docs/invention-lab/evidence/live-method-20261024-a-return/child-vs-random-search/plan.json";
+import aRsVerdict from "../../../../docs/invention-lab/evidence/live-method-20261024-a-return/child-vs-random-search/verdict.json";
+import aRsCand from "../../../../docs/invention-lab/evidence/live-method-20261024-a-return/child-vs-random-search/candidate/receipt.json";
+import aRsCandScore from "../../../../docs/invention-lab/evidence/live-method-20261024-a-return/child-vs-random-search/candidate-score/evaluation.json";
+import aRsCtrl from "../../../../docs/invention-lab/evidence/live-method-20261024-a-return/child-vs-random-search/control/receipt.json";
+import aRsCtrlScore from "../../../../docs/invention-lab/evidence/live-method-20261024-a-return/child-vs-random-search/control-score/evaluation.json";
+import aParPlan from "../../../../docs/invention-lab/evidence/live-method-20261024-a-return/child-vs-parent/plan.json";
+import aParVerdict from "../../../../docs/invention-lab/evidence/live-method-20261024-a-return/child-vs-parent/verdict.json";
+import aParCand from "../../../../docs/invention-lab/evidence/live-method-20261024-a-return/child-vs-parent/candidate/receipt.json";
+import aParCandScore from "../../../../docs/invention-lab/evidence/live-method-20261024-a-return/child-vs-parent/candidate-score/evaluation.json";
+import aParCtrl from "../../../../docs/invention-lab/evidence/live-method-20261024-a-return/child-vs-parent/control/receipt.json";
+import aParCtrlScore from "../../../../docs/invention-lab/evidence/live-method-20261024-a-return/child-vs-parent/control-score/evaluation.json";
+
 const R = "live-method-20261024-receiver";
 const B = "live-method-20261024-b-revision";
 const file = (name: string, v: unknown) => ({ name, text: JSON.stringify(v) });
@@ -173,5 +192,54 @@ describe("trial roles", () => {
     const b = beats(l, "org_example_a", "org_example_b");
     expect(b[1]!.facts[2]!.text).not.toContain("revision-vs-parent");
     expect(b[2]!.facts[1]!.text).toBe("org_example_b runs: output generated (0 evaluations)");
+  });
+});
+
+describe("the first complete return pass (#116/#117)", () => {
+  const loop = [
+    ...files,
+    file("live-method-20261024-b-revision-receiver/vs-random-search/plan.json", bRsPlan),
+    file("live-method-20261024-b-revision-receiver/vs-random-search/verdict.json", bRsVerdict),
+    file("live-method-20261024-b-revision-receiver/vs-random-search/candidate/receipt.json", bRsCand),
+    file("live-method-20261024-b-revision-receiver/vs-random-search/candidate-score/evaluation.json", bRsCandScore),
+    file("live-method-20261024-b-revision-receiver/vs-random-search/control/receipt.json", bRsCtrl),
+    file("live-method-20261024-b-revision-receiver/vs-random-search/control-score/evaluation.json", bRsCtrlScore),
+    file("live-method-20261024-a-return/child-vs-random-search/plan.json", aRsPlan),
+    file("live-method-20261024-a-return/child-vs-random-search/verdict.json", aRsVerdict),
+    file("live-method-20261024-a-return/child-vs-random-search/candidate/receipt.json", aRsCand),
+    file("live-method-20261024-a-return/child-vs-random-search/candidate-score/evaluation.json", aRsCandScore),
+    file("live-method-20261024-a-return/child-vs-random-search/control/receipt.json", aRsCtrl),
+    file("live-method-20261024-a-return/child-vs-random-search/control-score/evaluation.json", aRsCtrlScore),
+    file("live-method-20261024-a-return/child-vs-parent/plan.json", aParPlan),
+    file("live-method-20261024-a-return/child-vs-parent/verdict.json", aParVerdict),
+    file("live-method-20261024-a-return/child-vs-parent/candidate/receipt.json", aParCand),
+    file("live-method-20261024-a-return/child-vs-parent/candidate-score/evaluation.json", aParCandScore),
+    file("live-method-20261024-a-return/child-vs-parent/control/receipt.json", aParCtrl),
+    file("live-method-20261024-a-return/child-vs-parent/control-score/evaluation.json", aParCtrlScore),
+  ];
+  const l = buildLineage(intake(loop).records);
+  const b = beats(l, "org_example_a", "org_example_b");
+
+  it("shows B's trial of its revision and A's rejected trials of it, with no decision and no accepted return", () => {
+    expect(l.problems).toEqual([]);
+    expect(b[2]!.facts[2]).toEqual({
+      text: "org_example_b trials of its revisions: rough-transport-child-vs-random-search: rejected: candidate 3/6 does not exceed control 4/6 by 1 (trial verdicts, not adoption decisions)",
+      recorded: true,
+    });
+    expect(b[3]!.facts.map((f) => [f.recorded, f.text])).toEqual([
+      [false, "org_example_a decisions on org_example_b's revisions: none recorded"],
+      [true, "org_example_a runs: output generated (1 evaluation); output generated (1 evaluation)"],
+      [
+        true,
+        "org_example_a trials of org_example_b's revisions: return-mix-a-child-vs-random-search: rejected: candidate 0/6 does not exceed control 3/6 by 1; " +
+          "return-mix-a-child-vs-parent: rejected: candidate 0/6 does not exceed control 1/6 by 1 (trial verdicts, not adoption decisions)",
+      ],
+    ]);
+    expect(b[4]!.facts).toEqual([
+      {
+        text: "chain incomplete; no record of org_example_a's decision on that revision (org_example_a's trials of it are recorded: 2 rejected)",
+        recorded: false,
+      },
+    ]);
   });
 });
