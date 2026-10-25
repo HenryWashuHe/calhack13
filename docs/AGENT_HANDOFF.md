@@ -53,18 +53,19 @@ Apify baseline do not close those gates. Event organizing remains superseded.
 | Henry's core Claude | Adoption/planner acknowledged; prior foundations and #64 merged | Retain method-adoption wiring and existing console UI. Receiver/offer binding and create-only installation records are corrected; retain supporting acceptance receipts separately. Fixture acceptance does not close G2. |
 | Henry's core Claude | Evaluator/executor active; simulator and #42–#45 executor stack merged | Own evaluator/executor. #57/#65 portable fixes clear their prior findings; namespace lifecycle assurance remains unverified after interrupted review. Preserve exact evidence limits and avoid claiming Linux enforcement. |
 | Henry's core Claude | #46/#48/#64/#70/#72 merged; #98 `cb29a95` receiving records merged after independent checks; #102 `c8bf7a0` checked public feedback merged at `7accefd3` | Own execution/scoring/adoption and receiving-side record plumbing. Retain B's explicit selection/local acceptance decision and intended responsibility, including the rejected random-search comparison. #116 retains checked rough-transport trials of frozen child `4f455dc6`, rejected against parent/random control. Local acceptance remains unestablished; #117 checked A-return records are Rejected in every comparison. Retain prior declarations and all negative results; do not edit forge. #57/#65 are separate unmerged assurance work. |
-| Eric / Eric's Claude | #93/#94/#99/#100/#101/#109 merged; separate `eric/lab-real-evidence` continuation unreviewed | `docs/invention-lab/ui.md` and `apps/web/src/invention-lab/**`, no shared routes. #109 `2cfb4058` → `5ed65deb` clears format/inspection attribution with all five original `f2ac45e5` cases unchanged. Preserve `78adef37`, `59c3e1c` and `f2ac45e5`; no implicit lane transfer or clearance of later pushes. |
+| Eric / Eric's Claude | #93/#94/#99/#100/#101/#109 merged; real-evidence continuation has independent holds | `docs/invention-lab/ui.md` and `apps/web/src/invention-lab/**`, no shared routes. #109 `2cfb4058` → `5ed65deb` clears format/inspection attribution with all five original `f2ac45e5` cases unchanged. Preserve `78adef37`, `59c3e1c`, `f2ac45e5` and `0672dcbe`. Real-evidence `e72fec53` has three reproduced folder-dedup/raw-package/inspection-identity defects; newer pushes need exact review. No implicit lane transfer.  |
 | ACP Claude session | #3 `f64e131` / #5 `e95a286` merged; stage #20 merged | Migration holds cleared with all eight independent cases unchanged. Reconcile held #4 routing/status/demo docs with merged #3/#5, local executor/scorer and issue #1; preserve the superseded event-organizer boundary. Bridge ownership remains with ACP. |
-| Codex main chat | #120 explicit reasoning policy merged; #116/#117 negative receiving/return records retained | Preserve exact derivation, historical identities and negative results. Candidate follow-up: a fixed-pool experiment-allocation policy ablation with task-artifact and same-information local controls, awaiting interface agreement. Proposal only, not assigned/acknowledged or implemented; no new generation declared. Henry retains receiving/runtime authority. |
+| Codex main chat | #120 explicit reasoning policy merged; candidate-catalogue reference audit actively implementing | Own `genesis-core/src/development_catalogue.rs`, its export, focused tests and catalogue contract only. Pure post-run exact-reference audit; no runtime enforcement/byte verification. Prepare generation operations and whole-chain ceilings only after Henry's corrected K=3 workflow/fresh protocol is agreed. Fixed-pool ablation is a separate proposed diagnostic, not implemented or a limit on the product. No new provider call declared; Henry retains runtime/adoption authority. |
 | EricZhu-31 / Codex provider session | [CREAO nullable-ticket slice claimed](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6387513389); #104 `5023a48` merged as `62a2f009` after independent review; prior Apify baseline remains operator-reported | Only `crates/genesis-creao/src/{client,model,runtime,main}.rs`, focused CREAO tests and `docs/CREAO_RUNTIME.md`. Preserve exact account/version/request/run ticket before operator read-only reconciliation; wrong IDs/read failures leave it unchanged. No duplicate create, name/time-window binding or retroactive recovery of the old lost run ID. 69 original and 3 independent local tests pass; no hosted recovery; ACP keeps hosted-gate evidence. |
 | Ines | Unassigned by explicit user instruction | Do not infer identity from another collaborator handle. |
 
-Receiving wrapper [#118](https://github.com/HenryWashuHe/genesis-history-experiment/pull/118#issuecomment-6388209430)
-is held at last reviewed `5cf778281f92de643c7a902b22ee6ca8c23b0d19`: mutable
-checked inputs, mismatched retained spec identity and incomplete launch-failure
-history. Independent `e3f3779` preserves 203 lines/four failures/two controls.
-Newer pushes need review; Henry retains this lane. No live/generated execution
-was used for those mocked reproductions.
+Receiving wrapper [#118](https://github.com/HenryWashuHe/genesis-history-experiment/pull/118#issuecomment-6388306630)
+`68bc82d0061eb50e58acd45aa811b4895a9e4a17` merged at `ec23efb5`.
+Frozen package/spec bytes and atomic incremental failure summaries clear all six
+original mocked-process cases; the 203-line `e3f3779` file is unchanged. Reviewed
+main composition `428c1ceb` / tree `a996da20` has the same helper bytes. Henry
+retains the lane. Trusted-host storage is not immutable against host writers;
+no generated-source/runtime/namespace/provider execution was performed in review.
 
 Archival stage presenter #108 `ece3c61443e7afa9466679c9a79b7b935ad909f7`
 merged at `d810a670b4f32e4ba1a251be28351b90a589a8ff`: reviewed composition
@@ -152,12 +153,16 @@ adoption, accepted return or positive benefit is established; G0–G4 stay open.
 [Explicit reasoning policy #120](invention-lab/contracts/generation.md#settings-and-accounting)
 is now merged: Sonnet 5.5 adaptive effort is part of frozen client settings.
 It does not pin hosted weights/stochasticity or upgrade prior runs to G4. No live
-request or new generation is declared. A fixed-pool search-policy ablation is
-only a proposed next protocol, awaiting interface agreement: the task-artifact
-control would isolate workflow improvement; the same-information local control
-would check transfer overhead, not extra intelligence. Current methods can emit
-arbitrary designs, so hard pool enforcement is not implemented. This
-is a bounded mechanism study, not full G4 or a permanent capability restriction.
+request or new generation is declared. Codex is implementing the pure retained-
+reference catalogue audit; Henry retains any future pre-experiment enforcement.
+A fixed-pool search-policy ablation remains a separate proposed mechanism study,
+with task-artifact and identical-information local controls; it is not full G4
+or a restriction on capability development. Henry is preparing a corrected K=3
+workflow-versus-fresh declaration across all four families, adaptive/high client
+effort, neither arm seeded with old feedback, and public fresh-task assessment.
+The first-seed option does not hide instances from a running method. Freeze
+source/selection before assessment, retain failures and actual costs, and agree
+exact protocol identities/whole-chain ceilings before new generation.
 
 The merged [finite-chain contract](invention-lab/contracts/chain-allocation.md)
 reserves the full ceilings of 1–64 ordered generation or trial-only stages in all

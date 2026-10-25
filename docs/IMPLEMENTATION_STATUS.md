@@ -208,12 +208,16 @@ adoption, accepted return or positive benefit is established; G0–G4 stay open.
 [Explicit reasoning policy #120](invention-lab/contracts/generation.md#settings-and-accounting)
 is now merged: Sonnet 5.5 adaptive effort is part of frozen client settings.
 It does not pin hosted weights/stochasticity or upgrade prior runs to G4. No live
-request or new generation is declared. A fixed-pool search-policy ablation is
-only a proposed next protocol, awaiting interface agreement: the task-artifact
-control would isolate workflow improvement; the same-information local control
-would check transfer overhead, not extra intelligence. Current methods can emit
-arbitrary designs, so hard pool enforcement is not implemented. This
-is a bounded mechanism study, not full G4 or a permanent capability restriction.
+request or new generation is declared. Codex is implementing the pure retained-
+reference catalogue audit; Henry retains any future pre-experiment enforcement.
+A fixed-pool search-policy ablation remains a separate proposed mechanism study,
+with task-artifact and identical-information local controls; it is not full G4
+or a restriction on capability development. Henry is preparing a corrected K=3
+workflow-versus-fresh declaration across all four families, adaptive/high client
+effort, neither arm seeded with old feedback, and public fresh-task assessment.
+The first-seed option does not hide instances from a running method. Freeze
+source/selection before assessment, retain failures and actual costs, and agree
+exact protocol identities/whole-chain ceilings before new generation.
 
 Eric retains the UI lane. #93/#94/#99/#100 corrections are merged: label
 fallback, organization binding, exact ledger arithmetic and execution/scoring
@@ -225,10 +229,15 @@ regressions, four actual Rust receipt hashes and 11 SHA vectors. #101 `ed8b64de`
 merged at `95256998`: 52 focused UI checks/typecheck pass, preserving the full
 119-line `59c3e1c` file. #109 `2cfb4058` merged at `5ed65deb`, passing 66
 focused tests/11 files and typecheck with all five original `f2ac45e5` cases
-unchanged. Its separate real-evidence continuation remains unreviewed.
-Henry's receiving wrapper #118 is held at last reviewed `5cf77828`: mutable
-input/spec binding and incomplete launch-failure history; unchanged 203-line
-`e3f3779` has four mocked failures/two controls. Newer pushes need review.
+unchanged. Separate real-evidence `e72fec53` has three reproduced folder-dedup,
+raw-package-byte and full inspection-identity defects (`0672dcbe`: three failures,
+two controls); newer pushes need exact review. Its 74 existing tests/typecheck
+pass, and real retained-record intake is a passing control, not clearance.
+Henry's receiving wrapper #118 `68bc82d0` merged at `ec23efb5`: copies checked
+package/spec bytes and atomically records each completed/failed launch. All six
+original mocked cases pass with the full 203-line `e3f3779` unchanged; reviewed
+composition `428c1ceb` / tree `a996da20` preserves source bytes. Trusted-host
+storage only; no generated-source/runtime/namespace/provider execution in review.
 Archival stage presenter #108 `ece3c614` merged at `d810a670`: reviewed
 composition `1632f08` / tree `0ab8d80a` passes 22 Node checks and independent
 DOM probes. Visibility/stale-caption findings cleared; presentation support is
