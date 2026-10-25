@@ -68,7 +68,7 @@
     "domain": "genesis-lab",
     "id": "genesis-lab-exec/namespaces",
     "schema": "lab-environment/1",
-    "sha256": "52d8668d92306ebcd4cb7c958f7849d6998f65ac2f762eaeb6172f17fd785cd6",
+    "sha256": "ab598d6e112bac6d1f2601e7a7a7055b96a1b8f288a520b89b0fae83008c95f9",
     "version": "0.1.0"
   },
   "development_grant": {
