@@ -91,8 +91,16 @@ for (const line of fs.readFileSync(path.join(dir, "events.ndjson"), "utf8").trim
     outputTokens += response.usage.output_tokens;
     settled.set(event.index, event);
   }
-  if (event.event === "mutator_observation") assert(pending.size > 0 && !finalOpened
-    && same(event.identity, pending.get(pending.size - 1).identity), "mutator observation identity differs");
+  if (event.event === "mutator_observation") {
+    const submitted = pending.get(pending.size - 1);
+    const next = positions[pending.size];
+    // Local request admission can stop before a pending record exists. Its
+    // next-position error is evidence of a stopped attempt, never a submission.
+    const admissionFailure = stopped && next && pending.size === settled.size && rounds.size === pending.size
+      && same(event.identity, next) && event.record?.generation === next.round
+      && typeof event.record?.error === "string" && event.record.error.length > 0;
+    assert(!finalOpened && ((submitted && same(event.identity, submitted.identity)) || admissionFailure), "mutator observation identity differs");
+  }
   if (event.event === "round_completed") {
     const key = roundKey(event);
     assert(!finalOpened && !rounds.has(key) && same(identity(event), positions[rounds.size])
