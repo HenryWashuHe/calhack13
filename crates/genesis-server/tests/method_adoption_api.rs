@@ -263,6 +263,7 @@ async fn adoption_authorizes_only_the_owner_for_the_exact_version_under_current_
         records_root: records,
         acceptance_plans: vec![AcceptancePin {
             requirement_id: owner.requirement.clone(),
+            publisher: OrgId::new("org_example_a"),
             plan: serde_json::from_value::<TrialPlan>(plan.clone())
                 .unwrap()
                 .reference()
@@ -367,6 +368,111 @@ async fn adoption_authorizes_only_the_owner_for_the_exact_version_under_current_
         a.epoch -= 1;
     });
     assert_eq!(call(&authorize, &token, ask(&owner, &v1)).await.0, 200);
+    // Running the adopted method under the grant: the operator proposes a
+    // one-slot invocation plan, the server freezes it, starts it once and
+    // records the receipt. The receipt is #116's own, rebound; nothing runs.
+    let (_, current) = call(&authorize, &token, ask(&owner, &v1)).await;
+    let mut invocation = plan.clone();
+    invocation["id"] = json!("invoke-rough-transport");
+    let mut slot = invocation["slots"][0].clone();
+    for (k, v) in [
+        ("slot_id", "use"),
+        ("run_id", "run-invoke-use"),
+        ("attempt_id", "att_invoke_use"),
+        ("scoring_request_id", "score-invoke-use"),
+    ] {
+        slot[k] = json!(v);
+    }
+    let g = &current["grant"];
+    slot["purpose"] = json!({"kind":"invocation","grant":{"adoption_id":current["adoption_id"],
+        "requirement_id":current["requirement_id"],"role_id":g["role_id"],
+        "responsibility_id":g["responsibility_id"],"assignment_id":g["assignment_id"],"epoch":g["epoch"]}});
+    invocation["slots"] = json!([slot]);
+    let run = |key: &str| {
+        // One run per exact plan, so each run names its own plan id.
+        let mut plan = invocation.clone();
+        plan["id"] = json!(format!("invoke-{key}"));
+        // ...and its own run, attempt and scoring ids.
+        plan["slots"][0]["run_id"] = json!(format!("run-invoke-{key}"));
+        plan["slots"][0]["attempt_id"] = json!(format!("att_invoke_{key}"));
+        plan["slots"][0]["scoring_request_id"] = json!(format!("score-invoke-{key}"));
+        json!({"client_request_id":key,"request":ask(&owner, &v1),"plan":plan})
+    };
+    let runs = format!("{base}/method-runs");
+    let (status, prepared) = call(&runs, &token, run("r1")).await;
+    assert_eq!(status, 201, "{prepared}");
+    assert_eq!(prepared["status"], "prepared");
+    assert_eq!(call(&runs, &token, run("r1")).await.0, 200);
+    let id = prepared["id"].as_str().unwrap().to_string();
+    let (status, started) = call(&format!("{runs}/{id}/start"), &token, json!(null)).await;
+    assert_eq!((status, started["status"].clone()), (200, json!("started")));
+    assert_eq!(
+        call(&format!("{runs}/{id}/start"), &token, json!(null))
+            .await
+            .1["error"],
+        "method_run_status"
+    );
+    let original: genesis_core::development_method::ExecutionReceipt = serde_json::from_slice(
+        &std::fs::read(
+            app.method_receiver
+                .as_ref()
+                .unwrap()
+                .records_root
+                .join("b-fixed-cart/candidate/receipt.json"),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    let receipt_url = format!("{runs}/{id}/receipt");
+    assert_eq!(call(&receipt_url, &token, json!(original)).await.0, 422);
+    let frozen: TrialPlan = serde_json::from_value(prepared["plan"].clone()).unwrap();
+    let binding = frozen.expected_binding("use").unwrap();
+    let mut receipt = original.clone();
+    receipt.binding_sha256 = binding.canonical_hash().unwrap();
+    receipt.actual_method = binding.method.clone();
+    receipt.actual_environment = binding.environment.clone();
+    receipt.binding = binding;
+    let (status, done) = call(&receipt_url, &token, json!(receipt)).await;
+    assert_eq!(
+        (status, done["status"].clone()),
+        (200, json!("completed")),
+        "{done}"
+    );
+    // A run prepared under the grant, started after the epoch changed, is
+    // fenced and never runs.
+    let (_, second) = call(&runs, &token, run("r2")).await;
+    let second = second["id"].as_str().unwrap().to_string();
+    mutate(&app, |s| {
+        s.assignments
+            .iter_mut()
+            .find(|(id, _)| id.as_str() == assignment)
+            .unwrap()
+            .1
+            .epoch += 1;
+    });
+    let (status, body) = call(&format!("{runs}/{second}/start"), &token, json!(null)).await;
+    assert_eq!(
+        (status, body["error"].clone()),
+        (409, json!("method_run_status"))
+    );
+    let fenced: Value = reqwest::Client::new()
+        .get(format!("{runs}/{second}"))
+        .bearer_auth(&token)
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert_eq!(fenced["status"], "fenced");
+    mutate(&app, |s| {
+        s.assignments
+            .iter_mut()
+            .find(|(id, _)| id.as_str() == assignment)
+            .unwrap()
+            .1
+            .epoch -= 1;
+    });
     // A retired role is never authorized.
     mutate(&app, |s| {
         s.roles.get_mut(&owner.role).unwrap().state = RoleState::Retired
