@@ -8,10 +8,15 @@
 //! retained evaluation exactly (wall time aside). The decision then checks that
 //! assessment read the same bytes the rescore was given.
 //!
-//! What this establishes: the retained scoring is what this organization's
-//! scorer derives from the retained outputs. It does not re-execute either
-//! method, so a substituted output is still scored as given.
+//! The same scorer also checks an invocation's posted evaluation against the
+//! server's own frozen plan and retained receipt, with the output bytes the
+//! operator supplies (checked against the receipt's output digest).
+//!
+//! What this establishes: the scoring is what this organization's scorer
+//! derives from the outputs. It does not re-execute any method, so a
+//! substituted output is still scored as given.
 use crate::method_adoption::{read_retained, AcceptanceEvidence, MethodAcceptanceError};
+use genesis_core::development_evaluation::EvaluationReceipt;
 use genesis_core::development_method::ExecutionReceipt;
 use genesis_core::development_trial::TrialPlan;
 use serde::{Deserialize, Serialize};
@@ -352,6 +357,61 @@ impl MethodRescorer {
             files,
         })
     }
+}
+
+impl MethodRescorer {
+    /// Rescores one completed invocation run. `output` must be the bytes the
+    /// receipt names; the posted evaluation must reproduce exactly (wall time
+    /// aside). Blocking, like [`Self::rescore_trial`].
+    pub fn rescore_run(
+        &self,
+        plan: &TrialPlan,
+        slot: &str,
+        receipt: &ExecutionReceipt,
+        output: &[u8],
+        posted: &EvaluationReceipt,
+    ) -> Result<(), MethodAcceptanceError> {
+        let digest = receipt
+            .outputs
+            .first()
+            .map(|o| o.sha256.clone())
+            .ok_or_else(|| fail("the run produced no output to rescore"))?;
+        if output.len() as u64 > MAX_OUTPUT_BYTES || sha(output) != digest {
+            return Err(fail("the supplied output is not the run's output"));
+        }
+        let work = Scratch::new()?;
+        let scorer = self.install(work.path())?;
+        let stage = |path: &Path, bytes: &[u8]| {
+            std::fs::write(path, bytes).map_err(|_| fail("could not stage the run"))
+        };
+        let plan_path = work.path().join("plan.json");
+        stage(&plan_path, &json(plan)?)?;
+        let state = work.path().join("state");
+        std::fs::create_dir_all(state.join("artifacts"))
+            .map_err(|_| fail("could not stage the run"))?;
+        stage(&state.join("receipt.json"), &json(receipt)?)?;
+        stage(&state.join("artifacts").join(&digest), output)?;
+        let out = work.path().join("score");
+        let fresh = self.score(&scorer, (&plan_path, &state, &out), slot, work.path())?;
+        match (comparable(&fresh), comparable(&json(posted)?)) {
+            (Some(a), Some(b)) if a == b => {}
+            _ => return Err(fail("the posted evaluation does not reproduce")),
+        }
+        // Wall time is left out of the comparison, but the posted value decides
+        // whether the result fits its scoring grant. A claim that it fits must
+        // also hold here.
+        let grant = plan.scoring_grant.wall_time_ms;
+        if fits(&json(posted)?, grant) && !fits(&fresh, grant) {
+            return Err(fail(
+                "the posted evaluation fits its scoring grant but rescoring here did not",
+            ));
+        }
+        Ok(())
+    }
+}
+
+fn json<T: Serialize>(value: &T) -> Result<Vec<u8>, MethodAcceptanceError> {
+    serde_json::to_vec(value).map_err(|_| fail("could not stage the run"))
 }
 
 impl RescoredTrial {
