@@ -2,9 +2,25 @@
 
 Status: **prepared, not executed.** This document is the receiving-side
 declaration (trials, panels, ceilings, controls, selection, endpoints). It is
-frozen by the commit that merges it. Codex prepares the six generation
-operations and the full chain ceilings against it before any provider request.
-No result exists yet. This is one exploratory pass, not G4.
+frozen by the commit that merges it. No result exists yet. This is one
+exploratory pass, not G4.
+
+## Preparation and chronology
+
+Before any provider request, the chain declares **six operation slots** (W1,
+W2, W3, F1, F2, F3) with their full per-call ceilings and whole-chain ceiling.
+Only the slots and ceilings are fixed up front:
+
+- W1, F1, F2 and F3 depend on nothing produced here, so their exact Prepared
+  requests may be bound before the first request.
+- W2's and W3's exact Prepared requests depend on feedback that doesn't exist
+  yet. Each is bound **after** its declared feedback (§ Development stage)
+  exists and **before** that request is sent. No future request hash is
+  written in advance.
+- A slot that never gets a Prepared request (`no_parent`, below) keeps its
+  status and its full unused capacity in the retained records. Its cost stays
+  unresolved; no zero-valued completed record is invented for it.
+- Capacity is never allocated retrospectively.
 
 ## Question
 
@@ -21,8 +37,8 @@ runtime/protocol references.
 
 - **W:** three rounds. Round 1 is one fresh generation from the base plan.
   Round k+1 (k = 1, 2) is one exact-parent revision of round k's method. Its
-  extra public input is the `lab-score feedback` from **all four** of round k's
-  development runs (§ Development stage).
+  extra public input is the `lab-score feedback` that round k's four
+  development runs produce (§ Development stage defines refusals).
 - **F:** three independent fresh generations from the same base plan, with no
   feedback and no W history.
 - **Neither arm** receives the earlier #116/#117 feedback or any earlier
@@ -75,18 +91,39 @@ random-search package (`06777e8e…`), under the strict criterion
 W's round-k development runs finish, and their feedback is produced, before
 round k+1 is requested.
 
+`lab-score feedback` refuses an unscored run (no retained output, scoring not
+`Scored`). So round k+1's feedback input is exactly the set of feedback
+documents that `lab-score feedback` produces for round k's four candidate
+slots, in the family order above; each refused family is listed as absent with
+its refusal. If all four are refused, round k+1 and every later W round are
+recorded as `no_feedback`, are not requested, and keep their unused capacity
+(same retention rule as `no_parent`). If the revision contract can't carry the
+produced documents as checked public inputs, the run stops before W2 and the
+protocol is amended; nothing is improvised mid-run.
+
 ## Selection (frozen before the fresh panel)
 
-For each arm and family, the selected method is the candidate with the most
-development successes on that family. Ties are broken in order by:
-1. fewer development simulation steps on that family;
+For each arm and family, candidates are split by their development run on
+that family:
+
+- **Scored:** the candidate slot's scoring receipt is `Scored` and its success
+  count is known from the retained metrics.
+- **Unscored:** anything else (generation produced no method, execution
+  `failed` or `unknown`, no output, scoring not `Scored`, or an unknown
+  success count).
+
+Only scored candidates are eligible. A valid score of 0 is eligible; an
+unscored run is never treated as 0. Among eligible candidates, the selection is
+the one with the most development successes. Ties are broken in order by:
+1. fewer development simulation steps on that family, where an unknown step
+   count ranks after every known one;
 2. earlier round;
 3. lexically smaller package SHA-256.
 
-A candidate whose development run on a family is `unknown`, `failed` or has no
-output counts as 0 successes there and can be selected only if every candidate
-does. If an arm produced no method at all, its selection is `no_candidate` for
-every family.
+If every candidate of an arm is unscored on a family (including an arm that
+produced no method at all), that arm's selection for that family is
+`no_candidate`. Unscored runs stay listed with their status. Nothing is rerun
+to improve eligibility.
 
 ## Fresh-panel stage
 
@@ -97,19 +134,40 @@ For each family, on seeds 1000..1011, with each slot run once in this order:
 4. Regression baseline: the unchanged parent `8215c367…` vs seeded random
    search.
 
-A `no_candidate` side makes that plan `not_run`, recorded as such.
+A `no_candidate` side makes that plan `not_run`, recorded as such. The
+regression-baseline plan (4) never depends on a selection and is always run.
 
 ## Endpoints
 
 - **Primary:** summed fresh-panel successes across the 4 × 12 instances,
-  W-selected minus F-selected, from the primary plans. An unknown, failed or
-  no-output slot counts 0 toward its sum and is listed.
-- **Positive exploratory reading** only if W's sum exceeds F's by at least 2
-  **and** W's sum is at least seeded random search's sum over the same
-  instances. Otherwise the result is reported as null or negative.
+  W-selected minus F-selected, from the primary plans (1) only.
+  - If any family has no primary plan (`not_run` because either side is
+    `no_candidate`), the primary comparison is reported **incomplete / not
+    estimable**. Available per-family primary and companion results are still
+    reported, but no positive reading is allowed and no secondary run is
+    substituted for a missing pair.
+  - Within a primary plan that ran, an unknown, failed or no-output slot is
+    listed and contributes 0 to its arm's sum for reporting. It also makes the
+    positive reading unavailable (condition 2 below).
+- **Canonical random reference:** the control slots of the four
+  regression-baseline plans (4), parent vs seeded random search. "Random
+  search's sum" means only those slots' fresh-panel successes. Random runs in
+  plans (2) and (3) are reported separately as repetitions and never replace
+  the reference.
+- **Positive exploratory reading** only if all of these hold:
+  1. the primary comparison is complete (all four primary plans ran);
+  2. every primary slot was scored (no unknown, failed or no-output slot);
+  3. all four reference slots were scored;
+  4. W's sum exceeds F's by at least 2;
+  5. W's sum is at least the reference sum.
+
+  A missing or unknown reference observation makes the positive reading
+  unavailable; it is never read as a zero baseline. Otherwise the result is
+  reported as null, negative or incomplete, whichever applies.
 - **Secondary:**
   - the per-family strict verdicts from all four plan types;
   - per-family regressions against the parent baseline;
+  - the random repetitions from plans (2) and (3);
   - the development-panel results of every candidate, including rejected
     ones.
 
@@ -120,7 +178,8 @@ adoption.
 ## Retained records
 
 Every spec, snapshot, receipt, ledger, transcript, scoring record, verdict,
-feedback document and summary is retained, including failures, `not_run`,
-`no_parent`, `no_candidate` and unused capacity. Chain-level costs come from
+feedback document and summary is retained, including failures, feedback
+refusals, `not_run`, `no_parent`, `no_feedback`, `no_candidate` and unused
+capacity. Chain-level costs come from
 `genesis-forge method-chain-cost-assess` over the declared chain. Per-trial
 reports are never summed by hand.
