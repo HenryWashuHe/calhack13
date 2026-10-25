@@ -90,6 +90,24 @@ and [corrected before running](https://github.com/HenryWashuHe/genesis-history-e
   between concurrent runs in one process, which is also on main. It's fixed in
   #167. No published trial was affected: each `lab-exec` run is its own process.
 
+## What transferred: one design, not per-instance adaptation
+
+On rough-transport the parent submitted the **same design every time**:
+`2483f08f…` on #116's seeds 0..5, on the public 3000..3011 panel here, and in
+both hidden attempts. On ravine-crossing its submissions differ
+(`05eaa4c6…`, `cd7ce079…`). Eric's hand split of the parent
+(`eric/strategy-adapter-split`) shows why. The parent ranks instances by
+`gap + step_height`, and those ravine fields are 0.0 on every rough-transport
+instance, so the ranking does nothing there. Its first admissible grid point
+passes the screen-then-confirm check and is submitted.
+
+So the selective transfer here is real but narrow. A's method reliably lands
+on one design that works across rough-transport, including 12 hidden
+instances, while seeded random search sometimes doesn't. That says the family
+admits a robust single design and the parent's grid order reaches it first. It
+isn't evidence that the method adapts to each instance, and it says nothing
+about families without such a design.
+
 ## What this is not
 
 - **Not adoption.** B has a retained, eligible, accepted trial. Turning that
