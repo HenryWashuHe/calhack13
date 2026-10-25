@@ -11,6 +11,17 @@ const HOST = "https://agent.creao.ai";
 // status route (403 / error 1010), while accepting a browser User-Agent.
 const USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+export function triggerRunsUrl(appId, configured) {
+  if (!UUID.test(appId ?? "")) throw new Error("CREAO_TRIGGER_APP_ID must be a UUID");
+  const official = `${HOST}/api/v1/apps/${appId}/runs`;
+  // Literal equality also rejects query credentials, fragments, userinfo, alien
+  // hosts, ports, encoded path substitutions and another app's URL.
+  if (configured !== undefined && configured !== official) {
+    throw new Error("CREAO_TRIGGER_RUNS_URL must exactly match the configured app's official runs URL");
+  }
+  return official;
+}
+
 const TERMINAL = new Set(["completed", "failed", "cancelled"]);
 const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
 
@@ -81,13 +92,20 @@ function recordView(record) {
     status: record.status ?? null,
     result_sha256: record.result_sha256 ?? null,
     credits_used: record.credits_used ?? null,
+    result_check_id: record.result_check_id ?? null,
+    result_check: record.result_check ?? null,
     reason: record.reason ?? null,
   };
 }
 
 /** No production-host override in the CLI; tests inject a loopback transport. */
 export async function runTrigger({ appId, inputs, out, allowCredits = false, key,
-  fetchImpl = fetch, baseUrl = HOST, pollMs = 2000, maxPolls = 60 }) {
+  fetchImpl = fetch, baseUrl = HOST, pollMs = 2000, maxPolls = 60, runsUrl, checkId = null, checkResult = null }) {
+  triggerRunsUrl(appId, runsUrl);
+  if ((checkId === null) !== (checkResult === null) || (checkId !== null &&
+      (typeof checkId !== "string" || !/^[a-z0-9._/-]{1,128}$/i.test(checkId) || typeof checkResult !== "function"))) {
+    throw new Error("result check requires a fixed contract ID and a function");
+  }
   if (!UUID.test(appId ?? "")) throw new Error("app ID must be a UUID");
   if (!inputs || typeof inputs !== "object" || Array.isArray(inputs)) {
     throw new Error("inputs must be a JSON object");
@@ -131,7 +149,7 @@ export async function runTrigger({ appId, inputs, out, allowCredits = false, key
       try { record = JSON.parse(readFileSync(path, "utf8")); }
       catch { throw new Error("existing journal is unreadable; do not replay the POST"); }
       if (record.schema !== "genesis-creao-trigger-smoke/1" || record.app_id !== appId ||
-        record.input_sha256 !== inputSha) {
+        record.input_sha256 !== inputSha || (record.result_check_id ?? null) !== checkId) {
         throw new Error("existing journal does not match this app and exact input");
       }
       if (TERMINAL.has(record.phase) || record.phase === "needs_reconciliation") return recordView(record);
@@ -140,7 +158,7 @@ export async function runTrigger({ appId, inputs, out, allowCredits = false, key
       }
     } else {
       record = { schema: "genesis-creao-trigger-smoke/1", started_at: new Date().toISOString(), app_id: appId,
-        input_sha256: inputSha, phase: "post_outcome_unknown", run_id: null };
+        input_sha256: inputSha, result_check_id: checkId, phase: "post_outcome_unknown", run_id: null };
       save(path, record, true);
       let response;
       try {
@@ -180,9 +198,14 @@ export async function runTrigger({ appId, inputs, out, allowCredits = false, key
       } catch {
         return recordView({ ...record, reason: "poll_failed; rerun with the same journal to retry GET only" });
       }
-      record = { ...record, status: body.status, phase: body.status,
+      let resultCheck = null;
+      if (body.status === "completed" && checkResult) {
+        try { resultCheck = { passed: checkResult(body.result) === true }; }
+        catch { resultCheck = { passed: false }; }
+      }
+      record = { ...record, status: body.status, phase: body.status, result_check: resultCheck,
         result_sha256: body.result === undefined ? null : digest(body.result),
-        credits_used: typeof body.usage?.credits === "number" && Number.isFinite(body.usage.credits)
+        credits_used: typeof body.usage?.credits === "number" && Number.isFinite(body.usage.credits) && body.usage.credits >= 0
           ? body.usage.credits : null, reason: null };
       save(path, record);
       if (TERMINAL.has(body.status)) return recordView(record);
@@ -205,7 +228,7 @@ async function main() {
     try { inputs = JSON.parse(readFileSync(values.inputs, "utf8")); }
     catch { throw new Error("inputs file must contain valid JSON"); }
     const report = await runTrigger({ appId: values["app-id"], inputs, out: values.out,
-      allowCredits: values["allow-credits"], key: process.env.CREAO_TRIGGER_API_KEY });
+      allowCredits: values["allow-credits"], key: process.env.CREAO_TRIGGER_API_KEY, runsUrl: process.env.CREAO_TRIGGER_RUNS_URL });
     process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
     if (report.reason || ["failed", "cancelled", "needs_reconciliation"].includes(report.phase)) process.exitCode = 1;
   } catch (error) {
