@@ -7,7 +7,7 @@ record or protocol). Only the evaluator (`lab-eval`) and, in `calibrate.py`, the
 controls ran; no generated source executed. Reproduce with `scan.py <lab-eval> 20000 40` against this tree; the
 output is `results-20000-40.json`. `launcher_search.py <lab-eval> 7 20000 20001 20002 20003 20004 20005`
 reproduces `launchers.json`, and `panel_cap.py <lab-eval> 1 4000 30000 30006 30012` reproduces
-`panel-cap.json`. `calibration.json` comes from `calibrate.py` on seeds 30000..30017.
+`panel-cap.json`. `calibration.json` comes from `calibrate.py` on seeds 30000..30017; `headroom.py <lab-eval>` reproduces `headroom.json`.
 
 Successes out of 40 (selected rows; all 15 are in the JSON):
 
@@ -64,6 +64,42 @@ Successes out of 40 (selected rows; all 15 are in the JSON):
    emulation of the executor protocol, not the executor, and isn't trial
    evidence. Any method that lands even one target would beat these controls
    by the margin-one rule. That would be a weak win.
+
+## Headroom: a method that picks the kind of cart
+
+`portfolio_search.py` is a hand-written probe (never generated source) that
+doesn't read the family name. It screens six starting carts on two instances
+(two large wooden wheels, five small rubber wheels, four random carts from a
+wider range than `random-search` samples), runs the best two on the other
+four, then mutates the best. It was tuned only on seeds 30000..30017. The
+comparison below was predeclared in commit `7ec9a24` before it ran, and the
+probe wasn't changed after. `headroom.py <lab-eval>` reproduces
+`headroom.json`: six fresh panels per family (seeds 31000..31035), 72,000-step
+grant, through `calibrate.py`'s offline protocol emulation. That isn't the
+executor and isn't trial evidence. The fixed designs ran through
+`lab-eval accept` only.
+
+| Successes /36 (six panels) | ravine | rough | return-mix | total /108 |
+| --- | ---: | ---: | ---: | ---: |
+| `portfolio_search` | 20 | **36** | 26 | **82** |
+| `random_search` (the trial control) | 19 | 19 | **27** | 65 |
+| parent's fixed cart `2483f08f` | 2 | 31 | 5 | 38 |
+| five-wheel reference | **21** | 7 | 26 | 54 |
+
+7. **A method whose output depends on the family matches the best
+   specialist on each one.** On rough-transport it builds the large-wheel
+   cart and solves all 36. On ravine and return-mix it lands within one of
+   random search and the five-wheel reference. It wins clearly only where the
+   right *kind* of cart differs from what the control samples (rough: 6 vs
+   2–4 on every panel). On the other two it ties.
+8. **Ravine-crossing looks capped for carts near 3–4 of 6 per panel.** No
+   method or design here does better than 21/36, and the per-panel counts of
+   the three best match closely. Margins there will be small whatever the
+   method.
+
+So the G3 target from reading 1 is reachable by a simple process change: add
+"try two kinds, keep the better" to the parent. With that, the parent's
+profile (strong on rough, near zero elsewhere) would become this one.
 
 ## Suggestions (for discussion, nothing frozen is changed)
 
