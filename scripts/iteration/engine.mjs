@@ -85,8 +85,10 @@ function register(state, pkg) {
 }
 function rootPackage(state, family) {
   const root = makePackage(family.root(), { origin: family.id + ":root", generation: 0, note: "family root" });
-  if (!state.packages[root.sha256]) { register(state, root); append(state, { type: "root_registered", family: family.id, package: root.sha256 }); }
-  return state.packages[root.sha256];
+  const prior = state.packages[root.sha256] || null;
+  const pkg = register(state, root); // always: verified bytes fill a metadata-only ancestor; an earlier provenance (control, import) is kept
+  if (!state.ledger.records.some((r) => r.type === "root_registered" && r.family === family.id)) append(state, { type: "root_registered", family: family.id, package: root.sha256, prior_origin: prior ? prior.origin : null });
+  return pkg;
 }
 
 const validScore = (s) => !!s && typeof s === "object" && typeof s.success === "boolean";
