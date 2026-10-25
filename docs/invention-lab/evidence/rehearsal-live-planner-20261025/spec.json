@@ -1,0 +1,15 @@
+{
+  "schema": "lab-receive-spec/1",
+  "org_id": "org_example_b",
+  "sandbox": "namespaces",
+  "instances": 6,
+  "simulation_steps": 72000,
+  "wall_time_ms": 60000,
+  "packages": {
+    "child": {"path": "../live-method-20261024-b-revision/method-package.json", "sha256": "4f455dc6e625bdaf554d567bdd7f0bc0c7b601a1ea6332d4e7a13e02005db14d"},
+    "fixed-cart": {"path": "../live-method-20261024-b-revision-receiver/fixed-cart.package.json", "sha256": "dc5b74f34698885641ca5c673ae80f00f8248ce2e073ac3fe1367d924fd2f3bd"}
+  },
+  "trials": [
+    {"id": "rehearse4-accept-vs-fixed-cart", "family": "rough-transport", "candidate": "child", "control": "fixed-cart", "first_seed": 46000}
+  ]
+}

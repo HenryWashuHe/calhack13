@@ -1,0 +1,343 @@
+head=85073cc6208800e15b5cc96b742bfba07ef325b9 uid=0 kernel=6.18.44-fc-v153 python3=Python 3.14.0 date=2026-10-25T07:16:24Z
+### cargo test --locked --all-targets
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling unicode-ident v1.0.27
+   Compiling autocfg v1.5.1
+   Compiling libm v0.2.16
+   Compiling syn v3.0.9
+   Compiling num-traits v0.2.19
+   Compiling synstructure v0.14.0
+   Compiling stable_deref_trait v1.2.1
+   Compiling syn v2.0.119
+   Compiling zerofrom-derive v0.1.8
+   Compiling zerofrom v0.1.8
+   Compiling yoke-derive v0.8.4
+   Compiling yoke v0.8.4
+   Compiling zerovec-derive v0.11.7
+   Compiling serde_core v1.0.229
+   Compiling zerovec v0.11.9
+   Compiling displaydoc v0.2.7
+   Compiling typenum v1.20.1
+   Compiling smallvec v1.16.4
+   Compiling version_check v0.9.5
+   Compiling crossbeam-utils v0.8.23
+   Compiling generic-array v0.14.7
+   Compiling tinystr v0.8.5
+   Compiling writeable v0.6.4
+   Compiling litemap v0.8.3
+   Compiling icu_locale_core v2.4.0
+   Compiling zerotrie v0.2.5
+   Compiling potential_utf v0.1.6
+   Compiling serde v1.0.229
+   Compiling bytemuck v1.25.2
+   Compiling utf8_iter v1.0.4
+   Compiling icu_normalizer_data v2.4.0
+   Compiling paste v1.0.15
+   Compiling icu_properties_data v2.4.0
+   Compiling icu_collections v2.4.0
+   Compiling safe_arch v0.7.4
+   Compiling icu_provider v2.4.0
+   Compiling serde_derive v1.0.229
+   Compiling matrixmultiply v0.3.11
+   Compiling equivalent v1.0.3
+   Compiling crossbeam-epoch v0.9.21
+   Compiling zmij v1.0.23
+   Compiling wide v0.7.33
+   Compiling num-integer v0.1.47
+   Compiling approx v0.5.1
+   Compiling num-complex v0.4.6
+   Compiling rawpointer v0.2.1
+   Compiling crossbeam-deque v0.8.8
+   Compiling cfg-if v1.0.5
+   Compiling serde_json v1.0.154
+   Compiling allocator-api2 v0.2.21
+   Compiling thiserror v1.0.69
+   Compiling libc v0.2.191
+   Compiling foldhash v0.2.0
+   Compiling hashbrown v0.16.1
+   Compiling simba v0.9.1
+   Compiling num-rational v0.4.2
+   Compiling icu_properties v2.4.0
+   Compiling icu_normalizer v2.4.0
+   Compiling crypto-common v0.1.7
+   Compiling block-buffer v0.10.4
+   Compiling thiserror-impl v1.0.69
+   Compiling nalgebra-macros v0.2.2
+   Compiling indexmap v1.9.3
+   Compiling itoa v1.0.18
+   Compiling hashbrown v0.17.1
+   Compiling log v0.4.34
+   Compiling getrandom v0.4.3
+   Compiling robust v1.2.0
+   Compiling memchr v2.8.3
+   Compiling spade v2.15.1
+   Compiling indexmap v2.14.2
+   Compiling ena v0.14.4
+   Compiling nalgebra v0.33.3
+   Compiling digest v0.10.7
+   Compiling idna_adapter v1.2.2
+   Compiling crossbeam-queue v0.3.14
+   Compiling crossbeam-channel v0.5.17
+   Compiling num-derive v0.4.2
+   Compiling serde_derive_internals v0.29.1
+   Compiling ordered-float v4.6.0
+   Compiling hashbrown v0.12.3
+   Compiling bitflags v2.13.2
+   Compiling cpufeatures v0.2.17
+   Compiling percent-encoding v2.3.2
+   Compiling either v1.19.0
+   Compiling arrayvec v0.7.8
+   Compiling iana-time-zone v0.1.65
+   Compiling rustc-hash v2.1.3
+   Compiling thiserror v2.0.21
+   Compiling slab v0.4.12
+   Compiling downcast-rs v1.2.1
+   Compiling schemars v0.8.22
+   Compiling chrono v0.4.45
+   Compiling parry2d v0.17.6
+   Compiling form_urlencoded v1.2.2
+   Compiling sha2 v0.10.9
+   Compiling schemars_derive v0.8.22
+   Compiling crossbeam v0.8.5
+   Compiling idna v1.1.0
+   Compiling thiserror-impl v2.0.21
+   Compiling dyn-clone v1.0.20
+   Compiling bit-vec v0.7.0
+   Compiling rapier2d v0.22.0
+   Compiling url v2.5.8
+   Compiling uuid v1.29.0
+   Compiling genesis-lab-eval v0.1.0 (/home/claude/xwt/indep-main/experiments/invention-lab/evaluator)
+   Compiling genesis-core v0.1.0 (/home/claude/xwt/indep-main/crates/genesis-core)
+   Compiling genesis-lab-exec v0.1.0 (/home/claude/xwt/indep-main/experiments/invention-lab/executor)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1m 03s
+     Running unittests src/lib.rs (/tmp/claude-0/target-indep/debug/deps/genesis_lab_exec-bcef8535fbd874de)
+
+running 8 tests
+test run::termination_evidence_tests::a_signalled_or_failed_launcher_alone_does_not_prove_closure ... ok
+test run::termination_evidence_tests::a_later_success_cannot_erase_an_uncertain_stop ... ok
+test run::termination_evidence_tests::confirmed_init_stop_survives_the_launchers_mirrored_signal_status ... ok
+test run::termination_evidence_tests::later_uncertainty_is_retained_after_an_earlier_confirmation ... ok
+test run::termination_evidence_tests::launcher_only_fallback_or_inspection_error_cannot_authorize_scoring ... ok
+test run::termination_evidence_tests::successful_unshare_child_wait_retains_the_normal_completion_path ... ok
+test run::termination_evidence_tests::unsandboxed_reaping_never_certifies_descendants ... ok
+test sandbox::stop_tests::signalling_a_missing_process_counts_as_stopped ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/lab-exec.rs (/tmp/claude-0/target-indep/debug/deps/lab_exec-b773288454458761)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/concurrent_runs.rs (/tmp/claude-0/target-indep/debug/deps/concurrent_runs-de17a85befec814b)
+
+running 1 test
+test concurrent_runs_of_one_slot_id_each_get_their_own_stage ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.19s
+
+     Running tests/example_seeds.rs (/tmp/claude-0/target-indep/debug/deps/example_seeds-8d332d5e10a44c41)
+
+running 2 tests
+test a_later_seed_range_is_a_disjoint_valid_split ... ok
+test seed_zero_is_exactly_the_existing_plan ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/executor.rs (/tmp/claude-0/target-indep/debug/deps/executor-436a01183d158f52)
+
+running 7 tests
+test a_method_whose_digest_differs_from_the_plan_never_runs ... ok
+test a_stop_after_sealing_still_recovers_with_the_call_pending ... ok
+test a_restarted_executor_settles_the_pending_call_unknown_and_never_restarts ... ok
+test only_one_output_is_retained_and_oversized_requests_fail_the_run ... ok
+test concurrent_runners_admit_exactly_one_execution ... ok
+test the_namespace_sandbox_hides_files_network_and_processes ... ok
+test the_wall_time_limit_interrupts_and_keeps_the_submission ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.77s
+
+     Running tests/namespace_lifecycle.rs (/tmp/claude-0/target-indep/debug/deps/namespace_lifecycle-6f5f0a1cb4c7793e)
+
+running 3 tests
+test a_detached_descendant_does_not_outlive_a_namespace_run ... ok
+test the_probe_sees_the_same_descendant_survive_without_the_sandbox ... ok
+test a_detached_descendant_does_not_outlive_a_namespace_run_killed_at_its_deadline ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.80s
+
+     Running tests/namespace_stop_without_kill.rs (/tmp/claude-0/target-indep/debug/deps/namespace_stop_without_kill-a67324f2b41527ea)
+
+running 1 test
+test a_run_past_its_deadline_stops_without_a_kill_program ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.98s
+
+     Running tests/refs.rs (/tmp/claude-0/target-indep/debug/deps/refs-6461a194b3b4d9fe)
+
+running 6 tests
+test instance_references_resolve_only_to_the_exact_public_world ... ok
+test a_slot_claim_is_held_by_one_owner_at_a_time ... ok
+test the_environment_digest_covers_every_runtime_source_file ... ok
+test method_packages_load_only_against_the_hosts_runtime_and_protocol ... ok
+test the_store_writes_durably_and_refuses_mismatched_artifacts ... ok
+test the_example_plan_is_a_valid_frozen_acceptance_plan ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/review_namespace_escape.rs (/tmp/claude-0/target-indep/debug/deps/review_namespace_escape-7a747a341b1a9d56)
+
+running 7 tests
+test an_inherited_host_directory_is_not_reachable_from_the_root ... ok
+test an_execed_signal_ignoring_descendant_is_gone_when_execute_returns ... ok
+test control_root_without_the_sandbox_can_create_them ... ok
+test control_mode_none_leaves_the_confirmed_descendants_running ... ok
+test control_without_the_sandbox_the_inherited_directory_is_reachable ... ok
+test the_method_cannot_create_user_and_pid_namespaces ... ok
+test forty_descendants_are_all_gone_when_execute_returns ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.50s
+
+     Running tests/review_seed_range_boundary.rs (/tmp/claude-0/target-indep/debug/deps/review_seed_range_boundary-273802479fda7663)
+
+running 4 tests
+test arithmetic_overflow_is_rejected_before_range_allocation ... ok
+test entirely_reserved_range_must_be_rejected ... ok
+test range_crossing_reserved_boundary_must_be_rejected ... ok
+test last_public_seed_remains_valid_and_resolvable ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.18s
+
+     Running tests/review_seed_range_cli.rs (/tmp/claude-0/target-indep/debug/deps/review_seed_range_cli-8db14aa3d1136991)
+
+running 1 test
+test invalid_seed_ranges_fail_before_reading_a_candidate_or_creating_output ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/review_session_finalization.rs (/tmp/claude-0/target-indep/debug/deps/review_session_finalization-4758b236f7654f7f)
+
+running 2 tests
+test sealed_no_output_execution_refuses_a_late_first_submission ... ok
+test failed_final_ledger_write_leaves_a_recoverable_execution ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+
+     Running tests/sandbox.rs (/tmp/claude-0/target-indep/debug/deps/sandbox-96e4b0957ea7925f)
+
+running 1 test
+test the_method_root_holds_only_the_interpreter_image_and_the_method ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.55s
+
+     Running tests/session.rs (/tmp/claude-0/target-indep/debug/deps/session-bcfd3ba6acead2d3)
+
+running 5 tests
+test a_sealed_session_accepts_nothing_and_the_receipt_comes_last ... ok
+test hidden_unlisted_and_malformed_requests_are_refused_without_a_record ... ok
+test invalid_designs_are_recorded_at_zero_steps ... ok
+test one_normalized_output_is_retained_and_the_receipt_validates ... ok
+test experiments_are_charged_cumulatively_and_each_call_is_durable ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.13s
+
+test_exit=0
+### cargo clippy --locked --all-targets -- -D warnings
+    Checking libm v0.2.16
+    Checking zerofrom v0.1.8
+    Checking stable_deref_trait v1.2.1
+    Checking yoke v0.8.4
+    Checking zerovec v0.11.9
+    Checking serde_core v1.0.229
+    Checking num-traits v0.2.19
+    Checking typenum v1.20.1
+    Checking smallvec v1.16.4
+    Checking tinystr v0.8.5
+    Checking writeable v0.6.4
+    Checking litemap v0.8.3
+    Checking crossbeam-utils v0.8.23
+    Checking icu_locale_core v2.4.0
+    Checking zerotrie v0.2.5
+    Checking potential_utf v0.1.6
+    Checking utf8_iter v1.0.4
+    Checking bytemuck v1.25.2
+    Checking icu_provider v2.4.0
+    Checking safe_arch v0.7.4
+    Checking icu_collections v2.4.0
+    Checking generic-array v0.14.7
+    Checking equivalent v1.0.3
+    Checking serde v1.0.229
+    Checking icu_properties_data v2.4.0
+    Checking wide v0.7.33
+    Checking icu_normalizer_data v2.4.0
+    Checking num-integer v0.1.47
+    Checking num-complex v0.4.6
+    Checking approx v0.5.1
+    Checking rawpointer v0.2.1
+    Checking foldhash v0.2.0
+    Checking allocator-api2 v0.2.21
+    Checking cfg-if v1.0.5
+    Checking hashbrown v0.16.1
+    Checking simba v0.9.1
+    Checking matrixmultiply v0.3.11
+    Checking num-rational v0.4.2
+    Checking icu_normalizer v2.4.0
+    Checking icu_properties v2.4.0
+    Checking block-buffer v0.10.4
+    Checking crypto-common v0.1.7
+    Checking crossbeam-epoch v0.9.21
+    Checking zmij v1.0.23
+    Checking memchr v2.8.3
+    Checking log v0.4.34
+    Checking robust v1.2.0
+    Checking hashbrown v0.17.1
+    Checking itoa v1.0.18
+    Checking indexmap v2.14.2
+    Checking serde_json v1.0.154
+    Checking nalgebra v0.33.3
+    Checking spade v2.15.1
+    Checking ena v0.14.4
+    Checking thiserror v1.0.69
+    Checking crossbeam-deque v0.8.8
+    Checking digest v0.10.7
+    Checking idna_adapter v1.2.2
+    Checking libc v0.2.191
+    Checking crossbeam-queue v0.3.14
+    Checking crossbeam-channel v0.5.17
+    Checking ordered-float v4.6.0
+    Checking hashbrown v0.12.3
+    Checking slab v0.4.12
+    Checking cpufeatures v0.2.17
+    Checking either v1.19.0
+    Checking downcast-rs v1.2.1
+    Checking bitflags v2.13.2
+    Checking percent-encoding v2.3.2
+    Checking arrayvec v0.7.8
+    Checking rustc-hash v2.1.3
+    Checking iana-time-zone v0.1.65
+    Checking chrono v0.4.45
+    Checking form_urlencoded v1.2.2
+    Checking sha2 v0.10.9
+    Checking indexmap v1.9.3
+    Checking parry2d v0.17.6
+    Checking crossbeam v0.8.5
+    Checking getrandom v0.4.3
+    Checking idna v1.1.0
+    Checking bit-vec v0.7.0
+    Checking dyn-clone v1.0.20
+    Checking schemars v0.8.22
+    Checking thiserror v2.0.21
+    Checking url v2.5.8
+    Checking rapier2d v0.22.0
+    Checking uuid v1.29.0
+    Checking genesis-core v0.1.0 (/home/claude/xwt/indep-main/crates/genesis-core)
+    Checking genesis-lab-eval v0.1.0 (/home/claude/xwt/indep-main/experiments/invention-lab/evaluator)
+    Checking genesis-lab-exec v0.1.0 (/home/claude/xwt/indep-main/experiments/invention-lab/executor)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 27.80s
+clippy_exit=0
+### cargo fmt --check
+fmt_exit=0
+### nobody processes after
+end
