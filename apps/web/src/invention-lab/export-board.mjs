@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 // Eric's Claude: build one self-contained HTML file of the invention-lab board
 // with the committed evidence embedded (docs/invention-lab/ui.md#results-board).
-// Reads docs/invention-lab/evidence; writes only --out. No network access.
+// Reads docs/invention-lab/evidence (or --evidence DIR); writes only --out. No
+// network access. The evidence travels as a JSON data block in which every `<`
+// is escaped, so no evidence file can end or re-mode the page's scripts.
 //
-//   node apps/web/src/invention-lab/export-board.mjs [--out FILE] [--a ORG] [--b ORG]
+//   node apps/web/src/invention-lab/export-board.mjs [--out FILE] [--a ORG] [--b ORG] [--evidence DIR]
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -17,7 +19,7 @@ const arg = (name, dflt) => {
 const out = path.resolve(arg("--out", path.join(repo, "apps/web/dist/invention-lab-board.html")));
 const orgA = arg("--a", "org_example_a");
 const orgB = arg("--b", "org_example_b");
-const evidence = path.join(repo, "docs/invention-lab/evidence");
+const evidence = path.resolve(arg("--evidence", path.join(repo, "docs/invention-lab/evidence")));
 
 const files = [];
 (function walk(dir) {
@@ -45,18 +47,26 @@ const result = await build({
       setup(b) {
         b.onResolve({ filter: /^virtual:lab-evidence$/ }, () => ({ path: "lab-evidence", namespace: "lab" }));
         b.onLoad({ filter: /.*/, namespace: "lab" }, () => ({
-          contents: `export default ${JSON.stringify(files)}; export const orgA = ${JSON.stringify(orgA)}; export const orgB = ${JSON.stringify(orgB)};`,
+          contents:
+            'const d = JSON.parse(document.getElementById("lab-evidence").textContent);' +
+            "export default d.files; export const orgA = d.orgA; export const orgB = d.orgB;",
           loader: "js",
         }));
       },
     },
   ],
 });
-const js = result.outputFiles.find((f) => f.path.endsWith(".js")).text.replace(/<\/script/gi, "<\\/script");
+// Inside a script element the HTML parser reacts to `</script` and `<!--`; both
+// are rewritten to escapes JavaScript reads identically.
+const js = result.outputFiles
+  .find((f) => f.path.endsWith(".js"))
+  .text.replace(/<\/script/gi, "<\\/script")
+  .replace(/<!--/g, "<\\!--");
+const data = JSON.stringify({ files, orgA, orgB }).replace(/</g, "\\u003c");
 const css = result.outputFiles.find((f) => f.path.endsWith(".css"))?.text ?? "";
 const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="light dark"><title>GENESIS invention lab: A → B → A records</title><style>${css}</style></head>
-<body><div id="root"></div><script>${js}</script></body></html>`;
+<body><div id="root"></div><script type="application/json" id="lab-evidence">${data}</script><script>${js}</script></body></html>`;
 fs.mkdirSync(path.dirname(out), { recursive: true });
 fs.writeFileSync(out, html);
 console.log(`wrote ${out} (${files.length} evidence files, ${Math.round(html.length / 1024)} KiB)`);
