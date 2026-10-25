@@ -126,6 +126,9 @@ historical fixture does not establish authenticated cloud execution or sponsor
 qualification. Use the sponsor notes and `docs/IMPLEMENTATION_STATUS.md` for
 specific remaining evidence instead of presenting every integration as live.
 
+`architecture.html` on the same port draws where each sponsor sits in the mechanism, with each box marked
+`live` (gate run or end-to-end transcript) or `created only`; its table lists the identifiers a submission needs.
+
 ## Two-tab operating plan (what to press, when to switch)
 
 Both tabs use port 7778. Tab 1 is the visual presentation; Tab 2 is the case file.
