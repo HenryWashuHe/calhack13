@@ -14,6 +14,59 @@ pub struct MethodRevisionSpec {
     pub parent: ExactContentRef,
 }
 
+pub const MAX_METHOD_REVISION_INPUT_BYTES: usize = 1024 * 1024;
+
+/// Public source-transfer input, not a checkpoint or authenticated receipt.
+/// The spec may include host-checked provenance as ordinary public documents.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct MethodRevisionInput {
+    pub schema: String,
+    pub spec: MethodRevisionSpec,
+    pub parent_package_json: String,
+}
+
+impl MethodRevisionInput {
+    pub fn new(
+        spec: MethodRevisionSpec,
+        parent_package_json: String,
+    ) -> Result<Self, SynthesisError> {
+        let input = Self {
+            schema: "genesis-method-revision-input/1".into(),
+            spec,
+            parent_package_json,
+        };
+        input.validate()?;
+        Ok(input)
+    }
+
+    pub fn validate(&self) -> Result<(), SynthesisError> {
+        if self.schema != "genesis-method-revision-input/1"
+            || self.parent_package_json.len() > 128 * 1024
+            || encode(self)?.len() > MAX_METHOD_REVISION_INPUT_BYTES
+        {
+            return Err(SynthesisError::InvalidInput);
+        }
+        self.spec
+            .generation_plan(self.parent_package_json.as_bytes())?;
+        Ok(())
+    }
+
+    pub fn prepare(&self) -> Result<MethodSynthesisSession, SynthesisError> {
+        self.validate()?;
+        self.spec.prepare(self.parent_package_json.as_bytes())
+    }
+
+    pub fn observe(
+        &self,
+        session: &MethodSynthesisSession,
+    ) -> Result<RevisionObservation, SynthesisError> {
+        self.validate()?;
+        self.spec
+            .observe(self.parent_package_json.as_bytes(), session)
+    }
+}
+
 #[derive(Clone, Debug, Serialize)]
 pub struct RevisionObservation {
     pub schema: &'static str,

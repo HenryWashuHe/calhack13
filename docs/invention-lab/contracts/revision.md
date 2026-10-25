@@ -71,3 +71,18 @@ unchanged. It also refuses an unrelated spec or parent. Existing lock files are
 left untouched. Read-only observation is a snapshot, not an exclusive execution
 or acceptance transaction. Exit 0 means the source observation was constructed,
 not that its `source_changed` flag is true or the revision is better.
+
+### Bundled input
+
+`MethodRevisionInput` is a strict `genesis-method-revision-input/1` envelope with
+`spec` (the ordinary revision spec) and `parent_package_json` (the exact canonical
+UTF-8 parent). It is bounded to 1 MiB, with the same 128 KiB parent and existing
+post-inclusion generation-plan limits. Its `prepare` and `observe` methods call
+the existing revision logic; it introduces no separate session or ledger.
+
+Both commands alternatively accept `--input received-revision.json` alongside
+`--checkpoint`, mutually exclusive with `--plan` and `--parent`. Preparation
+validates the whole input before creating a checkpoint or lock; observation
+remains read-only and cannot recover a pending attempt. Unknown fields, schema
+changes, source substitutions and oversized inputs are refused. Existing
+plan/parent invocations and their checkpoint identities are unchanged.
