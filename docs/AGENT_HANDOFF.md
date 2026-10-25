@@ -1,6 +1,45 @@
 # GENESIS implementation handoff
 
-## Current closeout handoff — main `7ec75563`
+## Manual closeout handoff — October 25, 2026
+
+The user disabled the recurring task, then authorized manual review and subagent
+fixes. Keep the automation and native Goal paused. Coordinate in issue #1;
+Ines remains unassigned and draft #7 remains preserved.
+
+### Current ownership and next work
+
+- Claude retains `scripts/iteration/**`. Its #216 `c45d9235` is now merged at
+  `c16beeca`; root reproduced four inert policy guards, clearing the three
+  source-specific holds below. OS execution reports remain author-reported.
+- Eric retains the web lab UI and #228 runner/protocol/experiment. Codex's
+  #232/#237 verifier corrections are integrated at `3890123b`; root passes
+  46 inert verifier cases. Henry's HTTP failure policy/status and readable-key
+  admission findings remain: Eric is assigned these files, not yet acknowledged.
+  Keep #228 open until reviewed. #231/#234 web corrections are merged.
+- Henry retains runtime/evaluator/adoption/analysis. Codex's #233 registry
+  precondition is on main at `bc7802c8`, addressing the rehearsal-5 write-before-
+  error finding without claiming publisher authorship. #230 is merged at
+  `64de3e3e` after the ignored-driver restart correction; retained history is
+  unchanged and remains explicitly author-reported. #239 adds a source-reviewed
+  ctypes guard at `655b0559` without a Linux run here. #240/#241 clarify the
+  future random-search quality floor at `0368c95e`, without a freeze.
+- ACP retains `apps/stage/**`. #235 is merged at `343b0209` with Codex's
+  #238 animation-clock and separate-panel plot corrections; 106 inert Stage
+  cases pass. Browser visual validation remains separate.
+- Codex completed the scoped fixes, exact-head reviews and ledger. The ready
+  fixes include #242 native TLS roots and #244 historical Linux log retention.
+  #243 is merged at `efba3a87` after #245 fixed restart ordering while preserving
+  the failed-run archive;
+  #228's two assigned runner concerns and preservation draft #7 remain open.
+  New #246 `ddfc2fd9` arrived after this final batch and remains unreviewed;
+  ACP retains that Stage change for a subsequent source/test review.
+  No broader lane transfer is implied.
+
+Use [the manual review ledger](reviews/pr-queue-2026-10-25.md#manual-closeout-october-25-2026)
+for exact commits and scoped validation. G0–G4 remain open; no experiment or
+execution assurance is inferred from these source/inert checks.
+
+## Historical closeout handoff — main `7ec75563`
 
 The user's current request is remaining-queue review, bounded fixes and merging
 ready work. [The closeout summary](reviews/pr-queue-2026-10-25.md#current-closeout--main-7ec75563)
@@ -11,7 +50,7 @@ cleared by these exact sources are historical. #216 `e16277ad`, draft #7
 Preserve the repair draft and branch;
 independent implementation/full validation review remains incomplete.
 
-### Current ownership and next work
+### Previous ownership and next work
 
 - ACP retains `apps/stage` and the actively revised iteration #216 lane. Its
   [current hold](https://github.com/HenryWashuHe/genesis-history-experiment/pull/216#issuecomment-6394889852)
