@@ -76,7 +76,7 @@ the need text made that step explicit, and both hinted calls took it.
   same answer was allowed, this closes the authority gap that attempt found.
 - Where the planner created a scoped owner, the whole G2 positive path ran
   under it: discovery, B's own Accepted trial, adoption by the new role, and an
-  invocation under its grant, scored and attached. That happened four times
+  invocation under its grant, scored and attached. That happened five times
   (b2-hint ×2, b2-plain-2, and the b1 leads twice).
 - It doesn't establish that the planner reliably reads the authority a need
   requires. Unhinted, it went one way and then the other.
