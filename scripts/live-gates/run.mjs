@@ -5,7 +5,7 @@
 //   node scripts/live-gates/run.mjs [--gates elastic,fetch,apify,creao]
 //        [--out data/live-gates] [--bin-dir target/debug]
 //        [--portal data/portal --portal-suite <suite.json>]   # reachable pages for Apify
-//        [--allow-billable]                                    # Apify build/run, CREAO agent
+//        [--allow-billable]                                    # Apify build/run, CREAO app run
 //
 // Each gate reports passed | partial | failed | needs_reconciliation |
 // not_tested, with provider IDs and measured durations. A gate without its
@@ -15,10 +15,12 @@
 // configured credentials are scrubbed from public evidence reports. Private
 // resumable checkpoints remain owned by their CLIs and must not be shared.
 import { spawnSync } from "node:child_process";
-import { cpSync, existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { closeSync, cpSync, existsSync, fsyncSync, mkdirSync, openSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
+
+import { runTrigger, triggerRunsUrl } from "./creao-trigger.mjs";
 
 export const GATES = ["elastic", "fetch", "apify", "creao"];
 export const SECRET_ENV = [
@@ -27,6 +29,8 @@ export const SECRET_ENV = [
   "AGENTVERSE_API_KEY",
   "GENESIS_FETCH_BRIDGE_TOKEN",
   "APIFY_TOKEN",
+  "CREAO_TRIGGER_API_KEY",
+  "CREAO_TRIGGER_API_KEY_PREVIOUS",
   "CREAO_ACCOUNT_API_KEY",
   "CREAO_V2_API_KEY",
   "ASI_ONE_API_KEY",
@@ -38,7 +42,7 @@ const REQUIRED = {
   elastic: ["ELASTICSEARCH_URL", "ELASTIC_DATA_API_KEY", "ELASTIC_KIBANA_URL", "ELASTIC_MANAGEMENT_API_KEY"],
   fetch: ["AGENTVERSE_API_KEY"],
   apify: ["APIFY_TOKEN"],
-  creao: ["CREAO_ACCOUNT_API_KEY"],
+  creao: ["CREAO_TRIGGER_API_KEY", "CREAO_TRIGGER_APP_ID"],
 };
 const BILLABLE = new Set(["apify", "creao"]);
 
@@ -46,7 +50,7 @@ const BILLABLE = new Set(["apify", "creao"]);
 export function scrub(value, env = process.env) {
   const names = new Set([
     ...SECRET_ENV,
-    ...Object.keys(env).filter((name) => /(?:^|_)(?:API_KEY|TOKEN|SECRET|PASSWORD|SEED)$/i.test(name)),
+    ...Object.keys(env).filter((name) => /(?:^|_)(?:API_KEY|TOKEN|SECRET|PASSWORD|SEED)(?:_(?:PREVIOUS|OLD|BACKUP|RETIRED))?$/i.test(name)),
   ]);
   const replacements = new Map();
   for (const name of names) {
@@ -275,72 +279,73 @@ export async function apifyGate(ctx) {
   };
 }
 
-export async function creaoGate(ctx) {
-  const bin = join(ctx.binDir, "genesis-creao");
-  if (!existsSync(bin)) return { status: "not_tested", reason: `no ${bin}` };
-  const apiVersion = ctx.env.CREAO_API_VERSION?.trim() ? ctx.env.CREAO_API_VERSION : "v1";
-  if (apiVersion !== "v1" && apiVersion !== "v2") {
-    return { status: "failed", stage: "configuration", reason: "CREAO_API_VERSION must be v1 or v2" };
-  }
-  const work = join(ctx.out, "creao", ctx.stamp);
-  mkdirSync(work, { recursive: true });
-  // The operation database is per run; the quota database belongs to the
-  // provider account, so request/write debits and cooldowns carry across runs.
-  const quotaDb = join(ctx.out, "creao", "quota.sqlite");
-  const spec = JSON.parse(readFileSync(join(ctx.repo, "crates/genesis-creao/examples/create-monitor.json"), "utf8"));
-  if (apiVersion === "v2") spec.api_version = "v2";
-  spec.operation_id = `live-gate-${ctx.stamp}`;
-  writeFileSync(join(work, "spec.json"), JSON.stringify(spec, null, 2));
-  const db = join(work, "creao.sqlite");
-  const base = ["--db", db, "--org", spec.org_id];
-  const prep = runCli(bin, ["prepare", ...base, "--spec", join(work, "spec.json")], ctx);
-  if (prep.code !== 0) return { status: "failed", stage: "prepare", exit: prep.code, error: prep.stderr };
-  const started = Date.now();
-  const stepArgs = ["step", ...base, "--operation", spec.operation_id, "--account", spec.account_namespace, "--quota-db", quotaDb];
-  const retryRead = (j) => j.retryable_read === true;
-  const res = await stepLoop({
-    ctx,
-    bin,
-    stepArgs,
-    statusOf: (j) => j,
-    terminal: (s) => ["native_completed", "failed", "needs_reconciliation"].includes(s?.phase),
-    pollMs: (j) => {
-      const at = j.next_poll_at ? Date.parse(j.next_poll_at) - Date.now() : 2000;
-      return Math.min(Math.max(at, 500), 30000);
-    },
-    maxSteps: ctx.maxSteps,
-    retryRead,
-  });
-  const resume = resumeOf(bin, stepArgs, res.last, retryRead);
-  const last = res.last ?? {};
-  const status =
-    last.phase === "native_completed"
-      ? "passed"
-      : last.phase === "needs_reconciliation"
-        ? "needs_reconciliation"
-        : last.phase === "failed"
-          ? "failed"
-          : last.run_id
-            ? "partial"
-            : "failed";
+// Benign, synthetic organization-local decision. A completed run alone does not
+// validate this output and never establishes readiness or a created agent.
+export const CREAO_WORKFLOW_CHECK = "genesis.role-workflow-check/1";
+export function creaoWorkflowInputs() {
   return {
-    status,
-    duration_ms: Date.now() - started,
+    task: "Assess selective adoption for GENESIS's receiving organization",
+    instructions: "Use only the synthetic facts below. Do not browse, call tools, send messages, create agents, change resources, or execute code. The existing design-review role owns this responsibility. A candidate is eligible only when both local runs completed and it beats the control by at least one success. Return only a JSON object with schema, responsibility_id, owner_role_id, decision, candidate_successes and control_successes. The decision must reflect this local comparison, not the publisher's claim.",
+    schema: CREAO_WORKFLOW_CHECK,
+    responsibility: { id: "smoke-method-review", owner_role_id: "smoke-design-review" },
+    offered_method: { id: "smoke-candidate", publisher_claim: "12 of 12 on a different task" },
+    local_trial: { instances: 6, candidate: { completed: true, successes: 2 }, control: { completed: true, successes: 4 }, required_margin: 1 },
+  };
+}
+export function validCreaoWorkflowResult(result) {
+  let answer = result;
+  if (result && typeof result === "object" && typeof result.text === "string") answer = JSON.parse(result.text);
+  else if (typeof result === "string") answer = JSON.parse(result);
+  return answer && typeof answer === "object" && !Array.isArray(answer)
+    && answer.schema === CREAO_WORKFLOW_CHECK && answer.responsibility_id === "smoke-method-review"
+    && answer.owner_role_id === "smoke-design-review" && answer.decision === "decline"
+    && answer.candidate_successes === 2 && answer.control_successes === 4;
+}
+function durableDirectory(path) {
+  mkdirSync(path, { recursive: true, mode: 0o700 });
+  // Persist newly created directory entries before runTrigger's durable pre-POST record.
+  for (let current = resolve(path); ; current = dirname(current)) {
+    const fd = openSync(current, "r");
+    try { fsyncSync(fd); } finally { closeSync(fd); }
+    if (current === dirname(current)) break;
+  }
+}
+export async function creaoGate(ctx) {
+  if (!ctx.allowBillable) return { status: "not_tested", reason: "billable; rerun with --allow-billable" };
+  const appId = ctx.env.CREAO_TRIGGER_APP_ID, key = ctx.env.CREAO_TRIGGER_API_KEY;
+  let runsUrl;
+  try {
+    const version = ctx.env.CREAO_API_VERSION;
+    if (version !== undefined && !(typeof version === "string" && (version.trim() === "" || version === "trigger"))) {
+      throw new Error("CREAO_API_VERSION must be trigger; Developer API execution is disabled");
+    }
+    runsUrl = triggerRunsUrl(appId, ctx.env.CREAO_TRIGGER_RUNS_URL);
+    if (typeof key !== "string" || !key.startsWith("capi_")) throw new Error("CREAO_TRIGGER_API_KEY must be a capi_ key");
+  } catch (error) { return { status: "failed", stage: "configuration", reason: error.message }; }
+  const work = join(ctx.out, "creao", ctx.stamp);
+  durableDirectory(work);
+  const journal = join(work, "trigger.json");
+  const started = Date.now();
+  const record = await runTrigger({ appId, key, runsUrl, inputs: creaoWorkflowInputs(), out: journal,
+    allowCredits: true, fetchImpl: ctx.triggerFetchImpl ?? fetch, maxPolls: ctx.maxSteps,
+    pollMs: 2000 * (ctx.pollScale ?? 1), checkId: CREAO_WORKFLOW_CHECK, checkResult: validCreaoWorkflowResult });
+  const status = record.phase === "completed" ? (record.result_check?.passed === true ? "passed" : "failed")
+    : record.phase === "needs_reconciliation" ? "needs_reconciliation"
+    : ["failed", "cancelled"].includes(record.phase) ? "failed" : "partial";
+  const resumeArgv = [process.execPath, join(ctx.repo, "scripts/live-gates/run.mjs"), "--gates", "creao", "--out", ctx.out,
+    "--run-id", ctx.stamp, "--max-steps", String(ctx.maxSteps), "--allow-billable"];
+  return {
+    status, duration_ms: Date.now() - started,
     evidence: {
-      operation_id: spec.operation_id,
-      api_version: apiVersion,
-      phase: last.phase ?? null,
-      native_status: last.native_status ?? null,
-      run_id: last.run_id ?? null,
-      provider_agent_id: last.provider_agent_id ?? null,
-      readiness_verified: false,
-      resume: resume.command,
-      resume_argv: resume.argv,
+      api_version: "trigger", app_id: record.app_id, run_id: record.run_id, phase: record.phase,
+      native_status: record.status, input_sha256: record.input_sha256, result_sha256: record.result_sha256,
+      credits_used: record.credits_used, usage_reason: record.credits_used === null ? "not_reported_by_provider" : "reported_by_provider",
+      workflow_check: record.result_check?.passed === true, readiness_verified: false,
+      reason: record.reason ?? (record.phase === "completed" && !record.result_check?.passed ? "synthetic_workflow_check_failed" : null),
+      checkpoint: journal, resume: resumeArgv.map(shellQuote).join(" "), resume_argv: resumeArgv,
     },
-    steps: res.log,
-    note: "Creates one real, billable CREAO agent (no delete endpoint). Native completion is not readiness; the gateway skill/receipt gate is separate.",
-    ...(res.limit ? { stopped: `step limit ${ctx.maxSteps} reached; resume with genesis-creao step` } : {}),
-    ...(res.error ? { error: res.error } : {}),
+    note: "One credit-consuming run of an existing app-scoped CREAO agent. Passed means the synthetic local-decline workflow check matched; it does not establish a created agent, readiness, sponsor qualification or actual organizational adoption.",
+    ...(record.reason ? { stopped: record.reason } : {}),
   };
 }
 
@@ -356,7 +361,10 @@ export async function runGates(opts) {
     portalSuite: opts.portalSuite ? resolve(opts.portalSuite) : null,
     maxSteps: opts.maxSteps ?? 400,
     pollScale: opts.pollScale ?? 1,
+    allowBillable: opts.allowBillable === true,
+    triggerFetchImpl: opts.triggerFetchImpl,
   };
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(ctx.stamp)) throw new Error("run ID must be a plain name of at most 128 characters");
   mkdirSync(ctx.out, { recursive: true });
   const results = {};
   for (const gate of opts.gates) {
@@ -404,6 +412,7 @@ async function main() {
       "portal-suite": { type: "string" },
       "allow-billable": { type: "boolean" },
       "max-steps": { type: "string" },
+      "run-id": { type: "string" },
     },
   });
   const gates = values.gates.split(",").map((g) => g.trim()).filter(Boolean);
@@ -419,6 +428,7 @@ async function main() {
     gates,
     portalSuite: values["portal-suite"],
     allowBillable: values["allow-billable"],
+    stamp: values["run-id"],
     maxSteps: values["max-steps"] ? Number(values["max-steps"]) : undefined,
   });
   process.stdout.write(summary(report));

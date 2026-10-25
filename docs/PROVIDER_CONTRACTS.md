@@ -1,6 +1,6 @@
 # Provider contracts
 
-Documentation reviewed: October 21, 2026. These are implementation contracts derived from public documentation, **not evidence of authenticated integration tests**. Account access, latency, quotas, and provider response shapes still need the smoke checks below.
+Documentation reviewed: October 21, 2026; CREAO execution contract updated October 25, 2026. These are implementation contracts derived from public documentation, **not evidence of authenticated integration tests**. Account access, latency, quotas, and provider response shapes still need the smoke checks below.
 
 The Rust core uses Axum/Tokio and owns provider adapters, credentials, jobs, and organizational state. Reuse asynchronous Rust HTTP clients for Elastic, Apify, CREAO, and Agentverse search. A separate, small Python process hosts only the Fetch uAgents SDK and exchanges typed messages with the core through a private HTTP bridge. The React/TypeScript UI renders committed events. Generated Apify Actors use TypeScript in a stable build scaffold.
 
@@ -15,7 +15,7 @@ Configuration names below are GENESIS conventions, not provider-defined environm
 | Fetch.ai | Discover, recruit, and message independently running specialists | `AGENTVERSE_API_KEY` for Rust discovery and SDK registration setup; a separate secret seed held by each Python uAgent process; private bridge authentication | Agentverse discovery uses `Authorization: Bearer <key>`. The bridge carries typed messages; a discovered address is a candidate, not an accepted contract. |
 | Elastic Agent Builder on Serverless | Create internal specialists and skills; retrieve organization evidence and shared capabilities | `ELASTIC_KIBANA_URL`, `ELASTICSEARCH_URL`; separate management/execution encoded API keys | Agent Builder uses the Kibana URL and `Authorization: ApiKey <encoded-key>`; writes require `kbn-xsrf: true`. Data indexing uses the Elasticsearch URL. |
 | Apify | Create, build, and execute missing web capabilities | `APIFY_TOKEN` held only by the trusted backend | Actor creation/modification requires an unscoped forge token; scoped tokens cannot perform those operations. Never give the forge token to generated code or CREAO. |
-| CREAO | Create persistent operational agents and reusable procedures; run continuing responsibilities | `CREAO_BASE_URL=https://developer.creao.ai/v1`, server-side `CREAO_ACCOUNT_API_KEY` with `cr_sk_` prefix | Use the Account API surface consistently. Do not mix app-scoped credentials or hosted `/v2` routes. Skills and secrets are account-wide. |
+| CREAO | Bind organizational roles to a published app and run specialized workflows | Server-side `CREAO_TRIGGER_API_KEY` (`capi_`), `CREAO_TRIGGER_APP_ID`; optional exact `CREAO_TRIGGER_RUNS_URL` | API Trigger only in production; no Developer fallback or cloud agent creation. Frozen role contracts accompany each job. |
 
 The GENESIS kernel is the sole authority for roles, responsibilities, assignments, grants, leases, and retirement. Provider resources implement those decisions; they do not define the organization.
 
@@ -73,22 +73,28 @@ Request `forcePermissionLevel=LIMITED_PERMISSIONS` for generated runs and explic
 
 ## CREAO
 
-Paths are relative to `https://developer.creao.ai` and consistently use `/v1`.
+Production uses app-scoped [API Trigger](https://docs.creao.ai/pro/api-trigger):
 
 | Operation | Documented path | Contract |
 |---|---|---|
-| Create operational agent | `POST /v1/agents` with natural-language `input` | Asynchronous: store returned run ID; agent ID can initially be null |
-| Poll creation/execution | `GET /v1/runs/{run_id}` | Require terminal success and independently validate the extracted result |
-| Inspect/change agent | `GET`, `PATCH /v1/agents/{agent_id}` | Retain effective instructions/configuration digest |
-| Execute responsibility | `POST /v1/runs` | Supply agent ID, input, and optional conversation/workspace identifiers |
-| Install bridge skill | `POST /v1/skills` | Account-level skill with supporting HTTP script; verify sandbox readiness |
-| Read/update memory | `GET`, `PUT /v1/agents/{agent_id}/memory` | Provider memory supplements authoritative kernel state |
+| Bootstrap a local role / execute its job | `POST https://agent.creao.ai/api/v1/apps/{appId}/runs` | App-scoped Bearer key and `{"inputs":{...}}`; retain the exact app/run IDs |
+| Poll execution | `GET https://agent.creao.ai/api/v1/apps/{appId}/runs/{runId}` | Require exact retained identity, terminal completion and independent output validation |
 
-Creation can supply the final agent ID at the top level or inside `result`; reject conflicting identifiers. Run success or `result.text` alone does not prove a domain action succeeded. Validate the returned task result and resulting mission state. A generic skill calling the GENESIS capability gateway is a proposed integration, not a native CREAO–Apify connector. [Create agent](https://docs.creao.ai/developer-api/agents/create-agent), [runs](https://docs.creao.ai/developer-api/runs/create-async-run), [status](https://docs.creao.ai/developer-api/runs/get-run-status), [skills](https://docs.creao.ai/developer-api/skills)
+API Trigger does not create/edit cloud agents, install skills or expose Developer
+memory/agent APIs. Publish/configure the app first. The kernel continues creating
+organizational roles, with a durable bootstrap and separate gateway readiness.
+Each job resends its frozen role contract, task and complete authority context;
+shared app identity is not physical isolation. Historical v1/v2 records and
+explicit library fixtures are retained, but backend entry points refuse those
+protocols and keys. See [runtime configuration and migration](CREAO_RUNTIME.md).
 
-The Account API manages personal agents; native schedules, team-agent creation, and Store publication are outside this API's documented scope. GENESIS timers dispatch continuing work. No public agent-deletion contract was established: retire by stopping timers/dispatch, revoking grants, and transferring obligations. Workspace removal does not prevent direct execution. Account-level secrets and skills cross workspace boundaries; use separate accounts for strong tenant separation. [Authentication and scope](https://docs.creao.ai/developer-api/authentication), [secrets](https://docs.creao.ai/developer-api/secrets), [workspaces](https://docs.creao.ai/developer-api/workspaces)
-
-Coordinate polling through one account limiter. Documented defaults include 30 requests/minute and 30 management writes/hour; active-run limits depend on the account. Prefer polling initially. Webhook signatures were not established in the reviewed contract; if introduced, deduplicate deliveries and authenticate a subsequent run-status fetch before trusting results. [Rate limits](https://docs.creao.ai/developer-api/rate-limits), [webhooks](https://docs.creao.ai/developer-api/webhooks)
+The runtime persists intent before one POST, resumes known runs by GET, refuses
+ambiguous resubmission, and shares a conservative local quota/cooldown ledger.
+Run completion and `result.text` do not prove a domain action or current authority.
+Readiness requires a challenge-bound gateway callback; receipts require separate
+domain validation. Read-only authentication, a paid run, readiness and sponsor
+core-work evidence are different claims. The [API path comparison](https://docs.creao.ai/developer-api/api-paths)
+explains the separate credentials and scopes.
 
 ## Shared lifecycle and independence
 
@@ -106,7 +112,7 @@ Coordinate polling through one account limiter. Documented defaults include 30 r
 - [ ] Fetch: register two independent identities; verify Rust discovery and the Rust–Python bridge's typed offer/accept/task/result round trips; measure latency; reject a late or wrong-sender result. Restart the sidecar and verify identity preservation and inbox/outbox deduplication.
 - [ ] Elastic: on Serverless, create a native retrieval tool, skill, and specialist; invoke it through SSE; verify effective bindings and separate-org index authorization. Reconcile a simulated lost creation response.
 - [ ] Apify: create a new source-bearing TypeScript Actor, build it, execute its exact build number, retrieve output, and fail an intentionally incorrect candidate against the oracle. Record cold-build latency and limits.
-- [ ] CREAO: verify Account API authentication and entitlements; create and poll an agent; inspect/update it; invoke twice on distinct events; test skill-file readiness, HTTP bridge access, and memory behavior under the account limiter.
+- [ ] CREAO: verify app-scoped authentication/credits; bootstrap a local role and poll its published app; execute distinct jobs with frozen role contracts; verify gateway readiness and independently check outputs. Record genuine run share evidence.
 - [ ] Cross-provider: record provider IDs proving a role and executable were absent before the requirement and created afterward. Activate ownership only after readiness checks.
 - [ ] Independence: Org B discovers the shared manifest, runs local acceptance, and executes the pinned capability without synthesis or access to Org A's private state.
 - [ ] Retirement/recovery: retire a role with unfinished work, verify handoff and no later dispatch, then replay duplicate events/results without duplicate effects.

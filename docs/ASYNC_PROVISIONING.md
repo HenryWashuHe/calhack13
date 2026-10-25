@@ -79,13 +79,17 @@ Tests: `crates/genesis-server/tests/specialist_jobs.rs`,
 ## Still needed before a live CREAO role
 
 - **Registration is done** (`creao_config::attach_creao_from_env`, called at the
-  start of `serve_org`). Set all four of `GENESIS_CREAO_DB`,
-  `GENESIS_CREAO_ACCOUNT`, `GENESIS_CREAO_QUOTA_DB` and `CREAO_ACCOUNT_API_KEY`
-  in the git-ignored `.env`; none set means CREAO stays unconfigured, a partial
+  start of `serve_org`). Set all five of `GENESIS_CREAO_DB`,
+  `GENESIS_CREAO_ACCOUNT`, `GENESIS_CREAO_QUOTA_DB`, `CREAO_TRIGGER_API_KEY` and
+  `CREAO_TRIGGER_APP_ID` in the server environment (using your private `.env`
+  loader); none set means CREAO stays unconfigured, a partial
   set refuses to start and names the missing variables (never the key).
   Startup runs `recover_interrupted()` before serving. `/health` lists
   `configured_specialists`. Being registered is not being ready: without a
-  readiness verifier a created CREAO agent stays `awaiting_readiness`.
+  readiness verifier an app-bound CREAO role stays `awaiting_readiness`.
+  Production uses API Trigger, not Developer v1/v2. Publish the app first and
+  use fresh Trigger journals; see [CREAO_RUNTIME.md](CREAO_RUNTIME.md).
+  Completed bootstrap contracts are retained locally and resent with each job.
 - **The readiness verifier's kernel side is done**: `GatewayReadiness` issues a
   one-time challenge and accepts the agent's receipt at
   `POST /api/v1/gateway/readiness-receipts` (see
@@ -94,7 +98,11 @@ Tests: `crates/genesis-server/tests/specialist_jobs.rs`,
   along with the complete CREAO configuration to register it. Actual skill
   installation and a live-account receipt remain unverified; see
   [CREAO_READINESS.md](CREAO_READINESS.md).
-- **Reconciling a lost creation is done.** For a `needs_reconciliation`
+- **Historical Developer creation reconciliation:** API Trigger cannot create
+  agents, and attaching an ID alone does not supply the completed bootstrap
+  contract now required for Trigger jobs. The following operator API preserves
+  the historical reconciliation behavior; it is not a way to bypass Trigger
+  provisioning. For a `needs_reconciliation`
   operation an operator (operator token) can either:
   - **attach** the native agent found in the provider account:
     `POST /api/v1/org-changes/{id}/operations/{role_key}/attach` with
