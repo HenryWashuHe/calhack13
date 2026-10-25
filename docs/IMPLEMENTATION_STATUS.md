@@ -8,13 +8,24 @@ Use the [migration map](REPOSITORY_MIGRATION.md) for legacy PRs. The
 [ongoing goal](ONGOING_GOAL.md) remains a bounded A → B → A executable
 development-method loop and honest controlled evaluation with fixed model
 weights. Event organization remains superseded. G0–G4 are still open.
-Work resumed on the user's retry. The native app Goal last returned `blocked`,
-not complete; the existing hourly continuation remains active. The repository
-completion contract is unchanged.
+The native app Goal and existing hourly continuation are active; no completion
+is claimed. The repository completion contract is unchanged.
 
-Main through `8493a8ce8c48761845577a6a48af9a37f35ce11f`, tree
-`1a3fce96af5e2270bea90f8213fcf4be7cf08880`, includes the reviewed
-foundations below. Method generation merged at `d1be8443fee46e1196861926a963563f48407936`,
+The user-requested queue cleanup closed #176/#177/#178 as superseded, with
+code/test blobs preserved in #180/#181 and revised docs in #182/#183. #143 is
+closed as deferred outside the active goal; branches and findings remain.
+Merged #167 is a five-line staging-collision correction, reviewed statically
+with locked executor check and strict all-target Clippy; no runtime was tested.
+Merged #182/#183 remain proposals. #180/#181 are held on ineffective bounds,
+cleanup and default host execution; those reviews were source-only. [#184 `68e05610` remains held](https://github.com/HenryWashuHe/genesis-history-experiment/pull/184#pullrequestreview-5641505853)
+on calibration unknown-to-zero, blocking reads/missing cleanup and omitted
+failures. Editorial corrections leave scripts unchanged; fix them before new runs.
+The `b5a35bf` invocation rehearsal is author-reported and unreviewed here; it
+does not establish independent organizational transfer or goal completion.
+
+Main through `eb08a23237230a983796062212529cc31053294e`, tree
+`90c52423e68c7f71aad31bb571679a35142a885a` (reviewed composition `33cea78f`),
+includes the reviewed foundations below. Method generation merged at `d1be8443fee46e1196861926a963563f48407936`,
 whose tree `dc9d6adc19863d8584fd5af1fd11eae7552014eb` exactly matches the independently
 validated generation stack. Counts refer to the named source/composition, not a
 combined main run.
@@ -316,13 +327,15 @@ legitimate family-specific policy is rejected, full method metadata is not pinne
 and order/exact not-run complement is lost. Mocked eligible observations yield
 one passing control and seven failing subcases in `3ff7c98b`; original guards
 remain unchanged. No scorer/evaluator or generated method ran.
-[#165 `15febb1e`](https://github.com/HenryWashuHe/genesis-history-experiment/pull/165#pullrequestreview-5641420211)
-clears the wrong hidden-build instruction. The new first-admissible-point
-explanation remains held: hidden-2 explored seven designs over 32 experiments
-and the selected design scored 5/6 during development before further search.
-Its separate 12/12 hidden result is retained. Static checks pass for 713 manifest
-entries, 523 artifact hashes, 12 slot bindings and nine declaration comparisons;
-records are unchanged. This is no rerun, secrecy/chronology proof or runtime clearance.
+Selective-transfer #165 source `cb5f28f0d71d65ec6b7c3376ebc05ec73485d7fc` merged
+at `b99839dfc9344cc0bfb57309e24074d82870ac91`, clearing both editorial holds.
+Root's static review checks 713 manifest entries, 523 artifact hashes, 12 slot
+bindings and nine predeclaration comparisons; raw records are unchanged. The
+unchanged parent records rough-transport 12/12 versus random 7/12 publicly and
+12/12 versus 9/12 on hidden attempt 2; ravine hidden-2 remains 1/12 versus 10/12.
+Public `6636596` and hidden `b59d1eb1` builds are distinguished; attempt 2 followed
+seeing attempt 1. This retained-data check is not a rerun, independent secrecy/
+chronology proof, accepted recursive return or runtime/namespace clearance.
 
 [#179 `0946e6bc` is held](https://github.com/HenryWashuHe/genesis-history-experiment/pull/179#pullrequestreview-5641416602)
 on legacy schema migration, policy-fenced reacceptance and runtime/protocol
@@ -359,12 +372,12 @@ its parent branch only; #128 `2f0b6734` subsequently integrated identical web
 bytes into main at `a3be74d0`, with all 81 tests/typecheck independently rerun.
 This clears the earlier folder-dedup, raw-package and inspection-identity holds.
 In the separate `apps/stage` queue, #125 `811d0df2` is now merged at `c0c2cae1`:
-33 offline VM tests pass and the original timing guard is unchanged. Retargeted
-[#126 `67071fc7` remains held](https://github.com/HenryWashuHe/genesis-history-experiment/pull/126#pullrequestreview-5641420723):
-the prior same-poll fixes pass, but a later unrelated B poll replaces the card
-while A's acknowledgment still links to it. All 47 existing VM cases pass;
-two new later-poll guards fail at `75c67a6`. Original cases remain unchanged.
-Earlier `d85b018` regressions remain retained. G2/G3 organizational authority, selection
+33 offline VM tests pass and the original timing guard is unchanged. [#126 `702ee560` is merged](https://github.com/HenryWashuHe/genesis-history-experiment/pull/126#pullrequestreview-5641520538)
+at `eb08a232`: later polls retain the acknowledged card identity; ambiguous
+delivery says unconfirmed and asks for a log check before another report.
+Root, independent reviewer and final composition each pass 52 offline VM cases
+(overlapping). All 49 prior tests are byte-identical; the new 63-line file adds
+three ambiguity guards. No live POST/browser/provider validation occurred. G2/G3 organizational authority, selection
 and local adoption are separate from any displayed story or receipt identity.
 Henry's receiving wrapper #118 `68bc82d0` merged at `ec23efb5`: copies checked
 package/spec bytes and atomically records each completed/failed launch. All six
@@ -382,13 +395,14 @@ run ID cannot be recovered retroactively. ACP keeps bridge/docs and hosted-gate
 evidence.
 
 Current supporting review: Stage #125 `811d0df2` is merged at `c0c2cae1`;
-#126 `67071fc7` remains held on later-poll acknowledgment/card attribution.
-Iteration [#144 `51b342ea` remains held](https://github.com/HenryWashuHe/genesis-history-experiment/pull/144#pullrequestreview-5641446964):
-54 existing synthetic Node cases pass, including prior guards, while three new
-`db25f0b8` cases fail. Resume drops invalid positions, primitive/frozen callback
-errors lose partial rows, and ancestor metadata overrides later source bytes.
-All earlier tests remain unchanged; finite inert callbacks only, not actual
-method execution, Rust-contract integration or recursive benefit.
+#126 `702ee560` is merged at `eb08a232`; its 52 offline VM checks clear the
+card/receipt holds without live delivery or authority claims.
+Iteration [#144 `407ca24f` remains held](https://github.com/HenryWashuHe/genesis-history-experiment/pull/144#pullrequestreview-5641513196):
+all 57 existing synthetic checks pass, clearing the prior three findings. New
+42-line `a8887ec7` fails: imported ancestor metadata becomes another family's
+root, discards verified source and falsely promotes 1/2 over the actual 2/2
+control. Root independently reran the failure. Prior tests are unchanged;
+inert callbacks only, not runtime, Rust-contract integration or recursive benefit.
 Dated direction/sponsor note #161 `c936bcf6` merged at `a9caea11` after
 source/delta and independent review; the current checkpoint remains authoritative. Ownership is unchanged.
 
@@ -415,9 +429,10 @@ Reviewed #3/#5 composition `9c636f198be271490847a65421385dc7f4e56e43`, tree
 `5d623f4ef694190c53cf5bd06ab8000d710660e3`, has the same bridge subtree as final
 main: `5d040d9c7201819a5f7f477646e9d82c3906e6fa`. See [the clearance](https://github.com/HenryWashuHe/genesis-history-experiment/pull/3#pullrequestreview-5638260885).
 Evidence remains SQLite/loopback/signed-process testing, not public Agentverse/ASI
-routing. ACP retains #4, whose stale routing/status/demo references must be
-reconciled with merged #3/#5, the local executor/scorer and issue #1. Do not revive
-the event-organizer example. #6 is withdrawn and the venue fallback #2 stays closed.
+routing. Corrected ACP documentation #4 `be7056c6` merged at `9da2fc12`, retaining
+read/observation authority and proposed-command labels with a product-neutral
+example. No ACP implementation or public routing changed. #6 is withdrawn and
+the venue fallback #2 stays closed.
 
 The [latest Apify operator report](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6382245294)
 records a passed live gate on main `2a070af`: three oracle-checked cases with the
