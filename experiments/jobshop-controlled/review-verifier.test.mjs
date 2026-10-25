@@ -150,3 +150,52 @@ for (const [name, mutate] of invalid) test(`retained verifier rejects ${name}`, 
   mutate(data);
   assert.throws(() => verify(data));
 });
+
+function setBenefits(data, differences) {
+  for (const [i, seed] of SEEDS.entries()) {
+    const row = data.files["final-scores.json"][seed].feedback;
+    Object.assign(row, scoreRow(`${seed}/feedback`, 30 + differences[i] * 60));
+  }
+  const mean = differences.reduce((sum, x) => sum + x, 0) / 5;
+  const halfWidth = 2.776 * Math.sqrt(differences.reduce((sum, x) => sum + (x - mean) ** 2, 0) / 4 / 5);
+  const positive = differences.filter((x) => x > 0).length;
+  Object.assign(data.files["summary.json"], { differences, mean_difference: mean, interval_95: [mean - halfWidth, mean + halfWidth],
+    positive_repetitions: positive, declared_success: mean >= 0.05 && mean - halfWidth > 0 && positive >= 4 });
+}
+test("a supported positive result and a negative result both verify", () => {
+  for (const differences of [[0.1, 0.2, 0.1, 0.2, 0.15], [-0.1, -0.2, -0.1, -0.2, -0.15]]) {
+    const data = fixture();
+    setBenefits(data, differences);
+    assert.equal(verify(data).status, "complete");
+  }
+});
+test("retained scoring failure stays unsuccessful with unknown mean ratio", () => {
+  const data = fixture();
+  const row = data.files["final-scores.json"][SEEDS[0]].controls["random-search"];
+  row.scores[59] = { success: false, detail: { error: "inert retained failure" } };
+  row.invalid_count = 1;
+  row.mean_ratio = null;
+  assert.equal(verify(data).status, "complete");
+});
+test("provider stop with its subsequent error observation remains incomplete", () => {
+  const data = fixture();
+  data.events = data.events.slice(0, 2);
+  data.events.push({ event: "run_stopped", reason: "unknown charge" },
+    { event: "mutator_observation", identity: data.events[1].identity, record: { error: "inert submission failure" } });
+  delete data.files["summary.json"];
+  assert.equal(verify(data).status, "incomplete");
+});
+for (const [name, mutate] of [
+  ["different frozen effort", (f) => { f.files["manifest.json"].effort = "high"; }],
+  ["different final panel size", (f) => { f.files["manifest.json"].final_instances = 30; }],
+  ["duplicate seed roster", (f) => { f.files["manifest.json"].seeds = [SEEDS[0], ...SEEDS.slice(0, 4)]; }],
+  ["lower unposted-usage reserve", (f) => { f.files["manifest.json"].cost.prior_project_reserve_micro_usd = 0; }],
+  ["unknown success represented as truthy text", (f) => { f.files["final-scores.json"][SEEDS[0]].controls["random-search"].scores[0].success = "unknown"; }],
+  ["failed ratio falsely represented as a numeric mean", (f) => { const row = f.files["final-scores.json"][SEEDS[0]].controls["random-search"]; row.scores[59] = { success: false }; row.invalid_count = 1; }],
+  ["persisted round metrics disagree with the journal", (f) => { f.files[`state-${SEEDS[0]}-feedback.json`].rows[0].engine_evaluations = 999; }],
+  ["persisted round silently drops its plan", (f) => { delete f.files[`state-${SEEDS[0]}-feedback.json`].rows[0].plan; }],
+]) test(`retained verifier also rejects ${name}`, () => {
+  const data = fixture();
+  mutate(data);
+  assert.throws(() => verify(data));
+});
