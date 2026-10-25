@@ -2,8 +2,10 @@
 
 ## Current review handoff — October 25, 2026
 
-Use [the main `a177ba5e` review snapshot](reviews/pr-queue-2026-10-25.md) for
-current source-specific routing; the older frozen checkpoint follows unchanged.
+Use [the main `b141cdcf` review snapshot](reviews/pr-queue-2026-10-25.md) for
+current source-specific routing. User priority #144 is merged; #57/#65 have
+branch-only fixups and still need independent Linux assurance. Older frozen
+material follows unchanged.
 Henry retains runtime/adoption and analysis ownership; Eric retains lab UI and
 his separately claimed research lane; ACP retains Stage. Codex coordinates
 review and its existing core-contract lane. Ines remains unassigned.
