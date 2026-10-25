@@ -1,0 +1,194 @@
+{
+  "request": {
+    "request_id": "score-g2a2-b2-plain-2",
+    "execution_sha256": "c17aa16c2f697471f728c0c8690a7458c2f280cd8f18216b546c9197929f680c",
+    "output": {
+      "domain": "genesis-lab",
+      "schema": "lab-design/1",
+      "id": "output",
+      "version": "1",
+      "sha256": "2483f08f8ec33f4144a4a6105842bd9e2da7702275592140c3aca35c2ac61cec"
+    },
+    "context": {
+      "public_task": {
+        "domain": "genesis-lab",
+        "schema": "lab-task/1",
+        "id": "rough-transport",
+        "version": "1",
+        "sha256": "7ea1854c2b359837033ade75434e2ca165465492792fbb66efaf21117758456b"
+      },
+      "evaluator": {
+        "domain": "genesis-lab",
+        "schema": "lab-evaluator/1",
+        "id": "genesis-lab-eval",
+        "version": "0.1.0",
+        "sha256": "1f03d1b6499721e6ddae6e600b688c123a8684e34c56f53cde8104d361246f42"
+      },
+      "environment": {
+        "domain": "genesis-lab",
+        "schema": "lab-scoring-env/1",
+        "id": "genesis-lab-score/1",
+        "version": "1",
+        "sha256": "e51f2c6f4227fdf5f2dd82ea4a1d92654bc7433c31ef262c7a1589ec14a2c99d"
+      },
+      "generator": {
+        "domain": "genesis-lab",
+        "schema": "lab-generator/1",
+        "id": "rough-transport",
+        "version": "1",
+        "sha256": "7ea1854c2b359837033ade75434e2ca165465492792fbb66efaf21117758456b"
+      },
+      "instance_set": {
+        "domain": "genesis-lab",
+        "schema": "lab-instance-set/1",
+        "id": "development",
+        "version": "1",
+        "sha256": "3f645ea86ece9bfc4f372c854ce5903c45366f3724f2805023eac52d21c26dc2"
+      },
+      "design_schema": {
+        "domain": "genesis-lab",
+        "schema": "lab-design-schema/1",
+        "id": "language-1",
+        "version": "1",
+        "sha256": "45413d253546f0e3b5b72109558e86c2b261070507034093006846092ead8bc9"
+      },
+      "metric_schema": {
+        "domain": "genesis-lab",
+        "schema": "lab-metric-schema/1",
+        "id": "v1",
+        "version": "1",
+        "sha256": "561ea19f741981fbaf2d143d1907e3ac2da8817473ec421af8d8fbad22a4d975"
+      },
+      "scoring_rule": {
+        "domain": "genesis-lab",
+        "schema": "lab-scoring-rule/1",
+        "id": "rough-transport",
+        "version": "1",
+        "sha256": "919434eb04d49739e3837a6b7c258757022cf50a24b1aebb3dbde5002c9409f3"
+      }
+    },
+    "purpose": {
+      "kind": "invocation",
+      "plan": {
+        "domain": "genesis",
+        "schema": "development-trial-plan/1",
+        "id": "invoke-g2a2-b2-plain-2",
+        "version": "1",
+        "sha256": "c9c82f682a6abf986784f4881239dfc8ec61867bc8b1c9f5eae7d1aafa94acd4"
+      },
+      "grant": {
+        "adoption_id": "madopt_7479907047bd405da759c6d400364d5e",
+        "requirement_id": "req_eda2301856584c74af6a9605b62a9ebb",
+        "role_id": "role_6361029318054a9498ebb476d0581512",
+        "responsibility_id": "rsp_094411e7f22c4949ae69797d14697006",
+        "assignment_id": "asg_9bc20b3ae55b4e93b7cd2b64008834d0",
+        "epoch": 1
+      }
+    },
+    "budget": {
+      "model_calls": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "wall_time_ms": 600000,
+      "simulation_steps": 28800
+    }
+  },
+  "request_sha256": "dedc2b52da970b603cb13d735b149cb6344357558f63ac5b529ffccb356df7c1",
+  "observed_context": {
+    "public_task": {
+      "domain": "genesis-lab",
+      "schema": "lab-task/1",
+      "id": "rough-transport",
+      "version": "1",
+      "sha256": "7ea1854c2b359837033ade75434e2ca165465492792fbb66efaf21117758456b"
+    },
+    "evaluator": {
+      "domain": "genesis-lab",
+      "schema": "lab-evaluator/1",
+      "id": "genesis-lab-eval",
+      "version": "0.1.0",
+      "sha256": "1f03d1b6499721e6ddae6e600b688c123a8684e34c56f53cde8104d361246f42"
+    },
+    "environment": {
+      "domain": "genesis-lab",
+      "schema": "lab-scoring-env/1",
+      "id": "genesis-lab-score/1",
+      "version": "1",
+      "sha256": "e51f2c6f4227fdf5f2dd82ea4a1d92654bc7433c31ef262c7a1589ec14a2c99d"
+    },
+    "generator": {
+      "domain": "genesis-lab",
+      "schema": "lab-generator/1",
+      "id": "rough-transport",
+      "version": "1",
+      "sha256": "7ea1854c2b359837033ade75434e2ca165465492792fbb66efaf21117758456b"
+    },
+    "instance_set": {
+      "domain": "genesis-lab",
+      "schema": "lab-instance-set/1",
+      "id": "development",
+      "version": "1",
+      "sha256": "3f645ea86ece9bfc4f372c854ce5903c45366f3724f2805023eac52d21c26dc2"
+    },
+    "design_schema": {
+      "domain": "genesis-lab",
+      "schema": "lab-design-schema/1",
+      "id": "language-1",
+      "version": "1",
+      "sha256": "45413d253546f0e3b5b72109558e86c2b261070507034093006846092ead8bc9"
+    },
+    "metric_schema": {
+      "domain": "genesis-lab",
+      "schema": "lab-metric-schema/1",
+      "id": "v1",
+      "version": "1",
+      "sha256": "561ea19f741981fbaf2d143d1907e3ac2da8817473ec421af8d8fbad22a4d975"
+    },
+    "scoring_rule": {
+      "domain": "genesis-lab",
+      "schema": "lab-scoring-rule/1",
+      "id": "rough-transport",
+      "version": "1",
+      "sha256": "919434eb04d49739e3837a6b7c258757022cf50a24b1aebb3dbde5002c9409f3"
+    }
+  },
+  "outcome": {
+    "kind": "scored",
+    "metrics": {
+      "domain": "genesis-lab",
+      "schema": "lab-scoring-metrics/1",
+      "id": "lab-scoring-metrics/1",
+      "version": "1",
+      "sha256": "6c3877fb8e6260a44d2f7e9d9184e10069c614d2ddc10c00b5c93adf78704915"
+    }
+  },
+  "trace": {
+    "domain": "genesis-lab",
+    "schema": "lab-scoring-trace/1",
+    "id": "lab-scoring-trace/1",
+    "version": "1",
+    "sha256": "26623dd4d89a84bc2c958152c36a8551b22475aab2dec0cef28c3a76ecafb594"
+  },
+  "usage": {
+    "model_calls": {
+      "kind": "measured",
+      "value": 0
+    },
+    "input_tokens": {
+      "kind": "measured",
+      "value": 0
+    },
+    "output_tokens": {
+      "kind": "measured",
+      "value": 0
+    },
+    "wall_time_ms": {
+      "kind": "measured",
+      "value": 62
+    },
+    "simulation_steps": {
+      "kind": "measured",
+      "value": 7686
+    }
+  }
+}

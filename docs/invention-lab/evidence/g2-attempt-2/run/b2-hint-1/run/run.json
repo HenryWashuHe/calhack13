@@ -1,0 +1,243 @@
+{
+  "authorization": {
+    "adoption_id": "madopt_f925a57abab64e62999c8729030ef431",
+    "grant": {
+      "assignment_id": "asg_2c9400743e1948eb8844906a6df5538b",
+      "epoch": 1,
+      "responsibility_id": "rsp_cf8e954351b743f2bb6aa4fe906aaa26",
+      "role_id": "role_78562429e79842a3a8f12bd30e974b76"
+    },
+    "publisher": "org_example_a",
+    "reference": {
+      "domain": "genesis",
+      "id": "generated-method",
+      "schema": "development-method-source/1",
+      "sha256": "8215c3679a06724069759bcbdaa576b64ec0ef1251c5238a797c0cb34962b944",
+      "version": "0.1.0"
+    },
+    "requirement_id": "req_146b76141d75454295bf5ccd3ef7f9ec"
+  },
+  "budget": null,
+  "client_request_id": "g2a2-b2-hint-1-run",
+  "created_at": "2026-10-25T12:22:58.110178011Z",
+  "id": "mrun_289da677dee48a2d16791300",
+  "intent_sha256": "289da677dee48a2d16791300450cf6732f670101ff7ed775e59e2037b46a2fec",
+  "plan": {
+    "context": {
+      "design_schema": {
+        "domain": "genesis-lab",
+        "id": "language-1",
+        "schema": "lab-design-schema/1",
+        "sha256": "45413d253546f0e3b5b72109558e86c2b261070507034093006846092ead8bc9",
+        "version": "1"
+      },
+      "environment": {
+        "domain": "genesis-lab",
+        "id": "genesis-lab-score/1",
+        "schema": "lab-scoring-env/1",
+        "sha256": "e51f2c6f4227fdf5f2dd82ea4a1d92654bc7433c31ef262c7a1589ec14a2c99d",
+        "version": "1"
+      },
+      "evaluator": {
+        "domain": "genesis-lab",
+        "id": "genesis-lab-eval",
+        "schema": "lab-evaluator/1",
+        "sha256": "1f03d1b6499721e6ddae6e600b688c123a8684e34c56f53cde8104d361246f42",
+        "version": "0.1.0"
+      },
+      "generator": {
+        "domain": "genesis-lab",
+        "id": "rough-transport",
+        "schema": "lab-generator/1",
+        "sha256": "7ea1854c2b359837033ade75434e2ca165465492792fbb66efaf21117758456b",
+        "version": "1"
+      },
+      "instance_set": {
+        "domain": "genesis-lab",
+        "id": "development",
+        "schema": "lab-instance-set/1",
+        "sha256": "10002573e2123a87c2592152614b858c1a8d5aeff75cb4b24af63fc97d670569",
+        "version": "1"
+      },
+      "metric_schema": {
+        "domain": "genesis-lab",
+        "id": "v1",
+        "schema": "lab-metric-schema/1",
+        "sha256": "561ea19f741981fbaf2d143d1907e3ac2da8817473ec421af8d8fbad22a4d975",
+        "version": "1"
+      },
+      "public_task": {
+        "domain": "genesis-lab",
+        "id": "rough-transport",
+        "schema": "lab-task/1",
+        "sha256": "7ea1854c2b359837033ade75434e2ca165465492792fbb66efaf21117758456b",
+        "version": "1"
+      },
+      "scoring_rule": {
+        "domain": "genesis-lab",
+        "id": "rough-transport",
+        "schema": "lab-scoring-rule/1",
+        "sha256": "919434eb04d49739e3837a6b7c258757022cf50a24b1aebb3dbde5002c9409f3",
+        "version": "1"
+      }
+    },
+    "criterion": {
+      "domain": "genesis-lab",
+      "id": "success-count-margin",
+      "schema": "lab-criterion/1",
+      "sha256": "4f25c373d6ea0d185f20651c0dfc565d832032c6149b186dc6e3fe715be8766a",
+      "version": "1"
+    },
+    "development_environment": {
+      "domain": "genesis-lab",
+      "id": "genesis-lab-exec/namespaces",
+      "schema": "lab-environment/1",
+      "sha256": "eea594d411dd74e146bf8e2a99e4c7b6f6c0249eb67a640d090df0a2554ec74f",
+      "version": "0.1.0"
+    },
+    "development_grant": {
+      "input_tokens": 0,
+      "model_calls": 0,
+      "output_tokens": 0,
+      "simulation_steps": 72000,
+      "wall_time_ms": 60000
+    },
+    "development_instances": [
+      {
+        "domain": "genesis-lab",
+        "id": "rough-transport/1/56200",
+        "schema": "lab-instance/1",
+        "sha256": "40c844f93c70e5cb81b212c0ffea1df3ac685a058eaf77bcd68343aca9913f10",
+        "version": "1"
+      },
+      {
+        "domain": "genesis-lab",
+        "id": "rough-transport/1/56201",
+        "schema": "lab-instance/1",
+        "sha256": "c04be9ec02c7e014806b2aefc8fc5322e59d5b6f4d88b1f1430c2405ed8ba28b",
+        "version": "1"
+      },
+      {
+        "domain": "genesis-lab",
+        "id": "rough-transport/1/56202",
+        "schema": "lab-instance/1",
+        "sha256": "5a936bc16cdc90bd8d797b34e905bbc3e5f0afec0fdc80f6ee5ff717f16e9deb",
+        "version": "1"
+      },
+      {
+        "domain": "genesis-lab",
+        "id": "rough-transport/1/56203",
+        "schema": "lab-instance/1",
+        "sha256": "54394e4166409360bcac9e29d1da32df829793443fcd027e1c98148d9fa26d2c",
+        "version": "1"
+      },
+      {
+        "domain": "genesis-lab",
+        "id": "rough-transport/1/56204",
+        "schema": "lab-instance/1",
+        "sha256": "c27704d2c278a19924f61e003d2066d7affe77d7fa9d869dcfe7baedf406aa25",
+        "version": "1"
+      },
+      {
+        "domain": "genesis-lab",
+        "id": "rough-transport/1/56205",
+        "schema": "lab-instance/1",
+        "sha256": "baccdc424978945572d3d2baa6cf1e12f1c2c01ccddf2be2d69bfa046402c47b",
+        "version": "1"
+      },
+      {
+        "domain": "genesis-lab",
+        "id": "rough-transport/1/56206",
+        "schema": "lab-instance/1",
+        "sha256": "7eaf6aa2a1df8e154d905b6e3d53df2c7a42c78a95bb92264219e0740e5e2129",
+        "version": "1"
+      },
+      {
+        "domain": "genesis-lab",
+        "id": "rough-transport/1/56207",
+        "schema": "lab-instance/1",
+        "sha256": "1781f365572f29795b86a39a658f0d9f1d0908e6a7d3ed441482f334fd5ea9b3",
+        "version": "1"
+      },
+      {
+        "domain": "genesis-lab",
+        "id": "rough-transport/1/56208",
+        "schema": "lab-instance/1",
+        "sha256": "16bffc4539101a534c9b402ec7722235ae019017638f3270b11d28920fc8c349",
+        "version": "1"
+      },
+      {
+        "domain": "genesis-lab",
+        "id": "rough-transport/1/56209",
+        "schema": "lab-instance/1",
+        "sha256": "0035871a12e07ed36fad4256f28b79bd9ae23e75e24014160a36ee44243b9ccc",
+        "version": "1"
+      },
+      {
+        "domain": "genesis-lab",
+        "id": "rough-transport/1/56210",
+        "schema": "lab-instance/1",
+        "sha256": "9e90e001b215dcc77d2d2d6b6defb9ef52c4a7ec0648dee6a2bcab0f20f1311e",
+        "version": "1"
+      },
+      {
+        "domain": "genesis-lab",
+        "id": "rough-transport/1/56211",
+        "schema": "lab-instance/1",
+        "sha256": "369e42c08e252fd4ffa17a827eb4f53fb4fa2b9352dd6d5b03d699b7ea8a81fb",
+        "version": "1"
+      }
+    ],
+    "id": "invoke-g2a2-b2-hint-1",
+    "model_settings": {
+      "domain": "genesis-lab",
+      "id": "none",
+      "schema": "lab-model-settings/1",
+      "sha256": "22d87a28faebccda00538e6c2e78aab3a87e4749bd2e255572afdceefded8839",
+      "version": "1"
+    },
+    "scoring_grant": {
+      "input_tokens": 0,
+      "model_calls": 0,
+      "output_tokens": 0,
+      "simulation_steps": 28800,
+      "wall_time_ms": 600000
+    },
+    "scoring_instances": {
+      "kind": "development"
+    },
+    "slots": [
+      {
+        "attempt_id": "att_g2a2_b2_hint_1",
+        "dependencies": [],
+        "method": {
+          "domain": "genesis",
+          "id": "generated-method",
+          "schema": "development-method-source/1",
+          "sha256": "8215c3679a06724069759bcbdaa576b64ec0ef1251c5238a797c0cb34962b944",
+          "version": "0.1.0"
+        },
+        "org_id": "org_example_b",
+        "purpose": {
+          "grant": {
+            "adoption_id": "madopt_f925a57abab64e62999c8729030ef431",
+            "assignment_id": "asg_2c9400743e1948eb8844906a6df5538b",
+            "epoch": 1,
+            "requirement_id": "req_146b76141d75454295bf5ccd3ef7f9ec",
+            "responsibility_id": "rsp_cf8e954351b743f2bb6aa4fe906aaa26",
+            "role_id": "role_78562429e79842a3a8f12bd30e974b76"
+          },
+          "kind": "invocation"
+        },
+        "run_id": "run-g2a2-b2-hint-1",
+        "scoring_request_id": "score-g2a2-b2-hint-1",
+        "slot_id": "use"
+      }
+    ],
+    "version": "1"
+  },
+  "receipt": null,
+  "schema_version": 1,
+  "status": "prepared",
+  "updated_at": "2026-10-25T12:22:58.110178011Z"
+}

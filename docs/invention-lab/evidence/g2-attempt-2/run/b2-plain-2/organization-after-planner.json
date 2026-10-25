@@ -1,0 +1,150 @@
+{
+  "assignments": {
+    "asg_112bfec74244460c9ec78cf3550e3908": {
+      "assignment_id": "asg_112bfec74244460c9ec78cf3550e3908",
+      "epoch": 1,
+      "lease_expires_at": null,
+      "responsibility_id": "rsp_02b2a47c2b754678ae2772783ff804b1",
+      "role_id": "role_24b5160d8c9f407590fd9be1bf5e2d9b",
+      "state": "ACTIVE"
+    },
+    "asg_9bc20b3ae55b4e93b7cd2b64008834d0": {
+      "assignment_id": "asg_9bc20b3ae55b4e93b7cd2b64008834d0",
+      "epoch": 1,
+      "lease_expires_at": null,
+      "responsibility_id": "rsp_094411e7f22c4949ae69797d14697006",
+      "role_id": "role_6361029318054a9498ebb476d0581512",
+      "state": "ACTIVE"
+    }
+  },
+  "capability_gaps": {},
+  "constitution": {
+    "budget_cents": 1000000,
+    "max_active_contracts": 3,
+    "max_active_roles": 10,
+    "scopes": [
+      "method.develop",
+      "mission.coordinate"
+    ]
+  },
+  "contracts": {},
+  "installations": {},
+  "missions": {
+    "mis_014db926520a479f949359f0b15afaad": {
+      "constraints": [],
+      "created_at": "2026-10-25T12:23:14.132485057Z",
+      "deadline": null,
+      "goal": "Develop physical designs with the best available methods",
+      "mission_id": "mis_014db926520a479f949359f0b15afaad",
+      "status": "ACTIVE",
+      "success_checks": []
+    }
+  },
+  "name": "org_example_b",
+  "observations": {
+    "obs_7a28c6aea5dd43c5a297eb9512701cc3": {
+      "evidence_ref": "genesis:method-development:44df6e72511a1e03c5543d8729b722d56c551376c099f496e33ecccaadd1aa1b",
+      "mission_id": "mis_014db926520a479f949359f0b15afaad",
+      "observation_id": "obs_7a28c6aea5dd43c5a297eb9512701cc3",
+      "observed_at": "2026-10-25T12:23:14.180869957Z",
+      "source": "method-development",
+      "summary": "Receiver-owned capability-development need: Develop rough-transport cart designs with a method another lab published\nDesired acceptance: Beats the fixed cart by one success on twelve fresh public instances\nAn exact network method selection is retained as evidence (44df6e72511a1e03c5543d8729b722d56c551376c099f496e33ecccaadd1aa1b). It is not an installed Actor capability or an accepted method. Assess continuing responsibility using the existing owners; create a specialist only when distinct continuing work justifies it. Availability alone requires no organizational change."
+    }
+  },
+  "org_id": "org_example_b",
+  "requirements": {
+    "req_eda2301856584c74af6a9605b62a9ebb": {
+      "acceptance": "A developed cart design beats the fixed cart by at least one success on twelve fresh public instances. The evaluation is recorded so anyone can reproduce the comparison.",
+      "mission_id": "mis_014db926520a479f949359f0b15afaad",
+      "owner": {
+        "id": "role_6361029318054a9498ebb476d0581512",
+        "kind": "role"
+      },
+      "requirement_id": "req_eda2301856584c74af6a9605b62a9ebb",
+      "status": "ASSIGNED",
+      "summary": "Develop rough-transport cart designs using the externally published method retained as evidence (selection 44df6e72…aa1b), and evaluate them against the fixed cart baseline.",
+      "triggering_evidence": [
+        "obs_7a28c6aea5dd43c5a297eb9512701cc3"
+      ]
+    }
+  },
+  "responsibilities": {
+    "rsp_02b2a47c2b754678ae2772783ff804b1": {
+      "epoch": 1,
+      "executor": null,
+      "mission_id": "mis_014db926520a479f949359f0b15afaad",
+      "owner": {
+        "id": "role_24b5160d8c9f407590fd9be1bf5e2d9b",
+        "kind": "role"
+      },
+      "purpose": "Coordinate the lab",
+      "requirement_id": null,
+      "responsibility_id": "rsp_02b2a47c2b754678ae2772783ff804b1",
+      "status": "OPEN",
+      "termination": "",
+      "trigger": ""
+    },
+    "rsp_094411e7f22c4949ae69797d14697006": {
+      "epoch": 1,
+      "executor": null,
+      "mission_id": "mis_014db926520a479f949359f0b15afaad",
+      "owner": {
+        "id": "role_6361029318054a9498ebb476d0581512",
+        "kind": "role"
+      },
+      "purpose": "Develop rough-transport cart designs with the published method and show they beat the fixed cart baseline",
+      "requirement_id": "req_eda2301856584c74af6a9605b62a9ebb",
+      "responsibility_id": "rsp_094411e7f22c4949ae69797d14697006",
+      "status": "OPEN",
+      "termination": "A design beats the fixed cart by at least one success on twelve fresh public instances, or the Lab lead closes the need",
+      "trigger": "Method-development need observed (obs_7a28c6aea5dd43c5a297eb9512701cc3)"
+    }
+  },
+  "revision": 4,
+  "roles": {
+    "role_24b5160d8c9f407590fd9be1bf5e2d9b": {
+      "authority": {
+        "budget_cents": 10000,
+        "scopes": [
+          "mission.coordinate"
+        ]
+      },
+      "binding": {
+        "config_digest": "a31e011d24e31b533b95f4078c2ca3304548a93cea26072502b20e9b1cd8dbfe",
+        "conversation_ref": null,
+        "provider": "internal",
+        "provider_agent_id": "kernel:lead"
+      },
+      "capabilities": [],
+      "charter": "Own the lab and run rough-transport deliveries",
+      "created_in_revision": 1,
+      "name": "Lab lead",
+      "reports_to": null,
+      "retired_in_revision": null,
+      "role_id": "role_24b5160d8c9f407590fd9be1bf5e2d9b",
+      "state": "ACTIVE"
+    },
+    "role_6361029318054a9498ebb476d0581512": {
+      "authority": {
+        "budget_cents": 50000,
+        "scopes": [
+          "method.develop"
+        ]
+      },
+      "binding": {
+        "config_digest": "678f61eb9e59e41c46ba1aedd5ab54e57ebb0bbdbc8a5fed0b9b49e81c2f2f88",
+        "conversation_ref": null,
+        "provider": "dev_stub",
+        "provider_agent_id": "devstub-elastic-af76b4b91cf74f2aa88253f48e3a6e82"
+      },
+      "capabilities": [],
+      "charter": "Develop and evaluate rough-transport cart designs using the best available published methods, and report results to the Lab lead.",
+      "created_in_revision": 4,
+      "name": "Cart method developer",
+      "reports_to": "role_24b5160d8c9f407590fd9be1bf5e2d9b",
+      "retired_in_revision": null,
+      "role_id": "role_6361029318054a9498ebb476d0581512",
+      "state": "ACTIVE"
+    }
+  }
+}

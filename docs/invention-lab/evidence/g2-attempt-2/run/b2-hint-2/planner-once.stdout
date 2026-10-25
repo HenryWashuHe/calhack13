@@ -1,0 +1,79 @@
+Proposed {
+    change: OrgChangeRecord {
+        change_id: ChangeId(
+            "chg_4cce44e6df1d4c08932904c2e0028619",
+        ),
+        status: Validated,
+        proposal: OrgChangeProposal {
+            expected_org_revision: 3,
+            trigger_evidence_ids: [
+                ObservationId(
+                    "obs_6ab6cb96f3a44367b765db2947eaa319",
+                ),
+            ],
+            rationale: "The mission now needs rough-transport cart designs produced with a method another lab published. Adopting or running that method requires the method.develop scope. The only active role, Lab lead, holds only mission.coordinate, so no current role can own this work. Lab lead's charter covers rough-transport deliveries, but it holds only mission.coordinate. No operation can add method.develop to an existing role. No capability is installed to attach. RequestCapability is not possible because the evidence_ref is an internal genesis reference, not a public URL. No external specialists are known. The smallest valid change is therefore one new role, justified by authority, that holds only method.develop with a bounded budget. It reports to Lab lead and is the single accountable owner of this requirement.",
+            operations: [
+                CreateRole {
+                    key: "cart_method_developer",
+                    name: "Cart method developer",
+                    charter: "Adopt and run published design methods to develop rough-transport cart designs, and verify them against the fixed cart baseline on fresh public instances.",
+                    authority: AuthorityGrant {
+                        scopes: {
+                            "method.develop",
+                        },
+                        budget_cents: 100000,
+                    },
+                    reports_to: Some(
+                        Existing {
+                            role_id: RoleId(
+                                "role_43e649632dba437b9cbbfaac7b698c4e",
+                            ),
+                        },
+                    ),
+                    provider: Elastic,
+                    justification: Authority,
+                },
+                AssignResponsibility {
+                    target: FromRequirement {
+                        key: "develop_cart_designs",
+                        requirement_id: RequirementId(
+                            "req_a4a906cbc9e843ca9f6dea60cf81c878",
+                        ),
+                        purpose: "Develop rough-transport cart designs using the externally published method and show they beat the fixed cart by at least one success on twelve fresh public instances.",
+                        trigger: "Method-development evidence obs_6ab6cb96f3a44367b765db2947eaa319 identifying the published method for rough-transport cart design.",
+                        termination: "A developed cart design is shown, with retained evidence, to beat the fixed cart by at least one success on twelve fresh public instances, or the method is shown to be unusable and this is escalated to Lab lead.",
+                    },
+                    owner: New {
+                        key: "cart_method_developer",
+                    },
+                },
+            ],
+            budget_limit_cents: Some(
+                100000,
+            ),
+        },
+        allocation: KeyAllocation {
+            roles: {
+                "cart_method_developer": RoleId(
+                    "role_047c239d4f654cb4b70872257eeb3096",
+                ),
+            },
+            responsibilities: {
+                "develop_cart_designs": ResponsibilityId(
+                    "rsp_121e21c0698345c3879d0acc91667bc4",
+                ),
+            },
+            contracts: {},
+            gaps: {},
+        },
+        provisioned: {},
+        ready: {},
+        operations: {},
+        errors: [],
+        committed_revision: None,
+        submitted_by: "agent",
+        created_at: 2026-10-25T12:23:45.876729795Z,
+        updated_at: 2026-10-25T12:23:45.876737212Z,
+    },
+    attempts: 1,
+}

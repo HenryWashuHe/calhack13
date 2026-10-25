@@ -1,0 +1,162 @@
+{
+  "candidate": {
+    "development_overrun": false,
+    "development_steps": 8845,
+    "development_usage": {
+      "input_tokens": {
+        "kind": "measured",
+        "value": 0
+      },
+      "model_calls": {
+        "kind": "measured",
+        "value": 0
+      },
+      "output_tokens": {
+        "kind": "measured",
+        "value": 0
+      },
+      "simulation_steps": {
+        "kind": "measured",
+        "value": 8845
+      },
+      "wall_time_ms": {
+        "kind": "measured",
+        "value": 628
+      }
+    },
+    "eligible": true,
+    "execution": "output_generated",
+    "method": {
+      "domain": "genesis",
+      "id": "generated-method",
+      "schema": "development-method-source/1",
+      "sha256": "8215c3679a06724069759bcbdaa576b64ec0ef1251c5238a797c0cb34962b944",
+      "version": "0.1.0"
+    },
+    "plan": {
+      "domain": "genesis",
+      "id": "receive-b1-hint-2-pinned",
+      "schema": "development-trial-plan/1",
+      "sha256": "f3273345494946b234a56880744e93fa9cf8516e61decf2c40742a2cb2d9c2f7",
+      "version": "1"
+    },
+    "reasons": [],
+    "schema": "genesis-process-slot-assessment/1",
+    "scoring": {
+      "kind": "scored",
+      "metrics": {
+        "domain": "genesis-lab",
+        "id": "lab-scoring-metrics/1",
+        "schema": "lab-scoring-metrics/1",
+        "sha256": "3ce8e8e630132dc048471d92e7d3f003d04c25975627eac94e4b93e05ea89ed4",
+        "version": "1"
+      }
+    },
+    "scoring_usage": {
+      "input_tokens": {
+        "kind": "measured",
+        "value": 0
+      },
+      "model_calls": {
+        "kind": "measured",
+        "value": 0
+      },
+      "output_tokens": {
+        "kind": "measured",
+        "value": 0
+      },
+      "simulation_steps": {
+        "kind": "measured",
+        "value": 8845
+      },
+      "wall_time_ms": {
+        "kind": "measured",
+        "value": 105
+      }
+    },
+    "scoring_within_grant": true,
+    "slot_id": "candidate",
+    "successes": 12
+  },
+  "control": {
+    "development_overrun": false,
+    "development_steps": 0,
+    "development_usage": {
+      "input_tokens": {
+        "kind": "measured",
+        "value": 0
+      },
+      "model_calls": {
+        "kind": "measured",
+        "value": 0
+      },
+      "output_tokens": {
+        "kind": "measured",
+        "value": 0
+      },
+      "simulation_steps": {
+        "kind": "measured",
+        "value": 0
+      },
+      "wall_time_ms": {
+        "kind": "measured",
+        "value": 368
+      }
+    },
+    "eligible": true,
+    "execution": "output_generated",
+    "method": {
+      "domain": "genesis",
+      "id": "fixed-cart",
+      "schema": "development-method-source/1",
+      "sha256": "dc5b74f34698885641ca5c673ae80f00f8248ce2e073ac3fe1367d924fd2f3bd",
+      "version": "0.1.0"
+    },
+    "plan": {
+      "domain": "genesis",
+      "id": "receive-b1-hint-2-pinned",
+      "schema": "development-trial-plan/1",
+      "sha256": "f3273345494946b234a56880744e93fa9cf8516e61decf2c40742a2cb2d9c2f7",
+      "version": "1"
+    },
+    "reasons": [],
+    "schema": "genesis-process-slot-assessment/1",
+    "scoring": {
+      "kind": "scored",
+      "metrics": {
+        "domain": "genesis-lab",
+        "id": "lab-scoring-metrics/1",
+        "schema": "lab-scoring-metrics/1",
+        "sha256": "50e1c696bb4d401106359ecddede23c700d2415c1ae64be610545f42488782f8",
+        "version": "1"
+      }
+    },
+    "scoring_usage": {
+      "input_tokens": {
+        "kind": "measured",
+        "value": 0
+      },
+      "model_calls": {
+        "kind": "measured",
+        "value": 0
+      },
+      "output_tokens": {
+        "kind": "measured",
+        "value": 0
+      },
+      "simulation_steps": {
+        "kind": "measured",
+        "value": 23170
+      },
+      "wall_time_ms": {
+        "kind": "measured",
+        "value": 191
+      }
+    },
+    "scoring_within_grant": true,
+    "slot_id": "control",
+    "successes": 6
+  },
+  "eligible": true,
+  "settled_verdict": true
+}
