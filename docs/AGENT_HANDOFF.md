@@ -462,7 +462,14 @@ merged at `68604b929ccfb66920bfc65fb4f0e05530dc6d5a`. [Independent review](https
 passes 23 pure core cases and scoped strict Clippy, including three new guards.
 A one-slot public Development plan binds all claimed grant identity fields;
 acceptance/comparison stays separate. No grant is authenticated or executed by
-these types. Draft #186 still needs Henry's prepare/start/receipt authority checks.
+these types. [#186 `b069b1294cfbeeb563b3c70ddf96914b4690c3bc` is held](https://github.com/HenryWashuHe/genesis-history-experiment/pull/186#pullrequestreview-5641441324):
+disabling the receiver blocks a matching final receipt, and preparation admits a
+binding that cannot fit the terminal receipt cap. Guard commit
+`d771f69fff79341c07c17b69fa88278b08c15477` preserves two failures; 12 existing
+library and four HTTP controls pass. SQLite/JSON and loopback HTTP only, with
+no operator runner, method, provider or runtime execution. Server validation
+checks an operator-reported receipt against frozen authority; it is not
+independent evidence that execution happened.
 [#179 `0946e6bc` remains held](https://github.com/HenryWashuHe/genesis-history-experiment/pull/179#pullrequestreview-5641416602):
 legacy schema/index migration is absent, policy-fenced reacceptance is blocked,
 and runtime/protocol changes are not fenced. Eleven old store cases pass, four
