@@ -148,6 +148,20 @@ pub struct MethodAdoptionRecord {
     pub reference: ExactContentRef,
     pub outcome: MethodAdoptionOutcome,
     pub created_at: DateTime<Utc>,
+    /// The receiver runtime and protocol the method was checked against when
+    /// this decision was made. Absent only in schema 1 records, which predate
+    /// it and so can't show current compatibility: they never authorize.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub compatibility: Option<Compatibility>,
+}
+
+/// What the receiver could run when it decided: a change to either fences
+/// the decision, as `assess_selected` would now refuse the same package.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Compatibility {
+    pub runtime: ExactContentRef,
+    pub protocol: ExactContentRef,
 }
 
 impl MethodAdoptionRecord {
@@ -158,7 +172,12 @@ impl MethodAdoptionRecord {
             .outcome
             .evidence()
             .is_none_or(|e| e.method == self.reference && e.publisher == self.publisher);
-        if self.schema_version != 1 || !self.outcome.consistent() || !bound {
+        let versioned = match self.schema_version {
+            1 => self.compatibility.is_none(),
+            2 => self.compatibility.is_some(),
+            _ => false,
+        };
+        if !versioned || !self.outcome.consistent() || !bound {
             return Err(E::InvalidRecord);
         }
         Ok(())
@@ -166,14 +185,33 @@ impl MethodAdoptionRecord {
 
     /// Everything besides the grant that fences this record: a change to any
     /// of these makes it stop authorizing, so it must not block a fresh
-    /// decision under the same assignment and epoch either.
+    /// decision under the same assignment and epoch either. From schema 2 that
+    /// includes the receiver policy the decision was made under (the pinned
+    /// plan and the runtime/protocol), so a fresh acceptance under a changed
+    /// policy is a new decision, not a duplicate. Schema 1 keeps its original
+    /// digest so stored rows still match.
     fn fence_sha256(&self) -> Result<String> {
-        digest(&(
+        let authority = (
             &self.requirement_sha256,
             &self.mission_sha256,
             &self.authority_sha256,
             &self.lease_expires_at,
-        ))
+        );
+        match &self.compatibility {
+            None => digest(&authority),
+            Some(compatibility) => digest(&(
+                authority,
+                self.outcome.evidence().map(|e| &e.plan),
+                compatibility,
+            )),
+        }
+    }
+
+    /// Whether `receiver` still runs what this decision was checked against.
+    pub fn compatible_with(&self, receiver: &MethodReceiver) -> bool {
+        self.compatibility
+            .as_ref()
+            .is_some_and(|c| c.runtime == receiver.runtime && c.protocol == receiver.protocol)
     }
 
     /// The retained acceptance this decision was derived from, if any.
@@ -270,7 +308,52 @@ fn load(conn: &Connection, id: &str) -> Result<MethodAdoptionRecord> {
 
 impl Store {
     pub fn init_method_adoptions(&self) -> Result<()> {
-        self.lock().execute_batch("CREATE TABLE IF NOT EXISTS method_adoptions(ordinal INTEGER PRIMARY KEY AUTOINCREMENT,id TEXT NOT NULL UNIQUE,client_request_id TEXT NOT NULL UNIQUE,requirement_id TEXT NOT NULL,assignment_id TEXT NOT NULL,epoch INTEGER NOT NULL,publisher TEXT NOT NULL,method_sha256 TEXT NOT NULL,fence_sha256 TEXT NOT NULL,outcome TEXT NOT NULL,record_json TEXT NOT NULL);CREATE UNIQUE INDEX IF NOT EXISTS method_adoption_adopted ON method_adoptions(requirement_id,assignment_id,epoch,fence_sha256,publisher,method_sha256) WHERE outcome='adopted';")?;
+        let mut conn = self.lock();
+        let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        tx.execute_batch("CREATE TABLE IF NOT EXISTS method_adoptions(ordinal INTEGER PRIMARY KEY AUTOINCREMENT,id TEXT NOT NULL UNIQUE,client_request_id TEXT NOT NULL UNIQUE,requirement_id TEXT NOT NULL,assignment_id TEXT NOT NULL,epoch INTEGER NOT NULL,publisher TEXT NOT NULL,method_sha256 TEXT NOT NULL,fence_sha256 TEXT NOT NULL,outcome TEXT NOT NULL,record_json TEXT NOT NULL);")?;
+        // A table created before the fence column existed (#155/#159): add
+        // it, backfill each row from its own record and rebuild the index,
+        // all in this transaction. Record bytes and identities are unchanged.
+        let has_fence: bool = tx.query_row(
+            "SELECT COUNT(*)>0 FROM pragma_table_info('method_adoptions') WHERE name='fence_sha256'",
+            [],
+            |row| row.get(0),
+        )?;
+        if !has_fence {
+            tx.execute_batch(
+                "ALTER TABLE method_adoptions ADD COLUMN fence_sha256 TEXT NOT NULL DEFAULT ''",
+            )?;
+            let rows = {
+                let mut query = tx.prepare("SELECT id,record_json FROM method_adoptions")?;
+                let rows = query
+                    .query_map([], |row| {
+                        Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+                    })?
+                    .collect::<rusqlite::Result<Vec<_>>>()?;
+                rows
+            };
+            for (id, json) in rows {
+                let record: MethodAdoptionRecord =
+                    decode_json(json.as_bytes()).map_err(|_| E::InvalidRecord)?;
+                record.validate()?;
+                tx.execute(
+                    "UPDATE method_adoptions SET fence_sha256=?1 WHERE id=?2",
+                    params![record.fence_sha256()?, id],
+                )?;
+            }
+        }
+        let index: Option<String> = tx
+            .query_row(
+                "SELECT sql FROM sqlite_master WHERE type='index' AND name='method_adoption_adopted'",
+                [],
+                |row| row.get(0),
+            )
+            .optional()?;
+        if index.is_some_and(|sql| !sql.contains("fence_sha256")) {
+            tx.execute_batch("DROP INDEX method_adoption_adopted")?;
+        }
+        tx.execute_batch("CREATE UNIQUE INDEX IF NOT EXISTS method_adoption_adopted ON method_adoptions(requirement_id,assignment_id,epoch,fence_sha256,publisher,method_sha256) WHERE outcome='adopted';")?;
+        tx.commit()?;
         Ok(())
     }
 
@@ -390,7 +473,7 @@ impl Store {
             return Err(E::Limit);
         }
         let record = MethodAdoptionRecord {
-            schema_version: 1,
+            schema_version: 2,
             id: format!("madopt_{}", uuid::Uuid::new_v4().simple()),
             client_request_id: intent.client_request_id.clone(),
             intent_sha256,
@@ -408,6 +491,10 @@ impl Store {
             reference: intent.reference.clone(),
             outcome,
             created_at: now,
+            compatibility: Some(Compatibility {
+                runtime: receiver.runtime.clone(),
+                protocol: receiver.protocol.clone(),
+            }),
         };
         let json = serde_json::to_string(&record).map_err(|_| E::InvalidRecord)?;
         if json.len() > MAX_RECORD_BYTES {

@@ -8,8 +8,9 @@
 //!
 //! The receiver's current policy also has to still stand behind the record:
 //! the requirement's pin must name the same publisher and the exact plan the
-//! adoption was decided under, and the trial's environment, evaluator and
-//! dependencies must still be ones the receiver accepts. Tightening or
+//! adoption was decided under, the receiver must still run the runtime and
+//! protocol the method was checked against, and the trial's environment,
+//! evaluator and dependencies must still be ones the receiver accepts. Tightening or
 //! changing that configuration fences older decisions; nothing is rewritten.
 use crate::capability_adoption_store::AdoptionFence;
 use crate::method_adoption::MethodReceiver;
@@ -48,7 +49,8 @@ fn receiver_still_accepts(receiver: &MethodReceiver, record: &MethodAdoptionReco
     ) else {
         return false;
     };
-    pin.publisher == record.publisher
+    record.compatible_with(receiver)
+        && pin.publisher == record.publisher
         && pin.plan == evidence.plan
         && receiver.environments.contains(&evidence.environment)
         && receiver.evaluators.contains(&evidence.evaluator)
