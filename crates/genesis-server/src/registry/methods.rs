@@ -2,7 +2,7 @@
 use super::{default_limit, RegistryState};
 use crate::error::{ApiError, ApiResult};
 use axum::{
-    extract::State,
+    extract::{Query, State},
     http::{HeaderMap, StatusCode},
     routing::post,
     Json, Router,
@@ -30,6 +30,13 @@ pub struct MethodPublication {
 pub struct MethodOffer {
     pub publisher: OrgId,
     pub publication: MethodPublication,
+}
+
+/// Optional for legacy callers; typed clients bind their intended account before writing.
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct MethodPublishExpectation {
+    expected_publisher: Option<OrgId>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -154,6 +161,7 @@ pub(super) fn routes() -> Router<RegistryState> {
 }
 async fn publish(
     State(reg): State<RegistryState>,
+    Query(expectation): Query<MethodPublishExpectation>,
     headers: HeaderMap,
     Json(publication): Json<MethodPublication>,
 ) -> ApiResult<(StatusCode, Json<MethodOffer>)> {
@@ -162,6 +170,16 @@ async fn publish(
         .publishers
         .get(&token)
         .ok_or_else(ApiError::unauthorized)?;
+    if let Some(expected) = expectation.expected_publisher {
+        if !text_ok(expected.as_str(), 256) {
+            return Err(invalid());
+        }
+        if &expected != publisher {
+            return Err(ApiError::forbidden(
+                "publisher does not match publication expectation",
+            ));
+        }
+    }
     let package = publication.validate()?;
     let offer = MethodOffer {
         publisher: publisher.clone(),
