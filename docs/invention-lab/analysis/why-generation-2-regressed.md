@@ -28,9 +28,12 @@ names (`R/{candidate,control}/artifacts/<result sha256>`: `metrics.success`, `me
 | 4 | 4 | `2483f08f` | 823 | yes |
 | 5 | 5 | `2483f08f` | 1,574 | yes |
 
-The parent screened one candidate on the instance it ranked hardest, saw a success, confirmed on
-the other five, and stopped at six for six (`parent.py` `main`: sort by `gap + step_height`
-descending, screen `insts[0]`, confirm `insts[1:]` only after a success, break at all-success).
+The parent sorted the instances by `gap + step_height`, screened one candidate on the first, saw a
+success, confirmed on the other five and stopped at six for six (parent `method.py` lines 64 to 67
+and 111 to 130). On rough-transport both of those fields are zero (`evaluator/src/family.rs` lines
+110 to 111 and 137 to 151, per the receiver-lane review of this analysis), so the sort was a no-op
+and the parent simply screened instance 0 first. This trial therefore does not show that
+hardest-first screening caused the parent's result; it shows one screen, five confirmations.
 
 **Child (candidate): 32 experiments, 39,778 steps, 10 distinct designs, submitted a design it had
 run twice.**
@@ -65,8 +68,9 @@ Per instance (child):
 | 4 | 4 | 4 | 2,989 | 0 | 5 |
 | 5 | 5 | 4 | 6,590 | 1 | 2 |
 
-Instances 0 and 3 took 23,395 steps, 59% of the child's budget. Instance 3 failed in all five
-attempts, each at the cap; the parent passed it in 860 steps.
+Instances 0 and 3 took 23,395 steps: 58.8% of the 39,778 development steps the child used, and
+32.5% of the 72,000-step development grant in `R/plan.json`. Instance 3 failed in all five attempts,
+each at the 2,400-step cap; the parent passed it in 860 steps.
 
 ## 2. The submission: a design tested on two of six instances
 
@@ -75,7 +79,8 @@ easy instances, four hit the cap. Stage 2 (10 to 31) extended designs by the est
 `est(S) = ((successes + 0.3) / (tested + 1), mean progress)` and always picked the best
 partially tested design (`child.py` lines 147 to 170). That drove four designs to full coverage,
 each ending 5/6 with instance 3 as the only failure: `acd6b5dc`, `bdc7417e`, `ad495176`,
-`8420c8f8`. The budget (`MAXREQ = 32`) ran out with `6b4dcd55` tested twice, both successes.
+`8420c8f8`. The method's own request cap (`MAXREQ = 32`, self-imposed; the step grant was not
+exhausted) was reached with `6b4dcd55` tested twice, both successes.
 
 Final selection used the same estimator over all designs (`child.py` lines 174 to 183):
 
@@ -84,43 +89,57 @@ Final selection used the same estimator over all designs (`child.py` lines 174 t
 | `6b4dcd55` | 2 | 2 | 0.767 |
 | `acd6b5dc`, `bdc7417e`, `ad495176`, `8420c8f8` | 6 | 5 | 0.757 |
 
-So the child submitted `6b4dcd55`, the design with the least evidence (the receiver README's
-"submitted design `6b4dcd55…`" agrees). In final scoring it succeeded on instances 1, 2 and 4 and
-failed on 0, 3 and 5 with progress 0.46, 0.40 and 0.49 (`R/../README.md`, per-instance table): the
-three instances it had never been run on during development. The parent scored 6/6.
+So the child submitted `6b4dcd55`, the two-test design, over the four fully tested contenders
+(the receiver README's "submitted design `6b4dcd55…`" agrees; the four designs that failed their
+single probe were also tested once, so it was not the least-tested design overall). It had been
+developed on instances 1 and 2 only, leaving four unseen: 0, 3, 4 and 5. In final scoring it
+succeeded on 1, 2 and 4 and failed on 0, 3 and 5 with progress 0.46, 0.40 and 0.49 (`R/../README.md`,
+per-instance table): three of the four unseen instances failed, and unseen instance 4 succeeded.
+Every submitted design, this one included, was then scored on all six frozen instances by the
+trial; partial coverage was a property of the method's development, not of the comparison. The
+parent scored 6/6.
 
-## 3. Causes, ranked by what the files show
+## 3. The observed mechanism, then plausible contributors
 
-1. **A selection rule that rewards under-testing.** The additive smoothing `(s + 0.3) / (t + 1)`
+Only the first item is observed in the retained records. The others are plausible contributors;
+no ablation was run, so none is established as an isolated cause.
+
+1. **A selection rule that rewards under-testing (observed).** The additive smoothing `(s + 0.3) / (t + 1)`
    ranks a perfect 2-of-2 above 5-of-6 (child `method.py` lines 147 to 149 and 176 to 185). This
    is the direct mechanism of the 3/6 submission. Had the rule required full coverage, one of the
    four 5/6 designs would have been submitted; their final scores were never run, so no number is
    claimed for them.
-2. **The prescribed strategy replaced a working one.** The revision prompt asked for "sampling
+2. **The prescribed strategy replaced a working one (plausible).** The revision prompt asked for "sampling
    across instances rather than waiting for one difficult case to succeed"
    (`docs/invention-lab/evidence/live-method-20261024-b-revision/README.md`, "Before the request").
    The child did exactly that: ten one-off probes that produced no ranking signal, then
-   confirmations that spent 23,395 steps on two instances. The parent's screen-on-hardest,
-   confirm-on-success loop had solved the same family in 5,205 steps.
-3. **The parameter grid was replaced, not extended.** Parent: radius {0.6, 0.8, 0.45, 1.0},
+   confirmations that spent 23,395 steps on two instances. The parent's screen-one-then-confirm
+   loop had solved the same family in 5,205 steps. Whether the strategy or the grid below did the
+   damage cannot be separated from these files.
+3. **The parameter grid was replaced, not extended (plausible).** Parent: radius {0.6, 0.8, 0.45, 1.0},
    speed {-6, -10, -3}, length {3.0, 3.8} (parent `method.py` lines 69 to 72). Child: radius
    {0.5, 0.8}, speed {-4, -7, -10}, length {2.4, 3.4}, plus a walls flag (child `method.py` lines
    88 to 92). The parent's winning region is absent, and no child design solved instance 3 (0 for 5).
-4. **Feedback from the wrong family.** The revision was prompted with the ravine-crossing receiver
-   feedback, where the parent had scored 1/6 (`…/b-revision/README.md`, `public-feedback.json`,
-   24 experiments), and examined on rough-transport, where the parent was already 6/6. The
-   improvement it was asked for did not exist on the family it was judged on.
-5. **Population of one, six instances, margin of one.** One child per generation and a six-instance
+4. **Feedback from a different family (plausible, and itself evidence).** The revision was prompted
+   with the ravine-crossing receiver feedback, where the parent had scored 1/6
+   (`…/b-revision/README.md`, `public-feedback.json`, 24 experiments), and examined on
+   rough-transport, where the parent was already 6/6. For a transfer project that is not an
+   invalid test: it is negative-transfer evidence, recording that feedback from one family did not
+   carry to another.
+5. **Population of one, six instances, margin of one (context).** One child per generation and a six-instance
    panel mean a single estimator quirk decides a generation; across three families the same parent
    scores 1, 6 and 1 (`docs/invention-lab/evidence/live-method-20261024-a-return/README.md`).
 
 ## 4. What the trial got right, and what the engine proposal changes
 
 The predeclared comparison caught the regression: child and parent ran on the same frozen
-instances, once each, and the child lost. Nothing here revises that. The proposed iteration
-contract (`docs/invention-lab/contracts/iteration.md`, PR #144) addresses each cause by rule,
-not by prompt: every arm is scored on every instance of the frozen plan, so partial coverage
-cannot be selected (1); the mutator receives scored packages and per-instance tables, never a
-strategy instruction (2); the incumbent is always an arm in the same plan and keeps its provenance,
-so a replaced grid is judged against the one it replaced (3); feedback is per family (4); k
-candidates per generation, larger regenerated panels and a final fresh confirmation panel (5).
+instances, once each, every submitted design was scored on all six, and the child lost. Nothing
+here revises that. The proposed iteration contract (`docs/invention-lab/contracts/iteration.md`,
+PR #144, a proposal under review) would change the outer layer only. It scores every arm on every
+instance of a frozen plan and rejects an arm that loses, which is what this trial already did; it
+cannot stop a method's internal estimator from submitting a partially tested design, and it does
+not claim to. What it would add, per family, is several candidates per generation instead of one,
+the incumbent kept as an arm so a replaced grid is judged against what it replaced, feedback carried
+only within a family, larger regenerated panels and a final fresh confirmation panel. Whether those
+reduce regressions like this one is an empirical question for the next generations; this analysis
+does not establish it.
