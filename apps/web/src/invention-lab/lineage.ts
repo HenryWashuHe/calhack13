@@ -4,7 +4,10 @@
 
 import { tierOf, type Tier } from "./claims";
 import {
+  isSupportedMetricsRef,
+  METRICS_IDENTITY,
   refKey,
+  sameContext,
   samePurpose,
   type AdoptionOutcome,
   type CheckpointOutcome,
@@ -60,7 +63,24 @@ export interface Execution {
   /** Evaluations whose request names this run's receipt hash (`execution_sha256`),
    * with an output among this run's outputs and the same purpose. */
   evaluations: EvaluationReceipt[];
+  /** The run's success count, resolved once from its evaluations (see `scoreOf`). */
+  score: Score;
 }
+
+/** What the supplied records establish about one run's score. Only `counted`
+ * carries a number; every other kind says why there is none. */
+export type Score =
+  | { kind: "counted"; successes: number; of: number; metrics: string }
+  /** No evaluation of this run was supplied. */
+  | { kind: "unscored" }
+  /** Evaluations were supplied, but none scored the output (unknown, failed, invalid). */
+  | { kind: "not_scored"; outcomes: string[] }
+  /** A scored evaluation names a metrics artifact that was not supplied. */
+  | { kind: "metrics_missing" }
+  /** Every scored evaluation was refused; the reasons are also in `problems`. */
+  | { kind: "rejected"; reasons: string[] }
+  /** Scored evaluations of the same run disagree; none is chosen. */
+  | { kind: "conflict"; counts: string[] };
 
 export interface Attempt {
   status: GenerationStatus;
@@ -185,8 +205,17 @@ export function buildLineage(records: LabRecords): Lineage {
     runs.add(receipt.receipt_sha256);
     if (refKey(receipt.bound_method) !== refKey(receipt.actual_method))
       problems.push(`execution ${run} ran a different method than its binding named; shown under the method it ran`);
-    executions.push({ receipt, method: node(receipt.actual_method), evaluations: [] });
+    executions.push({ receipt, method: node(receipt.actual_method), evaluations: [], score: { kind: "unscored" } });
   }
+  // A task family is an exact reference; one id under two references is two
+  // columns, never one.
+  const taskRefs = new Map<string, Set<string>>();
+  for (const e of executions) {
+    const t = e.receipt.public_task;
+    taskRefs.set(t.id, (taskRefs.get(t.id) ?? new Set()).add(refKey(t)));
+  }
+  for (const [id, keys] of taskRefs)
+    if (keys.size > 1) problems.push(`task family ${id} appears under ${keys.size} different exact references; shown as separate columns`);
   // An evaluation attaches only to the execution its request names by receipt
   // hash; matching output and purpose alone could be another organization's run.
   for (const ev of records.evaluations ?? []) {
@@ -267,5 +296,84 @@ export function buildLineage(records: LabRecords): Lineage {
   }));
 
   const metrics = new Map((records.metrics ?? []).map((m) => [m.sha256, m]));
+  for (const e of executions) {
+    const p = e.receipt.purpose;
+    const plan =
+      p.kind === "acceptance" || p.kind === "comparison"
+        ? (records.trials ?? []).find((t) => refKey(t.plan.ref) === refKey(p.plan))?.plan ?? null
+        : null;
+    e.score = scoreOf(e, plan, metrics, problems);
+  }
   return { attempts, nodes: [...nodes.values()], edges, executions, trials, metrics, problems };
+}
+
+/** Resolves one run's score from its attached evaluations. A scored evaluation
+ * counts only when its metrics reference is the supported identity, its scoring
+ * context names the run's own task and matches what the scorer observed, and
+ * its rows are one per instance of the panel it claims. Disagreeing scored
+ * evaluations of one run are a conflict: none is chosen, whatever their order. */
+function scoreOf(e: Execution, plan: TrialPlan | null, metrics: Map<string, MetricsArtifact>, problems: string[]): Score {
+  const run = `${e.receipt.org_id}/${e.receipt.run_id}/${e.receipt.attempt_id}`;
+  if (e.evaluations.length === 0) return { kind: "unscored" };
+  const scored = e.evaluations.filter((v) => v.outcome === "scored");
+  if (scored.length === 0) return { kind: "not_scored", outcomes: [...new Set(e.evaluations.map((v) => v.outcome))].sort() };
+  const counted = new Map<string, { successes: number; of: number }>();
+  const reasons: string[] = [];
+  const refuse = (v: EvaluationReceipt, why: string) => {
+    reasons.push(why);
+    problems.push(`evaluation ${v.request_id} of execution ${run}: ${why}; not counted`);
+  };
+  for (const v of scored) {
+    // Without the named bytes there is nothing to count, so nothing to refuse.
+    const m = v.metrics ? metrics.get(v.metrics.sha256) : undefined;
+    if (!m) continue;
+    const why = contextProblem(e, v);
+    if (why) {
+      refuse(v, why);
+      continue;
+    }
+    const rows = rowsProblem(m, e, v, plan);
+    if (rows) {
+      refuse(v, rows);
+      continue;
+    }
+    counted.set(m.sha256, { successes: m.instances.filter((r) => r.success).length, of: m.instances.length });
+  }
+  if (counted.size > 1) {
+    const counts = [...counted.values()].map((c) => `${c.successes}/${c.of}`).sort();
+    problems.push(`execution ${run} has scored evaluations with different results (${counts.join(", ")}); none is counted`);
+    return { kind: "conflict", counts };
+  }
+  const [only] = counted.entries();
+  if (only) return { kind: "counted", successes: only[1].successes, of: only[1].of, metrics: only[0] };
+  return reasons.length > 0 ? { kind: "rejected", reasons } : { kind: "metrics_missing" };
+}
+
+function contextProblem(e: Execution, v: EvaluationReceipt): string | null {
+  if (!v.metrics || !isSupportedMetricsRef(v.metrics))
+    return `its metrics reference ${v.metrics ? `${v.metrics.schema} ${v.metrics.id}@${v.metrics.version}` : "is missing and"} is not the supported ${METRICS_IDENTITY.schema} identity`;
+  const task = v.context.public_task;
+  const own = e.receipt.public_task;
+  if (!task || refKey(task) !== refKey(own))
+    return `it was scored against task ${task ? `${task.id}@${task.version} ${task.sha256.slice(0, 12)}` : "(none named)"}, not the run's ${own.id}@${own.version} ${own.sha256.slice(0, 12)}`;
+  if (!v.observed_context) return "the scorer's observed context is not recorded";
+  if (!sameContext(v.context, v.observed_context)) return "the scorer's observed context differs from the requested one";
+  return null;
+}
+
+function rowsProblem(m: MetricsArtifact, e: Execution, v: EvaluationReceipt, plan: TrialPlan | null): string | null {
+  const ids = m.instances.map((r) => r.instance);
+  if (new Set(ids).size !== ids.length) return "its metrics repeat an instance row";
+  if (m.of !== null && m.of !== ids.length) return `its metrics have ${ids.length} rows but record of = ${m.of}`;
+  const wins = m.instances.filter((r) => r.success).length;
+  if (m.success_count !== null && m.success_count !== wins)
+    return `its metrics count ${wins} successful rows but record success_count = ${m.success_count}`;
+  if (plan && plan.scoring_kind === "development") {
+    if (ids.length !== plan.development_instances.length || ids.some((id, i) => id !== plan.development_instances[i]))
+      return "its metrics rows are not the plan's development instances, one each, in order";
+  } else if (v.context.instance_set?.id === "development") {
+    const prefix = `${e.receipt.public_task.id}/`;
+    if (ids.some((id) => !id.startsWith(prefix))) return `its metrics rows name instances outside ${e.receipt.public_task.id}`;
+  }
+  return null;
 }
