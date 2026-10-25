@@ -1,0 +1,21 @@
+{
+  "started": true,
+  "method": {
+    "domain": "genesis",
+    "schema": "development-method-source/1",
+    "id": "receiver-revised-method",
+    "version": "0.1.0",
+    "sha256": "4f455dc6e625bdaf554d567bdd7f0bc0c7b601a1ea6332d4e7a13e02005db14d"
+  },
+  "submission": {
+    "domain": "genesis-lab",
+    "schema": "lab-design/1",
+    "id": "output",
+    "version": "1",
+    "sha256": "bdc7417ec8158ef5ad606161766d5abbe525b73eaa504d16f7904c71d03c5aa0"
+  },
+  "sealed": true,
+  "finished": true,
+  "terminated": "the executor reaped unshare after confirmed namespace-init stopping or its successful child-wait exit",
+  "terminated_tree": true
+}

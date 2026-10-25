@@ -1,0 +1,4 @@
+{
+  "error": "ApiError { status: 401, error: \"registry_error\", message: \"registry request was rejected\", details: Null }",
+  "refused": true
+}
