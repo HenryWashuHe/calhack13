@@ -1,9 +1,9 @@
 # Job-shop smoke runs, 2026-10-25: the loop against seeded random search
 
-Scope: three small live runs of the iteration engine on the first real task family, written to
-`scripts/iteration/results/jobshop-smoke-1/`, `jobshop-smoke-2/` and `jobshop-smoke-3/` (`result.json`,
-`ledger.json`, `bundle.json`, sponsor exports). One family, one seed each, 20-instance panels, five model
-calls at most. The third run was added at the owner's request after the first two.
+Scope: four small live runs of the iteration engine on the first real task family, written to
+`scripts/iteration/results/jobshop-smoke-1/` through `jobshop-smoke-4/` (`result.json`, `ledger.json`,
+`bundle.json`, sponsor exports). One family, one seed each, 20-instance panels, five model calls at most.
+Runs 3 and 4 were added at the owner's request after the first two.
 This is a smoke test of the mechanism, not evidence of recursive improvement, transfer between real
 organizations, or anything about other families.
 
@@ -90,23 +90,49 @@ final panel:
 Ledger: 64 records, verified; bundle, Fetch offer and Elastic bulk body written (the data key again
 refused every document).
 
-## What the three runs say, and what they do not
+## Run 4: `smoke-4`, a third seed, same configuration (gate = incumbent only)
+
+| gen | incumbent | candidates | promoted |
+|---|---|---|---|
+| 1 | 8/20 (SPT) | 18, 14, 14, 13 | yes, 18/20 |
+| 2 | 17/20 | 14, 16, 17, 15 | none |
+| 3 | 16/20 | 16, 14, 14, 13 | none |
+| 4 | 16/20 | 15, 16, 16, 16 | none |
+| 5 | 16/20 | 17, 19, 17, 17 | yes, 19/20 |
+
+Frontier after five generations: `(op, ctx) => 2 * op.remainingWork + op.machineRemainingLoad - 2.5 *
+op.duration`, package `d807549f…`. Confirmation on a fresh panel: **18/20**. Same final panel, report-only:
+
+| rule | final panel | mean makespan / lower bound |
+|---|---|---|
+| frontier (generation 5 model rule) | 18/20 | 1.086 |
+| fixed-mwkr | 15/20 | 1.139 |
+| random-search (best of 67) | 12/20 | 1.163 |
+| root / fixed-spt | 10/20 | 1.194 |
+| fixed-lpt | 2/20 | 1.339 |
+
+500 engine evaluations, 120 screening evaluations, 5 calls, 20,789 input / 2,782 output tokens. Ledger: 61
+records, verified; bundle and sponsor exports written (Elastic refused again by the data key).
+
+## What the four runs say, and what they do not
 
 1. **The loop runs end to end on a real family with a real model**: sealed panels, frozen plans,
    verdicts for every candidate, one promotion, a fresh-panel confirmation, a sealed bundle, and the two
    sponsor shapes, all in one verified ledger. That is the first time this engine has done anything but
    synthetic work.
-2. **Against seeded random search on a fresh panel: one win, one tie.** Run 2's rule beat it 19 to 14
-   (and fixed-mwkr's 15); run 3's rule tied it 17 to 17 (fixed-mwkr 15), with a better mean ratio (1.085
-   against 1.120). Both model rules beat every fixed rule on both panels. Two seeds, forty instances: a
-   consistent edge over hand-written rules, and parity-to-advantage over random search that a third seed
-   and a second family would have to confirm before anyone calls it a result.
+2. **Against seeded random search on a fresh panel: two wins, one tie.** Run 2's rule beat it 19 to 14
+   (fixed-mwkr 15); run 3's rule tied it 17 to 17 (fixed-mwkr 15) with a better mean ratio (1.085 against
+   1.120); run 4's rule beat it 18 to 12 (fixed-mwkr 15). The model rule beat every fixed rule on all three
+   panels and had the best mean makespan ratio on all three (1.095, 1.085, 1.086). Three seeds, sixty
+   fresh instances, one family: a consistent edge over hand-written rules and over random search on this
+   family, at a sample size that still calls for a second family before anyone generalizes.
 3. **Whether later generations add anything depends on the seed.** In run 2 the gain came from generation
    1 and nothing after it: generations 2–5 never beat the incumbent by one instance. In run 3 every
    generation promoted, each child beating its parent on a sealed panel, and the frontier moved from a
    starting 8/20 to a confirmed 17/20; its final rule is a most-work-remaining variant with a machine-load
-   term and a duration penalty. Two seeds, two different shapes: the recursive part can contribute, and
-   it is not guaranteed to.
+   term and a duration penalty. Run 4 sits between: a strong generation-1 rule (18/20), three flat
+   generations, then a generation-5 improvement (19/20). Three seeds, three shapes: the recursive part can
+   contribute, and it is not guaranteed to.
 4. **The contract's gate is stricter than the literature's bar.** Beating random search by a margin on
    every generation's panel (run 1) is a different test from beating it on a final fresh panel (run 2),
    and under run 1's gate a frontier that cannot beat the control cannot move, so the mutator never gets
@@ -116,14 +142,14 @@ refused every document).
 5. **Random search is a strong, cheap control**: 14/20 on the final panel after 402 training
    evaluations, and 18/20 on run 1's third panel. Any later claim must keep it.
 
-Not established: a reliable advantage over random search (one win, one tie), transfer between
-organizations (the bundles were exported but adopted by nobody), results on any other family, and anything
-about the forge lane's real method-generation path, which this engine does not touch. Improvement across
-generations was observed in one of two seeds.
+Not established: an advantage over random search beyond this family (two wins and a tie on three
+seeds), transfer between organizations (the bundles were exported but adopted by nobody), results on any
+other family, and anything about the forge lane's real method-generation path, which this engine does not
+touch. Improvement after generation 1 was observed in two of three seeds.
 
 ## Files
 
 `scripts/iteration/results/jobshop-smoke-1/{result,ledger}.json`;
-`scripts/iteration/results/jobshop-smoke-2/` and `jobshop-smoke-3/`: `{result,ledger,bundle}.json`,
+`scripts/iteration/results/jobshop-smoke-2/`, `jobshop-smoke-3/` and `jobshop-smoke-4/`: `{result,ledger,bundle}.json`,
 `fetch-offer.txt`, `fetch-observation.json`, `elastic-bulk.ndjson`. Reproduce the mechanism without model calls with
 `node scripts/iteration/run-jobshop.mjs --mock`; the live runs are not deterministic across model calls.
