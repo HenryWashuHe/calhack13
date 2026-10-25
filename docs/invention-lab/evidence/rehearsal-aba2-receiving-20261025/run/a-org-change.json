@@ -1,0 +1,45 @@
+{
+  "allocation": {
+    "contracts": {},
+    "gaps": {},
+    "responsibilities": {
+      "method-work": "rsp_ca30ffc106724e79902e9800d8266747"
+    },
+    "roles": {}
+  },
+  "change_id": "chg_138d2e449ee84fdcabd9f81d7379c822",
+  "committed_revision": 4,
+  "created_at": "2026-10-25T07:38:49.612988210Z",
+  "errors": [],
+  "operations": {},
+  "proposal": {
+    "budget_limit_cents": 10000,
+    "expected_org_revision": 3,
+    "operations": [
+      {
+        "op": "AssignResponsibility",
+        "owner": {
+          "kind": "existing",
+          "role_id": "role_3b61358518d54476977f9becca44bffc"
+        },
+        "target": {
+          "key": "method-work",
+          "kind": "from_requirement",
+          "purpose": "Develop ravine-crossing designs with a method another lab published",
+          "requirement_id": "req_8c62dd83ee8c490bb0429b615cdbc5e0",
+          "termination": "Beats our current method by one success on twelve fresh public ravine instances",
+          "trigger": "new method evidence"
+        }
+      }
+    ],
+    "rationale": "A's existing design role already owns ravine work and has the authority to evaluate this method. Reuse the existing owner; a selection grants no execution rights.",
+    "trigger_evidence_ids": [
+      "obs_2be7c4da88164b34b75bc7dbadd27dc9"
+    ]
+  },
+  "provisioned": {},
+  "ready": [],
+  "status": "COMMITTED",
+  "submitted_by": "agent",
+  "updated_at": "2026-10-25T07:38:49.617240807Z"
+}
