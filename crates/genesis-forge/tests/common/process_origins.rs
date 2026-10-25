@@ -86,7 +86,7 @@ pub fn complete(plan: MethodSynthesisPlan) -> MethodSynthesisSession {
 }
 
 pub fn fixture() -> (GenerationOrigins, [RetainedSelection; 8]) {
-    let mut base = plan_accounting::plan();
+    let mut base = accounting::generation("base", true).plan().clone();
     base.settings.model = "claude-sonnet-5-5".into();
     base.settings.reasoning = Some(ReasoningPolicy::Adaptive {
         effort: ReasoningEffort::High,
