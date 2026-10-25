@@ -22,9 +22,14 @@ on calibration unknown-to-zero, blocking reads/missing cleanup and omitted
 failures. Editorial corrections leave scripts unchanged; fix them before new runs.
 The `b5a35bf` invocation rehearsal is author-reported and unreviewed here; it
 does not establish independent organizational transfer or goal completion.
+Proposal #195 `81bddd78` is held after [document review](https://github.com/HenryWashuHe/genesis-history-experiment/pull/195#pullrequestreview-5641553241):
+finite samples do not establish a family-wide cap; corrected/pinned #184
+calibration and declared controls/builds/scoring/budgets remain prerequisites.
+ACP #198 `adf43e07` is under review following its acknowledged Stage claim;
+the proposed decision strip is a follow-up, not completed implementation.
 
-Main through `eb08a23237230a983796062212529cc31053294e`, tree
-`90c52423e68c7f71aad31bb571679a35142a885a` (reviewed composition `33cea78f`),
+Main through docs checkpoint #194 `80b7a42dbfde82d0559aa73f2b26dbf6ba702e2f`,
+tree `23029734327440ff41b881084b9e0192504bb50c`,
 includes the reviewed foundations below. Method generation merged at `d1be8443fee46e1196861926a963563f48407936`,
 whose tree `dc9d6adc19863d8584fd5af1fd11eae7552014eb` exactly matches the independently
 validated generation stack. Counts refer to the named source/composition, not a
@@ -32,6 +37,8 @@ combined main run.
 
 | Work | Validation and evidence boundary |
 | --- | --- |
+| Generation-origin join #196 `76ed5d3` — under review, not merged | Root 18 scoped library/cohort cases and static independent source review pass; adversarial review remains in progress. Original snapshots/Prepared pins bind all six positions to selected methods, common base policy and immediate workflow parents. Missing/unknown attempts remain explicit. Caller-retained identity does not authenticate origin, feedback completeness or chronology. |
+| Optional origins CLI #197 `a7e36f0` — under review, not merged | Author 27 scoped checks and root/independent nine CLI checks pass, with scoped strict Clippy/fmt; counts overlap. Optional `/2` captures retain originals and both reports, recompute them read-only and emit hashes. Legacy `/1` bytes stay unchanged. No source execution, recovery, provider call, fresh-panel use or gate closure. |
 | Complete-roster CLI #191 `b6750eec` → `b16f8eb7`; guards #192 `1eb15a88` → `8493a8ce` | Root 21 initial scoped cases, 20 overlapping independent checks and 12 final composition cases pass, including three preserved independent guards; scoped strict Clippy/fmt pass. Final tree `1a3fce96` matches composition `416ff677`. Bounded create-only capture/read-only recheck retains declaration/eight selections/report without original paths. Canonical hashes are local identities, not chronology, generation provenance, costs, authority or success. |
 | Public eligibility CLI #174 `f67ae448` → `73d039b5` | Five focused eligibility tests (including all three original independent guards), three additional inert-file checks and scoped strict Clippy/fmt pass. Bounded regular-file reads and validated digest paths clear the previous hold. Read-only typed assessment only, not scorer execution, trusted expected-state origin or endpoint closure. |
 | Invocation purpose #185 `811c6f5c` → `b1b2c8f2`; guards #188 `e4824046` → `68604b92` | 23 pure core cases and scoped strict Clippy pass, including three preserved independent receipt-boundary guards. A one-slot public Development plan pins claimed adoption/grant identity. This authenticates no authority, runs no method and supplies no acceptance pair or fresh comparison. |
@@ -310,9 +317,11 @@ independent guards #189 at `899de43d`. The final composition passes 30 scoped
 forge cases and strict Clippy/fmt. Its declaration binds all
 24 development positions, common round method/control/runtime settings and
 family-specific policy with exact numeric grants. It is not the earlier six-call
-generation admission or a chain-cost/history proof. Generation-settings/feedback
-provenance, externally pinned chronology, fresh-panel consumption and governance
-remain open; no source execution or gate closure is established. Bounded operator
+generation admission or a chain-cost/history proof. #196/#197 are the active,
+unmerged source-origin/base-policy/immediate-parent binding increment. Feedback
+origin/completeness, chain admission/cost links, externally pinned chronology,
+fresh-panel consumption and governance remain open; no source execution or gate
+closure is established. Bounded operator
 capture/check #191 `b6750eec` → `b16f8eb7` and independent #192 guards at
 `8493a8ce` are merged; they do not add chain links or fresh-panel consumption.
 Receiver ID mechanics are merged, but runtime assurance remains a prerequisite.
@@ -337,7 +346,7 @@ Public `6636596` and hidden `b59d1eb1` builds are distinguished; attempt 2 follo
 seeing attempt 1. This retained-data check is not a rerun, independent secrecy/
 chronology proof, accepted recursive return or runtime/namespace clearance.
 
-[#179 `0946e6bc` is held](https://github.com/HenryWashuHe/genesis-history-experiment/pull/179#pullrequestreview-5641416602)
+#179 correction `4ddca616` is under review; the [prior `0946e6bc` hold](https://github.com/HenryWashuHe/genesis-history-experiment/pull/179#pullrequestreview-5641416602)
 on legacy schema migration, policy-fenced reacceptance and runtime/protocol
 compatibility fences. Eleven original store cases pass; four pure SQLite/record
 guards fail at `39a979a9`. Merged #185/#188 supplies invocation identity only;

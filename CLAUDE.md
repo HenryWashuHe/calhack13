@@ -92,7 +92,8 @@ every milestone. All lower checkpoints are historical.
   is not. Pure invocation purpose #185 `811c6f5c` → `b1b2c8f2` and independent
   guards #188 `e4824046` → `68604b92` are merged: 23 pure core cases and scoped
   strict Clippy pass. Claimed grant identity is bound, not authenticated authority.
-  #179 `0946e6bc` is held on legacy-store migration, policy reacceptance and
+  #179 correction `4ddca616` is under review; the prior `0946e6bc` hold covered
+  legacy-store migration, policy reacceptance and
   runtime/protocol fences (11 old tests pass, four new guards fail). #186
   `b069b129` is held on disabled-receiver receipt retention and a frozen binding
   that can exceed the receipt cap (12 library + four HTTP controls pass, two
@@ -284,9 +285,17 @@ every milestone. All lower checkpoints are historical.
   family policy and numeric trial grants. Bounded cohort capture/check CLI #191
   `b6750eec` → `b16f8eb7` and independent #192 guards at `8493a8ce` are merged.
   Root 21 initial scoped checks, 20 overlapping independent checks and 12 final
-  composition checks pass, with scoped strict Clippy/fmt. Generation provenance,
-  chain costs, fresh-panel consumption, chronology and governance remain open;
-  no new runtime result is claimed.
+  composition checks pass, with scoped strict Clippy/fmt. Source-origin binding
+  #196 `76ed5d3` and optional retained capture #197 `a7e36f0` are under review,
+  not yet merged. They check six original generation positions against the eight
+  selections, common base policy and immediate workflow parents; the optional
+  `/2` capture rechecks both reports while legacy `/1` bytes stay unchanged.
+  Root 18 library/cohort checks and author 27 scoped checks pass; root and
+  independent reviewer each pass nine CLI checks. These overlap; strict scoped
+  Clippy/fmt pass. Adversarial library review remains in progress.
+  Feedback origin/completeness, chain-cost/admission links, external chronology,
+  fresh-panel consumption and governance remain open. No provider or runtime
+  result is claimed.
   #160's regression analysis is merged as retrospective explanation, not a new
   trial, mechanism fix or proof the proposed #144 iteration engine works.
   No new model request is declared.
@@ -328,6 +337,13 @@ Node checks pass. A new 42-line guard `a8887ec7` fails: an imported ancestor's
 metadata becomes another family's root, drops verified source and falsely
 promotes 1/2 over the actual 2/2 control. Root independently reran that failure.
 Inert callbacks only, not runtime, improvement or adoption authority.
+ACP's [stage-clarity claim](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6393603972)
+is active: #198 `adf43e07` is under review. The
+[planned decision strip](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6393637750)
+is a scoped follow-up, not implemented authority or a new owner assignment.
+Proposal #195 `81bddd78` is held after [document review](https://github.com/HenryWashuHe/genesis-history-experiment/pull/195#pullrequestreview-5641553241):
+finite #184 samples do not prove a family-wide cap or inability to improve;
+calibration needs the corrected, pinned harness and declared controls/budgets.
 
 Queue cleanup preserved branches: #176/#177/#178 closed as superseded by
 #180/#181 and revised proposals #182/#183 after exact code/test comparisons.

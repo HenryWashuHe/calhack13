@@ -108,10 +108,16 @@ exact code/test comparisons; #143 is deferred outside the active goal. Their
 branches remain. Proposals #182/#183 are merged, while #180/#181 stay held on
 static lifecycle/host-execution findings. Henry prioritizes #179/#186 and #168;
 Eric #148/#149 and #180/#181; ACP #144 after #126 merged. #184 `68e05610` remains held on
-calibration unknown-to-zero and timeout/failure handling before new research runs. Ines remains unassigned.
+calibration unknown-to-zero and timeout/failure handling before new research runs.
+Proposal #195 `81bddd78` is also held on unsupported finite-sample generalization
+and calibration prerequisites. ACP #198 `adf43e07` stage clarity is under review,
+with the decision strip a planned follow-up. Existing lane ownership is unchanged;
+Ines remains unassigned.
 
 | Milestone | Owner and evidence | Next action |
 | --- | --- | --- |
+| Generation-origin join, G4 prerequisite — under review | Codex #196 `76ed5d3`: root 18 scoped library/cohort cases and static independent source review pass; adversarial review is still running. [Contract](invention-lab/contracts/process-selection.md#generation-origins-library) | Pending merge. Bind all six original snapshots/Prepared pins to eight selections, common fresh inputs/settings and immediate workflow parents. Unknown/missing attempts stay explicit. Caller-retained records do not authenticate provider origin or chronology; feedback provenance and chain-cost/admission integration remain open. |
+| Optional provenance capture, G4 prerequisite — under review | Codex #197 `a7e36f0`: author 27 scoped checks; root and independent reviewer each pass nine CLI checks, with strict scoped Clippy/fmt. Counts overlap | Pending merge. Optional input retains `/2` originals and both recomputed reports; `/1` bytes and summary stay compatible. No provider, recovery or generated-source execution, fresh-panel consumption or gate closure. |
 | Stage observation input, Delivery | #126 `702ee560` → `eb08a232`; root, independent reviewer and final composition each pass 52 offline VM cases (overlapping). All 49 old tests unchanged plus three ambiguity guards; tree `90c52423` matches `33cea78f` | Later-poll identity and uncertain-delivery wording corrected. No live POST, browser/provider execution, authority or sponsor evidence. |
 | Staging collision, G0/G1 support | #167 `d2b76522` → `0643c9ef`; root reviewed the five-line correction, locked executor check and strict all-target Clippy. Composition `7caa4866` / tree `9a61426b` matched main | No runtime or namespace tests ran in review; #57/#65 assurance remains separate. |
 | Selective-transfer records, G4 context | #165 `cb5f28f0` → `b99839df`; 713 manifest entries, 523 artifacts, 12 slot bindings and nine declaration comparisons pass static checks; raw records unchanged | Existing parent wins in rough-transport, not ravine; attempt 2 followed seeing attempt 1. Corrected evidence is not recursive improvement, a rerun or independent secrecy/runtime assurance. |
@@ -297,8 +303,10 @@ input/report/selection hashes are exposed without source execution. Codex's
 merged: the whole development roster binds eight selections/24 positions, common
 round methods/controls/runtime settings, family-specific policy and exact grants.
 The final composition passes 30 scoped forge cases and strict Clippy/fmt. This is not six-operation generation admission or exhaustive
-history: generation-settings/feedback provenance, chain costs, fresh-panel
-consumption, independent publication/chronology and governance remain open.
+history. Source-origin/base-policy and immediate-parent binding are the active
+Codex increment in #196/#197, pending review/merge. Feedback origin/completeness,
+chain admission/cost links, fresh-panel consumption, independent publication/
+chronology and governance remain open.
 Codex's bounded operator cohort capture/check CLI #191 `b6750eec` → `b16f8eb7`
 and independent #192 guards at `8493a8ce` are merged. No provider/runtime execution
 or gate closure is claimed. Henry retains endpoint and invocation authority.
@@ -310,7 +318,8 @@ and build-provenance wording. Static checks cover 713 manifest entries, 523
 artifact hashes, 12 slot bindings and nine declaration comparisons; raw records
 are unchanged. The unchanged parent wins on rough-transport but not ravine.
 This is no new execution, secrecy/chronology proof, accepted return or G4 result.
-Pure invocation identity #185/#188 is merged; #179 `0946e6bc` remains held on
+Pure invocation identity #185/#188 is merged; #179 `4ddca616` is under review.
+The prior `0946e6bc` hold covered
 legacy migration, policy reacceptance and runtime/protocol fences (11 existing
 cases pass, four new guards fail). #186 `b069b129` is held on disabled-receiver
 receipt retention and an oversized mandatory receipt binding (12 library + four
