@@ -465,3 +465,8 @@ fn indexed_binding_columns_must_match_the_stored_record() {
     }
     assert_eq!(f.store.method_adoption(&adopted.id).unwrap(), adopted);
 }
+
+// Independent review probes: retained fixtures and in-memory/SQLite contracts only.
+// No method source, evaluator, provider or runtime is executed.
+#[path = "review_policy.rs"]
+mod review_policy;
