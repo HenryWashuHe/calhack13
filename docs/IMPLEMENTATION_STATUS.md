@@ -8,11 +8,12 @@ Use the [migration map](REPOSITORY_MIGRATION.md) for legacy PRs. The
 [ongoing goal](ONGOING_GOAL.md) remains a bounded A → B → A executable
 development-method loop and honest controlled evaluation with fixed model
 weights. Event organization remains superseded. G0–G4 are still open.
-The revised app Goal was activated on October 24, 2026 after the stale record
-was cleared; the existing hourly continuation remains active.
+Work resumed on the user's retry. The native app Goal last returned `blocked`,
+not complete; the existing hourly continuation remains active. The repository
+completion contract is unchanged.
 
-Main through `9c7e8c0f03ec10f726d3577c91ddd855b337a2ac`, tree
-`0e5c241403b59dbee944a14b10eb02c7ac8bc050`, includes the reviewed
+Main through `899de43d68f66cc07d39414f44bf7c792f022031`, tree
+`04ee987aff997553138a8cf54bca481aa0d15e3d`, includes the reviewed
 foundations below. Method generation merged at `d1be8443fee46e1196861926a963563f48407936`,
 whose tree `dc9d6adc19863d8584fd5af1fd11eae7552014eb` exactly matches the independently
 validated generation stack. Counts refer to the named source/composition, not a
@@ -20,7 +21,10 @@ combined main run.
 
 | Work | Validation and evidence boundary |
 | --- | --- |
-| Method adoption #155 `cba4bf00` → `0bf7a8e2`; authorization routes #159 `db0deeca` → `e7c6baf7` | Root composition `0b671510`, tree `24183518`, matched main; 23 scoped tests and strict Clippy/fmt pass. Receiver-owned exact policy pins, record invariants, disabled-receiver refusal and durable replay clear the prior holds. Authorization under the current grant is implemented; execution under it is not. Reacceptance after policy change remains proposed. |
+| Public eligibility CLI #174 `f67ae448` → `73d039b5` | Five focused eligibility tests (including all three original independent guards), three additional inert-file checks and scoped strict Clippy/fmt pass. Bounded regular-file reads and validated digest paths clear the previous hold. Read-only typed assessment only, not scorer execution, trusted expected-state origin or endpoint closure. |
+| Invocation purpose #185 `811c6f5c` → `b1b2c8f2`; guards #188 `e4824046` → `68604b92` | 23 pure core cases and scoped strict Clippy pass, including three preserved independent receipt-boundary guards. A one-slot public Development plan pins claimed adoption/grant identity. This authenticates no authority, runs no method and supplies no acceptance pair or fresh comparison. |
+| Eight-selection development roster #187 `da669296` → `bb9f7c28`; guards #189 `d2304309` → `899de43d` | Final composition `4b0d330a` and main share tree `04ee987a`: 30 scoped forge tests and strict Clippy/fmt pass, including four independent guards. All eight selections/24 positions bind round methods/controls/runtime settings, per-family policy and numeric trial grants. Pure consistency only; operator capture/chain links, generation provenance, chronology, fresh-panel consumption and governance remain open. |
+| Method adoption #155 `cba4bf00` → `0bf7a8e2`; authorization routes #159 `db0deeca` → `e7c6baf7` | Root composition `0b671510`, tree `24183518`, matched main; 23 scoped tests and strict Clippy/fmt pass. Receiver-owned exact policy pins, record invariants, disabled-receiver refusal and durable replay clear the prior holds. Authorization under the current grant is implemented; execution under it is not. Policy reacceptance is proposed in held #179; draft #186 invocation integration is unmerged. |
 | Receiver IDs #163 `66118d2b` → `0df3e227`; guards #166 `00499186` → `c2fd8d12` | 22 mocked tests pass with real subprocess creation forbidden; original `e3f3779` and first-seed files unchanged. Namespaces run/attempt/scoring IDs by declared trial before intent, preserving deterministic preparation. No old evidence rewritten or runtime assurance established. |
 | Development selector #169 `1515b46f` → `47aef07f`; independent guards #170 `a8c42654` → `755d6c65` | Eight root selector tests, four preserved independent retained-record cases and 16 core verdict tests pass. [One arm/family and three rounds](invention-lab/contracts/process-selection.md), exact evidence checks, explicit missing/ineligible rows and deterministic selection; not a complete roster/chronology/endpoint or G4 result. |
 | Selection CLI #173 `332f4f01` → `523d38a2` | Independent source review clear; root four new + eight existing binary cases and strict Clippy/fmt pass. Four additional independent cases pass, preserved in #175 `d32caa37` → `9c7e8c0f`. Create-only self-contained capture and read-only recheck expose exact selected method/plan and normalized input/report/selection hashes; no source execution or complete roster/chronology/governance claim. |
@@ -289,19 +293,40 @@ Pure selection #169/#170 and shared typed slot assessment #171 are merged.
 Selection CLI #173 `332f4f01` is merged at `523d38a2`. Its self-contained capture
 retains typed inputs and the derived report; read-only recheck recomputes equality.
 Output names exact selected method/plan and normalized input/report/selection
-hashes. Next bind all eight records to a declared common generation/control/
-settings/budget roster before fresh-panel spec/endpoint consumption. Numeric
-six-slot/chain ceilings, adaptive Prepared chronology, externally pinned digests
-and governance remain open; no source execution or gate closure is established.
+hashes. Eight-selection roster #187 `da669296` is merged at `bb9f7c28`, with
+independent guards #189 at `899de43d`. The final composition passes 30 scoped
+forge cases and strict Clippy/fmt. Its declaration binds all
+24 development positions, common round method/control/runtime settings and
+family-specific policy with exact numeric grants. It is not the earlier six-call
+generation admission or a chain-cost/history proof. Generation-settings/feedback
+provenance, externally pinned chronology, fresh-panel consumption and governance
+remain open; no source execution or gate closure is established. Codex's next
+bounded slice is operator cohort capture/chain links, not implemented here.
 Receiver ID mechanics are merged, but runtime assurance remains a prerequisite.
 Preparation #164 `55e14cc4` clears stale/partial publication and selected-byte
 pinning with eight pure tests and is merged at `a056ec65`; its description is
-corrected. Trusted full selection lineage remains upstream. Endpoint #168
-`9931a77d` is held on foreign receipts, missing numeric
-usage and incorrect fresh panels. [#165 `de40669c` is held](https://github.com/HenryWashuHe/genesis-history-experiment/pull/165#pullrequestreview-5640688726)
-on the wrong hidden reproduction build. Static checks pass for 713 manifest
-entries, 523 artifact hashes, 12 slot bindings and reported counts. They do not
-rerun scores, establish secrecy/chronology, clear #57/#65/#167 or close a gate.
+corrected. Trusted full selection lineage remains upstream. Eligibility CLI
+#174 `f67ae448` is merged at `73d039b5` after its bounded-read/path fix;
+[review 5641409679](https://github.com/HenryWashuHe/genesis-history-experiment/pull/174#pullrequestreview-5641409679)
+checks five focused tests plus three inert-file cases and scoped strict Clippy/fmt.
+Endpoint [#168 `99b2c8b0` remains held](https://github.com/HenryWashuHe/genesis-history-experiment/pull/168#pullrequestreview-5641419161):
+legitimate family-specific policy is rejected, full method metadata is not pinned,
+and order/exact not-run complement is lost. Mocked eligible observations yield
+one passing control and seven failing subcases in `3ff7c98b`; original guards
+remain unchanged. No scorer/evaluator or generated method ran.
+[#165 `15febb1e`](https://github.com/HenryWashuHe/genesis-history-experiment/pull/165#pullrequestreview-5641420211)
+clears the wrong hidden-build instruction. The new first-admissible-point
+explanation remains held: hidden-2 explored seven designs over 32 experiments
+and the selected design scored 5/6 during development before further search.
+Its separate 12/12 hidden result is retained. Static checks pass for 713 manifest
+entries, 523 artifact hashes, 12 slot bindings and nine declaration comparisons;
+records are unchanged. This is no rerun, secrecy/chronology proof or runtime clearance.
+
+[#179 `0946e6bc` is held](https://github.com/HenryWashuHe/genesis-history-experiment/pull/179#pullrequestreview-5641416602)
+on legacy schema migration, policy-fenced reacceptance and runtime/protocol
+compatibility fences. Eleven original store cases pass; four pure SQLite/record
+guards fail at `39a979a9`. Merged #185/#188 supplies invocation identity only;
+draft #186 and actual current-grant execution remain separately unmerged.
 Public-range #121/#136 is merged with the reserved-seed
 hold cleared; metadata/preflight and mocked checks do not hide inputs or establish
 an evaluation result. Freeze
@@ -328,9 +353,10 @@ bytes into main at `a3be74d0`, with all 81 tests/typecheck independently rerun.
 This clears the earlier folder-dedup, raw-package and inspection-identity holds.
 In the separate `apps/stage` queue, #125 `811d0df2` is now merged at `c0c2cae1`:
 33 offline VM tests pass and the original timing guard is unchanged. Retargeted
-[#126 `957edf8b` remains held](https://github.com/HenryWashuHe/genesis-history-experiment/pull/126#pullrequestreview-5640717136):
-a correct A acknowledgment links to B's card. Its 45 original tests pass; two new
-failing cases are preserved in `27afe99c5e9a5f592aead090bd72c9d8e3096e37`.
+[#126 `67071fc7` remains held](https://github.com/HenryWashuHe/genesis-history-experiment/pull/126#pullrequestreview-5641420723):
+the prior same-poll fixes pass, but a later unrelated B poll replaces the card
+while A's acknowledgment still links to it. All 47 existing VM cases pass;
+two new later-poll guards fail at `75c67a6`. Original cases remain unchanged.
 Earlier `d85b018` regressions remain retained. G2/G3 organizational authority, selection
 and local adoption are separate from any displayed story or receipt identity.
 Henry's receiving wrapper #118 `68bc82d0` merged at `ec23efb5`: copies checked
@@ -349,9 +375,11 @@ run ID cannot be recovered retroactively. ACP keeps bridge/docs and hosted-gate
 evidence.
 
 Current supporting review: Stage #125 `811d0df2` is merged at `c0c2cae1`;
-#126 `957edf8b` is retargeted to main and held on acknowledgment/card attribution.
-Iteration #144 `fd35c2fe87fe5fac9400fd4b3591d6d915dac743` is unreviewed;
-earlier findings below apply to their named heads, not fresh reproductions.
+#126 `67071fc7` remains held on later-poll acknowledgment/card attribution.
+Iteration #144 has newer `51b342ea` under pure Node re-review. Prior `fd35c2fe`
+was held on confirmation/recovery budgets, ancestry, canonical encoding and
+emitter IDs: 38 old tests pass and six pure guards fail at `3032a412`. Those
+results are scoped to the older head, not a fresh reproduction.
 Dated direction/sponsor note #161 `c936bcf6` merged at `a9caea11` after
 source/delta and independent review; the current checkpoint remains authoritative. Ownership is unchanged.
 
