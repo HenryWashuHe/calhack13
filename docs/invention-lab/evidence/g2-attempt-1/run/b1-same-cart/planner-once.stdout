@@ -1,0 +1,55 @@
+Proposed {
+    change: OrgChangeRecord {
+        change_id: ChangeId(
+            "chg_cc094db974bd4d64b82e2afdf9dc0081",
+        ),
+        status: Validated,
+        proposal: OrgChangeProposal {
+            expected_org_revision: 3,
+            trigger_evidence_ids: [
+                ObservationId(
+                    "obs_862be6b7e37b4029b8c867b20c6dcfd7",
+                ),
+            ],
+            rationale: "A new method-development need affects the mission: the lab must develop rough-transport cart designs with a method another lab published. The selected network method is retained only as evidence and is not an installed capability. The Lab lead's charter, evaluating reusable methods, and its method.develop scope already cover this work. The existing active Lab lead already has the needed charter and the method.develop scope, so assigning it the requirement gives one accountable owner with no new role, scope or budget. The evidence says availability alone requires no organizational change and no distinct continuing work justifies a specialist. A RequestCapability is not valid here because the evidence_ref is an internal genesis reference, not a public URL that observed_sources could match. The Lab lead can escalate later if an executable capability turns out to be needed.",
+            operations: [
+                AssignResponsibility {
+                    target: FromRequirement {
+                        key: "cart-method-development",
+                        requirement_id: RequirementId(
+                            "req_aa7936c4805d4258a73b2646453a3bc4",
+                        ),
+                        purpose: "Develop rough-transport cart designs with the published method from another lab and show it beats the fixed cart.",
+                        trigger: "Method-development observation obs_862be6b7e37b4029b8c867b20c6dcfd7",
+                        termination: "The cart design beats the fixed cart by at least one success on twelve fresh public instances, or the Lab lead documents that the method cannot meet this and escalates.",
+                    },
+                    owner: Existing {
+                        role_id: RoleId(
+                            "role_285b0ea0e4754cc38e1fecf77bb2a5d5",
+                        ),
+                    },
+                },
+            ],
+            budget_limit_cents: None,
+        },
+        allocation: KeyAllocation {
+            roles: {},
+            responsibilities: {
+                "cart-method-development": ResponsibilityId(
+                    "rsp_be4a1e946dcb4c4ab025512c6685f71c",
+                ),
+            },
+            contracts: {},
+            gaps: {},
+        },
+        provisioned: {},
+        ready: {},
+        operations: {},
+        errors: [],
+        committed_revision: None,
+        submitted_by: "agent",
+        created_at: 2026-10-25T09:12:27.959114432Z,
+        updated_at: 2026-10-25T09:12:27.959120965Z,
+    },
+    attempts: 1,
+}

@@ -1,0 +1,55 @@
+Proposed {
+    change: OrgChangeRecord {
+        change_id: ChangeId(
+            "chg_bfe64bd5206b473785dd352023dbf710",
+        ),
+        status: Validated,
+        proposal: OrgChangeProposal {
+            expected_org_revision: 3,
+            trigger_evidence_ids: [
+                ObservationId(
+                    "obs_44eab5c79699423a832818c37648d4bf",
+                ),
+            ],
+            rationale: "The evidence sets a real new requirement for the mission: rough-transport cart designs must be developed with a method another lab published, and the result must beat the fixed cart. The method selection is retained only as evidence. It is not an installed capability, and the Lab lead, whose charter already covers rough-transport work in the lab, can own the requirement. The Lab lead is the only active role, and its charter is to own the lab and run rough-transport deliveries, which covers improving rough-transport cart designs. Assigning the requirement to it gives a single accountable owner with no new role, no budget change and no new scopes. The evidence states that availability alone needs no organizational change, and no distinct continuing work justifies a new specialist. RequestCapability is not possible because the evidence_ref is not a public URL, and nothing is installed to attach.",
+            operations: [
+                AssignResponsibility {
+                    target: FromRequirement {
+                        key: "cart_method_dev",
+                        requirement_id: RequirementId(
+                            "req_280b075fc8db45959c7dc6a1bb92ae0e",
+                        ),
+                        purpose: "Develop rough-transport cart designs with the externally published method and show they beat the fixed cart",
+                        trigger: "Method-development need observed (obs_44eab5c79699423a832818c37648d4bf)",
+                        termination: "Developed design beats the fixed cart by at least one success on twelve fresh public instances, or the method is judged unsuitable and this is reported",
+                    },
+                    owner: Existing {
+                        role_id: RoleId(
+                            "role_9a21e3de10dc4f32bf6571d6f28bad70",
+                        ),
+                    },
+                },
+            ],
+            budget_limit_cents: None,
+        },
+        allocation: KeyAllocation {
+            roles: {},
+            responsibilities: {
+                "cart_method_dev": ResponsibilityId(
+                    "rsp_deffd73ceeb444bdb755c7bfcff47cb3",
+                ),
+            },
+            contracts: {},
+            gaps: {},
+        },
+        provisioned: {},
+        ready: {},
+        operations: {},
+        errors: [],
+        committed_revision: None,
+        submitted_by: "agent",
+        created_at: 2026-10-25T09:13:00.535877661Z,
+        updated_at: 2026-10-25T09:13:00.535884904Z,
+    },
+    attempts: 1,
+}
