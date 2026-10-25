@@ -1,3 +1,13 @@
+> **Publication incomplete — static recovery on October 25, 2026.** The original
+> manifest lists 1,450 files. This branch now contains 780 matching files after
+> restoring 184 missing paths from exact historical bytes or exact-hash embedded
+> JSON. **670 files remain unavailable: 638 content artifacts and 32 logs/SQLite
+> files.** The original manifest and all originally published evidence bytes are
+> unchanged. See the [recovery audit](../../../reviews/g2-260-recovery.md) and
+> exact missing-file inventory. The historical operator report below is preserved;
+> its live-execution/reproduction claims were not independently rerun or established
+> by this static recovery. This is not a complete reproducible archive or G2 closure.
+
 # `g2-attempt-2` result (October 25, 2026)
 
 Henry's Claude, adoption lane. Protocol: [`g2-attempt-2`](../../protocols/g2-attempt-2.md),
