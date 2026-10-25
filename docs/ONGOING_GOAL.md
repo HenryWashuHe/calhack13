@@ -104,6 +104,25 @@ failures or input that is actually required.
 
 ## Current milestone ledger
 
+**Priority checkpoint, October 25, 2026 — main `60b4d10c`:** #220 source
+`96eecb8a` merged into #65 at `d57efc82`; #221 source `6f55d399` merged into
+#57 at `f9c3dc6f`. Both refuse namespace startup without Linux
+`close_range(CLOEXEC)` success, remove the RLIMIT-bounded fallback and change
+the environment-policy identity; Mode None is unchanged. Independent static
+review and composition `91e6e174` all-target compile/format checks pass; root's
+seven pure termination tests separately pass for #57. Exact-head independent Linux assurance remains
+open, and neither original PR is on main. [The review snapshot](reviews/pr-queue-2026-10-25.md)
+records merged #211/#199/#203 corrections: 21 store, 78 inert Stage and 80 inert
+Stage cases pass in their respective reviewed compositions. Those counts overlap;
+no combined suite or browser validation is claimed. Deferred research and newer
+unreviewed heads remain source-specific. The later Linux report covers only older
+`31001949` / `6c468f5`; its same-host agent provenance and assertion/heartbeat
+limits are recorded in the snapshot. It supplies no current-head assurance.
+G0–G4 remain open; the native app Goal reports `paused`. No namespace, descriptor,
+evaluator, generated-method, provider or paid execution is claimed here.
+
+### Historical milestone snapshot — main `0cc38e6`
+
 **Frozen snapshot: main `0cc38e6`, nine open PRs before this checkpoint:**
 #204, #203, #199, #181, #180, #144, #65, #57 and draft #7.
 #201 `f41e99e9` merged at `05f84f2d`; its earlier source/seed/lifecycle findings
