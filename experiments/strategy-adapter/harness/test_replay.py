@@ -162,6 +162,42 @@ class Controller(unittest.TestCase):
         self.assertEqual(replay.main(['replay.py', 'diff', str(m), str(m), '1']), 2)
 
     @unittest.skipUnless(os.geteuid() == 0 and shutil.which('unshare'), 'namespaces need root and unshare')
+    def test_the_whole_namespace_ends_even_when_the_method_leaves_its_group(self):
+        # The method (the namespace's first process) leaves the launcher's
+        # process group and starts a marked grandchild in a session of its own,
+        # then hangs. Killing the launcher's group reaches neither, and the
+        # setpriv credential change clears unshare's parent-death signal.
+        marker = 'replay-escape-%d-%d' % (os.getpid(), time.time_ns())
+        m = self.method("""
+            import os, subprocess, sys, time
+            os.setsid()
+            subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(120)', %r],
+                             stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, start_new_session=True)
+            sys.stdout.write('{"op": "instances"}\\n'); sys.stdout.flush()
+            time.sleep(120)
+        """ % marker)
+        with self.assertRaisesRegex(replay.Stopped, 'within 3 s'):
+            replay.run_method(m, Echo(), 'namespaces', timeout=3)
+
+        def survivors():
+            out = []
+            for d in Path('/proc').iterdir():
+                if d.name.isdigit():
+                    try:
+                        if marker.encode() in (d / 'cmdline').read_bytes() and alive(int(d.name)):
+                            out.append(int(d.name))
+                    except OSError:
+                        pass
+            return out
+
+        try:
+            self.assertEqual(survivors(), [], 'a process from the namespace outlived the run')
+        finally:
+            for pid in survivors():
+                os.kill(pid, 9)
+        self.assertEqual(list(replay.STAGE_ROOT.iterdir()), [])
+
+    @unittest.skipUnless(os.geteuid() == 0 and shutil.which('unshare'), 'namespaces need root and unshare')
     def test_namespaces_hide_the_host_and_drop_privileges(self):
         secret = Path('/root') / ('replay-test-%d' % os.getpid())
         secret.write_text('host file')
