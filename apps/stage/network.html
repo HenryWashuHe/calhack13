@@ -293,7 +293,7 @@ text.say.ok { fill: var(--accent); } text.say.bad { fill: var(--refuse); } text.
   }
   const live = { on: false, url: (query("a") || "http://127.0.0.1:7101/api/v1").replace(/\/$/, ""), tok: null, requestedMission: query("mission"), cursor: 0, timer: null, k: null, changes: new Map(), selectedChange: null, mission: null, state: null, started: false, generation: 0, polling: null, visualAt: 0, drawingQueued: false, reportStatus: "", posting: false, reportUnknown: false };
   const activeLive = (session) => live.on && live.generation === session;
-  const getJson = async (u, tok) => { const r = await fetch(u, { headers: { Authorization: "Bearer " + tok, Accept: "application/json" } }); if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); };
+  const getJson = async (u, tok) => { const r = await fetch(u, { headers: { Authorization: "Bearer " + tok, Accept: "application/json" } }); if (!r.ok) { const err = new Error("HTTP " + r.status); err.status = r.status; throw err; } return r.json(); };
   function queueLive(fn, session, gap = 0) {
     live.visualAt = Math.max(clock.t, live.visualAt) + gap;
     delay(() => { if (activeLive(session)) fn(); }, live.visualAt - clock.t);
@@ -373,6 +373,9 @@ text.say.ok { fill: var(--accent); } text.say.bad { fill: var(--refuse); } text.
         $("chip").textContent = (live.started ? "live kernel · " : "catching up · ") + (st.name || st.org_id || "organization") + (live.reportStatus ? " · " + live.reportStatus : "");
         $("act-name").textContent = "kernel · " + (live.started ? "live" : "catching up");
       } catch (err) {
+        if (activeLive(session) && err && (err.status === 401 || err.status === 403)) { // the kernel refused the token: forget it, stop, say so; the next L asks again
+          live.tok = null; stopLive(); $("chip").className = "chip"; $("chip").textContent = "agent token refused"; return;
+        }
         if (activeLive(session)) { $("chip").className = "chip"; $("chip").textContent = "live kernel unreachable" + (live.reportStatus ? " · " + live.reportStatus : ""); }
       }
     })();
@@ -411,11 +414,13 @@ text.say.ok { fill: var(--accent); } text.say.bad { fill: var(--refuse); } text.
   function reportStatus(text) { live.reportStatus = text; $("chip").textContent = text; }
   function openEvidence() {
     const missions = Object.keys(live.state?.missions || {});
-    if (!live.mission && missions.length && typeof prompt === "function") {
-      const selected = prompt("Select the mission ID for this report:\n" + missions.join("\n"), live.requestedMission || "");
+    if (!live.mission && missions.length) {
+      let selected;
+      try { selected = typeof prompt === "function" ? prompt("Select the mission ID for this report:\n" + missions.join("\n"), live.requestedMission || "") : undefined; }
+      catch { selected = undefined; } // a viewer that defines prompt() and refuses it
       if (missions.includes(selected)) { live.requestedMission = selected; live.mission = selected; }
     }
-    if (!live.mission) { reportStatus("report refused: select a current mission"); return; }
+    if (!live.mission) { reportStatus(missions.length > 1 ? `report refused: ${missions.length} missions; open with ?mission=<id> (${missions.map((m) => m.slice(0, 12)).join(", ")}…)` : "report refused: select a current mission"); return; }
     if (live.reportUnknown) { reportStatus("report outcome unknown: check the event log before resubmitting"); return; }
     evidenceInput.hidden = false; evidenceInput.focus();
   }
