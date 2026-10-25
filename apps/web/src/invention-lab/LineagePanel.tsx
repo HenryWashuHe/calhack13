@@ -6,6 +6,8 @@
 import { AttemptLedger } from "./AttemptLedger";
 import { Chip } from "./AttemptCard";
 import { beats, BEATS_LIMIT } from "./beats";
+import type { Exchange } from "./exchange";
+import { ExchangePanel } from "./ExchangePanel";
 import { adoptionLabel, evaluationLabel, executionLabel, purposeText, revisionLabel, TIER_TEXT, verdictText } from "./claims";
 import type { Edge, Lineage, MethodNode } from "./lineage";
 import type { ExactRef } from "./records";
@@ -80,7 +82,18 @@ function MethodCard({ node, lineage }: { node: MethodNode; lineage: Lineage }) {
   );
 }
 
-export function LineagePanel({ lineage, orgA, orgB }: { lineage: Lineage; orgA?: string; orgB?: string }) {
+export function LineagePanel({
+  lineage,
+  orgA,
+  orgB,
+  exchange,
+}: {
+  lineage: Lineage;
+  orgA?: string;
+  orgB?: string;
+  /** Method exchange records, shown apart from the lineage they may name. */
+  exchange?: Exchange;
+}) {
   return (
     <section className="lab-lineage">
       {orgA && orgB ? (
@@ -137,6 +150,7 @@ export function LineagePanel({ lineage, orgA, orgB }: { lineage: Lineage; orgA?:
           <p className="lab-limit">A trial verdict is scoring evidence under its frozen criterion, not an adoption decision.</p>
         </>
       )}
+      {exchange && <ExchangePanel exchange={exchange} />}
       {lineage.problems.length > 0 && (
         <>
           <h3>Problems in the supplied records</h3>
