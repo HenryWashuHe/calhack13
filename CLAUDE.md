@@ -275,8 +275,8 @@ every milestone. All lower checkpoints are historical.
   `bb9f7c28` are merged; #189 preserves independent `d2304309` guards at
   `899de43d`. The final composition passes 30 scoped forge tests and strict
   Clippy/fmt. Eight selections bind round methods, controls, runtime settings,
-  family policy and numeric trial grants. Next Codex work is bounded operator
-  cohort capture/chain links; generation provenance, fresh-panel consumption,
+  family policy and numeric trial grants. Codex is developing bounded operator
+  cohort capture/check CLI under its scoped claim; generation provenance, fresh-panel consumption,
   chronology and governance remain open. No new implementation is claimed.
   #160's regression analysis is merged as retrospective explanation, not a new
   trial, mechanism fix or proof the proposed #144 iteration engine works.

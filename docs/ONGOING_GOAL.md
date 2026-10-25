@@ -283,7 +283,7 @@ round methods/controls/runtime settings, family-specific policy and exact grants
 The final composition passes 30 scoped forge cases and strict Clippy/fmt. This is not six-operation generation admission or exhaustive
 history: generation-settings/feedback provenance, chain costs, fresh-panel
 consumption, independent publication/chronology and governance remain open.
-Codex's next bounded slice is operator cohort capture/chain links; it is not
+Codex is developing the bounded operator cohort capture/check CLI; it is not
 implemented in this checkpoint. Henry retains endpoint and invocation authority.
 Preparation #164 is merged. Eligibility CLI #174 clears its size/path hold;
 endpoint #168 `99b2c8b0` remains held on family-specific policy, full method identity
