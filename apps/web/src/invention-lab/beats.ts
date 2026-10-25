@@ -27,7 +27,7 @@ function runsText(l: Lineage, org: string, methods: Set<string>): Fact {
 
 /** Trials in which `org` ran one of `methods` as the candidate. A trial
  * verdict is scoring evidence, not an adoption decision. */
-function trialsOf(l: Lineage, org: string, methods: Set<string>) {
+export function trialsOf(l: Lineage, org: string, methods: Set<string>) {
   return l.trials.filter((t) =>
     t.executions.some(
       (e) =>

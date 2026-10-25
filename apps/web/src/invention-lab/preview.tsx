@@ -6,8 +6,10 @@ import { createRoot } from "react-dom/client";
 import "../styles.css";
 import { intake, orgsIn, type Intake } from "./intake";
 import { buildExchange } from "./exchange";
+import { ExchangePanel } from "./ExchangePanel";
 import { buildLineage } from "./lineage";
 import { LineagePanel } from "./LineagePanel";
+import { ResultsBoard } from "./ResultsBoard";
 
 export function Preview({ initial }: { initial?: Intake }) {
   const [loaded, setLoaded] = useState<Intake | undefined>(initial);
@@ -68,7 +70,14 @@ export function Preview({ initial }: { initial?: Intake }) {
               ))}
             </ul>
           </details>
-          <LineagePanel lineage={lineage} orgA={orgA || undefined} orgB={orgB || undefined} exchange={exchange} />
+          {orgA && orgB ? (
+            <>
+              <ResultsBoard lineage={lineage} orgA={orgA} orgB={orgB} />
+              {exchange && <ExchangePanel exchange={exchange} />}
+            </>
+          ) : (
+            <LineagePanel lineage={lineage} exchange={exchange} />
+          )}
         </>
       )}
     </main>
