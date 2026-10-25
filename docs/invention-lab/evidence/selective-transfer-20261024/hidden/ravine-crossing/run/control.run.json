@@ -1,0 +1,42 @@
+{
+  "outcome": "output_generated",
+  "outputs": [
+    {
+      "domain": "genesis-lab",
+      "id": "output",
+      "schema": "lab-design/1",
+      "sha256": "56de341b6ddd01fc05a0f471a99ef8e4126f45d01738abf46bc437f0bda67b00",
+      "version": "1"
+    }
+  ],
+  "transcript": {
+    "domain": "genesis",
+    "id": "control",
+    "schema": "development-experiment-transcript/1",
+    "sha256": "1df888918c36b372238a9fbad3470c458f20f0684ed6018d9a73a7a4cc58d42d",
+    "version": "1"
+  },
+  "transcript_path": "run-ravine-crossing/control/transcript.json",
+  "usage": {
+    "input_tokens": {
+      "kind": "unknown",
+      "reason": "input tokens: the sandbox doesn't establish that no model or local service is reachable"
+    },
+    "model_calls": {
+      "kind": "unknown",
+      "reason": "model calls: the sandbox doesn't establish that no model or local service is reachable"
+    },
+    "output_tokens": {
+      "kind": "unknown",
+      "reason": "output tokens: the sandbox doesn't establish that no model or local service is reachable"
+    },
+    "simulation_steps": {
+      "kind": "measured",
+      "value": 31682
+    },
+    "wall_time_ms": {
+      "kind": "measured",
+      "value": 599
+    }
+  }
+}
