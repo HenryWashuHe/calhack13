@@ -17,8 +17,11 @@
 //! invocation-template.json), GENESIS_BIN, PLANNER_BIN, GENESIS_LLM_*,
 //! LAB_EXEC, LAB_SCORE, RECEIVE_PY and INVOKE_PY. Root and the pinned runtime
 //! are the caller's business.
+use genesis_core::development_evaluation::{EvaluationOutcome, EvaluationReceipt};
 use genesis_core::development_method::ExactContentRef;
+use genesis_core::development_package::MethodPackage;
 use genesis_core::development_trial::TrialPlan;
+use genesis_core::development_verdict::{assess_process_slot, SlotEvidence};
 use genesis_core::ids::OrgId;
 use genesis_server::method_adoption::{AcceptancePin, MethodReceiver};
 use genesis_server::registry::{
@@ -176,6 +179,41 @@ fn read(path: &Path) -> Value {
     serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap()
 }
 
+/// A recorded requirement can precede its asynchronous assignment commit.
+/// Read only the requested observation's unambiguous, assigned responsibility.
+pub(crate) fn assigned_work(
+    org: &Value,
+    mission: &str,
+    observation: &str,
+) -> Option<(String, String, String)> {
+    let mut matches = org["requirements"].as_object()?.values().filter(|r| {
+        r["mission_id"] == mission
+            && r["triggering_evidence"]
+                .as_array()
+                .is_some_and(|ids| ids.iter().any(|id| id == observation))
+    });
+    let requirement = matches.next()?;
+    if matches.next().is_some()
+        || requirement["status"] != "ASSIGNED"
+        || requirement["owner"]["kind"] != "role"
+    {
+        return None;
+    }
+    let id = requirement["requirement_id"].as_str()?;
+    let owner = requirement["owner"]["id"].as_str()?;
+    let mut responsibilities = org["responsibilities"].as_object()?.values().filter(|r| {
+        r["requirement_id"] == id
+            && r["mission_id"] == mission
+            && r["owner"] == requirement["owner"]
+            && r["status"] == "OPEN"
+    });
+    let responsibility = responsibilities.next()?["responsibility_id"].as_str()?;
+    if responsibilities.next().is_some() {
+        return None;
+    }
+    Some((id.into(), owner.into(), responsibility.into()))
+}
+
 /// The exact reference of a spec package, from its retained bytes.
 fn package_ref(dir: &Path, spec: &Value, name: &str) -> (ExactContentRef, String, Value) {
     let path = dir.join(spec["packages"][name]["path"].as_str().unwrap());
@@ -188,7 +226,152 @@ fn package_ref(dir: &Path, spec: &Value, name: &str) -> (ExactContentRef, String
         version: envelope["package"]["version"].as_str().unwrap().into(),
         sha256: spec["packages"][name]["sha256"].as_str().unwrap().into(),
     };
+    let package: MethodPackage = serde_json::from_value(envelope["package"].clone()).unwrap();
+    MethodPackage::load_source_for(
+        json.as_bytes(),
+        &reference,
+        package.dependencies(),
+        package.runtime(),
+        package.protocol(),
+    )
+    .unwrap();
     (reference, json, envelope)
+}
+
+/// Keep the declared bytes separate from a derived spec with local snapshot paths.
+pub(crate) fn snapshot_spec(source: &Path, out: &Path) -> PathBuf {
+    let bytes = std::fs::read(source).unwrap();
+    let original: Value = serde_json::from_slice(&bytes).unwrap();
+    assert_eq!(original["schema"], "lab-receive-spec/1");
+    let mut frozen = original.clone();
+    let mut packages = Vec::new();
+    for name in original["packages"].as_object().unwrap().keys() {
+        assert!(!name.is_empty() && name.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-'));
+        let (_, bytes, _) = package_ref(source.parent().unwrap(), &original, name);
+        packages.push((name.clone(), bytes));
+        frozen["packages"][name]["path"] = json!(format!("packages/{name}.package.json"));
+    }
+    std::fs::create_dir(out).unwrap();
+    std::fs::create_dir(out.join("packages")).unwrap();
+    std::fs::write(out.join("source-spec.json"), bytes).unwrap();
+    for (name, bytes) in packages {
+        std::fs::write(out.join(format!("packages/{name}.package.json")), bytes).unwrap();
+    }
+    let path = out.join("spec.json");
+    write(&path, &frozen);
+    path
+}
+
+/// Mirror receive.py's deterministic rewrite, without running either slot.
+pub(crate) fn receiving_plan(
+    mut example: Value,
+    org: &str,
+    trial: &str,
+    control: &ExactContentRef,
+) -> Result<TrialPlan, String> {
+    let slots = example["slots"].as_array_mut().ok_or("missing slots")?;
+    if slots.len() != 2 || slots[0]["slot_id"] != "candidate" || slots[1]["slot_id"] != "control" {
+        return Err("unexpected example slots".into());
+    }
+    slots[1]["method"] = json!(control);
+    for (slot, name) in slots.iter_mut().zip(["candidate", "control"]) {
+        slot["org_id"] = json!(org);
+        slot["run_id"] = json!(format!("run-receive-{trial}-{name}"));
+        slot["attempt_id"] = json!(format!("att_receive-{trial}_{name}"));
+        slot["scoring_request_id"] = json!(format!("score-receive-{trial}-{name}"));
+    }
+    example["id"] = json!(format!("receive-{trial}"));
+    let plan: TrialPlan = serde_json::from_value(example).map_err(|e| e.to_string())?;
+    plan.validate().map_err(|e| e.to_string())?;
+    Ok(plan)
+}
+
+/// Future driver preparation only. This command generates a plan, not a trial.
+fn prepare_plan(lab_exec: &Path, spec_path: &Path, out: &Path, trial: &str) -> TrialPlan {
+    let spec = read(spec_path);
+    let mut matches = spec["trials"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|t| t["id"] == trial);
+    let selected = matches.next().unwrap();
+    assert!(matches.next().is_none(), "duplicate pinned trial");
+    let root = spec_path.parent().unwrap();
+    let candidate = selected["candidate"].as_str().unwrap();
+    let control = selected["control"].as_str().unwrap();
+    let (candidate_ref, _, _) = package_ref(root, &spec, candidate);
+    let (control_ref, _, _) = package_ref(root, &spec, control);
+    assert!(!out.exists(), "preparation must be create-only");
+    std::fs::create_dir(out).unwrap();
+    let result = Command::new(lab_exec)
+        .args(["example-plan", spec["sandbox"].as_str().unwrap()])
+        .arg(spec["instances"].as_u64().unwrap().to_string())
+        .arg(spec["simulation_steps"].as_u64().unwrap().to_string())
+        .arg(spec["wall_time_ms"].as_u64().unwrap().to_string())
+        .arg(out)
+        .arg(selected["family"].as_str().unwrap())
+        .arg(root.join(spec["packages"][candidate]["path"].as_str().unwrap()))
+        .arg(selected["first_seed"].as_u64().unwrap_or(0).to_string())
+        .output()
+        .unwrap();
+    std::fs::write(out.join("prepare.stdout"), &result.stdout).unwrap();
+    std::fs::write(out.join("prepare.stderr"), &result.stderr).unwrap();
+    assert!(result.status.success(), "offline plan preparation failed");
+    let plan = receiving_plan(
+        read(&out.join("plan.json")),
+        spec["org_id"].as_str().unwrap(),
+        trial,
+        &control_ref,
+    )
+    .unwrap();
+    assert_eq!(plan.slots[0].method, candidate_ref);
+    write(&out.join("plan.json"), &json!(plan));
+    plan
+}
+
+pub(crate) fn process_eligibility(
+    plan: &TrialPlan,
+    candidate: &SlotEvidence,
+    control: &SlotEvidence,
+) -> Result<Value, String> {
+    let c = assess_process_slot(plan, "candidate", candidate)?;
+    let k = assess_process_slot(plan, "control", control)?;
+    Ok(json!({"eligible":c.eligible && k.eligible,"candidate":c,"control":k}))
+}
+
+fn retained_eligibility(dir: &Path, plan: &TrialPlan) -> Value {
+    let load = |slot: &str| -> Result<SlotEvidence, String> {
+        let bytes =
+            std::fs::read(dir.join(format!("{slot}/receipt.json"))).map_err(|e| e.to_string())?;
+        let execution = serde_json::from_slice(&bytes).map_err(|e| e.to_string())?;
+        let score_path = dir.join(format!("{slot}-score/evaluation.json"));
+        let scoring: Option<EvaluationReceipt> = if score_path.exists() {
+            Some(
+                serde_json::from_slice(&std::fs::read(score_path).map_err(|e| e.to_string())?)
+                    .map_err(|e| e.to_string())?,
+            )
+        } else {
+            None
+        };
+        let metrics = match scoring.as_ref().map(|s| &s.outcome) {
+            Some(EvaluationOutcome::Scored { metrics }) => {
+                metrics.validate().map_err(|e| e.to_string())?;
+                Some(
+                    std::fs::read(dir.join(format!("{slot}-score/artifacts/{}", metrics.sha256)))
+                        .map_err(|e| e.to_string())?,
+                )
+            }
+            _ => None,
+        };
+        Ok(SlotEvidence {
+            execution,
+            scoring,
+            metrics,
+        })
+    };
+    let result = load("candidate")
+        .and_then(|c| load("control").and_then(|k| process_eligibility(plan, &c, &k)));
+    result.unwrap_or_else(|error| json!({"eligible":false,"error":error}))
 }
 
 /// One receiving run of `receive.py`; returns (plan, verdict) of `trial`.
@@ -301,8 +484,12 @@ async fn aba_attempt_2() {
         .to_string();
 
     // Stage 2: B receives `child2` against its pinned fixed cart.
-    let b_spec_path = dir.join("b-receive.json");
+    let b_spec_path = snapshot_spec(&dir.join("b-receive.json"), &out.join("b-inputs"));
+    let a_spec_path = snapshot_spec(&dir.join("a-receive.json"), &out.join("a-inputs"));
     let b_spec = read(&b_spec_path);
+    assert_eq!(b_spec["org_id"], "org_example_b");
+    assert_eq!(read(&a_spec_path)["org_id"], "org_example_a");
+    let frozen_a_plan = prepare_plan(&lab_exec, &a_spec_path, &out.join("a-prepared"), A_PINNED);
     let (b_plan, b_verdict) = receive(
         &receive_py,
         &b_spec_path,
@@ -313,12 +500,17 @@ async fn aba_attempt_2() {
         B_PINNED,
     );
     write(&out.join("b-verdict.json"), &b_verdict);
-    let _ = b_plan;
-    if b_verdict["verdict"] != "accepted" {
+    let typed_b_plan: TrialPlan = serde_json::from_value(b_plan).unwrap();
+    let b_eligibility = retained_eligibility(&dir.join("b-trial").join(B_PINNED), &typed_b_plan);
+    write(&out.join("b-eligibility.json"), &b_eligibility);
+    if b_verdict["verdict"] != "accepted" || b_eligibility["eligible"] != true {
         // The attempt ends at B with a decline; nothing is published.
         return;
     }
-    let (child2, package_json, envelope) = package_ref(&dir, &b_spec, "child2");
+    let (child2, package_json, envelope) =
+        package_ref(b_spec_path.parent().unwrap(), &b_spec, "child2");
+    assert_eq!(typed_b_plan.slots[0].method, child2);
+    assert_eq!(frozen_a_plan.slots[0].method, child2);
     let b_org = OrgId::new("org_example_b");
     let publication = MethodPublication {
         reference: child2.clone(),
@@ -402,54 +594,37 @@ async fn aba_attempt_2() {
     std::fs::write(out.join("a-planner-once.stdout"), &once.stdout).unwrap();
     std::fs::write(out.join("a-planner-once.stderr"), &once.stderr).unwrap();
     let mut a_state = Value::Null;
+    let mut assigned = None;
     for _ in 0..240 {
         a_state = a_api.get("/organization").await;
-        if !a_state["requirements"].as_object().unwrap().is_empty() || !once.status.success() {
+        assigned = assigned_work(&a_state, &a_mission, &observation);
+        if assigned.is_some() || !once.status.success() {
             break;
         }
         tokio::time::sleep(Duration::from_millis(250)).await;
     }
     write(&out.join("a-organization-after-change.json"), &a_state);
-    let Some(requirement) = a_state["requirements"]
-        .as_object()
-        .unwrap()
-        .values()
-        .next()
-        .cloned()
-    else {
-        // No change or escalation: recorded, and A stops here.
+    let Some((requirement_id, owner, responsibility)) = assigned else {
+        write(
+            &out.join("a-planner-stop.json"),
+            &json!({"status":"stopped",
+            "observation_id":observation,"reason":"no matching committed assignment observed",
+            "planner_exit_success":once.status.success()}),
+        );
         return;
     };
-    let requirement_id = requirement["requirement_id"].as_str().unwrap().to_string();
-    let owner = requirement["owner"]["id"].as_str().unwrap().to_string();
     if owner != designer {
-        // The planner chose another owner (a specialist, say). The protocol
-        // records that as the outcome; A doesn't adopt under a different owner.
+        write(
+            &out.join("a-planner-stop.json"),
+            &json!({"status":"stopped",
+            "observation_id":observation,"reason":"planner chose a different owner","role_id":owner}),
+        );
         return;
     }
-    let responsibility = a_state["responsibilities"]
-        .as_object()
-        .unwrap()
-        .values()
-        .find(|r| r["requirement_id"] == requirement["requirement_id"])
-        .unwrap()["responsibility_id"]
-        .as_str()
-        .unwrap()
-        .to_string();
 
-    // Stage 4: A receives it against its own current method (the parent).
-    let a_spec_path = dir.join("a-receive.json");
+    // Install the exact predeclared A plan before any A trial executes.
     let a_out = dir.join("a-trial");
-    let (a_plan, a_verdict) = receive(
-        &receive_py,
-        &a_spec_path,
-        &a_out,
-        &out,
-        "a",
-        &labs,
-        A_PINNED,
-    );
-    write(&out.join("a-verdict.json"), &a_verdict);
+    let a_plan = json!(frozen_a_plan);
     let field = |k: &str| {
         serde_json::from_value::<ExactContentRef>(envelope["package"][k].clone()).unwrap()
     };
@@ -479,6 +654,30 @@ async fn aba_attempt_2() {
     let _a_proc = a.spawn(&bin, &registry_url, Some(&receiver_path));
     wait_up(&a.url()).await;
 
+    // Stage 4 runs only after the receiver has its exact frozen plan.
+    let (actual_plan, a_verdict) = receive(
+        &receive_py,
+        &a_spec_path,
+        &a_out,
+        &out,
+        "a",
+        &labs,
+        A_PINNED,
+    );
+    write(&out.join("a-verdict.json"), &a_verdict);
+    let actual_plan: TrialPlan = serde_json::from_value(actual_plan).unwrap();
+    if actual_plan != frozen_a_plan {
+        write(
+            &out.join("a-trial-stop.json"),
+            &json!({"status":"stopped",
+            "reason":"result plan differs from preinstalled receiver pin",
+            "expected":frozen_a_plan.reference().unwrap(),"actual":actual_plan.reference().unwrap()}),
+        );
+        return;
+    }
+    let a_eligibility = retained_eligibility(&a_out.join(A_PINNED), &actual_plan);
+    write(&out.join("a-eligibility.json"), &a_eligibility);
+
     // Stage 5: A's owner decides; B's operator token is refused on A.
     let intent = |key: &str, decision: Value| {
         json!({"client_request_id":key,"mission_id":a_mission,"requirement_id":requirement_id,
@@ -502,11 +701,11 @@ async fn aba_attempt_2() {
         status_b == 401 || status_b == 403,
         "B's token must not act in A: {status_b}"
     );
-    let accepted = a_verdict["verdict"] == "accepted";
+    let accepted = a_verdict["verdict"] == "accepted" && a_eligibility["eligible"] == true;
     let decision = if accepted {
         adopt
     } else {
-        json!({"decision":"decline","reason":"the receiving trial against our current method did not accept it"})
+        json!({"decision":"decline","reason":"the receiving trial was not accepted with eligible process evidence"})
     };
     let (status, decided) = a_api
         .post("/method-adoptions", &intent("a-owner-decides", decision))
