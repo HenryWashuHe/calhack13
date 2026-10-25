@@ -110,6 +110,7 @@ def spec_problems(spec, not_run):
         problems.append("spec packages are not the fresh-stage names")
     trials = {t.get("id"): t for t in spec.get("trials") or [] if isinstance(t, dict)}
     expected = {}
+    expected_not_run = []
     for fam in FAMILIES:
         for name in PLANS:
             tid = f"fresh-{fam}-{name}"
@@ -120,6 +121,7 @@ def spec_problems(spec, not_run):
                     problems.append(f"{tid} is in the spec without package {missing}")
                 elif not_run.get(tid) != "no_candidate: " + ", ".join(missing):
                     problems.append(f"{tid} lacks {missing} but is not declared not run")
+                expected_not_run.append(tid)
                 continue
             if tid in not_run:
                 problems.append(f"{tid} is declared not run but the spec has its packages")
@@ -131,10 +133,46 @@ def spec_problems(spec, not_run):
     extra = set(trials) - set(expected)
     if extra or len(trials) != len(spec.get("trials") or []):
         problems.append(f"spec has unexpected or repeated trials: {sorted(extra)}")
+    order = [t.get("id") for t in spec.get("trials") or [] if isinstance(t, dict)]
+    if order != list(expected):
+        problems.append("spec trials are not in the protocol's family and plan order")
+    if list(not_run) != expected_not_run:
+        problems.append("not-run list is not the exact ordered complement of the spec")
     return problems, expected
 
 
-def plan_problems(plan, spec, tid, fam, cand, ctrl):
+def package_ref(out, spec, name):
+    """The full method reference receive.py derives from the retained package
+    snapshot, if those bytes are the spec's pin; otherwise None."""
+    try:
+        with open(os.path.join(out, "packages", f"{name}.package.json"), "rb") as f:
+            data = f.read()
+        pkg = json.loads(data)["package"]
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+    digest = hashlib.sha256(data).hexdigest()
+    if digest != spec["packages"][name]["sha256"]:
+        return None
+    return {"domain": "genesis", "schema": "development-method-source/1",
+            "id": pkg.get("id"), "version": pkg.get("version"), "sha256": digest}
+
+
+def criterion_problems(trial_dir, plan, ids):
+    """A retained criterion.json must be the executor's criterion for this panel."""
+    path = os.path.join(trial_dir, "criterion.json")
+    if not os.path.exists(path):
+        return []
+    with open(path, "rb") as f:
+        data = f.read()
+    expected = json.dumps({"instances": ids, "min_margin": 1, "rule": "success-count-margin"},
+                          sort_keys=True, separators=(",", ":")).encode()
+    criterion = plan.get("criterion") or {}
+    if data != expected or criterion.get("sha256") != hashlib.sha256(data).hexdigest():
+        return ["criterion is not the success-count margin over this panel"]
+    return []
+
+
+def plan_problems(out, plan, spec, tid, fam, cand, ctrl):
     """The retained plan against what the pinned spec and receive.py determine."""
     if not isinstance(plan, dict):
         return ["plan.json missing or not JSON"]
@@ -161,8 +199,7 @@ def plan_problems(plan, spec, tid, fam, cand, ctrl):
         return problems + ["slots are not candidate then control"]
     for s, name, pkg in ((slots[0], "candidate", cand), (slots[1], "control", ctrl)):
         m = s.get("method") or {}
-        if (m.get("domain"), m.get("schema"), m.get("sha256")) != (
-                "genesis", "development-method-source/1", spec["packages"][pkg]["sha256"]):
+        if m != package_ref(out, spec, pkg):
             problems.append(f"{name} method is not spec package {pkg}")
         if (s.get("org_id"), s.get("run_id"), s.get("attempt_id"),
                 s.get("scoring_request_id")) != (
@@ -175,13 +212,22 @@ def plan_problems(plan, spec, tid, fam, cand, ctrl):
 
 
 def policy(plan):
-    """What every fresh plan must share: all but identities, panel and task."""
+    """What every fresh plan must share: all but identities, panel, task and
+    the family-specific parts (criterion over the panel, scoring steps)."""
     p = copy.deepcopy(plan)
-    for k in ("id", "development_instances", "slots"):
+    for k in ("id", "development_instances", "slots", "criterion"):
         p.pop(k, None)
     for k in FAMILY_CONTEXT:
         (p.get("context") or {}).pop(k, None)
+    if isinstance(p.get("scoring_grant"), dict):
+        p["scoring_grant"].pop("simulation_steps", None)
     return p
+
+
+def family_policy(plan):
+    """What every plan of one family must share besides the common policy."""
+    return {"criterion": plan.get("criterion"),
+            "scoring_steps": (plan.get("scoring_grant") or {}).get("simulation_steps")}
 
 
 def trial_record(out, tid, expected, spec, lab_score):
@@ -190,7 +236,11 @@ def trial_record(out, tid, expected, spec, lab_score):
     if not os.path.isdir(d):
         return {"trial": tid, "status": "missing"}
     plan = load(os.path.join(d, "plan.json"))
-    problems = plan_problems(plan, spec, tid, fam, cand, ctrl)
+    problems = plan_problems(out, plan, spec, tid, fam, cand, ctrl)
+    if isinstance(plan, dict):
+        ids = [i.get("id") for i in plan.get("development_instances") or []
+               if isinstance(i, dict)]
+        problems += criterion_problems(d, plan, ids)
     record = {"trial": tid, "status": "unbound" if problems else "run", "problems": problems,
               "verdict": load(os.path.join(d, "verdict.json"))}
     if isinstance(plan, dict):
@@ -198,6 +248,8 @@ def trial_record(out, tid, expected, spec, lab_score):
         record["control"] = slot_record(d, plan, "control", lab_score)
         record["policy"] = hashlib.sha256(
             json.dumps(policy(plan), sort_keys=True).encode()).hexdigest()
+        record["family_policy"] = hashlib.sha256(
+            json.dumps(family_policy(plan), sort_keys=True).encode()).hexdigest()
     return record
 
 
@@ -208,8 +260,14 @@ def contribution(trial, side):
 
 
 def report(out, not_run_list=(), spec_sha256=None, lab_score=None):
-    not_run = {r.get("trial"): r.get("reason") for r in not_run_list if isinstance(r, dict)}
+    not_run = {}
     unbound = []
+    for r in not_run_list:
+        tid = r.get("trial") if isinstance(r, dict) else None
+        if tid in not_run or not isinstance(tid, str):
+            unbound.append(f"not-run entry {tid!r} is repeated or malformed")
+            continue
+        not_run[tid] = r.get("reason")
     try:
         with open(os.path.join(out, "spec.json"), "rb") as f:
             spec_bytes = f.read()
@@ -238,7 +296,10 @@ def report(out, not_run_list=(), spec_sha256=None, lab_score=None):
     records = [t for fam in families.values() for t in fam.values()]
     unbound += [f"{t['trial']}: {p}" for t in records for p in t.get("problems", [])]
     if len({t["policy"] for t in records if "policy" in t}) > 1:
-        unbound.append("plans differ in evaluator, criterion, environment or grants")
+        unbound.append("plans differ in evaluator, environment or grants")
+    for fam, plans in families.items():
+        if len({t["family_policy"] for t in plans.values() if "family_policy" in t}) > 1:
+            unbound.append(f"{fam} plans differ in criterion or scoring steps")
     primaries = [families[f]["primary"] for f in FAMILIES]
     complete = not unbound and all(t["status"] == "run" for t in primaries)
     ran = [t for t in primaries if t["status"] == "run"]
