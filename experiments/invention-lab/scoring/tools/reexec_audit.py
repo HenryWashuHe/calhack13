@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Re-execute and rescore every retained trial slot with the tool builds its
-records name. Reads the evidence tree; writes only under WORK_DIR.
+records name. Reads the evidence tree; writes only under a NEW WORK_DIR outside it.
+Nonzero commands and malformed plans fail the audit; existing scratch results
+are never accepted as fresh output.
 
     reexec_audit.py EVIDENCE_ROOT WORK_DIR LAB_SCORE [ENV=LAB_EXEC ...] [hidden:PREFIX=LAB_SCORE ...]
 
@@ -55,7 +57,10 @@ def package_index(root):
 
 def run(args):
     r = subprocess.run(args, capture_output=True, text=True, timeout=1800)
-    return (r.stdout + r.stderr).strip()[:160]
+    message = (r.stdout + r.stderr).strip()[:160]
+    if r.returncode != 0:
+        raise RuntimeError(f"command exited {r.returncode}: {message}")
+    return message
 
 
 def layout(trial, sid, slots):
@@ -83,6 +88,17 @@ def rescore(lab_score, trial, sid, state, out, hidden_root, hidden_score, retain
 
 def main(argv):
     root, work, lab_score, *maps = argv
+    root, work = os.path.realpath(root), os.path.realpath(work)
+    # No old receipt or scoring file may stand in for a new command result.
+    # Refuse a directory inside the evidence root too: it is read-only input.
+    if os.path.commonpath([root, work]) == root:
+        print("WORK_DIR must be outside EVIDENCE_ROOT", file=sys.stderr)
+        return 1
+    try:
+        os.makedirs(work, mode=0o700, exist_ok=False)
+    except OSError:
+        print("WORK_DIR must be a new directory", file=sys.stderr)
+        return 1
     executors = dict(m.split("=", 1) for m in maps if not m.startswith("hidden:"))
     hidden = dict(m[len("hidden:"):].split("=", 1) for m in maps if m.startswith("hidden:"))
     packages = package_index(root)
@@ -90,8 +106,13 @@ def main(argv):
     rows = []
     for n, trial in enumerate(trials):
         try:
-            plan = json.load(open(os.path.join(trial, "plan.json")))
-        except (OSError, ValueError):
+            with open(os.path.join(trial, "plan.json")) as fh:
+                plan = json.load(fh)
+            if not isinstance(plan, dict) or not isinstance(plan.get("slots"), list) or not plan["slots"]:
+                raise ValueError("invalid plan slots")
+        except (OSError, ValueError) as error:
+            rows.append({"trial": os.path.relpath(trial, root),
+                         "exec": "invalid retained plan: " + type(error).__name__})
             continue
         env = plan.get("development_environment", {}).get("sha256", "")[:8]
         rel = os.path.relpath(trial, root)
@@ -111,7 +132,12 @@ def main(argv):
                 print(json.dumps(row), flush=True)
                 continue
             state = os.path.join(work, f"{n:03d}-{sid}")
-            msg = run([exe, "run", os.path.join(trial, "plan.json"), sid, pkg, state, "namespaces"])
+            try:
+                msg = run([exe, "run", os.path.join(trial, "plan.json"), sid, pkg, state, "namespaces"])
+            except (OSError, RuntimeError, subprocess.TimeoutExpired) as error:
+                row["exec"] = "failed: " + str(error)[:160]
+                print(json.dumps(row), flush=True)
+                continue
             fresh = os.path.join(state, "receipt.json")
             if not os.path.exists(fresh):
                 row["exec"] = "failed: " + msg
@@ -136,13 +162,16 @@ def main(argv):
                         shutil.copy(retained, os.path.join(scored_state, "receipt.json"))
                         row["output"] = "re-executed (not retained)"
                     hidden_root = os.path.dirname(os.path.dirname(trial)) if is_hidden else None
-                    row["score"] = rescore(lab_score, trial, sid, scored_state, state + "-score",
-                                           hidden_root, hidden_score, evaluation)
+                    try:
+                        row["score"] = rescore(lab_score, trial, sid, scored_state, state + "-score",
+                                               hidden_root, hidden_score, evaluation)
+                    except (OSError, RuntimeError, subprocess.TimeoutExpired) as error:
+                        row["score"] = "failed: " + str(error)[:160]
             print(json.dumps(row), flush=True)
     with open(os.path.join(work, "audit.json"), "w") as fh:
         json.dump(rows, fh, indent=1)
     bad = [r for r in rows if r.get("exec") != "same" or r.get("score") not in ("same", "none retained")]
-    return 1 if bad else 0
+    return 1 if bad or not rows else 0
 
 
 if __name__ == "__main__":

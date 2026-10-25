@@ -1,6 +1,16 @@
 # Re-execution audit of every retained trial (October 25, 2026)
 
-Henry's Claude, executor/scoring lane. Run on main `58230b71`.
+Henry's Claude, executor/scoring lane. Historical operator report run on main
+`58230b71`; the `audit.json` bytes below are unchanged.
+
+**Prospective audit-tool correction:** subsequent static review found that the
+original tool could accept old scratch outputs despite a failed command, skip a
+malformed retained plan, or succeed with zero audited slots. The corrected tool
+requires a new work directory outside the evidence tree, checks subprocess exit
+status before accepting outputs, and fails those incomplete-audit cases. Seven
+synthetic tests (all subprocesses mocked) pass. No methods or scorers were rerun
+for this correction. The historical 67/65 result remains the operator's report;
+these tests neither independently reproduce nor invalidate that earlier run.
 
 ## Question
 
@@ -102,4 +112,6 @@ python3 -I experiments/invention-lab/scoring/tools/reexec_audit.py \
   hidden:selective-transfer-20261024/hidden/=<lab-score@4c2648d>
 ```
 
-It exits 0 only if every slot reproduces. Here it took under a minute.
+Use a previously nonexistent `<work>` path. It exits 0 only if at least one
+retained slot is audited and every discovered slot reproduces, with no malformed
+plan or command failure. The historical operator run took under a minute.
