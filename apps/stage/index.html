@@ -784,7 +784,7 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
       if (gen !== app.gen) return; // a newer connection or the replay owns the screen; a failed read alone never discards a receipt
       if (!r.ok) return judgeStatus(`The kernel refused it: HTTP ${r.status} ${rec && rec.error ? rec.error : ""}`.trim(), true);
       const id = typeof rec.observation_id === "string" && /^[A-Za-z0-9_.:-]{3,128}$/.test(rec.observation_id) ? rec.observation_id : null; // a receipt needs an identity, not a particular spelling
-      if (!id) return judgeStatus(`The kernel answered HTTP ${r.status} without an observation id, so this report is not recorded as evidence. The text is kept; try again or check the kernel log.`, true);
+      if (!id) return judgeStatus(`The kernel answered HTTP ${r.status} without an observation id. Delivery is unconfirmed and the report may have been recorded. The text is kept; check the kernel log before sending another report.`, true);
       app.lastJudgeObs = id;
       app.liveChat = [...app.liveChat, { you: "report " + summary }, { org: `Recorded as evidence ${id} for Org A's mission (live). The planner is reading it now; its verdict appears in the decision card.` }];
       renderChat(app.liveChat); $("judgetext").value = "";
@@ -794,7 +794,7 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
       judgeStatus(early ? `The planner answered: ${early.verdict}. See the decision card.` : `Recorded ${id} · waiting for the planner`);
     } catch (err) {
       if (gen !== app.gen) return;
-      judgeStatus("Could not reach the kernel: " + (err && err.message ? err.message : "blocked"), true);
+      judgeStatus("Delivery is unconfirmed; the report may have been recorded. The text is kept; check the kernel log before sending another report. " + (err && err.message ? err.message : "Response unavailable."), true);
     } finally { $("judgesend").disabled = false; }
   }
   $("judgeform").addEventListener("submit", judgeSubmit);
