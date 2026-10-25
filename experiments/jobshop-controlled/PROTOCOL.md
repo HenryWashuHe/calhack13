@@ -31,9 +31,14 @@ what the mutator sees:
   mutator. The instruction supplies no strategy direction.
 
 The same repetition/round panel seeds and evaluator settings are used by both
-arms. Arm order alternates B/A, A/B, B/A, A/B, B/A across repetitions. A failed,
-invalid or refused request is counted and retained; it is never retried or
-replaced. No outcome-driven extension, seed replacement or stopping occurs.
+arms. Arm order alternates B/A, A/B, B/A, A/B, B/A across repetitions. A
+response that arrives (including a refusal, an empty or unparseable answer, or
+a `max_tokens` stop) is counted and retained, never retried or replaced, and
+the run continues. A request whose provider outcome isn't a successful response
+(an HTTP error status, a timeout, a lost connection) **stops the run**, with
+its full reservation charged and its HTTP status and error type, when known,
+recorded in the stop event; it is never retried. No outcome-driven extension,
+seed replacement or other stopping occurs.
 The `stall` shortcut is disabled. A complete run is 50 model requests.
 Each repetition has a public prompt label `repetition 1` through `repetition 5`
 shared by its A/B arms. It differentiates independent model samples but is
@@ -98,7 +103,9 @@ hashes are frozen. A crash, missing record, unknown provider charge, model
 mismatch or ledger failure stops the run without opening the final panel.
 Before reading a key or constructing controls, this entrypoint rejects a dirty
 checkout and any host without the recorded macOS `sandbox-exec`/network-denied
-mode. The manifest pins the reviewed commit, all loaded source file bytes,
+mode, and refuses a key file that lies under any path the rule sandbox may
+read (its runtime roots, including the prefix the node binary is installed
+under, and the iteration scripts). The manifest pins the reviewed commit, all loaded source file bytes,
 Node executable digest/version, OS release/architecture and observed sandbox
 description. A trusted root rule must also score one preflight instance inside
 that sandbox before the key is read. The replay verifier checks those bindings.
