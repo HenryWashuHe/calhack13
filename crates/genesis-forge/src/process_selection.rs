@@ -5,7 +5,7 @@ use genesis_core::{
     development_evaluation::EvaluationOutcome,
     development_method::*,
     development_trial::{TrialEvidence, TrialPlan, TrialPurpose},
-    development_verdict::Criterion,
+    development_verdict::{assess_process_slot, Criterion, SlotEvidence},
     digest::canonical_sha256,
 };
 use serde::{Deserialize, Serialize};
@@ -92,66 +92,6 @@ fn hash(bytes: &[u8]) -> String {
 fn fail(message: &str) -> String {
     message.into()
 }
-fn known(usage: &Usage) -> bool {
-    [
-        &usage.model_calls,
-        &usage.input_tokens,
-        &usage.output_tokens,
-        &usage.wall_time_ms,
-        &usage.simulation_steps,
-    ]
-    .iter()
-    .all(|v| matches!(v, ResourceUsage::Measured { .. }))
-}
-fn overrun(usage: &Usage, grant: &ResourceGrant) -> Result<bool, String> {
-    usage.validate().map_err(|e| e.to_string())?;
-    match usage.assess(grant) {
-        Ok(_) => Ok(false),
-        Err(ContractError::BudgetExceeded(_)) => Ok(true),
-        Err(e) => Err(e.to_string()),
-    }
-}
-fn count(input: &TrialInput, outcome: &EvaluationOutcome) -> Result<Option<u64>, String> {
-    let EvaluationOutcome::Scored { metrics } = outcome else {
-        if input.metrics.is_some() {
-            return Err(fail("metrics without Scored receipt"));
-        }
-        return Ok(None);
-    };
-    if metrics.domain != "genesis-lab"
-        || metrics.schema != "lab-scoring-metrics/1"
-        || metrics.id != "lab-scoring-metrics/1"
-        || metrics.version != "1"
-    {
-        return Err(fail("unsupported metrics identity"));
-    }
-    let Some(bytes) = &input.metrics else {
-        return Ok(None);
-    };
-    if bytes.len() > 1024 * 1024 || hash(bytes) != metrics.sha256 {
-        return Err(fail("metrics bounds or digest mismatch"));
-    }
-    let value: serde_json::Value = serde_json::from_slice(bytes).map_err(|e| e.to_string())?;
-    let rows = value["instances"]
-        .as_array()
-        .ok_or("missing metrics instances")?;
-    if rows.len() != 6 {
-        return Err(fail("metrics must contain all six instances"));
-    }
-    rows.iter()
-        .zip(&input.plan.development_instances)
-        .try_fold(0, |sum, (row, instance)| {
-            if row["instance"].as_str() != Some(&instance.id) {
-                return Err(fail("metrics instance identity or order differs"));
-            }
-            row["success"]
-                .as_bool()
-                .map(|v| sum + u64::from(v))
-                .ok_or_else(|| fail("metrics success is not boolean"))
-        })
-        .map(Some)
-}
-
 /// Caller must retain these expected plans independently of evidence and freeze
 /// the resulting choice before the fresh panel. Hashes do not establish timing.
 pub fn select_development(
@@ -264,40 +204,24 @@ pub fn select_development(
                     if evidence.slot_id != candidate.slot_id {
                         return Err(fail("evidence is not the candidate slot"));
                     }
-                    let binding = plan
-                        .expected_binding(&candidate.slot_id)
-                        .map_err(|e| e.to_string())?;
-                    let execution = &evidence.execution;
-                    execution
-                        .validate_identity_against(&binding)
-                        .map_err(|e| e.to_string())?;
+                    let assessment = assess_process_slot(
+                        plan,
+                        &candidate.slot_id,
+                        &SlotEvidence {
+                            execution: evidence.execution.clone(),
+                            scoring: evidence.scoring.clone(),
+                            metrics: input.metrics.clone(),
+                        },
+                    )?;
                     row.evidence_sha256 = Some(canonical_sha256(&json!(evidence)));
-                    row.execution = Some(execution.outcome);
-                    row.development_usage = Some(execution.usage.clone());
-                    row.development_overrun = overrun(&execution.usage, &plan.development_grant)?;
-                    if let Some(scoring) = &evidence.scoring {
-                        let request = plan
-                            .evaluation_request_for_accounting(&candidate.slot_id, execution)
-                            .map_err(|e| e.to_string())?
-                            .ok_or("scoring without retained output")?;
-                        scoring
-                            .validate_identity_against(&request, execution, &binding)
-                            .map_err(|e| e.to_string())?;
-                        row.scoring = Some(scoring.outcome.clone());
-                        row.scoring_usage = Some(scoring.usage.clone());
-                        row.scoring_within_grant =
-                            !overrun(&scoring.usage, &plan.scoring_grant)? && known(&scoring.usage);
-                        row.successes = count(input, &scoring.outcome)?;
-                    } else if input.metrics.is_some() {
-                        return Err(fail("metrics without scoring receipt"));
-                    }
-                    // Match the frozen protocol: development usage must be
-                    // known, scoring within grant. Development overrun is also
-                    // reported; this selection never authorizes another effect.
-                    row.eligible = execution.outcome == ExecutionOutcome::OutputGenerated
-                        && known(&execution.usage)
-                        && row.scoring_within_grant
-                        && row.successes.is_some();
+                    row.execution = Some(assessment.execution);
+                    row.development_usage = Some(assessment.development_usage);
+                    row.development_overrun = assessment.development_overrun;
+                    row.scoring = assessment.scoring;
+                    row.scoring_usage = assessment.scoring_usage;
+                    row.scoring_within_grant = assessment.scoring_within_grant;
+                    row.successes = assessment.successes;
+                    row.eligible = assessment.eligible;
                 } else if input.metrics.is_some() {
                     return Err(fail("metrics without execution"));
                 }

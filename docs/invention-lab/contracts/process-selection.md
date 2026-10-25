@@ -39,3 +39,13 @@ Cohort equality does not authenticate authoritative family/context bytes or
 enforce the protocol's numeric 60,000 ms / 72,000-step development ceilings.
 The report explicitly labels its scope `single_arm_family_development`;
 the protocol name identifies the selection rule, not a completed global check.
+
+Slot eligibility comes from the shared pure
+`genesis_core::development_verdict::assess_process_slot(plan, slot_id, &SlotEvidence)`.
+It rebuilds identities from the expected plan and returns a serializable
+`ProcessSlotAssessment` with the exact plan/method/slot, observed outcomes and
+usage, steps, overrun/within-grant flags, optional successes, eligibility and
+reasons. Both candidate and control public slots are supported, including the
+12-instance fresh panel. It rejects HiddenCommitment instead of inferring hidden
+instance order. The selector still owns its three-round cohort/criterion checks;
+the helper does not validate the full protocol or change `decide`'s acceptance rule.
