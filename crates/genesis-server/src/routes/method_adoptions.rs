@@ -31,6 +31,7 @@ fn error(error: MethodAdoptionError) -> ApiError {
             format!("method authority changed or expired: {fence:?}"),
         ),
         E::NotAdopted => conflict("method_not_adopted", error.to_string()),
+        E::ScopeMissing => ApiError::new(StatusCode::FORBIDDEN, "method_scope", error.to_string()),
         E::Acceptance(e) => ApiError::new(
             StatusCode::UNPROCESSABLE_ENTITY,
             "method_acceptance",
