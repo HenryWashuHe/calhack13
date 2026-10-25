@@ -41,16 +41,14 @@ console.log(JSON.stringify({ phase: 'verified', artifact: { actor_id: 'actor-1',
   assert.equal(report.results.apify.status, 'passed');
 });
 
-test('a native CREAO failure remains failed after the run was created', async () => {
-  // Runtime::step returns a stored failed record and the real CLI exits 0.
-  // crates/genesis-creao/src/runtime.rs:605-614 and main.rs:132-152.
-  const fixture = setup('genesis-creao', `
-if (args[0] === 'prepare') process.exit(0);
-console.log(JSON.stringify({ phase: 'failed', native_status: 'failed', run_id: 'run-failed',
-  provider_agent_id: null, retryable_read: false, failure: 'native_failed' }));`);
-  const report = await fixture.run();
-  assert.equal(report.results.creao.status, 'failed',
-    'a terminal failed phase must cause the runner exit policy to fail');
+// Historical native-creation failure guard now exercises the same terminal-failure
+// invariant through API Trigger; the legacy creation CLI is deliberately unused.
+test('a CREAO Trigger failure remains failed after the run was accepted', async () => {
+  const app='11111111-1111-4111-8111-111111111111',run='22222222-2222-4222-8222-222222222222';
+  const response=(value,status=200)=>new Response(JSON.stringify(value),{status,headers:{'Content-Type':'application/json'}});
+  const report=await runGates({repo,binDir:mkdtempSync(join(tmpdir(),'trigger-bin-')),out:mkdtempSync(join(tmpdir(),'trigger-out-')),gates:['creao'],env:{CREAO_TRIGGER_API_KEY:'capi_offline',CREAO_TRIGGER_APP_ID:app},stamp:'failed',allowBillable:true,pollScale:0,maxSteps:1,
+    triggerFetchImpl:async(_url,options)=>options.method==='POST'?response({id:run,appId:app,status:'pending'},202):response({id:run,status:'failed'})});
+  assert.equal(report.results.creao.status,'failed','a terminal failed phase must cause the runner exit policy to fail');
 });
 
 test('an oracle-rejected Apify run remains failed after its build succeeded', async () => {

@@ -23,14 +23,24 @@ function fixture(name, script, spaced = false) {
     calls: () => readFileSync(log, 'utf8').trim().split('\n').map(JSON.parse), env,
   };
 }
-test('separate CREAO operation directories retain one account quota database', async () => {
-  const f=fixture('genesis-creao', `if(args[0]==='prepare') process.exit(0); console.log(JSON.stringify({phase:'native_completed',run_id:'r',provider_agent_id:'a'}));`);
-  await f.run('first'); await f.run('second');
-  const steps=f.calls().filter(args=>args[0]==='step');
-  const arg=(args,name)=>args[args.indexOf(name)+1];
-  assert.notEqual(arg(steps[0],'--db'),arg(steps[1],'--db'),'operation checkpoints are isolated');
-  assert.equal(arg(steps[0],'--account'),arg(steps[1],'--account'));
-  assert.equal(arg(steps[0],'--quota-db'),arg(steps[1],'--quota-db'),'the same account must retain its request/write debits and cooldown between runs');
+// Historical Developer API quota-DB guard is superseded by app-run journals.
+// Trigger uses account credits reported by CREAO, not the old creation CLI quota DB.
+test('separate CREAO Trigger journals retain prior credits and resume without another POST', async () => {
+  const app='11111111-1111-4111-8111-111111111111',run='22222222-2222-4222-8222-222222222222';
+  const out=mkdtempSync(join(tmpdir(),'trigger-journals-')),binDir=mkdtempSync(join(tmpdir(),'trigger-no-cli-'));
+  const response=(value,status=200)=>new Response(JSON.stringify(value),{status,headers:{'Content-Type':'application/json'}});
+  let posts=0;
+  const opts={repo,binDir,out,env:{CREAO_TRIGGER_API_KEY:'capi_offline',CREAO_TRIGGER_APP_ID:app},gates:['creao'],allowBillable:true,pollScale:0,maxSteps:1,
+    triggerFetchImpl:async(_url,options)=>{if(options.method==='POST'){posts++;return response({id:run,appId:app,status:'pending'},202)}return response({id:run,status:'failed',usage:{credits:0.4}})}};
+  const first=await runGates({...opts,stamp:'first'}),path=first.results.creao.evidence.checkpoint;
+  const original=readFileSync(path,'utf8');
+  const second=await runGates({...opts,stamp:'second'});
+  assert.notEqual(second.results.creao.evidence.checkpoint,path,'run journals are isolated');
+  assert.equal(readFileSync(path,'utf8'),original,'prior evidence is preserved');
+  assert.equal(second.results.creao.evidence.app_id,app);
+  assert.equal(second.results.creao.evidence.credits_used,0.4);
+  await runGates({...opts,stamp:'first'});
+  assert.equal(posts,2,'resuming a terminal journal cannot create another run');
 });
 test('a retryable read at the step limit emits an executable retry resume command', async () => {
   const f=fixture('genesis-forge', `if(args[0]==='prepare') process.exit(0);
