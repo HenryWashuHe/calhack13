@@ -410,8 +410,9 @@ async fn the_real_lab_score_refuses_a_rebound_evaluation_and_records_its_own() {
             timeout_ms: None,
         })
         .await;
-    // #116's metrics rebound to this run's request don't reproduce: the real
-    // scorer's trace names this run.
+    // The rebound evaluation keeps #116's scoring trace. Its metrics happen to
+    // match (same output, same panel), but this run's own trace differs, so
+    // it doesn't reproduce.
     let body = json!({"evaluation":run.rebound,"output_hex":to_hex(&run.output)});
     let (status, refusal) = call(&url, &run.token, body).await;
     refused(status, &refusal, "does not reproduce");
