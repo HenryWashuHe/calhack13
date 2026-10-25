@@ -11,8 +11,8 @@ issue #4/task numbers below are historical. Preserve rewritten ancestry.
 
 The [ongoing goal](ONGOING_GOAL.md), revised app Goal and hourly continuation are
 active. The stale app record was cleared and replaced on October 24, 2026. Main
-through `c0c2cae16802d1d5001409bd39ed0c73e967db27`, tree
-`1c8d363a3c337d413287769c566e9ab6f81a38da`, includes the experimental core
+through `a9caea11deb2085b9a8960f7233049b66c3b058f`, tree
+`7c390b40f66781a32540140b563907bed0f03511`, includes the experimental core
 contracts, source loader, corrected adoption proposal/UI, simulator primitives,
 #50–#52 method-source generation, #42/#43 executor foundations/session and #56
 accounting identity checks plus #58/#59 declared combined-cost assessment and
@@ -50,7 +50,8 @@ Current supporting review: Stage #125 `811d0df2` is merged at `c0c2cae1`;
 #126 `957edf8b` is retargeted to main and held on acknowledgment/card attribution.
 Iteration #144 `fd35c2fe87fe5fac9400fd4b3591d6d915dac743` is unreviewed;
 earlier findings below apply to their named heads, not fresh reproductions.
-Sponsor framing #161 `c936bcf6` is under separate review. Ownership is unchanged.
+Dated direction/sponsor note #161 `c936bcf6` merged at `a9caea11` after
+source/delta and independent review; the current checkpoint remains authoritative. Ownership is unchanged.
 
 ### Current ownership and next work
 
