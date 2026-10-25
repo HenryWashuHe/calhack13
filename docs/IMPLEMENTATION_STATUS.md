@@ -2,13 +2,16 @@
 
 ## Current review checkpoint — October 25, 2026
 
-At main `b141cdcf`, [the review snapshot](reviews/pr-queue-2026-10-25.md) records
-#144 merged and #207's shape findings cleared by #212. #57/#65 received scoped
-fixups on their own branches; neither original PR is merged into main, and
-independent Linux assurance remains open. #199/#203 retain source-specific holds.
-This supersedes routing below, not retained evidence. G0–G4 remain open; the
-native app Goal reports `paused`. No provider, paid, generated-method, evaluator
-or namespace run is claimed by this checkpoint.
+At main `96240fe5`, [the priority review snapshot](reviews/pr-queue-2026-10-25.md)
+records #220 merged into #65 and #221 into #57. Both now require successful
+Linux `close_range(CLOEXEC)` or refuse startup; the bounded descriptor fallback
+is removed and the environment-policy identity changes. Mode None is unchanged.
+Composition `91e6e174` passes independent compile/format checks only. Neither
+original PR is on main; exact-head independent Linux assurance is open.
+Prepared #211/#199/#203 fixes are also unmerged. The user prioritized #57/#65
+and authorized bounded fixes, tests and merges when ready; this adds no claim
+of namespace, descriptor, evaluator, generated-method or provider execution.
+G0–G4 remain open and the native app Goal reports `paused`.
 
 ## Historical repository checkpoint — main `0cc38e6`
 
