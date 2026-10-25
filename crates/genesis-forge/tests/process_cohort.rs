@@ -231,3 +231,6 @@ fn selected_zero_score_keeps_complete_original_method_and_plan_identity() {
     assert_eq!(selected.rows[2].plan.as_ref(), Some(&plan));
     assert_eq!(selected.rows[2].successes, Some(0));
 }
+
+#[path = "common/review_cohort_cli.rs"]
+mod review_cohort_cli;
