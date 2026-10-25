@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { frozenPanels, usageCharge, independentSampler, admitSandbox } from "./run.mjs";
+import { frozenPanels, usageCharge, independentSampler, admitSandbox, SOURCE_FILES } from "./run.mjs";
 import { sha256 } from "../../scripts/iteration/engine.mjs";
 import { claudeMutator } from "../../scripts/iteration/mutators/claude.mjs";
 
@@ -15,6 +15,11 @@ test("paired panel commitments reproduce and final panel differs from every sele
   assert.equal(a.selection.length, 5);
   assert.equal(new Set([...a.selection, a.final]).size, 6);
   assert.notDeepEqual(a, frozenPanels("judge-20261025-02"));
+});
+
+test("every source byte named for the run manifest exists in the checkout", () => {
+  const repo = fileURLToPath(new URL("../../", import.meta.url));
+  for (const name of SOURCE_FILES) assert.ok(fs.statSync(path.join(repo, name)).isFile(), name);
 });
 
 test("cost settlement accepts bounded actual usage and refuses unknown or unpriced cache use", () => {
