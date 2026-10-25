@@ -152,6 +152,7 @@ details.live summary { cursor: pointer; color: var(--chalk-dim); }
 
 /* Disruptions a judge can throw at the replay (scripted transcripts, never live) */
 .disrupt { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 13px; color: var(--chalk-dim); }
+.disrupt[hidden] { display: none; } /* the class rule above would otherwise beat the hidden attribute */
 .disrupt .btn { border-color: var(--rose); color: var(--rose); }
 .disrupt .btn:disabled { border-color: var(--line); color: var(--chalk-dim); text-decoration: line-through; }
 .disrupt kbd { font-family: var(--mono); font-size: 11px; border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; margin-right: 6px; color: var(--chalk-dim); }
@@ -426,7 +427,7 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
   const TAIL = 200;
   const body = document.body || null;
 
-  function caption(text) { $("caption").textContent = text + " · ← → step · space plays · 1 2 3 throw a disruption · P or Esc leaves presenter mode"; }
+  function caption(text, replay) { $("caption").textContent = text + (replay ? " · ← → step · space plays · 1 2 3 throw a disruption" : "") + " · P or Esc leaves presenter mode"; }
   // Disruptions thrown so far, as extra rows after the storyboard's own. Each keeps its own revision
   // count and a "D" sequence so it can never be mistaken for a fixture event.
   function thrownEvents() { let n = 0; return app.thrown.flatMap((id) => DISRUPTIONS[id].events.map(([t, d]) => ["D" + (++n), t, d + " (scripted)"])); }
@@ -454,7 +455,7 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
     renderAudit(s.audit, 12, `fixture run: r0–r${s.audit} checked against 27 invariants, 0 violations` + (app.thrown.length ? "; scripted disruption revisions not audited by this page" : ""));
     document.querySelectorAll(".dot").forEach((d, k) => d.setAttribute("aria-current", k === i ? "step" : "false"));
     app.scene = i;
-    caption(`Scene ${i + 1} of ${scenes.length} · historical fixture replay` + (app.thrown.length ? ` · ${app.thrown.length} scripted disruption${app.thrown.length > 1 ? "s" : ""}` : ""));
+    caption(`Scene ${i + 1} of ${scenes.length} · historical fixture replay` + (app.thrown.length ? ` · ${app.thrown.length} scripted disruption${app.thrown.length > 1 ? "s" : ""}` : ""), true);
   }
   function throwDisruption(id) {
     if (app.mode !== "replay" || app.thrown.includes(id) || !DISRUPTIONS[id]) return;
@@ -640,6 +641,7 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
       app.mode = "live-error"; setBadge("Live kernel: unreachable", true);
       $("livestatus").textContent = "cannot reach the kernel (" + (err && err.message ? err.message : "blocked") + "). Serve this page next to it; nothing shown below is live."; $("livestatus").classList.add("bad");
       $("beat").textContent = "Not connected."; $("sub").textContent = "No kernel data has been received for this connection. Press Back to replay to see the fixture storyboard again.";
+      caption("Live kernel: unreachable · nothing shown is live");
     }
   }
   function clearForLive() {
