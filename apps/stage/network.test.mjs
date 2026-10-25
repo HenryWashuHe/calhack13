@@ -17,7 +17,22 @@ test("three acts, each with its own honesty chip wording and an accessible label
   assert.match(script, /chip: \["fixture", "scripted · fixture scenario"\]/);
   assert.match(script, /chip: \["recorded", "recorded · 2026-10-25"\]/);
   assert.match(script, /chip: \["concept", "concept"\]/);
-  assert.doesNotMatch(html, /\blive\b/i, "nothing on the silent view is called live");
+  const markup = html.slice(html.indexOf("<body"), html.indexOf("<script>"));
+  assert.doesNotMatch(markup, /\blive\b/i, "no static markup calls anything live");
+  for (const chip of ["scripted · fixture scenario", "recorded · 2026-10-25", "concept"]) assert.doesNotMatch(chip, /live/);
+});
+
+test("live mode exists only behind a connection: key L, ?live=1, the chip says live kernel only after a successful poll, and the input posts with the agent token", () => {
+  assert.match(script, /e\.key === "l" \|\| e\.key === "L"/);
+  assert.match(script, /params\.get\("live"\) === "1"/);
+  const pollBody = script.slice(script.indexOf("async function pollLive"), script.indexOf("async function startLive"));
+  assert.match(pollBody, /"live kernel · "/, "the live chip is set inside the poll");
+  assert.match(pollBody, /unreachable/, "an unreachable kernel is said so, never shown as live");
+  assert.doesNotMatch(script.replace(pollBody, ""), /"live kernel · "/, "nothing else claims a live kernel");
+  assert.match(script, /\/observations`, \{ method: "POST"/);
+  assert.match(script, /source: "silent-stage"/);
+  assert.match(script, /const rungFor = /);
+  assert.match(script, /history is not replayed as motion/);
 });
 
 test("the recorded numbers are the stage page's own extract, not retyped", () => {
