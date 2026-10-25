@@ -1,0 +1,6 @@
+{
+  "slot_id": "candidate",
+  "execution_sha256": "f752911fae8e95ea78aebf73551e2f08dcf927f244ebfaf57545917ba35ec9fb",
+  "how": "the executor reaped the sandbox's first process; the kernel ends every process in its PID namespace with it",
+  "whole_tree": true
+}
