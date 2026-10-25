@@ -22,11 +22,18 @@ the two failed generations, reference run and second comparison.
 is now Generated: one operator-assigned exploratory request used the exact
 parent and checked #102 feedback for the distinct rough-transport task. Child
 `4f455dc6` has 6044 source bytes / 192 lines, changed bytes and AST parsing only.
-Its preparation was merged before the call. No B execution/scoring, local
-adoption/promotion or fresh-task A return has been demonstrated. Henry owns
-those receiving decisions and trials, including parent and random controls.
-Changed bytes or the parent's weak-control acceptance do not establish benefit;
-its rejection against random search remains part of the evidence.
+Its preparation was merged before the call. Separate [B receiving records
+(#116)](invention-lab/evidence/live-method-20261024-b-revision-receiver/README.md)
+are now independently checked: child 3/6 versus random 4/6 and parent 6/6 are
+Rejected; versus fixed cart 2/6 is Accepted. The primary cost report excludes
+other trials and earlier generations. These are negative comparative results,
+with no local adoption/promotion or positive recursive-benefit claim. Henry's
+predeclared [A-return records (#117)](invention-lab/evidence/live-method-20261024-a-return/README.md)
+are also independently checked: child 0/6 versus random 3/6 or parent 1/6, and
+parent 1/6 versus random 3/6, all Rejected. Costs cover separate named trials,
+not the complete history. Organizations are labels on one operator's host.
+An accepted fresh-task return remains unestablished; read-only record checks
+do not establish independent Linux isolation assurance.
 
 [Finite chain ceilings (#103)](invention-lab/contracts/chain-allocation.md) and
 [retained chain CLI files (#107)](invention-lab/contracts/chain-allocation.md#retained-cli-files)
