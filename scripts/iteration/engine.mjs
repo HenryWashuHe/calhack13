@@ -76,7 +76,11 @@ export function makePackage(source, { parent = null, origin, generation, note = 
   return { sha256: sha256(source), source, parent, origin, generation, note };
 }
 function register(state, pkg) {
-  if (!state.packages[pkg.sha256]) state.packages = { ...state.packages, [pkg.sha256]: freeze({ ...pkg }) }; // first provenance wins
+  const existing = state.packages[pkg.sha256];
+  if (!existing) state.packages = { ...state.packages, [pkg.sha256]: freeze({ ...pkg }) }; // first provenance wins
+  else if (existing.source === undefined && typeof pkg.source === "string" && sha256(pkg.source) === pkg.sha256) {
+    state.packages = { ...state.packages, [pkg.sha256]: freeze({ ...existing, source: pkg.source }) }; // verified bytes fill a metadata-only ancestor; provenance unchanged
+  }
   return state.packages[pkg.sha256];
 }
 function rootPackage(state, family) {
@@ -91,16 +95,21 @@ const armValid = (arm) => arm.outcome === "scored" && arm.scores.every((s) => s.
 const idFree = (scores) => scores.map(({ instance, ...rest }, index) => ({ index, ...rest }));
 const panelOk = (instances, n) => Array.isArray(instances) && instances.length === n && instances.every((i) => typeof i === "string" && i.length > 0) && new Set(instances).size === n;
 
-/** One arm over the plan's instances, continuing from retained partial scores. A throw is recorded, counted, retained in `partial`, and rethrown. */
-function evaluateArm(state, family, plan, slot, pkg, partial = []) {
-  const scores = partial.filter((s) => s.outcome === "scored");
+/**
+ * One arm over the plan's instances, continuing from every completed observation (scored or invalid) in its
+ * original position. A throw is recorded and counted; the completed rows are handed back through `holder`,
+ * never by touching the thrown value, and the error is rethrown as it came.
+ */
+function evaluateArm(state, family, plan, slot, pkg, partial = [], holder = {}) {
+  const scores = [...partial];
+  holder.scores = scores;
   for (const instance of plan.instances.slice(scores.length)) {
     state.evaluations += 1;
     let raw;
     try { raw = family.score(pkg, instance); } catch (err) {
-      const failed = [...scores, { instance, outcome: "failed", reason: err && err.message ? err.message : "scorer threw" }];
+      const failed = [...scores, { instance, outcome: "failed", reason: err && err.message ? err.message : String(err) }];
       append(state, { type: "evaluation", plan: plan.sha256, slot, package: pkg.sha256, scores: failed, outcome: "failed", success_count: scoredCount(failed), of: plan.instances.length, attempt: partial.length ? "resumed" : "first" });
-      err.partial = failed; throw err;
+      throw err;
     }
     scores.push(validScore(raw) ? { instance, outcome: "scored", success: raw.success, progress: raw.progress, cost: raw.cost, detail: raw.detail } : { instance, outcome: "invalid", reason: "score must carry a boolean success" });
   }
@@ -119,7 +128,7 @@ export function pendingCost(state, familyId) {
   const p = state.pending[familyId];
   if (!p) return 0;
   const n = p.plan.instances.length;
-  return p.plan.arms.filter((a) => !p.results[a.slot]).reduce((sum, a) => sum + n - (p.partial && p.partial.slot === a.slot ? p.partial.scores.filter((s) => s.outcome === "scored").length : 0), 0);
+  return p.plan.arms.filter((a) => !p.results[a.slot]).reduce((sum, a) => sum + n - (p.partial && p.partial.slot === a.slot ? p.partial.scores.length : 0), 0); // completed rows, scored or invalid, are owed no more
 }
 
 /**
@@ -135,7 +144,7 @@ export function runGeneration(state, { family, mutator, candidates, k = 4, contr
   if (pending) {
     if (candidates) return refuse(state, family, "a generation is pending for this family; resolve it before adopting");
     ({ plan, incumbent, controls: ctrlPkgs, kept, results, partial } = pending);
-    append(state, { type: "generation_resumed", family: family.id, generation: plan.generation, plan: plan.sha256, completed: Object.keys(results), partial: partial ? { slot: partial.slot, scored: partial.scores.filter((s) => s.outcome === "scored").length } : null });
+    append(state, { type: "generation_resumed", family: family.id, generation: plan.generation, plan: plan.sha256, completed: Object.keys(results), partial: partial ? { slot: partial.slot, completed: partial.scores.length } : null });
   } else {
     // 0. Everything that can be refused is checked before a call, a generation number or a registration is spent.
     if (!candidates && !(Number.isInteger(k) && k >= 1)) return refuse(state, family, "k must be a positive integer");
@@ -181,9 +190,10 @@ export function runGeneration(state, { family, mutator, candidates, k = 4, contr
   for (const [slot, pkg] of order) {
     if (results[slot]) continue;
     const prior = partial && partial.slot === slot ? partial.scores : [];
-    try { results = { ...results, [slot]: evaluateArm(state, family, plan, slot, pkg, prior) }; }
+    const holder = {};
+    try { results = { ...results, [slot]: evaluateArm(state, family, plan, slot, pkg, prior, holder) }; }
     catch (err) {
-      state.pending = { ...state.pending, [family.id]: { plan, incumbent, controls: ctrlPkgs, kept, results, partial: { slot, scores: err.partial || prior } } };
+      state.pending = { ...state.pending, [family.id]: { plan, incumbent, controls: ctrlPkgs, kept, results, partial: { slot, scores: holder.scores || prior } } };
       append(state, { type: "generation_abandoned", family: family.id, generation: plan.generation, plan: plan.sha256, at: slot, reason: err && err.message ? err.message : "scorer threw", completed: Object.keys(results) });
       throw err;
     }
@@ -338,8 +348,7 @@ export function adopt(state, { bundle, family, controls = [], criterion, heldout
     append(state, { type: "adoption_deferred", family: family.id, package: bundle.package.sha256, from: bundle.exported_by, reason: "resolving the pending local generation before judging the import" });
     runGeneration(state, { family, controls, criterion, heldout });
   }
-  const existing = state.packages[bundle.package.sha256];
-  const candidate = existing || { ...bundle.package, note: `adopted from ${bundle.exported_by}; ${bundle.package.note || ""}`.trim() };
+  const candidate = register(state, { ...bundle.package, note: `adopted from ${bundle.exported_by}; ${bundle.package.note || ""}`.trim() }); // first provenance kept; bytes fill a metadata-only record
   const out = runGeneration(state, { family, candidates: [candidate], controls, criterion, heldout });
   const v = out.refused ? { verdict: "rejected", reason: out.refused } : out.verdicts[0] || { verdict: "rejected", reason: "identical to the local incumbent or a control" };
   if (v.verdict === "promoted") {
