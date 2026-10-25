@@ -236,15 +236,15 @@ if os.getuid() != 65534: problems.append('uid')
 try:
     socket.create_connection(('1.1.1.1', 443), 2); problems.append('network')
 except OSError: pass
-if os.listdir('/home'): problems.append('home visible')
+# The method root holds only the interpreter image and /tmp.
+for p in ['/home', '/proc', '/run', '/var', '/root']:
+    if os.path.exists(p): problems.append(p + ' visible')
 if any(p != 'work' for p in os.listdir('/tmp')): problems.append('tmp visible')
-pids = [p for p in os.listdir('/proc') if p.isdigit()]
-if len(pids) > 4: problems.append('pids %d' % len(pids))
-if os.listdir('/run') or os.listdir('/var/tmp'): problems.append('run or var/tmp visible')
-try:
-    open('/var/lib/lab-exec-probe/escape', 'w').write('x'); problems.append('wrote the root filesystem')
-except OSError: pass
-open('/var/tmp/lab-exec-escape', 'w').write('private tmpfs only')
+for p in ['/var/lib/lab-exec-probe/escape', '/var/tmp/lab-exec-escape', '/usr/escape']:
+    try:
+        open(p, 'w').write('x'); problems.append('wrote ' + p)
+    except OSError: pass
+open('/tmp/private', 'w').write('private tmpfs only')
 # Resource limits: 2 GiB can't be allocated, and forking stops well before 200.
 try:
     blob = bytearray(2 << 30); problems.append('allocated 2 GiB')
@@ -280,11 +280,11 @@ call({'op':'submit','design':CART})
     );
     assert!(!Path::new("/var/lib/lab-exec-probe/escape").exists());
     assert_eq!(done.receipt.outcome, ExecutionOutcome::OutputGenerated);
-    // No network is not proof of no model: model use stays unknown.
-    assert!(matches!(
+    // Inside the minimal method root no model is reachable: measured zero.
+    assert_eq!(
         done.receipt.usage.model_calls,
-        ResourceUsage::Unknown { .. }
-    ));
+        ResourceUsage::Measured { value: 0 }
+    );
 }
 
 fn unsafe_euid() -> u32 {
