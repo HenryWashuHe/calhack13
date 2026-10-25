@@ -13,7 +13,7 @@ use serde_json::json;
 use sha2::{Digest, Sha256};
 use std::{cmp::Reverse, collections::BTreeSet};
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum Family {
     RavineCrossing,
@@ -22,7 +22,7 @@ pub enum Family {
     ProjectileTarget,
 }
 impl Family {
-    fn name(self) -> &'static str {
+    pub fn name(self) -> &'static str {
         match self {
             Self::RavineCrossing => "ravine-crossing",
             Self::RoughTransport => "rough-transport",
@@ -31,7 +31,7 @@ impl Family {
         }
     }
 }
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Arm {
     Workflow,

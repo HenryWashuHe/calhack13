@@ -1,0 +1,314 @@
+[
+ {
+  "method": "random_search.py",
+  "family": "ravine-crossing",
+  "grant": 72000,
+  "panels": [
+   {
+    "seeds": [
+     30000,
+     30005
+    ],
+    "experiments": 38,
+    "steps_used": 32225,
+    "successes": 6,
+    "kind": "cart"
+   },
+   {
+    "seeds": [
+     30006,
+     30011
+    ],
+    "experiments": 38,
+    "steps_used": 21403,
+    "successes": 3,
+    "kind": "cart"
+   },
+   {
+    "seeds": [
+     30012,
+     30017
+    ],
+    "experiments": 38,
+    "steps_used": 21332,
+    "successes": 4,
+    "kind": "cart"
+   }
+  ],
+  "successes": 13,
+  "of": 18
+ },
+ {
+  "method": "mixed_search.py",
+  "family": "ravine-crossing",
+  "grant": 72000,
+  "panels": [
+   {
+    "seeds": [
+     30000,
+     30005
+    ],
+    "experiments": 38,
+    "steps_used": 36858,
+    "successes": 6,
+    "kind": "cart"
+   },
+   {
+    "seeds": [
+     30006,
+     30011
+    ],
+    "experiments": 38,
+    "steps_used": 34073,
+    "successes": 3,
+    "kind": "cart"
+   },
+   {
+    "seeds": [
+     30012,
+     30017
+    ],
+    "experiments": 38,
+    "steps_used": 34801,
+    "successes": 4,
+    "kind": "cart"
+   }
+  ],
+  "successes": 13,
+  "of": 18
+ },
+ {
+  "method": "random_search.py",
+  "family": "rough-transport",
+  "grant": 72000,
+  "panels": [
+   {
+    "seeds": [
+     30000,
+     30005
+    ],
+    "experiments": 38,
+    "steps_used": 46717,
+    "successes": 5,
+    "kind": "cart"
+   },
+   {
+    "seeds": [
+     30006,
+     30011
+    ],
+    "experiments": 38,
+    "steps_used": 49094,
+    "successes": 4,
+    "kind": "cart"
+   },
+   {
+    "seeds": [
+     30012,
+     30017
+    ],
+    "experiments": 38,
+    "steps_used": 57048,
+    "successes": 3,
+    "kind": "cart"
+   }
+  ],
+  "successes": 12,
+  "of": 18
+ },
+ {
+  "method": "mixed_search.py",
+  "family": "rough-transport",
+  "grant": 72000,
+  "panels": [
+   {
+    "seeds": [
+     30000,
+     30005
+    ],
+    "experiments": 38,
+    "steps_used": 51348,
+    "successes": 4,
+    "kind": "cart"
+   },
+   {
+    "seeds": [
+     30006,
+     30011
+    ],
+    "experiments": 38,
+    "steps_used": 53721,
+    "successes": 4,
+    "kind": "cart"
+   },
+   {
+    "seeds": [
+     30012,
+     30017
+    ],
+    "experiments": 38,
+    "steps_used": 48272,
+    "successes": 3,
+    "kind": "cart"
+   }
+  ],
+  "successes": 11,
+  "of": 18
+ },
+ {
+  "method": "random_search.py",
+  "family": "return-mix",
+  "grant": 72000,
+  "panels": [
+   {
+    "seeds": [
+     30000,
+     30005
+    ],
+    "experiments": 38,
+    "steps_used": 17945,
+    "successes": 6,
+    "kind": "cart"
+   },
+   {
+    "seeds": [
+     30006,
+     30011
+    ],
+    "experiments": 38,
+    "steps_used": 30306,
+    "successes": 4,
+    "kind": "cart"
+   },
+   {
+    "seeds": [
+     30012,
+     30017
+    ],
+    "experiments": 38,
+    "steps_used": 23876,
+    "successes": 4,
+    "kind": "cart"
+   }
+  ],
+  "successes": 14,
+  "of": 18
+ },
+ {
+  "method": "mixed_search.py",
+  "family": "return-mix",
+  "grant": 72000,
+  "panels": [
+   {
+    "seeds": [
+     30000,
+     30005
+    ],
+    "experiments": 38,
+    "steps_used": 30939,
+    "successes": 4,
+    "kind": "cart"
+   },
+   {
+    "seeds": [
+     30006,
+     30011
+    ],
+    "experiments": 38,
+    "steps_used": 29773,
+    "successes": 5,
+    "kind": "cart"
+   },
+   {
+    "seeds": [
+     30012,
+     30017
+    ],
+    "experiments": 38,
+    "steps_used": 26485,
+    "successes": 5,
+    "kind": "cart"
+   }
+  ],
+  "successes": 14,
+  "of": 18
+ },
+ {
+  "method": "random_search.py",
+  "family": "projectile-target",
+  "grant": 72000,
+  "panels": [
+   {
+    "seeds": [
+     30000,
+     30005
+    ],
+    "experiments": 58,
+    "steps_used": 58800,
+    "successes": 0,
+    "kind": "cart"
+   },
+   {
+    "seeds": [
+     30006,
+     30011
+    ],
+    "experiments": 58,
+    "steps_used": 58800,
+    "successes": 0,
+    "kind": "cart"
+   },
+   {
+    "seeds": [
+     30012,
+     30017
+    ],
+    "experiments": 58,
+    "steps_used": 58800,
+    "successes": 0,
+    "kind": "cart"
+   }
+  ],
+  "successes": 0,
+  "of": 18
+ },
+ {
+  "method": "mixed_search.py",
+  "family": "projectile-target",
+  "grant": 72000,
+  "panels": [
+   {
+    "seeds": [
+     30000,
+     30005
+    ],
+    "experiments": 58,
+    "steps_used": 56400,
+    "successes": 0,
+    "kind": "cart"
+   },
+   {
+    "seeds": [
+     30006,
+     30011
+    ],
+    "experiments": 58,
+    "steps_used": 58800,
+    "successes": 0,
+    "kind": "cart"
+   },
+   {
+    "seeds": [
+     30012,
+     30017
+    ],
+    "experiments": 58,
+    "steps_used": 57600,
+    "successes": 0,
+    "kind": "cart"
+   }
+  ],
+  "successes": 0,
+  "of": 18
+ }
+]
