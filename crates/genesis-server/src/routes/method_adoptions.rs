@@ -221,6 +221,30 @@ pub async fn complete_run(
     Ok(Json(json!(record)))
 }
 
+/// Record a completed run's one evaluation and whether it attaches to the
+/// responsibility. Like receipts, no `configured` check: with the receiver
+/// disabled the evaluation is kept and attaches to nothing.
+pub async fn record_run_result(
+    State(app): State<AppState>,
+    principal: Principal,
+    Path(id): Path<String>,
+    body: Result<Json<genesis_core::development_evaluation::EvaluationReceipt>, JsonRejection>,
+) -> ApiResult<Json<Value>> {
+    principal.require(&[Principal::Operator])?;
+    let Json(evaluation) = body.map_err(|_| ApiError::bad_request("invalid evaluation receipt"))?;
+    let receiver = app.method_receiver.clone();
+    let _guard = app.kernel.lock().await;
+    let state = app
+        .store
+        .current_state()
+        .map_err(|_| ApiError::internal("organization state is unavailable"))?;
+    let record = app
+        .store
+        .record_method_run_result(&id, &evaluation, &state, receiver.as_deref(), Utc::now())
+        .map_err(run_error)?;
+    Ok(Json(json!(record)))
+}
+
 pub async fn run_status(
     State(app): State<AppState>,
     principal: Principal,
