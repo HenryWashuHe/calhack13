@@ -20,8 +20,9 @@ use crate::method_invocation::{
 };
 use crate::store::Store;
 use chrono::{DateTime, Utc};
+use genesis_core::development_evaluation::{EvaluationOutcome, EvaluationReceipt};
 use genesis_core::development_method::{
-    BudgetAssessment, ContractError, ExecutionReceipt, InvocationGrant, ResourceGrant,
+    BudgetAssessment, ContractError, ExecutionReceipt, InvocationGrant, ResourceGrant, Usage,
 };
 use genesis_core::development_trial::{TrialPlan, TrialPurpose};
 use genesis_core::model::OrgState;
@@ -38,6 +39,12 @@ const RECEIPT_ALLOWANCE: usize = 64 * 1024;
 /// most a quarter of the receipt allowance. The rest is for the actual
 /// method/environment, usage, outcome and outputs.
 const BINDING_ALLOWANCE: usize = RECEIPT_ALLOWANCE / 4;
+/// Room kept, beside the receipt's, for the run's one evaluation receipt.
+const EVALUATION_ALLOWANCE: usize = 32 * 1024;
+/// The frozen scoring identity gets at most half the evaluation allowance.
+/// The other half remains for the output, metrics, trace and usage, whose
+/// values are not known at prepare time and still have to fit the full cap.
+const EVALUATION_BINDING_ALLOWANCE: usize = EVALUATION_ALLOWANCE / 2;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -81,8 +88,40 @@ pub struct MethodRunRecord {
     pub status: MethodRunStatus,
     pub receipt: Option<ExecutionReceipt>,
     pub budget: Option<RunBudget>,
+    /// The scored output, once recorded, and whether it counts as work for
+    /// the responsibility. Absent until then (and in records written before
+    /// this step existed).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub result: Option<MethodRunResult>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+}
+
+/// One evaluation of a completed run's output, checked against the frozen
+/// plan's evaluation request. It describes that invocation only: it is not an
+/// acceptance, a comparison or a reason to adopt anything.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct MethodRunResult {
+    pub evaluation: EvaluationReceipt,
+    /// The evaluation's usage against the frozen scoring grant.
+    pub scoring_budget: RunBudget,
+    pub attachment: Attachment,
+}
+
+/// Whether the scored output counts as work done for the run's
+/// responsibility under the current grant.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+pub enum Attachment {
+    Attached {
+        requirement_id: String,
+        responsibility_id: String,
+        role_id: String,
+        adoption_id: String,
+    },
+    /// Retained as evidence of that invocation; it completes nothing.
+    NotAttached { reason: String },
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -208,6 +247,46 @@ fn check_plan(
     Ok(())
 }
 
+fn run_budget(usage: &Usage, grant: &ResourceGrant) -> Result<RunBudget> {
+    Ok(match usage.assess(grant) {
+        Ok(BudgetAssessment::WithinLimits) => RunBudget::WithinLimits,
+        Ok(BudgetAssessment::Unknown) => RunBudget::Unknown,
+        Err(ContractError::BudgetExceeded(resource)) => RunBudget::Exceeded {
+            resource: resource.into(),
+        },
+        Err(e) => return Err(E::Receipt(e.to_string())),
+    })
+}
+
+/// Count the actual serialized fields an evaluation must repeat, including
+/// both scoring-context copies. Null marks only values supplied after the
+/// run; this is a size envelope, never an evaluation or an evidence record.
+fn frozen_evaluation_bytes(plan: &TrialPlan) -> Result<usize> {
+    let slot = &plan.slots[0];
+    let binding = plan
+        .expected_binding(&slot.slot_id)
+        .map_err(|_| E::InvalidRecord)?;
+    let digest = "0".repeat(64);
+    let envelope = serde_json::json!({
+        "request": {
+            "request_id": slot.scoring_request_id,
+            "execution_sha256": digest,
+            "output": null,
+            "context": plan.context,
+            "purpose": binding.purpose,
+            "budget": plan.scoring_grant,
+        },
+        "request_sha256": digest,
+        "observed_context": plan.context,
+        "outcome": { "kind": "scored", "metrics": null },
+        "trace": null,
+        "usage": null,
+    });
+    serde_json::to_vec(&envelope)
+        .map(|bytes| bytes.len())
+        .map_err(|_| E::InvalidRecord)
+}
+
 fn load(conn: &Connection, id: &str) -> Result<MethodRunRecord> {
     let row: Option<(String, String, String)> = conn
         .query_row(
@@ -298,11 +377,12 @@ impl Store {
             status: MethodRunStatus::Prepared,
             receipt: None,
             budget: None,
+            result: None,
             created_at: now,
             updated_at: now,
         };
         let json = serde_json::to_string(&record).map_err(|_| E::InvalidRecord)?;
-        if json.len() > MAX_RECORD_BYTES - RECEIPT_ALLOWANCE {
+        if json.len() > MAX_RECORD_BYTES - RECEIPT_ALLOWANCE - EVALUATION_ALLOWANCE {
             return Err(E::InvalidInput);
         }
         // A run that starts must be able to record a terminal receipt, and
@@ -315,6 +395,11 @@ impl Store {
         if binding_bytes.len() > BINDING_ALLOWANCE {
             return Err(E::Plan(
                 "the run binding leaves no room for its receipt; shorten the plan's identifiers",
+            ));
+        }
+        if frozen_evaluation_bytes(&record.plan)? > EVALUATION_BINDING_ALLOWANCE {
+            return Err(E::Plan(
+                "the scoring identity leaves no room for its evaluation; shorten the scoring request or context identifiers",
             ));
         }
         let mut conn = self.lock();
@@ -432,14 +517,7 @@ impl Store {
         if receipt_bytes.len() > RECEIPT_ALLOWANCE {
             return Err(E::Receipt("receipt exceeds its size bound".into()));
         }
-        record.budget = Some(match receipt.usage.assess(&binding.budget) {
-            Ok(BudgetAssessment::WithinLimits) => RunBudget::WithinLimits,
-            Ok(BudgetAssessment::Unknown) => RunBudget::Unknown,
-            Err(ContractError::BudgetExceeded(resource)) => RunBudget::Exceeded {
-                resource: resource.into(),
-            },
-            Err(e) => return Err(E::Receipt(e.to_string())),
-        });
+        record.budget = Some(run_budget(&receipt.usage, &binding.budget)?);
         let authorized =
             receiver.is_some_and(|receiver| still_authorized(self, state, receiver, &record, now));
         record.status = if authorized {
@@ -453,6 +531,89 @@ impl Store {
         let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
         if load(&tx, id)?.status != MethodRunStatus::Started {
             return Err(E::Status(load(&tx, id)?.status));
+        }
+        save(&tx, &record)?;
+        tx.commit()?;
+        Ok(record)
+    }
+
+    /// Records the completed run's one evaluation and whether its output is
+    /// attached to the responsibility. The evaluation must be exactly the
+    /// frozen plan's request for this run's receipt. It is attached only if
+    /// the run completed under its grant, that grant still authorizes now,
+    /// the development budget wasn't exceeded and the output was scored.
+    /// Otherwise it is kept as evidence and attaches to nothing.
+    pub fn record_method_run_result(
+        &self,
+        id: &str,
+        evaluation: &EvaluationReceipt,
+        state: &OrgState,
+        receiver: Option<&MethodReceiver>,
+        now: DateTime<Utc>,
+    ) -> Result<MethodRunRecord> {
+        let mut record = self.method_run(id)?;
+        if !matches!(
+            record.status,
+            MethodRunStatus::Completed | MethodRunStatus::CompletedAfterFence
+        ) || record.result.is_some()
+        {
+            return Err(E::Status(record.status));
+        }
+        let receipt = record.receipt.clone().ok_or(E::InvalidRecord)?;
+        let slot = record.plan.slots[0].slot_id.clone();
+        let binding = record
+            .plan
+            .expected_binding(&slot)
+            .map_err(|_| E::InvalidRecord)?;
+        let expected = record
+            .plan
+            .evaluation_request_for_accounting(&slot, &receipt)
+            .map_err(|e| E::Receipt(e.to_string()))?
+            .ok_or(E::Receipt("the run produced no output to score".into()))?;
+        evaluation
+            .validate_identity_against(&expected, &receipt, &binding)
+            .map_err(|e| E::Receipt(e.to_string()))?;
+        let bytes = serde_json::to_vec(evaluation).map_err(|_| E::InvalidRecord)?;
+        if bytes.len() > EVALUATION_ALLOWANCE {
+            return Err(E::Receipt("evaluation exceeds its size bound".into()));
+        }
+        let scoring_budget = run_budget(&evaluation.usage, &expected.budget)?;
+        let reason = if record.status == MethodRunStatus::CompletedAfterFence {
+            Some("the run completed after its grant changed".to_string())
+        } else if !receiver
+            .is_some_and(|receiver| still_authorized(self, state, receiver, &record, now))
+        {
+            Some("the run's grant no longer authorizes".to_string())
+        } else if matches!(record.budget, Some(RunBudget::Exceeded { .. })) {
+            Some("the run exceeded its development grant".to_string())
+        } else if matches!(scoring_budget, RunBudget::Exceeded { .. }) {
+            Some("the evaluation exceeded its scoring grant".to_string())
+        } else if !matches!(evaluation.outcome, EvaluationOutcome::Scored { .. }) {
+            Some("the output was not scored".to_string())
+        } else {
+            None
+        };
+        let grant = &record.authorization;
+        let attachment = match reason {
+            Some(reason) => Attachment::NotAttached { reason },
+            None => Attachment::Attached {
+                requirement_id: grant.requirement_id.as_str().into(),
+                responsibility_id: grant.grant.responsibility_id.as_str().into(),
+                role_id: grant.grant.role_id.as_str().into(),
+                adoption_id: grant.adoption_id.clone(),
+            },
+        };
+        record.result = Some(MethodRunResult {
+            evaluation: evaluation.clone(),
+            scoring_budget,
+            attachment,
+        });
+        record.updated_at = now;
+        let mut conn = self.lock();
+        let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let current = load(&tx, id)?;
+        if current.status != record.status || current.result.is_some() {
+            return Err(E::Status(current.status));
         }
         save(&tx, &record)?;
         tx.commit()?;
