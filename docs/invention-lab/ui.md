@@ -220,8 +220,8 @@ not an adoption decision.
 Identical records supplied as different files (for example a status saved as
 both `step-result.json` and `final-status.json`) are counted once and the copy is
 listed. Static inspections come in two retained shapes under one schema name;
-both are shown as verbatim `key: value` phrases (`python_ast_parse: passed` or
-`ast_parse: true`), and an inspection without an entrypoint is checked against
+both are shown as verbatim key/value phrases (`python_ast_parse passed` or
+`ast_parse true`), and an inspection without an entrypoint is checked against
 its package's entrypoint.
 
 On the committed evidence through #113 the checklist reads: A has 3 generation

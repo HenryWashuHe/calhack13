@@ -103,9 +103,9 @@ describe("retained receiving run and B revision", () => {
         method_package_sha256: "4f455dc6e625bdaf554d567bdd7f0bc0c7b601a1ea6332d4e7a13e02005db14d",
         entrypoint: null,
         source_sha256: "4adde0d840bcb733166c3db7f587fd295f1f986369433ea3db58e40be1d76de5",
-        parse: "ast_parse: true",
+        parse: "ast_parse true",
         imports: ["json", "math", "sys"],
-        execution: "source_executed: false",
+        execution: "source_executed false",
         claim: "syntax and bytes only, not execution or correctness",
       },
     ]);
@@ -133,7 +133,7 @@ describe("retained receiving run and B revision", () => {
     expect(text).toContain("accepted: candidate 1/6 vs control 0/6 (paired by folder; the verdict names no plan)");
     expect(text).toContain("acceptance trial, candidate slot: generated-method run by org_example_b, output generated, 1 evaluation");
     expect(text).toContain("A trial verdict is scoring evidence under its frozen criterion, not an adoption decision.");
-    expect(text).toContain("ast_parse: true; imports json, math, sys; source_executed: false.");
+    expect(text).toContain("ast_parse true; imports json, math, sys; source_executed false.");
     expect(text.split("Generation attempts")[0]).not.toMatch(/improv|better/i);
   });
 });
