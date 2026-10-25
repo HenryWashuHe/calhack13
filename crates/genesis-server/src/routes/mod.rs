@@ -129,6 +129,13 @@ pub fn router(state: AppState) -> Router {
             "/method-invocations/authorize",
             post(method_adoptions::authorize),
         )
+        .route("/method-runs", post(method_adoptions::prepare_run))
+        .route("/method-runs/{id}", get(method_adoptions::run_status))
+        .route("/method-runs/{id}/start", post(method_adoptions::start_run))
+        .route(
+            "/method-runs/{id}/receipt",
+            post(method_adoptions::complete_run),
+        )
         .route(
             "/capability-installations/{id}/acceptance",
             post(capabilities::acceptance),
