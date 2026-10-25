@@ -240,6 +240,49 @@ checklist reads:
   (2 rejected), since a rejected update is a valid selective-transfer outcome
   but not an accepted return. No problems are reported.
 
+## Results matrix
+
+Rows are exact method versions; columns are the task families named by each
+run's binding (`public_task`). A family is its full exact reference: one id
+under two references becomes two columns (`id@version hash`) and a reported
+problem. A cell lists that method's runs in that family. Each run is named by
+its own plan id and hash prefix (`example-ravine-crossing-acceptance @ 5e111f9a`),
+so two trials that share an id are never confused.
+
+A run's count comes from the scoring metrics artifact its evaluation names by
+SHA-256 of the file's own bytes. A scored evaluation is counted only when all of
+these hold; otherwise the run reads "metrics rejected" and the reason is listed
+with the problems:
+
+- the metrics reference is exactly `genesis-lab` / `lab-scoring-metrics/1` /
+  `lab-scoring-metrics/1` / `1`; another identity is not counted even if its
+  hash names readable bytes;
+- the evaluation's requested `public_task` is the run's own, and the scorer's
+  observed context equals the requested one;
+- the rows are one per instance: no repeats, `of` and `success_count` agree with
+  them, and for a development-panel plan they are the plan's development
+  instances in order.
+
+Two scorings of one run that disagree read "conflicting scores", whatever order
+the files arrive in. Without a count a run says why: "not scored" (no
+evaluation), "scoring unknown", "scoring failed", "output invalid", or "metrics
+not supplied". It never reads zero.
+
+Each run also keeps its panel and eligibility. A plan scored on a hidden committed
+panel marks its runs `hidden`. A run whose execution did not generate its output,
+or did not measure all five usage dimensions, is marked `(ineligible)`, following
+the process-slot rule. Its count is retained but must not be read as a result.
+The scoring-grant part of that rule is not checked here.
+
+On the committed evidence the original trials read 1/6, 6/6 and 1/6 for A's
+generated method on ravine-crossing, rough-transport and return-mix. B's revision
+reads 3/6 and 0/6, random search 2/6, 4/6 and 3/6, and the fixed cart 0/6 and
+2/6. The selective-transfer bundle adds public 12-instance trials (A's method
+4/12 and 12/12 against random search's 10/12 and 7/12) and two hidden attempts.
+Attempt 1 is ineligible, because its model usage was not measured. Attempt 2
+reads 1/12 and 12/12 against 10/12 and 9/12. These are exploratory runs, not a
+ranking, a G4 comparison or a benefit claim.
+
 ## Attempt ledger
 
 Status records may carry the optional enum-only `diagnostic` from
