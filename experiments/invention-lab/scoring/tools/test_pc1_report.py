@@ -12,6 +12,7 @@ import hashlib
 import importlib.util
 import json
 import os
+import shutil
 from pathlib import Path
 import subprocess
 import tempfile
@@ -150,6 +151,11 @@ def stage(out, w=(6, 6, 6, 6), f=(5, 5, 5, 5), ref=(4, 4, 4, 4), rep=(11, 11, 11
     with tempfile.TemporaryDirectory() as tmp:
         selections, random, parent = packages(tmp, missing)
         spec, not_run = specs.fresh_spec(out, selections, random, parent, ORG)
+        # receive.py retains a snapshot of every package under packages/.
+        os.makedirs(os.path.join(out, "packages"))
+        for name, pin in spec["packages"].items():
+            shutil.copyfile(os.path.join(out, pin["path"]),
+                            os.path.join(out, "packages", name + ".package.json"))
     data = json.dumps(spec, indent=2, sort_keys=True).encode()
     Path(out, "spec.json").write_bytes(data)
     listed = {t["id"] for t in spec["trials"]}
@@ -292,7 +298,15 @@ class SpecBinding(unittest.TestCase):
         def other(p):
             p["scoring_grant"]["simulation_steps"] = 99999
         r = self.reading(overrides={("return-mix", "f-random"): {"plan": other}})
-        self.assertIn("plans differ in evaluator, criterion, environment or grants", r["unbound"])
+        # Scoring steps may differ between families, never within one.
+        self.assertIn("return-mix plans differ in criterion or scoring steps", r["unbound"])
+        self.assertEqual(r["reading"], "unbound")
+
+    def test_a_plan_with_its_own_evaluator_is_unbound(self):
+        def other(p):
+            p["context"]["evaluator"]["sha256"] = "e" * 64
+        r = self.reading(overrides={("return-mix", "f-random"): {"plan": other}})
+        self.assertIn("plans differ in evaluator, environment or grants", r["unbound"])
         self.assertEqual(r["reading"], "unbound")
 
     def test_not_run_declarations_must_match_the_spec(self):
