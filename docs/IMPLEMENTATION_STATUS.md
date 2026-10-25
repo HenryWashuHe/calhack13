@@ -22,16 +22,17 @@ on calibration unknown-to-zero, blocking reads/missing cleanup and omitted
 failures. Editorial corrections leave scripts unchanged; fix them before new runs.
 The `b5a35bf` invocation rehearsal is author-reported and unreviewed here; it
 does not establish independent organizational transfer or goal completion.
-Proposal #195 `81bddd78` is held after [document review](https://github.com/HenryWashuHe/genesis-history-experiment/pull/195#pullrequestreview-5641553241):
-finite samples do not establish a family-wide cap; corrected/pinned #184
-calibration and declared controls/builds/scoring/budgets remain prerequisites.
+Corrected proposal #195 `ec3bb5d882499e403eba6b48f78348eb9c9168b2` was merged
+by a colleague at `c113cfc567f0bf450a489d58573427849d214a2b` and independently
+reviewed. Finite samples no longer imply a family-wide cap or equivalence;
+corrected/pinned calibration and full controls/builds/scoring/panels/grants are
+required. Proposal only: no runs, comparative benefit or goal result.
 ACP #198 `adf43e07` is held after [review 5641631281](https://github.com/HenryWashuHe/genesis-history-experiment/pull/198#pullrequestreview-5641631281):
 56 original VM tests pass; three `b8da38d5` guards fail on inferred planner
 activity, foreign pending-card replacement and Explain CSS applying to `body`.
 #199 `5567f827` decision strip is unreviewed and depends on held #198. No browser,
-live POST or provider/runtime ran. New #148 `62c2a0c3` and #168 `8e132a96` are
-unreviewed; #149 new `6e08ba9` also awaits review. Previous findings remain tied
-to old sources. Scheduling-study draft #201 `557127b4` is unreviewed; its offline
+live POST or provider/runtime ran. New #148 `62c2a0c3` and #149 `6e08ba9` await review. Previous findings remain tied
+to old sources. Scheduling-study #201 `557127b4` is unreviewed; its offline
 calibration/replay counts are author-reported, not verified here or formal evidence.
 CodeRabbit config #202 `6640fac8` → `038b8ce9` is merged after official-key review,
 with no app tests. Explicit bot commands and App installation remain separate.
@@ -52,7 +53,7 @@ combined main run.
 | Public eligibility CLI #174 `f67ae448` → `73d039b5` | Five focused eligibility tests (including all three original independent guards), three additional inert-file checks and scoped strict Clippy/fmt pass. Bounded regular-file reads and validated digest paths clear the previous hold. Read-only typed assessment only, not scorer execution, trusted expected-state origin or endpoint closure. |
 | Invocation purpose #185 `811c6f5c` → `b1b2c8f2`; guards #188 `e4824046` → `68604b92` | 23 pure core cases and scoped strict Clippy pass, including three preserved independent receipt-boundary guards. A one-slot public Development plan pins claimed adoption/grant identity. This authenticates no authority, runs no method and supplies no acceptance pair or fresh comparison. |
 | Eight-selection development roster #187 `da669296` → `bb9f7c28`; guards #189 `d2304309` → `899de43d` | Final composition `4b0d330a` and main share tree `04ee987a`: 30 scoped forge tests and strict Clippy/fmt pass, including four independent guards. All eight selections/24 positions bind round methods/controls/runtime settings, per-family policy and numeric trial grants. Pure consistency only; operator capture is supplied by #191, while chain links, generation provenance, chronology, fresh-panel consumption and governance remain open. |
-| Method adoption #155 `cba4bf00` → `0bf7a8e2`; authorization routes #159 `db0deeca` → `e7c6baf7` | Root composition `0b671510`, tree `24183518`, matched main; 23 scoped tests and strict Clippy/fmt pass. Receiver-owned exact policy pins, record invariants, disabled-receiver refusal and durable replay clear the prior holds. Authorization under the current grant is implemented; execution under it is not. Policy reacceptance and compatibility corrections are merged in #179; draft #186 invocation integration is unmerged. |
+| Method adoption #155 `cba4bf00` → `0bf7a8e2`; authorization routes #159 `db0deeca` → `e7c6baf7` | Root composition `0b671510`, tree `24183518`, matched main; 23 scoped tests and strict Clippy/fmt pass. Receiver-owned exact policy pins, record invariants, disabled-receiver refusal and durable replay clear the prior holds. Authorization under the current grant is implemented; execution under it is not. Policy reacceptance and compatibility corrections are merged in #179; #186 `95bd7641` invocation integration is unreviewed and unmerged. |
 | Receiver IDs #163 `66118d2b` → `0df3e227`; guards #166 `00499186` → `c2fd8d12` | 22 mocked tests pass with real subprocess creation forbidden; original `e3f3779` and first-seed files unchanged. Namespaces run/attempt/scoring IDs by declared trial before intent, preserving deterministic preparation. No old evidence rewritten or runtime assurance established. |
 | Development selector #169 `1515b46f` → `47aef07f`; independent guards #170 `a8c42654` → `755d6c65` | Eight root selector tests, four preserved independent retained-record cases and 16 core verdict tests pass. [One arm/family and three rounds](invention-lab/contracts/process-selection.md), exact evidence checks, explicit missing/ineligible rows and deterministic selection; not a complete roster/chronology/endpoint or G4 result. |
 | Selection CLI #173 `332f4f01` → `523d38a2` | Independent source review clear; root four new + eight existing binary cases and strict Clippy/fmt pass. Four additional independent cases pass, preserved in #175 `d32caa37` → `9c7e8c0f`. Create-only self-contained capture and read-only recheck expose exact selected method/plan and normalized input/report/selection hashes; no source execution or complete roster/chronology/governance claim. |
@@ -340,11 +341,11 @@ corrected. Trusted full selection lineage remains upstream. Eligibility CLI
 #174 `f67ae448` is merged at `73d039b5` after its bounded-read/path fix;
 [review 5641409679](https://github.com/HenryWashuHe/genesis-history-experiment/pull/174#pullrequestreview-5641409679)
 checks five focused tests plus three inert-file cases and scoped strict Clippy/fmt.
-Endpoint #168 `8e132a96` is new and unreviewed. The [prior `99b2c8b0` hold](https://github.com/HenryWashuHe/genesis-history-experiment/pull/168#pullrequestreview-5641419161):
-legitimate family-specific policy is rejected, full method metadata is not pinned,
-and order/exact not-run complement is lost. Mocked eligible observations yield
-one passing control and seven failing subcases in `3ff7c98b`; original guards
-remain unchanged. No scorer/evaluator or generated method ran.
+Endpoint [#168 `8e132a96` remains held](https://github.com/HenryWashuHe/genesis-history-experiment/pull/168#pullrequestreview-5641653972).
+Five prior guards and a valid-policy control pass; eight independent subcases
+in `daf04dd5700aa9676eefe07b247ec12ace1fb4fc` fail on wrong-but-consistent
+resource limits and a missing-criterion skip. These are pure/mocked checks,
+not scorer/evaluator or generated-method execution.
 Selective-transfer #165 source `cb5f28f0d71d65ec6b7c3376ebc05ec73485d7fc` merged
 at `b99839dfc9344cc0bfb57309e24074d82870ac91`, clearing both editorial holds.
 Root's static review checks 713 manifest entries, 523 artifact hashes, 12 slot
@@ -363,7 +364,8 @@ pass again on final composition `0db8d3cd`, tree `b10536c4`, identical to main.
 All four original `39a979a9` guards are unchanged. Schema-1 read/replay remains
 supported, but method invocation requires a new compatibility decision; the old
 authorization helper checks ownership only. No runtime or provider was executed.
-[#186 `b069b129` is held](https://github.com/HenryWashuHe/genesis-history-experiment/pull/186#pullrequestreview-5641441324)
+#186 `95bd7641c43fa1786002da1a9b7a8da7dec01b60` is new and unreviewed.
+The [prior `b069b129` hold](https://github.com/HenryWashuHe/genesis-history-experiment/pull/186#pullrequestreview-5641441324)
 on disabled-receiver final-receipt retention and accepting a frozen binding too
 large for its receipt cap. Twelve library and four HTTP controls pass; two new
 guards fail at `d771f69f`, using SQLite/retained data and loopback HTTP only.
