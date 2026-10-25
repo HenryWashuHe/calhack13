@@ -268,7 +268,9 @@ Each sentence says only what its records establish:
 - **Revision.** Its cost is that of the one generation record with the revision
   observation's organization, operation and exact request (and, when it names a
   package, exactly the child). A status for the same operation under another
-  request is a problem, not this revision's cost. Without that record the cost is unknown, not zero. No
+  request is a problem, not this revision's cost. A missing observation request
+  cannot identify the cost, even if the operation matches.
+  Without that record the cost is unknown, not zero. No
   feedback is claimed as the cause, because the records bind none.
 - **Trials.** A trial whose runs are all ineligible counts as "ineligible", not
   by its verdict. Trials scored on hidden committed panels are counted as such.
