@@ -46,11 +46,14 @@ must name its execution boundary:
 python3 experiments/strategy-adapter/harness/acceptance_split.py --isolation namespaces
 ```
 
-`namespaces` is the boundary lab-exec uses for its `namespaces` runs. The
-setup is copied from `executor/src/sandbox.rs` and needs root. The method runs
+The replay harness's `namespaces` setup is a snapshot of lab-exec at
+`135a89d1`, before its minimal-root change; it is not the current executor's
+isolation boundary. It needs root. The method runs
 as `nobody` with no network, read-only mounts where the kernel allows them, and
-private `/home`, `/root`, `/tmp` and `/run`. The whole PID namespace ends with
-each run. It does not stop reads of the rest of the read-only system, syscalls
+private `/home`, `/root`, `/tmp` and `/run`. Cleanup requires a successful
+natural launcher exit or a delivered namespace-init signal followed by
+launcher exit; unconfirmed closure raises after process-group cleanup and
+stage removal. It does not stop reads of the rest of the read-only system, syscalls
 or filesystem Unix sockets, and it does not show that no model was used.
 `--isolation host` runs the generated source directly on this machine with no
 isolation. Use it only after reading that source; it is not namespace
@@ -88,8 +91,9 @@ substitute for `namespaces`, and a `none` run must be reported as host
 execution. Expected: 6 experiments, 5,205 steps, output `2483f08f…`, 6 of 6, and
 the same instance, design, step count and result artifact for each experiment as
 `…/vs-parent/control/transcript.json`. A run of this is an author-run local
-process, not retained evidence. Its model calls and tokens are recorded as
-unknown in every mode.
+process, not retained evidence. The originally reported run recorded model
+calls and tokens as unknown. Any new run must retain the exact executor
+environment and actual usage; the replay harness does not establish model use.
 
 ## One finding the split made visible
 
