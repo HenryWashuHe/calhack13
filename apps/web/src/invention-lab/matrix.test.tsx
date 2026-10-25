@@ -216,6 +216,16 @@ describe("a scored evaluation is counted only when it is consistent", () => {
     expect(first.problems.join("\n")).toContain("different results (3/6, 6/6)");
   });
 
+  it("reports a second scoring whose metrics were not supplied instead of dropping it", () => {
+    const base = evidenceFiles();
+    const ev = JSON.parse(base.find((f) => f.name === EVAL)!.text);
+    ev.request.request_id = "score-candidate-unchecked";
+    ev.outcome.metrics.sha256 = "a".repeat(64);
+    const { run, problems } = fixedCartRun([...base, file("unchecked/evaluation.json", JSON.stringify(ev))]);
+    expect(runText(run)).toBe("3/6");
+    expect(problems.join("\n")).toContain("score-candidate-unchecked names metrics that were not supplied");
+  });
+
   it("keeps a run with no evaluation as not scored", () => {
     const files = evidenceFiles().filter((f) => f.name !== EVAL);
     expect(runText(fixedCartRun(files).run)).toBe("not scored");
@@ -232,6 +242,10 @@ describe("identities", () => {
     expect(m.families).toHaveLength(4);
     expect(m.families.filter((f) => f.startsWith("rough-transport@"))).toHaveLength(2);
     expect(l.problems.join("\n")).toContain("task family rough-transport appears under 2 different exact references");
+    expect([...m.familyLabels.values()].filter((x) => x.startsWith("rough-transport@")).sort()).toEqual([
+      "rough-transport@1 genesis-lab/lab-task/1 7ea1854c2b35",
+      "rough-transport@2 genesis-lab/lab-task/1 ffffffffffff",
+    ]);
   });
 
   it("requires the binding's task in an execution receipt", () => {

@@ -5,6 +5,8 @@ import { StrictMode, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "../styles.css";
 import { intake, orgsIn, type Intake } from "./intake";
+import { buildExchange } from "./exchange";
+import { ExchangePanel } from "./ExchangePanel";
 import { buildLineage } from "./lineage";
 import { LineagePanel } from "./LineagePanel";
 import { ResultsBoard } from "./ResultsBoard";
@@ -14,6 +16,7 @@ export function Preview({ initial }: { initial?: Intake }) {
   const [orgA, setOrgA] = useState("");
   const [orgB, setOrgB] = useState("");
   const lineage = useMemo(() => (loaded ? buildLineage(loaded.records) : undefined), [loaded]);
+  const exchange = useMemo(() => (loaded && lineage ? buildExchange(loaded.exchange, lineage) : undefined), [loaded, lineage]);
   const orgs = loaded ? orgsIn(loaded) : [];
 
   async function choose(list: FileList | null) {
@@ -68,9 +71,12 @@ export function Preview({ initial }: { initial?: Intake }) {
             </ul>
           </details>
           {orgA && orgB ? (
-            <ResultsBoard lineage={lineage} orgA={orgA} orgB={orgB} />
+            <>
+              <ResultsBoard lineage={lineage} orgA={orgA} orgB={orgB} />
+              {exchange && <ExchangePanel exchange={exchange} />}
+            </>
           ) : (
-            <LineagePanel lineage={lineage} />
+            <LineagePanel lineage={lineage} exchange={exchange} />
           )}
         </>
       )}
