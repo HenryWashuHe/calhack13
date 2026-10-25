@@ -3,10 +3,11 @@
 Every design any method has submitted in the retained records (13), plus the
 evaluator's two reference designs, scored with the trusted evaluator on all
 four families over 40 fresh public instances (seeds 20000..20039, used by no
-record or protocol). Only `lab-eval accept` and `experiment` ran; no method or generated source
-executed. Reproduce with `scan.py <lab-eval> 20000 40` against this tree; the
+record or protocol). Only the evaluator (`lab-eval`) and, in `calibrate.py`, the two hand-written
+controls ran; no generated source executed. Reproduce with `scan.py <lab-eval> 20000 40` against this tree; the
 output is `results-20000-40.json`. `launcher_search.py <lab-eval> 7 20000 20001 20002 20003 20004 20005`
-reproduces `launchers.json`.
+reproduces `launchers.json`, and `panel_cap.py <lab-eval> 1 4000 30000 30006 30012` reproduces
+`panel-cap.json`. `calibration.json` comes from `calibrate.py` on seeds 30000..30017.
 
 Successes out of 40 (selected rows; all 15 are in the JSON):
 
@@ -40,36 +41,43 @@ Successes out of 40 (selected rows; all 15 are in the JSON):
    submission except seeded random search's `56de341b` (28/40, 27/40). The
    evaluator README calls it a sanity design, not a baseline; it is still a
    useful yardstick. The fixed-cart control used so far scores 0/40 there.
-4. **Projectile-target is solvable, but only instance by instance.** All 15
-   retained designs score 0/40 (none is a launcher), and no method has run on
-   it. A random search over single-arm launchers (`launcher_search.py`,
-   `launchers.json`) finds hits on each of five instances: 1–19 hits per
-   3,000–10,000 valid designs. The first hit for each instance solves only 2–8
-   of the 40 panel instances. Unlike rough-transport, no one design carries
-   this family; a method has to adapt its launch to each target.
+4. **Projectile-target is solvable, but capped near 2 of 6 per panel.** All
+   15 retained designs score 0/40, because none is a launcher. A random search
+   over single-arm launchers (`launcher_search.py`, `launchers.json`) finds
+   hits on each of five instances: 1–19 hits per 3,000–10,000 valid designs.
+   Each hit solves only 2–8 of 40 instances. A trial scores *one* submitted
+   design on every panel instance, and each instance's target sits somewhere
+   in 4–9 m. So the best launcher among 4,000 per panel fits only **2 of 6**,
+   and 99.7% fit none (`panel_cap.py`, `panel-cap.json`). Under that scoring
+   the family can't show per-instance adaptation. It rewards finding the
+   panel's best compromise launcher, a rare event, and caps counts low.
 5. **Runs repeat designs.** The parent submitted `2483f08f` on four
    rough-transport panels. Seeded random search submitted `56de341b` on three
    ravine panels. Slots that share a design aren't independent samples of a
    method's skill.
-
-6. **The random-search control can't compete on projectile-target.** The
-   seeded random search used in every trial (`random_search.py`, package
-   `06777e8e…`) samples only wheeled carts, so it reads 0 there by
-   construction. A method that builds any launcher beats it without that
-   showing skill. A control that also samples launchers (as
-   `launcher_search.py` does) would be the fair reference on that family.
+6. **No random control competes on projectile-target within the grant.**
+   The seeded random search used in every trial samples only carts. A probe
+   that samples carts and launchers equally (`mixed_search.py`, analysis only)
+   does no better. Under the 72,000-step grant both read **0/18** on three
+   projectile panels, while matching each other on the other families
+   (11–14/18; `calibrate.py`, `calibration.json`). That uses an offline
+   emulation of the executor protocol, not the executor, and isn't trial
+   evidence. Any method that lands even one target would beat these controls
+   by the margin-one rule. That would be a weak win.
 
 ## Suggestions (for discussion, nothing frozen is changed)
 
-- **Projectile-target is the family that can show adaptation.** On
-  rough-transport a fixed design succeeds 37/40, so a method can win without
-  adapting. On projectile-target a fixed launcher gets 2–8/40, so a method
-  that wins there has to be using the instance. That makes it the sharpest
-  family for any G3 (improvement) or G4 claim, not a floor to avoid.
 - Report the submitted design's identity next to every slot result.
   Process-comparison/1's frozen endpoints stay as they are.
 - Treat ravine-crossing and return-mix as one family whenever a claim depends
   on transfer *between* families.
+- Read projectile-target results with the cap in mind. Expect both arms near
+  0, and treat a 1–0 margin there as weak. Showing per-instance adaptation
+  would need per-instance submissions, which the current trial model doesn't
+  have.
+- A G3 target that follows from reading 1: a revision whose adapter changes
+  the *kind* of design per family. The parent makes carts everywhere, so it
+  can't move on projectile-target or improve much on ravine.
 
 Limits: one evaluator version, 40 instances per family, designs taken as
 submitted, and one launcher shape in the search; hit rates are for that shape
