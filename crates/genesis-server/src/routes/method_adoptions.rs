@@ -31,6 +31,7 @@ fn error(error: MethodAdoptionError) -> ApiError {
             format!("method authority changed or expired: {fence:?}"),
         ),
         E::NotAdopted => conflict("method_not_adopted", error.to_string()),
+        E::ScopeMissing => ApiError::new(StatusCode::FORBIDDEN, "method_scope", error.to_string()),
         E::Acceptance(e) => ApiError::new(
             StatusCode::UNPROCESSABLE_ENTITY,
             "method_acceptance",
@@ -299,17 +300,90 @@ pub async fn complete_run(
     Ok(Json(json!(record)))
 }
 
+/// A result body: the evaluation alone, or with the scored output's bytes
+/// (lowercase hex) for an organization that rescores results.
+#[derive(serde::Deserialize)]
+#[serde(untagged)]
+pub enum RunResultBody {
+    WithOutput {
+        evaluation: genesis_core::development_evaluation::EvaluationReceipt,
+        output_hex: String,
+    },
+    Evaluation(genesis_core::development_evaluation::EvaluationReceipt),
+}
+
+fn unhex(text: &str) -> Option<Vec<u8>> {
+    if !text.len().is_multiple_of(2) {
+        return None;
+    }
+    (0..text.len())
+        .step_by(2)
+        .map(|i| {
+            text.get(i..i + 2)
+                .filter(|p| p.bytes().all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'f')))
+                .and_then(|p| u8::from_str_radix(p, 16).ok())
+        })
+        .collect()
+}
+
 /// Record a completed run's one evaluation and whether it attaches to the
 /// responsibility. Like receipts, no `configured` check: with the receiver
-/// disabled the evaluation is kept and attaches to nothing.
+/// disabled the evaluation is kept and attaches to nothing. With a rescorer
+/// configured, the output must come with it and the evaluation must
+/// reproduce under the pinned scorer before anything is recorded.
 pub async fn record_run_result(
     State(app): State<AppState>,
     principal: Principal,
     Path(id): Path<String>,
-    body: Result<Json<genesis_core::development_evaluation::EvaluationReceipt>, JsonRejection>,
+    body: Result<Json<RunResultBody>, JsonRejection>,
 ) -> ApiResult<Json<Value>> {
     principal.require(&[Principal::Operator])?;
-    let Json(evaluation) = body.map_err(|_| ApiError::bad_request("invalid evaluation receipt"))?;
+    let Json(body) = body.map_err(|_| ApiError::bad_request("invalid evaluation receipt"))?;
+    let (evaluation, output_hex) = match body {
+        RunResultBody::WithOutput {
+            evaluation,
+            output_hex,
+        } => (evaluation, Some(output_hex)),
+        RunResultBody::Evaluation(evaluation) => (evaluation, None),
+    };
+    let rescorer = match app.method_rescorer.clone() {
+        None => None,
+        Some(rescorer) => {
+            let refuse = |message: &str| {
+                ApiError::new(
+                    StatusCode::UNPROCESSABLE_ENTITY,
+                    "method_rescore",
+                    message.to_string(),
+                )
+            };
+            // Only a completed run with a receipt and no result can take a
+            // result; refusing anything else here means no result is ever
+            // recorded without the rescore.
+            let record = app.store.method_run(&id).map_err(run_error)?;
+            match (record.receipt.clone(), record.result.is_none()) {
+                (Some(receipt), true) => {
+                    let output = output_hex.as_deref().and_then(unhex).ok_or_else(|| {
+                        refuse("this organization rescores results: send output_hex")
+                    })?;
+                    let (plan, check) = (record.plan.clone(), evaluation.clone());
+                    let slot = plan.slots[0].slot_id.clone();
+                    let pinned = rescorer.sha256.clone();
+                    tokio::task::spawn_blocking(move || {
+                        rescorer.rescore_run(&plan, &slot, &receipt, &output, &check)
+                    })
+                    .await
+                    .map_err(|_| ApiError::internal("method rescoring did not complete"))?
+                    .map_err(|e| refuse(&e.to_string()))?;
+                    Some(pinned)
+                }
+                _ => {
+                    return Err(run_error(
+                        crate::method_invocation_run::MethodRunError::Status(record.status),
+                    ))
+                }
+            }
+        }
+    };
     let receiver = app.method_receiver.clone();
     let _guard = app.kernel.lock().await;
     let state = app
@@ -318,7 +392,14 @@ pub async fn record_run_result(
         .map_err(|_| ApiError::internal("organization state is unavailable"))?;
     let record = app
         .store
-        .record_method_run_result(&id, &evaluation, &state, receiver.as_deref(), Utc::now())
+        .record_method_run_result_rescored(
+            &id,
+            &evaluation,
+            &state,
+            receiver.as_deref(),
+            rescorer,
+            Utc::now(),
+        )
         .map_err(run_error)?;
     Ok(Json(json!(record)))
 }

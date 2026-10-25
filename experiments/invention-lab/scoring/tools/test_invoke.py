@@ -182,6 +182,34 @@ class InvokeTests(unittest.TestCase):
             invoke.main(["score", str(self.dir), "--lab-score", "lab-score"])
         self.assertEqual(len(calls), 1)
 
+    def test_send_output_posts_the_receipts_output_with_the_evaluation(self):
+        self.prepare()
+        output = b'{"design":1}'
+        digest = hashlib.sha256(output).hexdigest()
+
+        def run(args, stdout, stderr):
+            os.makedirs(Path(args[5], "artifacts"))
+            Path(args[5], "receipt.json").write_text(json.dumps(
+                {"outcome": "output_generated", "outputs": [{"sha256": digest}]}))
+            Path(args[5], "artifacts", digest).write_bytes(output)
+            return type("Done", (), {"returncode": 0})()
+        with patch.object(invoke.subprocess, "run", run):
+            invoke.main(self.run_args())
+        Org.responses["/result"] = (200, {"result": {"attachment": {"kind": "attached"}}})
+        calls, run = self.fake_lab_score()
+        with patch.object(invoke.subprocess, "run", run):
+            invoke.main(["score", str(self.dir), "--lab-score", "lab-score", "--send-output"])
+        self.assertEqual(Org.requests[-1][2], {"evaluation": {"evaluation": 1},
+                                               "output_hex": output.hex()})
+
+    def test_send_output_without_an_output_posts_nothing(self):
+        self.scored_run()
+        calls, run = self.fake_lab_score()
+        before = len(Org.requests)
+        with patch.object(invoke.subprocess, "run", run), self.assertRaises(SystemExit):
+            invoke.main(["score", str(self.dir), "--lab-score", "lab-score", "--send-output"])
+        self.assertEqual(len(Org.requests), before)
+
     def test_score_needs_an_accepted_receipt_and_an_evaluation(self):
         self.prepare()
         calls, run = self.fake_lab_score()

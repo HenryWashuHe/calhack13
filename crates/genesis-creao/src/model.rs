@@ -6,14 +6,16 @@ use std::{fmt, io::Write, time::Duration};
 pub(crate) const MAX_INPUT: usize = 256 * 1024;
 pub(crate) const MAX_RESPONSE: usize = 1024 * 1024;
 
-/// The account API and hosted Developer Platform use different credentials,
-/// request shapes and creation-poll endpoints. Persist this with every intent.
+/// Account APIs and app-scoped Trigger use different credentials, request
+/// shapes and endpoints. Persist the exact contract with every intent.
 #[derive(Clone, Copy, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum ApiVersion {
     #[default]
     V1,
     V2,
+    /// App-scoped API Trigger; never reinterpret an Account API checkpoint.
+    Trigger,
 }
 impl ApiVersion {
     pub fn is_v1(&self) -> bool {
@@ -23,6 +25,7 @@ impl ApiVersion {
         match self {
             Self::V1 => "v1",
             Self::V2 => "v2",
+            Self::Trigger => "api/v1",
         }
     }
 }
@@ -102,6 +105,17 @@ impl OperationRequest {
 
     pub(crate) fn request_sha256_for(&self, version: ApiVersion) -> Result<String, Error> {
         let payload = self.payload_for(version, MAX_INPUT)?;
+        if version == ApiVersion::Trigger {
+            let Self::CreateRun(run) = self else {
+                return Err(error(ErrorKind::InvalidRequest, Stage::Configuration));
+            };
+            return Ok(json_sha256(&json!({
+                "schema_version": 3,
+                "api_version": "trigger",
+                "path": format!("/api/v1/apps/{}/runs", run.agent_id),
+                "payload": payload
+            })));
+        }
         Ok(json_sha256(&json!({
             "schema_version": if version.is_v1() { 1 } else { 2 },
             "path": if version.is_v1() {
@@ -136,6 +150,25 @@ impl OperationRequest {
     }
     pub(crate) fn payload_for(&self, version: ApiVersion, max: usize) -> Result<Value, Error> {
         let invalid = || error(ErrorKind::InvalidRequest, Stage::Configuration);
+        if version == ApiVersion::Trigger {
+            let Self::CreateRun(r) = self else {
+                return Err(invalid());
+            };
+            // Only documented Trigger inputs are supported. Account API
+            // options must never be silently dropped or sent with old names.
+            if !uuid(&r.agent_id)
+                || r.workspace_id.is_some()
+                || r.model.is_some()
+                || r.conversation_id.is_some()
+                || !r.input.is_object()
+                || !bounded_tree(&r.input, max)
+            {
+                return Err(invalid());
+            }
+            let payload = json!({"inputs":r.input});
+            bounded_serialize(&payload, max).map_err(|_| invalid())?;
+            return Ok(payload);
+        }
         if self.model().is_some_and(|v| !plain(v, 100))
             || self.conversation_id().is_some_and(|v| !uuid(v))
         {
@@ -225,6 +258,7 @@ impl RunTicket {
                 .iter()
                 .any(|id| id.as_deref().is_some_and(|v| !uuid(v)))
             || self.model.as_deref().is_some_and(|v| !plain(v, 100))
+            || (self.api_version == ApiVersion::Trigger && self.workspace_id.is_some())
             || self.request_sha256
                 != account_fingerprint_for(request, &self.account_namespace, self.api_version)?
             || request
@@ -700,6 +734,9 @@ pub(crate) fn observation_for(
     stage: Stage,
     version: ApiVersion,
 ) -> Result<RunObservation, Error> {
+    if version == ApiVersion::Trigger {
+        return trigger_observation(raw, request, ticket, stage);
+    }
     if version == ApiVersion::V2
         && stage == Stage::Poll
         && matches!(request, OperationRequest::CreateAgent(_))
@@ -707,6 +744,80 @@ pub(crate) fn observation_for(
         return hosted_creation_observation(raw, request, ticket);
     }
     observation(raw, request, ticket, stage)
+}
+
+/// Trigger GET may omit appId. Only the exact app-scoped URL and retained run
+/// ticket justify that omission; a supplied conflicting appId is never ignored.
+fn trigger_observation(
+    raw: Value,
+    request: &OperationRequest,
+    ticket: Option<&RunTicket>,
+    stage: Stage,
+) -> Result<RunObservation, Error> {
+    let malformed = || error(ErrorKind::MalformedResponse, stage);
+    let mismatch = || error(ErrorKind::ProvenanceMismatch, stage);
+    request.payload_for(ApiVersion::Trigger, MAX_INPUT)?;
+    let OperationRequest::CreateRun(run) = request else {
+        return Err(malformed());
+    };
+    let object = raw.as_object().ok_or_else(malformed)?;
+    let run_id = object
+        .get("id")
+        .and_then(Value::as_str)
+        .filter(|id| uuid(id))
+        .ok_or_else(malformed)?;
+    match object.get("appId") {
+        Some(Value::String(id)) if uuid(id) => {
+            if id != &run.agent_id {
+                return Err(mismatch());
+            }
+        }
+        None if stage == Stage::Poll && ticket.is_some() => {}
+        _ => return Err(malformed()),
+    }
+    let status = serde_json::from_value(object.get("status").ok_or_else(malformed)?.clone())
+        .map_err(|_| malformed())?;
+    let optional = |key: &str, is_id: bool| -> Result<Option<String>, Error> {
+        match object.get(key) {
+            None | Some(Value::Null) => Ok(None),
+            Some(Value::String(s)) if if is_id { uuid(s) } else { plain(s, 100) } => {
+                Ok(Some(s.clone()))
+            }
+            _ => Err(malformed()),
+        }
+    };
+    let mut conversation_id = optional("threadId", true)?;
+    let mut model = optional("chatModelId", false)?;
+    let result = match object.get("result") {
+        None | Some(Value::Null) => None,
+        Some(Value::Object(_)) => object.get("result").cloned(),
+        _ => return Err(malformed()),
+    };
+    if let Some(ticket) = ticket {
+        ticket.validate_for(request)?;
+        if ticket.api_version != ApiVersion::Trigger
+            || run_id != ticket.run_id
+            || ticket.agent_id.as_deref() != Some(run.agent_id.as_str())
+            || [&conversation_id, &model]
+                .into_iter()
+                .zip([&ticket.conversation_id, &ticket.model])
+                .any(|(got, saved)| got.is_some() && saved.is_some() && got != saved)
+        {
+            return Err(mismatch());
+        }
+        conversation_id = conversation_id.or_else(|| ticket.conversation_id.clone());
+        model = model.or_else(|| ticket.model.clone());
+    }
+    Ok(RunObservation {
+        run_id: run_id.into(),
+        status,
+        agent_id: Some(run.agent_id.clone()),
+        conversation_id,
+        workspace_id: None,
+        model,
+        result,
+        raw_response: raw,
+    })
 }
 
 /// Hosted-agent creation is an edit run, not a normal `/v2/runs/{id}` run.

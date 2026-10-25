@@ -1,4 +1,5 @@
-//! Bounded CREAO Account API requests and durable polling receipts.
+//! Bounded CREAO API Trigger and explicit legacy Account API operations.
+//! Trigger runs a prepublished app; it cannot create or inspect agents.
 //!
 //! Submit exactly once, durably save the returned ticket, then poll explicitly.
 //! A lost POST response is ambiguous; neither this client nor a run ID supplies
