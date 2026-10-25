@@ -1,6 +1,6 @@
 # GENESIS implementation handoff
 
-## Current checkpoint: stage allocation and retained trial binding merged
+## Current checkpoint: organizational intake merged; adoption remains open
 
 **Networked recursive capability improvement with fixed model weights** remains
 the chosen direction. Work in
@@ -9,9 +9,10 @@ and coordinate in [issue #1](https://github.com/HenryWashuHe/genesis-history-exp
 The [migration map](REPOSITORY_MIGRATION.md) preserves old/new routing; legacy
 issue #4/task numbers below are historical. Preserve rewritten ancestry.
 
-The [ongoing goal](ONGOING_GOAL.md) and hourly continuation are active; the stale
-app Goal remains paused and must not be falsely completed. Main
-through `a90ad14e7495be1ef5066234f84bddba1ac431b9` includes the experimental core
+The [ongoing goal](ONGOING_GOAL.md), revised app Goal and hourly continuation are
+active. The stale app record was cleared and replaced on October 24, 2026. Main
+through `773eeba83967bb27a958e47cab73e89d0a7b38f6`, tree
+`f9b4eab1a4de9dce9fe824986e25fb8dae0fb3b0`, includes the experimental core
 contracts, source loader, corrected adoption proposal/UI, simulator primitives,
 #50–#52 method-source generation, #42/#43 executor foundations/session and #56
 accounting identity checks plus #58/#59 declared combined-cost assessment and
@@ -29,46 +30,418 @@ Independent historical-session and CLI-boundary tests are preserved in #83.
 Structural stage allocation and retained trial-binding CLI #85/#86 are merged,
 with independent overflow and pending-recovery guards in #87. Optional allocation
 checks use the existing generation/cost paths; runtime entry checks remain open.
+Blank CREAO-version compatibility #96, shared stage checks/current Goal refresh
+#97 and finite generation/trial-only chain ceilings #103 are now merged.
 ACP corrections/commands #3/#5 are also merged with all original regression
 files preserved.
 #57/#65 remain unmerged pending namespace lifecycle assurance,
-and ACP's #4 documentation proposal remains held. G0–G4 remain open: no live
-generated method, accepted model-developed A → B → A return or
-recursive benefit is established. Handwritten controls, including the separately
-reported live Apify baseline, do not close those gates. Event organizing remains
-superseded.
+and ACP's #4 documentation proposal remains held. The third attempt on `07c098c`
+produced a genuine model-generated package with static inspection only in that
+retained bundle. Separate receiving evidence #98 now has independent retained-record
+checks; it does not establish adoption or close G1. #113 now retains B's actual
+generated revision source for rough-transport; #116 now retains independently
+checked B execution/scoring records, with rejection against parent and random
+control. #117 also retains checked return-mix records with all comparisons
+Rejected. Local adoption remains unestablished. G0–G4 remain open; an accepted
+A → B → A return and recursive benefit are unproved. Handwritten controls and the separately reported
+Apify baseline do not close those gates. Event organizing remains superseded.
 
 ### Current ownership and next work
 
 | Owner/session | Active lane and acknowledgment | Scope / next deliverable |
 | --- | --- | --- |
-| Henry's core Claude | Adoption/planner acknowledged; prior foundations and #64 merged | Retain method-adoption wiring and existing console UI. Receiver/offer binding and create-only installation records are corrected; retain supporting acceptance receipts separately. Fixture acceptance does not close G2. |
+| Henry's core Claude | [Method-adoption/authority milestone acknowledged](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388913830) | Pure verdict #146 is merged. Lower-level acceptance #154 `cc099833db28983f0e224fe1a5aacb14dacd9959` merged at `a7c56b1c` after exact source/composition review and four assessor + six intake + three planner checks. [Adoption-store #155 `df286ad407c456c6fca59ec9319f661d74aa2b41` is held](https://github.com/HenryWashuHe/genesis-history-experiment/pull/155#pullrequestreview-5640018669): pin the receiver-controlled intended acceptance plan to the requirement/owner and preserve exact method/verdict invariants during authorization. New routes/invocation #159 `00413c66efdd565254d5ac1118f6b8a37245174f` is stacked on `henry-claude/method-adoption-store` and held on disabled-receiver authorization and unnecessary registry fetch during stored replay. Retarget dependencies as they merge. Henry retains these corrections and pinned invocation/current-grant controls. Intake/planner fixtures do not establish real method adoption. |
 | Henry's core Claude | Evaluator/executor active; simulator and #42–#45 executor stack merged | Own evaluator/executor. #57/#65 portable fixes clear their prior findings; namespace lifecycle assurance remains unverified after interrupted review. Preserve exact evidence limits and avoid claiming Linux enforcement. |
-| Henry's core Claude | #46/#48/#64/#70/#72 merged | Own scoring and adoption. Retained-file CLI cost assessment and exact-parent revision rehearsals are integrated; continue the scoped method loop and #57 closure assurance without relabeling fixture source as model development. |
-| Eric / Eric's Claude | Audit #9 merged; separate invention-lab UI assignment still unacknowledged | `docs/invention-lab/ui.md`, then `apps/web/src/invention-lab/**` after receipts settle. `EricZhu-31` has write access; do not silently transfer this lane. |
-| ACP Claude session | #3 `f64e131` / #5 `e95a286` merged; stage #20 merged | Migration holds cleared with all eight independent cases unchanged. Reconcile held #4 routing/status/demo docs with merged #3/#5, local executor/scorer and issue #1; preserve the superseded event-organizer boundary. Bridge ownership remains with ACP. |
-| Codex main chat | Shared contracts/generation/accounting and stage allocation merged; first live generation failed protocol validation | Next: bounded allowlisted stop/rejection diagnostics before separately declaring another genuine method attempt; retain the spent reservation without replay. Finite whole-chain ceilings remain proposed behind that run, including trial-only inherited/control/decline stages without dummy generation. Preserve Henry's runtime and ACP ownership. |
-| EricZhu-31 / Codex provider session | Existing provider lane; reports the post-#47 Apify baseline gate passed three cases | Preserve/share sanitized exact evidence for independent inspection; no duplicate cloud run here. This handwritten parser run does not establish model synthesis. Elastic permissions remain with key owner. |
+| Henry's core Claude | #46/#48/#64/#70/#72 merged; #98 `cb29a95` receiving records merged after independent checks; #102 `c8bf7a0` checked public feedback merged at `7accefd3` | Own execution/scoring/adoption and receiving-side record plumbing. Retain B's explicit selection/local acceptance decision and intended responsibility, including the rejected random-search comparison. #116 retains checked rough-transport trials of frozen child `4f455dc6`, rejected against parent/random control. Local acceptance remains unestablished; #117 checked A-return records are Rejected in every comparison. Retain prior declarations and all negative results; do not edit forge. #57/#65 are separate unmerged assurance work. |
+| Eric / Eric's Claude | #93/#94/#99/#100/#101/#109 merged; real-evidence #123 integrated through #128 | `docs/invention-lab/ui.md` and `apps/web/src/invention-lab/**`, no shared routes. #123 `7196d5c` → parent merge `4515f728`; #128 `2f0b6734` → main `a3be74d0`, identical web bytes. Independent 81 tests/13 files and typecheck pass, original regressions unchanged. Preserve `78adef37`, `59c3e1c`, `f2ac45e5` and `0672dcbe`. The separate `apps/stage` queue does not transfer this lane. [MethodOffer/MethodSearchResults intake](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388858370) is requested next, awaiting acknowledgment/exact files: publisher-qualified identity and canonical bytes, no inferred authentication or adoption. |
+| ACP Claude session | #3/#5 and stage #20 merged; [Stage lane explicitly claimed](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388347592) | Own bridge and `apps/stage/**`; #125/#126 remain held as below. [New iteration files](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6389024893) remain proposed/exploratory pending existing-contract interface agreement, not a second default orchestrator. Reconcile held #4 routing/status/demo docs with merged #3/#5, local executor/scorer and issue #1. Preserve the superseded event-organizer boundary. Eric [withdrew only his separate Stage claim](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388539814), leaving his lab UI lane intact. |
+| Codex main chat | #120/#124/#127/#130/#153 and method registry/source preparation #132/#133/#141/#150/#151, organizational intake #157/#158 merged | The [existing-registry path](invention-lab/contracts/method-registry.md) carries exact source into receiver-owned revision preparation; [intake](invention-lab/contracts/method-development-intake.md) connects source-free exact selection/receiver need to one atomic observation and existing planner/Runner → kernel/saga. New-specialist, existing-owner and no-change paths pass with ReplayClient/development stubs. Next prepare offline protocol/selection inputs with numeric six-slot/chain ceilings, family-input parity and adaptive Prepared chronology. Integrate the missing governed loop only after reviewing Henry's exact-policy/authority boundary; no second planner or adoption-lane takeover. No provider request declared. |
+| EricZhu-31 / Codex provider session | #104 nullable-ticket correction merged; [separate CREAO Trigger smoke slice claimed](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388887582), #137 held at `08a68e3` | Own `scripts/live-gates/creao-trigger.mjs`, focused offline test, trigger guide and narrow live-gate docs link. Keep team `capi_`/app-ID Trigger separate from existing Developer API adapters/gate. Offline infrastructure only, no hosted run or G0–G4 result; ACP retains hosted-gate evidence. [Review](https://github.com/HenryWashuHe/genesis-history-experiment/pull/137#issuecomment-6389011299): 32 original offline cases pass; three new regressions fail for directory durability, stream bounds and stale concurrent polling. Preserve 102-line `f8f9ea3` unchanged. This provider claim does not acknowledge the lab UI request. |
 | Ines | Unassigned by explicit user instruction | Do not infer identity from another collaborator handle. |
+
+Henry's [requested receiver-ID correction](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6389372825)
+belongs to his existing receiver lane: namespace run, attempt and scoring IDs
+from each predeclared trial identity before execution, preserving same-trial
+preparation stability. Current repeated IDs prevent distinct same-org trials
+from composing under chain-cost uniqueness checks. This follow-up is requested,
+not acknowledged or implemented; preserve old retained evidence without relabeling.
+
+Eric's results UI [#148 `1519c275` is held](https://github.com/HenryWashuHe/genesis-history-experiment/pull/148#issuecomment-6389291887):
+first-match conflicting metrics, unsupported metrics identity and mislabeled Unknown.
+Stacked [#149 `f180a83a` is held](https://github.com/HenryWashuHe/genesis-history-experiment/pull/149#issuecomment-6389292133):
+unrelated/missing revision cost, Prepared labeled as a request, unbound feedback
+causality and unknown origin labeled as control. Preserve all nine independent
+cases at `f0736d78928e4fc639ecf0739f4fe77abfb5de6f` on `codex/review-results149`:
+root rerun is eight failures / one retained-score control pass; all original
+regressions remain. The review agent's 90 original UI tests and typecheck pass;
+these were not root-rerun. Earlier 81-test main evidence above remains separate.
+
+Receiving wrapper [#118](https://github.com/HenryWashuHe/genesis-history-experiment/pull/118#issuecomment-6388306630)
+`68bc82d0061eb50e58acd45aa811b4895a9e4a17` merged at `ec23efb5`.
+Frozen package/spec bytes and atomic incremental failure summaries clear all six
+original mocked-process cases; the 203-line `e3f3779` file is unchanged. Reviewed
+main composition `428c1ceb` / tree `a996da20` has the same helper bytes. Henry
+retains the lane. Trusted-host storage is not immutable against host writers;
+no generated-source/runtime/namespace/provider execution was performed in review.
+
+Archival stage presenter #108 `ece3c61443e7afa9466679c9a79b7b935ad909f7`
+merged at `d810a670b4f32e4ba1a251be28351b90a589a8ff`: reviewed composition
+`1632f08` / tree `0ab8d80a` passes 22 Node checks and independent DOM probes.
+This clears the visibility/stale-caption findings; presentation support remains
+separate from goal progress and authorizes no event-organizer revival.
+
+Separate `apps/stage` queue: #125 `973aa9c` remains held on organization-timing
+attribution; stacked #126 `b7bdb18` remains held on four mocked acknowledgment
+failures, preserved in `d85b018`. Neither branch is adoption-authority evidence.
+
+Henry [acknowledged the receiving-side execution/scoring/verdict/adoption handoff](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6386515979)
+within his existing lane; the exact generated package is now available below.
+The [latest direction and ownership checkpoint](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6387556484)
+is authoritative: feedback-driven B revision and return to A are the next mechanism
+target; use/experimentation does not imply adoption or promotion.
+
+Codex retained-chain CLI source `f8b6919`, reviewed composition `42d15cd`, adds
+create-only preparation/binding and read-only checks. Full forge 221/42 passed
+at `e0139a6`; independent 20 focused checks passed after the non-overlapping
+CREAO merge. No provider or generated-source execution. See the
+[exact CLI boundary](invention-lab/contracts/chain-allocation.md#retained-cli-files).
+Henry still owns consumption before runtime intent; Codex retains generation
+wiring. A check without a trial is allocation-only, and none of the old live
+calls can acquire a prior chain declaration retroactively.
 
 Ownership is by session and exact files, even when sessions share a GitHub
 account. Claim shared interfaces in issue #1 before overlapping. The allocation
 and retained-binding contracts are merged; Henry still owns consuming the binding
-before runtime intent, scoring and receiver-local adoption. The next visible
-mechanism milestone is genuine generated source handed to that existing runner.
-Finite whole-chain ceilings are independent proposed work, not implemented:
-permit generation-bearing development/revision and trial-only acceptance,
-return, control or decline stages. Hashes alone prove no timing. ACP retains its
-bridge/documentation lane.
+before runtime intent, scoring and receiver-local adoption.
+Receiving-side evidence [#98](https://github.com/HenryWashuHe/genesis-history-experiment/pull/98)
+merged at `f45cb1deb57887219622b8dc123928ff764bcd9b`, source
+`cb29a9593c93bbf6fe017e7e06fe7eb450d551d3`. Read-only independent checks cover
+248 manifest entries, 209 artifacts, five slot bindings and the byte-identical
+8,074-byte cost report. Both retained verdicts stand: **Accepted: 1/6 versus
+0/6**, and separate **Rejected: 1/6 versus 2/6** against random search, using the
+exact generated package. This review did not execute source, run the scorer or
+call providers. The report covers the first trial only, excluding the two failed
+generation attempts, separate reference run and second comparison. It is not
+whole-experiment cost evidence. That bundle establishes no local adoption/promotion,
+distinct B-task execution or fresh A return. Public feedback #102 source
+`c8bf7a0e397d0a641239585ce5e50dcc292abd91` merged at
+`7accefd3cf5da521208f17fa1474001e92aa3753`. Both prior holds are cleared:
+Development-only policy is checked before record reads, and the document is
+bounded to 128 KiB with explicit design omissions and listed/total counts.
+Five author tests plus the three unchanged `8ad9d645` cases independently pass,
+alongside strict Clippy/fmt. Read-only regeneration on copies of #98 records
+produced 18,152 bytes, all 24 experiments fully listed; 55 inputs stayed
+byte-identical. Hash `9218988fed77dba3ffc04ca583560f339672079c5ec8237bf61bc34ed4631472`
+is local content identity, not new execution or adoption evidence.
+B's [exploratory source revision](invention-lab/evidence/live-method-20261024-b-revision/README.md)
+is now Generated. #112 preparation `163e952` merged before the single guarded
+request; #113 source `e5d7ece` merged at `4bcd5c5`. Exact parent `8215c367` and
+checked feedback `9218988f` yielded child `4f455dc6`: 6044 source bytes / 192
+lines, `source_changed: true`, AST parsing only. The operator assigned B the
+distinct rough-transport task; the parent's rejected random-search comparison
+remains negative context. The generation bundle alone establishes no execution
+or adoption; the separate receiving records below now cover B trials. Henry
+owns receiving decisions and further trials with separate budgets.
+Usage: 1 Anthropic `claude-sonnet-5-5` call, 20,798 input / 5,741 output tokens,
+40,223 ms; one reservation remains spent. Four observed calls total 32,825 input /
+24,056 output tokens and 181,342 ms summed request time. This is arithmetic,
+not a prior combined grant or exhaustive billing, and excludes receiver costs.
+
+B receiving [#116 evidence](invention-lab/evidence/live-method-20261024-b-revision-receiver/README.md),
+source `59cbf0ad61b333e687f7dc8a6babdc978f7b6f31`, merged at `e091ce0d` after
+independent checks: 245 manifest entries, 198 artifacts, six complete slot joins
+and 12 usage/budget records; all 247 files unchanged. Child 3/6 versus random
+4/6 and parent 6/6 are Rejected; versus fixed cart 2/6 is Accepted. The primary
+8,087-byte cost report is exact: 1 call, 20,798 input / 5,741 output tokens,
+140,640 ms and 123,113 steps, excluding other trials and earlier generations.
+Checked public feedback has 32 rows/27,928 bytes (`f9759134`); four progress
+floats re-encode one ULP differently, so it is not a byte-exact regeneration.
+Read-only review establishes neither new execution assurance, adoption nor
+improvement. Henry's [predeclared A return](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388057984)
+now has checked [#117 records](invention-lab/evidence/live-method-20261024-a-return/README.md):
+source `3c1994f195f290827690a69a1d3dfcae26ae5e4e` merged at `8eed5043`.
+Independent checks cover 324 manifest entries, 272 artifacts, six full joins and
+12 known usage/budget records; 326 files unchanged. All verdicts are Rejected:
+child 0/6 versus random 3/6, child 0/6 versus parent 1/6, parent 1/6 versus
+random 3/6. Feedback contains 32/32/18 public rows; six floats re-encode within
+one ULP. Exact cost reports (8,084/8,077 bytes) cover separate child/random and
+parent/random trials: respectively 1 call, 20,798/5,741 tokens, 101,151 ms /
+75,636 steps; and 1 call, 4,028/5,231 tokens, 76,265 ms / 44,140 steps. They
+exclude child/parent comparison and earlier attempts/trials; do not sum them
+with other reports as exhaustive history. Organization IDs are labels on one
+operator's host, not independently authenticated organizations. No local
+adoption, accepted return or positive benefit is established; G0–G4 stay open.
+[Explicit reasoning policy #120](invention-lab/contracts/generation.md#settings-and-accounting)
+is now merged: Sonnet 5.5 adaptive effort is part of frozen client settings.
+It does not pin hosted weights/stochasticity or upgrade prior runs to G4. No live
+request or new generation is declared. The pure retained-reference catalogue
+audit #124 is merged; Henry retains any future pre-experiment enforcement.
+Whole-chain cost assembly #127 and its [read-only CLI #130](invention-lab/contracts/chain-allocation.md#read-only-chain-cost-cli)
+are merged. Original retained records produce cost bounds, not execution authority
+or proof of complete history; missing stages remain unknown.
+Organizational authority, local selection and adoption remain separate G2/G3 work.
+Henry's acknowledged vertical slice above addresses that gap; the #154 lower-level
+assessor is merged, #155 is held on exact-policy/authorization invariants, and
+stacked route/invocation #159 has separate HTTP holds.
+Merged #157/#158 exercises organizational intake with scripted planner controls,
+not real model judgment or method adoption. The W/F pilot alone cannot close
+organizational evolution.
+A fixed-pool search-policy ablation remains a separate proposed mechanism study,
+with task-artifact and identical-information local controls; it is not full G4
+or a restriction on capability development. Henry's merged K=3
+workflow-versus-fresh protocol specifies all four families, adaptive/high client
+effort, neither arm seeded with old feedback, and public fresh-task assessment.
+[Protocol #135](invention-lab/protocols/process-comparison-1.md) source
+`5a1e24807adadc4d1b8e3f8ad3e5f4d67ab7d91a` merged at
+`773eeba83967bb27a958e47cab73e89d0a7b38f6`, tree
+`f9b4eab1a4de9dce9fe824986e25fb8dae0fb3b0`. Root and independent source/delta
+reviews clear the prior eligibility hold: selection and positive endpoint share
+one rule excluding Failed/Interrupted/Unknown executions even if scored, while
+retaining observed outcomes and costs. Protocol-only, no execution/tests or G4.
+Codex's next offline protocol/selection work must retain numeric six-slot/chain
+ceilings, four-family input parity and adaptive Prepared chronology. Henry's
+unique receiver IDs and runtime assurance remain prerequisites.
+Public-range #121/#136 is merged with the reserved-seed
+hold cleared; metadata/preflight and mocked checks do not hide inputs or establish
+an evaluation result. Freeze
+source/selection before assessment, retain failures and actual costs, and agree
+exact protocol identities/whole-chain ceilings before new generation.
+Predeclare all six operation/stage slots and full ceilings before work. W rounds
+2/3 acquire exact Prepared request hashes only after their declared feedback
+exists; future prompt hashes must not be fabricated.
+
+The merged [finite-chain contract](invention-lab/contracts/chain-allocation.md)
+reserves the full ceilings of 1–64 ordered generation or trial-only stages in all
+five resource dimensions. Later bindings check exact settings, organization,
+grants and trial/scope identities without inventing generation for inherited,
+control or return work. Declined/unbound stages retain their full capacity.
+This is a pure structural library: host retention before work, one authoritative
+binding per stage, runtime consumption, chronology, exhaustive accounting and
+actual enforcement remain outside it. It cannot retroactively allocate the three
+observed live calls or close G4.
+ACP retains its bridge/documentation and hosted-gate evidence lane.
 #57/#65 namespace lifecycle evidence remains incomplete; do not infer assurance
-from portable tests. Actual model-developed source and a recorded accepted return
-remain to be demonstrated. Source identity and fixture acceptance do not establish
+from portable tests. Retained receiving execution/scoring records now have independent
+checks; local adoption and a recorded accepted return remain unproved. Source identity does not establish
 improved development or budget compliance.
 
 ### Evidence for this checkpoint
 
+Generation-only accounting #153 source `2efdca901eb4345cc569a2c4b9f0f61279f65fcc`
+merged at `86505a09c076d1f759c8963f70ae7027f3b3b2da`; matching tree
+`0c85d6726c9b3314810ac1d6fb9f5fb2faf15284`. Behavior `7c2fb3b` passes root's
+36 focused stage/chain/library/CLI cases plus four independently authored cases
+rerun by root (40 total), scoped strict Clippy and fmt/diff. The original
+241-line `5596b771` file is unchanged in `2efdca90`.
+[Independent final source review](https://github.com/HenryWashuHe/genesis-history-experiment/pull/153#pullrequestreview-5639985373)
+confirms the exact head and preserved tests without another build. Explicit
+zero-slot generation stages require zero trial grants and cannot bind trials.
+Measured failures/overruns stay charged, missing/uncertain costs stay unknown,
+and historical #113 hashes and nonzero-slot uncertainty are unchanged. No
+provider request, generated-source/runtime execution, adoption or gate closure.
+
+B preparation #112 source `163e952696e62a9bcb937e22ef1b96e327427dad` merged at
+`dec357f91a33083ab50e73c23508ccbc13162d46` before the call. #113 result source
+`e5d7ecef69c3b26467225588506efc3e4ba919ef` merged at
+`4bcd5c53b53e47058e4f6993d701b5f1294ab797`; matching tree
+`436e28bd94baf56dce59b1a1667dcc60497b3536`. Independent retained-data review:
+34 final hashes, 23 unchanged prepared entries plus manifest, 33 JSON records,
+six byte-identical read-only CLI outputs; all 36 input files unchanged. No source
+execution or additional provider call in review.
+
+UI #93 `05f77d2` merged at `85c5c11`; #115 source
+`e9c25f38f72e26dcc869b75c4881562fd064c2b4` merged at `54cb42e`, retaining
+its independent label cases. #94 source `7ed70f9eef4136eec99086e7a1901adc6368ef3f`
+merged at `0398dc560c2aa805bfbb820253f2f413315d333a`: reviewed composition
+`ef484cbf` passes 21 focused checks/typecheck, including all six unchanged
+original cases. Main preserves the complete 121-line `78adef37` file.
+#99 `f09bf473412e0fe9e2b7ed500d79a6ef123bc115` merged at
+`302397ae4da79961988cc35bfe616a1f3af91ebc`; #100
+`76c2cd54192f5e0932d526a85b2021cd6216140a` merged at
+`d11f01fc28892aee00b4358c22f8989c8ae2bb06`: 42 focused checks/typecheck pass,
+including four unchanged #99/#100 regressions, four actual Rust receipt hashes
+and 11 SHA vectors. #101 `ed8b64de0ea7fd14b54d4086109dc194ed975d8e` merged
+at `95256998e5d3c9f16c68810760a0e3dc3fcc365e`; tree `ec822b18` matches
+reviewed `db10b04`: 52 focused checks/typecheck pass and the full 119-line
+`59c3e1c` file is unchanged. #109 source `2cfb4058ed91bcf156d25ff86b359825ada5e5c5`
+merged at `5ed65deb469a6a7a8c8bf747517a143e90de5dad`: 66 focused tests/11 files
+and typecheck pass; all five original `f2ac45e5` cases/70 lines unchanged. The
+reviewed main composition `e2914b6` had identical web bytes. Real-evidence #123
+source `7196d5c63fecccd1c36a48462d63aa3d9bf80272` passed 81 UI tests across
+13 files/typecheck; original regressions are unchanged. Its merge
+`4515f728db2a0675c830907100f168fe80db3d4b` went to the parent branch only;
+#128 final `2f0b6734a5dfe61f7b51e11b1aa23e461fdc0ce3` then integrated it
+into main at `a3be74d0fd4d067c99a928bb8315d69fd05010ea`, tree
+`7731ec5a4d69c5631d50e827f7acbf9d87254d28`. Main ancestry and identical web
+bytes were checked; 81 tests/13 files and typecheck independently reran and passed.
+
+Catalogue #124 source `e6940b2224db0dfcd5f164fcb3a3ec0aa1f69901`, final
+`ed573c694f0364392502fcfdc3899ed737d87b7c`, merged at
+`2f9cfea9b7493a16a5c37e6fe0642d319561919b`. Author source passed 142 core
+tests; independent 11 focused cases pass, including the three preserved unchanged
+`1c2bfd2961e9e5b1de530b70b41d8332cc8143ae` cases. Scoped strict Clippy/fmt
+pass; counts overlap. [Post-run catalogue membership](invention-lab/contracts/catalogue.md)
+checks exact references only. Retained #116 compatibility is parse-only; no
+normalization proof, runtime enforcement, chronology or gate closure.
+
+Whole-chain cost #127 source `f5fad35d8b4eff45d319bd1bab7dafea8a499d74`
+merged at `f335cc6ca7da193ef6e4ae98beb49ddaa6f11810`, matching tree
+`75d39a7bb965b5c5034b9914e6237bdb82add8eb`. Full forge 243 tests across
+47 targets, zero failed/ignored, strict all-target Clippy/fmt pass; six author
+and three independent cases are included, not additional counts. The 207-line
+independent file is unchanged. [Pure cost assembly](invention-lab/contracts/chain-allocation.md#whole-chain-observed-costs)
+retains unknowns and local overruns; it does not prove exhaustive history or billing.
+
+Read-only chain-cost CLI #130 source `04e22315ca08af9a2c196cbb603a2553ee85dbc6`
+merged at `fc16ba142d3757e8d5e804902558010801a6938f`, matching tree
+`a45f1d8f4f7aaafed2aa473a64f80c406af76869`. Independent 21 focused tests/6
+targets and scoped strict Clippy/fmt/diff pass, including the retained-#113 guard. Author 247/48 covers unchanged production
+source; no full 248-test run is claimed. Re-reading #113 yields lower bounds of
+1 call, 20,798 input / 5,741 output tokens, 40,223 ms and 0 simulation steps;
+every total stays unknown because future trial evidence is unresolved. All 36
+source files remain unchanged; no new provider or method execution occurred.
+
+Method registry API #132 final `bc1cdd9b518184b0915afc8d16e0963eaa205b04`
+merged at `26b6cc873f05de8a3d03e48bf2c01df065e77619`, tree
+`1bbd98c4686431f7e4ac174bc8e5e22d49c985c8`.
+Production `2039c5a4` passed 14 author checks/3 targets and three independent
+transport cases with scoped strict Clippy/fmt. The original 224-line `703fcfd`
+file is unchanged. Existing-process authenticated HTTP fixtures establish exact
+source exchange only: no Elastic method retrieval, execution, acceptance or
+organization authority. Typed client #133 final `1f94f312b81b74c4e15a6dc6fae02f94323a32a5`
+merged at `995a7d703b0d000c828b0282a7f9aa95261d5aa3`, tree
+`d3075b60cf03aa1e8a4e2e0b16dc0de024b672af`. Author 19 focused checks at
+`125e260` and six final client cases independently rerun overlap; strict all-target
+server Clippy/fmt pass on unchanged production. The fixture binds publication →
+discovery → exact source → B revision `Prepared`; no model/source execution,
+acceptance, role change or gate closure. The shared candidate validator rejects
+duplicate logical dependencies before any fetch, including conflicting hashes.
+
+Revision bundle #150 source `6376713a14500ebfca7286765ce3e1c4efa2acf8` merged
+at `a5f87bfe5deb9939e1ea11d40ebbfc71b84966aa`: root 18 focused tests and scoped
+strict Clippy/fmt pass; independent exact-source/guide review clear. Existing
+revision identities, preparation locking and read-only observation are unchanged.
+Selected-source bridge #151 source `54283b57d85f55fd1de7fceead675ef49d97668e`
+merged at `d18591ad6eb97f0eb59a3c70dea097878f8fb10b`, tree
+`e457ac0b472fe7531906e042ae2f1d9638e12810`. Behavior `7d0d30f`: root 25 scoped
+checks (five new including two independent, four legacy CLI, 16 binary) and strict
+Clippy/fmt pass; independent final-source/guide review clear. The 88-line review
+file is retained with its `usize` compile annotation, testing full receiver-input
+preservation and post-augmentation bounds. [The bridge](invention-lab/contracts/method-registry.md#selected-parent-to-revision-input)
+retains selected publisher metadata and exact source in the ordinary receiver
+plan; local HTTP/pure preparation stops at Prepared. No new generation, source
+execution, acceptance or organizational authority. Henry's authority lane remains active.
+
+Method-development intake #157 source `34b90c2ed63905a521600c02ac7bedb4a35a5b62`
+(behavior `d4f5e38`) merged at `6dc77233b2f8cea3450f5254712618b9175b4f26`.
+Root six HTTP/SQLite cases pass after correcting parallel fixture path collisions;
+scoped strict Clippy/fmt pass. [Independent exact-head source review](https://github.com/HenryWashuHe/genesis-history-experiment/pull/157#pullrequestreview-5640025073)
+checked atomic state/event/request persistence, full selected-source matching,
+restart/conflict replay and mission state before/after fetch; no independent
+rebuild is claimed. No source bytes enter the observation or planner prompt.
+Planner controls #158 source `ea11acded1a2a0a7fff1a48f25925aaf0e6f0f23` merged
+at `e513cc9cf6e5dd0fb34e12566eb30e7d13ab5261`, final main tree
+`886e1276d9d31f8efa7f617edccbea636eaa378d`. The 346-line `7dd59e04` test
+file is unchanged. Root ran all three independent cases using the existing
+planner/Runner, kernel and saga: specialist creation, existing-owner assignment
+and no change. ReplayClient/development stubs make these orchestration fixtures,
+not model judgment, hosted readiness, method execution, adoption or G2 closure.
+The existing-owner preference remains a planner policy, not a kernel semantic
+proof that a proposed new role was necessary.
+
+Adoption-store #155 exact `df286ad407c456c6fca59ec9319f661d74aa2b41` is held
+under [review 5640018669](https://github.com/HenryWashuHe/genesis-history-experiment/pull/155#pullrequestreview-5640018669).
+Independent pure probes `8fee7787e5fda65afc2adfcb92989e62daff1160` preserve
+all original author test bytes: one passing policy characterization and two
+failing pin/verdict invariants. The receiver must choose an exact typed acceptance
+plan for the requirement before adopting; a freely selected easier retained trial
+is insufficient. Public record mutation must not authorize another method or a
+rejected verdict. These are Rust API/typed-policy findings, not a demonstrated
+hostile HTTP route. Henry owns correction. New routes/invocation #159 exact
+`00413c66efdd565254d5ac1118f6b8a37245174f` is stacked on #155 and remains
+held on two independent HTTP regressions: a disabled receiver still returns
+a grant, while identical stored POST replay fails against an unavailable
+registry instead of returning the original record. The author HTTP control
+passes unchanged. The missing #155 receiver-policy pin is now reachable through
+Operator POST; the public-record mutation finding remains a Rust API invariant,
+not a demonstrated hostile HTTP mutation. [Review 5640057787](https://github.com/HenryWashuHe/genesis-history-experiment/pull/159#pullrequestreview-5640057787)
+retains test-only `691b968172a63f99ec465fefae6098cdb2e3a2f9`, tree
+`de5bdbdca3871bd76374699864f92318071acf81`: 105 new test lines plus three
+registration lines, with every original author test byte unchanged. Two HTTP
+guards fail; the original HTTP control passes. No provider, evaluator, namespace
+or generated method ran. G0–G4 stay open and no positive benefit is established.
+
+Acceptance assessor #154 source `cc099833db28983f0e224fe1a5aacb14dacd9959`
+merged at `a7c56b1cd8d838389e234e05d983f9e4f9a28002`, tree
+`161af53371bcef69ccf941a6ffb1748c99d7e930` matching reviewed composition
+`511ddc2e`. Root four assessor, six intake and three planner cases pass with
+scoped strict server/planner Clippy/fmt. These overlapping focused checks used
+retained data/fixtures, with no method, evaluator, provider or namespace execution.
+The assessor establishes consistency of selected source and retained records;
+it does not choose the receiver's policy or prove measurement origin/adoption.
+
+Method exchange CLI #141 final `e938db0ab339653043188fc3f636baf8f782a04f`, tree
+`b427b635b55656e280764bd90be363ea4c31cb73`, merged at
+`ec28434bcaea0454e60958f124cffdb1595a38d7`. Behavior `be639af` is unchanged;
+final four CLI/16 binary tests pass, and four independent CLI checks plus scoped
+strict Clippy/fmt overlap. Commands use the existing client once, require explicit
+selection, and create no journal or automatic `.env` load. Publication errors can
+follow a committed write. Local HTTP fixtures, not provider/source execution.
+#142 `59faaaf05a4a36beb78a0f7b98743464af91441d` merged at
+`f2b33d50610c19ee19a31965ad195fd54010bd9a`: three independent boundary cases
+pass with scoped strict Clippy/fmt, original 144 lines unchanged; mutation campaign
+is author-reported. Adoption-document reconciliation #138 `7975780d` merged at
+`1af21d2c`; Henry's server acceptance #154 is merged while adoption-store #155
+and stacked #159 remain held, with no invocation claim.
+Pure verdict prerequisite #146 source `0c9a553388687dee6fd055f4768b277fbee30f19`
+merged at `c68705045748d74c2257489bdd84cc549e33d0f6`. Root core tests,
+strict all-target core Clippy/fmt and standalone scorer `cargo check --tests`
+pass; the latter is compile-only, with no lab tests executed in review. Existing
+253-line logic is equivalent modulo imports; scorer re-export and three original
+regression files are unchanged. This is not acceptance or local authority evidence.
+Optional flood-watch [#143 is held at `bc993197`](https://github.com/HenryWashuHe/genesis-history-experiment/pull/143#issuecomment-6389070775):
+unknown readings clear an active response; repeated episode IDs and lost pending
+transitions break recovery; downstream attachment is development-only, not verified
+inheritance. Preserve the 44-line `bac2427` file unchanged: two unknown-state
+regressions fail, one normal control and all seven original tests pass. It is not
+a replacement goal or a new Ines assignment. [ACP iteration #144 is held](https://github.com/HenryWashuHe/genesis-history-experiment/pull/144#issuecomment-6389109865):
+at reviewed `bae6f509`, all seven preserved independent regressions fail and nine
+updated author tests pass. New head `880f7bc7712f7c2d496253898423d3412317e2bc`
+adds an emitter; engine bytes are unchanged, so those holds remain by source
+comparison, not a fresh rerun. [Emitter review 5640054385](https://github.com/HenryWashuHe/genesis-history-experiment/pull/144#pullrequestreview-5640054385)
+also identifies invalid trial cardinality/reused IDs, nonconforming verdicts and
+raw source hashes mislabeled as package identities. Source-only findings, not
+new executed tests. Final confirmation is repeatable/unbudgeted and needs predeclared instance
+disjointness; public development feedback is not receiver acceptance. Correct the
+method-run/output-scoring mapping and agree existing-contract interfaces before
+expanding the exploratory reference; no alternate orchestrator is authorized.
+
+#126 `b7bdb18` remains held on an early-decision race, poll-failure evidence loss,
+cross-organization acknowledgment and malformed success. Its four mocked failures
+are preserved in the original 117-line `d85b018` file; no runtime calls occurred.
+
+#120 final source `a2c4ff15af4640d56684a8b616d196239341102b`, tree
+`fec3599c38238363ce373ce66a09283dddf8e002`, merged at
+`70a00d510c2a9b0b3f10163ce8ca4b201c09aff4`. Independent review at `f3a74b58`:
+42 tests/10 targets; author 37 tests/7 targets overlaps. Final eight focused tests and strict
+all-target Clippy/fmt pass. Three independent `80f8544` cases are unchanged;
+eight historical checkpoints and four roster/admission pairs retain identities.
+No live provider request, hosted-weight proof or G4 closure.
+
+Public feedback #102 source `c8bf7a0e397d0a641239585ce5e50dcc292abd91` merged
+`7accefd3cf5da521208f17fa1474001e92aa3753`; eight focused tests and strict
+Clippy/fmt independently pass. Original `8ad9d645` cases are unchanged.
+Generation chain guard #110 source `4b57cfaec375f9ed8b4efba22427b4868a536340`
+merged at `0f277d791b59b0bc7957751dc328cf99f5b89936`: independent 34 focused
+tests pass; author 33 focused tests and strict Clippy/fmt. Counts overlap, not a
+new full-suite result. The optional guard checks the retained chain before
+recovery/credentials/reservation/provider work; other paths remain outside it.
+
 | Reviewed increment | Evidence and limit |
 | --- | --- |
+| CREAO blank-version compatibility #96 source `dbec006da117a5a9f84389d85f27956f997bdf21`, merge `04b4c3756b03a4f5b3c7c7627a48717ccfdc7697` | Independently 68 CREAO Rust tests and 10 Node gate tests pass; the 10 Node cases were also separately rerun. Strict Clippy/fmt are author-validated. Unset/blank selects v1 consistently; explicit v2 stays opt-in and invalid nonblank versions fail. Offline only; no hosted completion or changed saved identities. |
+| Stage prerequisite / active-goal checkpoint #97 source `202e1fce4fb27418d6fe4898b6f57545de92f342`, merge `2dfc0993132385cc83227848b722fef08a7d01f0` | Ten independent stage/CLI/overflow/recovery cases pass; scoped strict Clippy/fmt. Existing checked arithmetic is shared through read-only accessors without changing valid serialization/hash domains. Current docs record the revised active app Goal; no gate closes. |
+| Finite chain ceilings #103 source `7b65b066687c8636fce2a41097c29362b8bce8e5`, merge `c458c6eb49a4e3cbdc2cc2710930b0252eb29668` | Reviewed and merged tree `4a4a8b00585a894272910df082d7f52f7e7436da`. Author full forge run: 216 tests across 41 targets before three assertions were strengthened; strengthened five chain cases and final scoped strict Clippy pass. The earlier fmt pass preceded a final module-order cleanup; this checkpoint corrects that formatting-only issue and passes workspace fmt. Independent frozen-head review reran 15 chain/stage/CLI/recovery tests, all passed, zero ignored. Counts overlap. [Structural generation/trial-only ceilings](invention-lab/contracts/chain-allocation.md), not runtime enforcement or retrospective allocation. |
 | #18 `07961f1` and #22 `7510b86` | Composition `785a22c` / `4d64fe6`: 102 core tests and strict Clippy; pure execution/scoring records. |
 | #28 source `f52f182`, merge `e47ee64`; #32 source `0fa3773`, merge `8578759` | Composition `d386fb0`, tree `680cf27e`: 116 core tests and strict Clippy. Declared-trial assessment and cumulative experiment accounting are libraries; persistence, isolation and actual metering remain runtime work. |
 | #36 source `f856a5b`, merge `2b2ecac`; #40 source `78dde86`, merge `df945c9` | Composition `a735bc7`, tree `0125f83c`: 125 core tests including independent probes, strict Clippy/fmt. Frozen-binding source loading; dependency/runtime resolution and execution remain host responsibilities. |
@@ -160,6 +533,11 @@ source-level concern is whether reaping the spawned wrapper establishes that the
 namespace's first process and complete tree ended on normal and forced-stop
 paths. Do not use the portable results as hidden-scoring closure or hard wall-limit
 evidence. See the [current coordination checkpoint](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6383718962).
+
+Later heads #57 `81722b5abff4d9dd5fcbf5e303a9d4d505bf64b1` and #65
+`635fd3b5178b6cdf0adff92c7ff21a09ebfd638a` remain unreviewed here. Henry
+[reports a deadline-lifecycle fix and 24/24 Linux executor tests](https://github.com/HenryWashuHe/genesis-history-experiment/pull/65#issuecomment-6386513037).
+That is author-reported evidence; independent review and the holds remain open.
 
 Method-adoption #64 source `45938be45ddd47a4b1e4d713c4f9f05e50464089` merged
 `181b81644eb2c795f0cc154501626d102219f926`; retained-file cost rehearsal #70
@@ -253,7 +631,8 @@ companion per canonical allocation path. Optional generation checks run before
 recovery/credentials/reservation; optional cost assessment uses the retained
 binding without writes or fallback. Runtime consumption remains Henry's scope.
 Copies, rollback, stale snapshots and work outside cooperating commands remain
-outside these bounds. No trusted chronology or whole-chain allocation is implied.
+outside these bounds. The separate chain library above adds finite structural
+ceilings; neither library establishes trusted chronology or global enforcement.
 
 ACP #3 source `f64e131516281d6bb1dc5f41abd8425cc42c77d1` merged
 `5b2615f0918f0e96d9b6f94135737ab1e8b2e98c`; #5 source
@@ -298,6 +677,17 @@ failed protocol validation with no package/source execution. Its one reservation
 remains spent, with no replay. The reported output count of 8,192 tokens reaches the cap, but
 no stop reason was retained, so truncation is unproved. Independently checked file
 consistency is not cloud-source authentication; credentials stay local and ignored.
+The [diagnostic extension](invention-lab/contracts/generation.md) at `f4fa271`
+passes 206 forge tests/38 targets and strict all-target Clippy/fmt/diff locally.
+It preserves #89 without recovering its missing reason. The [second live attempt](invention-lab/evidence/live-method-20261024-diagnostic/README.md)
+on `7d6119d` separately retained `content_shape` / `end_turn`: 1 call, 4,028 input /
+4,892 output tokens, 36,790 ms; no package or execution. Its raw response is absent,
+so a thinking-block cause is inference. Both attempts remain in cost accounting; no replay.
+The [third attempt](invention-lab/evidence/live-method-20261024-generated/README.md) on `07c098c`
+produced package `8215c3679a06724069759bcbdaa576b64ec0ef1251c5238a797c0cb34962b944`:
+AST-only inspection in that original bundle; the separate #98 receiving records
+are described above. Usage: 1 call, 4,028 input /
+5,231 output tokens, 42,198 ms. Henry owns the exact runtime/protocol-bound handoff.
 
 Repair WIP remains draft #7 `110a107` on matching forge base `f488eef`; all twelve
 files were compared byte-for-byte and original uncommitted files remain untouched.
