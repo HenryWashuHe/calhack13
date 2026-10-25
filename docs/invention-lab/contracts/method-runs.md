@@ -31,6 +31,7 @@ adoption is the way back.
 | Prepare | `POST /method-runs` `{client_request_id, request, plan}` | Authorizes, checks the proposed plan, freezes it as `prepared`. Idempotent by key. |
 | Start | `POST /method-runs/{id}/start` | `prepared → started` once if the frozen grant is still current, else `prepared → fenced` (final, nothing runs). |
 | Receipt | `POST /method-runs/{id}/receipt` | The execution receipt, checked against the frozen plan's binding. `completed`, or `completed_after_fence` if the grant changed during the run or the receiver has since been disabled. Any outcome, `unknown` included, is final. |
+| Result | `POST /method-runs/{id}/result` | The one evaluation of a `completed` or `completed_after_fence` run's output, checked against the frozen plan's evaluation request for that receipt. Recorded with whether it is attached to the responsibility (below). Final. |
 | Read | `GET /method-runs/{id}` | The record. |
 
 A proposed plan is accepted only if all of these hold:
@@ -45,9 +46,15 @@ A proposed plan is accepted only if all of these hold:
 - Its development and scoring grants are no larger than the accepted plan's.
 - Its plan, run, attempt and scoring ids are used by no other run, and its
   run, attempt and scoring ids differ from the accepted trial's.
-- Its frozen record leaves 64 KiB for the receipt, and its binding, which
-  every receipt repeats, takes at most 16 KiB of that. So a run that starts
-  can always be completed.
+- Its frozen record leaves 64 KiB for the receipt and 32 KiB for the
+  evaluation, and its binding, which every receipt repeats, takes at most
+  16 KiB. The serialized frozen scoring envelope also takes at most 16 KiB:
+  the request ID, execution/request hash fields, purpose, scoring grant and
+  both copies of the scoring context are counted before preparation. The
+  remaining half of the evaluation allowance is reserved for the output,
+  metrics, trace and usage. Later receipt and evaluation payloads must still
+  fit their respective full caps; arbitrary unbounded identifiers or trace
+  metadata are not guaranteed to fit.
 
 Its instances are the operator's choice; they are public.
 
@@ -55,17 +62,28 @@ A recorded run also carries `budget`: the receipt's usage against the frozen
 development grant (`within_limits`, `unknown` or `exceeded` with the resource).
 An overrun is recorded, never hidden, and authorizes nothing further.
 
+A result is **attached** (the scored output counts as work for the run's
+requirement, responsibility and role, under its adoption) only if the run
+completed under its grant, that grant still authorizes when the result is
+posted, neither the development nor the scoring grant was exceeded, and the
+output was scored. Otherwise the result is kept with `not_attached` and a
+reason: it is evidence of that invocation and completes nothing. Posting a
+result needs no configured receiver. With none configured, nothing attaches.
+A result describes that invocation only. It is not an acceptance, a
+comparison, or grounds for adopting anything else.
+
 There is no retry. A started run whose runner is lost stays `started`; its
 state is recovered with `lab-exec recover` and the receipt posted by hand.
 
 `experiments/invention-lab/scoring/tools/invoke.py` drives prepare, start,
-`lab-exec run` on the server's frozen plan, and the receipt post. The operator
+`lab-exec run` on the server's frozen plan, the receipt post, and (`score`)
+one `lab-score score` with the result post. The operator
 token comes from `$GENESIS_OPERATOR_TOKEN`.
 
 ## Not covered
 
-- Scoring the run's output, and attaching the result to the responsibility as
-  work done. A run record retains an operator-reported receipt checked against
-  the frozen binding and authority; it does not independently prove that the
-  method ran or that the responsibility is satisfied.
+- Independent proof of execution or scoring. A run record retains an
+  operator-reported receipt and evaluation checked against the frozen binding
+  and authority. An attached result doesn't say the requirement is satisfied
+  or change its status; that is the owner's and the planner's call.
 - Re-acceptance after a policy change, other than adopting again.
