@@ -1,0 +1,8 @@
+{
+  "body": {
+    "error": "unauthorized",
+    "message": "missing or invalid bearer token"
+  },
+  "status": 401,
+  "who": "a bearer token A never issued"
+}

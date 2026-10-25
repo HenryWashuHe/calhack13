@@ -92,11 +92,17 @@ evidence. A redirected file by itself does not authenticate origin, execution
 or acceptance; the command provides no durable receipt journal.
 
 Each command invokes the existing bounded client once. Failure prints sanitized
-diagnostics and exits nonzero, with no successful record. Publication may already
-have committed when any error occurs, including a response-identity or stdout
-write error. Reconcile before another attempt; do not automatically retry or
+diagnostics and exits nonzero, with no successful record. A publisher-expectation
+mismatch on the current registry is refused before insertion. Other errors can
+follow a committed publication, including a response-identity or stdout write
+error. Reconcile before another attempt; do not automatically retry or
 interpret missing output as no publication. These three commands transfer public
 source; they never execute it, prepare a revision, grant authority or adopt a method.
+
+Historical contract: before [#233](https://github.com/HenryWashuHe/genesis-history-experiment/pull/233),
+the publisher expectation was checked only after the response, so older mismatch
+records can include a committed write. The current CLI regression requires refusal
+and an empty reader search; the successful publish/search/fetch regression remains.
 
 ### Selected parent to revision input
 

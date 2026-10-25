@@ -1,0 +1,128 @@
+{
+  "assignments": {
+    "asg_3d8e03033ee6466c872ae0dd12e89963": {
+      "assignment_id": "asg_3d8e03033ee6466c872ae0dd12e89963",
+      "epoch": 1,
+      "lease_expires_at": null,
+      "responsibility_id": "rsp_24c3046258ed439bbcb24ac4e06eebdb",
+      "role_id": "role_7534b6ed0d1d410a8be5de339eac87f6",
+      "state": "ACTIVE"
+    },
+    "asg_cb931299533d446586263df005fd8854": {
+      "assignment_id": "asg_cb931299533d446586263df005fd8854",
+      "epoch": 1,
+      "lease_expires_at": null,
+      "responsibility_id": "rsp_d498d72564e2483bb4b22912382227fe",
+      "role_id": "role_7534b6ed0d1d410a8be5de339eac87f6",
+      "state": "ACTIVE"
+    }
+  },
+  "capability_gaps": {},
+  "constitution": {
+    "budget_cents": 1000000,
+    "max_active_contracts": 3,
+    "max_active_roles": 10,
+    "scopes": [
+      "method.develop",
+      "mission.coordinate"
+    ]
+  },
+  "contracts": {},
+  "installations": {},
+  "missions": {
+    "mis_b270974e39c44fc8a120bf4bd7bf1520": {
+      "constraints": [],
+      "created_at": "2026-10-25T09:12:31.785183023Z",
+      "deadline": null,
+      "goal": "Develop physical designs with the best available methods",
+      "mission_id": "mis_b270974e39c44fc8a120bf4bd7bf1520",
+      "status": "ACTIVE",
+      "success_checks": []
+    }
+  },
+  "name": "org_example_b",
+  "observations": {
+    "obs_01fbe467fbf74ff680f0180026a03329": {
+      "evidence_ref": "genesis:method-development:054d75a74396a88e508071e8ddf43c584cdbb79f1316e407c9a4e160a0125b37",
+      "mission_id": "mis_b270974e39c44fc8a120bf4bd7bf1520",
+      "observation_id": "obs_01fbe467fbf74ff680f0180026a03329",
+      "observed_at": "2026-10-25T09:12:31.830000152Z",
+      "source": "method-development",
+      "summary": "Receiver-owned capability-development need: Develop rough-transport cart designs with a method another lab published\nDesired acceptance: Beats the fixed cart by one success on twelve fresh public instances\nAn exact network method selection is retained as evidence (054d75a74396a88e508071e8ddf43c584cdbb79f1316e407c9a4e160a0125b37). It is not an installed Actor capability or an accepted method. Assess continuing responsibility using the existing owners; create a specialist only when distinct continuing work justifies it. Availability alone requires no organizational change."
+    }
+  },
+  "org_id": "org_example_b",
+  "requirements": {
+    "req_bd292238294d4e5ebd29d7d2a260cbdc": {
+      "acceptance": "On twelve fresh public instances, the developed cart design achieves at least one more success than the fixed cart.",
+      "mission_id": "mis_b270974e39c44fc8a120bf4bd7bf1520",
+      "owner": {
+        "id": "role_7534b6ed0d1d410a8be5de339eac87f6",
+        "kind": "role"
+      },
+      "requirement_id": "req_bd292238294d4e5ebd29d7d2a260cbdc",
+      "status": "ASSIGNED",
+      "summary": "Develop rough-transport cart designs using the externally published method, so that they outperform the fixed cart baseline.",
+      "triggering_evidence": [
+        "obs_01fbe467fbf74ff680f0180026a03329"
+      ]
+    }
+  },
+  "responsibilities": {
+    "rsp_24c3046258ed439bbcb24ac4e06eebdb": {
+      "epoch": 1,
+      "executor": null,
+      "mission_id": "mis_b270974e39c44fc8a120bf4bd7bf1520",
+      "owner": {
+        "id": "role_7534b6ed0d1d410a8be5de339eac87f6",
+        "kind": "role"
+      },
+      "purpose": "Develop rough-transport cart designs with the externally published method and verify they beat the fixed cart baseline",
+      "requirement_id": "req_bd292238294d4e5ebd29d7d2a260cbdc",
+      "responsibility_id": "rsp_24c3046258ed439bbcb24ac4e06eebdb",
+      "status": "OPEN",
+      "termination": "Developed design beats the fixed cart by at least one success on twelve fresh public instances, or the method is judged unsuitable and escalated",
+      "trigger": "Receiver-owned capability-development need observed in obs_01fbe467fbf74ff680f0180026a03329"
+    },
+    "rsp_d498d72564e2483bb4b22912382227fe": {
+      "epoch": 1,
+      "executor": null,
+      "mission_id": "mis_b270974e39c44fc8a120bf4bd7bf1520",
+      "owner": {
+        "id": "role_7534b6ed0d1d410a8be5de339eac87f6",
+        "kind": "role"
+      },
+      "purpose": "Coordinate the lab",
+      "requirement_id": null,
+      "responsibility_id": "rsp_d498d72564e2483bb4b22912382227fe",
+      "status": "OPEN",
+      "termination": "",
+      "trigger": ""
+    }
+  },
+  "revision": 4,
+  "roles": {
+    "role_7534b6ed0d1d410a8be5de339eac87f6": {
+      "authority": {
+        "budget_cents": 10000,
+        "scopes": [
+          "mission.coordinate"
+        ]
+      },
+      "binding": {
+        "config_digest": "a31e011d24e31b533b95f4078c2ca3304548a93cea26072502b20e9b1cd8dbfe",
+        "conversation_ref": null,
+        "provider": "internal",
+        "provider_agent_id": "kernel:lead"
+      },
+      "capabilities": [],
+      "charter": "Own the lab and run rough-transport deliveries",
+      "created_in_revision": 1,
+      "name": "Lab lead",
+      "reports_to": null,
+      "retired_in_revision": null,
+      "role_id": "role_7534b6ed0d1d410a8be5de339eac87f6",
+      "state": "ACTIVE"
+    }
+  }
+}
