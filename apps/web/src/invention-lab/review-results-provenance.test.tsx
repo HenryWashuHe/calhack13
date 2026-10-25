@@ -81,6 +81,8 @@ describe("PR149: story claims require matching evidence", () => {
   });
 
   it("does not infer feedback use from a parent/child observation alone", () => {
+    // revisionStory supplies only statuses and a revision observation: no
+    // feedback document, public-input binding, trial or execution is supplied.
     expect(revisionStory()[2]!.text).not.toContain("from its feedback");
   });
 
@@ -95,6 +97,7 @@ describe("PR149: story claims require matching evidence", () => {
   });
 
   it("does not label a candidate as a control because generation provenance is absent", () => {
+    expect(decodeExecutionReceipt(execution).purpose).toMatchObject({ kind: "acceptance", role: "candidate" });
     const html = renderToStaticMarkup(<ResultsBoard lineage={scored()} orgA={A} orgB={B} />);
     expect(html).not.toContain("control: generated-method");
   });
