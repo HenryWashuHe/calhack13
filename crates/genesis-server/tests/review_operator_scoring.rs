@@ -106,20 +106,37 @@ enum Scorer {
     WrongPin,
     /// A stand-in that never finishes, with a short timeout.
     Hangs,
+    /// The genuine stand-in, which after scoring the control slot swaps a
+    /// consistent forgery into the retained records (a race with assessment).
+    ForgesAfter,
     /// The real scorer at this path.
     Real(String),
 }
 
-fn stand_in(dir: &Path, pristine: &Path, hang: bool) -> (std::path::PathBuf, String) {
+fn stand_in(
+    dir: &Path,
+    pristine: &Path,
+    hang: bool,
+    after: Option<(&Path, &Path)>,
+) -> (std::path::PathBuf, String) {
     let p = pristine.display();
     let script = if hang {
         "#!/bin/sh\nwhile :; do :; done\n".to_string()
     } else {
+        let race = after
+            .map(|(forged, trial)| {
+                format!(
+                    "if [ \"$3\" = control ]; then /bin/cp -r {}/control-score/. {}/control-score/; fi\n",
+                    forged.display(),
+                    trial.display()
+                )
+            })
+            .unwrap_or_default();
         format!(
             "#!/bin/sh\nset -e\n[ \"$1\" = score ] && [ -f \"$4/receipt.json\" ]\n\
              /bin/mkdir -p \"$5/artifacts\"\n\
              /bin/cp {p}/$3-score/evaluation.json \"$5/evaluation.json\"\n\
-             /bin/cp {p}/$3-score/artifacts/* \"$5/artifacts/\"\n"
+             /bin/cp {p}/$3-score/artifacts/* \"$5/artifacts/\"\n{race}"
         )
     };
     let path = dir.join(if hang { "hang.sh" } else { "stand-in.sh" });
@@ -135,6 +152,8 @@ enum Executor {
     Pristine,
     /// The stand-in, with no control package held by the receiver.
     NoPackages,
+    /// The stand-in, with the receiver's pin naming another plan.
+    WrongPin,
     /// The real executor at this path (the build the plan's environment pins),
     /// finding the pinned runtime on this `PATH`.
     Real(String, String),
@@ -331,17 +350,30 @@ async fn decide_with(
         acceptance_plans: vec![AcceptancePin {
             requirement_id: requirement.clone(),
             publisher: OrgId::new("org_example_a"),
-            plan: serde_json::from_value::<TrialPlan>(plan.clone())
-                .unwrap()
-                .reference()
-                .unwrap(),
+            plan: {
+                let mut pinned = serde_json::from_value::<TrialPlan>(plan.clone())
+                    .unwrap()
+                    .reference()
+                    .unwrap();
+                if matches!(executor, Executor::WrongPin) {
+                    pinned.sha256 = "0".repeat(64);
+                }
+                pinned
+            },
         }],
     }));
     app.method_rescorer = match scorer {
         Scorer::None => None,
-        Scorer::Genuine | Scorer::WrongPin | Scorer::Hangs => {
+        Scorer::Genuine | Scorer::WrongPin | Scorer::Hangs | Scorer::ForgesAfter => {
             let hang = matches!(scorer, Scorer::Hangs);
-            let (path, sha256) = stand_in(dir.path(), &pristine, hang);
+            let forged = dir.path().join("forged");
+            if matches!(scorer, Scorer::ForgesAfter) {
+                copy_dir(&pristine, &forged);
+                forge_control(&forged);
+            }
+            let after = matches!(scorer, Scorer::ForgesAfter)
+                .then_some((forged.as_path(), trial.as_path()));
+            let (path, sha256) = stand_in(dir.path(), &pristine, hang, after);
             let sha256 = if matches!(scorer, Scorer::WrongPin) {
                 "0".repeat(64)
             } else {
@@ -365,10 +397,16 @@ async fn decide_with(
     .map(Arc::new);
     app.method_reexecutor = match executor {
         Executor::None => None,
-        Executor::Pristine | Executor::NoPackages => {
+        Executor::Pristine | Executor::NoPackages | Executor::WrongPin => {
+            // It checks it was handed the right package for the slot, then
+            // writes the retained receipt, as a deterministic re-run would.
             let script = format!(
-                "#!/bin/sh\nset -e\n[ \"$1\" = run ] && [ -f \"$4\" ] && [ \"$6\" = namespaces ]\n\
+                "#!/bin/sh\nset -e\n[ \"$1\" = run ] && [ -f \"$2\" ] && [ \"$6\" = namespaces ]\n\
+                 case \"$3\" in candidate) want={};; control) want={};; *) exit 3;; esac\n\
+                 [ \"$(/usr/bin/sha256sum \"$4\" | /usr/bin/cut -c1-64)\" = \"$want\" ]\n\
                  /bin/mkdir -p \"$5\"\n/bin/cp {}/$3/receipt.json \"$5/receipt.json\"\n",
+                child.sha256,
+                hex(&control),
                 pristine.display()
             );
             let path = dir.path().join("executor.sh");
@@ -432,6 +470,14 @@ async fn a_pinned_rescorer_refuses_forged_scoring() {
 }
 
 #[tokio::test]
+async fn records_swapped_after_the_rescore_are_refused() {
+    // The rescore sees the genuine records; assessment, inside the
+    // transaction, would read a consistent forgery. The byte binding refuses.
+    let (status, body) = decide(false, Scorer::ForgesAfter).await;
+    refused(status, &body, "changed after rescoring");
+}
+
+#[tokio::test]
 async fn untampered_scoring_reproduces_and_still_decides_on_its_own_verdict() {
     let (status, decided) = decide(false, Scorer::Genuine).await;
     assert_eq!(status, 201, "{decided}");
@@ -482,13 +528,12 @@ async fn rescoring_does_not_catch_a_substituted_output() {
 
 #[tokio::test]
 async fn a_pinned_reexecutor_refuses_a_substituted_output() {
-    // Swapped without rescoring: re-execution refuses before scoring matters.
+    // Swapped without rescoring, the retained candidate evaluation no longer
+    // names the receipt, so the cheap pre-check refuses before anything runs.
+    // An honestly rescored swap passes that and is refused by re-execution
+    // itself; that needs the real tools (the ignored test below).
     let (status, body) = decide_with(false, Some(None), Scorer::Genuine, Executor::Pristine).await;
-    refused(
-        status,
-        &body,
-        "retained candidate execution does not reproduce",
-    );
+    refused(status, &body, "do not bind the selection");
 }
 
 #[tokio::test]
@@ -501,6 +546,21 @@ async fn reproduced_execution_and_scoring_decide_on_the_trials_own_verdict() {
     // Forged scoring is still caught after a clean re-execution.
     let (status, body) = decide_with(true, None, Scorer::Genuine, Executor::Pristine).await;
     refused(status, &body, "retained control scoring does not reproduce");
+}
+
+#[tokio::test]
+async fn nothing_is_re_executed_under_a_plan_the_receiver_did_not_pin() {
+    // Refused by the pre-check, before the executor is started.
+    let (status, body) = decide_with(false, None, Scorer::Genuine, Executor::WrongPin).await;
+    assert_eq!(status, 422, "{body}");
+    assert_eq!(body["error"], "method_acceptance", "{body}");
+    assert!(
+        body["message"]
+            .as_str()
+            .unwrap_or_default()
+            .contains("pinned acceptance plan"),
+        "{body}"
+    );
 }
 
 #[tokio::test]
