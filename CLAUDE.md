@@ -95,8 +95,9 @@ every milestone. All lower checkpoints are historical.
   at `95256998`: 52 focused UI checks/typecheck pass, preserving all of
   `59c3e1c`. #109 `2cfb4058` merged at `5ed65deb`: 66 focused tests across
   11 files/typecheck pass, including all five original `f2ac45e5` cases unchanged.
-  Real-evidence intake #123 `7196d5c` merged at `4515f728`: 81 UI tests
-  across 13 files/typecheck pass; original regressions remain unchanged.
+  Real-evidence intake #123 `7196d5c` is reviewed: 81 UI tests across 13
+  files/typecheck pass; original regressions remain unchanged. `4515f728` merged
+  into its parent branch only; main integration is pending.
   Do not transfer this lane implicitly. Archival stage presenter #108 `ece3c614`
   merged at `d810a670`: 22 Node checks and independent DOM probes pass on
   composition `1632f08`. It is supporting presentation, not goal progress or
