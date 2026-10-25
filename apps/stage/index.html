@@ -114,7 +114,7 @@ body.explain [data-n]::before { content: attr(data-n); position: absolute; top: 
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* Stage */
-.stage { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, 300px) minmax(0, 1fr); gap: 0; border: 1px solid var(--line); border-radius: 10px; background: color-mix(in srgb, var(--paper-deep) 72%, transparent); overflow: hidden; }
+.orgs { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, 300px) minmax(0, 1fr); gap: 0; border: 1px solid var(--line); border-radius: 10px; background: color-mix(in srgb, var(--paper-deep) 72%, transparent); overflow: hidden; }
 .org { padding: 18px 20px 22px; min-width: 0; }
 .org + .org, .channel { border-left: 1px solid var(--line); }
 .org-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 14px; }
@@ -181,6 +181,7 @@ body.explain [data-n]::before { content: attr(data-n); position: absolute; top: 
 .stage.done { border-color: var(--mint); color: var(--mint); }
 .stage.current { background: var(--signal); border-color: var(--signal); color: var(--paper-deep); font-weight: 600; box-shadow: 0 0 0 4px color-mix(in srgb, var(--signal) 22%, transparent); }
 .stage.rejected { background: var(--rose); border-color: var(--rose); color: var(--paper-deep); font-weight: 600; }
+.stage.failed { background: transparent; border-color: var(--rose); border-style: dashed; color: var(--rose); font-weight: 600; }
 .stage.branch { border-style: dashed; }
 .why { font-size: 13px; color: var(--chalk); min-height: 1.4em; }
 .why .mono { font-family: var(--mono); font-size: 11px; color: var(--chalk-dim); }
@@ -249,7 +250,7 @@ body.present .events, body.present .chat { max-height: 300px; }
 body.present .caption { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 10px max(16px, env(safe-area-inset-right, 0px)) calc(10px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); background: var(--paper-deep); border-top: 1px solid var(--line); font-family: var(--mono); font-size: 12px; color: var(--chalk-dim); }
 
 @media (max-width: 980px) {
-  .stage { grid-template-columns: 1fr; }
+  .orgs { grid-template-columns: 1fr; }
   .org + .org, .channel { border-left: 0; border-top: 1px solid var(--line); }
   .tracks { grid-template-columns: 1fr; }
   .mechanism { grid-template-columns: 1fr; }
@@ -294,7 +295,7 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
     <button class="btn" id="d-hostile" type="button"><kbd>3</kbd>Hostile instruction</button>
   </div>
 
-  <section class="stage" aria-label="Two organizations">
+  <section class="orgs" aria-label="Two organizations">
     <div class="org" id="orgA" data-n="1">
       <div class="org-head"><h2 id="headA">Organization A</h2><span class="rev" id="revA"></span></div>
       <p class="cap" id="cap-orgA">The organization that gets hit: its roles, the authority each one holds, and who owns what right now.</p>
@@ -578,7 +579,7 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
   function setBadge(text, live) { const m = $("mode"); m.textContent = text; m.classList.toggle("live", !!live); }
 
   // ---- mode ownership ----
-  const app = { mode: "idle", gen: 0, scene: 0, timer: null, liveTimer: null, cursors: { A: 0, B: 0 }, tail: [], seen: 0, seenIds: new Set(), tick: 0, applied: 0, thrown: [], present: false, prevRoles: {}, obsAt: new Map(), live: null, liveChat: [], lastJudge: 0, lastJudgeObs: null, answers: new Map(), ackKey: null, explain: false, thinkTimer: null, thinkStart: 0, liveOrgA: null, changes: new Map(), lastChange: null };
+  const app = { mode: "idle", gen: 0, scene: 0, timer: null, liveTimer: null, cursors: { A: 0, B: 0 }, tail: [], seen: 0, seenIds: new Set(), tick: 0, applied: 0, thrown: [], present: false, prevRoles: {}, obsAt: new Map(), live: null, liveChat: [], lastJudge: 0, lastJudgeObs: null, answers: new Map(), ackKey: null, explain: false, thinkTimer: null, thinkStart: 0, liveOrgA: null, changes: new Map(), lastChange: null, decisionChange: null };
   const TAIL = 200;
   const body = document.body || null;
 
@@ -638,13 +639,13 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
   function hideDecision() { stopThinking(); $("decision").hidden = true; }
   function renderLadder(rung, why, { refused = false } = {}) {
     $("ladder").replaceChildren(...RUNGS.map((label, i) => { const li = document.createElement("li"); li.className = "rung" + (rung === i ? " chosen" + (refused ? " refused" : "") : rung !== null && rung !== undefined && i < rung ? " passed" : ""); li.setAttribute("data-i", String(i)); li.textContent = label; return li; }));
-    $("ladderwhy").textContent = rung === null || rung === undefined ? "No decision in this scene." : why || "";
+    $("ladderwhy").textContent = rung === null || rung === undefined ? (why || "No decision in this scene.") : why || "";
   }
-  function renderPipeline(stage, { rejected = false, why = "" } = {}) {
-    const items = STAGES.map((label, i) => { const li = document.createElement("li"); li.className = "stage" + (stage === null || stage === undefined ? "" : rejected && i === stage ? " rejected" : i < stage ? " done" : i === stage ? " current" : ""); li.textContent = label; return li; });
+  function renderPipeline(stage, { rejected = false, failed = false, why = "" } = {}) {
+    const items = STAGES.map((label, i) => { const li = document.createElement("li"); li.className = "stage" + (stage === null || stage === undefined ? "" : (rejected && i === stage) ? " rejected" : (failed && i === stage) ? " failed" : i < stage ? " done" : i === stage ? " current" : ""); li.textContent = label; return li; });
     const branch = document.createElement("li"); branch.className = "stage branch" + (rejected && stage !== null && stage !== undefined ? " rejected" : ""); branch.textContent = "REJECTED";
     $("pipeline").replaceChildren(...items, branch);
-    $("pipelinewhy").textContent = stage === null || stage === undefined ? (why || "No change proposed.") : why || (rejected ? "The kernel refused the change at " + STAGES[stage] + "." : stage === 4 ? "Committed: the organization has a new shape." : "In flight: " + STAGES[stage].toLowerCase() + ".");
+    $("pipelinewhy").textContent = stage === null || stage === undefined ? (why || "No change proposed.") : why || (rejected ? "The kernel refused the change at " + STAGES[stage] + "." : failed ? "Failed at " + STAGES[stage].toLowerCase() + "; not a refusal." : stage === 4 ? "Committed: the organization has a new shape." : "In flight: " + STAGES[stage].toLowerCase() + ".");
   }
   function renderMech(m, { model = null, seconds = null, why = null } = {}) {
     if (!m) { renderLadder(null); renderPipeline(null, { why: "No change in this scene." }); return; }
@@ -847,16 +848,22 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
           const p = e.payload || {};
           if (org === "A" && e.type === "change_proposed" && p.change_id) { app.changes.set(p.change_id, { ops: p.operations || [], stage: 0, rejected: false, reasons: [] }); app.lastChange = p.change_id; }
           if (org === "A" && e.type === "change_status_changed" && p.change_id) {
-            const c = app.changes.get(p.change_id) || { ops: [], stage: 0, rejected: false, reasons: [] };
+            const c = app.changes.get(p.change_id) || { ops: [], stage: 0, rejected: false, failed: false, reasons: [], status: null };
             const to = STAGES.indexOf(String(p.to)), from = STAGES.indexOf(String(p.from));
-            app.changes.set(p.change_id, to >= 0 ? { ...c, stage: to, rejected: false } : { ...c, stage: Math.max(0, from), rejected: true, reasons: p.reasons || [] });
+            // REJECTED is the kernel refusing; FAILED is a recorded failure (provisioning, readiness); anything else is named, not interpreted.
+            app.changes.set(p.change_id, to >= 0 ? { ...c, stage: to, rejected: false, failed: false, status: String(p.to) }
+              : String(p.to) === "REJECTED" ? { ...c, stage: Math.max(0, from), rejected: true, failed: false, reasons: p.reasons || [], status: "REJECTED" }
+              : { ...c, stage: Math.max(0, from), rejected: false, failed: String(p.to) === "FAILED", reasons: p.reasons || [], status: String(p.to) });
             app.lastChange = p.change_id;
           }
           if (org === "A" && e.type === "planner_decision") {
             const c = p.change_id ? app.changes.get(p.change_id) : null;
             const verdictText = String(p.verdict || "").replace(/_/g, " ");
-            if (verdictText === "no change" || !p.change_id) { renderLadder(0, `${p.summary || ""} · ${p.model || "model unknown"}`); app.lastChange = null; }
-            else renderLadder(rungFor(c ? c.ops : []), `${p.summary || ""} · ${p.model || "model unknown"}`, { refused: !!(c && c.rejected) });
+            const errs = Array.isArray(p.kernel_errors) && p.kernel_errors.length ? ` · kernel pushed back: ${p.kernel_errors.slice(0, 3).join("; ")}` : "";
+            const tail = ` · ${p.model || "model unknown"}` + (p.change_id ? ` · ${p.change_id}` : "");
+            if (verdictText === "no change") { renderLadder(0, `${p.summary || ""}${tail}`); app.decisionChange = null; app.lastChange = null; }
+            else if (!p.change_id || !c) { renderLadder(null, `Planner ${verdictText}: ${p.summary || ""}${errs}${tail}. No rung was chosen; this is not a no-change decision.`); app.decisionChange = null; }
+            else { renderLadder(rungFor(c.ops), `${p.summary || ""}${errs}${tail}`, { refused: !!c.rejected }); app.decisionChange = p.change_id; }
           }
           if (e.type === "observation_recorded" && p.observation_id) app.obsAt.set(org + ":" + p.observation_id, Date.parse(e.timestamp)); // timing is scoped to the organization whose log it came from
           if (e.type === "planner_decision") {
@@ -875,7 +882,10 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
       }
       if (ack) { app.ackKey = ack; judgeStatus(`The planner answered: ${app.answers.get(ack).verdict}. See the decision card.`); }
       if (app.ackKey && app.answers.has(app.ackKey)) showDecision(app.answers.get(app.ackKey)); // while the status points at it, the card stays the judge's own answer, whatever later polls bring
-      { const c = app.lastChange ? app.changes.get(app.lastChange) : null; if (c) renderPipeline(c.stage, { rejected: c.rejected, why: c.rejected ? "kernel: " + ((c.reasons || []).join("; ") || "refused") : "" }); else renderPipeline(null, { why: "No change in flight." }); }
+      { // The pipeline follows the displayed decision's own change; before any decision, the latest change, named.
+        const key = app.decisionChange || app.lastChange; const c = key ? app.changes.get(key) : null;
+        if (c) renderPipeline(c.stage, { rejected: c.rejected, failed: c.failed, why: `${key} · ` + (c.rejected ? "kernel: " + ((c.reasons || []).join("; ") || "refused") : c.failed ? "failed at " + STAGES[c.stage].toLowerCase() + ": " + ((c.reasons || []).join("; ") || "no reason recorded") + " (not a refusal)" : c.status && STAGES.indexOf(c.status) < 0 ? `recorded status ${c.status}` : c.stage === 4 ? "committed" : "in flight: " + STAGES[c.stage].toLowerCase()) });
+        else renderPipeline(null, { why: "No change in flight." }); }
       app.tail.sort((x, y) => String(x[3]).localeCompare(String(y[3])));
       if (app.tail.length > TAIL) app.tail.splice(0, app.tail.length - TAIL);
       renderEvents(app.tail.map((r) => r.slice(0, 3)), Math.min(fresh, TAIL), app.seen > TAIL ? `last ${TAIL} of ${app.seen} events` : `${app.seen} events`);
@@ -902,7 +912,7 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
     renderLineage([], "Waiting for the kernel…"); renderEvents([], 0, "0 events"); renderChat(app.liveChat);
     app.live = null; app.lastJudgeObs = null; $("judgeform").hidden = true; $("judgestatus").textContent = "Live: posts one observation to Org A with the agent token; the planner model decides."; $("judgestatus").classList.remove("bad");
     renderAudit(null, 12, "not checked by this page"); $("beat").textContent = "Connecting to the kernel…"; $("sub").textContent = "Nothing is shown until the first response arrives.";
-    renderProof([]); hideDecision(); app.prevRoles = {}; app.obsAt = new Map(); app.answers = new Map(); app.ackKey = null; $("progress").classList.remove("running"); setFocus([]); app.changes = new Map(); app.lastChange = null; renderLadder(null); renderPipeline(null, { why: "Waiting for the kernel." });
+    renderProof([]); hideDecision(); app.prevRoles = {}; app.obsAt = new Map(); app.answers = new Map(); app.ackKey = null; $("progress").classList.remove("running"); setFocus([]); app.changes = new Map(); app.lastChange = null; app.decisionChange = null; renderLadder(null); renderPipeline(null, { why: "Waiting for the kernel." });
     caption("Connecting to the kernel");
   }
   $("liveform").addEventListener("submit", (e) => {
