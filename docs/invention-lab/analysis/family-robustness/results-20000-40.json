@@ -1,0 +1,260 @@
+{
+ "seeds": [
+  20000,
+  20039
+ ],
+ "of": 40,
+ "families": [
+  "ravine-crossing",
+  "rough-transport",
+  "return-mix",
+  "projectile-target"
+ ],
+ "designs": [
+  {
+   "design": "05eaa4c63d979e45b318492f5e16aefe2f9856e1d07b6d055fd54f825c1c2da3",
+   "submitted_by": [
+    [
+     "generated-method",
+     "8215c367",
+     "ravine-crossing"
+    ]
+   ],
+   "successes": {
+    "ravine-crossing": 6,
+    "rough-transport": 33,
+    "return-mix": 9,
+    "projectile-target": 0
+   }
+  },
+  {
+   "design": "244fa07e901757ecefc8f3d7870adc2159312180e8921f9e3711135190fcc937",
+   "submitted_by": [
+    [
+     "evaluator-reference",
+     "reference-five-wheel.json",
+     "-"
+    ]
+   ],
+   "successes": {
+    "ravine-crossing": 29,
+    "rough-transport": 5,
+    "return-mix": 30,
+    "projectile-target": 0
+   }
+  },
+  {
+   "design": "2483f08f8ec33f4144a4a6105842bd9e2da7702275592140c3aca35c2ac61cec",
+   "submitted_by": [
+    [
+     "generated-method",
+     "8215c367",
+     "rough-transport"
+    ]
+   ],
+   "successes": {
+    "ravine-crossing": 3,
+    "rough-transport": 37,
+    "return-mix": 5,
+    "projectile-target": 0
+   }
+  },
+  {
+   "design": "46de6f1376421fa1ca7b6c770fa9c65e8d65e146e7587a395a16f442a491e760",
+   "submitted_by": [
+    [
+     "random-search",
+     "06777e8e",
+     "rough-transport"
+    ]
+   ],
+   "successes": {
+    "ravine-crossing": 0,
+    "rough-transport": 19,
+    "return-mix": 0,
+    "projectile-target": 0
+   }
+  },
+  {
+   "design": "53d36dc1fdf8d65e69cb7081c23c4d17fe4564ed6d10bf94de609b4138ea124c",
+   "submitted_by": [
+    [
+     "random-search",
+     "06777e8e",
+     "return-mix"
+    ]
+   ],
+   "successes": {
+    "ravine-crossing": 10,
+    "rough-transport": 4,
+    "return-mix": 10,
+    "projectile-target": 0
+   }
+  },
+  {
+   "design": "56de341b6ddd01fc05a0f471a99ef8e4126f45d01738abf46bc437f0bda67b00",
+   "submitted_by": [
+    [
+     "random-search",
+     "06777e8e",
+     "ravine-crossing"
+    ]
+   ],
+   "successes": {
+    "ravine-crossing": 28,
+    "rough-transport": 3,
+    "return-mix": 27,
+    "projectile-target": 0
+   }
+  },
+  {
+   "design": "6245dfdcc730284bf706fc2f9e6e2e87885128a88244bd99dfbfce935a3f49dd",
+   "submitted_by": [
+    [
+     "random-search",
+     "06777e8e",
+     "ravine-crossing"
+    ]
+   ],
+   "successes": {
+    "ravine-crossing": 16,
+    "rough-transport": 6,
+    "return-mix": 15,
+    "projectile-target": 0
+   }
+  },
+  {
+   "design": "6b4dcd55b84ee63c40150bae674a307a6c67f46dfd4de183eb942debd480c179",
+   "submitted_by": [
+    [
+     "receiver-revised-method",
+     "4f455dc6",
+     "rough-transport"
+    ]
+   ],
+   "successes": {
+    "ravine-crossing": 1,
+    "rough-transport": 31,
+    "return-mix": 1,
+    "projectile-target": 0
+   }
+  },
+  {
+   "design": "7a03fd84680c057f8583dfc888b0de6c53852f52acc8fd9536d0395d8416178a",
+   "submitted_by": [
+    [
+     "fixed-cart",
+     "dc5b74f3",
+     "ravine-crossing"
+    ],
+    [
+     "fixed-cart",
+     "dc5b74f3",
+     "rough-transport"
+    ]
+   ],
+   "successes": {
+    "ravine-crossing": 0,
+    "rough-transport": 22,
+    "return-mix": 0,
+    "projectile-target": 0
+   }
+  },
+  {
+   "design": "9a7ca944563ba9661ad62bf2ce2016dc2574197cf5629aa1f31a4dd12e188948",
+   "submitted_by": [
+    [
+     "generated-method",
+     "8215c367",
+     "ravine-crossing"
+    ]
+   ],
+   "successes": {
+    "ravine-crossing": 7,
+    "rough-transport": 32,
+    "return-mix": 7,
+    "projectile-target": 0
+   }
+  },
+  {
+   "design": "adede12c57c37e85235ae49db51668158d104c53660b17263425bcc586dda9a0",
+   "submitted_by": [
+    [
+     "generated-method",
+     "8215c367",
+     "return-mix"
+    ]
+   ],
+   "successes": {
+    "ravine-crossing": 3,
+    "rough-transport": 35,
+    "return-mix": 4,
+    "projectile-target": 0
+   }
+  },
+  {
+   "design": "b1225902196c964b729dc2949761cd7ca9fe249bc844e3ace55ce0e465072b0f",
+   "submitted_by": [
+    [
+     "receiver-revised-method",
+     "4f455dc6",
+     "return-mix"
+    ]
+   ],
+   "successes": {
+    "ravine-crossing": 1,
+    "rough-transport": 32,
+    "return-mix": 1,
+    "projectile-target": 0
+   }
+  },
+  {
+   "design": "bfdaa6047dfcf3f6b7859bb76287a3dc2cd0737e794d7d0435be63617a6c7a5a",
+   "submitted_by": [
+    [
+     "evaluator-reference",
+     "cart-long.json",
+     "-"
+    ]
+   ],
+   "successes": {
+    "ravine-crossing": 0,
+    "rough-transport": 22,
+    "return-mix": 0,
+    "projectile-target": 0
+   }
+  },
+  {
+   "design": "c29767c452fa03b001baf204f276a647b46fc5ddf70d80fb849a9a9ec5b0afe3",
+   "submitted_by": [
+    [
+     "random-search",
+     "06777e8e",
+     "rough-transport"
+    ]
+   ],
+   "successes": {
+    "ravine-crossing": 0,
+    "rough-transport": 19,
+    "return-mix": 0,
+    "projectile-target": 0
+   }
+  },
+  {
+   "design": "cd7ce0791d658a524e3f192a37f794ea699fcab57afa7839cc3b9427dafa7b4c",
+   "submitted_by": [
+    [
+     "generated-method",
+     "8215c367",
+     "ravine-crossing"
+    ]
+   ],
+   "successes": {
+    "ravine-crossing": 8,
+    "rough-transport": 35,
+    "return-mix": 7,
+    "projectile-target": 0
+   }
+  }
+ ]
+}
