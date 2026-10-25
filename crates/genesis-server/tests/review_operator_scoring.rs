@@ -106,20 +106,37 @@ enum Scorer {
     WrongPin,
     /// A stand-in that never finishes, with a short timeout.
     Hangs,
+    /// The genuine stand-in, which after scoring the control slot swaps a
+    /// consistent forgery into the retained records (a race with assessment).
+    ForgesAfter,
     /// The real scorer at this path.
     Real(String),
 }
 
-fn stand_in(dir: &Path, pristine: &Path, hang: bool) -> (std::path::PathBuf, String) {
+fn stand_in(
+    dir: &Path,
+    pristine: &Path,
+    hang: bool,
+    after: Option<(&Path, &Path)>,
+) -> (std::path::PathBuf, String) {
     let p = pristine.display();
     let script = if hang {
         "#!/bin/sh\nwhile :; do :; done\n".to_string()
     } else {
+        let race = after
+            .map(|(forged, trial)| {
+                format!(
+                    "if [ \"$3\" = control ]; then /bin/cp -r {}/control-score/. {}/control-score/; fi\n",
+                    forged.display(),
+                    trial.display()
+                )
+            })
+            .unwrap_or_default();
         format!(
             "#!/bin/sh\nset -e\n[ \"$1\" = score ] && [ -f \"$4/receipt.json\" ]\n\
              /bin/mkdir -p \"$5/artifacts\"\n\
              /bin/cp {p}/$3-score/evaluation.json \"$5/evaluation.json\"\n\
-             /bin/cp {p}/$3-score/artifacts/* \"$5/artifacts/\"\n"
+             /bin/cp {p}/$3-score/artifacts/* \"$5/artifacts/\"\n{race}"
         )
     };
     let path = dir.join(if hang { "hang.sh" } else { "stand-in.sh" });
@@ -309,9 +326,16 @@ async fn decide_with(forged: bool, swap: Option<&str>, scorer: Scorer) -> (u16, 
     }));
     app.method_rescorer = match scorer {
         Scorer::None => None,
-        Scorer::Genuine | Scorer::WrongPin | Scorer::Hangs => {
+        Scorer::Genuine | Scorer::WrongPin | Scorer::Hangs | Scorer::ForgesAfter => {
             let hang = matches!(scorer, Scorer::Hangs);
-            let (path, sha256) = stand_in(dir.path(), &pristine, hang);
+            let forged = dir.path().join("forged");
+            if matches!(scorer, Scorer::ForgesAfter) {
+                copy_dir(&pristine, &forged);
+                forge_control(&forged);
+            }
+            let after = matches!(scorer, Scorer::ForgesAfter)
+                .then_some((forged.as_path(), trial.as_path()));
+            let (path, sha256) = stand_in(dir.path(), &pristine, hang, after);
             let sha256 = if matches!(scorer, Scorer::WrongPin) {
                 "0".repeat(64)
             } else {
@@ -370,6 +394,14 @@ async fn forged_operator_scoring_decides_an_adoption_without_rescoring() {
 async fn a_pinned_rescorer_refuses_forged_scoring() {
     let (status, body) = decide(true, Scorer::Genuine).await;
     refused(status, &body, "retained control scoring does not reproduce");
+}
+
+#[tokio::test]
+async fn records_swapped_after_the_rescore_are_refused() {
+    // The rescore sees the genuine records; assessment, inside the
+    // transaction, would read a consistent forgery. The byte binding refuses.
+    let (status, body) = decide(false, Scorer::ForgesAfter).await;
+    refused(status, &body, "changed after rescoring");
 }
 
 #[tokio::test]
