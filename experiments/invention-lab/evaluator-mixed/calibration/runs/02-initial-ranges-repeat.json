@@ -1,0 +1,287 @@
+{
+ "label": "initial-ranges-repeat",
+ "family": "mixed-terrain",
+ "evaluator": {
+  "evaluator": "genesis-lab-eval-mixed@0.1.0",
+  "evaluator_sha256": "316908f707b071bbb0bc51cc8fb90e1d51393fe0a1b53528b76e0822f17c4ed9",
+  "family": "mixed-terrain",
+  "family_version": 1,
+  "files": [
+   "Cargo.toml",
+   "Cargo.lock",
+   "src/lib.rs",
+   "src/family.rs",
+   "src/sim.rs",
+   "src/score.rs"
+  ],
+  "v1_evaluator_sha256": "1f03d1b6499721e6ddae6e600b688c123a8684e34c56f53cde8104d361246f42"
+ },
+ "seeds": [
+  50000,
+  50035
+ ],
+ "grant": 72000,
+ "arms": {
+  "portfolio_search": {
+   "panels": [
+    {
+     "seeds": [
+      50000,
+      50005
+     ],
+     "experiments": 47,
+     "steps_used": 49098,
+     "successes": 6,
+     "kind": "cart"
+    },
+    {
+     "seeds": [
+      50006,
+      50011
+     ],
+     "experiments": 83,
+     "steps_used": 69885,
+     "successes": 5,
+     "kind": "cart"
+    },
+    {
+     "seeds": [
+      50012,
+      50017
+     ],
+     "experiments": 63,
+     "steps_used": 71170,
+     "successes": 3,
+     "kind": "cart"
+    },
+    {
+     "seeds": [
+      50018,
+      50023
+     ],
+     "experiments": 60,
+     "steps_used": 70777,
+     "successes": 5,
+     "kind": "cart"
+    },
+    {
+     "seeds": [
+      50024,
+      50029
+     ],
+     "experiments": 65,
+     "steps_used": 69991,
+     "successes": 4,
+     "kind": "cart"
+    },
+    {
+     "seeds": [
+      50030,
+      50035
+     ],
+     "experiments": 58,
+     "steps_used": 71960,
+     "successes": 4,
+     "kind": "cart"
+    }
+   ],
+   "per_panel": [
+    6,
+    5,
+    3,
+    5,
+    4,
+    4
+   ],
+   "total": 27
+  },
+  "random_search": {
+   "panels": [
+    {
+     "seeds": [
+      50000,
+      50005
+     ],
+     "experiments": 38,
+     "steps_used": 53898,
+     "successes": 3,
+     "kind": "cart"
+    },
+    {
+     "seeds": [
+      50006,
+      50011
+     ],
+     "experiments": 38,
+     "steps_used": 65212,
+     "successes": 1,
+     "kind": "cart"
+    },
+    {
+     "seeds": [
+      50012,
+      50017
+     ],
+     "experiments": 38,
+     "steps_used": 64290,
+     "successes": 2,
+     "kind": "cart"
+    },
+    {
+     "seeds": [
+      50018,
+      50023
+     ],
+     "experiments": 38,
+     "steps_used": 61192,
+     "successes": 2,
+     "kind": "cart"
+    },
+    {
+     "seeds": [
+      50024,
+      50029
+     ],
+     "experiments": 38,
+     "steps_used": 58637,
+     "successes": 1,
+     "kind": "cart"
+    },
+    {
+     "seeds": [
+      50030,
+      50035
+     ],
+     "experiments": 38,
+     "steps_used": 57131,
+     "successes": 2,
+     "kind": "cart"
+    }
+   ],
+   "per_panel": [
+    3,
+    1,
+    2,
+    2,
+    1,
+    2
+   ],
+   "total": 11
+  },
+  "parent_2483f08f": {
+   "panels": [
+    {
+     "seeds": [
+      50000,
+      50005
+     ],
+     "successes": 4
+    },
+    {
+     "seeds": [
+      50006,
+      50011
+     ],
+     "successes": 4
+    },
+    {
+     "seeds": [
+      50012,
+      50017
+     ],
+     "successes": 2
+    },
+    {
+     "seeds": [
+      50018,
+      50023
+     ],
+     "successes": 2
+    },
+    {
+     "seeds": [
+      50024,
+      50029
+     ],
+     "successes": 3
+    },
+    {
+     "seeds": [
+      50030,
+      50035
+     ],
+     "successes": 2
+    }
+   ],
+   "per_panel": [
+    4,
+    4,
+    2,
+    2,
+    3,
+    2
+   ],
+   "total": 17
+  },
+  "reference_five_wheel": {
+   "panels": [
+    {
+     "seeds": [
+      50000,
+      50005
+     ],
+     "successes": 2
+    },
+    {
+     "seeds": [
+      50006,
+      50011
+     ],
+     "successes": 1
+    },
+    {
+     "seeds": [
+      50012,
+      50017
+     ],
+     "successes": 0
+    },
+    {
+     "seeds": [
+      50018,
+      50023
+     ],
+     "successes": 2
+    },
+    {
+     "seeds": [
+      50024,
+      50029
+     ],
+     "successes": 0
+    },
+    {
+     "seeds": [
+      50030,
+      50035
+     ],
+     "successes": 0
+    }
+   ],
+   "per_panel": [
+    2,
+    1,
+    0,
+    2,
+    0,
+    0
+   ],
+   "total": 5
+  }
+ },
+ "portfolio_vs_random": {
+  "wins": 6,
+  "losses": 0,
+  "of": 6
+ }
+}
