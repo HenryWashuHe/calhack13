@@ -5,8 +5,9 @@ use genesis_core::{development_trial::TrialEvidence, digest::canonical_sha256};
 use genesis_forge::process_selection::{
     select_development, Arm, Family, RoundInput, SelectionReport, TrialInput,
 };
-use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use genesis_forge::process_selection_record::{RetainedSelection, SelectionInputs as Inputs};
+use serde::Deserialize;
+use serde_json::json;
 use std::path::{Path, PathBuf};
 
 #[derive(Deserialize)]
@@ -30,21 +31,6 @@ enum RoundFiles {
         metrics: Option<PathBuf>,
     },
 }
-#[derive(Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-struct Inputs {
-    arm: Arm,
-    family: Family,
-    rounds: [RoundInput; 3],
-}
-#[derive(Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-struct RetainedSelection {
-    schema: String,
-    inputs: Inputs,
-    report: Value,
-}
-
 fn resolve(base: &Path, path: &Path) -> Result<PathBuf, String> {
     if path.as_os_str().is_empty() {
         return Err("selection input paths must not be empty".into());
@@ -108,13 +94,7 @@ pub fn run(args: &Arguments) -> Result<u8, String> {
     } else {
         // Read-only even when a crashed preparation left a lock behind.
         let retained: RetainedSelection = storage::read_json(path)?;
-        if retained.schema != "genesis-retained-process-selection/1" {
-            return Err("unsupported retained selection schema".into());
-        }
-        let computed = report(&retained.inputs)?;
-        if retained.report != serde_json::to_value(&computed).map_err(|e| e.to_string())? {
-            return Err("retained report differs from recomputed selection".into());
-        }
+        let computed = retained.check()?;
         (retained, computed)
     };
     let selected = computed.selected_round.map(|round| {

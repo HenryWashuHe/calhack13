@@ -29,4 +29,6 @@ pub mod method_chain_costs;
 pub mod method_revision;
 pub mod method_roster;
 pub mod method_stage;
+pub mod process_cohort;
 pub mod process_selection;
+pub mod process_selection_record;
