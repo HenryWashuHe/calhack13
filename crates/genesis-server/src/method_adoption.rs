@@ -46,15 +46,18 @@ pub struct MethodReceiver {
 #[serde(deny_unknown_fields)]
 pub struct AcceptancePin {
     pub requirement_id: RequirementId,
+    /// The organization whose offer the receiver evaluated. Retained trial
+    /// records carry no publisher, so identical bytes republished elsewhere
+    /// must not inherit this acceptance.
+    pub publisher: OrgId,
     pub plan: ExactContentRef,
 }
 
 impl MethodReceiver {
-    pub fn acceptance_plan(&self, requirement: &RequirementId) -> Option<&ExactContentRef> {
+    pub fn acceptance_plan(&self, requirement: &RequirementId) -> Option<&AcceptancePin> {
         self.acceptance_plans
             .iter()
             .find(|p| p.requirement_id == *requirement)
-            .map(|p| &p.plan)
     }
 }
 
