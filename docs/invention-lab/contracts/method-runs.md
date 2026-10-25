@@ -48,7 +48,13 @@ A proposed plan is accepted only if all of these hold:
   run, attempt and scoring ids differ from the accepted trial's.
 - Its frozen record leaves 64 KiB for the receipt and 32 KiB for the
   evaluation, and its binding, which every receipt repeats, takes at most
-  16 KiB. So a run that starts can always be completed and scored.
+  16 KiB. The serialized frozen scoring envelope also takes at most 16 KiB:
+  the request ID, execution/request hash fields, purpose, scoring grant and
+  both copies of the scoring context are counted before preparation. The
+  remaining half of the evaluation allowance is reserved for the output,
+  metrics, trace and usage. Later receipt and evaluation payloads must still
+  fit their respective full caps; arbitrary unbounded identifiers or trace
+  metadata are not guaranteed to fit.
 
 Its instances are the operator's choice; they are public.
 
