@@ -107,6 +107,10 @@ pub struct AcceptanceEvidence {
     /// Retained file (relative to the trial) → SHA-256 of the bytes read.
     pub files: BTreeMap<String, String>,
     pub acceptance: Acceptance,
+    /// SHA-256 of this organization's pinned scorer when it reproduced every
+    /// scored slot before the decision; absent when no rescorer is configured.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rescorer: Option<String>,
 }
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
@@ -121,6 +125,8 @@ pub enum MethodAcceptanceError {
     Incompatible(String),
     #[error("retained records do not bind the selection: {0}")]
     Binding(String),
+    #[error("this organization's rescoring refused the trial: {0}")]
+    Rescore(String),
 }
 use MethodAcceptanceError as E;
 
@@ -200,6 +206,19 @@ impl Reader {
             metrics,
         })
     }
+}
+
+/// One retained file, read with assessment's own symlink and size rules.
+pub(crate) fn read_retained(root: &Path, trial: &str, rel: &str) -> Result<Option<Vec<u8>>, E> {
+    if !trial_name_ok(trial) {
+        return Err(E::TrialName);
+    }
+    Reader {
+        root: root.into(),
+        trial: trial.into(),
+        files: BTreeMap::new(),
+    }
+    .bytes(rel)
 }
 
 /// Checks the selected offer against this receiver and its own retained trial,
@@ -327,6 +346,7 @@ pub fn assess_selected(
         dependencies: candidate.dependencies.clone(),
         files: reader.files,
         acceptance,
+        rescorer: None,
     })
 }
 
