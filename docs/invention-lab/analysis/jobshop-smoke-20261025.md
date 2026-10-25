@@ -1,9 +1,9 @@
-# Job-shop smoke runs, 2026-10-25: the loop against seeded random search
+# Smoke runs, 2026-10-25: the loop against seeded random search on two families
 
-Scope: four small live runs of the iteration engine on the first real task family, written to
-`scripts/iteration/results/jobshop-smoke-1/` through `jobshop-smoke-4/` (`result.json`, `ledger.json`,
-`bundle.json`, sponsor exports). One family, one seed each, 20-instance panels, five model calls at most.
-Runs 3 and 4 were added at the owner's request after the first two.
+Scope: six small live runs of the iteration engine on two real task families, written to
+`scripts/iteration/results/jobshop-smoke-1/` through `jobshop-smoke-4/` and `binpack-smoke-1/`,
+`binpack-smoke-2/` (`result.json`, `ledger.json`, `bundle.json`, sponsor exports). One seed per run,
+20-instance panels, five model calls at most. Runs after the first two were added at the owner's request.
 This is a smoke test of the mechanism, not evidence of recursive improvement, transfer between real
 organizations, or anything about other families.
 
@@ -135,18 +135,49 @@ input / 4,490 output tokens; ledger 60 records, verified. A second bin-packing r
 target 1.08 (calibration on 20 fresh instances: first-fit 0.15, best-fit 0.25, random-search-of-24 0.25)
 follows below.
 
-## What the four runs say, and what they do not
+## Second family, `binpack-smoke-2` (sizes 20–70, target 1.08, gate = incumbent only)
 
-1. **The loop runs end to end on a real family with a real model**: sealed panels, frozen plans,
-   verdicts for every candidate, one promotion, a fresh-panel confirmation, a sealed bundle, and the two
-   sponsor shapes, all in one verified ledger. That is the first time this engine has done anything but
-   synthetic work.
+| gen | incumbent | candidates | promoted |
+|---|---|---|---|
+| 1 | 4/20 (first-fit) | 8, 8, 8, 3 | yes, 8/20 |
+| 2 | 12/20 | 13, 12, 8, 8 | yes, 13/20 |
+| 3 | 8/20 | 6, 6, 4, 6 | none |
+| 4 | 7/20 | 6, 7, 9, 7 | yes, 9/20 |
+| 5 | 6/20 | 5, 5, 5, 5 | none |
+
+Frontier after five generations: `(item, bin) => bin.fits === 0 ? 1000 : -bin.fits - (bin.fits < 20 ? 10 :
+0) - bin.index * 0.001`, best-fit with a perfect-fit bonus and a penalty for leaving a gap too small for
+any item. Confirmation on a fresh panel: **10/20**. Same panel, report-only:
+
+| rule | final panel | mean bins / lower bound |
+|---|---|---|
+| frontier (generation 4 model rule) | 10/20 | 1.0805 |
+| fixed-best-fit | 9/20 | 1.0829 |
+| random-search (best of 67) | 8/20 | 1.0850 |
+| root / fixed-first-fit | 3/20 | 1.0959 |
+| fixed-worst-fit | 0/20 | 1.1834 |
+
+5 calls, 20,965 input / 5,148 output tokens; ledger 62 records, verified. One instance over best-fit and two
+over random search on twenty: the right direction and the right shape of rule, at a margin a single seed
+cannot support. The model rediscovered best-fit in generation 1 of the saturated run and here found the
+standard refinement of it; that is a fair description of what one call per generation buys on this family.
+
+## What the six runs say, and what they do not
+
+1. **The loop runs end to end on two real families with a real model, with only the family swapped**:
+   sealed panels, frozen plans, verdicts for every candidate, promotions, fresh-panel confirmations, sealed
+   bundles, and the two sponsor shapes, all in verified ledgers. Same engine, mutator, cascade, runner and
+   exports for job-shop dispatching and online bin packing; the domain supplied an instance generator, a
+   scorer and its controls, nothing else.
 2. **Against seeded random search on a fresh panel: two wins, one tie.** Run 2's rule beat it 19 to 14
    (fixed-mwkr 15); run 3's rule tied it 17 to 17 (fixed-mwkr 15) with a better mean ratio (1.085 against
    1.120); run 4's rule beat it 18 to 12 (fixed-mwkr 15). The model rule beat every fixed rule on all three
    panels and had the best mean makespan ratio on all three (1.095, 1.085, 1.086). Three seeds, sixty
-   fresh instances, one family: a consistent edge over hand-written rules and over random search on this
-   family, at a sample size that still calls for a second family before anyone generalizes.
+   fresh instances on job-shop: a consistent edge over hand-written rules and over random search. On bin
+   packing (one discriminating seed) the edge is one instance over best-fit and two over random search,
+   with the best mean ratio; the saturated first bin-packing run separated nothing. Two families, four
+   informative seeds: consistent direction, margins that a larger panel and more seeds would have to
+   confirm before anyone generalizes.
 3. **Whether later generations add anything depends on the seed.** In run 2 the gain came from generation
    1 and nothing after it: generations 2–5 never beat the incumbent by one instance. In run 3 every
    generation promoted, each child beating its parent on a sealed panel, and the frontier moved from a
@@ -163,14 +194,16 @@ follows below.
 5. **Random search is a strong, cheap control**: 14/20 on the final panel after 402 training
    evaluations, and 18/20 on run 1's third panel. Any later claim must keep it.
 
-Not established: an advantage over random search beyond this family (two wins and a tie on three
-seeds), transfer between organizations (the bundles were exported but adopted by nobody), results on any
-other family, and anything about the forge lane's real method-generation path, which this engine does not
-touch. Improvement after generation 1 was observed in two of three seeds.
+Not established: a statistically supported advantage over random search or best-fit (job-shop: two wins
+and a tie on three seeds; bin packing: one seed, a one-instance margin), transfer between organizations
+(the bundles were exported but adopted by nobody), results on any further family, and anything about the
+forge lane's real method-generation path, which this engine does not touch. Improvement after generation 1
+was observed in three of four informative seeds.
 
 ## Files
 
 `scripts/iteration/results/jobshop-smoke-1/{result,ledger}.json`;
-`scripts/iteration/results/jobshop-smoke-2/`, `jobshop-smoke-3/` and `jobshop-smoke-4/`: `{result,ledger,bundle}.json`,
+`scripts/iteration/results/jobshop-smoke-2/`, `jobshop-smoke-3/`, `jobshop-smoke-4/`, `binpack-smoke-1/`
+and `binpack-smoke-2/`: `{result,ledger,bundle}.json`,
 `fetch-offer.txt`, `fetch-observation.json`, `elastic-bulk.ndjson`. Reproduce the mechanism without model calls with
 `node scripts/iteration/run-jobshop.mjs --mock`; the live runs are not deterministic across model calls.
