@@ -3,7 +3,7 @@
 // Run: node --test scripts/iteration/engine.test.mjs
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createState, runGeneration, run, exportBundle, adopt, verifyLedger, sha256 } from "./engine.mjs";
+import { createState, runGeneration, run, exportBundle, adopt, confirm, verifyLedger, sha256 } from "./engine.mjs";
 import { syntheticFamily, syntheticMutator, syntheticControls } from "./synthetic-family.mjs";
 
 const criterion = { rule: "success-count-margin", min_margin: 1 };
@@ -95,6 +95,24 @@ test("budget and stall rules stop the loop and say why", () => {
   const never = { propose: ({ parent }) => [{ source: parent.source + " ", note: "noise" }] };
   const byStall = run(s2.state, { family: s2.family, mutator: never, k: 1, controls: s2.controls, criterion, heldout: 4, generations: 50, stall: 2 });
   assert.equal(byStall.stopped, "stall");
+});
+
+test("confirmation scores the frontier on a fresh panel that selection never saw, records it, and changes nothing", () => {
+  const { family, state, controls, mutator } = setup(5, 60);
+  const out = run(state, { family, mutator, k: 4, controls, criterion, heldout: 6, generations: 6 });
+  assert.ok(out.promotions >= 1);
+  const before = state.frontier[family.id];
+  const c = confirm(state, { family, heldout: 8, panelSeed: "final-2026-10-24" });
+  const rec = state.ledger.records.at(-1);
+  assert.equal(rec.type, "confirmation");
+  assert.equal(c.package, before.package.sha256);
+  const selectionSeeds = new Set(state.ledger.records.filter((r) => r.type === "plan_frozen").map((r) => r.instance_seed));
+  assert.ok(!selectionSeeds.has(rec.instance_seed), "the confirmation panel is not a selection panel");
+  const selectionInstances = new Set(state.ledger.records.filter((r) => r.type === "plan_frozen").flatMap((r) => r.instances));
+  assert.ok(rec.instances.every((i) => !selectionInstances.has(i)), "no confirmation instance was ever scored during selection");
+  assert.deepEqual(state.frontier[family.id], before, "confirmation never moves the frontier or its feedback");
+  assert.throws(() => confirm(state, { family, heldout: 4 }), /panelSeed/);
+  assert.equal(verifyLedger(state.ledger).ok, true);
 });
 
 test("passing on: a frontier package travels with its lineage, and the adopting family re-verifies on its own instances", () => {

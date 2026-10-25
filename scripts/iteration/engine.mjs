@@ -129,6 +129,24 @@ export function run(state, { family, mutator, k = 4, controls = [], criterion, h
   return { generations: done, promotions, stopped };
 }
 
+/**
+ * Confirmation: score the frontier once on a final fresh panel whose seed was never used for selection.
+ * Recorded, never fed back, never used to choose. This is the only count a frontier claim should quote.
+ */
+export function confirm(state, { family, heldout = 6, panelSeed }) {
+  const f = state.frontier[family.id];
+  if (!f) throw new Error(`no frontier for ${family.id}`);
+  if (panelSeed === undefined) throw new Error("confirm needs a panelSeed that was never used for selection");
+  const instanceSeed = sha256(`confirm:${panelSeed}:${family.id}`);
+  const used = state.ledger.records.some((r) => r.type === "plan_frozen" && r.instance_seed === instanceSeed);
+  if (used) throw new Error("that panel was already used for selection");
+  const instances = family.instances(instanceSeed, heldout);
+  const scores = instances.map((instance) => ({ instance, ...family.score(f.package, instance) }));
+  state.evaluations += scores.length;
+  const record = append(state, { type: "confirmation", family: family.id, package: f.package.sha256, selection_plan: f.plan, instance_seed: instanceSeed, instances, scores, success_count: count(scores), of: scores.length });
+  return { package: f.package.sha256, success_count: record.success_count, of: record.of, selection_count: f.success_count };
+}
+
 /** Passing on: the frontier package, its ancestry and the whole ledger, hash-bound. */
 export function exportBundle(state, familyId) {
   const f = state.frontier[familyId];
