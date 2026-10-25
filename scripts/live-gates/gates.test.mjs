@@ -6,9 +6,14 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { runGates, scrub } from "./run.mjs";
+import { CREAO_WORKFLOW_CHECK, runGates, scrub } from "./run.mjs";
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+const APP = "11111111-1111-4111-8111-111111111111";
+const RUN = "22222222-2222-4222-8222-222222222222";
+const answer = {schema: CREAO_WORKFLOW_CHECK, responsibility_id:"smoke-method-review", owner_role_id:"smoke-design-review", decision:"decline", candidate_successes:2, control_successes:4};
+const response = (value, status=200) => new Response(JSON.stringify(value), {status, headers:{"Content-Type":"application/json"}});
+const completeTrigger = async (_url, options) => options.method === "POST" ? response({id:RUN,appId:APP,status:"pending"},202) : response({id:RUN,status:"completed",result:{text:JSON.stringify(answer)},usage:{credits:0.2}});
 const SECRET = "sk-live-SUPERSECRET-123456";
 
 /** A stub executable: `script` is JS run with argv/env; state in STUB_STATE. */
@@ -43,10 +48,12 @@ const fullEnv = {
   ELASTIC_MANAGEMENT_API_KEY: SECRET + "m",
   AGENTVERSE_API_KEY: SECRET + "a",
   APIFY_TOKEN: SECRET + "p",
-  CREAO_ACCOUNT_API_KEY: SECRET + "c",
+  CREAO_ACCOUNT_API_KEY: SECRET + "c", // Historical credentials remain scrubbed, never used for this gate.
+  CREAO_TRIGGER_API_KEY: "capi_offline_fixture_key",
+  CREAO_TRIGGER_APP_ID: APP,
 };
 const run = (bin, out, extra = {}) =>
-  runGates({ repo: REPO, binDir: bin, out, gates: ["elastic", "fetch", "apify", "creao"], env: fullEnv, stamp: "t1", pollScale: 0, allowBillable: true, ...extra });
+  runGates({ repo: REPO, binDir: bin, out, gates: ["elastic", "fetch", "apify", "creao"], env: fullEnv, stamp: "t1", pollScale: 0, allowBillable: true, triggerFetchImpl: async () => { throw new Error("network forbidden in tests"); }, ...extra });
 
 test("missing credentials or binaries are not_tested, never a pass", async () => {
   const bin = mkdtempSync(join(tmpdir(), "bin-"));
@@ -56,7 +63,7 @@ test("missing credentials or binaries are not_tested, never a pass", async () =>
     assert.equal(g.status, "not_tested", g.gate);
     assert.match(g.reason, /missing/);
   }
-  const noBins = await run(bin, out);
+  const noBins = await run(bin, out, {gates:["elastic","fetch","apify"]});
   for (const g of Object.values(noBins.results)) assert.match(g.reason, /^no /, g.gate);
 });
 
@@ -94,79 +101,77 @@ console.log("[PASS] all");`,
   assert.equal(scrub(`key=${SECRET}`, fullEnv), "key=<ELASTIC_DATA_API_KEY>");
 });
 
-test("creao steps until native completion and records the agent", async () => {
+// Historical Developer API agent-creation/V2 assertions below were replaced
+// deliberately by the credit-consuming app-run contract. No creation CLI may run.
+test("creao Trigger completion records the existing app and retries only GET with the same journal", async () => {
   const bin = mkdtempSync(join(tmpdir(), "bin-"));
-  stub(
-    bin,
-    "genesis-creao",
-    `if (args[0] === "prepare") { console.log(JSON.stringify({ phase: "prepared" })); process.exit(0); }
-fs.writeFileSync(stateFile, String(n + 1));
-const seq = [{ phase: "waiting", next_poll_at: new Date().toISOString() },
-  { phase: "waiting", retryable_read: true }, { phase: "waiting", run_id: "run-1" },
-  { phase: "native_completed", native_status: "completed", run_id: "run-1", provider_agent_id: "agent-9" }];
-console.log(JSON.stringify(seq[Math.min(n, seq.length - 1)]));`,
-  );
-  const r = await run(bin, mkdtempSync(join(tmpdir(), "out-")), { gates: ["creao"] });
-  assert.equal(r.results.creao.status, "passed");
-  assert.equal(r.results.creao.evidence.provider_agent_id, "agent-9");
-  assert.equal(r.results.creao.evidence.api_version, "v1");
-  assert.equal(r.results.creao.evidence.readiness_verified, false);
-  const steps = calls(bin, "genesis-creao").filter((c) => c.startsWith("step"));
-  assert.equal(steps.length, 4);
-  assert.ok(steps[2].includes("--retry-read"), "a retryable read is retried explicitly");
-  assert.ok(!steps[1].includes("--retry-read") && !steps[3].includes("--retry-read"));
+  stub(bin, "genesis-creao", `throw Error("agent creation must not run")`);
+  const out = mkdtempSync(join(tmpdir(), "out-")), requests=[];
+  let gets=0;
+  const triggerFetchImpl=async(url,options)=>{
+    requests.push({url,method:options.method});
+    if(options.method==="POST") return response({id:RUN,appId:APP,status:"pending"},202);
+    gets++;
+    if(gets===1) return response({},500);
+    return response({id:RUN,status:gets===2?"running":"completed",result:answer,usage:{credits:0.2}});
+  };
+  const first=await run(bin,out,{gates:["creao"],triggerFetchImpl});
+  assert.equal(first.results.creao.status,"partial");
+  const r=await run(bin,out,{gates:["creao"],triggerFetchImpl});
+  assert.equal(r.results.creao.status,"passed");
+  assert.equal(r.results.creao.evidence.app_id,APP);
+  assert.equal(r.results.creao.evidence.run_id,RUN);
+  assert.equal(r.results.creao.evidence.api_version,"trigger");
+  assert.equal(r.results.creao.evidence.readiness_verified,false);
+  assert.equal(requests.filter(r=>r.method==="POST").length,1);
+  assert.equal(requests.filter(r=>r.method==="GET").length,3);
+  assert.deepEqual(calls(bin,"genesis-creao"),[]);
 });
 
-test("creao v2 gate freezes protocol in the prepared spec", async () => {
-  const bin = mkdtempSync(join(tmpdir(), "bin-"));
-  const out = mkdtempSync(join(tmpdir(), "out-"));
-  stub(bin, "genesis-creao", `process.exit(1)`);
-  const r = await run(bin, out, {
-    gates: ["creao"],
-    env: { ...fullEnv, CREAO_API_VERSION: "v2" },
-  });
-  assert.equal(r.results.creao.stage, "prepare");
-  const spec = JSON.parse(readFileSync(join(out, "creao", "t1", "spec.json"), "utf8"));
-  assert.equal(spec.api_version, "v2");
+// Legacy v2 used to select the developer endpoint. Only explicit Trigger now
+// permits a request; retain the positive wire-shape assertions on that contract.
+test("creao explicit Trigger setting uses only the app-scoped request contract", async () => {
+  const bin=mkdtempSync(join(tmpdir(),"bin-")),out=mkdtempSync(join(tmpdir(),"out-"));
+  stub(bin,"genesis-creao",`process.exit(1)`);
+  const requests=[];
+  const r=await run(bin,out,{gates:["creao"],env:{...fullEnv,CREAO_API_VERSION:"trigger"},triggerFetchImpl:async(url,options)=>{requests.push({url,options});return completeTrigger(url,options)}});
+  assert.equal(r.results.creao.status,"passed");
+  assert.equal(requests[0].url,`https://agent.creao.ai/api/v1/apps/${APP}/runs`);
+  const request=JSON.parse(requests[0].options.body);
+  assert.deepEqual(Object.keys(request),["inputs"]);
+  assert.equal(request.inputs.schema,CREAO_WORKFLOW_CHECK);
+  assert.deepEqual(calls(bin,"genesis-creao"),[]);
 });
 
-test("creao v2 gate labels public evidence and rejects invalid protocol before preparation", async () => {
-  const bin = mkdtempSync(join(tmpdir(), "bin-"));
-  const out = mkdtempSync(join(tmpdir(), "out-"));
-  stub(bin, "genesis-creao", `if (args[0] === "prepare") process.exit(0);
-console.log(JSON.stringify({ phase: "native_completed", native_status: "completed", run_id: "run-2", provider_agent_id: "agent-2" }));`);
-  const hosted = await run(bin, out, {
-    gates: ["creao"],
-    env: { ...fullEnv, CREAO_API_VERSION: "v2" },
-  });
-  assert.equal(hosted.results.creao.status, "passed");
-  assert.equal(hosted.results.creao.evidence.api_version, "v2");
-  const invalidOut = mkdtempSync(join(tmpdir(), "out-"));
-  const priorCalls = calls(bin, "genesis-creao").length;
-  const invalid = await run(bin, invalidOut, {
-    gates: ["creao"],
-    env: { ...fullEnv, CREAO_API_VERSION: "v3" },
-  });
-  assert.equal(invalid.results.creao.stage, "configuration");
-  assert.equal(invalid.results.creao.status, "failed");
-  assert.equal(calls(bin, "genesis-creao").length, priorCalls);
-  assert.equal(readdirSync(invalidOut).includes("creao"), false);
+test("creao Trigger labels public evidence and refuses a wrong-app URL before a request", async () => {
+  const bin=mkdtempSync(join(tmpdir(),"bin-")),out=mkdtempSync(join(tmpdir(),"out-"));
+  const hosted=await run(bin,out,{gates:["creao"],triggerFetchImpl:completeTrigger});
+  assert.equal(hosted.results.creao.status,"passed");
+  assert.equal(hosted.results.creao.evidence.api_version,"trigger");
+  const invalidOut=mkdtempSync(join(tmpdir(),"out-"));
+  const invalid=await run(bin,invalidOut,{gates:["creao"],env:{...fullEnv,CREAO_TRIGGER_RUNS_URL:`https://agent.creao.ai/api/v1/apps/${RUN}/runs`}});
+  assert.equal(invalid.results.creao.stage,"configuration");
+  assert.equal(invalid.results.creao.status,"failed");
+  assert.equal(readdirSync(invalidOut).includes("creao"),false);
 });
 
-test("blank creao protocol uses v1 consistently with the backend", async () => {
-  const bin = mkdtempSync(join(tmpdir(), "bin-"));
-  stub(bin, "genesis-creao", `if (args[0] === "prepare") process.exit(0);
-console.log(JSON.stringify({ phase: "native_completed", native_status: "completed", run_id: "run-blank", provider_agent_id: "agent-blank" }));`);
-  for (const version of ["", "  "]) {
-    const out = mkdtempSync(join(tmpdir(), "out-"));
-    const result = await run(bin, out, {
-      gates: ["creao"],
-      env: { ...fullEnv, CREAO_API_VERSION: version },
-    });
-    assert.equal(result.results.creao.status, "passed");
-    assert.equal(result.results.creao.evidence.api_version, "v1");
-    const spec = JSON.parse(readFileSync(join(out, "creao", "t1", "spec.json"), "utf8"));
-    assert.equal(spec.api_version ?? "v1", "v1");
+test("blank API versions use Trigger and explicit legacy versions are refused", async () => {
+  const bin=mkdtempSync(join(tmpdir(),"bin-"));
+  for(const version of ["","  ","v1","v2","v3"]){
+    const out=mkdtempSync(join(tmpdir(),"out-"));
+    let requests=0;
+    const r=await run(bin,out,{gates:["creao"],env:{...fullEnv,CREAO_API_VERSION:version},triggerFetchImpl:async(...args)=>{requests++;return completeTrigger(...args)}});
+    if(version.trim()===""){
+      assert.equal(r.results.creao.status,"passed");
+      assert.equal(r.results.creao.evidence.api_version,"trigger");
+      assert.equal(requests,2);
+    }else{
+      assert.equal(r.results.creao.status,"failed");
+      assert.equal(r.results.creao.stage,"configuration");
+      assert.match(r.results.creao.reason,/CREAO_API_VERSION must be trigger/);
+      assert.equal(requests,0);
+      assert.equal(readdirSync(out).includes("creao"),false);
+    }
   }
 });
 

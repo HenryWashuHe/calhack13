@@ -2,8 +2,8 @@
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use genesis_creao::{
-    AccountLimiter, ApiVersion, CreaoClient, Limits, OperationRecord, OperationSpec, QuotaLimits,
-    Runtime, RuntimeStore,
+    AccountLimiter, CreaoClient, Limits, OperationRecord, OperationSpec, QuotaLimits, Runtime,
+    RuntimeStore,
 };
 use genesis_verification::decode_json;
 use serde_json::{json, Value};
@@ -67,7 +67,7 @@ enum Command {
         #[arg(long)]
         quota_db: PathBuf,
     },
-    /// Verify a candidate hosted agent for a saved v2 create run using one GET.
+    /// Legacy command retained for an explicit migration error; sends no request.
     ReconcileAgent {
         #[arg(long)]
         db: PathBuf,
@@ -103,18 +103,35 @@ fn read_spec(path: &Path) -> Result<OperationSpec> {
 }
 
 fn runtime(db: &Path, org: &str, account: &str, quota_db: &Path) -> Result<Runtime> {
-    let token = std::env::var("CREAO_ACCOUNT_API_KEY").map_err(|_| {
-        anyhow::anyhow!("CREAO_ACCOUNT_API_KEY is required in the backend environment")
-    })?;
-    let limiter = AccountLimiter::open(quota_db, account, QuotaLimits::default())?;
-    let version = match std::env::var("CREAO_API_VERSION") {
-        Err(std::env::VarError::NotPresent) => ApiVersion::V1,
-        Ok(value) if value.trim().is_empty() => ApiVersion::V1,
-        Ok(value) if value == "v1" => ApiVersion::V1,
-        Ok(value) if value == "v2" => ApiVersion::V2,
-        _ => anyhow::bail!("CREAO_API_VERSION must be v1 or v2"),
+    let setting = |name: &str| -> Result<String> {
+        std::env::var(name)
+            .ok()
+            .filter(|v| !v.trim().is_empty())
+            .ok_or_else(|| anyhow::anyhow!("{name} is required in the backend environment"))
     };
-    let client = CreaoClient::new_for_version(&token, Limits::default(), limiter, version)?;
+    match std::env::var("CREAO_API_VERSION") {
+        Err(std::env::VarError::NotPresent) => {}
+        Ok(value) if value.trim().is_empty() || value == "trigger" => {}
+        _ => {
+            anyhow::bail!("CREAO_API_VERSION must be trigger; Developer API execution is disabled")
+        }
+    }
+    let token = setting("CREAO_TRIGGER_API_KEY")?;
+    let app_id = setting("CREAO_TRIGGER_APP_ID")?;
+    let runs_url = match std::env::var("CREAO_TRIGGER_RUNS_URL") {
+        Err(std::env::VarError::NotPresent) => None,
+        Ok(value) if value.trim().is_empty() => None,
+        Ok(value) => Some(value),
+        _ => anyhow::bail!("CREAO_TRIGGER_RUNS_URL must be valid Unicode"),
+    };
+    let limiter = AccountLimiter::open(quota_db, account, QuotaLimits::default())?;
+    let client = CreaoClient::new_trigger(
+        &token,
+        &app_id,
+        runs_url.as_deref(),
+        Limits::default(),
+        limiter,
+    )?;
     Ok(Runtime::new(
         client,
         RuntimeStore::open(db, org)?,
@@ -163,18 +180,9 @@ async fn main() -> Result<()> {
         } => {
             json!({"recovered":runtime(&db,&org,&account,&quota_db)?.recover_interrupted().await?,"provider_requests":0})
         }
-        Command::ReconcileAgent {
-            db,
-            org,
-            operation,
-            account,
-            quota_db,
-            agent_id,
-        } => summary(
-            &runtime(&db, &org, &account, &quota_db)?
-                .reconcile_creation_agent(&operation, &agent_id)
-                .await?,
-        ),
+        Command::ReconcileAgent { .. } => {
+            anyhow::bail!("Developer agent reconciliation is disabled in API Trigger mode; preserve the old checkpoint and inspect its status offline")
+        }
     };
     println!("{}", serde_json::to_string_pretty(&output)?);
     Ok(())
