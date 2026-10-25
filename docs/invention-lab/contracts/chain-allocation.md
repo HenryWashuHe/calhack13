@@ -153,9 +153,44 @@ excess are separate; nested generation and individual limits remain visible even
 when a larger chain ceiling is not exceeded. Summed request/run wall times are
 not elapsed study duration.
 
-This is a read-only library over trusted retained records, not a CLI, runtime
+This is read-only accounting over trusted retained records, not a runtime
 guard, global enforcement, exhaustive provider billing, chronological proof or
 acceptance/improvement verdict. It neither authenticates organizations nor proves
 that omitted work did not happen. Adaptive later rounds must prepare their exact
 requests only once feedback exists, within previously retained chain ceilings;
 no future prompt hash is fabricated before those inputs are available.
+
+### Read-only chain cost CLI
+
+```sh
+genesis-forge method-chain-cost-assess --chain chain.json --manifest chain-costs.json
+```
+
+The strict `genesis-chain-cost-input/1` manifest selects up to 64 declared stages:
+
+```json
+{"schema":"genesis-chain-cost-input/1","stages":[
+  {"stage_id":"develop-a","target":{"kind":"generation","cost_manifest":"a/costs.json","allocation":"a/stage.json","admission":"a/admission.json"}},
+  {"stage_id":"return-a","target":{"kind":"trial_only","cost_manifest":"return/costs.json"}}
+]}
+```
+
+Outer paths resolve relative to this manifest. Each nested manifest uses the
+existing [cost-input format](accounting-cli.md) and resolves its own scope,
+checkpoint and trial paths relative to its own directory. The command reads the
+fixed `chain.json.stage-<stage_id>.json` companion for every selected stage.
+Generation stages with a trial also require the fixed
+`stage.json.trial-binding.json` companion; generation-only observations do not.
+It never constructs replacement bindings or accepts supplied totals.
+
+TrialOnly inputs reject allocation/admission fields and generation snapshots,
+expectations or links. Duplicate/undeclared stage IDs and malformed schemas fail.
+Omitted stages remain unknown; any named missing, invalid or foreign file fails
+with exit 2 and no report. An empty stage list is valid and reports every declared
+stage as unknown. Inputs are read once per use from trusted host storage, without
+locking or a cross-file atomic snapshot; retain immutable files for consistency.
+
+Exit 0 means report construction, including unknowns or overruns, not compliance
+or acceptance. The command does not read credentials, recover pending requests,
+reserve capacity, write/lock files or invoke providers/execution/scoring. Existing
+`method-cost-assess` behavior remains unchanged.

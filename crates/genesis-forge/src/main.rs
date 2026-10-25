@@ -2,6 +2,7 @@ mod acquisition_commands;
 mod method_accounting_commands;
 mod method_admission_commands;
 mod method_chain_commands;
+mod method_chain_cost_commands;
 mod method_revision_commands;
 mod method_roster_commands;
 mod method_stage_commands;
@@ -28,6 +29,7 @@ const HELP: &str = "Usage:
   genesis-forge method-chain-prepare --manifest chain-input.json --chain chain.json
   genesis-forge method-chain-bind --manifest chain-stage-input.json --chain chain.json
   genesis-forge method-chain-check --manifest chain-stage-input.json --chain chain.json
+  genesis-forge method-chain-cost-assess --chain chain.json --manifest chain-costs.json
   genesis-forge method-stage-prepare --manifest stage-input.json --admission admission.json --allocation stage.json
   genesis-forge method-stage-bind --manifest trial-input.json --allocation stage.json
   genesis-forge method-admission-prepare --roster roster.json --admission admission.json
@@ -69,7 +71,7 @@ source is untrusted; prepare-generated packages it without executing it locally.
 acquire-run advances one durable workflow for at most N steps (1..64), stopping
 on failures. It can perform one preplanned semantic repair, never an automatic
 retry of failed provider submissions. Its status output is newline-delimited JSON.
-method-cost-assess is offline and read-only. Exit 0 means report construction,
+method-cost-assess and method-chain-cost-assess are offline and read-only. Exit 0 means report construction,
 including unknown usage or overruns; it is not acceptance or budget compliance.
 Exit codes: 0 success/progress, 1 rejected/failed/reconciliation required, 2 invalid input or local error.
 ";
@@ -110,9 +112,10 @@ impl Arguments {
             "method-generate-prepare" => &["--plan", "--checkpoint"],
             "method-cost-assess" => &["--manifest", "--admission", "--allocation"],
             "method-stage-prepare" => &["--manifest", "--admission", "--allocation"],
-            "method-chain-prepare" | "method-chain-bind" | "method-chain-check" => {
-                &["--manifest", "--chain"]
-            }
+            "method-chain-prepare"
+            | "method-chain-bind"
+            | "method-chain-check"
+            | "method-chain-cost-assess" => &["--manifest", "--chain"],
             "method-stage-bind" => &["--manifest", "--allocation"],
             "method-admission-prepare" => &["--roster", "--admission"],
             "method-admission-status" => &["--admission"],
@@ -252,6 +255,9 @@ async fn run() -> Result<u8, String> {
         "method-stage-prepare" | "method-stage-bind"
     ) {
         return method_stage_commands::run(&args);
+    }
+    if args.command == "method-chain-cost-assess" {
+        return method_chain_cost_commands::run(&args);
     }
     if args.command.starts_with("method-chain-") {
         return method_chain_commands::run(&args);
