@@ -240,6 +240,42 @@ checklist reads:
   (2 rejected), since a rejected update is a valid selective-transfer outcome
   but not an accepted return. No problems are reported.
 
+## Method exchange records
+
+The registry's `MethodOffer` and `MethodSearchResults` responses
+(`crates/genesis-server/src/registry/methods.rs`, see
+[the exchange contract](contracts/method-registry.md)) are read when an
+organization kept them as files, for example the stdout of `genesis method fetch`
+or `genesis method search`. The decoders refuse unknown fields, like the
+registry's own records. Nothing here calls a registry, holds a token or offers a
+control that publishes, fetches or adopts.
+
+Each publisher-qualified exact method is one row, in three separate states. None
+implies the next:
+
+- **Discovered**: a search hit. It carries public metadata only (intent,
+  applicability, runtime, protocol, dependencies) and no source. A truncated
+  search says more matches existed, and an untruncated one is still not proof
+  that nothing else matches.
+- **Fetched**: an offer. Its source is linked to a method only when the SHA-256
+  of the UTF-8 `package_json` equals the reference's hash *and* that package
+  decodes to the same full five-field reference. Otherwise the row says why and
+  a problem is listed. An offer that disagrees with its search hit on intent,
+  applicability, runtime, protocol or dependencies is a problem, and so are two
+  different offers for one publisher and version.
+- **Local decision**: only a lab-adopt outcome that names this exact method. No
+  exchange record creates an adoption, selection or improvement edge.
+
+The publisher is the registry account that submitted the bytes, not their
+author, and a kept response is a record of what was returned, not proof of who
+sent it. The same reference from two publishers is two rows.
+
+Only the four lab-adopt tags (`adopted`, `not_applicable`,
+`insufficient_evidence`, `unknown`, the last three with a `reason`) are read as
+adoption outcomes. Any other `outcome` string is some other record, such as a
+`lab-exec run` result kept as `<slot>.run.json`, and is listed as not read. The
+server's `MethodAdoptionRecord` (#155) is not read yet.
+
 ## Attempt ledger
 
 Status records may carry the optional enum-only `diagnostic` from
