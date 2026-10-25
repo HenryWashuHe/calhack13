@@ -89,13 +89,14 @@ export function buildMatrix(l: Lineage): Matrix {
     });
     row.cells.set(family, results);
   }
-  return { families, familyRefs, rows: [...rows.values()] };
+  // Families in a fixed order; records carry no chronology to sort by.
+  return { families: families.sort(), familyRefs, rows: [...rows.values()] };
 }
 
 /** The process-slot eligibility rule (`assess_process_slot`): the execution
  * generated its output and measured all five usage dimensions. Scoring-grant
  * checks need the evaluation budget, which this view does not decode. */
-function ineligibility(outcome: string, usage: Lineage["executions"][number]["receipt"]["usage"]): string | null {
+export function ineligibility(outcome: string, usage: Lineage["executions"][number]["receipt"]["usage"]): string | null {
   if (outcome !== "output_generated") return `execution ${outcome}`;
   const unmeasured = USAGE_DIMENSIONS.filter((d) => usage[d].kind !== "measured");
   return unmeasured.length > 0 ? `usage not measured: ${unmeasured.join(", ")}` : null;

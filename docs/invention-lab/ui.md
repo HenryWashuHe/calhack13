@@ -240,6 +240,65 @@ checklist reads:
   (2 rejected), since a rejected update is a valid selective-transfer outcome
   but not an accepted return. No problems are reported.
 
+## Results board
+
+The judge-facing board (`ResultsBoard.tsx`) tells the A → B → A pass in six
+steps derived from records (`story.ts`):
+1. A generates;
+2. B tests A's method;
+3. B revises;
+4. B tests its revision;
+5. A tests B's revision;
+6. A decides.
+
+Each step is drawn as a box with its figures and one dot per trial (green
+accepted, red rejected, grey for no verdict or ineligible). A step without
+records is dashed. The same steps follow as plain sentences, then the results
+matrix with one line per run. Every record behind the board sits in a collapsed
+section. Any lineage problem is listed above the steps, never only inside that
+section.
+
+Each sentence says only what its records establish:
+
+- **Generation.** Attempts are split by their own phase and transport. A
+  `prepared` slot is "declared but not sent". An `anthropic_https` attempt is
+  "sent to the model". A `loopback_fixture` attempt is "answered by a loopback
+  fixture, not a model". Anything else has "no recorded transport". Model cost
+  totals only the attempts sent to the model.
+- **Revision.** Its cost is that of the one generation record with the revision
+  observation's organization and operation (and, when it names a package,
+  exactly the child). Without that record the cost is unknown, not zero. No
+  feedback is claimed as the cause, because the records bind none.
+- **Trials.** A trial whose runs are all ineligible counts as "ineligible", not
+  by its verdict. Trials scored on hidden committed panels are counted as such.
+
+Rows name methods by their recorded origin: "*org*'s generated method" or
+"*org*'s revision". A method with no origin record is "control: *id*" only if
+every one of its runs filled a control slot or arm. Otherwise it is "origin not
+in these files: *id*", because one method can be a candidate in one trial and a
+control in another. A run's tooltip names its trial, role, organization and
+panel, and the trial verdict "on its candidate".
+
+On the committed evidence the steps read:
+1. A recorded 3 generation attempts, all sent to the model; 1 produced a package
+   (3 model calls, 12027 / 18315 tokens, failures included).
+2. B tested it in 8 trials on ravine-crossing and rough-transport, 4 of them on
+   hidden committed panels: 2 accepted, 2 rejected, 2 ineligible (hidden
+   attempt 1) and 2 with no verdict file (hidden attempt 2, read in its README).
+3. B recorded a revision, and the source changed (1 model call, 20798 / 5741
+   tokens, from its own generation record).
+4. B tested the revision in 3 rough-transport trials: 1 accepted, 2 rejected.
+5. A tested the revision in 2 return-mix trials: 2 rejected.
+6. No adoption decision is recorded, so there is no accepted return yet.
+
+`node apps/web/src/invention-lab/export-board.mjs [--out FILE] [--evidence DIR]`
+builds one self-contained HTML file with the web app's esbuild. The default
+output is `apps/web/dist/invention-lab-board.html`, which Git ignores. The
+evidence is embedded as a JSON data block with every `<` escaped, and the
+script's `</script` and `<!--` are escaped too, so no evidence file can end or
+blank the page. The page fetches nothing. In the dev preview, choosing A and B
+shows the board.
+
 ## Results matrix
 
 Rows are exact method versions; columns are the task families named by each
