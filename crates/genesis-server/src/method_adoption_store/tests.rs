@@ -1,12 +1,20 @@
 //! Store tests over the same real retained records as `method_adoption`.
 use super::*;
 use crate::method_adoption::tests::{package, Records};
+use crate::method_adoption::AcceptancePin;
 use crate::store::EventMeta;
 use genesis_core::engine::{bootstrap_mission, MissionBootstrap};
 use genesis_core::lifecycle::RequirementStatus;
 use genesis_core::model::{Observation, Owner, Requirement};
-use serde_json::json;
+use serde_json::{json, Value};
 use std::path::PathBuf;
+
+fn plan_ref(records: &Records, trial: &str) -> ExactContentRef {
+    let path = records.receiver.records_root.join(trial).join("plan.json");
+    let plan: genesis_core::development_trial::TrialPlan =
+        serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
+    plan.reference().unwrap()
+}
 
 struct Fixture {
     records: Records,
@@ -18,7 +26,7 @@ struct Fixture {
 
 impl Fixture {
     fn new() -> Self {
-        let records = Records::new();
+        let mut records = Records::new();
         let path = records.dir.path().join("org.sqlite");
         let now = DateTime::parse_from_rfc3339("2026-10-24T12:00:00Z")
             .unwrap()
@@ -94,6 +102,21 @@ impl Fixture {
                 trial: "vs-fixed-cart".into(),
             },
         };
+        // The receiver pins its fixed-cart acceptance plan for this requirement.
+        let pinned: genesis_core::development_trial::TrialPlan = serde_json::from_slice(
+            &std::fs::read(
+                records
+                    .receiver
+                    .records_root
+                    .join("vs-fixed-cart/plan.json"),
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        records.receiver.acceptance_plans.push(AcceptancePin {
+            requirement_id: intent.requirement_id.clone(),
+            plan: pinned.reference().unwrap(),
+        });
         Self {
             records,
             path,
@@ -130,7 +153,27 @@ fn decisions_are_durable_idempotent_and_exactly_pinned() {
     again.client_request_id = "adopt-2".into();
     assert!(matches!(f.create(&again).unwrap_err(), E::AlreadyAdopted));
     changed.client_request_id = "adopt-3".into();
-    let (rejected, _) = f.create(&changed).unwrap();
+    // Under its fixed-cart pin, the receiver can't substitute another trial.
+    assert!(matches!(
+        f.create(&changed).unwrap_err(),
+        E::Acceptance(MethodAcceptanceError::Binding(_))
+    ));
+    // Without any pin for the requirement, nothing can be adopted.
+    let mut receiver = f.records.receiver.clone();
+    receiver.acceptance_plans.clear();
+    assert!(matches!(
+        f.store
+            .create_method_adoption(&changed, &package(), &receiver, f.now)
+            .unwrap_err(),
+        E::Acceptance(MethodAcceptanceError::Binding(_))
+    ));
+    // Had the receiver pinned random search instead, that trial decides.
+    let mut receiver = f.records.receiver.clone();
+    receiver.acceptance_plans[0].plan = plan_ref(&f.records, "vs-random-search");
+    let (rejected, _) = f
+        .store
+        .create_method_adoption(&changed, &package(), &receiver, f.now)
+        .unwrap();
     assert!(matches!(
         rejected.outcome,
         MethodAdoptionOutcome::NotApplicable { .. }
@@ -235,4 +278,59 @@ fn intent_bounds_count_limit_and_organization_are_enforced() {
         adopted.authorize(&state, g.now).unwrap_err(),
         E::Authority(AdoptionFence::AuthorityChanged)
     ));
+}
+
+#[path = "review_selected_acceptance.rs"]
+mod review_selected_acceptance;
+
+#[test]
+fn a_stored_record_that_breaks_its_invariants_is_refused_on_load() {
+    let f = Fixture::new();
+    let (adopted, _) = f.create(&f.intent).unwrap();
+    let other = json!("1".repeat(64));
+    let edits: [&[(&str, Value)]; 5] = [
+        &[(
+            "$.outcome.evidence.acceptance",
+            json!({"acceptance":"rejected","reason":"no"}),
+        )],
+        &[("$.reference.version", json!("next"))],
+        &[("$.outcome.evidence.publisher", json!("org_example_c"))],
+        // Consistent JSON edits that disagree with the indexed columns.
+        &[
+            ("$.reference.sha256", other.clone()),
+            ("$.outcome.evidence.method.sha256", other),
+        ],
+        &[
+            ("$.publisher", json!("org_example_c")),
+            ("$.outcome.evidence.publisher", json!("org_example_c")),
+        ],
+    ];
+    for edit in edits {
+        let conn = f.store.lock();
+        let original: String = conn
+            .query_row(
+                "SELECT record_json FROM method_adoptions WHERE id=?1",
+                [&adopted.id],
+                |r| r.get(0),
+            )
+            .unwrap();
+        for (path, value) in edit {
+            conn.execute(
+                "UPDATE method_adoptions SET record_json=json_set(record_json,?1,json(?2)) WHERE id=?3",
+                rusqlite::params![path, value.to_string(), adopted.id],
+            )
+            .unwrap();
+        }
+        drop(conn);
+        let refused = f.store.method_adoption(&adopted.id).unwrap_err();
+        assert!(matches!(refused, E::InvalidRecord), "{edit:?}");
+        f.store
+            .lock()
+            .execute(
+                "UPDATE method_adoptions SET record_json=?1 WHERE id=?2",
+                rusqlite::params![original, adopted.id],
+            )
+            .unwrap();
+    }
+    assert_eq!(f.store.method_adoption(&adopted.id).unwrap(), adopted);
 }

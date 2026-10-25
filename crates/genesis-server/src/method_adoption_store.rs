@@ -56,6 +56,31 @@ pub enum MethodAdoptionOutcome {
     Declined { reason: String },
 }
 impl MethodAdoptionOutcome {
+    /// Each outcome holds exactly the acceptance it was derived from.
+    fn consistent(&self) -> bool {
+        match self {
+            Self::Adopted { evidence } => {
+                matches!(evidence.acceptance, Acceptance::Accepted { .. })
+            }
+            Self::NotApplicable { evidence } => {
+                matches!(evidence.acceptance, Acceptance::Rejected { .. })
+            }
+            Self::InsufficientEvidence { evidence } => {
+                matches!(evidence.acceptance, Acceptance::Insufficient { .. })
+            }
+            Self::Unknown { evidence } => matches!(evidence.acceptance, Acceptance::Unknown { .. }),
+            Self::Declined { .. } => true,
+        }
+    }
+    fn evidence(&self) -> Option<&AcceptanceEvidence> {
+        match self {
+            Self::Adopted { evidence }
+            | Self::NotApplicable { evidence }
+            | Self::InsufficientEvidence { evidence }
+            | Self::Unknown { evidence } => Some(evidence),
+            Self::Declined { .. } => None,
+        }
+    }
     fn label(&self) -> &'static str {
         match self {
             Self::Adopted { .. } => "adopted",
@@ -126,8 +151,23 @@ pub struct MethodAdoptionRecord {
 }
 
 impl MethodAdoptionRecord {
+    /// The record's own invariants: the outcome matches its acceptance, and
+    /// assessed evidence names exactly this record's selection.
+    fn validate(&self) -> Result<()> {
+        let bound = self
+            .outcome
+            .evidence()
+            .is_none_or(|e| e.method == self.reference && e.publisher == self.publisher);
+        if self.schema_version != 1 || !self.outcome.consistent() || !bound {
+            return Err(E::InvalidRecord);
+        }
+        Ok(())
+    }
+
     /// The current owner grant this adopted method may run under, or why not.
+    /// The invocation route always authorizes records reloaded from the store.
     pub fn authorize(&self, state: &OrgState, now: DateTime<Utc>) -> Result<DispatchGrant> {
+        self.validate()?;
         if !matches!(self.outcome, MethodAdoptionOutcome::Adopted { .. }) {
             return Err(E::NotAdopted);
         }
@@ -166,20 +206,23 @@ fn digest<T: Serialize>(value: &T) -> Result<String> {
 }
 
 fn load(conn: &Connection, id: &str) -> Result<MethodAdoptionRecord> {
-    let row: Option<(String, String, String)> = conn
+    type Row = (String, String, String, String, String);
+    let row: Option<Row> = conn
         .query_row(
-            "SELECT record_json,outcome,client_request_id FROM method_adoptions WHERE id=?1 AND length(CAST(record_json AS BLOB))<=?2",
+            "SELECT record_json,outcome,client_request_id,publisher,method_sha256 FROM method_adoptions WHERE id=?1 AND length(CAST(record_json AS BLOB))<=?2",
             params![id, MAX_RECORD_BYTES as i64],
-            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?)),
         )
         .optional()?;
-    let (json, outcome, client_request_id) = row.ok_or(E::NotFound)?;
+    let (json, outcome, client_request_id, publisher, sha256) = row.ok_or(E::NotFound)?;
     let record: MethodAdoptionRecord =
         decode_json(json.as_bytes()).map_err(|_| E::InvalidRecord)?;
+    record.validate()?;
     if record.id != id
-        || record.schema_version != 1
         || record.outcome.label() != outcome
         || record.client_request_id != client_request_id
+        || record.publisher.as_str() != publisher
+        || record.reference.sha256 != sha256
     {
         return Err(E::InvalidRecord);
     }
@@ -258,8 +301,21 @@ impl Store {
                     reference: intent.reference.clone(),
                     package_json: package_json.into(),
                 };
+                let pinned = receiver
+                    .acceptance_plan(&intent.requirement_id)
+                    .ok_or_else(|| {
+                        MethodAcceptanceError::Binding(
+                            "this requirement has no receiver-pinned acceptance plan".into(),
+                        )
+                    })?;
                 let evidence =
                     Box::new(assess_selected(receiver, &state.org_id, &selected, trial)?);
+                if evidence.plan != *pinned {
+                    return Err(MethodAcceptanceError::Binding(
+                        "the trial is not this requirement's pinned acceptance plan".into(),
+                    )
+                    .into());
+                }
                 match evidence.acceptance {
                     Acceptance::Accepted { .. } => MethodAdoptionOutcome::Adopted { evidence },
                     Acceptance::Rejected { .. } => {

@@ -234,6 +234,49 @@ fn refused(output: Output) {
 }
 
 #[test]
+fn explicitly_generation_only_stage_reports_known_costs_without_trial_companion() {
+    let f = Files::new();
+    // Construct a separate synthetic declaration, not a relabeling of real evidence.
+    let mut allocation = f.read("evidence/generation/allocation.json");
+    allocation["limits"]["max_trial_slots"] = 0.into();
+    allocation["limits"]["development_grant"] = json!(grant(0));
+    allocation["limits"]["scoring_grant"] = json!(grant(0));
+    let allocation: StageAllocation = serde_json::from_value(allocation).unwrap();
+    let mut chain = f.read("declaration/chain.json");
+    chain["stages"].as_array_mut().unwrap().truncate(2);
+    chain["stages"][0]["limits"] = json!(allocation.limits());
+    let chain: ChainAllocation = serde_json::from_value(chain).unwrap();
+    let binding = chain.bind_generation("develop-a", &allocation).unwrap();
+    let trial = serde_json::from_value(f.read("evidence/reuse/plan.json")).unwrap();
+    let scope = serde_json::from_value(f.read("evidence/reuse/scope.json")).unwrap();
+    let reuse = chain.bind_trial_only("reuse-b", &trial, &scope).unwrap();
+    f.save("declaration/chain.json", &chain);
+    f.save("declaration/chain.json.stage-develop-a.json", &binding);
+    f.save("declaration/chain.json.stage-reuse-b.json", &reuse);
+    f.save("evidence/generation/allocation.json", &allocation);
+    let mut scope = f.read("evidence/generation/scope.json");
+    scope["trial"] = Value::Null;
+    f.save("evidence/generation/scope.json", &scope);
+    let mut manifest = f.read("evidence/generation/cost.json");
+    manifest.as_object_mut().unwrap().remove("trial");
+    f.save("evidence/generation/cost.json", &manifest);
+    fs::remove_file(
+        f.root
+            .join("evidence/generation/allocation.json.trial-binding.json"),
+    )
+    .unwrap();
+    let before = f.snapshot();
+    let report = ok(f.command());
+    assert_eq!(report["stages"][0]["unresolved_trial"], false);
+    assert_eq!(report["stages"].as_array().unwrap().len(), 2);
+    for (index, total) in report["combined"].as_array().unwrap().iter().enumerate() {
+        assert_eq!(total["unknown"], false);
+        assert_eq!(total["known_lower_bound"], if index == 4 { 4 } else { 5 });
+    }
+    assert_eq!(before, f.snapshot());
+}
+
+#[test]
 fn nested_paths_match_library_and_legacy_stage_report_without_touching_locks() {
     let f = Files::new();
     for path in [

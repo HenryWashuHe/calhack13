@@ -31,6 +31,14 @@ pub fn router(state: AppState) -> Router {
         .route("/organization/audit", get(org::audit))
         .route("/missions", post(org::create_mission))
         .route("/missions/{id}/observations", post(org::add_observation))
+        .route(
+            "/missions/{id}/method-development",
+            post(crate::method_development_intake::create).layer(DefaultBodyLimit::max(16 * 1024)),
+        )
+        .route(
+            "/missions/{id}/method-development/{request_id}",
+            get(crate::method_development_intake::get),
+        )
         .route("/missions/{id}/requirements", post(org::add_requirement))
         .route("/contracts/{id}/state", post(org::update_contract))
         .route("/planner/decisions", post(org::planner_decision))

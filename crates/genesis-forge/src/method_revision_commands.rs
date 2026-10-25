@@ -2,13 +2,25 @@
 //! generation commands retain sole responsibility for provider calls/recovery.
 use crate::{emit, storage, Arguments};
 use genesis_forge::{
-    method_revision::MethodRevisionSpec, method_synthesis::MethodSynthesisSession,
+    method_revision::{MethodRevisionInput, MethodRevisionSpec, MAX_METHOD_REVISION_INPUT_BYTES},
+    method_synthesis::MethodSynthesisSession,
 };
 
 pub fn run(args: &Arguments) -> Result<u8, String> {
-    let spec: MethodRevisionSpec = storage::read_json(args.path("--plan")?)?;
-    // Revision v1's canonical parent is one public document, capped at 128 KiB.
-    let parent = storage::read_bytes(args.path("--parent")?, 128 * 1024)?;
+    let (spec, parent) = if let Some(path) = args.paths.get("--input") {
+        let input: MethodRevisionInput = genesis_verification::decode_json(&storage::read_bytes(
+            path,
+            MAX_METHOD_REVISION_INPUT_BYTES,
+        )?)
+        .map_err(|_| "invalid revision input JSON/schema".to_string())?;
+        input.validate().map_err(|e| e.to_string())?;
+        (input.spec, input.parent_package_json.into_bytes())
+    } else {
+        let spec: MethodRevisionSpec = storage::read_json(args.path("--plan")?)?;
+        // Revision v1's canonical parent is one public document, capped at 128 KiB.
+        let parent = storage::read_bytes(args.path("--parent")?, 128 * 1024)?;
+        (spec, parent)
+    };
     if args.command == "method-revise-prepare" {
         let session = spec.prepare(&parent).map_err(|e| e.to_string())?;
         let lock = storage::CheckpointLock::acquire(args.path("--checkpoint")?)?;
