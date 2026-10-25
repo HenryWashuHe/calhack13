@@ -37,6 +37,7 @@ pub mod error;
 pub mod method_adoption;
 pub mod method_adoption_store;
 pub mod method_invocation;
+pub mod method_invocation_run;
 pub mod outbox;
 pub mod projection;
 pub mod registry;
@@ -292,6 +293,7 @@ pub fn build_org(cfg: &OrgConfig, providers: Option<ProviderSet>) -> anyhow::Res
     store.init_capability_pins()?;
     store.init_capability_adoptions()?;
     store.init_method_adoptions()?;
+    store.init_method_runs()?;
     store.init_capability_invocations()?;
     store.init_venue_assessments()?;
     store.init_venue_monitors()?;
