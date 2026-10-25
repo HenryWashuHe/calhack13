@@ -3,7 +3,7 @@
 
     invoke.py prepare --org URL --key KEY --request REQ.json --plan PLAN.json --out DIR
     invoke.py run DIR --package PKG.json --lab-exec PATH --sandbox namespaces|none
-    invoke.py score DIR --lab-score PATH
+    invoke.py score DIR --lab-score PATH [--send-output]
 
 `prepare` asks the receiving organization to freeze the proposed one-slot
 invocation plan (POST /method-runs) and keeps its record in DIR, which must not
@@ -16,7 +16,10 @@ is recovered with `lab-exec recover` and its receipt posted by hand.
 `score` runs `lab-score score` once on a completed run's frozen plan and
 receipt, then posts the evaluation (POST /method-runs/{id}/result). The server
 decides whether the scored output is attached to the responsibility; the
-score never stands in for an acceptance or a comparison.
+score never stands in for an acceptance or a comparison. With --send-output it
+also sends the scored output's bytes, which an organization that rescores
+results requires: it reruns its own pinned scorer and refuses an evaluation
+that doesn't reproduce.
 
 The operator token is read from $GENESIS_OPERATOR_TOKEN, never from argv.
 Standard library only.
@@ -133,7 +136,15 @@ def score(a):
     evaluation = os.path.join(out, "evaluation.json")
     if not os.path.exists(evaluation):
         die(f"lab-score exited {code} without an evaluation; nothing posted")
-    status, done = call(f"{org}/method-runs/{record['id']}/result", load(evaluation))
+    body = load(evaluation)
+    if a.send_output:
+        state = os.path.join(a.dir, "state")
+        outputs = load(os.path.join(state, "receipt.json")).get("outputs") or []
+        if not outputs:
+            die("the receipt names no output to send; nothing posted")
+        with open(os.path.join(state, "artifacts", outputs[0]["sha256"]), "rb") as f:
+            body = {"evaluation": body, "output_hex": f.read().hex()}
+    status, done = call(f"{org}/method-runs/{record['id']}/result", body)
     if status != 200:
         write_new(os.path.join(a.dir, "result-refused.json"), {"status": status, "body": done})
         die(f"result refused ({status})")
@@ -155,6 +166,8 @@ def main(argv=None):
     sc = sub.add_parser("score")
     sc.add_argument("dir")
     sc.add_argument("--lab-score", required=True)
+    sc.add_argument("--send-output", action="store_true",
+                    help="also send the scored output, for an organization that rescores")
     a = p.parse_args(argv)
     {"prepare": prepare, "run": run, "score": score}[a.cmd](a)
 

@@ -30,6 +30,7 @@ test("direct CLI runs and resolves fixtures from a path with URL-escaped charact
   const copiedRepo = join(f.root, "repo with spaces # percent% ü");
   for (const relative of [
     "scripts/live-gates/run.mjs",
+    "scripts/live-gates/creao-trigger.mjs",
     "actors/venue-extractor-template/tests/baseline-extractor.ts",
     "crates/genesis-forge/examples/synthesis/candidate.json",
   ]) {
@@ -68,7 +69,7 @@ test("importing the runner does not execute its CLI", (t) => {
 
 test("scrub covers supplied credential names and conventional credential suffixes", () => {
   const names = ["ELASTIC_DATA_API_KEY", "ELASTIC_MANAGEMENT_API_KEY", "AGENTVERSE_API_KEY",
-    "APIFY_TOKEN", "CREAO_ACCOUNT_API_KEY", "CREAO_V2_API_KEY", "ASI_ONE_API_KEY",
+    "APIFY_TOKEN", "CREAO_ACCOUNT_API_KEY", "CREAO_V2_API_KEY", "CREAO_TRIGGER_API_KEY", "CREAO_TRIGGER_API_KEY_PREVIOUS", "CREAO_V2_API_KEY_OLD", "ASI_ONE_API_KEY",
     "GENESIS_LLM_API_KEY", "GENESIS_AGENT_TOKEN", "OTHER_SERVICE_TOKEN", "APP_SECRET",
     "SERVICE_PASSWORD", "GENESIS_ACP_SEED"];
   const env = Object.fromEntries(names.map((name, i) => [name, `offline-${i}-credential-end`]));

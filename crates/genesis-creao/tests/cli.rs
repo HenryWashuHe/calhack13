@@ -6,7 +6,16 @@ use std::process::{Command, Output};
 
 fn command() -> Command {
     let mut command = Command::new(env!("CARGO_BIN_EXE_genesis-creao"));
-    command.env_remove("CREAO_ACCOUNT_API_KEY");
+    for name in [
+        "CREAO_ACCOUNT_API_KEY",
+        "CREAO_V2_API_KEY",
+        "CREAO_API_VERSION",
+        "CREAO_TRIGGER_API_KEY",
+        "CREAO_TRIGGER_APP_ID",
+        "CREAO_TRIGGER_RUNS_URL",
+    ] {
+        command.env_remove(name);
+    }
     command
 }
 fn spec() -> OperationSpec {
@@ -131,7 +140,7 @@ fn step_requires_environment_credentials_without_mutating_prepared_record() {
         .output()
         .unwrap();
     assert!(!result.status.success());
-    assert!(String::from_utf8_lossy(&result.stderr).contains("CREAO_ACCOUNT_API_KEY"));
+    assert!(String::from_utf8_lossy(&result.stderr).contains("CREAO_TRIGGER_API_KEY"));
     assert!(!quota.exists());
     assert_eq!(
         output(
@@ -146,12 +155,12 @@ fn step_requires_environment_credentials_without_mutating_prepared_record() {
     );
 }
 #[test]
-fn blank_api_version_allows_offline_recovery_without_provider_requests() {
+fn blank_api_version_defaults_to_trigger_for_offline_recovery() {
     let dir = tempfile::tempdir().unwrap();
     let db = dir.path().join("org.sqlite");
     let quota = dir.path().join("account.sqlite");
     let input = dir.path().join("spec.json");
-    std::fs::write(&input, serde_json::to_vec(&spec()).unwrap()).unwrap();
+    std::fs::write(&input, serde_json::to_vec(&trigger_spec()).unwrap()).unwrap();
     output(prepare(&db, &input));
     for version in ["", "  "] {
         let recovered = output(
@@ -166,7 +175,8 @@ fn blank_api_version_allows_offline_recovery_without_provider_requests() {
                     "--quota-db",
                 ])
                 .arg(&quota)
-                .env("CREAO_ACCOUNT_API_KEY", "cr_sk_synthetic_test_only")
+                .env("CREAO_TRIGGER_API_KEY", "capi_synthetic_test_only")
+                .env("CREAO_TRIGGER_APP_ID", APP)
                 .env("CREAO_API_VERSION", version)
                 .output()
                 .unwrap(),
@@ -176,7 +186,7 @@ fn blank_api_version_allows_offline_recovery_without_provider_requests() {
     }
 }
 #[test]
-fn reconcile_agent_refuses_unrelated_prepared_work_before_network() {
+fn legacy_agent_reconciliation_is_disabled_without_network() {
     let dir = tempfile::tempdir().unwrap();
     let db = dir.path().join("org.sqlite");
     let quota = dir.path().join("account.sqlite");
@@ -202,7 +212,8 @@ fn reconcile_agent_refuses_unrelated_prepared_work_before_network() {
         .output()
         .unwrap();
     assert!(!result.status.success());
-    assert!(String::from_utf8_lossy(&result.stderr).contains("needs reconciliation"));
+    assert!(String::from_utf8_lossy(&result.stderr)
+        .contains("Developer agent reconciliation is disabled"));
     let current = command()
         .args(["status", "--db"])
         .arg(&db)
@@ -224,4 +235,108 @@ fn token_endpoint_and_blind_retry_flags_are_not_supported() {
     assert!(result.status.success());
     assert!(String::from_utf8_lossy(&result.stdout)
         .contains("native completion is not organization authority"));
+}
+
+const APP: &str = "00000000-0000-4000-8000-000000000001";
+fn trigger_spec() -> OperationSpec {
+    let mut value = spec();
+    value.api_version = genesis_creao::ApiVersion::Trigger;
+    value.request = OperationRequest::CreateRun(genesis_creao::RunRequest {
+        agent_id: APP.into(),
+        input: serde_json::json!({"task":"bootstrap", "role":"test-only"}),
+        model: None,
+        conversation_id: None,
+        workspace_id: None,
+    });
+    value
+}
+
+#[test]
+fn legacy_execution_is_disabled_and_preserves_its_offline_checkpoint() {
+    let dir = tempfile::tempdir().unwrap();
+    let db = dir.path().join("old.sqlite");
+    let quota = dir.path().join("quota.sqlite");
+    let input = dir.path().join("old.json");
+    let mut legacy = spec();
+    legacy.api_version = genesis_creao::ApiVersion::V2;
+    std::fs::write(&input, serde_json::to_vec(&legacy).unwrap()).unwrap();
+    let before = output(prepare(&db, &input));
+    for version in ["v2", "trigger"] {
+        let result = command()
+            .args(["step", "--db"])
+            .arg(&db)
+            .args([
+                "--org",
+                "org_a",
+                "--operation",
+                "cli-create",
+                "--account",
+                "shared-demo-account",
+                "--quota-db",
+            ])
+            .arg(&quota)
+            .env("CREAO_API_VERSION", version)
+            .env("CREAO_TRIGGER_API_KEY", "capi_synthetic_test_only")
+            .env("CREAO_TRIGGER_APP_ID", APP)
+            .output()
+            .unwrap();
+        assert!(!result.status.success());
+        assert!(!String::from_utf8_lossy(&result.stderr).contains("capi_synthetic_test_only"));
+        assert_eq!(
+            output(
+                command()
+                    .args(["status", "--db"])
+                    .arg(&db)
+                    .args(["--org", "org_a", "--operation", "cli-create"])
+                    .output()
+                    .unwrap()
+            ),
+            before
+        );
+    }
+}
+
+#[test]
+fn trigger_prepared_intent_is_explicit_and_bad_url_never_advances_it() {
+    let dir = tempfile::tempdir().unwrap();
+    let db = dir.path().join("trigger.sqlite");
+    let quota = dir.path().join("quota.sqlite");
+    let input = dir.path().join("trigger.json");
+    std::fs::write(&input, serde_json::to_vec(&trigger_spec()).unwrap()).unwrap();
+    let before = output(prepare(&db, &input));
+    assert_eq!(before["api_version"], "trigger");
+    let result = command()
+        .args(["step", "--db"])
+        .arg(&db)
+        .args([
+            "--org",
+            "org_a",
+            "--operation",
+            "cli-create",
+            "--account",
+            "shared-demo-account",
+            "--quota-db",
+        ])
+        .arg(&quota)
+        .env("CREAO_TRIGGER_API_KEY", "capi_synthetic_test_only")
+        .env("CREAO_TRIGGER_APP_ID", APP)
+        .env(
+            "CREAO_TRIGGER_RUNS_URL",
+            "https://PRIVATE_CANARY@invalid.example/runs",
+        )
+        .output()
+        .unwrap();
+    assert!(!result.status.success());
+    assert!(!String::from_utf8_lossy(&result.stderr).contains("PRIVATE_CANARY"));
+    assert_eq!(
+        output(
+            command()
+                .args(["status", "--db"])
+                .arg(&db)
+                .args(["--org", "org_a", "--operation", "cli-create"])
+                .output()
+                .unwrap()
+        ),
+        before
+    );
 }
