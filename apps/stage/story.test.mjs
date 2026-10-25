@@ -40,9 +40,9 @@ const card = (h) => text(h.get("decision"));
 
 test("the replay opens on the thesis and a named chapter rail replaces the dots", () => {
   const h = harness(async () => { throw new Error("no network"); });
-  assert.equal(h.get("dots").children.length, 8);
+  assert.equal(h.get("dots").children.length, 9);
   assert.equal(h.get("dots").children[0].textContent, "Thesis");
-  assert.equal(h.get("dots").children[7].textContent, "Audit");
+  assert.equal(h.get("dots").children[8].textContent, "Audit");
   assert.ok(h.get("dots").children.every((b) => b.classes.has("dot")), "chapter buttons keep the dot contract");
   h.get("playreplay").handlers.click();
   assert.equal(h.get("beat").textContent, "An AI organization that changes shape and keeps what it learns.");
@@ -57,7 +57,7 @@ test("every scene says which path is the real kernel and which is a fixture stan
   const chips = h.get("proof").children.map(classes);
   assert.ok(chips.some((c) => c.includes("real")), "the kernel's validation and commit are real");
   assert.ok(chips.some((c) => c.includes("fixture")), "the proposal in the fixture came from the scenario script");
-  for (let i = 0; i < 8; i++) { h.get("dots").children[i].handlers.click(); assert.ok(h.get("proof").children.length >= 1, `scene ${i} carries proof chips`); }
+  for (let i = 0; i < 9; i++) { h.get("dots").children[i].handlers.click(); assert.ok(h.get("proof").children.length >= 1, `scene ${i} carries proof chips`); }
 });
 
 test("a thrown disruption shows a decision card that clears with the replay", () => {
