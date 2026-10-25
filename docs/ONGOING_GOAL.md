@@ -5,15 +5,16 @@
 Active repository: [genesis-history-experiment](https://github.com/HenryWashuHe/genesis-history-experiment). See the
 [migration map](REPOSITORY_MIGRATION.md) for old/new PR numbers and preserved work.
 
-Status: ongoing work resumed by the user on October 23, 2026 (Pacific time).
-The existing hourly continuation is active. This is the durable repository
-objective and completion contract, read alongside current [ownership](AGENT_HANDOFF.md#current-ownership-and-next-work)
+Status: the native app Goal and hourly continuation are active; no completion
+is claimed. This is the durable repository objective and completion contract,
+read alongside current [ownership](AGENT_HANDOFF.md#current-ownership-and-next-work)
 and [coordination issue #1](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1).
 
-The stale app Goal was cleared. On October 24, 2026 the revised G0–G4 objective
-was created as an active app Goal under the user's standing request, with no
-invented token budget. The existing hourly continuation remains active and uses
-this completion contract. The user delegated ongoing direction while sleeping
+The stale app Goal was cleared and the revised G0–G4 objective created on
+October 24, 2026 under the user's standing request, with no invented token budget.
+The current active Goal and existing hourly continuation use this completion
+contract; earlier blocked status did not mark the objective achieved. The user
+delegated ongoing direction while sleeping
 and explicitly reaffirmed the full moonshot; implementation milestones do not
 narrow the long-term objective or complete unproved gates.
 
@@ -102,8 +103,23 @@ failures or input that is actually required.
 
 ## Current milestone ledger
 
+Queue cleanup closes no gate. #176/#177/#178 were closed as superseded after
+exact code/test comparisons; #143 is deferred outside the active goal. Their
+branches remain. Proposals #182/#183 are merged, while #180/#181 stay held on
+static lifecycle/host-execution findings. Henry prioritizes #179/#186 and #168;
+Eric #148/#149 and #180/#181; ACP #144 after #126 merged. #184 `68e05610` remains held on
+calibration unknown-to-zero and timeout/failure handling before new research runs. Ines remains unassigned.
+
 | Milestone | Owner and evidence | Next action |
 | --- | --- | --- |
+| Stage observation input, Delivery | #126 `702ee560` → `eb08a232`; root, independent reviewer and final composition each pass 52 offline VM cases (overlapping). All 49 old tests unchanged plus three ambiguity guards; tree `90c52423` matches `33cea78f` | Later-poll identity and uncertain-delivery wording corrected. No live POST, browser/provider execution, authority or sponsor evidence. |
+| Staging collision, G0/G1 support | #167 `d2b76522` → `0643c9ef`; root reviewed the five-line correction, locked executor check and strict all-target Clippy. Composition `7caa4866` / tree `9a61426b` matched main | No runtime or namespace tests ran in review; #57/#65 assurance remains separate. |
+| Selective-transfer records, G4 context | #165 `cb5f28f0` → `b99839df`; 713 manifest entries, 523 artifacts, 12 slot bindings and nine declaration comparisons pass static checks; raw records unchanged | Existing parent wins in rough-transport, not ravine; attempt 2 followed seeing attempt 1. Corrected evidence is not recursive improvement, a rerun or independent secrecy/runtime assurance. |
+| Reconciled ACP / research proposals, Delivery | #4 `be7056c6` → `9da2fc12`; #182 `28e398e5` → `c2b748cf`; #183 `813e05f1` → `d28e898c`. Root/independent document review and local links checked | ACP read/observation authority stays bounded. New split bytes require a new digest/plan; costs include actual paired runs; confirmation is terminal. No implementation, source execution, model call or gate closure. |
+| Retained whole-roster CLI, G4 prerequisite | Codex #191 `b6750eec9d6f6360965812ff24fe855d9feee57b` → `b16f8eb7b00c322b49efb3d5c9c41e084ca04adb`; independent #192 `1eb15a88` → `8493a8ce`. Root 21 initial scoped cases, 20 overlapping independent checks and 12 final composition cases pass, scoped strict Clippy/fmt | Bounded create-only capture/read-only recheck names canonical cohort/declaration/report hashes and eight selected references/absence. Final tree `1a3fce96` matches `416ff677`. Generation provenance, chain costs, fresh-panel consumption, chronology and governance remain open; not an experiment result. |
+| Public eligibility adapter, G4 prerequisite | Henry #174 `f67ae448d2bbc1578edc092356fd68ea3801d4f4` → `73d039b500e25ced05d20e22fdc5a27b693403ae`; five focused tests plus three inert-file checks and scoped strict Clippy/fmt clear the size/path hold | Shared typed assessment only. Endpoint #168 still needs family-specific policy, full method identity and ordered/not-run roster fixes; no scorer/evaluator execution or G4 claim. |
+| Invocation identity, G2 prerequisite | Henry #185 `811c6f5ca84bb1914f1e1a7979df962b37803487` → `b1b2c8f2e3f5d1489ed2db61905ccef479fbd1d0`; independent guards #188 `e4824046` → `68604b92`; 23 pure core tests and scoped strict Clippy pass | Claimed grant identity only. #179 policy/store corrections and draft #186 governed invocation remain Henry-owned and unmerged; no execution/adoption proof or gate closure. |
+| Whole development roster, G4 prerequisite | Codex #187 `da669296849afb0c1317d3c3681bfcf7bb357ff3` → `bb9f7c2873ffa29eed7629447712566121a2d272`; independent #189 `d2304309cf7ed98bb477503e1d4b6e6db3ee5c26` → `899de43d68f66cc07d39414f44bf7c792f022031`. Final composition `4b0d330a`, tree `04ee987a`, passes 30 scoped forge cases and strict Clippy/fmt | Eight selections/24 positions bind round methods, controls, runtime settings, family policy and numeric trial grants. Operator capture/check is supplied by #191; generation/chain links, fresh-panel consumption, chronology and governance remain open. No provider/runtime execution or G4 claim. |
 | Canonical framing and status separation | Legacy #127/#131 already present in new main `e1f2264` with identical source tree | Maintain claim/evidence distinctions; no event-organizer revival |
 | Repository continuity, delivery prerequisite | #17 merged at `6d1b7dc`, source `0d9775b`: 140 links/anchors checked; new issue #1 and hourly target; all twelve repair WIP files preserved in draft #7 at `110a107` | Work/push here; reconcile later legacy deltas without overwriting newer destination work |
 | Live-gate tooling prerequisite | #16 merged at `66fc95b8`, source `bd706a2`: 24 offline tests passed, nine baseline regressions reproduced | Escaped-path execution and public evidence redaction fixed; no protocol alias or live workflow result implied |
@@ -115,7 +131,7 @@ failures or input that is actually required.
 | Selective adoption foundation | #8/#10/#11/#12 merged; #14 source `505312ad7efcee57439efc6bf2f054c8899e0c73` merged `407b692` with candidate/control and receipt-field corrections | Integrate method adoption with the trusted runtime; a reviewed proposal does not prove local acceptance |
 | Fresh Actor packaging, supporting execution prerequisite | #21 merged `983f0443`, source `d20cb5e`, reviewed composition `7cc59ee`: 149 author tests and 58 independent focused tests; merged tree matches reviewed `be312625` | Fresh metadata now binds before hashing; legacy exact checkpoints remain unchanged and unresolved effects cannot replay. A later [reported live build and run](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6380843098) succeeded, but forge verification failed; preserve previous checkpoints |
 | Constitution audit and evidence UI | Eric’s #9 merged `f8bffa26`; Henry’s #15 source `fd60f1a2a6de33daf30afc87f80544c1833681a9` merged `b94af6d`: 13 focused tests and typecheck, independent `ae6ba16` unchanged | Evidence-display holds cleared. Eric retains the lab UI lane; #93 `9733b96` / #94 `9ac13fc` retain the two existing findings and independent `78adef37`. #99–#101 await those base fixes |
-| ACP correctness | #3 source `f64e131` merged `5b2615f`; #5 source `e95a286` merged `4ac3620`. Independent full bridge suites pass 148/148 and 158/158, zero skips; all eight `bb5a841`/`0705ecd`/`b60a755` cases unchanged. Final bridge subtree `5d040d9c` matches reviewed composition `9c636f19` | Atomicity and intermediate-schema index-name holds cleared. Preserve all probes. ACP retains held #4 routing/status/demo docs: reconcile with merged #3/#5, local executor/scorer and issue #1; no event-organizer revival or public ASI claim |
+| ACP correctness | #3 source `f64e131` merged `5b2615f`; #5 source `e95a286` merged `4ac3620`. Independent full bridge suites pass 148/148 and 158/158, zero skips; all eight `bb5a841`/`0705ecd`/`b60a755` cases unchanged. Final bridge subtree `5d040d9c` matches reviewed composition `9c636f19` | Atomicity and intermediate-schema index-name holds cleared. Preserve all probes. Corrected #4 source `be7056c6` merged at `9da2fc12`; current routing/proposed commands and product-neutral examples are reconciled. No public ASI claim or added authority |
 | Demonstration view, Delivery | [#20](https://github.com/HenryWashuHe/genesis-history-experiment/pull/20) merged `7023077`, source `bfe10d9`; independent composition `7508c5b`: 15 tests pass, original independent files preserved | Neutral startup, explicit fixture opt-in, ordered live updates and exact manifest identity are implemented. VM tests are not a browser walkthrough or sponsor evidence |
 | Simulator/evaluator, G0/G1 | #37/#38/#39 sources `858ca41` / `7a16825` / `5f1e151` merged `dc574135` / `3da2d4f` / `965ffb34`. Composition `949eb569440da6b4a81b5d1b2ca3fc7cc1774839`, tree `2596db96354f10ad0bc5df857c9303105a200bae`: 22 tests, strict Clippy/fmt on ARM64 debug; independent geometry/weld files unchanged | Primitives are on main; shape, full-body bounds, weld and torque holds cleared. Retain fixed evaluator identity; no cross-platform, real-engineering or method-loop claim |
 | Executor foundations/session, G0/G1 | #42 source `638ac262`, merge `a76735d15f7880a6b5d0b809126dcdc630dbf7a0`; #43 source `53054d50`, merge `58bcaefb87a0fefdce90d36bd337ce346685fd5c`. Composition `a1e2afdce49294c7b962bdbbe96836e50d21982a` / tree `5e0243f2875a929548f8eafa2baf9209f1215380`: 19 portable tests executed, one Linux namespace test self-skipped; strict Clippy/fmt pass | Admission/model-zero/finalization/sealed-submit holds cleared; unchanged `b73b62d` probes and original reply-backpressure `3784da9` pass. Best-effort mounts and trusted-directory storage are not general untrusted-execution proof |
@@ -161,7 +177,7 @@ failures or input that is actually required.
 | Optional generation chain guard, G4 prerequisite | #110 source `4b57cfaec375f9ed8b4efba22427b4868a536340`, merge `0f277d791b59b0bc7957751dc328cf99f5b89936`; independent 34 focused tests pass, author 33 focused tests and strict Clippy/fmt (overlapping counts) | Optional `--chain` checks exact retained binding before recovery/credentials/reservation/provider submission. Cooperative path only; no gate closure, alternate-path enforcement or executor-entry consumption claim. |
 | UI evidence boundaries, Delivery | #94 `7ed70f9eef4136eec99086e7a1901adc6368ef3f` → `0398dc56`, composition `ef484cbf`: 21 focused checks/typecheck pass, all six unchanged `78adef37` cases. #115 `e9c25f38` → `54cb42e` retains label cases; main preserves the original 121 lines. #99 `f09bf473` → `302397ae` / #100 `76c2cd54` → `d11f01fc`: 42 focused checks/typecheck, four unchanged cases, four Rust receipt hashes and 11 SHA vectors pass | Label, organization, exact arithmetic and execution/scoring holds cleared for merged heads. #101 `ed8b64de` merged `95256998`, matching reviewed tree `ec822b18`: 52 focused UI checks/typecheck pass; full 119-line `59c3e1c` unchanged. Archival stage #108 `ece3c614` merged `d810a670`; composition `1632f08` passes 22 Node checks/independent DOM probes. Supporting presentation only; no goal closure or event-organizer revival. |
 | Evidence manifest UI, Delivery | #109 source `2cfb4058ed91bcf156d25ff86b359825ada5e5c5` → `5ed65deb469a6a7a8c8bf747517a143e90de5dad`: 66 focused tests/11 files and typecheck pass. Original `f2ac45e5` five cases/70 lines unchanged; reviewed composition `e2914b6` web bytes match main | Format and full inspection-attribution holds cleared. Later real-evidence #123 is recorded below. UI display correctness closes no method-loop gate. |
-| Real-evidence UI, Delivery | #123 `7196d5c63fecccd1c36a48462d63aa3d9bf80272` → parent-branch merge `4515f728`; #128 final `2f0b6734a5dfe61f7b51e11b1aa23e461fdc0ce3` → actual main merge `a3be74d0fd4d067c99a928bb8315d69fd05010ea`. Web bytes match reviewed #123; 81 UI tests/13 files and typecheck independently rerun; original regressions unchanged | Folder-dedup, package-byte and inspection-identity holds cleared. Stage #125 `811d0df2` is merged after 33 offline VM tests, original guard unchanged; #126 `957edf8b` remains held on acknowledgment/card attribution, with 45 original tests passing and two new failing guards. No adoption or authority claim. |
+| Real-evidence UI, Delivery | #123 `7196d5c63fecccd1c36a48462d63aa3d9bf80272` → parent-branch merge `4515f728`; #128 final `2f0b6734a5dfe61f7b51e11b1aa23e461fdc0ce3` → actual main merge `a3be74d0fd4d067c99a928bb8315d69fd05010ea`. Web bytes match reviewed #123; 81 UI tests/13 files and typecheck independently rerun; original regressions unchanged | Folder-dedup, package-byte and inspection-identity holds cleared. Stage #125 `811d0df2` is merged after 33 offline VM tests, original guard unchanged; #126 `702ee560` → `eb08a232` clears later-poll attribution and ambiguous-delivery wording: 52 offline VM tests pass independently and on final composition, with 49 old tests unchanged plus three new guards. No adoption or authority claim. |
 | Catalogue audit, G4 prerequisite | #124 source `e6940b2224db0dfcd5f164fcb3a3ec0aa1f69901`, final `ed573c694f0364392502fcfdc3899ed737d87b7c` → `2f9cfea9b7493a16a5c37e6fe0642d319561919b`: author 142 core tests; independent 11 focused tests including three unchanged `1c2bfd29` cases; scoped strict Clippy/fmt pass | [Post-run exact-reference audit](invention-lab/contracts/catalogue.md), preserving missing, uncertain, failed and overrun records. Actual #116 JSON compatibility is parse-only. No byte verification, prior declaration, runtime enforcement or improvement result. Counts overlap, not a new full-suite run. |
 | Whole-chain cost assembly, G4 prerequisite | #127 source `f5fad35d8b4eff45d319bd1bab7dafea8a499d74` → `f335cc6ca7da193ef6e4ae98beb49ddaa6f11810`, matching tree `75d39a7bb965b5c5034b9914e6237bdb82add8eb`: full forge 243 tests/47 targets, zero failed/ignored; strict all-target Clippy/fmt. Includes six author and three independent cases; original 207-line review file unchanged | [Original-record assembly](invention-lab/contracts/chain-allocation.md#whole-chain-observed-costs) counts each declared attempt/trial once without package deduplication, retaining unknowns and local overruns. Pure library; the later CLI is recorded below. No new experiment, provider/runtime execution, chronology or exhaustive billing claim. |
 | Read-only chain-cost CLI, G4 prerequisite | #130 source `04e22315ca08af9a2c196cbb603a2553ee85dbc6` → `fc16ba142d3757e8d5e804902558010801a6938f`, tree `a45f1d8f4f7aaafed2aa473a64f80c406af76869`: independent 21 focused tests/6 targets and scoped strict Clippy/fmt/diff pass, including the 106-line retained-#113 guard. Author 247/48 covers unchanged production source; no full 248-test claim | [Read-only original-record assessment](invention-lab/contracts/chain-allocation.md#read-only-chain-cost-cli). Retained #113 yields known lower bounds 1 call / 20,798 input / 5,741 output / 40,223 ms / 0 steps, but every total stays unknown pending future trial evidence. All 36 source files unchanged; no provider/method execution or gate closure. |
@@ -255,8 +271,11 @@ Codex's next integration must consume the reviewed policy/authority boundary;
 no second responsibility planner or implicit transfer of ownership is intended.
 The W/F process pilot alone cannot close organizational evolution. ACP's new
 [iteration proposal](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6389024893)
-#144 has an unreviewed `fd35c2fe` revision after the earlier exact-head holds;
-existing-contract interface agreement remains open. Optional flood-watch #143 is also held (details in the [handoff](AGENT_HANDOFF.md)).
+#144 `407ca24f` clears the previous three cases (57 existing checks pass) but
+remains held on `a8887ec7`: cross-family root metadata loses verified source and
+falsely promotes 1/2 over the actual 2/2 control. Inert callbacks only;
+existing-contract interface agreement remains open. Optional flood-watch #143 is
+closed as deferred outside this goal, with its branch and findings preserved.
 Neither replaces these gates or authorizes another orchestrator.
 A fixed-pool
 policy ablation remains a separate proposed mechanism study: task-artifact controls
@@ -273,17 +292,30 @@ The one-arm/family three-round selector #169/#170 and shared typed public-slot
 helper #171 are merged. Selection CLI #173 `332f4f01` → `523d38a2` now provides
 create-only `process-select-prepare` and read-only `process-select-check` over a
 self-contained input/report capture. Exact selected method/plan and normalized
-input/report/selection hashes are exposed without source execution. Next bind
-all eight arm/family records to one declared common generation/control/settings/
-budget roster before fresh-panel spec preparation and endpoint aggregation.
-Numeric ceilings, external digest publication, generation chronology and
-organizational governance remain open; a local capture does not prove them.
-Preparation #164 `55e14cc4` clears its narrow publication/byte-pin defects
-with eight pure tests and is merged at `a056ec65`; its description is corrected.
-Trusted selection lineage remains upstream work. Endpoint #168 is held on receipt,
-numeric-usage and fresh-panel bindings. #165 `de40669c` is held
-on the hidden reproduction build, with 713 manifest entries, 523 artifact hashes
-and 12 slot bindings checked statically; no runtime assurance or gate closure.
+input/report/selection hashes are exposed without source execution. Codex's
+#187 `da669296` → `bb9f7c28` and independent #189 guards at `899de43d` are
+merged: the whole development roster binds eight selections/24 positions, common
+round methods/controls/runtime settings, family-specific policy and exact grants.
+The final composition passes 30 scoped forge cases and strict Clippy/fmt. This is not six-operation generation admission or exhaustive
+history: generation-settings/feedback provenance, chain costs, fresh-panel
+consumption, independent publication/chronology and governance remain open.
+Codex's bounded operator cohort capture/check CLI #191 `b6750eec` → `b16f8eb7`
+and independent #192 guards at `8493a8ce` are merged. No provider/runtime execution
+or gate closure is claimed. Henry retains endpoint and invocation authority.
+Preparation #164 is merged. Eligibility CLI #174 clears its size/path hold;
+endpoint #168 `99b2c8b0` remains held on family-specific policy, full method identity
+and ordered/not-run roster binding (one mocked control passes, seven subcases fail).
+Selective-transfer #165 `cb5f28f0` merged at `b99839df` after corrected causal
+and build-provenance wording. Static checks cover 713 manifest entries, 523
+artifact hashes, 12 slot bindings and nine declaration comparisons; raw records
+are unchanged. The unchanged parent wins on rough-transport but not ravine.
+This is no new execution, secrecy/chronology proof, accepted return or G4 result.
+Pure invocation identity #185/#188 is merged; #179 `0946e6bc` remains held on
+legacy migration, policy reacceptance and runtime/protocol fences (11 existing
+cases pass, four new guards fail). #186 `b069b129` is held on disabled-receiver
+receipt retention and an oversized mandatory receipt binding (12 library + four
+HTTP controls pass, two guards fail). No method source/runtime was executed;
+operator-reported receipt validation does not prove governed execution.
 Receiver ID mechanics are merged; runtime assurance remains open.
 Public-range #121/#136 is merged and the reserved-seed hold is cleared. These are
 public instances, not hidden assessment; source/selection must freeze before assessment.
