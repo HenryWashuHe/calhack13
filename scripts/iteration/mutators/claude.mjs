@@ -73,7 +73,7 @@ export function claudeMutator({ task, featureDoc, subject = "a dispatching rule 
       if (out.refusal) { log({ generation, refusal: out.refusal }); return []; }
       const sources = parseCandidates(out.text);
       log({ generation, stop_reason: out.stop_reason, model: out.model, candidates: sources.length, usage: out.usage });
-      return sources.slice(0, k).map((source, i) => ({ source, note: `model candidate ${i} (${out.model || model}, generation ${generation})` }));
+      return sources.slice(0, k).map((source, i) => ({ source, parent: parent.sha256, note: `model candidate ${i} (${out.model || model}, generation ${generation})` })); // the source the prompt was built from
     },
     observe({ generation, parent, parentScores, verdicts, of }) {
       if (parent && Array.isArray(parentScores) && parentScores.length) remember(parent.source, parentScores.filter((r) => r.outcome === "scored" && r.success).length, of, idFree(parentScores), "incumbent");
