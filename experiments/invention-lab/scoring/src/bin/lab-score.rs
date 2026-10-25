@@ -4,6 +4,11 @@
 //!     writes <score-dir>/evaluation.json
 //!   lab-score verdict <plan.json> <criterion.json> <candidate-state> <candidate-score>
 //!                     <control-state> <control-score>
+//!   lab-score eligibility <expected-plan.json> <slot> <state-dir> <score-dir>
+//!     prints the shared process-comparison slot assessment
+//!     (`genesis_core::development_verdict::assess_process_slot`); the plan must
+//!     be the caller's independently retained expected plan, not one read back
+//!     from the slot's own records
 //!   lab-score feedback <plan.json> <slot> <state-dir> <score-dir> <out.json>
 //!     writes the receiver's public-instance observations for the slot
 //!     (create-only) and prints their content reference
@@ -11,13 +16,37 @@ use genesis_core::development_evaluation::{EvaluationOutcome, EvaluationReceipt}
 use genesis_core::development_method::ExecutionReceipt;
 use genesis_core::development_trial::TrialPlan;
 use genesis_lab_exec::store::Store;
-use genesis_lab_score::verdict::{decide, SlotEvidence};
+use genesis_lab_score::verdict::{assess_process_slot, decide, SlotEvidence};
 use std::path::Path;
 use std::process::ExitCode;
 
 fn json<T: serde::de::DeserializeOwned>(path: &str) -> Result<T, String> {
     let bytes = std::fs::read(path).map_err(|e| format!("read {path}: {e}"))?;
     serde_json::from_slice(&bytes).map_err(|e| format!("{path}: {e}"))
+}
+
+/// A slot's retained execution receipt, optional scoring receipt and the
+/// metrics bytes a `Scored` receipt names.
+fn slot_evidence(state: &str, score: &str) -> Result<SlotEvidence, String> {
+    let execution: ExecutionReceipt = json(&format!("{state}/receipt.json"))?;
+    let path = format!("{score}/evaluation.json");
+    let scoring: Option<EvaluationReceipt> = if Path::new(&path).exists() {
+        Some(json(&path)?)
+    } else {
+        None
+    };
+    let metrics = match scoring.as_ref().map(|r| &r.outcome) {
+        Some(EvaluationOutcome::Scored { metrics }) => Some(
+            std::fs::read(format!("{score}/artifacts/{}", metrics.sha256))
+                .map_err(|e| format!("read metrics: {e}"))?,
+        ),
+        _ => None,
+    };
+    Ok(SlotEvidence {
+        execution,
+        scoring,
+        metrics,
+    })
 }
 
 fn main() -> ExitCode {
@@ -52,29 +81,18 @@ fn main() -> ExitCode {
                 let plan: TrialPlan = json(plan)?;
                 let criterion =
                     std::fs::read(criterion).map_err(|e| format!("read criterion: {e}"))?;
-                let load = |state: &str, score: &str| -> Result<SlotEvidence, String> {
-                    let execution: ExecutionReceipt = json(&format!("{state}/receipt.json"))?;
-                    let path = format!("{score}/evaluation.json");
-                    let scoring: Option<EvaluationReceipt> = if Path::new(&path).exists() {
-                        Some(json(&path)?)
-                    } else {
-                        None
-                    };
-                    let metrics = match scoring.as_ref().map(|r| &r.outcome) {
-                        Some(EvaluationOutcome::Scored { metrics }) => Some(
-                            std::fs::read(format!("{score}/artifacts/{}", metrics.sha256))
-                                .map_err(|e| format!("read metrics: {e}"))?,
-                        ),
-                        _ => None,
-                    };
-                    Ok(SlotEvidence {
-                        execution,
-                        scoring,
-                        metrics,
-                    })
-                };
-                let verdict = decide(&plan, &criterion, &load(cs, cx)?, &load(ks, kx)?)?;
+                let verdict = decide(
+                    &plan,
+                    &criterion,
+                    &slot_evidence(cs, cx)?,
+                    &slot_evidence(ks, kx)?,
+                )?;
                 serde_json::to_value(verdict).unwrap()
+            }
+            ["eligibility", plan, slot, state, score] => {
+                let plan: TrialPlan = json(plan)?;
+                let assessment = assess_process_slot(&plan, slot, &slot_evidence(state, score)?)?;
+                serde_json::to_value(assessment).unwrap()
             }
             ["feedback", plan, slot, state, score, out] => {
                 let plan: TrialPlan = json(plan)?;
