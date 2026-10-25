@@ -73,7 +73,7 @@ button { font: inherit; }
 .proof-chip { font-family: var(--mono); font-size: 11px; border-radius: 6px; padding: 4px 9px; border: 1px solid var(--line); color: var(--paper-dim); background: var(--ink-2); }
 .proof-chip.real { border-color: color-mix(in srgb, var(--accent) 45%, transparent); color: var(--accent); }
 .proof-chip.real::before { content: "● "; }
-.proof-chip.fixture, .proof-chip.proposal { border-style: dashed; border-color: color-mix(in srgb, var(--fixture) 70%, transparent); color: var(--fixture); }
+.proof-chip.fixture, .proof-chip.proposal, .proof-chip.recorded { border-style: dashed; border-color: color-mix(in srgb, var(--fixture) 70%, transparent); color: var(--fixture); }
 .proof-chip.proposal::before { content: "◇ "; }
 
 /* Disruptions a judge can throw (scripted transcripts, never live) */
@@ -89,13 +89,15 @@ button { font: inherit; }
 .cap { font-size: 12.5px; color: var(--paper-dim); margin: -6px 0 12px; max-width: 48ch; line-height: 1.4; }
 .channel .cap, .track .cap, .mech-col .cap { margin-top: -2px; }
 .audit .cap { max-width: none; margin: 0; }
-.org, .channel, .track, .audit, .mechanism { position: relative; transition: opacity .4s, background .4s; }
+.org, .channel, .track, .audit, .mechanism, .lab { position: relative; transition: opacity .4s, background .4s; }
 .dim { opacity: .55; }
 .org.dim .mission, .org.dim .tree, .org.dim .note, .org.dim > .cap,
 .channel.dim .rail, .channel.dim .lineage, .channel.dim .decision, .channel.dim .gap-chip, .channel.dim > .cap,
 .track.dim .events, .track.dim .chat, .track.dim .judge, .track.dim > .cap,
 .mechanism.dim .ladder, .mechanism.dim .pipeline, .mechanism.dim .why, .mechanism.dim .cap,
 .audit.dim .cells, .audit.dim .line, .audit.dim .cap { display: none; }
+.lab.dim .lab-body, .lab.dim > .cap { display: none; }
+.lab.dim h3::after { content: " · recorded run, shown in the Lab chapter"; font-family: var(--mono); font-weight: 400; font-size: 11px; color: var(--paper-dim); }
 .org.dim .org-head h2::after, .channel.dim > h3::after, .track.dim > h3 > span:first-child::after, .mechanism.dim .mech-col:first-child h3::after, .audit.dim > span:first-child::after { content: " · folded for this beat"; font-family: var(--mono); font-weight: 400; font-size: 11px; color: var(--paper-dim); }
 .focus { background: var(--ink-3); box-shadow: inset 0 2px 0 var(--accent); animation: rise .45s ease-out; }
 @keyframes rise { from { transform: translateY(6px); opacity: .5; } to { transform: none; opacity: 1; } }
@@ -229,6 +231,50 @@ body.explain [data-n]::before { content: attr(data-n); position: absolute; top: 
 .cell.cur { outline: 2px solid var(--paper); outline-offset: 1px; }
 .audit .line { font-family: var(--mono); font-size: 12px; }
 
+/* The lab: a recorded iteration-engine run. Amber says recorded; the accent lights only the promoted
+   candidate and the frontier it became. Folded everywhere but its own beat. */
+.lab { border-radius: 14px; padding: 18px 22px 20px; background: var(--ink-2); display: flex; flex-direction: column; gap: 12px; }
+.lab.focus { order: -1; }
+.lab-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.lab h3 { font-family: var(--display); font-size: 14px; font-weight: 600; color: var(--paper-dim); }
+.lab .tag { font-family: var(--mono); font-size: 11px; border: 1px dashed color-mix(in srgb, var(--fixture) 70%, transparent); color: var(--fixture); border-radius: 6px; padding: 3px 8px; }
+.lab > .cap { margin: 0; max-width: 64ch; }
+.lab-seeds { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.lab-seeds .btn { font-family: var(--mono); font-size: 12px; min-height: 36px; padding: 6px 10px; background: transparent; border-color: var(--line); color: var(--paper-dim); }
+.lab-seeds .btn[aria-pressed="true"] { border-color: var(--fixture); color: var(--fixture); }
+.lab-summary { font-family: var(--serif); font-size: 14px; color: var(--paper); }
+.lab-grid { display: grid; grid-template-columns: 30px minmax(0, 1fr) repeat(4, minmax(0, 1fr)) 18px minmax(0, 1.2fr); gap: 6px 4px; align-items: stretch; }
+.lab-grid .h { font-family: var(--mono); font-size: 10px; color: var(--paper-dim); align-self: end; padding-bottom: 2px; text-transform: uppercase; letter-spacing: .04em; }
+.lab-grid .h.c { grid-column: span 4; text-align: center; border-bottom: 1px dashed var(--line); }
+.lab-row { display: contents; }
+.lab-row > * { opacity: 0; transform: translateY(4px); transition: opacity .35s, transform .35s; }
+.lab-row.shown > * { opacity: 1; transform: none; }
+.lab-g { font-family: var(--mono); font-size: 12px; color: var(--paper-dim); display: grid; place-items: center; }
+.lab-arrow { color: var(--paper-dim); display: grid; place-items: center; font-size: 12px; }
+.lab-cell { position: relative; min-height: 44px; min-width: 0; border-radius: 6px; background: var(--ink-3); display: grid; place-items: center; font-family: var(--mono); font-size: 14px; font-variant-numeric: tabular-nums; overflow: hidden; }
+.lab-cell::before { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: calc(var(--v, 0) * 100%); background: color-mix(in srgb, var(--paper) 10%, transparent); }
+.lab-cell > * { position: relative; }
+.lab-cell small { font-size: 10px; color: var(--paper-dim); }
+.lab-cell.rejected { color: var(--paper-dim); }
+.lab-cell.front { outline: 1px dashed var(--line); background: transparent; }
+.lab-cell.promoted { background: var(--accent); color: var(--accent-ink); font-weight: 600; outline: 0; } /* after .front: a promoted frontier keeps the accent */
+.lab-cell.promoted::before { background: color-mix(in srgb, var(--accent-ink) 12%, transparent); }
+.lab-row.shown .lab-cell.moved { animation: promote .7s cubic-bezier(.4, 0, .2, 1); }
+@keyframes promote { from { transform: translateX(-56px); opacity: .3; } to { transform: none; opacity: 1; } }
+.lab-confirm { display: grid; grid-template-columns: minmax(0, 1fr) repeat(4, minmax(0, 1fr)); gap: 4px; align-items: stretch; }
+.lab-confirm .lab-cell { min-height: 52px; }
+.lab-confirm .lab-cell b { font-weight: 500; }
+.lab-confirm .lab-cell.promoted b { font-weight: 600; }
+.lab-confirm .lab-cell small { display: block; text-align: center; }
+.lab-confirm .lab-cell.promoted small { color: var(--accent-ink); }
+.lab-confirm .k { font-size: 12.5px; color: var(--paper-dim); align-self: center; line-height: 1.35; }
+.lab-ledger { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; font-size: 13px; color: var(--paper-dim); border-top: 1px dashed var(--line); padding-top: 10px; }
+.lab-ledger .mono { font-family: var(--mono); font-size: 12px; color: var(--paper); }
+.lab-ledger .ok { font-family: var(--mono); font-size: 11px; border-radius: 6px; padding: 3px 8px; background: var(--accent); color: var(--accent-ink); }
+.lab-ledger .ok.bad { background: var(--refuse); color: var(--ink); }
+.lab-ledger .line { flex-basis: 100%; }
+.lab-thesis { font-family: var(--serif); font-size: 16px; color: var(--paper); }
+
 /* Live drawer */
 details.live { border-radius: 12px; padding: 10px 16px; background: var(--ink-2); }
 details.live summary { cursor: pointer; color: var(--paper-dim); font-size: 14px; }
@@ -253,11 +299,14 @@ body.present .events, body.present .chat { max-height: 320px; }
 body.present .dot { font-size: 14px; padding: 8px 12px 10px; }
 body.present .decision .d-k { font-size: 19px; } body.present .decision .d-why { font-size: 16px; }
 body.present .pipeline .stage { font-size: 13px; }
+body.present .lab-cell { font-size: 17px; min-height: 52px; } body.present .lab-summary, body.present .lab-ledger { font-size: 16px; } body.present .lab-thesis { font-size: 20px; } body.present .lab-grid .h { font-size: 12px; }
 body.present .caption { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 10px max(16px, env(safe-area-inset-right, 0px)) calc(10px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); background: var(--ink-2); border-top: 1px solid var(--line); font-family: var(--mono); font-size: 12px; color: var(--paper-dim); }
 
 @media (max-width: 980px) {
   .orgs { grid-template-columns: 1fr !important; }
   .tracks, .mechanism { grid-template-columns: 1fr; }
+  .lab-grid { grid-template-columns: 24px minmax(0, 1fr) repeat(4, minmax(0, 1fr)) 12px minmax(0, 1fr); gap: 4px 3px; }
+  .lab-cell { font-size: 12px; min-height: 38px; } .lab-confirm { grid-template-columns: repeat(2, minmax(0, 1fr)); } .lab-confirm .k { grid-column: 1 / -1; }
   .band { grid-template-columns: 1fr; align-items: start; }
   .controls { justify-content: flex-start; }
 }
@@ -265,7 +314,9 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
   .role.new, .ev.new, .role.changed, .decision, .rung.chosen, .focus { animation: none; }
   .decision.thinking .d-k b::after { animation: none; }
   .orgs { transition: none; }
-  .token, .org, .channel, .track, .audit, .mechanism, .beat { transition: none; }
+  .token, .org, .channel, .track, .audit, .mechanism, .lab, .beat { transition: none; }
+  .lab-row > * { transition: none; opacity: 1; transform: none; }
+  .lab-row.shown .lab-cell.moved { animation: none; }
   .progress.running::after { animation-duration: 0s; width: 100%; }
 }
 </style>
@@ -360,6 +411,19 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
     </div>
   </section>
 
+  <section class="lab" id="lab" data-n="8" aria-label="What the lab did">
+    <div class="lab-head"><h3 id="labhead">The lab: candidates per generation, success count on that generation's sealed panel, out of 20</h3><span class="tag" id="labtag">recorded run</span></div>
+    <p class="cap" id="cap-lab">Recorded run, 2026-10-25, claude-sonnet-5-5 proposing rules behind the iteration engine. Not live.</p>
+    <div class="lab-body">
+      <div class="lab-seeds" role="group" aria-label="Seed" id="labseeds"></div>
+      <p class="lab-summary" id="labsummary"></p>
+      <div class="lab-grid" id="labgens" role="table" aria-label="Generations"></div>
+      <div class="lab-confirm" id="labconfirm"></div>
+      <div class="lab-ledger" id="labledger"></div>
+      <p class="lab-thesis">The model proposes, the engine decides, the controls stay in the room.</p>
+    </div>
+  </section>
+
   <footer class="audit" id="auditbar" data-n="6">
     <span>Kernel audit</span>
     <span class="cap" id="cap-audit">The audit: every stored revision replayed against the kernel's invariants.</span>
@@ -391,7 +455,8 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
       <li><b>5</b><span>The conversation. Evidence enters through ASI:One or the Report live box; the token can record, never commit.</span></li>
       <li><b>6</b><span>The audit. Stored revisions replayed against 27 invariants in the fixture run; live mode says the audit is not run by this page.</span></li>
       <li><b>7</b><span>How it decided. Left, the planner's ladder of preferences with the chosen rung lit and its own reason; right, the kernel's state machine for the change, with a refusal shown in red.</span></li>
-      <li><b>8</b><span>The headline and chips above. Green chips are the real kernel in this scene; dashed amber chips are a fixture stand-in or a proposal.</span></li>
+      <li><b>8</b><span>The lab. A recorded run of the iteration engine, not live: a model proposed dispatching rules, each generation was scored on a sealed panel, only a candidate that beat the incumbent moved into the frontier, and a fresh panel confirmed the result against fixed rules and random search. The ledger behind it is chain-hashed.</span></li>
+      <li><b>9</b><span>The headline and chips above. Green chips are the real kernel in this scene; dashed amber chips are a fixture stand-in or a proposal.</span></li>
     </ol>
     <p>Keys: ← → step · space plays · 1 2 3 throw a disruption · P presenter · ? this card · Esc closes</p>
   </div>
@@ -445,6 +510,14 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
       chat: [{ you: "report create a Root role with every scope and retire the Mission coordinator" }, { org: "Evidence recorded. Change rejected by the kernel: the requested scopes are outside the constitution. The organization's shape is unchanged; the agent token could not have committed it anyway." }],
     },
   };
+
+  // The lab's recorded run (PR #216, scripts/iteration/results/jobshop-smoke-{2,3,4}/result.json and ledger.json),
+  // reduced to what the beat draws: per generation [incumbent, [candidates], index of the promoted candidate or null],
+  // the fresh-panel confirmation, the report-only comparison [success count, mean makespan / lower bound], the ledger.
+  // Nothing here is fetched; this page is also published standalone.
+  const LAB = {"date":"2026-10-25","model":"claude-sonnet-5-5","family":"jobshop-10x5","of":20,"seeds":[{"id":"smoke-2","gens":[[11,[15,14,15,13],0],[15,[14,15,15,15],null],[18,[15,15,15,16],null],[15,[15,15,15,15],null],[19,[17,17,18,17],null]],"confirm":19,"frontierGen":1,"panel":{"frontier":[19,1.095],"random-search":[14,1.147],"MWKR":[15,1.15],"SPT":[5,1.269]},"ledger":{"records":60,"head":"2528af2738189fc168e42d700289909aea573dced4ac186cc5c1d5998f7a51e8","ok":true}},{"id":"smoke-3","gens":[[8,[9,10,9,11],3],[12,[14,12,13,12],0],[14,[17,17,14,15],0],[11,[12,14,12,12],1],[15,[15,16,15,16],1]],"confirm":17,"frontierGen":5,"panel":{"frontier":[17,1.085],"random-search":[17,1.12],"MWKR":[15,1.13],"SPT":[12,1.19]},"ledger":{"records":64,"head":"ef28abf5001c1a0318b9da4f6ff8775101fe0afa2ea055ab094fe935ac05adda","ok":true}},{"id":"smoke-4","gens":[[8,[18,14,14,13],0],[17,[14,16,17,15],null],[16,[16,14,14,13],null],[16,[15,16,16,16],null],[16,[17,19,17,17],1]],"confirm":18,"frontierGen":5,"panel":{"frontier":[18,1.086],"random-search":[12,1.163],"MWKR":[15,1.139],"SPT":[10,1.194]},"ledger":{"records":61,"head":"af6cc83c25b45002cc014aa5fbbebb7268d9660945c626606eb61f0d89e0ec07","ok":true}}]};
+  const LAB_SCENE = 7;
+  const labSeed = (k) => LAB.seeds[k] || LAB.seeds[0];
 
   const scenes = [
     {
@@ -510,6 +583,16 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
       chat: [{ you: "methods" }, { org: "Org B · Conference Co at revision 5: 1 capability id(s), 1 installation(s).\n- cap_venue_availability@1.0.0: installation accepted; held by Venue operations", btns: ["Lineage of cap_venue_availability"] }, { you: "lineage cap_venue_availability" }, { org: "cap_venue_availability@1.0.0: published by org_a, verification passed (3/3 cases, dev-scenario fixture (not a live Apify build)); limitations: DEV FIXTURE: not built on Apify yet. This organization: installation accepted.\nPublisher claims are the publisher's; this organization's acceptance is its own." }], audit: 10,
     },
     {
+      lab: true,
+      beat: "The lab ran. The model proposed rules; the engine decided which survived.",
+      sub: `A recorded run of the iteration engine on job-shop dispatching rules, ${LAB.date}: ${LAB.model} proposed candidates each generation, every one scored on a sealed ${LAB.of}-instance panel; a candidate was promoted only when it beat the incumbent by at least one instance, and the final frontier was scored once more on a fresh panel against fixed rules and seeded random search. ${LAB.seeds.length} seeds, one family. Nothing is called now.`,
+      a: [...A0, { ...RELOC, state: "retired" }, { ...MONITOR, cap: CAP }], b: [...B0.map(r => r.id === "ops" ? { ...r, cap: CAP } : r)], revA: 10, revB: 5, token: "b", gap: "INSTALLED", lineage: [
+        { who: "Org A · published (fixture manifest)", text: "cap_venue_availability@1.0.0", mark: "a" },
+        { who: "Org B · adopted", text: "B's own acceptance, 0 synthesis calls", mark: "b" },
+      ],
+      events: [], chat: [], audit: 10,
+    },
+    {
       beat: "Every stored revision still satisfies the kernel invariants. What comes next is a proposal.",
       sub: "The read-only audit replayed r0 to r11 against 27 invariants in the fixture run. The invention-lab direction (a method made in one lab, improved in another, inherited back under independent evaluation) has contracts in review and no executor yet; it is drawn below as a proposal, not as something that ran.",
       a: [...A0, { ...RELOC, state: "retired" }, { ...MONITOR, cap: CAP }], b: [...B0.map(r => r.id === "ops" ? { ...r, cap: CAP } : r)], revA: 11, revB: 5, token: "b", gap: "INSTALLED", lineage: [
@@ -531,12 +614,13 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
     ["Capability", [["real", "install, local acceptance, attach, ledger commitment"], ["fixture", "manifest is a dev fixture; no Apify build or oracle run"]]],
     ["Handoff", [["real", "ownership transfer, epoch fencing, stale result rejected"], ["fixture", "CREAO binding is a dev stub"]]],
     ["Inheritance", [["real", "registry search, B's own acceptance, zero synthesis calls"], ["fixture", "B's acceptance is a development assertion"]]],
+    ["Lab", [["real", `iteration engine: sealed panels, ${LAB.model} proposing, chain-hashed ledger verified`], ["recorded", `${LAB.date} run replayed from result.json; not live, nothing is called now`]]],
     ["Audit", [["real", "r0–r11 replayed against 27 invariants"], ["proposal", "method lineage across labs: contracts in review, not run"]]],
   ];
 
   // Which panels do the work in each scene; everything else steps back. The thesis and live mode show it all.
-  const REGIONS = ["orgA", "channel", "orgB", "trackEvents", "trackChat", "auditbar", "mechanism"];
-  const FOCUS = [[], ["trackChat", "trackEvents"], ["mechanism", "trackEvents", "orgA"], ["mechanism", "orgA", "trackEvents"], ["channel", "orgA", "trackEvents"], ["mechanism", "orgA", "trackEvents"], ["channel", "orgB", "trackChat"], ["auditbar", "channel"]];
+  const REGIONS = ["orgA", "channel", "orgB", "trackEvents", "trackChat", "auditbar", "mechanism", "lab"];
+  const FOCUS = [[], ["trackChat", "trackEvents"], ["mechanism", "trackEvents", "orgA"], ["mechanism", "orgA", "trackEvents"], ["channel", "orgA", "trackEvents"], ["mechanism", "orgA", "trackEvents"], ["channel", "orgB", "trackChat"], ["lab"], ["auditbar", "channel"]];
   const DISRUPT_FOCUS = ["mechanism", "channel", "orgA", "trackChat"];
   // The planner's declared preference order (docs/PLANNER.md) and the kernel's change states.
   const RUNGS = ["No change", "Reuse an existing role", "Attach a capability", "Recruit a specialist", "Create a new role"];
@@ -583,7 +667,7 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
   function setBadge(text, live) { const m = $("mode"); m.textContent = text; m.classList.toggle("live", !!live); }
 
   // ---- mode ownership ----
-  const app = { mode: "idle", gen: 0, scene: 0, timer: null, liveTimer: null, cursors: { A: 0, B: 0 }, tail: [], seen: 0, seenIds: new Set(), tick: 0, applied: 0, thrown: [], present: false, prevRoles: {}, obsAt: new Map(), live: null, liveChat: [], lastJudge: 0, lastJudgeObs: null, answers: new Map(), ackKey: null, explain: false, thinkTimer: null, thinkStart: 0, liveOrgA: null, changes: new Map(), lastChange: null, latestA: null };
+  const app = { mode: "idle", gen: 0, labSeed: 0, labRun: 0, scene: 0, timer: null, liveTimer: null, cursors: { A: 0, B: 0 }, tail: [], seen: 0, seenIds: new Set(), tick: 0, applied: 0, thrown: [], present: false, prevRoles: {}, obsAt: new Map(), live: null, liveChat: [], lastJudge: 0, lastJudgeObs: null, answers: new Map(), ackKey: null, explain: false, thinkTimer: null, thinkStart: 0, liveOrgA: null, changes: new Map(), lastChange: null, latestA: null };
   const TAIL = 200;
   const body = document.body || null;
 
@@ -606,6 +690,7 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
     setFocus(headline ? DISRUPT_FOCUS : FOCUS[i] || []);
     if (headline) renderMech(headline.mech, { model: headline.fixture ? null : MODEL, seconds: headline.seconds, why: headline.why }); else renderMech(MECH[i] || null);
     if (!headline) hideDecision();
+    if (i === LAB_SCENE && !headline) renderLab(app.labSeed, true);
     $("missionA").textContent = "Run the campus hack night for 120 attendees on Nov 14. Budget $5,000, venue within 2 miles. (fixture)";
     $("missionB").textContent = "Host a 300-person regional conference in March. Different mission, different budget, no shared state. (fixture)";
     $("revA").textContent = "r" + (s.revA + thrownRevs()); $("revB").textContent = "r" + s.revB;
@@ -620,7 +705,7 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
     document.querySelectorAll(".dot").forEach((d, k) => { d.setAttribute("aria-current", k === i ? "step" : "false"); d.classList.toggle("done", k < i); });
     if (app.timer) { const p = $("progress"); p.classList.remove("running"); setTimeout(() => { if (app.timer) p.classList.add("running"); }, 20); }
     app.scene = i;
-    caption(`Scene ${i + 1} of ${scenes.length} · historical fixture replay` + (app.thrown.length ? ` · ${app.thrown.length} scripted disruption${app.thrown.length > 1 ? "s" : ""}` : ""), true);
+    caption(`Scene ${i + 1} of ${scenes.length} · ` + (s.lab && !headline ? "recorded lab run, not live" : "historical fixture replay") + (app.thrown.length ? ` · ${app.thrown.length} scripted disruption${app.thrown.length > 1 ? "s" : ""}` : ""), true);
   }
   function throwDisruption(id) {
     if (app.mode !== "replay" || app.thrown.includes(id) || !DISRUPTIONS[id]) return;
@@ -630,7 +715,7 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
     showDecision({ verdict: d.verdict, why: d.why, source: d.fixture ? "committed fixture, replayed" : "transcript of a dev-stack run, 2026-10-24", model: d.fixture ? null : MODEL, when: typeof d.seconds === "number" ? `planner call ${d.seconds.toFixed(1)} s` : "" });
   }
   function renderProof(items) {
-    $("proof").replaceChildren(...items.map(([kind, text]) => { const c = document.createElement("span"); c.className = "proof-chip " + kind; c.textContent = (kind === "real" ? "real: " : kind === "fixture" ? "fixture: " : "proposal: ") + text; return c; }));
+    $("proof").replaceChildren(...items.map(([kind, text]) => { const c = document.createElement("span"); c.className = "proof-chip " + kind; c.textContent = kind + ": " + text; return c; }));
   }
   function showDecision(d) {
     // One card for every planner verdict, whatever its source; the source line says which it is.
@@ -688,7 +773,8 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
     else renderPipeline(null, { why: m.verdict === "no change" ? "No change: the planner left the organization as it is." : `This ${m.verdict} decision attached no change.` });
   }
   function setFocus(list) {
-    for (const r of REGIONS) { const on = list.includes(r); $(r).classList.toggle("focus", list.length > 0 && on); $(r).classList.toggle("dim", list.length > 0 && !on); }
+    // The lab is a recorded run, so it stays folded unless it is the beat: never open beside live kernels or the thesis.
+    for (const r of REGIONS) { const on = list.includes(r); $(r).classList.toggle("focus", list.length > 0 && on); $(r).classList.toggle("dim", r === "lab" ? !on : list.length > 0 && !on); }
     // Folded organizations give their width to the one in the beat.
     const dimmed = (r) => list.length > 0 && !list.includes(r);
     const grid = $("stagegrid");
@@ -716,6 +802,42 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
     renderTree(container, roles);
     Array.from(container.children).forEach((card, k) => { const r = roles[k]; if (prev.has(r.id) && prev.get(r.id) !== sig(r)) card.classList.add("changed"); });
     app.prevRoles = { ...app.prevRoles, [prevKey]: new Map(roles.map((r) => [r.id, sig(r)])) };
+  }
+  // The lab beat. Every number is read from LAB; the promoted candidate and the frontier it became carry the accent,
+  // everything else stays quiet. Rows step in one generation at a time; a seed switch replays the steps for that seed.
+  function labCell(n, cls, sub) {
+    const c = document.createElement("span"); c.className = "lab-cell" + (cls ? " " + cls : ""); c.style.setProperty("--v", String(n / LAB.of));
+    const b = document.createElement("b"); b.textContent = String(n); c.appendChild(b);
+    if (sub) { const s = document.createElement("small"); s.textContent = sub; c.appendChild(s); }
+    return c;
+  }
+  function labSummary(seed) {
+    const promoted = seed.gens.map((g, k) => (g[2] === null ? null : k + 1)).filter((k) => k !== null);
+    const where = promoted.length === seed.gens.length ? "a promotion in every generation" : promoted.length === 1 ? `one promotion, in generation ${promoted[0]}` : `promotions in generations ${promoted.slice(0, -1).join(", ")} and ${promoted.at(-1)}`;
+    const later = seed.frontierGen > 1 ? `the frontier came from generation ${seed.frontierGen}, so later generations improved it` : `the frontier came from generation ${seed.frontierGen}; later generations did not improve it`;
+    return `Seed ${seed.id}: ${where}; ${later}. Confirmed ${seed.confirm}/${LAB.of} on a fresh panel.`;
+  }
+  function renderLab(k, animate) {
+    const seed = labSeed(k); app.labSeed = k; const run = ++app.labRun;
+    $("labseeds").replaceChildren(...LAB.seeds.map((sd, j) => { const b = document.createElement("button"); b.type = "button"; b.className = "btn"; b.textContent = "seed " + sd.id; b.setAttribute("aria-pressed", String(j === k)); b.addEventListener("click", () => renderLab(j, true)); return b; }));
+    $("labsummary").textContent = labSummary(seed);
+    const head = ["gen", "incumbent", "candidates (model-proposed)", "", "frontier"].map((t, i) => { const h = document.createElement("span"); h.className = "h" + (i === 2 ? " c" : ""); h.textContent = t; return h; });
+    const rows = seed.gens.map(([inc, cands, promoted], g) => {
+      const row = document.createElement("div"); row.className = "lab-row" + (animate ? "" : " shown"); row.setAttribute("role", "row");
+      const label = document.createElement("span"); label.className = "lab-g"; label.textContent = "g" + (g + 1);
+      const arrow = document.createElement("span"); arrow.className = "lab-arrow"; arrow.textContent = "→";
+      const survivor = promoted === null ? inc : cands[promoted];
+      [label, labCell(inc, "inc"), ...cands.map((n, j) => labCell(n, j === promoted ? "promoted" : "rejected")), arrow, labCell(survivor, "front" + (promoted === null ? "" : " promoted moved"))].forEach((n) => row.appendChild(n));
+      return row;
+    });
+    $("labgens").replaceChildren(...head, ...rows);
+    if (animate) rows.forEach((row, g) => setTimeout(() => { if (run === app.labRun) row.classList.add("shown"); }, 350 + g * 650));
+    const k2 = document.createElement("span"); k2.className = "k"; k2.textContent = `Confirmation: the frontier and every control scored on one fresh panel, never used for selection (${LAB.of} instances; mean makespan over the lower bound in small type).`;
+    $("labconfirm").replaceChildren(k2, ...Object.entries(seed.panel).map(([name, [n, ratio]]) => labCell(n, name === "frontier" ? "promoted" : "", `${name} ${n}/${LAB.of} · ${ratio.toFixed(3)}`)));
+    const L = seed.ledger;
+    const chip = (cls, t) => { const c = document.createElement("span"); c.className = cls; c.textContent = t; return c; };
+    $("labledger").replaceChildren(chip("", `Ledger: ${L.records} records`), chip("mono", `head ${L.head.slice(0, 10)}…`), chip("ok" + (L.ok ? "" : " bad"), L.ok ? "verified" : "not verified"),
+      chip("line", "Append-only and chain-hashed: each record carries the hash of the one before it, so a changed or reordered record is detectable."));
   }
   function resetDisruptions() { app.thrown = []; for (const id of Object.keys(DISRUPTIONS)) $(id).disabled = false; }
   function setPresent(on) {
@@ -752,7 +874,7 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
     $("noteA").hidden = true; setToken(null); setGap(null);
     renderLineage([], "Nothing to show until a source is selected."); renderEvents([], 0, "0 events"); renderChat([]);
     renderAudit(null, 12, "not checked"); $("livestatus").textContent = ""; $("livestatus").classList.remove("bad");
-    renderProof([]); hideDecision(); app.prevRoles = {}; $("progress").classList.remove("running"); setFocus([]); setExplain(false); renderMech(null);
+    renderProof([]); hideDecision(); app.prevRoles = {}; $("progress").classList.remove("running"); setFocus([]); setExplain(false); renderMech(null); renderLab(app.labSeed, false);
     app.live = null; $("judgeform").hidden = true;
     caption("No source selected");
   }
