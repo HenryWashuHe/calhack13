@@ -42,6 +42,17 @@ struct Instance {
 
 const ACCEPTANCE: &str = "Beats the fixed cart by one success on twelve fresh public instances";
 
+/// SHA-256 of a file, via coreutils so the test needs no new dependency.
+fn sha256_file(path: &Path) -> String {
+    let out = Command::new("sha256sum").arg(path).output().unwrap();
+    assert!(out.status.success(), "sha256sum {}", path.display());
+    String::from_utf8_lossy(&out.stdout)
+        .split_whitespace()
+        .next()
+        .unwrap_or_default()
+        .to_string()
+}
+
 fn env(name: &str) -> PathBuf {
     PathBuf::from(std::env::var(name).unwrap_or_else(|_| panic!("set {name}")))
 }
@@ -387,9 +398,11 @@ async fn run_b_stages(
     // matched by its triggering evidence and counts only once ASSIGNED.
     let planner = |sub: &str, with_model: bool| {
         let mut c = Command::new(&s.planner_bin);
+        // The planner loads a `.env` from its working directory and its
+        // ancestors; run it from the root so nothing in the repo leaks in.
         c.env_clear()
             .env("PATH", std::env::var_os("PATH").unwrap_or_default())
-            .current_dir(out)
+            .current_dir("/")
             .args(["--org-url", &b.url(), "--token", &format!("{tag}-b-agent")])
             .args([sub, "--observation", &observation]);
         if with_model {
@@ -456,6 +469,14 @@ async fn run_b_stages(
     summary["planner"] = json!("assigned");
     summary["owner"] = json!({"role_id":owner,"is_lead":owner == lead,
         "name":owner_role["name"],"charter":owner_role["charter"],"scopes":owner_role["authority"]["scopes"]});
+    // The planner may keep the lead accountable and delegate execution to a
+    // new role holding `method.develop`; the decision still belongs to the
+    // owner, so record who executes too (protocol, Readings).
+    let executor = org["responsibilities"][&responsibility]["executor"].clone();
+    let executor_role = executor["id"].as_str().map(|id| &org["roles"][id]);
+    summary["executor"] = json!({"executor":executor,
+        "name":executor_role.map(|r| r["name"].clone()),
+        "scopes":executor_role.map(|r| r["authority"]["scopes"].clone())});
 
     // Stage 4: B's receiving trials for this offer.
     let pinned = inst.pinned.clone();
@@ -613,6 +634,8 @@ async fn run_b_stages(
         &out.join("decision.json"),
         &json!({"status":status,"body":decided}),
     );
+    summary["decision_status"] = json!(status);
+    summary["decision_error"] = decided["error"].clone();
     ensure!(status == 201, "owner decision: {status} {decided}");
     summary["decision"] = decided["outcome"]["outcome"].clone();
     if decided["outcome"]["outcome"] != "adopted" {
@@ -721,8 +744,32 @@ async fn g2_attempt_2() {
         "{} exists: the attempt runs once",
         out.display()
     );
-    std::fs::create_dir_all(out.join("state")).unwrap();
     let bin = env("GENESIS_BIN");
+    // Before anything is created or spent: every binary must be the build
+    // pinned on issue #1, and the server must carry #259's scope check.
+    let mut provenance = json!({});
+    for (var, pin) in [
+        ("GENESIS_BIN", "EXPECT_GENESIS"),
+        ("PLANNER_BIN", "EXPECT_PLANNER"),
+        ("LAB_EXEC", "EXPECT_LAB_EXEC"),
+        ("LAB_SCORE", "EXPECT_LAB_SCORE"),
+    ] {
+        let digest = sha256_file(&env(var));
+        let expected = std::env::var(pin).unwrap_or_else(|_| panic!("set {pin}"));
+        assert_eq!(digest, expected, "{var} is not the pinned build");
+        provenance[var] = json!(digest);
+    }
+    let marker: &[u8] = b"which this organization's constitution reserves for method work";
+    let server = std::fs::read(&bin).unwrap();
+    assert!(
+        server.windows(marker.len()).any(|w| w == marker),
+        "GENESIS_BIN lacks #259's method.develop check"
+    );
+    for k in ["GENESIS_LLM_PROVIDER", "GENESIS_LLM_MODEL"] {
+        provenance[k] = json!(std::env::var(k).ok());
+    }
+    std::fs::create_dir_all(out.join("state")).unwrap();
+    write(&out.join("provenance.json"), &provenance);
 
     let mut constitution = genesis_server::demo_constitution();
     constitution.scopes = ["mission.coordinate", "method.develop"]
@@ -869,3 +916,7 @@ async fn g2_attempt_2() {
     write(&out.join("summary.json"), &results);
     assert!(a_state["requirements"].as_object().unwrap().is_empty());
 }
+
+#[cfg(test)]
+#[path = "support/g2_249_guards.rs"]
+mod review_249;

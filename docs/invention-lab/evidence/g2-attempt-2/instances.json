@@ -9,15 +9,6 @@
     "template": "invoke-b2-plain-1.json"
   },
   {
-    "tag": "b2-plain-2",
-    "founding": "founding-b2.json",
-    "offer": "parent",
-    "need": "Develop rough-transport cart designs with a method another lab published",
-    "spec": "b2-plain-2-receive.json",
-    "pinned": "b2-plain-2-pinned",
-    "template": "invoke-b2-plain-2.json"
-  },
-  {
     "tag": "b2-hint-1",
     "founding": "founding-b2.json",
     "offer": "parent",
@@ -27,15 +18,6 @@
     "template": "invoke-b2-hint-1.json"
   },
   {
-    "tag": "b2-hint-2",
-    "founding": "founding-b2.json",
-    "offer": "parent",
-    "need": "Develop rough-transport cart designs with a method another lab published. Adopting or running the method requires a role holding method.develop",
-    "spec": "b2-hint-2-receive.json",
-    "pinned": "b2-hint-2-pinned",
-    "template": "invoke-b2-hint-2.json"
-  },
-  {
     "tag": "b1-hint-1",
     "founding": "founding-b1.json",
     "offer": "parent",
@@ -43,6 +25,24 @@
     "spec": "b1-hint-1-receive.json",
     "pinned": "b1-hint-1-pinned",
     "template": "invoke-b1-hint-1.json"
+  },
+  {
+    "tag": "b2-plain-2",
+    "founding": "founding-b2.json",
+    "offer": "parent",
+    "need": "Develop rough-transport cart designs with a method another lab published",
+    "spec": "b2-plain-2-receive.json",
+    "pinned": "b2-plain-2-pinned",
+    "template": "invoke-b2-plain-2.json"
+  },
+  {
+    "tag": "b2-hint-2",
+    "founding": "founding-b2.json",
+    "offer": "parent",
+    "need": "Develop rough-transport cart designs with a method another lab published. Adopting or running the method requires a role holding method.develop",
+    "spec": "b2-hint-2-receive.json",
+    "pinned": "b2-hint-2-pinned",
+    "template": "invoke-b2-hint-2.json"
   },
   {
     "tag": "b1-hint-2",

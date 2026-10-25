@@ -5,12 +5,15 @@ Follows [`g2-attempt-1`](g2-attempt-1.md) (#249), where all four live planner
 calls gave the method work to B's existing lead, including B2's lead, which
 lacks `method.develop`, and the server let it adopt and invoke. #259 makes
 adoption and invocation require `method.develop` wherever the constitution
-grants it. This attempt runs on a build with #259.
+grants it. This attempt runs on a build with #259. Revised after an
+independent agent review (see the end).
 
 ## Question
 
 1. With #259, is a scope-less owner's adoption refused in a live run (not
-   only in the API test)?
+   only in the API test)? Given the server code this is close to certain
+   once a scope-less role owns the work; what the live run adds is whether
+   the planner hands it to such a role at all.
 2. If B's own need text says the work requires `method.develop`, does the
    live planner give it to a role that holds it, by creating one, where the
    existing lead lacks it?
@@ -26,7 +29,10 @@ trial vs its fixed cart, margin one, 12 rough-transport instances; owner asks
 to adopt with the pinned trial; one invocation if adopted), except:
 
 - Six B instances, each seeing `parent` only, declared in
-  `docs/invention-lab/evidence/g2-attempt-2/instances.json`:
+  `docs/invention-lab/evidence/g2-attempt-2/instances.json` and run in that
+  file's order, interleaved by arm (b2-plain-1, b2-hint-1, b1-hint-1,
+  b2-plain-2, b2-hint-2, b1-hint-2) so a provider outage can't take out a
+  whole arm:
 
   | instance | founding | need text |
   |---|---|---|
@@ -41,10 +47,25 @@ to adopt with the pinned trial; one invocation if adopted), except:
 
 ## Fixed parameters
 
-Trial seeds, instance *i* in the table order (0–5): 55000 + 100·*i* ..
-+11. Invocation seeds: 56000 + 100·*i* .. +11. Grants, criterion, sandbox and
-model settings as in `g2-attempt-1`. Model use: six `once` calls, at most 54
-requests (three repair turns × three transport attempts each).
+| instance | trial seeds | invocation seeds |
+|---|---|---|
+| b2-plain-1 | 55000..55011 | 56000..56011 |
+| b2-plain-2 | 55100..55111 | 56100..56111 |
+| b2-hint-1 | 55200..55211 | 56200..56211 |
+| b2-hint-2 | 55300..55311 | 56300..56311 |
+| b1-hint-1 | 55400..55411 | 56400..56411 |
+| b1-hint-2 | 55500..55511 | 56500..56511 |
+
+Grants, criterion and sandbox as in `g2-attempt-1`. Planner model:
+`anthropic` / `claude-opus-5-5`, project settings, as in `g2-attempt-1`.
+Model use: six `once` calls, at most 54 requests (three repair turns × three
+transport attempts each).
+
+The driver refuses to start, before creating anything or spending, unless the
+four binaries match the pins posted on issue #1 (`EXPECT_*`) and the `genesis`
+binary carries #259's scope check. It writes their digests and the provider
+and model names (no key) to `run/provenance.json`. It runs the planner from
+`/`, so no `.env` in the repository can reach it.
 
 ## Predeclared expectations (reported either way)
 
@@ -54,6 +75,9 @@ requests (three repair turns × three transport attempts each).
   operation vocabulary has no way to add a scope to an existing role) and
   assigns it; that role adopts and invokes.
 - b1-hint: the planner assigns the existing lead, which adopts and invokes.
+- "Adopts and invokes" also needs B's pinned trial to accept on its fresh
+  seeds. A `not_applicable` there is about the method on that panel, not
+  about scope, and is reported as such.
 
 ## Readings
 
@@ -63,6 +87,19 @@ requests (three repair turns × three transport attempts each).
   the work to a role holding `method.develop` while both b2-plain instances
   don't. Anything else is reported as it is. Two calls per arm describe; they
   don't measure.
+- **Delegated, not owned.** The planner may keep the lead accountable and
+  delegate execution to a new role holding `method.develop`. That is a
+  separate outcome: authority routed to the executor, not the owner. The
+  owner's adoption is then refused by design, since the decision belongs to
+  the owner. It counts neither for nor against the reading above. The
+  summary records the responsibility's executor and its scopes for this.
+- The enforcement observation in a b2-plain instance needs its pinned trial
+  to be eligible. The driver stops before the decision on an ineligible trial
+  (failed, interrupted or unknown execution or scoring), so such an instance
+  gives no reading for question 1.
+- In b2 the mismatched-grant control uses the scope-less lead. No control
+  here shows a scope-holding role that isn't the owner being refused; none is
+  claimed.
 - One host, one operator, dev-stub providers, operator-reported receipts: not
   independent-organization evidence.
 - Failed, interrupted or unknown executions are ineligible
@@ -76,6 +113,27 @@ and the lead lacks it, otherwise assign the lead), throwaway seeds
 63000../64000... All six instances completed: b2-plain owners refused 403
 `method_scope`; b2-hint specialists and b1 leads adopted and invoked. No
 planner judgment involved; not evidence; records not retained.
+
+After the review: the revised driver, `genesis` `b6c825b0…` built from #259's
+head `41153fc` (byte-identical to the `f52210a` build), the same fake
+endpoint, throwaway seeds 65000../66000... in a scratch copy of this
+directory. The same six outcomes, run in the interleaved order, with
+`provenance.json` written and `decision_status`/`decision_error` recorded
+(403 `method_scope` for both b2-plain). A wrong pin and a server binary
+without #259's check each stop the driver before it creates the run
+directory. Not evidence; records not retained.
+
+## Independent review
+
+An independent agent reviewed this protocol and the driver, read-only, before
+freeze. It found nothing that crashes after spend or reuses seeds. It asked
+for, and this revision adds: recording the executor and a predeclared
+reading for delegation; pinned-binary, #259-marker and provenance checks
+before any spend; running the planner outside the repository; interleaved
+order; structured decision status; the attempt-1 regression guards (they
+pass against this driver); and the wording above. It re-checked the seeds
+(no overlap with any retained evidence), all 72 invocation instance
+references, package digests and the 54-request bound.
 
 ## Freeze prerequisites
 
