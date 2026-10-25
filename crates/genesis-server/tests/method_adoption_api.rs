@@ -4,12 +4,13 @@
 //! the authorization check is not execution, and no provider is called.
 use genesis_core::development_method::ExactContentRef;
 use genesis_core::development_package::{MethodPackage, MethodSourceFile};
+use genesis_core::development_trial::TrialPlan;
 use genesis_core::engine::{bootstrap_mission, MissionBootstrap};
 use genesis_core::ids::{ObservationId, OrgId, RequirementId, ResponsibilityId, RoleId};
 use genesis_core::lifecycle::{RequirementStatus, RoleState};
 use genesis_core::model::{Observation, OrgState, Owner, Requirement};
 use genesis_server::app::AppState;
-use genesis_server::method_adoption::MethodReceiver;
+use genesis_server::method_adoption::{AcceptancePin, MethodReceiver};
 use genesis_server::registry::{self, RegistryState};
 use genesis_server::store::EventMeta;
 use genesis_server::{build_org, serve_org, OrgConfig};
@@ -223,6 +224,10 @@ async fn adoption_authorizes_only_the_owner_for_the_exact_version_under_current_
         &Path::new(&receiving).join("vs-fixed-cart"),
         &records.join("b-fixed-cart"),
     );
+    copy_dir(
+        &Path::new(&receiving).join("vs-random-search"),
+        &records.join("b-random-search"),
+    );
     let plan: Value =
         serde_json::from_slice(&std::fs::read(records.join("b-fixed-cart/plan.json")).unwrap())
             .unwrap();
@@ -256,6 +261,13 @@ async fn adoption_authorizes_only_the_owner_for_the_exact_version_under_current_
         evaluators: vec![serde_json::from_value(plan["context"]["evaluator"].clone()).unwrap()],
         allowed_dependencies: vec![],
         records_root: records,
+        acceptance_plans: vec![AcceptancePin {
+            requirement_id: owner.requirement.clone(),
+            plan: serde_json::from_value::<TrialPlan>(plan.clone())
+                .unwrap()
+                .reference()
+                .unwrap(),
+        }],
     }));
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let base = format!("http://{}/api/v1", listener.local_addr().unwrap());
@@ -268,6 +280,13 @@ async fn adoption_authorizes_only_the_owner_for_the_exact_version_under_current_
             "publisher":"org_example_a","reference":reference})
     };
 
+    // A retained trial other than the requirement's pinned plan can't decide.
+    let other_trial = json!({"decision":"adopt","trial":"b-random-search"});
+    let (status, body) = call(&adoptions, &token, intent("k9", &owner, &v1, other_trial)).await;
+    assert_eq!(
+        (status, body["error"].clone()),
+        (422, json!("method_acceptance"))
+    );
     // A request can't smuggle receipts or a verdict.
     let mut smuggled = intent("k1", &owner, &v1, adopt.clone());
     smuggled["verdict"] = json!({"verdict":"accepted","candidate":6,"control":0,"of":6});
