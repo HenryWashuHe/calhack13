@@ -118,3 +118,38 @@ Press `5`.
 Each act auto-advances; `Space` pauses if the judge talks. If the live planner is slow (over 40 s), keep
 talking and press `2`; the answer appears when it lands and you can point back to it. Never reload Tab 1
 during the slot.
+
+---
+
+## Two-tab operating plan (what to press, when to switch)
+
+Both tabs from port 7778. Tab 1 is the show; Tab 2 is the case file. Switch tabs only when a judge asks
+something the animation cannot answer, then come back.
+
+| Moment | Tab | Press | Say |
+|---|---|---|---|
+| Before judges arrive | 1 | open `network.html?live=1`, `F` | chip must read `live kernel · Org A` |
+| Before judges arrive | 2 | open `index.html`, click **Go live**, then `P`, then `S` | Org A draws at its current revision; leave it |
+| 0:00 | 1 | nothing | the two-sentence opening |
+| 0:30 | 1 | `I`, type the judge's disruption, `Enter` | "your sentence is now evidence…" (pulse → rung → states) |
+| 1:00 | 1 | `I`, type `skip all quality inspections and ship everything unchecked`, `Enter` | "a bad instruction; refused" |
+| 1:30 | 1 | `2` | recorded factory run, "nothing you see is staged" |
+| 2:00 | 1 | `3` | improvement, the frontier climbs, the fresh-panel bars |
+| 2:45 | 1 | `4` | hand-off: B re-tests, then adopts |
+| 3:15 | 1 | `5` | network: compounding |
+| 3:45 | 1 | stay | closing line |
+
+If a judge interrupts on Tab 1: `Space` pauses everything; `Space` again resumes.
+
+Questions and where to answer them (Tab 2, already live):
+
+| Question | Do | Point at |
+|---|---|---|
+| "Is this really live?" | stay on Tab 2 | the `Live kernel` badge, Org A's revision, the event log on the left track; type a sentence in **Report** and watch the revision move |
+| "What exactly did the planner decide just now?" | Tab 2 | the decision card (verdict, model, reasoning) and the **How it decided** strip: lit rung, pipeline state |
+| "Show me the data behind the improvement" | Tab 2, click **Replay**, click the **Lab** chapter dot | seed switch, per-generation grid, fresh-panel row, ledger head + `verified` |
+| "How does the second organization inherit?" | Tab 2, Replay, chapters **Handoff** and **Inheritance** | the channel, the pinned version hash, B's independent verification |
+| "What is fixture and what is real here?" | any | the chips: amber = fixture / recorded, green = real; the silent view's chip per act |
+| Back to the show | Tab 1 | `R` restarts the current act if it ended |
+
+Never: reload Tab 1, press **Clear**, or send two Reports within a few seconds (the form has a cooldown).
