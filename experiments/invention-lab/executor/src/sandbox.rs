@@ -9,6 +9,7 @@
 //! `no_new_privs` and gets a copy of its package's source files in `/tmp/work`.
 //! Only stdin, stdout and stderr cross into the namespace: every other
 //! descriptor the executor holds is marked close-on-exec before `unshare` starts.
+//! Linux close_range(CLOSE_RANGE_CLOEXEC) must succeed; failure refuses startup.
 //! Writes land in those private tmpfs mounts, which vanish at exit, unless a
 //! mount refused the read-only remount. Killing the namespace's first process
 //! ends every process in it. [`Mode::stop`] kills that process directly:
@@ -90,7 +91,7 @@ impl Mode {
                 "mode": "namespaces",
                 "network": "none (new network namespace)",
                 "user": "nobody, no_new_privs",
-                "descriptors": "stdin, stdout and stderr only; every other executor descriptor is close-on-exec",
+                "descriptors": "stdin, stdout and stderr only; Linux close_range(3, UINT_MAX, CLOSE_RANGE_CLOEXEC) must succeed before exec; no partial descriptor-limit fallback",
                 "mounts": "every existing mount remounted read-only where the kernel allows it",
                 "hidden": ["/home", "/root", "/tmp", "/var/tmp", "/dev/shm", "/run"],
                 "pid": "new namespace, killed as a whole at the wall-time limit",
@@ -237,6 +238,9 @@ fn namespace_inits(id: u32) -> Vec<i32> {
 
 /// Marks every descriptor above 2 close-on-exec, in the child between fork and
 /// exec. Marking rather than closing keeps the spawn error pipe working.
+/// A current resource limit is not an upper bound on descriptors already open:
+/// the launcher may have lowered it. Refuse startup if the all-range operation
+/// is unavailable rather than silently leave descriptors outside a partial walk.
 fn cloexec_above_stdio() -> std::io::Result<()> {
     #[cfg(target_os = "linux")]
     {
@@ -250,25 +254,15 @@ fn cloexec_above_stdio() -> std::io::Result<()> {
             )
         };
         if rc == 0 {
-            return Ok(());
+            Ok(())
+        } else {
+            Err(std::io::Error::last_os_error())
         }
     }
-    // Other Unix platforms and Linux kernels before 5.11: walk up to the descriptor limit.
-    let mut lim = libc::rlimit {
-        rlim_cur: 0,
-        rlim_max: 0,
-    };
-    // SAFETY: as above.
-    let top = if unsafe { libc::getrlimit(libc::RLIMIT_NOFILE, &mut lim) } == 0 {
-        lim.rlim_cur.min(1 << 20) as i32
-    } else {
-        1 << 16
-    };
-    for fd in 3..top {
-        // SAFETY: as above; EBADF for unused numbers is expected.
-        unsafe { libc::fcntl(fd, libc::F_SETFD, libc::FD_CLOEXEC) };
+    #[cfg(not(target_os = "linux"))]
+    {
+        Err(std::io::ErrorKind::Unsupported.into())
     }
-    Ok(())
 }
 
 /// SIGKILL `pid`; true if it was delivered or the process is already gone.
