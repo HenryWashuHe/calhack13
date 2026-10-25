@@ -75,19 +75,23 @@ every milestone. All lower checkpoints are historical.
   Eight focused tests and strict Clippy/fmt independently pass; the original
   `8ad9d645` regressions are unchanged. This supplies feedback, not adoption.
   Retain B's explicit selection/local acceptance decision and intended responsibility;
-  distinct B-task execution and a fresh A return remain required.
+  #116 B-task records are now checked; local adoption and an accepted fresh
+  A return remain unestablished.
 - Eric (`EricZhu-31`) [acknowledged](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6386421464)
   the lab UI lane: `docs/invention-lab/ui.md` and `apps/web/src/invention-lab/**`,
-  without shared routes. #93 `05f77d2` merged at `85c5c11` after the label
-  regressions cleared. Last reviewed #94 `3abc0f4` remains held on organization
-  identity, preserving `78adef37`. #99 `425206c`, #100 `9cea7a2` and #101
-  `3a7af32` remain held on precise ledger sums, foreign-execution scoring and
-  cross-org lineage/checkpoint pairing; preserve `59c3e1c`. #109 `55bb894`
-  retains unsupported-version/SHA-only inspection holds from `f2ac45e5`.
-  Later pushes require exact-head review; these are source-specific findings.
-  Do not transfer this lane implicitly. Archival stage presenter #108 `feb3da7`
-  is held on visible hidden controls and a stale Live caption after failure;
-  it does not advance the goal or revive the event-organizer direction.
+  without shared routes. #93/#94 label/organization corrections and #99/#100
+  exact ledger/execution-scoring checks are merged. #94 source `7ed70f9` passed
+  21 focused checks/typecheck on `ef484cbf`, including all six unchanged
+  `78adef37` cases; #115 retains the label cases and main preserves the full
+  original file. #99 `f09bf473` / #100 `76c2cd54` passed 42 focused checks/
+  typecheck, including four unchanged `59c3e1c` cases. #101 `ed8b64de` merged
+  at `95256998`: 52 focused UI checks/typecheck pass, preserving all of
+  `59c3e1c`. last reviewed #109 `723ce82` remains held with four unchanged failures/eight
+  controls and typecheck passing. Preserve `f2ac45e5`; review later pushes.
+  Do not transfer this lane implicitly. Archival stage presenter #108 `ece3c614`
+  merged at `d810a670`: 22 Node checks and independent DOM probes pass on
+  composition `1632f08`. It is supporting presentation, not goal progress or
+  authorization to revive the event-organizer direction.
   Eric also [claimed a separate CREAO nullable-ticket reconciliation slice](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6387513389):
   exact saved run/account/version binding and operator read-only reconciliation,
   no duplicate create or name/time-window matching. The old lost run ID cannot
@@ -140,9 +144,16 @@ every milestone. All lower checkpoints are historical.
   192 lines, changed bytes and AST parsing only. The operator assigned B the
   distinct rough-transport task; no local adoption or autonomous selection is
   implied. Usage: 1 call, 20,798 input / 5,741 output tokens, 40,223 ms; one
-  reservation spent. Henry next owns receiving acceptance, exact-bound execution/
-  scoring against parent and random control, and fresh A return. No replay.
-  G0–G4 remain open.
+  reservation spent. Henry retains receiving acceptance, execution/scoring and
+  fresh A return; no replay. B receiving #116 `59cbf0ad` merged at `e091ce0d`
+  after independent record checks: child 3/6 versus random 4/6 and parent 6/6,
+  both Rejected, and Accepted versus fixed cart 2/6. The primary cost report
+  excludes other trials and earlier generations. A return #117 `3c1994f` merged
+  at `8eed5043` after retained-record checks: child 0/6 versus random 3/6 or
+  parent 1/6, and parent 1/6 versus random 3/6, all Rejected. No adoption,
+  accepted return or benefit is established; G0–G4 remain open. Codex's next
+  proposed prerequisite is an explicit reasoning policy in forge, not yet
+  implemented; no new generation is declared.
   Retain input-token/wall, billing, global enforcement and history limits.
   Preserve Henry's runtime files; provider/settings reproducibility, complete
   history, enforcement and end-to-end comparison remain open.
