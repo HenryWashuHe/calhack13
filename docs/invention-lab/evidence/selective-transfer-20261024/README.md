@@ -60,6 +60,10 @@ the commitment opens and re-score.
 **Attempt 2 (`hidden-2/`) is the one that counts**
 ([declaration](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6390731621)).
 It developed on seeds 5000..5005 and ran on local composition `b59d1eb` (#57 + #65 + #167).
+It is not independent of attempt 1: I had seen attempt 1's observed counts
+before declaring it. The methods were frozen long before, and the new seeds,
+salt and hidden draws were declared before any attempt-2 run, so the counts
+could inform the declaration but not the methods or instances.
 
 | Hidden, 12 instances each | Parent | Random search | Margin rule |
 | --- | ---: | ---: | --- |
@@ -106,18 +110,24 @@ and [corrected before running](https://github.com/HenryWashuHe/genesis-history-e
 - **Hypothesis from earlier data.** The rough-transport hypothesis came from a
   post-hoc look at #116. This is its first confirmation on new data, with a
   single family pair and 12 instances each.
-- **Experimental runtime.** Unmerged #65 executor (`6636596`) and unmerged #163
-  `receive.py` (`66118d2`), on one Linux host. The declared Python 3.14.0
+- **Experimental runtime (public trial).** The public trial above ran on
+  unmerged #65 executor (`6636596`) and unmerged #163 `receive.py`
+  (`66118d2`), on one Linux host. The hidden checks ran on different builds;
+  see the hidden section and the reproduction prerequisites below. The declared Python 3.14.0
   runtime was used as is; nothing was retagged. The scorer's instance set is
-  labelled `development` because example plans develop and score on one public
-  panel. The metrics name each instance by seed.
+  labelled `development` because the public trial's plans develop and score on
+  one public panel. The metrics name each instance by seed. This doesn't apply
+  to the hidden checks, which score on the committed hidden draws.
 
 process-comparison/1 is untouched. Its plan (4), parent vs random search on
 1000..1011, still runs as frozen.
 
 ## Reproduce offline
 
-From this directory, with `lab-exec` and `lab-score` built from `6636596`:
+Each part needs its own build, because the records were produced by different
+runtimes.
+
+**Public trial** (`run/`): build `lab-exec` and `lab-score` from `6636596`.
 
 ```sh
 shasum -a 256 -c SHA256SUMS
@@ -126,6 +136,12 @@ for t in st-rough-transport st-ravine-crossing; do
   for s in candidate control; do lab-exec check run/$t/plan.json $s run/$t/$s run/$t/$s-score; done
 done
 ```
+
+**Hidden checks** (`hidden-2/`): build `lab-score` from the local composition
+`b59d1eb14ff97c9f8e4ffefa29effdc5a3000107` (tree `8ede0736…cecf7`), pushed as
+[`henry-claude/compose-57-65-local`](https://github.com/HenryWashuHe/genesis-history-experiment/tree/henry-claude/compose-57-65-local).
+`6636596` has no hidden-scoring module. Attempt 1 (`hidden/`) ran on #57's
+head `4c2648d` and is kept only as an ineligible observation.
 
 The hidden checks re-score with the revealed salt. The re-score checks that the
 salt opens the committed descriptor and that the comparison is closed. The
