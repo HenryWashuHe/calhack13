@@ -9,6 +9,9 @@
 //! Elastic (or if it fails) search falls back to a keyword ranking.
 //! Installation always re-fetches the canonical manifest.
 
+mod method_client;
+pub mod methods;
+
 use crate::error::{ApiError, ApiResult};
 use axum::extract::{Path, State};
 use axum::http::{HeaderMap, StatusCode};
@@ -102,6 +105,7 @@ impl RegistryState {
                 PRIMARY KEY (capability_id, version)
              );",
         )?;
+        methods::initialize(&conn)?;
         readers.extend(publishers.keys().cloned());
         Ok(Self {
             conn: Arc::new(Mutex::new(conn)),
@@ -255,6 +259,7 @@ pub fn router(state: RegistryState) -> Router {
             get(fetch),
         )
         .route("/registry/v1/search", post(search))
+        .merge(methods::routes())
         .with_state(state)
 }
 

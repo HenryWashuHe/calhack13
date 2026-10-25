@@ -205,6 +205,41 @@ by `org_example_a`. Its ledger totals 3 calls, 12027 input / 18315 output
 tokens, 141119 ms and 1 package, as that README does. The checklist records
 A's first package and no record for any later beat.
 
+## Trials and retained receiving evidence
+
+A trial plan's reference is computed as the canonical SHA-256 under
+`genesis.development_trial_plan`, the value execution receipts name in
+`purpose.plan`. Runs are grouped by the exact plan they name, so trials that
+reuse run and attempt ids are separate; only an identical receipt is a
+duplicate. A standalone `verdict.json` names no plan, so intake pairs it with
+the single trial plan in the same folder and says so; with zero or several plans
+there, it stays unpaired. The panel lists each trial with its verdict verbatim
+and states that a trial verdict is scoring evidence under its frozen criterion,
+not an adoption decision.
+
+Identical records supplied as different files (for example a status saved as
+both `step-result.json` and `final-status.json`) are counted once and the copy is
+listed. Static inspections come in two retained shapes under one schema name;
+both are shown as verbatim key/value phrases (`python_ast_parse passed` or
+`ast_parse true`), and an inspection without an entrypoint is checked against
+its package's entrypoint.
+
+On the committed evidence through #117 (the first complete return pass) the
+checklist reads:
+- **A invents:** 3 generation attempts with 1 package.
+- **B inherits:** no adoption decision. B's trials of A's method are
+  `accepted 1/6 vs 0/6` against fixed-cart and `rejected 1/6 vs 2/6` against
+  random search.
+- **B revises the method:** source changed. B's trials of its revision are
+  accepted 3/6 vs 2/6 against fixed-cart, and rejected against the parent
+  (3/6 vs 6/6) and random search (3/6 vs 4/6).
+- **A faces a fresh challenge:** no adoption decision. A's return-mix trials
+  of B's revision are both rejected (0/6 vs 3/6 and 0/6 vs 1/6).
+- **Network remembers:** the chain stays incomplete. Its fact names the
+  missing decision and notes that A's trials of the revision are recorded
+  (2 rejected), since a rejected update is a valid selective-transfer outcome
+  but not an accepted return. No problems are reported.
+
 ## Attempt ledger
 
 Status records may carry the optional enum-only `diagnostic` from

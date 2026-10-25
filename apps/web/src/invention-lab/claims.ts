@@ -3,7 +3,7 @@
 // There is deliberately no "improved" label: that needs a predeclared
 // comparison record, and no such record type exists yet.
 
-import type { Purpose } from "./records";
+import type { Purpose, Verdict } from "./records";
 
 export type Tone = "ok" | "warn" | "bad" | "neutral";
 export interface Label {
@@ -126,4 +126,14 @@ export function purposeText(p: Purpose): string {
     case "unrecognized":
       return `unrecognized purpose: ${p.raw}`;
   }
+}
+
+const VERDICT_WORD: Record<string, string> = { accepted: "accepted", rejected: "rejected", insufficient: "insufficient" };
+/** A scoring verdict for one trial plan, verbatim. Not an adoption decision. */
+export function verdictText(v: Verdict | null): string {
+  if (!v) return "no verdict supplied";
+  const word = own(VERDICT_WORD, v.verdict);
+  if (!word) return `unrecognized verdict: ${v.verdict}`;
+  if ("candidate" in v) return `${word}: candidate ${v.candidate}/${v.of} vs control ${v.control}/${v.of}`;
+  return v.reason ? `${word}: ${v.reason}` : word;
 }
