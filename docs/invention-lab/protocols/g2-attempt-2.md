@@ -68,6 +68,15 @@ requests (three repair turns × three transport attempts each).
 - Failed, interrupted or unknown executions are ineligible
   (`process-comparison/1`), as the driver already checks.
 
+## Harness dry run (disclosed)
+
+Driver at this commit, `genesis` built from #259 at `f52210a`, a fake model
+endpoint (create a `method.develop` role when the need states the requirement
+and the lead lacks it, otherwise assign the lead), throwaway seeds
+63000../64000... All six instances completed: b2-plain owners refused 403
+`method_scope`; b2-hint specialists and b1 leads adopted and invoked. No
+planner judgment involved; not evidence; records not retained.
+
 ## Freeze prerequisites
 
 - #259 reviewed and merged (or the exact reviewed head built), and the
