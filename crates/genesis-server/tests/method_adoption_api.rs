@@ -392,6 +392,10 @@ async fn adoption_authorizes_only_the_owner_for_the_exact_version_under_current_
         // One run per exact plan, so each run names its own plan id.
         let mut plan = invocation.clone();
         plan["id"] = json!(format!("invoke-{key}"));
+        // ...and its own run, attempt and scoring ids.
+        plan["slots"][0]["run_id"] = json!(format!("run-invoke-{key}"));
+        plan["slots"][0]["attempt_id"] = json!(format!("att_invoke_{key}"));
+        plan["slots"][0]["scoring_request_id"] = json!(format!("score-invoke-{key}"));
         json!({"client_request_id":key,"request":ask(&owner, &v1),"plan":plan})
     };
     let runs = format!("{base}/method-runs");

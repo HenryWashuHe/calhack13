@@ -44,7 +44,16 @@ A proposed plan is accepted only if all of these hold:
 - Its model settings equal the accepted plan's.
 - Its development and scoring grants are no larger than the accepted plan's.
 
+- Its plan, run, attempt and scoring ids are used by no other run, and its
+  run, attempt and scoring ids differ from the accepted trial's.
+- Its frozen record leaves 64 KiB for the receipt, so a run that starts can
+  always be completed.
+
 Its instances are the operator's choice; they are public.
+
+A recorded run also carries `budget`: the receipt's usage against the frozen
+development grant (`within_limits`, `unknown` or `exceeded` with the resource).
+An overrun is recorded, never hidden, and authorizes nothing further.
 
 There is no retry. A started run whose runner is lost stays `started`; its
 state is recovered with `lab-exec recover` and the receipt posted by hand.

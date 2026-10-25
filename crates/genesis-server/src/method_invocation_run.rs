@@ -20,7 +20,9 @@ use crate::method_invocation::{
 };
 use crate::store::Store;
 use chrono::{DateTime, Utc};
-use genesis_core::development_method::{ExecutionReceipt, InvocationGrant, ResourceGrant};
+use genesis_core::development_method::{
+    BudgetAssessment, ContractError, ExecutionReceipt, InvocationGrant, ResourceGrant,
+};
 use genesis_core::development_trial::{TrialPlan, TrialPurpose};
 use genesis_core::model::OrgState;
 use genesis_verification::{decode_json, json_sha256};
@@ -29,6 +31,9 @@ use serde::{Deserialize, Serialize};
 
 pub const MAX_METHOD_RUNS: usize = 256;
 const MAX_RECORD_BYTES: usize = 1024 * 1024;
+/// Room kept in every prepared record for its one receipt, so a run that
+/// starts can always be completed. A larger receipt is refused on its own.
+const RECEIPT_ALLOWANCE: usize = 64 * 1024;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -50,6 +55,16 @@ pub enum MethodRunStatus {
     CompletedAfterFence,
 }
 
+/// The receipt's usage against the frozen development grant. An overrun is
+/// recorded, never hidden, and authorizes nothing further.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+pub enum RunBudget {
+    WithinLimits,
+    Unknown,
+    Exceeded { resource: String },
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct MethodRunRecord {
@@ -61,6 +76,7 @@ pub struct MethodRunRecord {
     pub plan: TrialPlan,
     pub status: MethodRunStatus,
     pub receipt: Option<ExecutionReceipt>,
+    pub budget: Option<RunBudget>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -162,6 +178,15 @@ fn check_plan(
     {
         return Err(E::Plan("organization, method or dependencies differ"));
     }
+    if accepted.slots.iter().any(|a| {
+        a.run_id == slot.run_id
+            || a.attempt_id == slot.attempt_id
+            || a.scoring_request_id == slot.scoring_request_id
+    }) {
+        return Err(E::Plan(
+            "run, attempt or scoring ids reuse the accepted trial's",
+        ));
+    }
     if plan.context.public_task != evidence.public_task
         || plan.context.evaluator != evidence.evaluator
         || plan.development_environment != evidence.environment
@@ -232,7 +257,7 @@ fn still_authorized(
 
 impl Store {
     pub fn init_method_runs(&self) -> Result<()> {
-        self.lock().execute_batch("CREATE TABLE IF NOT EXISTS method_runs(ordinal INTEGER PRIMARY KEY AUTOINCREMENT,id TEXT NOT NULL UNIQUE,client_request_id TEXT NOT NULL UNIQUE,plan_sha256 TEXT NOT NULL UNIQUE,status TEXT NOT NULL,record_json TEXT NOT NULL);")?;
+        self.lock().execute_batch("CREATE TABLE IF NOT EXISTS method_runs(ordinal INTEGER PRIMARY KEY AUTOINCREMENT,id TEXT NOT NULL UNIQUE,client_request_id TEXT NOT NULL UNIQUE,plan_sha256 TEXT NOT NULL UNIQUE,run_id TEXT NOT NULL UNIQUE,attempt_id TEXT NOT NULL UNIQUE,scoring_request_id TEXT NOT NULL UNIQUE,status TEXT NOT NULL,record_json TEXT NOT NULL);")?;
         Ok(())
     }
 
@@ -268,11 +293,12 @@ impl Store {
             plan: intent.plan.clone(),
             status: MethodRunStatus::Prepared,
             receipt: None,
+            budget: None,
             created_at: now,
             updated_at: now,
         };
         let json = serde_json::to_string(&record).map_err(|_| E::InvalidRecord)?;
-        if json.len() > MAX_RECORD_BYTES {
+        if json.len() > MAX_RECORD_BYTES - RECEIPT_ALLOWANCE {
             return Err(E::InvalidInput);
         }
         let mut conn = self.lock();
@@ -296,9 +322,21 @@ impl Store {
         if taken {
             return Err(E::Plan("this exact plan is already frozen in another run"));
         }
+        // Run, attempt and scoring ids are unique across runs, not just plans.
+        let slot = &record.plan.slots[0];
+        let reused: bool = tx.query_row(
+            "SELECT EXISTS(SELECT 1 FROM method_runs WHERE run_id=?1 OR attempt_id=?2 OR scoring_request_id=?3)",
+            params![slot.run_id, slot.attempt_id.as_str(), slot.scoring_request_id],
+            |r| r.get(0),
+        )?;
+        if reused {
+            return Err(E::Plan(
+                "run, attempt or scoring ids are used by another run",
+            ));
+        }
         tx.execute(
-            "INSERT INTO method_runs(id,client_request_id,plan_sha256,status,record_json) VALUES(?1,?2,?3,'prepared',?4)",
-            params![record.id, record.client_request_id, plan_sha256, json],
+            "INSERT INTO method_runs(id,client_request_id,plan_sha256,run_id,attempt_id,scoring_request_id,status,record_json) VALUES(?1,?2,?3,?4,?5,?6,'prepared',?7)",
+            params![record.id, record.client_request_id, plan_sha256, slot.run_id, slot.attempt_id.as_str(), slot.scoring_request_id, json],
         )?;
         tx.commit()?;
         Ok((record, true))
@@ -359,6 +397,18 @@ impl Store {
         receipt
             .validate_identity_against(&binding)
             .map_err(|e| E::Receipt(e.to_string()))?;
+        let receipt_bytes = serde_json::to_vec(receipt).map_err(|_| E::InvalidRecord)?;
+        if receipt_bytes.len() > RECEIPT_ALLOWANCE {
+            return Err(E::Receipt("receipt exceeds its size bound".into()));
+        }
+        record.budget = Some(match receipt.usage.assess(&binding.budget) {
+            Ok(BudgetAssessment::WithinLimits) => RunBudget::WithinLimits,
+            Ok(BudgetAssessment::Unknown) => RunBudget::Unknown,
+            Err(ContractError::BudgetExceeded(resource)) => RunBudget::Exceeded {
+                resource: resource.into(),
+            },
+            Err(e) => return Err(E::Receipt(e.to_string())),
+        });
         record.status = if still_authorized(self, state, receiver, &record, now) {
             MethodRunStatus::Completed
         } else {
