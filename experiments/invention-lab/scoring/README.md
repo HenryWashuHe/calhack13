@@ -81,4 +81,7 @@ candidate's `lab-score feedback`. Failures are recorded, not retried.
 `summary.json` is rewritten after every trial. An unexpected error records an
 error row and stops the run. The output directory must not already exist, and
 the summary repeats the spec hash and the host's runtime ref. A package whose bytes don't match its
-declared hash stops the run before anything executes.
+declared hash stops the run before anything executes. A trial may add
+`first_seed` to run on seeds `first_seed..first_seed + instances` (a fresh
+public panel, via `lab-exec example-plan … <first-seed>`). Ranges that reach
+the reserved hidden-seed domain (2^63 and up) are refused before any effect.

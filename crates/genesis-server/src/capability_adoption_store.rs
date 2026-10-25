@@ -656,14 +656,15 @@ fn authority_error(error: CapabilityAuthorityError) -> AdoptionError {
     })
 }
 
-struct AuthoritySnapshot {
-    grant: DispatchGrant,
-    requirement_sha256: String,
-    mission_sha256: String,
-    authority_sha256: String,
-    lease_expires_at: Option<DateTime<Utc>>,
+/// Also binds method adoptions (`method_adoption_store`) to the same fences.
+pub(crate) struct AuthoritySnapshot {
+    pub(crate) grant: DispatchGrant,
+    pub(crate) requirement_sha256: String,
+    pub(crate) mission_sha256: String,
+    pub(crate) authority_sha256: String,
+    pub(crate) lease_expires_at: Option<DateTime<Utc>>,
 }
-fn authority_snapshot(
+pub(crate) fn authority_snapshot(
     state: &OrgState,
     mission_id: &MissionId,
     requirement_id: &RequirementId,
@@ -730,7 +731,7 @@ fn authority_snapshot(
     })
 }
 
-fn state(conn: &Connection) -> Result<OrgState> {
+pub(crate) fn state(conn: &Connection) -> Result<OrgState> {
     let json: String = conn.query_row(
         "SELECT state_json FROM org_snapshots ORDER BY revision DESC LIMIT 1",
         [],

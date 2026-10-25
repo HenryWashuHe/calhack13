@@ -7,6 +7,8 @@ mod method_revision_commands;
 mod method_roster_commands;
 mod method_stage_commands;
 mod method_synthesis_commands;
+mod process_cohort_commands;
+mod process_select_commands;
 mod storage;
 mod synthesis_commands;
 
@@ -30,6 +32,10 @@ const HELP: &str = "Usage:
   genesis-forge method-chain-bind --manifest chain-stage-input.json --chain chain.json
   genesis-forge method-chain-check --manifest chain-stage-input.json --chain chain.json
   genesis-forge method-chain-cost-assess --chain chain.json --manifest chain-costs.json
+  genesis-forge process-select-prepare --manifest selection-input.json --selection selection.json
+  genesis-forge process-select-check --selection selection.json
+  genesis-forge process-cohort-prepare --manifest cohort-input.json --cohort cohort.json
+  genesis-forge process-cohort-check --cohort cohort.json
   genesis-forge method-stage-prepare --manifest stage-input.json --admission admission.json --allocation stage.json
   genesis-forge method-stage-bind --manifest trial-input.json --allocation stage.json
   genesis-forge method-admission-prepare --roster roster.json --admission admission.json
@@ -41,6 +47,8 @@ const HELP: &str = "Usage:
   genesis-forge method-roster-assess --manifest snapshots.json --roster roster.json
   genesis-forge method-revise-prepare --plan revision.json --parent parent.package.json --checkpoint generation.json
   genesis-forge method-revise-observe --plan revision.json --parent parent.package.json --checkpoint generation.json
+  genesis-forge method-revise-prepare --input revision-input.json --checkpoint generation.json
+  genesis-forge method-revise-observe --input revision-input.json --checkpoint generation.json
   genesis-forge generate-prepare --request public-request.json --model-config model.json --checkpoint generation.json
   genesis-forge generate-step --checkpoint generation.json
   genesis-forge generate-status --checkpoint generation.json
@@ -73,6 +81,11 @@ on failures. It can perform one preplanned semantic repair, never an automatic
 retry of failed provider submissions. Its status output is newline-delimited JSON.
 method-cost-assess and method-chain-cost-assess are offline and read-only. Exit 0 means report construction,
 including unknown usage or overruns; it is not acceptance or budget compliance.
+process-select-prepare captures one arm/family's three development rounds offline,
+create-only; process-select-check recomputes the retained report without writing.
+process-cohort-prepare captures the eight externally pinned arm/family records;
+process-cohort-check recomputes the complete retained roster without writing.
+Their exit 0 means consistency, including no candidate, not acceptance or a complete experiment.
 Exit codes: 0 success/progress, 1 rejected/failed/reconciliation required, 2 invalid input or local error.
 ";
 
@@ -111,6 +124,10 @@ impl Arguments {
             "prepare-generated" => &["--candidate", "--generation", "--suite", "--checkpoint"],
             "method-generate-prepare" => &["--plan", "--checkpoint"],
             "method-cost-assess" => &["--manifest", "--admission", "--allocation"],
+            "process-select-prepare" => &["--manifest", "--selection"],
+            "process-select-check" => &["--selection"],
+            "process-cohort-prepare" => &["--manifest", "--cohort"],
+            "process-cohort-check" => &["--cohort"],
             "method-stage-prepare" => &["--manifest", "--admission", "--allocation"],
             "method-chain-prepare"
             | "method-chain-bind"
@@ -121,7 +138,7 @@ impl Arguments {
             "method-admission-status" => &["--admission"],
             "method-roster-prepare" | "method-roster-assess" => &["--manifest", "--roster"],
             "method-revise-prepare" | "method-revise-observe" => {
-                &["--plan", "--parent", "--checkpoint"]
+                &["--plan", "--parent", "--input", "--checkpoint"]
             }
             "method-generate-step" => &["--checkpoint", "--admission", "--allocation", "--chain"],
             "method-generate-status" | "method-generate-export" => &["--checkpoint"],
@@ -178,6 +195,13 @@ impl Arguments {
             }
         }
         for flag in allowed {
+            if matches!(
+                command.as_str(),
+                "method-revise-prepare" | "method-revise-observe"
+            ) && matches!(*flag, "--input" | "--plan" | "--parent")
+            {
+                continue;
+            }
             if command == "method-generate-step" && *flag == "--chain" {
                 continue;
             }
@@ -190,6 +214,20 @@ impl Arguments {
             }
             if !paths.contains_key(*flag) {
                 return Err(format!("missing {flag}"));
+            }
+        }
+        if matches!(
+            command.as_str(),
+            "method-revise-prepare" | "method-revise-observe"
+        ) {
+            let input = paths.contains_key("--input");
+            let plan = paths.contains_key("--plan");
+            let parent = paths.contains_key("--parent");
+            if !matches!(
+                (input, plan, parent),
+                (true, false, false) | (false, true, true)
+            ) {
+                return Err("revision requires either --input or both --plan and --parent".into());
             }
         }
         if matches!(
@@ -249,6 +287,12 @@ async fn run() -> Result<u8, String> {
     }
     if args.command == "method-cost-assess" {
         return method_accounting_commands::run(&args);
+    }
+    if args.command.starts_with("process-cohort-") {
+        return process_cohort_commands::run(&args);
+    }
+    if args.command.starts_with("process-select-") {
+        return process_select_commands::run(&args);
     }
     if matches!(
         args.command.as_str(),
