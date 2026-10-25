@@ -1,0 +1,615 @@
+{
+ "config": {
+  "generations": 5,
+  "k": 4,
+  "heldout": 20,
+  "screen": 3,
+  "factor": 2,
+  "target": 1.2,
+  "seed": "smoke-3",
+  "stall": 5,
+  "mock": false,
+  "effort": "medium",
+  "gate": "incumbent",
+  "model": "claude-sonnet-5-5"
+ },
+ "controls": [
+  {
+   "id": "fixed-spt",
+   "package": "79e109cb0a1ced1fbd3541c45b33e428d5abf71df00ba2b7e380d8e5c1b93349",
+   "source": "(op) => -op.duration",
+   "evidence": null
+  },
+  {
+   "id": "fixed-mwkr",
+   "package": "985d11d8b287fc2283c1d78f0a911c8e27cd18bebc70f14e3a00e4e4a9b8d05e",
+   "source": "(op) => op.remainingWork",
+   "evidence": null
+  },
+  {
+   "id": "fixed-lpt",
+   "package": "ea2f53ee39032e0bd05c353cb7634227254011f072be104a5d4fce5bd4325969",
+   "source": "(op) => op.duration",
+   "evidence": null
+  },
+  {
+   "id": "random-search",
+   "package": "4352e4860e3aff6d7ed313bf79a68b285db242b9dc518420bdc16faedf93c81b",
+   "source": "(op) => (-0.99 * op.duration) + (0.86 * op.remainingWork) + (-0.06 * op.remainingOps) + (0.06 * op.machineRemainingLoad) + (-0.44 * op.waiting)",
+   "evidence": {
+    "samples": 67,
+    "panel_instances": 6,
+    "training_success_count": 6,
+    "training_mean_progress": 0.8902448029727185,
+    "evaluations": 402
+   }
+  }
+ ],
+ "generations": [
+  {
+   "generation": 1,
+   "plan": "6d504f6b7da80bcdf6d9e497c3064707785075a62cd87c88583d5179d9e67485",
+   "incumbent": 8,
+   "controls": [],
+   "candidates": [
+    {
+     "slot": "candidate:0",
+     "success_count": 9,
+     "verdict": "rejected"
+    },
+    {
+     "slot": "candidate:1",
+     "success_count": 10,
+     "verdict": "rejected"
+    },
+    {
+     "slot": "candidate:2",
+     "success_count": 9,
+     "verdict": "rejected"
+    },
+    {
+     "slot": "candidate:3",
+     "success_count": 11,
+     "verdict": "promoted"
+    }
+   ],
+   "of": 20,
+   "promoted": "cc4dd741392f963f12b9677426e3ef14324e44512c8ecd95c8674e61a3ce42fc",
+   "dropped": []
+  },
+  {
+   "generation": 2,
+   "plan": "28660fdcda21c6b7ebffb83e426b81710b4910bddd9c7b99d96bddb6d98cc14b",
+   "incumbent": 12,
+   "controls": [],
+   "candidates": [
+    {
+     "slot": "candidate:0",
+     "success_count": 14,
+     "verdict": "promoted"
+    },
+    {
+     "slot": "candidate:1",
+     "success_count": 12,
+     "verdict": "rejected"
+    },
+    {
+     "slot": "candidate:2",
+     "success_count": 13,
+     "verdict": "rejected"
+    },
+    {
+     "slot": "candidate:3",
+     "success_count": 12,
+     "verdict": "rejected"
+    }
+   ],
+   "of": 20,
+   "promoted": "50d52533434a0007e7b67cb59b3355a3df12304d3b54693b5bd1c001b1316ab5",
+   "dropped": []
+  },
+  {
+   "generation": 3,
+   "plan": "392cb8478c18b911f2cbcffc5e894096a7acd13001dc662dda13e2395f94f0d8",
+   "incumbent": 14,
+   "controls": [],
+   "candidates": [
+    {
+     "slot": "candidate:0",
+     "success_count": 17,
+     "verdict": "promoted"
+    },
+    {
+     "slot": "candidate:1",
+     "success_count": 17,
+     "verdict": "rejected"
+    },
+    {
+     "slot": "candidate:2",
+     "success_count": 14,
+     "verdict": "rejected"
+    },
+    {
+     "slot": "candidate:3",
+     "success_count": 15,
+     "verdict": "rejected"
+    }
+   ],
+   "of": 20,
+   "promoted": "5462da50a3da1e0bf6ff4790f926394398cd4fdf9d11efef8bca3a8494f20f05",
+   "dropped": []
+  },
+  {
+   "generation": 4,
+   "plan": "01dd5a619c56e9b94e3c0b75a1ceeab25d63d97fc600c59ce3f4184231f28c66",
+   "incumbent": 11,
+   "controls": [],
+   "candidates": [
+    {
+     "slot": "candidate:0",
+     "success_count": 12,
+     "verdict": "rejected"
+    },
+    {
+     "slot": "candidate:1",
+     "success_count": 14,
+     "verdict": "promoted"
+    },
+    {
+     "slot": "candidate:2",
+     "success_count": 12,
+     "verdict": "rejected"
+    },
+    {
+     "slot": "candidate:3",
+     "success_count": 12,
+     "verdict": "rejected"
+    }
+   ],
+   "of": 20,
+   "promoted": "7f18612aff585fc67bc58095ec6c07948866422da3384396a50f143ab30fffd3",
+   "dropped": []
+  },
+  {
+   "generation": 5,
+   "plan": "d231f7cbe13c9a7bc13e758927f85d1a0249b4a4ba7a87608d10d2a95ea5d72b",
+   "incumbent": 15,
+   "controls": [],
+   "candidates": [
+    {
+     "slot": "candidate:0",
+     "success_count": 15,
+     "verdict": "rejected"
+    },
+    {
+     "slot": "candidate:1",
+     "success_count": 16,
+     "verdict": "promoted"
+    },
+    {
+     "slot": "candidate:2",
+     "success_count": 15,
+     "verdict": "rejected"
+    },
+    {
+     "slot": "candidate:3",
+     "success_count": 16,
+     "verdict": "rejected"
+    }
+   ],
+   "of": 20,
+   "promoted": "63aadd6a8f0a148fb39b9936eefbf01fc5d14b40388fcbcf7f7e21a1ed11636c",
+   "dropped": []
+  }
+ ],
+ "calls": [
+  {
+   "generation": 1,
+   "stop_reason": "end_turn",
+   "model": "claude-sonnet-5-5",
+   "candidates": 8,
+   "usage": {
+    "input_tokens": 788,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 0
+    },
+    "iterations": [
+     {
+      "input_tokens": 788,
+      "output_tokens": 521,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0,
+      "cache_creation": {
+       "ephemeral_5m_input_tokens": 0,
+       "ephemeral_1h_input_tokens": 0
+      },
+      "type": "message",
+      "model": null
+     }
+    ],
+    "output_tokens": 521,
+    "output_tokens_details": {
+     "thinking_tokens": 0
+    },
+    "service_tier": "standard",
+    "inference_geo": "global",
+    "speed": "standard"
+   }
+  },
+  {
+   "generation": 2,
+   "stop_reason": "end_turn",
+   "model": "claude-sonnet-5-5",
+   "candidates": 8,
+   "usage": {
+    "input_tokens": 4970,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 0
+    },
+    "iterations": [
+     {
+      "input_tokens": 4970,
+      "output_tokens": 605,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0,
+      "cache_creation": {
+       "ephemeral_5m_input_tokens": 0,
+       "ephemeral_1h_input_tokens": 0
+      },
+      "type": "message",
+      "model": null
+     }
+    ],
+    "output_tokens": 605,
+    "output_tokens_details": {
+     "thinking_tokens": 0
+    },
+    "service_tier": "standard",
+    "inference_geo": "global",
+    "speed": "standard"
+   }
+  },
+  {
+   "generation": 3,
+   "stop_reason": "end_turn",
+   "model": "claude-sonnet-5-5",
+   "candidates": 8,
+   "usage": {
+    "input_tokens": 5069,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 0
+    },
+    "iterations": [
+     {
+      "input_tokens": 5069,
+      "output_tokens": 566,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0,
+      "cache_creation": {
+       "ephemeral_5m_input_tokens": 0,
+       "ephemeral_1h_input_tokens": 0
+      },
+      "type": "message",
+      "model": null
+     }
+    ],
+    "output_tokens": 566,
+    "output_tokens_details": {
+     "thinking_tokens": 0
+    },
+    "service_tier": "standard",
+    "inference_geo": "global",
+    "speed": "standard"
+   }
+  },
+  {
+   "generation": 4,
+   "stop_reason": "end_turn",
+   "model": "claude-sonnet-5-5",
+   "candidates": 8,
+   "usage": {
+    "input_tokens": 4974,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 0
+    },
+    "iterations": [
+     {
+      "input_tokens": 4974,
+      "output_tokens": 564,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0,
+      "cache_creation": {
+       "ephemeral_5m_input_tokens": 0,
+       "ephemeral_1h_input_tokens": 0
+      },
+      "type": "message",
+      "model": null
+     }
+    ],
+    "output_tokens": 564,
+    "output_tokens_details": {
+     "thinking_tokens": 0
+    },
+    "service_tier": "standard",
+    "inference_geo": "global",
+    "speed": "standard"
+   }
+  },
+  {
+   "generation": 5,
+   "stop_reason": "end_turn",
+   "model": "claude-sonnet-5-5",
+   "candidates": 8,
+   "usage": {
+    "input_tokens": 4982,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 0
+    },
+    "iterations": [
+     {
+      "input_tokens": 4982,
+      "output_tokens": 563,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0,
+      "cache_creation": {
+       "ephemeral_5m_input_tokens": 0,
+       "ephemeral_1h_input_tokens": 0
+      },
+      "type": "message",
+      "model": null
+     }
+    ],
+    "output_tokens": 563,
+    "output_tokens_details": {
+     "thinking_tokens": 0
+    },
+    "service_tier": "standard",
+    "inference_geo": "global",
+    "speed": "standard"
+   }
+  }
+ ],
+ "usage": {
+  "input_tokens": 20783,
+  "output_tokens": 2819,
+  "calls": 5,
+  "failures": 0
+ },
+ "screening": {
+  "evaluations": 120,
+  "rounds": [
+   {
+    "generation": 1,
+    "proposed": 8,
+    "kept": 4,
+    "panel": 3,
+    "dropped": [
+     {
+      "source": "(op, ctx) => 2 * op.remainingWork + op.machineRemainingLoad - op.duration + 0.3 * op.waiting",
+      "success_count": 3,
+      "mean_progress": 0.89825720592831
+     },
+     {
+      "source": "(op, ctx) => op.remainingWork + 3 * op.remainingOps - 0.5 * op.duration + 0.1 * op.machineRemainingLoad",
+      "success_count": 3,
+      "mean_progress": 0.8950942967299597
+     },
+     {
+      "source": "(op, ctx) => op.remainingWork - op.readyAt * 0.3 + op.machineRemainingLoad * 0.4 + op.waiting * 0.5",
+      "success_count": 2,
+      "mean_progress": 0.8864274702817004
+     },
+     {
+      "source": "(op, ctx) => op.remainingWork / (op.remainingOps + 1) + op.machineRemainingLoad * 0.05",
+      "success_count": 2,
+      "mean_progress": 0.8546032415067382
+     }
+    ]
+   },
+   {
+    "generation": 2,
+    "proposed": 8,
+    "kept": 4,
+    "panel": 3,
+    "dropped": [
+     {
+      "source": "(op, ctx) => op.remainingWork * op.machineRemainingLoad / 100 + op.remainingOps + 0.05 * op.waiting",
+      "success_count": 3,
+      "mean_progress": 0.9311693029879669
+     },
+     {
+      "source": "(op, ctx) => op.remainingWork * Math.sqrt(op.machineRemainingLoad) + 5 * op.remainingOps",
+      "success_count": 3,
+      "mean_progress": 0.9311693029879669
+     },
+     {
+      "source": "(op, ctx) => Math.pow(op.remainingWork, 1.5) * op.machineRemainingLoad / 1000 + op.remainingOps + op.waiting * 0.1",
+      "success_count": 3,
+      "mean_progress": 0.9311693029879669
+     },
+     {
+      "source": "(op, ctx) => (op.remainingWork + op.machineRemainingLoad) * (1 + op.remainingOps / 10) + 0.1 * op.waiting",
+      "success_count": 2,
+      "mean_progress": 0.9090351536759961
+     }
+    ]
+   },
+   {
+    "generation": 3,
+    "proposed": 8,
+    "kept": 4,
+    "panel": 3,
+    "dropped": [
+     {
+      "source": "(op, ctx) => 2 * op.remainingWork + op.machineRemainingLoad - 0.5 * op.duration + 3 * op.remainingOps",
+      "success_count": 1,
+      "mean_progress": 0.8483077886186113
+     },
+     {
+      "source": "(op, ctx) => op.remainingWork * (1 + op.machineRemainingLoad / 400) - 0.3 * op.duration",
+      "success_count": 1,
+      "mean_progress": 0.8477017893381652
+     },
+     {
+      "source": "(op, ctx) => op.remainingWork + 0.3 * op.machineRemainingLoad - 0.3 * op.duration + 0.1 * (ctx.time - op.readyAt)",
+      "success_count": 1,
+      "mean_progress": 0.8417619044991977
+     },
+     {
+      "source": "(op, ctx) => op.remainingWork + 0.3 * op.machineRemainingLoad + 0.2 * op.duration",
+      "success_count": 1,
+      "mean_progress": 0.798919438675691
+     }
+    ]
+   },
+   {
+    "generation": 4,
+    "proposed": 8,
+    "kept": 4,
+    "panel": 3,
+    "dropped": [
+     {
+      "source": "(op, ctx) => op.remainingWork + 0.7 * op.machineRemainingLoad - 0.5 * op.duration - 0.05 * op.readyAt",
+      "success_count": 2,
+      "mean_progress": 0.8756517556517557
+     },
+     {
+      "source": "(op, ctx) => op.remainingWork + 0.4 * op.machineRemainingLoad - 0.9 * op.duration",
+      "success_count": 2,
+      "mean_progress": 0.8756517556517557
+     },
+     {
+      "source": "(op, ctx) => op.remainingWork + 1.2 * op.machineRemainingLoad - 0.4 * op.duration",
+      "success_count": 2,
+      "mean_progress": 0.8756517556517557
+     },
+     {
+      "source": "(op, ctx) => op.remainingWork + 0.6 * op.machineRemainingLoad - 0.5 * op.duration + 3 * op.remainingOps",
+      "success_count": 2,
+      "mean_progress": 0.8695261813791676
+     }
+    ]
+   },
+   {
+    "generation": 5,
+    "proposed": 8,
+    "kept": 4,
+    "panel": 3,
+    "dropped": [
+     {
+      "source": "(op, ctx) => op.remainingWork + 0.15 * op.machineRemainingLoad - 0.7 * op.duration + 2 * op.remainingOps",
+      "success_count": 2,
+      "mean_progress": 0.8513781987739909
+     },
+     {
+      "source": "(op, ctx) => op.remainingWork + 0.25 * op.machineRemainingLoad - 0.75 * op.duration",
+      "success_count": 2,
+      "mean_progress": 0.8513781987739909
+     },
+     {
+      "source": "(op, ctx) => 1.2 * op.remainingWork + 0.2 * op.machineRemainingLoad - 0.8 * op.duration",
+      "success_count": 2,
+      "mean_progress": 0.8513781987739909
+     },
+     {
+      "source": "(op, ctx) => op.remainingWork + 0.2 * op.machineRemainingLoad - 0.6 * op.duration - 0.03 * op.waiting",
+      "success_count": 2,
+      "mean_progress": 0.8513781987739909
+     }
+    ]
+   }
+  ]
+ },
+ "evaluations": 500,
+ "model_calls": 5,
+ "confirmation": {
+  "package": "63aadd6a8f0a148fb39b9936eefbf01fc5d14b40388fcbcf7f7e21a1ed11636c",
+  "success_count": 17,
+  "of": 20,
+  "selection_count": 16,
+  "outcome": "scored"
+ },
+ "final_panel_comparison": {
+  "note": "report-only: controls and the root scored on the frontier's confirmation panel, outside the engine's selection",
+  "rows": [
+   {
+    "id": "frontier",
+    "package": "63aadd6a8f0a148fb39b9936eefbf01fc5d14b40388fcbcf7f7e21a1ed11636c",
+    "success_count": 17,
+    "of": 20,
+    "mean_ratio": 1.0849601393563229
+   },
+   {
+    "id": "root (SPT)",
+    "package": "79e109cb0a1ced1fbd3541c45b33e428d5abf71df00ba2b7e380d8e5c1b93349",
+    "success_count": 12,
+    "of": 20,
+    "mean_ratio": 1.189705597478611
+   },
+   {
+    "id": "fixed-spt",
+    "package": "79e109cb0a1ced1fbd3541c45b33e428d5abf71df00ba2b7e380d8e5c1b93349",
+    "success_count": 12,
+    "of": 20,
+    "mean_ratio": 1.189705597478611
+   },
+   {
+    "id": "fixed-mwkr",
+    "package": "985d11d8b287fc2283c1d78f0a911c8e27cd18bebc70f14e3a00e4e4a9b8d05e",
+    "success_count": 15,
+    "of": 20,
+    "mean_ratio": 1.1299538082200922
+   },
+   {
+    "id": "fixed-lpt",
+    "package": "ea2f53ee39032e0bd05c353cb7634227254011f072be104a5d4fce5bd4325969",
+    "success_count": 5,
+    "of": 20,
+    "mean_ratio": 1.3539636384442977
+   },
+   {
+    "id": "random-search",
+    "package": "4352e4860e3aff6d7ed313bf79a68b285db242b9dc518420bdc16faedf93c81b",
+    "success_count": 17,
+    "of": 20,
+    "mean_ratio": 1.1199967760000937
+   }
+  ]
+ },
+ "frontier": {
+  "package": "63aadd6a8f0a148fb39b9936eefbf01fc5d14b40388fcbcf7f7e21a1ed11636c",
+  "source": "(op, ctx) => op.remainingWork + 0.3 * op.machineRemainingLoad - 1.0 * op.duration",
+  "generation": 5,
+  "selection_success_count": 16
+ },
+ "ledger_verify": {
+  "ok": true,
+  "head": "ef28abf5001c1a0318b9da4f6ff8775101fe0afa2ea055ab094fe935ac05adda"
+ },
+ "elastic": {
+  "sent": true,
+  "status": 200,
+  "indexed": 0,
+  "failed": 64,
+  "errors": true,
+  "first_error": {
+   "type": "security_exception",
+   "reason": "action [indices:admin/auto_create] is unauthorized for API key id [59zwa6EBbxBEehIF6QiF] of user [2108621152] on indices [genesis-iteration-ledger], this action is granted by the index privileges [aut"
+  }
+ }
+}

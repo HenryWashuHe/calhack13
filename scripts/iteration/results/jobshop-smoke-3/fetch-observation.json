@@ -1,0 +1,5 @@
+{
+ "source": "acp-mission-agent",
+ "summary": "Method offer from lab_a: family jobshop-10x5, package 63aadd6a8f (generation 5), sender's score 16, ledger ef28abf500 over 64 records. Verify before adopting.",
+ "evidence_ref": "scripts/iteration/results/jobshop-smoke-3/bundle.json"
+}
