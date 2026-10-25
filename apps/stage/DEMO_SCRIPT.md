@@ -118,6 +118,15 @@ The seven-organization network is a concept animation. Universal infrastructure
 does not imply universal improvement, positive benefit after every task, or a
 completed recursive-benefit comparison.
 
+## The ASI:One door (optional, if a judge wants to talk to it from their own phone)
+
+The organization is also reachable as a public Fetch.ai agent: address
+`agent1q284muxcdleukm2vrh670nljfp5hl8f25ew8d78jkzxf0j3w2gut2jyj9nl` (Agentverse mailbox, chat protocol).
+A message that starts with `report ` becomes evidence on Org A and the agent relays each step of the
+planner's answer (verified 2026-10-25 10:2xZ: acknowledged in 5 s, decision relayed in 84 s). `org` lists
+the roles, `status` what followed. The live silent view shows the same evidence arriving. It runs from this
+Mac (`.local/serve-asi-one.sh`), so it is up only while that process is.
+
 ## If asked about sponsors or implementation
 
 Describe each integration from its retained evidence and the current repository

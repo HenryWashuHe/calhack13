@@ -234,6 +234,18 @@ and a tie on three seeds; bin packing: one win and one loss by one instance), tr
 forge lane's real method-generation path, which this engine does not touch. Improvement after generation 1
 was observed in four of five informative seeds (counting run 3's generation-2 promotion).
 
+## Elastic, after the fact (2026-10-25 10:1xZ)
+
+With a data key that grants `create_index`, `write` and `read` on `genesis-iteration-ledger` (and nothing on
+`genesis-*`), the exports described above were indexed: the index was created with the mapping in
+`scripts/iteration/sponsors/elastic.mjs`, and the seven run ledgers plus the kernel events of the recorded
+factory run (`apps/stage/recordings/factory-20261025.json`) were posted in bulk, 433 documents sent, 0
+refused, 429 present (four `root_registered` records are byte-identical across runs of the same family and
+share their idempotent `_id`). Read back: 177 evaluations, 132 verdicts, 33 frozen plans, 13 promotions, 6
+confirmations, 6 sealed bundles; a keyword query returns the promotions per run, and a full-text query for
+"inspections" returns the recorded observation and the planner's refusal. The earlier statement that every
+document was refused described the earlier key.
+
 ## Files
 
 `scripts/iteration/results/jobshop-smoke-1/{result,ledger}.json`;
