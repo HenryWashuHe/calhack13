@@ -7,7 +7,7 @@ import { spawnSync, execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { canon, createState, runGeneration, sha256, verifyLedger } from "../../scripts/iteration/engine.mjs";
 import { jobshopFamily, jobshopControls, featureDoc } from "../../scripts/iteration/families/jobshop.mjs";
-import { describeSandbox } from "../../scripts/iteration/families/sandbox.mjs";
+import { describeSandbox, sandboxReadRoots } from "../../scripts/iteration/families/sandbox.mjs";
 import { claudeMutator } from "../../scripts/iteration/mutators/claude.mjs";
 import { cascade } from "../../scripts/iteration/cascade.mjs";
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
@@ -97,6 +97,23 @@ function sourceManifest() {
     runtime: { node: process.version, executable: fs.realpathSync(process.execPath), executable_sha256: hashFile(process.execPath),
       platform: process.platform, arch: process.arch, os_release: os.release() }, sandbox };
 }
+/** Refuses a key file the rule sandbox could read: under any of its read roots (or equal to one). */
+export function admitKeyFile(keyPath, roots) {
+  const real = fs.realpathSync(keyPath);
+  for (const root of roots) {
+    const r = fs.realpathSync(root);
+    if (real === r || real.startsWith(r.endsWith(path.sep) ? r : r + path.sep)) throw new Error("key file lies under a path the rule sandbox can read; move it before a paid run");
+  }
+  return real;
+}
+/** The HTTP status and error type from provider-call's failure line, and nothing else from its output. */
+export function providerFailure(stderr) {
+  const m = /^(?:Error: )?Claude API HTTP ([45]\d{2}): ([A-Za-z_]{1,48})(?: \(timeout\))?$/m.exec(String(stderr || ""));
+  return m ? { http_status: Number(m[1]), error_type: m[2] } : { http_status: null, error_type: null };
+}
+function providerTimedOut(stderr) {
+  return /^(?:Error: )?Claude API (?:timeout|HTTP [45]\d{2}: [A-Za-z_]{1,48} \(timeout\))$/m.test(String(stderr || ""));
+}
 export function frozenPanels(seed) {
   const family = jobshopFamily({ id: "jobshop-10x5", seed });
   const selection = Array.from({ length: ROUNDS }, (_, i) => {
@@ -146,6 +163,8 @@ function main() {
   const probe = probeFamily.score({ sha256: sha256(probeSource), source: probeSource }, "jobshop-10x5/admission-probe/0");
   if (typeof probe.success !== "boolean" || !Number.isFinite(probe?.detail?.ratio)) throw new Error("sandbox preflight could not score a trusted rule");
   source.sandbox_probe = { rule_sha256: sha256(probeSource), score: probe };
+  source.key_file_admission = { refused_under: "rule sandbox read roots", roots_checked: sandboxReadRoots().length };
+  admitKeyFile(envFile, sandboxReadRoots());
   const key = loadKey(envFile); // stays in this process memory, not process.env or a result file
   fs.mkdirSync(output, { recursive: false, mode: 0o700 });
   const manifest = {
@@ -176,7 +195,12 @@ function main() {
       writeNew(path.join(output, `request-${String(index).padStart(3, "0")}.json`), request);
       journal.append({ event: "provider_pending", index, identity, request_sha256: sha256(canon(request)), bytes, reserved_micro_usd: PER_CALL_MICRO_USD });
       const result = spawnSync(process.execPath, [CALL], { input: JSON.stringify(req), encoding: "utf8", env: { GENESIS_LLM_API_KEY: key, PATH: process.env.PATH || "" }, timeout: 180_000, maxBuffer: 8 << 20 });
-      if (result.error || result.status !== 0) throw new Error(`provider submission outcome unknown: ${result.error?.code || result.status}`);
+      if (result.error || result.status !== 0) {
+        const failure = providerFailure(result.stderr);
+        const err = new Error(`provider submission outcome unknown: ${result.error?.code || result.status}`);
+        err.provider = { ...failure, timeout: result.error?.code === "ETIMEDOUT" || providerTimedOut(result.stderr), reserved_micro_usd: PER_CALL_MICRO_USD };
+        throw err;
+      }
       const response = JSON.parse(result.stdout);
       writeNew(path.join(output, `response-${String(index).padStart(3, "0")}.json`), response);
       const charge = usageCharge(response.usage);
@@ -189,7 +213,7 @@ function main() {
       return response;
     } catch (err) {
       fatal = err;
-      journal.append({ event: "run_stopped", reason: "provider or cost uncertainty", detail: String(err.message).slice(0, 180),
+      journal.append({ event: "run_stopped", reason: "provider or cost uncertainty", detail: String(err.message).slice(0, 180), provider: err.provider || null,
         calls_submitted: usage.calls, settled_micro_usd: usage.settled_micro_usd });
       throw err;
     }
