@@ -552,6 +552,17 @@ function exactFields(o: Obj, fields: readonly string[], at: string): void {
   if (extra.length > 0) throw new DecodeError(`${at}: unknown field ${extra.join(", ")}`);
   for (const f of fields) if (!(f in o)) throw new DecodeError(`${at}.${f}: missing`);
 }
+/** An `ExactContentRef` at the exchange boundary: Rust's type refuses unknown
+ * fields, so an extra field here is a record the registry would not produce. */
+const REF_FIELDS = ["domain", "schema", "id", "version", "sha256"] as const;
+function exactRef(v: unknown, at: string): ExactRef {
+  exactFields(obj(v, at), REF_FIELDS, at);
+  return decodeRef(v, at);
+}
+function exactRefs(v: unknown, at: string): ExactRef[] {
+  if (!Array.isArray(v)) throw new DecodeError(`${at}: expected array`);
+  return v.map((r, i) => exactRef(r, `${at}[${i}]`));
+}
 function strings(v: unknown, at: string): string[] {
   if (!Array.isArray(v) || v.some((x) => typeof x !== "string")) throw new DecodeError(`${at}: expected array of strings`);
   return v as string[];
@@ -595,7 +606,7 @@ export function decodeMethodOffer(v: unknown): MethodOffer {
   return {
     publisher: str(o, "publisher", at),
     publication: {
-      reference: decodeRef(p.reference, `${at}.publication.reference`),
+      reference: exactRef(p.reference, `${at}.publication.reference`),
       package_json: str(p, "package_json", `${at}.publication`),
       intent: str(p, "intent", `${at}.publication`),
       applicability: strings(p.applicability, `${at}.publication.applicability`),
@@ -619,12 +630,12 @@ export function decodeMethodSearchResults(v: unknown): MethodSearchResults {
       exactFields(co, CANDIDATE_FIELDS, ca);
       return {
         publisher: str(co, "publisher", ca),
-        reference: decodeRef(co.reference, `${ca}.reference`),
+        reference: exactRef(co.reference, `${ca}.reference`),
         intent: str(co, "intent", ca),
         applicability: strings(co.applicability, `${ca}.applicability`),
-        runtime: decodeRef(co.runtime, `${ca}.runtime`),
-        protocol: decodeRef(co.protocol, `${ca}.protocol`),
-        dependencies: refs(co.dependencies, `${ca}.dependencies`),
+        runtime: exactRef(co.runtime, `${ca}.runtime`),
+        protocol: exactRef(co.protocol, `${ca}.protocol`),
+        dependencies: exactRefs(co.dependencies, `${ca}.dependencies`),
       };
     }),
   };

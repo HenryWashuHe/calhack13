@@ -101,6 +101,26 @@ export function buildExchange(ex: Intake["exchange"], l: Lineage): Exchange {
     e.fetched.push(f);
   }
 
+  // The registry's immutable key is (publisher, method id, version), not the
+  // digest: two references under one key are a conflict, whichever is right.
+  // Both rows stay, so either can be inspected.
+  const versions = new Map<string, Set<string>>();
+  for (const e of entries.values()) {
+    const k = `${e.publisher}\u0000${e.reference.id}\u0000${e.reference.version}`;
+    versions.set(k, (versions.get(k) ?? new Set()).add(refKey(e.reference)));
+  }
+  for (const [k, refs] of versions)
+    if (refs.size > 1) {
+      const [publisher, id, version] = k.split("\u0000");
+      const hashes = [...entries.values()]
+        .filter((e) => e.publisher === publisher && e.reference.id === id && e.reference.version === version)
+        .map((e) => e.reference.sha256.slice(0, 12))
+        .sort();
+      problems.push(
+        `immutable version conflict: ${publisher}'s ${id}@${version} names ${refs.size} different references (${hashes.join(", ")}); a published version cannot change`,
+      );
+    }
+
   for (const e of entries.values()) {
     if (e.discovered.length > 1)
       problems.push(`search results describe ${e.publisher}'s ${short(e.reference)} in ${e.discovered.length} different ways`);
