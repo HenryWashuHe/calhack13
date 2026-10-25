@@ -3,9 +3,10 @@
 Every design any method has submitted in the retained records (13), plus the
 evaluator's two reference designs, scored with the trusted evaluator on all
 four families over 40 fresh public instances (seeds 20000..20039, used by no
-record or protocol). Only `lab-eval accept` ran; no method or generated source
+record or protocol). Only `lab-eval accept` and `experiment` ran; no method or generated source
 executed. Reproduce with `scan.py <lab-eval> 20000 40` against this tree; the
-output is `results-20000-40.json`.
+output is `results-20000-40.json`. `launcher_search.py <lab-eval> 7 20000 20001 20002 20003 20004 20005`
+reproduces `launchers.json`.
 
 Successes out of 40 (selected rows; all 15 are in the JSON):
 
@@ -34,15 +35,18 @@ Successes out of 40 (selected rows; all 15 are in the JSON):
    one is close to a replicate of the other, not an independent family. This
    includes A's own trial (#117, return-mix) and B's receiving trial on A's
    family (ravine).
-3. **A hand-written design is the strongest baseline on those two.** The
+3. **A hand-written design beats almost everything on those two.** The
    evaluator's five-wheel reference (29/40, 30/40) beats every method
    submission except seeded random search's `56de341b` (28/40, 27/40). The
-   fixed-cart control used so far is the weakest possible baseline there
-   (0/40).
-4. **Projectile-target: no design has ever succeeded.** All 15 score 0/40, and
-   no method has been run on it. Process-comparison/1 includes it, so its
-   panel will likely read 0 for every arm unless some method learns a
-   different kind of design.
+   evaluator README calls it a sanity design, not a baseline; it is still a
+   useful yardstick. The fixed-cart control used so far scores 0/40 there.
+4. **Projectile-target is solvable, but only instance by instance.** All 15
+   retained designs score 0/40 (none is a launcher), and no method has run on
+   it. A random search over single-arm launchers (`launcher_search.py`,
+   `launchers.json`) finds hits on each of five instances: 1–19 hits per
+   3,000–10,000 valid designs. The first hit for each instance solves only 2–8
+   of the 40 panel instances. Unlike rough-transport, no one design carries
+   this family; a method has to adapt its launch to each target.
 5. **Runs repeat designs.** The parent submitted `2483f08f` on four
    rough-transport panels. Seeded random search submitted `56de341b` on three
    ravine panels. Slots that share a design aren't independent samples of a
@@ -50,16 +54,17 @@ Successes out of 40 (selected rows; all 15 are in the JSON):
 
 ## Suggestions (for discussion, nothing frozen is changed)
 
-- Report the submitted design's identity next to every slot result, and the
-  five-wheel reference alongside random search, as context. Process-comparison/1's
-  frozen endpoints stay as they are.
-- Before any run that uses projectile-target, check that the family is
-  solvable at all, for example by some design reaching nonzero success on
-  public seeds.
+- **Projectile-target is the family that can show adaptation.** On
+  rough-transport a fixed design succeeds 37/40, so a method can win without
+  adapting. On projectile-target a fixed launcher gets 2–8/40, so a method
+  that wins there has to be using the instance. That makes it the sharpest
+  family for any G3 (improvement) or G4 claim, not a floor to avoid.
+- Report the submitted design's identity next to every slot result.
+  Process-comparison/1's frozen endpoints stay as they are.
 - Treat ravine-crossing and return-mix as one family whenever a claim depends
-  on transfer *between* families. A revision that changes the parent's output
-  style per family (its adapter) is a sharper G3 target than its search loop.
+  on transfer *between* families.
 
 Limits: one evaluator version, 40 instances per family, designs taken as
-submitted. This says what fixed designs do, not what any method would do with
+submitted, and one launcher shape in the search; hit rates are for that shape
+only. This says what fixed designs do, not what any method would do with
 a new grant.
