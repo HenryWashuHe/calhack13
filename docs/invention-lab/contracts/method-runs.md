@@ -65,6 +65,7 @@ token comes from `$GENESIS_OPERATOR_TOKEN`.
 ## Not covered
 
 - Scoring the run's output, and attaching the result to the responsibility as
-  work done. A run record is evidence that the method ran under authority, not
-  that the responsibility is satisfied.
+  work done. A run record retains an operator-reported receipt checked against
+  the frozen binding and authority; it does not independently prove that the
+  method ran or that the responsibility is satisfied.
 - Re-acceptance after a policy change, other than adopting again.
