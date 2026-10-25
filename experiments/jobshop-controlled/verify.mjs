@@ -24,6 +24,9 @@ const positions = SEEDS.flatMap((seed, i) => (i % 2 === 0 ? ["feedback", "indepe
   .flatMap((arm) => Array.from({ length: 5 }, (_, round) => ({ seed, arm, round: round + 1 }))));
 const identity = ({ seed, arm, round }) => ({ seed, arm, round });
 const roundKey = ({ seed, arm, round }) => `${seed}/${arm}/${round}`;
+// Exact unscored SPT prompt from the pinned claudeMutator formatter. Checking
+// the whole message also excludes a substituted parent, table or reflection.
+const independentPrompt = (round) => `# Generation ${round}\n\n## Scored programs (worst first, best last)\n### Program 1: 0/0 instances succeeded, mean progress 0.000 (starting point, not yet scored)\n\`\`\`js\n(op) => -op.duration\n\`\`\`\n\n\n\n\nWrite 8 distinct candidates.`;
 const manifest = read("manifest.json");
 const currentHead = execFileSync("git", ["rev-parse", "HEAD"], { cwd: ROOT, encoding: "utf8" }).trim();
 assert(manifest.source_head === currentHead, "source head differs from retained run");
@@ -76,6 +79,8 @@ for (const line of fs.readFileSync(path.join(dir, "events.ndjson"), "utf8").trim
     const request = read(`request-${String(event.index).padStart(3, "0")}.json`);
     assert(sha256(canon(request)) === event.request_sha256 && same(request.identity, event.identity), "request binding mismatch");
     assert(request.model === manifest.model && request.max_tokens === manifest.max_output_tokens && request.output_config.effort === manifest.effort, "request settings differ");
+    if (event.identity.arm === "independent") assert(same(request.messages,
+      [{ role: "user", content: independentPrompt(event.identity.round) }]), "independent request contains a different parent, feedback or prompt");
     pending.set(event.index, event);
   }
   if (event.event === "provider_settled") {
@@ -91,8 +96,16 @@ for (const line of fs.readFileSync(path.join(dir, "events.ndjson"), "utf8").trim
     outputTokens += response.usage.output_tokens;
     settled.set(event.index, event);
   }
-  if (event.event === "mutator_observation") assert(pending.size > 0 && !finalOpened
-    && same(event.identity, pending.get(pending.size - 1).identity), "mutator observation identity differs");
+  if (event.event === "mutator_observation") {
+    const submitted = pending.get(pending.size - 1);
+    const next = positions[pending.size];
+    // Local request admission can stop before a pending record exists. Its
+    // next-position error is evidence of a stopped attempt, never a submission.
+    const admissionFailure = stopped && next && pending.size === settled.size && rounds.size === pending.size
+      && same(event.identity, next) && event.record?.generation === next.round
+      && typeof event.record?.error === "string" && event.record.error.length > 0;
+    assert(!finalOpened && ((submitted && same(event.identity, submitted.identity)) || admissionFailure), "mutator observation identity differs");
+  }
   if (event.event === "round_completed") {
     const key = roundKey(event);
     assert(!finalOpened && !rounds.has(key) && same(identity(event), positions[rounds.size])
