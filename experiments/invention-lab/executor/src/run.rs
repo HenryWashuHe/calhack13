@@ -192,9 +192,13 @@ pub fn execute(
     };
     slot.save()?;
 
+    // Unique per run within this process too: concurrent runs of one slot ID
+    // (two trials of one runner) must never share, and so tear down, a stage.
+    static STAGE: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
     let stage = cfg.stage_root.join(format!(
-        "{}-{}",
+        "{}-{}-{}",
         std::process::id(),
+        STAGE.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
         &refs::sha256_hex(slot_id.as_bytes())[..12]
     ));
     let files = stage.join("files");
@@ -330,7 +334,7 @@ pub fn execute(
     // Unconditional cleanup: the child is stopped before any evidence is
     // finalized, on every path out of the loop.
     if outcome.is_some() || fatal.is_some() {
-        let _ = child.kill();
+        cfg.sandbox.stop(&mut child);
     }
     let status = loop {
         if let Some(status) = child.try_wait()? {
@@ -338,7 +342,7 @@ pub fn execute(
         }
         if started.elapsed() >= deadline {
             outcome = Some(ExecutionOutcome::Interrupted);
-            let _ = child.kill();
+            cfg.sandbox.stop(&mut child);
             break child.wait()?;
         }
         std::thread::sleep(Duration::from_millis(5));
