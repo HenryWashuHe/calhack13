@@ -1,0 +1,8 @@
+{
+  "commitment": "2042ad2e1a2cf8beeb9a46d2ed971a4fa312b37521c60e65ba7090a54ec5ed2a",
+  "comparison": "hidden-st2-rough-transport",
+  "count": 12,
+  "family": "rough-transport",
+  "family_version": 1,
+  "protocol": "genesis-lab-hidden/2"
+}

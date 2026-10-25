@@ -1,0 +1,42 @@
+{
+  "outcome": "output_generated",
+  "outputs": [
+    {
+      "domain": "genesis-lab",
+      "id": "output",
+      "schema": "lab-design/1",
+      "sha256": "05eaa4c63d979e45b318492f5e16aefe2f9856e1d07b6d055fd54f825c1c2da3",
+      "version": "1"
+    }
+  ],
+  "transcript": {
+    "domain": "genesis",
+    "id": "candidate",
+    "schema": "development-experiment-transcript/1",
+    "sha256": "20d45eeec89a7b75684ede49e1e9b97382eb1263560a80c925e72d66d0f4a3f6",
+    "version": "1"
+  },
+  "transcript_path": "docs/invention-lab/evidence/selective-transfer-20261024/run/st-ravine-crossing/candidate/transcript.json",
+  "usage": {
+    "input_tokens": {
+      "kind": "measured",
+      "value": 0
+    },
+    "model_calls": {
+      "kind": "measured",
+      "value": 0
+    },
+    "output_tokens": {
+      "kind": "measured",
+      "value": 0
+    },
+    "simulation_steps": {
+      "kind": "measured",
+      "value": 25699
+    },
+    "wall_time_ms": {
+      "kind": "measured",
+      "value": 680
+    }
+  }
+}

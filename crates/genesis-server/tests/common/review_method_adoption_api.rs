@@ -42,6 +42,7 @@ fn retained_adoption(registry_url: Option<String>) -> Fixture {
         records_root: records,
         acceptance_plans: vec![genesis_server::method_adoption::AcceptancePin {
             requirement_id: owner.requirement.clone(),
+            publisher: OrgId::new("org_example_a"),
             plan: plan.reference().unwrap(),
         }],
     });
@@ -107,3 +108,51 @@ async fn review_identical_replay_must_not_depend_on_registry_availability() {
     assert_eq!(status, 200, "stored replay was blocked by registry: {body}");
     assert_eq!(body["id"], f.adoption_id);
 }
+
+#[tokio::test]
+async fn review_changed_receiver_acceptance_policy_fences_existing_authorization() {
+    let mut f = retained_adoption(None);
+    f.app.method_receiver = Some(f.receiver.clone());
+    let (base, original_server) = start(f.app.clone()).await;
+    assert_eq!(
+        call(
+            &format!("{base}/method-invocations/authorize"),
+            &f.token,
+            f.ask.clone()
+        )
+        .await
+        .0,
+        200,
+        "unchanged receiver policy must authorize the retained adoption"
+    );
+    original_server.abort();
+
+    // Simulate the same persisted organization restarted with its receiver's
+    // stronger acceptance policy. Existing evidence is not rewritten.
+    let plan: TrialPlan = serde_json::from_slice(
+        &std::fs::read(
+            Path::new(EVIDENCE)
+                .join("live-method-20261024-b-revision-receiver/vs-random-search/plan.json"),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    let mut receiver = (*f.receiver).clone();
+    receiver.acceptance_plans[0].plan = plan.reference().unwrap();
+    f.app.method_receiver = Some(Arc::new(receiver));
+    let (base, changed_server) = start(f.app.clone()).await;
+    let (status, body) = call(
+        &format!("{base}/method-invocations/authorize"),
+        &f.token,
+        f.ask,
+    )
+    .await;
+    changed_server.abort();
+    assert_eq!(
+        status, 409,
+        "changed receiver acceptance policy still authorized old evidence: {body}"
+    );
+}
+
+#[path = "review_method_runs_api.rs"]
+mod review_method_runs_api;
