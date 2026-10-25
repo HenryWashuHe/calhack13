@@ -28,13 +28,38 @@ public documents at 128 KiB each, with at most sixteen extra public inputs.
 
 `settings` requires `model`, `max_tokens` (1–16384), `timeout_ms` (1–120000), and
 `sampling: "provider_default"`. The adapter sends one non-streaming Anthropic
-Messages request, API version `2023-06-01`, with no tools, thinking configuration
-or sampling parameters. Unsupported sampling variants fail during deserialization.
+Messages request, API version `2023-06-01`, with no tools or sampling parameters.
+Without `reasoning`, it also omits thinking configuration. Unsupported sampling
+variants fail during deserialization.
 This explicit provider-default policy **does not pin sampling behavior or prove
 fixed model weights**, even when the returned model identifier matches. It is not
-sufficient for G4 fixed-settings claims; select and review a supported explicit
-sampling policy before a controlled comparison. No alias-to-version substitution
-is accepted in the returned model field.
+sufficient for G4 fixed-settings claims. No alias-to-version substitution is
+accepted in the returned model field.
+
+For `claude-sonnet-5-5`, a plan may now set a closed optional policy:
+
+```json
+"reasoning": {"mode": "adaptive", "effort": "high"}
+```
+
+The adapter submits `thinking: {"type":"adaptive"}` and
+`output_config: {"effort":"high"}`. Supported effort values are `low`, `medium`,
+`high`, `xhigh` and `max`; other modes/fields/values fail to deserialize. Explicit
+policy on another model fails before request construction. Support is bounded to
+this documented model; existing absent-policy requests retain their old behavior.
+Omitting the field preserves historical serialized checkpoint/request identities.
+The exact policy is bound into the plan, request, checkpoint, generation roster
+and submitted wire bytes. A different effort cannot enter the same frozen roster.
+
+The [official Sonnet 5.5 migration guide](https://platform.claude.com/docs/en/models/sonnet-5-5/migration-guide)
+and [effort reference](https://platform.claude.com/docs/en/build-with-claude/effort)
+(checked October 24, 2026) document these fields. Non-default sampling parameters
+are unsupported on this model; this adapter does not invent temperature control.
+Explicit reasoning freezes client choices, **not hosted weights or stochastic
+behavior**. A controlled comparison still needs a predeclared supported model
+policy, equal settings/budgets, repetitions, retained failures and an explicit
+provider-drift limitation. This increment makes no live provider call and does
+not retroactively upgrade the four exploratory attempts to G4 evidence.
 
 The request record hashes the exact submitted JSON bytes plus the prompt,
 settings and API version. Completion evidence records the observed model/message
