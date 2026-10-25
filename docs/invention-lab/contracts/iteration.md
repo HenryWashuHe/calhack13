@@ -26,13 +26,16 @@ identities, receipts or cost accounting above.
 ## The loop (one generation, one family)
 
 1. **Incumbent.** The family's frontier package, or `root()` while there is none.
-2. **Candidates before instances.** The mutator proposes from the incumbent and its attributed
-   feedback (the per-instance `success`, `progress`, `cost`, `detail` of the incumbent's last
-   evaluation). Candidates identical to the incumbent or a control, and duplicates, are dropped and
-   recorded. No instance id exists yet.
-3. **Freeze.** The plan fixes the arms (incumbent, every control, every candidate), the criterion
-   and the held-out instances drawn from `sha256(seed:family:generation)`. Its hash is recorded
-   before any score.
+2. **Sealed panel, then candidates.** Everything refusable is checked first and a refusal spends
+   nothing: `k` and `heldout` must be positive integers, control ids unique, control hashes true,
+   and the family must return exactly the declared number of unique instance ids for the panel seed
+   `sha256(canon(["panel", lab, seed, family, generation]))`. The panel is drawn into the sealed
+   plan at that point and disclosed to nobody. Only then does the mutator propose from the incumbent
+   and its attributed feedback (per-instance `success`, `progress`, `cost`, `detail` by index, never
+   an instance id). Candidates identical to the incumbent or a control, and duplicates, are dropped
+   and recorded.
+3. **Freeze.** The plan record fixes the arms (incumbent, every control by index and id, every
+   candidate), the criterion and the sealed panel. Its hash is recorded before any score.
 4. **Evaluate.** Exactly one evaluation per arm per instance, in plan order. No reruns, no
    selection among runs, no edits.
 5. **Verdict.** Every candidate gets a verdict against the incumbent and every control: promotable
@@ -45,14 +48,23 @@ identities, receipts or cost accounting above.
 
 ## Rules the reference enforces
 
-- **Append-only, chain-hashed ledger.** Every record carries its index, the previous head and its
-  own SHA-256 over canonical JSON. `verifyLedger` detects any altered or reordered record.
+- **Append-only, chain-hashed ledger.** Every record carries the lab, its index, the previous head
+  and its own SHA-256 over a canonical encoding (sorted keys; `-0`, `Infinity` and `NaN` as bare
+  tokens no object can forge). `verifyLedger` binds the declared head and also checks completeness:
+  every frozen plan reaches a verdict for each candidate arm or an abandonment, every promoted verdict
+  has its promotion, every declared confirmation its outcome. A dropped trailing closing record is
+  not detectable from the inside; an `anchor` head published elsewhere binds that. Exported bundles
+  end with a `bundle_sealed` record for the package.
 - **First provenance wins.** A package is identified by the SHA-256 of its bytes; re-proposing known
   bytes never rewrites its parent. Lineage is therefore acyclic.
 - **Determinism.** Same seed, family, mutator and controls give the same ledger head.
-- **No hidden-set leakage.** Instances are drawn after candidates exist, from a seed the mutator
-  never receives; the next generation's feedback is about the previous generation's instances, which
-  are disclosed only after their plan was frozen and scored.
+- **No hidden-set leakage.** The panel is drawn from a seed the mutator never receives and disclosed
+  only in the plan record, after candidates exist; feedback carries results by index, never ids.
+- **Abandoned work is retained and resumed.** A scorer that throws leaves a failed, counted
+  evaluation on the record; the plan, completed arms and partial scores stay in `pending`, and the
+  next generation for that family resumes exactly that plan (the loop admits the owed work, not a
+  new request). Adoption and export wait for a pending generation to be resolved; adoption finishes
+  it first on its own plan.
 
 ## What a frontier is, and is not
 
@@ -68,8 +80,10 @@ Every held-out draw the engine makes during the loop is **selection data**: the 
 generation's instances are scored, their results feed the next generation's attribution, so
 repeatedly selecting against them leaks the panel into the method. The reference therefore draws a
 new panel per generation, and `confirm` scores the frontier once more on a **final fresh panel**
-drawn from a seed never used for selection and never fed back. A confirmation is recorded, never
-used to choose anything, and is the only number a frontier claim should quote. In the lab this is
+declared before scoring, on a seed never used, on instances disjoint from every earlier panel,
+once per frontier, within an optional budget. A failed confirmation is retained as that endpoint's
+outcome and the panel counts as used. A confirmation is never fed back or used to choose, and is the
+only number a frontier claim should quote. In the lab this is
 the separately held hidden-scoring path (`HiddenCommitment` in [trials](trials.md)), which this
 reference does not replace.
 
@@ -108,12 +122,17 @@ Transfer preserves the receiver's **independent choice** (it may decline), **pin
 exact package and dependency identities travel, nothing floats) and **authority** (adoption is an
 act of the receiving organization under its own constitution and budget, never of the sender).
 
-`exportBundle` packs the frontier package, its ancestry (hashes, origins, generations), the whole
-ledger and the ledger's hash. `adopt` on another organization first verifies the bundle's ledger
-and the package hash, then runs one generation with that package as the only candidate against the
-adopter's own incumbent and controls on the adopter's own instances. The package becomes the
-adopter's frontier only on a local win; the adoption and its verdict are on the adopter's ledger
-with the sender's identity and ledger hash. The sender's numbers are never trusted, only carried.
+`exportBundle` seals the ledger and packs the frontier package, its ancestry down to the root
+(imported lineage included) and the sealed ledger bound by its head. `adopt` on another
+organization first checks the bundle against its own ledger: the seal, the package hash, a
+promotion by the sender backed by a frozen plan, scored evaluations and a promoted verdict, and
+every lineage entry with the parent and origin that ledger recorded. It then runs one generation
+with that package as the only candidate against the adopter's own incumbent and controls on the
+adopter's own lab-scoped panel. The package becomes the adopter's frontier only on a local win; the
+imported lineage is then retained so a later export carries the full ancestry onward; the adoption
+and its verdict are on the adopter's ledger with the sender's identity and ledger head. A package
+the adopter already knew keeps its first provenance. The sender's numbers are never trusted, only
+carried.
 
 This is the same discipline as the kernel's capability inheritance: exact identity, the receiver's
 own acceptance, provenance kept.

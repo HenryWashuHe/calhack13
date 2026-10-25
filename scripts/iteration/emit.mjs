@@ -1,10 +1,10 @@
 // Evidence-shape emitter: render an engine generation as retained-shape documents without bypassing the
 // retained contracts. One engine plan with many arms becomes one acceptance TrialPlan per
-// (candidate, control-arm) pairing, each with exactly one candidate and one control slot and
-// trial-qualified identities. Method identities and dependencies come from the adapter as the real
-// package references; the engine's raw source hash travels separately under its own schema. Verdicts are
-// recomputed per pairing from the frozen counts (accepted / rejected / insufficient), independently of
-// the engine's one-frontier selection. Pure functions; nothing is written or executed here.
+// (candidate, control-arm) pairing, each with exactly one candidate and one control slot and identities
+// qualified by the exact arm slots and packages (so labels that normalize alike never share an id). Method
+// identities and dependencies come from the adapter as the real package references; the engine's raw source
+// hash travels separately under its own schema. Verdicts are recomputed per pairing from the frozen counts
+// (accepted / rejected / insufficient), independently of the engine's one-frontier selection. Pure functions.
 import { sha256, canon } from "./engine.mjs";
 
 const HEX64 = /^[0-9a-f]{64}$/;
@@ -18,11 +18,13 @@ const slug = (s) => String(s).replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "")
  * development-trial-plan/1 documents for a frozen engine plan: one per (candidate arm, control arm) pairing.
  * `refs` supplies criterion, context, model settings and environment refs plus `instance(id)`, `method(pkg)`
  * and optional `dependencies(pkg)`; `grants` the two grants; `packages` resolves arm hashes to packages.
- * Returns { plans, sources }: `sources` maps each plan's slot to the engine's raw source identity.
+ * Returns { plans, sources }: `sources` maps each plan id to the engine's raw source identities.
  */
 export function toTrialPlans(plan, { refs, grants, org_id, id, version = "1", packages = {} }) {
   if (!plan || !Array.isArray(plan.arms) || !Array.isArray(plan.instances)) throw new Error("a frozen engine plan is required");
   if (typeof org_id !== "string" || !org_id || typeof id !== "string" || !id) throw new Error("org_id and id are required");
+  const slots = plan.arms.map((a) => a.slot);
+  if (new Set(slots).size !== slots.length) throw new Error("engine plan has duplicate arm slots");
   const context = Object.fromEntries(["public_task", "evaluator", "environment", "generator", "instance_set", "design_schema", "metric_schema", "scoring_rule"].map((k) => [k, need(refs[k], k)]));
   const common = {
     criterion: need(refs.criterion, "criterion"),
@@ -37,13 +39,17 @@ export function toTrialPlans(plan, { refs, grants, org_id, id, version = "1", pa
   const candidates = plan.arms.filter((a) => a.slot.startsWith("candidate"));
   const controls = plan.arms.filter((a) => !a.slot.startsWith("candidate"));
   if (!candidates.length || !controls.length) throw new Error("a pairing needs at least one candidate arm and one control arm");
-  const plans = [], sources = {};
+  const plans = [], sources = {}, seenIds = new Set();
   for (const cand of candidates) for (const ctrl of controls) {
-    const pairId = `${id}-g${plan.generation}-${slug(cand.slot)}-vs-${slug(ctrl.slot)}`;
-    const qualifier = sha256(canon({ engine_plan: plan.sha256, pairing: pairId })).slice(0, 16); // distinct per generation and pairing
+    // The qualifier binds the exact engine plan, the exact arm slots and the exact packages, so two labels
+    // that normalize to the same slug still produce different identities.
+    const qualifier = sha256(canon({ engine_plan: plan.sha256, candidate: [cand.slot, cand.package], control: [ctrl.slot, ctrl.package] })).slice(0, 16);
+    const pairId = `${id}-g${plan.generation}-${slug(cand.slot)}-vs-${slug(ctrl.slot)}-${qualifier.slice(0, 8)}`;
+    if (seenIds.has(pairId)) throw new Error(`pairing id collision: ${pairId}`);
+    seenIds.add(pairId);
     const slot = (arm, role) => {
       const pkg = packages[arm.package] || { sha256: arm.package };
-      const method = need(refs.method(pkg), `method(${arm.slot})`); // the real package reference, never the raw source hash
+      const method = need(refs.method(pkg), `method(${arm.slot})`);
       const deps = refs.dependencies ? refs.dependencies(pkg) : [];
       if (!Array.isArray(deps) || !deps.every(isExactRef)) throw new Error(`refs.dependencies(${arm.slot}) must return ExactContentRefs`);
       return { slot_id: role, scoring_request_id: `score-${role}-${qualifier}`, org_id, run_id: `run-${role}-${qualifier}`, attempt_id: `att_${role}_${qualifier}`, method, dependencies: deps, purpose: { kind: "acceptance", role } };
