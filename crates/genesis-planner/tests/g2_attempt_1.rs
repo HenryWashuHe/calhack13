@@ -10,9 +10,11 @@
 //! charter and scopes. Ignored unless run with REHEARSAL_DIR, GENESIS_BIN,
 //! PLANNER_BIN, GENESIS_LLM_*, LAB_EXEC, LAB_SCORE, RECEIVE_PY and INVOKE_PY.
 //! Root and the pinned runtime are the caller's business.
+use genesis_core::development_evaluation::{EvaluationOutcome, EvaluationReceipt};
 use genesis_core::development_method::ExactContentRef;
 use genesis_core::development_package::{MethodPackage, MethodSourceFile};
 use genesis_core::development_trial::TrialPlan;
+use genesis_core::development_verdict::{assess_process_slot, SlotEvidence};
 use genesis_core::ids::OrgId;
 use genesis_server::method_adoption::{AcceptancePin, MethodReceiver};
 use genesis_server::registry::{
@@ -43,12 +45,11 @@ fn read(path: &Path) -> Value {
     serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap()
 }
 
-fn free_port() -> u16 {
+fn free_port() -> Result<u16, String> {
     StdListener::bind("127.0.0.1:0")
-        .unwrap()
-        .local_addr()
-        .unwrap()
-        .port()
+        .and_then(|listener| listener.local_addr())
+        .map(|address| address.port())
+        .map_err(|error| format!("allocate port: {error}"))
 }
 
 /// A child process that is killed and reaped when dropped.
@@ -119,7 +120,7 @@ struct OrgProc {
     constitution: PathBuf,
 }
 impl OrgProc {
-    fn spawn(&self, bin: &Path, registry: &str, receiver: Option<&Path>) -> Proc {
+    fn spawn(&self, bin: &Path, registry: &str, receiver: Option<&Path>) -> Result<Proc, String> {
         let mut c = Command::new(bin);
         c.arg("org")
             .args(["--org-id", self.id, "--name", self.id])
@@ -146,12 +147,14 @@ impl OrgProc {
                     .create(true)
                     .append(true)
                     .open(&self.log)
-                    .unwrap(),
+                    .map_err(|e| format!("open process log: {e}"))?,
             );
         if let Some(r) = receiver {
             c.arg("--method-receiver").arg(r);
         }
-        Proc(c.spawn().unwrap())
+        c.spawn()
+            .map(Proc)
+            .map_err(|e| format!("start organization: {e}"))
     }
     fn url(&self) -> String {
         format!("http://127.0.0.1:{}", self.port)
@@ -165,13 +168,17 @@ impl OrgProc {
     }
 }
 
-fn python(script: &Path, args: &[OsString], envs: &[(&str, OsString)]) -> std::process::Output {
+fn python(
+    script: &Path,
+    args: &[OsString],
+    envs: &[(&str, OsString)],
+) -> Result<std::process::Output, String> {
     let mut c = Command::new("python3");
     c.arg("-I").arg(script).args(args);
     for (k, v) in envs {
         c.env(k, v);
     }
-    c.output().unwrap()
+    c.output().map_err(|e| format!("start helper: {e}"))
 }
 
 fn os<T: Into<OsString>>(v: T) -> OsString {
@@ -267,6 +274,53 @@ fn read_checked(path: &Path) -> Result<Value, String> {
     serde_json::from_slice(&bytes).map_err(|e| format!("{}: {e}", path.display()))
 }
 
+/// Retained bytes only: this does not execute a method or scorer.
+fn retained_slot(root: &Path, slot: &str) -> Result<SlotEvidence, String> {
+    let execution =
+        serde_json::from_value(read_checked(&root.join(format!("{slot}/receipt.json")))?)
+            .map_err(|e| format!("{slot} execution: {e}"))?;
+    let scoring: EvaluationReceipt = serde_json::from_value(read_checked(
+        &root.join(format!("{slot}-score/evaluation.json")),
+    )?)
+    .map_err(|e| format!("{slot} scoring: {e}"))?;
+    let metrics = if let EvaluationOutcome::Scored { metrics } = &scoring.outcome {
+        metrics.validate().map_err(|e| e.to_string())?;
+        Some(
+            std::fs::read(root.join(format!("{slot}-score/artifacts/{}", metrics.sha256)))
+                .map_err(|e| format!("{slot} metrics: {e}"))?,
+        )
+    } else {
+        None
+    };
+    Ok(SlotEvidence {
+        execution,
+        scoring: Some(scoring),
+        metrics,
+    })
+}
+
+fn trial_eligibility(
+    plan: &TrialPlan,
+    verdict: &Value,
+    candidate: &SlotEvidence,
+    control: &SlotEvidence,
+) -> Result<Value, String> {
+    let candidate = assess_process_slot(plan, "candidate", candidate)?;
+    let control = assess_process_slot(plan, "control", control)?;
+    let settled = verdict["verdict"] == "accepted" || verdict["verdict"] == "rejected";
+    Ok(
+        json!({"eligible": settled && candidate.eligible && control.eligible,
+        "settled_verdict": settled, "candidate": candidate, "control": control}),
+    )
+}
+
+fn finish_instance(mut summary: Value, result: Result<(), String>) -> Value {
+    if let Err(stop) = result {
+        summary["stopped"] = json!(stop);
+    }
+    summary
+}
+
 /// One B instance (`name` is B1 or B2, seeing exactly one `offer`) through
 /// stages 2–6. Every outcome, including a stop, ends up in its summary; a stop
 /// in one instance never prevents the others.
@@ -282,9 +336,7 @@ async fn run_b(
     std::fs::create_dir(&out).unwrap();
     let mut summary = json!({"b":name,"offer":offer});
     let result = run_b_stages(s, name, offer, charter, scopes, &out, &mut summary).await;
-    if let Err(stop) = result {
-        summary["stopped"] = json!(stop);
-    }
+    let summary = finish_instance(summary, result);
     write(&out.join("summary.json"), &summary);
     summary
 }
@@ -302,13 +354,13 @@ async fn run_b_stages(
     let b = OrgProc {
         id: "org_example_b",
         tokens: format!("{tag}-b"),
-        port: free_port(),
+        port: free_port()?,
         db: s.out.join("state").join(format!("{tag}.db")),
         log: out.join("org.log"),
         registry_token: "b-registry",
         constitution: s.constitution.clone(),
     };
-    let b_proc = b.spawn(&s.bin, &s.registry_url, None);
+    let b_proc = b.spawn(&s.bin, &s.registry_url, None)?;
     wait_up(&b.url()).await?;
     let api = b.api();
     let founding = read_checked(&s.dir.join(format!("founding-{name}.json")))?;
@@ -394,12 +446,12 @@ async fn run_b_stages(
         if with_model {
             c.envs(s.llm.iter().map(|(k, v)| (k, v)));
         }
-        c.output().unwrap()
+        c.output().map_err(|e| format!("start planner {sub}: {e}"))
     };
-    let prompt = planner("prompt", false);
+    let prompt = planner("prompt", false)?;
     std::fs::write(out.join("planner-prompt.txt"), &prompt.stdout).unwrap();
     ensure!(prompt.status.success(), "planner prompt failed");
-    let once = planner("once", true);
+    let once = planner("once", true)?;
     std::fs::write(out.join("planner-once.stdout"), &once.stdout).unwrap();
     std::fs::write(out.join("planner-once.stderr"), &once.stderr).unwrap();
     summary["planner_exit"] = json!(once.status.code());
@@ -489,7 +541,7 @@ async fn run_b_stages(
             ("LAB_EXEC", os(&s.lab_exec)),
             ("LAB_SCORE", os(&s.lab_score)),
         ],
-    );
+    )?;
     std::fs::write(out.join("receive.stdout"), &r.stdout).unwrap();
     std::fs::write(out.join("receive.stderr"), &r.stderr).unwrap();
     ensure!(
@@ -507,10 +559,15 @@ async fn run_b_stages(
     ) {
         summary["reported_vs_random"] = v;
     }
-    let settled = verdict["verdict"] == "accepted" || verdict["verdict"] == "rejected";
-    if !settled {
+    let typed_plan: TrialPlan = serde_json::from_value(plan.clone()).map_err(|e| e.to_string())?;
+    let candidate = retained_slot(&trial_out.join(&pinned), "candidate")?;
+    let control = retained_slot(&trial_out.join(&pinned), "control")?;
+    let eligibility = trial_eligibility(&typed_plan, &verdict, &candidate, &control)?;
+    write(&out.join("trial-eligibility.json"), &eligibility);
+    summary["eligibility"] = eligibility.clone();
+    if eligibility["eligible"] != true {
         // Failed, interrupted or unknown executions are ineligible: no decision.
-        summary["decision"] = json!("ineligible: the pinned trial has no settled verdict");
+        summary["decision"] = json!("ineligible: pinned trial lacks settled, eligible evidence");
         return Ok(());
     }
 
@@ -541,7 +598,7 @@ async fn run_b_stages(
     write(&receiver_path, &json!(receiver));
     // Stop and reap the old B before its replacement binds the same port.
     drop(b_proc);
-    let _b_proc = b.spawn(&s.bin, &s.registry_url, Some(&receiver_path));
+    let _b_proc = b.spawn(&s.bin, &s.registry_url, Some(&receiver_path))?;
     wait_up(&b.url()).await?;
 
     // Stage 5. Controls first: a token B never issued, and a role or grant
@@ -684,7 +741,7 @@ async fn run_b_stages(
     ];
     let mut id = String::new();
     for (step, args) in steps {
-        let o = python(&s.invoke_py, &args, &token);
+        let o = python(&s.invoke_py, &args, &token)?;
         std::fs::write(out.join(format!("{step}.stdout")), &o.stdout).unwrap();
         std::fs::write(out.join(format!("{step}.stderr")), &o.stderr).unwrap();
         ensure!(
@@ -727,7 +784,7 @@ async fn g2_attempt_1() {
     let constitution_path = out.join("state/constitution.json");
     write(&constitution_path, &json!(constitution));
 
-    let registry_port = free_port();
+    let registry_port = free_port().unwrap();
     let registry_url = format!("http://127.0.0.1:{registry_port}");
     let _registry = Proc(
         Command::new(&bin)
@@ -752,13 +809,13 @@ async fn g2_attempt_1() {
     let a = OrgProc {
         id: "org_example_a",
         tokens: "org_example_a".into(),
-        port: free_port(),
+        port: free_port().unwrap(),
         db: out.join("state/a.db"),
         log: out.join("org-a.log"),
         registry_token: "a-registry",
         constitution: constitution_path.clone(),
     };
-    let _a_proc = a.spawn(&bin, &registry_url, None);
+    let _a_proc = a.spawn(&bin, &registry_url, None).unwrap();
     wait_up(&a.url()).await.unwrap();
     let a_api = a.api();
     let (status, a_mission) = a_api
@@ -878,3 +935,7 @@ async fn g2_attempt_1() {
     write(&out.join("summary.json"), &results);
     assert!(a_state["requirements"].as_object().unwrap().is_empty());
 }
+
+#[cfg(test)]
+#[path = "support/g2_249_guards.rs"]
+mod review_249;
