@@ -11,7 +11,8 @@
 //! loader cache), `/home`, `/run`, `/var`, host `/tmp` or other mount in it.
 //! Setup refuses to start if any socket file is inside the root. Only stdin,
 //! stdout and stderr cross into the namespace: every other descriptor the
-//! executor holds is marked close-on-exec before `unshare` starts. The method
+//! executor holds is marked close-on-exec before `unshare` starts. This requires
+//! Linux close_range(CLOSE_RANGE_CLOEXEC); any failure refuses startup. The method
 //! runs as `nobody` with `no_new_privs`, so it can't leave the chroot. Killing
 //! the namespace's first process ends every process in it. [`Mode::stop`]
 //! kills that process directly: `unshare --kill-child` alone is not enough,
@@ -41,6 +42,21 @@ use std::process::{Child, Command, Stdio};
 pub enum Mode {
     Namespaces,
     None,
+}
+
+/// What stopping the launcher established. Reaping it later cannot upgrade
+/// an unconfirmed stop into evidence that its PID namespace ended.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum StopOutcome {
+    NamespaceInitStopped,
+    LauncherExitedSuccessfully,
+    Unconfirmed,
+}
+
+impl StopOutcome {
+    pub fn confirms_namespace_end(self) -> bool {
+        self != Self::Unconfirmed
+    }
 }
 
 /// Commands the sandboxed shell runs as root: build the method root, then
@@ -119,7 +135,7 @@ impl Mode {
                 "namespaces": ["net", "ipc", "mount", "pid"],
                 "root": "chroot into a per-run minimal root: interpreter, its stdlib (site/dist-packages masked), sh, prlimit, setpriv, their shared libraries, the loader cache and /dev/{null,zero,random,urandom}, all read-only; private tmpfs /tmp with the package files in /tmp/work; no socket files",
                 "user": "nobody, no_new_privs",
-                "descriptors": "stdin, stdout and stderr only; every other executor descriptor is close-on-exec",
+                "descriptors": "stdin, stdout and stderr only; Linux close_range(3, UINT_MAX, CLOSE_RANGE_CLOEXEC) must succeed before exec; no partial descriptor-limit fallback",
                 "pid": "new namespace, killed as a whole at the wall-time limit",
                 "limits": {"address_space_bytes": 1073741824u64, "nproc_user": 64, "file_size_bytes": 67108864u64, "open_files": 256},
                 "not_enforced": ["syscall filter"],
@@ -190,29 +206,37 @@ impl Mode {
 }
 
 impl Mode {
-    /// Stops a started method. In `Namespaces` mode this SIGKILLs the PID
-    /// namespace's first process (the `unshare` child), which ends every
-    /// process in the namespace; `unshare` then exits only after the kernel
-    /// has torn the namespace down, so waiting on `child` afterwards waits for
-    /// the whole tree. Killing `unshare` itself would not: the setpriv
+    /// Attempts to stop a started method. In `Namespaces` mode it targets the
+    /// PID namespace's first process (the `unshare` child). Whole-tree evidence
+    /// requires a confirming outcome and a subsequent successful launcher reap;
+    /// the launcher-only fallback provides no such assurance.
+    /// Killing `unshare` itself would not end the namespace: the setpriv
     /// credential change clears `--kill-child`'s parent-death signal and the
     /// namespace would outlive it. In `None` mode only the method process is
     /// killed; its descendants are not tracked.
-    pub fn stop(self, child: &mut Child) {
+    pub fn stop(self, child: &mut Child) -> StopOutcome {
         if self == Self::Namespaces {
             let id = child.id();
             // No first process yet means `unshare` hasn't forked, or the
             // namespace is already ending and `unshare` is about to exit.
             for _ in 0..200 {
-                let mut signalled = false;
-                for pid in namespace_inits(id) {
+                let inits = namespace_inits(id);
+                let mut stopped = !inits.is_empty();
+                for pid in inits {
                     // Signal directly: spawning a `kill` program can fail (no
                     // processes or descriptors left, a stripped PATH), and a
                     // failed stop would leave the caller waiting forever.
-                    signalled |= sigkill(pid);
+                    stopped &= sigkill(pid);
                 }
-                if signalled || !matches!(child.try_wait(), Ok(None)) {
-                    return;
+                if stopped {
+                    return StopOutcome::NamespaceInitStopped;
+                }
+                match child.try_wait() {
+                    Ok(Some(status)) if status.success() => {
+                        return StopOutcome::LauncherExitedSuccessfully;
+                    }
+                    Ok(None) => {}
+                    Ok(Some(_)) | Err(_) => return StopOutcome::Unconfirmed,
                 }
                 std::thread::sleep(std::time::Duration::from_millis(5));
             }
@@ -220,6 +244,7 @@ impl Mode {
             // wait is bounded. The namespace may then outlive it (see above).
         }
         let _ = child.kill();
+        StopOutcome::Unconfirmed
     }
 }
 
@@ -254,35 +279,31 @@ fn namespace_inits(id: u32) -> Vec<i32> {
 
 /// Marks every descriptor above 2 close-on-exec, in the child between fork and
 /// exec. Marking rather than closing keeps the spawn error pipe working.
+/// A current resource limit is not an upper bound on descriptors already open:
+/// the launcher may have lowered it. Refuse startup if the all-range operation
+/// is unavailable rather than silently leave descriptors outside a partial walk.
 fn cloexec_above_stdio() -> std::io::Result<()> {
-    // SAFETY: raw syscalls on integers; no allocation (async-signal-safe).
-    let rc = unsafe {
-        libc::syscall(
-            libc::SYS_close_range,
-            3u32,
-            u32::MAX,
-            libc::CLOSE_RANGE_CLOEXEC,
-        )
-    };
-    if rc == 0 {
-        return Ok(());
+    #[cfg(target_os = "linux")]
+    {
+        // SAFETY: raw syscalls on integers; no allocation (async-signal-safe).
+        let rc = unsafe {
+            libc::syscall(
+                libc::SYS_close_range,
+                3u32,
+                u32::MAX,
+                libc::CLOSE_RANGE_CLOEXEC,
+            )
+        };
+        if rc == 0 {
+            Ok(())
+        } else {
+            Err(std::io::Error::last_os_error())
+        }
     }
-    // Kernels before 5.11: walk up to the descriptor limit.
-    let mut lim = libc::rlimit {
-        rlim_cur: 0,
-        rlim_max: 0,
-    };
-    // SAFETY: as above.
-    let top = if unsafe { libc::getrlimit(libc::RLIMIT_NOFILE, &mut lim) } == 0 {
-        lim.rlim_cur.min(1 << 20) as i32
-    } else {
-        1 << 16
-    };
-    for fd in 3..top {
-        // SAFETY: as above; EBADF for unused numbers is expected.
-        unsafe { libc::fcntl(fd, libc::F_SETFD, libc::FD_CLOEXEC) };
+    #[cfg(not(target_os = "linux"))]
+    {
+        Err(std::io::ErrorKind::Unsupported.into())
     }
-    Ok(())
 }
 
 /// SIGKILL `pid`; true if it was delivered or the process is already gone.

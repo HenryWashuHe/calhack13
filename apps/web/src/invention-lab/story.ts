@@ -92,12 +92,15 @@ function generationStep(a: string, attempts: Attempt[]): Step {
 }
 
 /** The generation record of one revision: same organization and operation as
- * the revision observation, and, when it names a package, exactly the child. */
+ * the revision observation, the exact request it names, and
+ * when the record names a package, exactly the child. */
 function revisionAttempt(l: Lineage, r: Extract<Edge, { kind: "revised_from" }>): Attempt | null {
   const matching = l.attempts.filter(
     (x) =>
       x.status.org_id === r.org_id &&
       x.status.operation_id === r.operation_id &&
+      r.request_sha256 !== null &&
+      x.status.request_sha256 === r.request_sha256 &&
       (x.status.package === null || refKey(x.status.package) === r.to),
   );
   return matching.length === 1 ? matching[0]! : null;
@@ -111,7 +114,7 @@ function revisionStep(l: Lineage, a: string, b: string, revisions: Extract<Edge,
   const own = revisions.map((r) => revisionAttempt(l, r));
   const known = own.filter((x): x is Attempt => x !== null);
   let how: string;
-  if (known.length < own.length) how = "its generation record is not supplied, so its cost is unknown";
+  if (known.length < own.length) how = "no generation record with its exact request is supplied, so its cost is unknown";
   else if (known.every((x) => route(x) === "model")) how = `${cost(known)}; its own generation record`;
   else how = `its generation record shows ${known.map((x) => ROUTE_TEXT[route(x)]).join(", ")}`;
   return {

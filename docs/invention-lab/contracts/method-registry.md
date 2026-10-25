@@ -55,10 +55,13 @@ checks the publication, without asserting agreement with an earlier search hit.
 Search checks bounds, filters, ordered unique identities and coherent truncation;
 the registry's `truncated: false` is not independent proof of exhaustive absence.
 
-`expected_publisher` checks the publication response; it cannot prevent a
-misconfigured token from writing under its actual account. Any publication error,
-including an identity mismatch, may follow a committed write. Reconcile exact
-identity before deciding on another attempt; the client never retries.
+The typed client sends `expected_publisher` as a URL-encoded query precondition.
+The registry compares it with the authenticated publisher before inserting any
+row and returns 403 on mismatch. This prevents a misconfigured token from writing
+under a different account. The client also checks the returned offer. Legacy bare
+POST requests remain token-qualified; older servers may ignore the query. A
+transport or response error can still follow a committed write, so reconcile
+exact identity before deciding on another attempt; the client never retries.
 
 The loopback client fixture publishes A's inert source, lets B discover/fetch it,
 then passes the unchanged bytes to `MethodRevisionSpec::prepare` under B's new

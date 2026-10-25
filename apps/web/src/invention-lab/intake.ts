@@ -5,11 +5,14 @@
 import { canonicalSha256, sha256Hex } from "./digest";
 import type { LabRecords } from "./lineage";
 import {
+  ADOPTION_OUTCOMES,
   decodeAdoptionOutcome,
   decodeCheckpointOutcome,
   decodeEvaluationReceipt,
   decodeExecutionReceipt,
   decodeGenerationStatus,
+  decodeMethodOffer,
+  decodeMethodSearchResults,
   decodeMetricsArtifact,
   decodePackageFile,
   decodeRevisionObservation,
@@ -18,10 +21,14 @@ import {
   decodeVerdict,
   INSPECTION_SCHEMA,
   isMetricsShape,
+  OFFER_FIELDS,
   PACKAGE_DOMAIN,
   REVISION_SCHEMA,
+  SEARCH_FIELDS,
   TRIAL_PLAN_FIELDS,
   type CheckpointOutcome,
+  type MethodOffer,
+  type MethodSearchResults,
   type TrialPlan,
   type Verdict,
 } from "./records";
@@ -32,6 +39,8 @@ export interface Note {
 }
 export interface Intake {
   records: LabRecords;
+  /** Method exchange records: registry responses an organization retained. */
+  exchange: { offers: MethodOffer[]; searches: MethodSearchResults[] };
   used: Note[];
   skipped: Note[];
 }
@@ -52,6 +61,7 @@ export function intake(files: { name: string; text: string; bytes?: Uint8Array }
     trials: [],
     metrics: [],
   };
+  const exchange: Intake["exchange"] = { offers: [], searches: [] };
   const used: Note[] = [];
   const skipped: Note[] = [];
   const checkpoints: { file: string; c: CheckpointOutcome }[] = [];
@@ -119,7 +129,13 @@ export function intake(files: { name: string; text: string; bytes?: Uint8Array }
         used.push({ file: name, note: "trial plan (reference computed here)" });
       } else if (isVerdict) {
         verdicts.push({ file: name, verdict: decodeVerdict(o) });
-      } else if (typeof o.outcome === "string") {
+      } else if (has(o, ...OFFER_FIELDS) && Object.keys(o).length === OFFER_FIELDS.length) {
+        exchange.offers.push(decodeMethodOffer(o));
+        used.push({ file: name, note: "method offer (a registry response with source; not proof of its origin)" });
+      } else if (has(o, ...SEARCH_FIELDS) && Object.keys(o).length === SEARCH_FIELDS.length) {
+        exchange.searches.push(decodeMethodSearchResults(o));
+        used.push({ file: name, note: "method search results (public metadata, no source)" });
+      } else if (typeof o.outcome === "string" && ADOPTION_OUTCOMES.includes(o.outcome)) {
         const outcome = decodeAdoptionOutcome(o);
         if (outcome.installed) {
           const { org_id, method } = outcome.installed;
@@ -169,7 +185,7 @@ export function intake(files: { name: string; text: string; bytes?: Uint8Array }
     }
   }
   for (const p of plans) if (!paired.has(p.file)) records.trials!.push({ plan: p.plan, verdict: null });
-  return { records, used, skipped };
+  return { records, exchange, used, skipped };
 }
 
 /** Organizations named anywhere in the records, for the operator to choose A and B. */

@@ -1,6 +1,58 @@
 # Implementation status
 
-## Active repository checkpoint
+## Current closeout checkpoint — main `7ec75563`
+
+The user authorized review, bounded fixes and merge of ready remaining PRs.
+#225/#226, #180/#181, #204, #215 and #219 are now merged; exact sources,
+merge commits and scoped checks are in the [review summary](reviews/pr-queue-2026-10-25.md#current-closeout--main-7ec75563).
+The lab UI now refuses unsupported cost attribution, separates discovery from
+fetched evidence, and labels the Stage Lab extract as author-reported. The
+research harness corrections passed pure/mocked checks; experimental runs were
+not reproduced. These changes clear the reviewed source-specific findings.
+
+#211 implements scored-output/responsibility binding. #215 adds historical
+scripted rehearsal records, with limited retained coverage: 56/145 and 63/152
+manifest files are present in the first two bundles (89 missing each); all 85
+files in the third manifest match, but that manifest excludes exploration
+artifacts and databases. Present hashes and selected bindings are consistent;
+this does not establish independent organizational operation or G2 closure.
+
+#216 and preservation draft #7 remain open. Newly arrived #228 `3250e301`
+is held on sandbox admission/recording and source identity, and inherits #216;
+it is not a cleared experiment. #216
+`e16277ad` retains three confinement/admission findings, reproduced by inert
+policy guards (one control passes, three fail); its author actively owns the fix.
+Current-head Linux assurance for merged #57/#65 remains open. This closeout ran
+or dispatched no namespace, evaluator/scorer, generated-method or provider work.
+G0–G4 remain open; the native app Goal reports `paused`.
+
+## Historical runtime review checkpoint — October 25, 2026
+
+At main `de453090`, [the priority review snapshot](reviews/pr-queue-2026-10-25.md)
+records #220/#221 fixes and both original runtime PRs merged on the owner's
+instruction without waiting for the external Linux report. Both now require successful
+Linux `close_range(CLOEXEC)` or refuse startup; the bounded descriptor fallback
+is removed and the environment-policy identity changes. Mode None is unchanged.
+Current-main composition `b347f457` passes root's scorer all-target compilation,
+strict all-target Clippy for executor/scorer, formatting and seven pure termination
+tests; 28 prior test files remain unchanged. #65 merged at `4a37ffb7`, matching
+standalone candidate `69b0ea63`/tree `c50d5f87`. #57 merged at `de453090`, matching
+checked composition `b347f457`/tree `b28208ed`. Independent Linux assurance remains
+open. Eric withdrew his claim; Henry's separate effort and the Colima announcement
+supply no current result reviewed here. Announced testing and merge are not results.
+The later Linux report covers older `31001949` / `6c468f5` only. It is a same-host
+separate-agent report relayed by Henry, with no raw logs/binary digest and limited
+assertion/heartbeat evidence; it does not validate current heads or independent
+organizational/kernel operation. The snapshot records the source-only audit.
+#211 is merged at `a1c25118` after 21/21 store cases on the reviewed composition.
+#199 is merged at `ac516528` after 78/78 inert Stage cases; #203 is merged at
+`60b4d10c` after 80/80 inert Stage cases. Their prior scoped findings are cleared;
+these overlapping runs do not establish browser/visual readiness. The user
+narrowed the sole current priority to #57/#65 and authorized bounded fixes, tests and merges when ready; this adds no claim
+of namespace, descriptor, evaluator, generated-method or provider execution.
+G0–G4 remain open and the native app Goal reports `paused`.
+
+## Historical repository checkpoint — main `0cc38e6`
 
 **Frozen snapshot: main `0cc38e6`, nine open PRs before this checkpoint:**
 #204, #203, #199, #181, #180, #144, #65, #57 and draft #7.

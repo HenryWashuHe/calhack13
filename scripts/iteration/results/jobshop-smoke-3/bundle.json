@@ -1,0 +1,7704 @@
+{
+ "package": {
+  "sha256": "63aadd6a8f0a148fb39b9936eefbf01fc5d14b40388fcbcf7f7e21a1ed11636c",
+  "source": "(op, ctx) => op.remainingWork + 0.3 * op.machineRemainingLoad - 1.0 * op.duration",
+  "parent": "7f18612aff585fc67bc58095ec6c07948866422da3384396a50f143ab30fffd3",
+  "origin": "lab_a",
+  "generation": 5,
+  "note": "model candidate 2 (claude-sonnet-5-5, generation 5); screened 2/3"
+ },
+ "family": "jobshop-10x5",
+ "success_count": 16,
+ "plan": "d231f7cbe13c9a7bc13e758927f85d1a0249b4a4ba7a87608d10d2a95ea5d72b",
+ "lineage": [
+  {
+   "sha256": "63aadd6a8f0a148fb39b9936eefbf01fc5d14b40388fcbcf7f7e21a1ed11636c",
+   "origin": "lab_a",
+   "generation": 5,
+   "note": "model candidate 2 (claude-sonnet-5-5, generation 5); screened 2/3",
+   "parent": "7f18612aff585fc67bc58095ec6c07948866422da3384396a50f143ab30fffd3"
+  },
+  {
+   "sha256": "7f18612aff585fc67bc58095ec6c07948866422da3384396a50f143ab30fffd3",
+   "origin": "lab_a",
+   "generation": 4,
+   "note": "model candidate 1 (claude-sonnet-5-5, generation 4); screened 2/3",
+   "parent": "5462da50a3da1e0bf6ff4790f926394398cd4fdf9d11efef8bca3a8494f20f05"
+  },
+  {
+   "sha256": "5462da50a3da1e0bf6ff4790f926394398cd4fdf9d11efef8bca3a8494f20f05",
+   "origin": "lab_a",
+   "generation": 3,
+   "note": "model candidate 3 (claude-sonnet-5-5, generation 3); screened 2/3",
+   "parent": "50d52533434a0007e7b67cb59b3355a3df12304d3b54693b5bd1c001b1316ab5"
+  },
+  {
+   "sha256": "50d52533434a0007e7b67cb59b3355a3df12304d3b54693b5bd1c001b1316ab5",
+   "origin": "lab_a",
+   "generation": 2,
+   "note": "model candidate 0 (claude-sonnet-5-5, generation 2); screened 3/3",
+   "parent": "cc4dd741392f963f12b9677426e3ef14324e44512c8ecd95c8674e61a3ce42fc"
+  },
+  {
+   "sha256": "cc4dd741392f963f12b9677426e3ef14324e44512c8ecd95c8674e61a3ce42fc",
+   "origin": "lab_a",
+   "generation": 1,
+   "note": "model candidate 5 (claude-sonnet-5-5, generation 1); screened 3/3",
+   "parent": "79e109cb0a1ced1fbd3541c45b33e428d5abf71df00ba2b7e380d8e5c1b93349"
+  },
+  {
+   "sha256": "79e109cb0a1ced1fbd3541c45b33e428d5abf71df00ba2b7e380d8e5c1b93349",
+   "origin": "jobshop-10x5:root",
+   "generation": 0,
+   "note": "family root",
+   "parent": null
+  }
+ ],
+ "ledger": {
+  "records": [
+   {
+    "type": "root_registered",
+    "family": "jobshop-10x5",
+    "package": "79e109cb0a1ced1fbd3541c45b33e428d5abf71df00ba2b7e380d8e5c1b93349",
+    "prior_origin": null,
+    "lab": "lab_a",
+    "index": 0,
+    "prev": "f06dfc4916adbf50840c669a93bc815806cbb1d97dbda2ee9b9a4a4bcae4d7b8",
+    "sha256": "926515c249008e0fc2d6219265f5a2cf18bceed32213faefdc58b19ec9643e3b"
+   },
+   {
+    "type": "candidates_proposed",
+    "generation": 1,
+    "family": "jobshop-10x5",
+    "parent": "79e109cb0a1ced1fbd3541c45b33e428d5abf71df00ba2b7e380d8e5c1b93349",
+    "candidates": [
+     "151d82f8292c74baf36a85e1a35af0c92a61163c1bf52d952aabb413a6680c03",
+     "bc68f85e654a5413498250ec22833b540dd5909e06c3942636e59c72e9ec22f0",
+     "317ef995407dc703c0778518734c71329c5153a2e27d76fc57ebe19f4d95d860",
+     "cc4dd741392f963f12b9677426e3ef14324e44512c8ecd95c8674e61a3ce42fc"
+    ],
+    "dropped": [],
+    "imported": false,
+    "lab": "lab_a",
+    "index": 1,
+    "prev": "926515c249008e0fc2d6219265f5a2cf18bceed32213faefdc58b19ec9643e3b",
+    "sha256": "44f0f9afc0ec2659b4ef2af42fe2984ff9bb80203fd227eac5e0ee3946fc7c08"
+   },
+   {
+    "type": "plan_frozen",
+    "plan": "6d504f6b7da80bcdf6d9e497c3064707785075a62cd87c88583d5179d9e67485",
+    "family": "jobshop-10x5",
+    "generation": 1,
+    "arms": [
+     {
+      "slot": "incumbent",
+      "package": "79e109cb0a1ced1fbd3541c45b33e428d5abf71df00ba2b7e380d8e5c1b93349"
+     },
+     {
+      "slot": "candidate:0",
+      "package": "151d82f8292c74baf36a85e1a35af0c92a61163c1bf52d952aabb413a6680c03"
+     },
+     {
+      "slot": "candidate:1",
+      "package": "bc68f85e654a5413498250ec22833b540dd5909e06c3942636e59c72e9ec22f0"
+     },
+     {
+      "slot": "candidate:2",
+      "package": "317ef995407dc703c0778518734c71329c5153a2e27d76fc57ebe19f4d95d860"
+     },
+     {
+      "slot": "candidate:3",
+      "package": "cc4dd741392f963f12b9677426e3ef14324e44512c8ecd95c8674e61a3ce42fc"
+     }
+    ],
+    "criterion": {
+     "rule": "success-count-margin",
+     "min_margin": 1
+    },
+    "instances": [
+     "jobshop-10x5/be3ec0fa/0",
+     "jobshop-10x5/be3ec0fa/1",
+     "jobshop-10x5/be3ec0fa/2",
+     "jobshop-10x5/be3ec0fa/3",
+     "jobshop-10x5/be3ec0fa/4",
+     "jobshop-10x5/be3ec0fa/5",
+     "jobshop-10x5/be3ec0fa/6",
+     "jobshop-10x5/be3ec0fa/7",
+     "jobshop-10x5/be3ec0fa/8",
+     "jobshop-10x5/be3ec0fa/9",
+     "jobshop-10x5/be3ec0fa/10",
+     "jobshop-10x5/be3ec0fa/11",
+     "jobshop-10x5/be3ec0fa/12",
+     "jobshop-10x5/be3ec0fa/13",
+     "jobshop-10x5/be3ec0fa/14",
+     "jobshop-10x5/be3ec0fa/15",
+     "jobshop-10x5/be3ec0fa/16",
+     "jobshop-10x5/be3ec0fa/17",
+     "jobshop-10x5/be3ec0fa/18",
+     "jobshop-10x5/be3ec0fa/19"
+    ],
+    "instance_seed": "be3ec0faa711fbe4f0278a3044c3169141b5991652a785ad393627ee8b299af1",
+    "lab": "lab_a",
+    "index": 2,
+    "prev": "44f0f9afc0ec2659b4ef2af42fe2984ff9bb80203fd227eac5e0ee3946fc7c08",
+    "sha256": "a2e865e53b4384de9cec9af3774a0bd2a3f73206cc6367b0421b7875e6921d96"
+   },
+   {
+    "type": "evaluation",
+    "plan": "6d504f6b7da80bcdf6d9e497c3064707785075a62cd87c88583d5179d9e67485",
+    "slot": "incumbent",
+    "package": "79e109cb0a1ced1fbd3541c45b33e428d5abf71df00ba2b7e380d8e5c1b93349",
+    "scores": [
+     {
+      "instance": "jobshop-10x5/be3ec0fa/0",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.6810673443456162,
+      "cost": 1,
+      "detail": {
+       "makespan": 787,
+       "lower_bound": 536,
+       "ratio": 1.4682835820895523
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/1",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9054263565891473,
+      "cost": 1,
+      "detail": {
+       "makespan": 645,
+       "lower_bound": 584,
+       "ratio": 1.1044520547945205
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/2",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9336219336219336,
+      "cost": 1,
+      "detail": {
+       "makespan": 693,
+       "lower_bound": 647,
+       "ratio": 1.071097372488408
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/3",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.809593023255814,
+      "cost": 1,
+      "detail": {
+       "makespan": 688,
+       "lower_bound": 557,
+       "ratio": 1.2351885098743267
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/4",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9051851851851852,
+      "cost": 1,
+      "detail": {
+       "makespan": 675,
+       "lower_bound": 611,
+       "ratio": 1.104746317512275
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/5",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7063882063882064,
+      "cost": 1,
+      "detail": {
+       "makespan": 814,
+       "lower_bound": 575,
+       "ratio": 1.4156521739130434
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/6",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9314079422382672,
+      "cost": 1,
+      "detail": {
+       "makespan": 554,
+       "lower_bound": 516,
+       "ratio": 1.073643410852713
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/7",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8658718330849479,
+      "cost": 1,
+      "detail": {
+       "makespan": 671,
+       "lower_bound": 581,
+       "ratio": 1.1549053356282273
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/8",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7630522088353414,
+      "cost": 1,
+      "detail": {
+       "makespan": 747,
+       "lower_bound": 570,
+       "ratio": 1.3105263157894738
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/9",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8674033149171271,
+      "cost": 1,
+      "detail": {
+       "makespan": 724,
+       "lower_bound": 628,
+       "ratio": 1.1528662420382165
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/10",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8146341463414634,
+      "cost": 1,
+      "detail": {
+       "makespan": 820,
+       "lower_bound": 668,
+       "ratio": 1.2275449101796407
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/11",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7347715736040609,
+      "cost": 1,
+      "detail": {
+       "makespan": 788,
+       "lower_bound": 579,
+       "ratio": 1.3609671848013818
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/12",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8231552162849872,
+      "cost": 1,
+      "detail": {
+       "makespan": 786,
+       "lower_bound": 647,
+       "ratio": 1.21483771251932
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/13",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7058064516129032,
+      "cost": 1,
+      "detail": {
+       "makespan": 775,
+       "lower_bound": 547,
+       "ratio": 1.416819012797075
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/14",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7090395480225988,
+      "cost": 1,
+      "detail": {
+       "makespan": 708,
+       "lower_bound": 502,
+       "ratio": 1.4103585657370519
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/15",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7808219178082192,
+      "cost": 1,
+      "detail": {
+       "makespan": 657,
+       "lower_bound": 513,
+       "ratio": 1.280701754385965
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/16",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8382165605095542,
+      "cost": 1,
+      "detail": {
+       "makespan": 785,
+       "lower_bound": 658,
+       "ratio": 1.1930091185410334
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/17",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8424068767908309,
+      "cost": 1,
+      "detail": {
+       "makespan": 698,
+       "lower_bound": 588,
+       "ratio": 1.1870748299319729
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/18",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7806818181818181,
+      "cost": 1,
+      "detail": {
+       "makespan": 880,
+       "lower_bound": 687,
+       "ratio": 1.2809315866084425
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/19",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7834757834757835,
+      "cost": 1,
+      "detail": {
+       "makespan": 702,
+       "lower_bound": 550,
+       "ratio": 1.2763636363636364
+      }
+     }
+    ],
+    "outcome": "scored",
+    "success_count": 8,
+    "of": 20,
+    "attempt": "first",
+    "lab": "lab_a",
+    "index": 3,
+    "prev": "a2e865e53b4384de9cec9af3774a0bd2a3f73206cc6367b0421b7875e6921d96",
+    "sha256": "07a64259a0092c02c3788aeab28efa83d351d901777676748a5cfb27637c176e"
+   },
+   {
+    "type": "evaluation",
+    "plan": "6d504f6b7da80bcdf6d9e497c3064707785075a62cd87c88583d5179d9e67485",
+    "slot": "candidate:0",
+    "package": "151d82f8292c74baf36a85e1a35af0c92a61163c1bf52d952aabb413a6680c03",
+    "scores": [
+     {
+      "instance": "jobshop-10x5/be3ec0fa/0",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8183206106870229,
+      "cost": 1,
+      "detail": {
+       "makespan": 655,
+       "lower_bound": 536,
+       "ratio": 1.2220149253731343
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/1",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9434571890145396,
+      "cost": 1,
+      "detail": {
+       "makespan": 619,
+       "lower_bound": 584,
+       "ratio": 1.0599315068493151
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/2",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9363241678726484,
+      "cost": 1,
+      "detail": {
+       "makespan": 691,
+       "lower_bound": 647,
+       "ratio": 1.0680061823802163
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/3",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8350824587706147,
+      "cost": 1,
+      "detail": {
+       "makespan": 667,
+       "lower_bound": 557,
+       "ratio": 1.1974865350089767
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/4",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7469437652811736,
+      "cost": 1,
+      "detail": {
+       "makespan": 818,
+       "lower_bound": 611,
+       "ratio": 1.3387888707037643
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/5",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8121468926553672,
+      "cost": 1,
+      "detail": {
+       "makespan": 708,
+       "lower_bound": 575,
+       "ratio": 1.231304347826087
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/6",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8805460750853242,
+      "cost": 1,
+      "detail": {
+       "makespan": 586,
+       "lower_bound": 516,
+       "ratio": 1.1356589147286822
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/7",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7926330150068213,
+      "cost": 1,
+      "detail": {
+       "makespan": 733,
+       "lower_bound": 581,
+       "ratio": 1.261617900172117
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/8",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.946843853820598,
+      "cost": 1,
+      "detail": {
+       "makespan": 602,
+       "lower_bound": 570,
+       "ratio": 1.056140350877193
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/9",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9661538461538461,
+      "cost": 1,
+      "detail": {
+       "makespan": 650,
+       "lower_bound": 628,
+       "ratio": 1.035031847133758
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/10",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8146341463414634,
+      "cost": 1,
+      "detail": {
+       "makespan": 820,
+       "lower_bound": 668,
+       "ratio": 1.2275449101796407
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/11",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8086592178770949,
+      "cost": 1,
+      "detail": {
+       "makespan": 716,
+       "lower_bound": 579,
+       "ratio": 1.2366148531951642
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/12",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8316195372750642,
+      "cost": 1,
+      "detail": {
+       "makespan": 778,
+       "lower_bound": 647,
+       "ratio": 1.2024729520865534
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/13",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8044117647058824,
+      "cost": 1,
+      "detail": {
+       "makespan": 680,
+       "lower_bound": 547,
+       "ratio": 1.243144424131627
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/14",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7675840978593272,
+      "cost": 1,
+      "detail": {
+       "makespan": 654,
+       "lower_bound": 502,
+       "ratio": 1.302788844621514
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/15",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7588757396449705,
+      "cost": 1,
+      "detail": {
+       "makespan": 676,
+       "lower_bound": 513,
+       "ratio": 1.3177387914230019
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/16",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8785046728971962,
+      "cost": 1,
+      "detail": {
+       "makespan": 749,
+       "lower_bound": 658,
+       "ratio": 1.1382978723404256
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/17",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9144634525660964,
+      "cost": 1,
+      "detail": {
+       "makespan": 643,
+       "lower_bound": 588,
+       "ratio": 1.0935374149659864
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/18",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9462809917355371,
+      "cost": 1,
+      "detail": {
+       "makespan": 726,
+       "lower_bound": 687,
+       "ratio": 1.056768558951965
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/19",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.6432748538011696,
+      "cost": 1,
+      "detail": {
+       "makespan": 855,
+       "lower_bound": 550,
+       "ratio": 1.5545454545454545
+      }
+     }
+    ],
+    "outcome": "scored",
+    "success_count": 9,
+    "of": 20,
+    "attempt": "first",
+    "lab": "lab_a",
+    "index": 4,
+    "prev": "07a64259a0092c02c3788aeab28efa83d351d901777676748a5cfb27637c176e",
+    "sha256": "7772d2076f3c6895773cdfa7cd785d4142888cd7d8b8ad2472496c164e1c5c55"
+   },
+   {
+    "type": "evaluation",
+    "plan": "6d504f6b7da80bcdf6d9e497c3064707785075a62cd87c88583d5179d9e67485",
+    "slot": "candidate:1",
+    "package": "bc68f85e654a5413498250ec22833b540dd5909e06c3942636e59c72e9ec22f0",
+    "scores": [
+     {
+      "instance": "jobshop-10x5/be3ec0fa/0",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8183206106870229,
+      "cost": 1,
+      "detail": {
+       "makespan": 655,
+       "lower_bound": 536,
+       "ratio": 1.2220149253731343
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/1",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9434571890145396,
+      "cost": 1,
+      "detail": {
+       "makespan": 619,
+       "lower_bound": 584,
+       "ratio": 1.0599315068493151
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/2",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9363241678726484,
+      "cost": 1,
+      "detail": {
+       "makespan": 691,
+       "lower_bound": 647,
+       "ratio": 1.0680061823802163
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/3",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8350824587706147,
+      "cost": 1,
+      "detail": {
+       "makespan": 667,
+       "lower_bound": 557,
+       "ratio": 1.1974865350089767
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/4",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7469437652811736,
+      "cost": 1,
+      "detail": {
+       "makespan": 818,
+       "lower_bound": 611,
+       "ratio": 1.3387888707037643
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/5",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8121468926553672,
+      "cost": 1,
+      "detail": {
+       "makespan": 708,
+       "lower_bound": 575,
+       "ratio": 1.231304347826087
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/6",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8805460750853242,
+      "cost": 1,
+      "detail": {
+       "makespan": 586,
+       "lower_bound": 516,
+       "ratio": 1.1356589147286822
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/7",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7926330150068213,
+      "cost": 1,
+      "detail": {
+       "makespan": 733,
+       "lower_bound": 581,
+       "ratio": 1.261617900172117
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/8",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.946843853820598,
+      "cost": 1,
+      "detail": {
+       "makespan": 602,
+       "lower_bound": 570,
+       "ratio": 1.056140350877193
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/9",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9661538461538461,
+      "cost": 1,
+      "detail": {
+       "makespan": 650,
+       "lower_bound": 628,
+       "ratio": 1.035031847133758
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/10",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8146341463414634,
+      "cost": 1,
+      "detail": {
+       "makespan": 820,
+       "lower_bound": 668,
+       "ratio": 1.2275449101796407
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/11",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8086592178770949,
+      "cost": 1,
+      "detail": {
+       "makespan": 716,
+       "lower_bound": 579,
+       "ratio": 1.2366148531951642
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/12",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8316195372750642,
+      "cost": 1,
+      "detail": {
+       "makespan": 778,
+       "lower_bound": 647,
+       "ratio": 1.2024729520865534
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/13",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8480620155038759,
+      "cost": 1,
+      "detail": {
+       "makespan": 645,
+       "lower_bound": 547,
+       "ratio": 1.1791590493601463
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/14",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7675840978593272,
+      "cost": 1,
+      "detail": {
+       "makespan": 654,
+       "lower_bound": 502,
+       "ratio": 1.302788844621514
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/15",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7588757396449705,
+      "cost": 1,
+      "detail": {
+       "makespan": 676,
+       "lower_bound": 513,
+       "ratio": 1.3177387914230019
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/16",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8785046728971962,
+      "cost": 1,
+      "detail": {
+       "makespan": 749,
+       "lower_bound": 658,
+       "ratio": 1.1382978723404256
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/17",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9144634525660964,
+      "cost": 1,
+      "detail": {
+       "makespan": 643,
+       "lower_bound": 588,
+       "ratio": 1.0935374149659864
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/18",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9462809917355371,
+      "cost": 1,
+      "detail": {
+       "makespan": 726,
+       "lower_bound": 687,
+       "ratio": 1.056768558951965
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/19",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.6432748538011696,
+      "cost": 1,
+      "detail": {
+       "makespan": 855,
+       "lower_bound": 550,
+       "ratio": 1.5545454545454545
+      }
+     }
+    ],
+    "outcome": "scored",
+    "success_count": 10,
+    "of": 20,
+    "attempt": "first",
+    "lab": "lab_a",
+    "index": 5,
+    "prev": "7772d2076f3c6895773cdfa7cd785d4142888cd7d8b8ad2472496c164e1c5c55",
+    "sha256": "f31d4a524cfdff748c3bb30cc2d1c66a3a20b39f95a84a1d0b039d90555bd590"
+   },
+   {
+    "type": "evaluation",
+    "plan": "6d504f6b7da80bcdf6d9e497c3064707785075a62cd87c88583d5179d9e67485",
+    "slot": "candidate:2",
+    "package": "317ef995407dc703c0778518734c71329c5153a2e27d76fc57ebe19f4d95d860",
+    "scores": [
+     {
+      "instance": "jobshop-10x5/be3ec0fa/0",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9038785834738617,
+      "cost": 1,
+      "detail": {
+       "makespan": 593,
+       "lower_bound": 536,
+       "ratio": 1.1063432835820894
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/1",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9096573208722741,
+      "cost": 1,
+      "detail": {
+       "makespan": 642,
+       "lower_bound": 584,
+       "ratio": 1.0993150684931507
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/2",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9363241678726484,
+      "cost": 1,
+      "detail": {
+       "makespan": 691,
+       "lower_bound": 647,
+       "ratio": 1.0680061823802163
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/3",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8025936599423631,
+      "cost": 1,
+      "detail": {
+       "makespan": 694,
+       "lower_bound": 557,
+       "ratio": 1.2459605026929983
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/4",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7469437652811736,
+      "cost": 1,
+      "detail": {
+       "makespan": 818,
+       "lower_bound": 611,
+       "ratio": 1.3387888707037643
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/5",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8214285714285714,
+      "cost": 1,
+      "detail": {
+       "makespan": 700,
+       "lower_bound": 575,
+       "ratio": 1.2173913043478262
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/6",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8805460750853242,
+      "cost": 1,
+      "detail": {
+       "makespan": 586,
+       "lower_bound": 516,
+       "ratio": 1.1356589147286822
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/7",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8276353276353277,
+      "cost": 1,
+      "detail": {
+       "makespan": 702,
+       "lower_bound": 581,
+       "ratio": 1.2082616179001722
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/8",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.946843853820598,
+      "cost": 1,
+      "detail": {
+       "makespan": 602,
+       "lower_bound": 570,
+       "ratio": 1.056140350877193
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/9",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9661538461538461,
+      "cost": 1,
+      "detail": {
+       "makespan": 650,
+       "lower_bound": 628,
+       "ratio": 1.035031847133758
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/10",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8146341463414634,
+      "cost": 1,
+      "detail": {
+       "makespan": 820,
+       "lower_bound": 668,
+       "ratio": 1.2275449101796407
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/11",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8086592178770949,
+      "cost": 1,
+      "detail": {
+       "makespan": 716,
+       "lower_bound": 579,
+       "ratio": 1.2366148531951642
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/12",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8316195372750642,
+      "cost": 1,
+      "detail": {
+       "makespan": 778,
+       "lower_bound": 647,
+       "ratio": 1.2024729520865534
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/13",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8044117647058824,
+      "cost": 1,
+      "detail": {
+       "makespan": 680,
+       "lower_bound": 547,
+       "ratio": 1.243144424131627
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/14",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.789308176100629,
+      "cost": 1,
+      "detail": {
+       "makespan": 636,
+       "lower_bound": 502,
+       "ratio": 1.2669322709163346
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/15",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7588757396449705,
+      "cost": 1,
+      "detail": {
+       "makespan": 676,
+       "lower_bound": 513,
+       "ratio": 1.3177387914230019
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/16",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9426934097421203,
+      "cost": 1,
+      "detail": {
+       "makespan": 698,
+       "lower_bound": 658,
+       "ratio": 1.060790273556231
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/17",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9849246231155779,
+      "cost": 1,
+      "detail": {
+       "makespan": 597,
+       "lower_bound": 588,
+       "ratio": 1.0153061224489797
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/18",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8818998716302953,
+      "cost": 1,
+      "detail": {
+       "makespan": 779,
+       "lower_bound": 687,
+       "ratio": 1.1339155749636098
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/19",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.6547619047619048,
+      "cost": 1,
+      "detail": {
+       "makespan": 840,
+       "lower_bound": 550,
+       "ratio": 1.5272727272727273
+      }
+     }
+    ],
+    "outcome": "scored",
+    "success_count": 9,
+    "of": 20,
+    "attempt": "first",
+    "lab": "lab_a",
+    "index": 6,
+    "prev": "f31d4a524cfdff748c3bb30cc2d1c66a3a20b39f95a84a1d0b039d90555bd590",
+    "sha256": "5df07622c10529462af335a6f562167ba9a9ebf08f0b5300f649d3533d0c4cb2"
+   },
+   {
+    "type": "evaluation",
+    "plan": "6d504f6b7da80bcdf6d9e497c3064707785075a62cd87c88583d5179d9e67485",
+    "slot": "candidate:3",
+    "package": "cc4dd741392f963f12b9677426e3ef14324e44512c8ecd95c8674e61a3ce42fc",
+    "scores": [
+     {
+      "instance": "jobshop-10x5/be3ec0fa/0",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8888888888888888,
+      "cost": 1,
+      "detail": {
+       "makespan": 603,
+       "lower_bound": 536,
+       "ratio": 1.125
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/1",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9434571890145396,
+      "cost": 1,
+      "detail": {
+       "makespan": 619,
+       "lower_bound": 584,
+       "ratio": 1.0599315068493151
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/2",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9363241678726484,
+      "cost": 1,
+      "detail": {
+       "makespan": 691,
+       "lower_bound": 647,
+       "ratio": 1.0680061823802163
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/3",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8350824587706147,
+      "cost": 1,
+      "detail": {
+       "makespan": 667,
+       "lower_bound": 557,
+       "ratio": 1.1974865350089767
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/4",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7469437652811736,
+      "cost": 1,
+      "detail": {
+       "makespan": 818,
+       "lower_bound": 611,
+       "ratio": 1.3387888707037643
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/5",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8121468926553672,
+      "cost": 1,
+      "detail": {
+       "makespan": 708,
+       "lower_bound": 575,
+       "ratio": 1.231304347826087
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/6",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8805460750853242,
+      "cost": 1,
+      "detail": {
+       "makespan": 586,
+       "lower_bound": 516,
+       "ratio": 1.1356589147286822
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/7",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7926330150068213,
+      "cost": 1,
+      "detail": {
+       "makespan": 733,
+       "lower_bound": 581,
+       "ratio": 1.261617900172117
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/8",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.946843853820598,
+      "cost": 1,
+      "detail": {
+       "makespan": 602,
+       "lower_bound": 570,
+       "ratio": 1.056140350877193
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/9",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9661538461538461,
+      "cost": 1,
+      "detail": {
+       "makespan": 650,
+       "lower_bound": 628,
+       "ratio": 1.035031847133758
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/10",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8146341463414634,
+      "cost": 1,
+      "detail": {
+       "makespan": 820,
+       "lower_bound": 668,
+       "ratio": 1.2275449101796407
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/11",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8086592178770949,
+      "cost": 1,
+      "detail": {
+       "makespan": 716,
+       "lower_bound": 579,
+       "ratio": 1.2366148531951642
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/12",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8316195372750642,
+      "cost": 1,
+      "detail": {
+       "makespan": 778,
+       "lower_bound": 647,
+       "ratio": 1.2024729520865534
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/13",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8480620155038759,
+      "cost": 1,
+      "detail": {
+       "makespan": 645,
+       "lower_bound": 547,
+       "ratio": 1.1791590493601463
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/14",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7675840978593272,
+      "cost": 1,
+      "detail": {
+       "makespan": 654,
+       "lower_bound": 502,
+       "ratio": 1.302788844621514
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/15",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7588757396449705,
+      "cost": 1,
+      "detail": {
+       "makespan": 676,
+       "lower_bound": 513,
+       "ratio": 1.3177387914230019
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/16",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8785046728971962,
+      "cost": 1,
+      "detail": {
+       "makespan": 749,
+       "lower_bound": 658,
+       "ratio": 1.1382978723404256
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/17",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9144634525660964,
+      "cost": 1,
+      "detail": {
+       "makespan": 643,
+       "lower_bound": 588,
+       "ratio": 1.0935374149659864
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/18",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9462809917355371,
+      "cost": 1,
+      "detail": {
+       "makespan": 726,
+       "lower_bound": 687,
+       "ratio": 1.056768558951965
+      }
+     },
+     {
+      "instance": "jobshop-10x5/be3ec0fa/19",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.6432748538011696,
+      "cost": 1,
+      "detail": {
+       "makespan": 855,
+       "lower_bound": 550,
+       "ratio": 1.5545454545454545
+      }
+     }
+    ],
+    "outcome": "scored",
+    "success_count": 11,
+    "of": 20,
+    "attempt": "first",
+    "lab": "lab_a",
+    "index": 7,
+    "prev": "5df07622c10529462af335a6f562167ba9a9ebf08f0b5300f649d3533d0c4cb2",
+    "sha256": "be89ac4e62a7dcd47e84230775f885ec513f948607176019e8054a58aaa064f2"
+   },
+   {
+    "type": "verdict",
+    "plan": "6d504f6b7da80bcdf6d9e497c3064707785075a62cd87c88583d5179d9e67485",
+    "generation": 1,
+    "slot": "candidate:0",
+    "package": "151d82f8292c74baf36a85e1a35af0c92a61163c1bf52d952aabb413a6680c03",
+    "verdict": "rejected",
+    "reason": "9/20 vs incumbent 8/20 (success-count margin >= 1 required)",
+    "margins": [
+     {
+      "against": "incumbent",
+      "candidate": 9,
+      "other": 8,
+      "margin": 1,
+      "known": true
+     }
+    ],
+    "lab": "lab_a",
+    "index": 8,
+    "prev": "be89ac4e62a7dcd47e84230775f885ec513f948607176019e8054a58aaa064f2",
+    "sha256": "12d4e009e547e18144baf482fa226d8628c92444c8fc82500316f9c582a2bd8f"
+   },
+   {
+    "type": "verdict",
+    "plan": "6d504f6b7da80bcdf6d9e497c3064707785075a62cd87c88583d5179d9e67485",
+    "generation": 1,
+    "slot": "candidate:1",
+    "package": "bc68f85e654a5413498250ec22833b540dd5909e06c3942636e59c72e9ec22f0",
+    "verdict": "rejected",
+    "reason": "10/20 vs incumbent 8/20 (success-count margin >= 1 required)",
+    "margins": [
+     {
+      "against": "incumbent",
+      "candidate": 10,
+      "other": 8,
+      "margin": 2,
+      "known": true
+     }
+    ],
+    "lab": "lab_a",
+    "index": 9,
+    "prev": "12d4e009e547e18144baf482fa226d8628c92444c8fc82500316f9c582a2bd8f",
+    "sha256": "12ff59c22696b7efc65f2f4a3c7424c120f5dcd5930b974151b348838965d4a1"
+   },
+   {
+    "type": "verdict",
+    "plan": "6d504f6b7da80bcdf6d9e497c3064707785075a62cd87c88583d5179d9e67485",
+    "generation": 1,
+    "slot": "candidate:2",
+    "package": "317ef995407dc703c0778518734c71329c5153a2e27d76fc57ebe19f4d95d860",
+    "verdict": "rejected",
+    "reason": "9/20 vs incumbent 8/20 (success-count margin >= 1 required)",
+    "margins": [
+     {
+      "against": "incumbent",
+      "candidate": 9,
+      "other": 8,
+      "margin": 1,
+      "known": true
+     }
+    ],
+    "lab": "lab_a",
+    "index": 10,
+    "prev": "12ff59c22696b7efc65f2f4a3c7424c120f5dcd5930b974151b348838965d4a1",
+    "sha256": "e76821e08e783ba32905309bebd45dbbc787edcd5fd27e224ba13b24b5ec0495"
+   },
+   {
+    "type": "verdict",
+    "plan": "6d504f6b7da80bcdf6d9e497c3064707785075a62cd87c88583d5179d9e67485",
+    "generation": 1,
+    "slot": "candidate:3",
+    "package": "cc4dd741392f963f12b9677426e3ef14324e44512c8ecd95c8674e61a3ce42fc",
+    "verdict": "promoted",
+    "reason": "11/20 vs incumbent 8/20 (success-count margin >= 1 required)",
+    "margins": [
+     {
+      "against": "incumbent",
+      "candidate": 11,
+      "other": 8,
+      "margin": 3,
+      "known": true
+     }
+    ],
+    "lab": "lab_a",
+    "index": 11,
+    "prev": "e76821e08e783ba32905309bebd45dbbc787edcd5fd27e224ba13b24b5ec0495",
+    "sha256": "f8ac4a5a16303bcc7337731d01346761bba383b2678e56c0a18dd5db68ebd5f3"
+   },
+   {
+    "type": "promotion",
+    "generation": 1,
+    "family": "jobshop-10x5",
+    "package": "cc4dd741392f963f12b9677426e3ef14324e44512c8ecd95c8674e61a3ce42fc",
+    "parent": "79e109cb0a1ced1fbd3541c45b33e428d5abf71df00ba2b7e380d8e5c1b93349",
+    "success_count": 11,
+    "incumbent_count": 8,
+    "of": 20,
+    "plan": "6d504f6b7da80bcdf6d9e497c3064707785075a62cd87c88583d5179d9e67485",
+    "lab": "lab_a",
+    "index": 12,
+    "prev": "f8ac4a5a16303bcc7337731d01346761bba383b2678e56c0a18dd5db68ebd5f3",
+    "sha256": "b68240e9efc707eeb059cf6471701b148b62e6436b6013e5895d4157743130c2"
+   },
+   {
+    "type": "candidates_proposed",
+    "generation": 2,
+    "family": "jobshop-10x5",
+    "parent": "cc4dd741392f963f12b9677426e3ef14324e44512c8ecd95c8674e61a3ce42fc",
+    "candidates": [
+     "50d52533434a0007e7b67cb59b3355a3df12304d3b54693b5bd1c001b1316ab5",
+     "d066e0b6836b021024c0719ce0102715ed182fc30b61655f524388a7fcd1e892",
+     "7c0bf24406d50d8dc10caf3495a2d804e6411ab0abeb1f372e725ea4cb9e089f",
+     "62f35caf942015df3d9c5c477813cbb9902bc2c2137941ff2b92ca52f1ebd6ed"
+    ],
+    "dropped": [],
+    "imported": false,
+    "lab": "lab_a",
+    "index": 13,
+    "prev": "b68240e9efc707eeb059cf6471701b148b62e6436b6013e5895d4157743130c2",
+    "sha256": "d33ac99fc45fd04c35e243c8c9fc6afc41ef8d93bd5860d9d3dfd26c8d70a4b3"
+   },
+   {
+    "type": "plan_frozen",
+    "plan": "28660fdcda21c6b7ebffb83e426b81710b4910bddd9c7b99d96bddb6d98cc14b",
+    "family": "jobshop-10x5",
+    "generation": 2,
+    "arms": [
+     {
+      "slot": "incumbent",
+      "package": "cc4dd741392f963f12b9677426e3ef14324e44512c8ecd95c8674e61a3ce42fc"
+     },
+     {
+      "slot": "candidate:0",
+      "package": "50d52533434a0007e7b67cb59b3355a3df12304d3b54693b5bd1c001b1316ab5"
+     },
+     {
+      "slot": "candidate:1",
+      "package": "d066e0b6836b021024c0719ce0102715ed182fc30b61655f524388a7fcd1e892"
+     },
+     {
+      "slot": "candidate:2",
+      "package": "7c0bf24406d50d8dc10caf3495a2d804e6411ab0abeb1f372e725ea4cb9e089f"
+     },
+     {
+      "slot": "candidate:3",
+      "package": "62f35caf942015df3d9c5c477813cbb9902bc2c2137941ff2b92ca52f1ebd6ed"
+     }
+    ],
+    "criterion": {
+     "rule": "success-count-margin",
+     "min_margin": 1
+    },
+    "instances": [
+     "jobshop-10x5/e602ade4/0",
+     "jobshop-10x5/e602ade4/1",
+     "jobshop-10x5/e602ade4/2",
+     "jobshop-10x5/e602ade4/3",
+     "jobshop-10x5/e602ade4/4",
+     "jobshop-10x5/e602ade4/5",
+     "jobshop-10x5/e602ade4/6",
+     "jobshop-10x5/e602ade4/7",
+     "jobshop-10x5/e602ade4/8",
+     "jobshop-10x5/e602ade4/9",
+     "jobshop-10x5/e602ade4/10",
+     "jobshop-10x5/e602ade4/11",
+     "jobshop-10x5/e602ade4/12",
+     "jobshop-10x5/e602ade4/13",
+     "jobshop-10x5/e602ade4/14",
+     "jobshop-10x5/e602ade4/15",
+     "jobshop-10x5/e602ade4/16",
+     "jobshop-10x5/e602ade4/17",
+     "jobshop-10x5/e602ade4/18",
+     "jobshop-10x5/e602ade4/19"
+    ],
+    "instance_seed": "e602ade410e8b62d21f5607c7543544b3e524d5d94680f4cde532e8be05b0e2a",
+    "lab": "lab_a",
+    "index": 14,
+    "prev": "d33ac99fc45fd04c35e243c8c9fc6afc41ef8d93bd5860d9d3dfd26c8d70a4b3",
+    "sha256": "1abbb6b1ff643eee2bbeb07ae828237c46ad3fd68c5d408166f1f8aa564ebeff"
+   },
+   {
+    "type": "evaluation",
+    "plan": "28660fdcda21c6b7ebffb83e426b81710b4910bddd9c7b99d96bddb6d98cc14b",
+    "slot": "incumbent",
+    "package": "cc4dd741392f963f12b9677426e3ef14324e44512c8ecd95c8674e61a3ce42fc",
+    "scores": [
+     {
+      "instance": "jobshop-10x5/e602ade4/0",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.792063492063492,
+      "cost": 1,
+      "detail": {
+       "makespan": 630,
+       "lower_bound": 499,
+       "ratio": 1.2625250501002003
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/1",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8070175438596491,
+      "cost": 1,
+      "detail": {
+       "makespan": 969,
+       "lower_bound": 782,
+       "ratio": 1.2391304347826086
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/2",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9101283880171184,
+      "cost": 1,
+      "detail": {
+       "makespan": 701,
+       "lower_bound": 638,
+       "ratio": 1.098746081504702
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/3",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.867430441898527,
+      "cost": 1,
+      "detail": {
+       "makespan": 611,
+       "lower_bound": 530,
+       "ratio": 1.1528301886792454
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/4",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9407894736842105,
+      "cost": 1,
+      "detail": {
+       "makespan": 608,
+       "lower_bound": 572,
+       "ratio": 1.062937062937063
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/5",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8974008207934336,
+      "cost": 1,
+      "detail": {
+       "makespan": 731,
+       "lower_bound": 656,
+       "ratio": 1.1143292682926829
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/6",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8561452513966481,
+      "cost": 1,
+      "detail": {
+       "makespan": 716,
+       "lower_bound": 613,
+       "ratio": 1.168026101141925
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/7",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9197622585438335,
+      "cost": 1,
+      "detail": {
+       "makespan": 673,
+       "lower_bound": 619,
+       "ratio": 1.0872374798061388
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/8",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8874824191279888,
+      "cost": 1,
+      "detail": {
+       "makespan": 711,
+       "lower_bound": 631,
+       "ratio": 1.126782884310618
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/9",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7513297872340425,
+      "cost": 1,
+      "detail": {
+       "makespan": 752,
+       "lower_bound": 565,
+       "ratio": 1.3309734513274336
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/10",
+      "outcome": "scored",
+      "success": true,
+      "progress": 1,
+      "cost": 1,
+      "detail": {
+       "makespan": 642,
+       "lower_bound": 642,
+       "ratio": 1
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/11",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.911504424778761,
+      "cost": 1,
+      "detail": {
+       "makespan": 678,
+       "lower_bound": 618,
+       "ratio": 1.0970873786407767
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/12",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.781010719754977,
+      "cost": 1,
+      "detail": {
+       "makespan": 653,
+       "lower_bound": 510,
+       "ratio": 1.280392156862745
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/13",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.835742444152431,
+      "cost": 1,
+      "detail": {
+       "makespan": 761,
+       "lower_bound": 636,
+       "ratio": 1.1965408805031446
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/14",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.830945558739255,
+      "cost": 1,
+      "detail": {
+       "makespan": 698,
+       "lower_bound": 580,
+       "ratio": 1.203448275862069
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/15",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7070707070707071,
+      "cost": 1,
+      "detail": {
+       "makespan": 792,
+       "lower_bound": 560,
+       "ratio": 1.4142857142857144
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/16",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9105571847507331,
+      "cost": 1,
+      "detail": {
+       "makespan": 682,
+       "lower_bound": 621,
+       "ratio": 1.0982286634460547
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/17",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9562594268476622,
+      "cost": 1,
+      "detail": {
+       "makespan": 663,
+       "lower_bound": 634,
+       "ratio": 1.0457413249211356
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/18",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7894002789400278,
+      "cost": 1,
+      "detail": {
+       "makespan": 717,
+       "lower_bound": 566,
+       "ratio": 1.2667844522968197
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/19",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7505882352941177,
+      "cost": 1,
+      "detail": {
+       "makespan": 850,
+       "lower_bound": 638,
+       "ratio": 1.3322884012539185
+      }
+     }
+    ],
+    "outcome": "scored",
+    "success_count": 12,
+    "of": 20,
+    "attempt": "first",
+    "lab": "lab_a",
+    "index": 15,
+    "prev": "1abbb6b1ff643eee2bbeb07ae828237c46ad3fd68c5d408166f1f8aa564ebeff",
+    "sha256": "902f2045a3abba924a8eefda77f936c16d03ba42697c06906dea47dac919c14b"
+   },
+   {
+    "type": "evaluation",
+    "plan": "28660fdcda21c6b7ebffb83e426b81710b4910bddd9c7b99d96bddb6d98cc14b",
+    "slot": "candidate:0",
+    "package": "50d52533434a0007e7b67cb59b3355a3df12304d3b54693b5bd1c001b1316ab5",
+    "scores": [
+     {
+      "instance": "jobshop-10x5/e602ade4/0",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.792063492063492,
+      "cost": 1,
+      "detail": {
+       "makespan": 630,
+       "lower_bound": 499,
+       "ratio": 1.2625250501002003
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/1",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.85,
+      "cost": 1,
+      "detail": {
+       "makespan": 920,
+       "lower_bound": 782,
+       "ratio": 1.1764705882352942
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/2",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9937694704049844,
+      "cost": 1,
+      "detail": {
+       "makespan": 642,
+       "lower_bound": 638,
+       "ratio": 1.006269592476489
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/3",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8967851099830795,
+      "cost": 1,
+      "detail": {
+       "makespan": 591,
+       "lower_bound": 530,
+       "ratio": 1.1150943396226416
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/4",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9777777777777777,
+      "cost": 1,
+      "detail": {
+       "makespan": 585,
+       "lower_bound": 572,
+       "ratio": 1.0227272727272727
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/5",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9048275862068965,
+      "cost": 1,
+      "detail": {
+       "makespan": 725,
+       "lower_bound": 656,
+       "ratio": 1.1051829268292683
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/6",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.871977240398293,
+      "cost": 1,
+      "detail": {
+       "makespan": 703,
+       "lower_bound": 613,
+       "ratio": 1.1468189233278956
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/7",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9197622585438335,
+      "cost": 1,
+      "detail": {
+       "makespan": 673,
+       "lower_bound": 619,
+       "ratio": 1.0872374798061388
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/8",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8874824191279888,
+      "cost": 1,
+      "detail": {
+       "makespan": 711,
+       "lower_bound": 631,
+       "ratio": 1.126782884310618
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/9",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7513297872340425,
+      "cost": 1,
+      "detail": {
+       "makespan": 752,
+       "lower_bound": 565,
+       "ratio": 1.3309734513274336
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/10",
+      "outcome": "scored",
+      "success": true,
+      "progress": 1,
+      "cost": 1,
+      "detail": {
+       "makespan": 642,
+       "lower_bound": 642,
+       "ratio": 1
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/11",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9074889867841409,
+      "cost": 1,
+      "detail": {
+       "makespan": 681,
+       "lower_bound": 618,
+       "ratio": 1.1019417475728155
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/12",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.781010719754977,
+      "cost": 1,
+      "detail": {
+       "makespan": 653,
+       "lower_bound": 510,
+       "ratio": 1.280392156862745
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/13",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8945147679324894,
+      "cost": 1,
+      "detail": {
+       "makespan": 711,
+       "lower_bound": 636,
+       "ratio": 1.1179245283018868
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/14",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7795698924731183,
+      "cost": 1,
+      "detail": {
+       "makespan": 744,
+       "lower_bound": 580,
+       "ratio": 1.282758620689655
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/15",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7427055702917772,
+      "cost": 1,
+      "detail": {
+       "makespan": 754,
+       "lower_bound": 560,
+       "ratio": 1.3464285714285715
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/16",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9296407185628742,
+      "cost": 1,
+      "detail": {
+       "makespan": 668,
+       "lower_bound": 621,
+       "ratio": 1.075684380032206
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/17",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9606060606060606,
+      "cost": 1,
+      "detail": {
+       "makespan": 660,
+       "lower_bound": 634,
+       "ratio": 1.0410094637223974
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/18",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8460388639760837,
+      "cost": 1,
+      "detail": {
+       "makespan": 669,
+       "lower_bound": 566,
+       "ratio": 1.1819787985865724
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/19",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7505882352941177,
+      "cost": 1,
+      "detail": {
+       "makespan": 850,
+       "lower_bound": 638,
+       "ratio": 1.3322884012539185
+      }
+     }
+    ],
+    "outcome": "scored",
+    "success_count": 14,
+    "of": 20,
+    "attempt": "first",
+    "lab": "lab_a",
+    "index": 16,
+    "prev": "902f2045a3abba924a8eefda77f936c16d03ba42697c06906dea47dac919c14b",
+    "sha256": "bf47dcac5d5a34dff617d078e9bc3e71fb3a18bb37eac27599bfb2193ca8dbfe"
+   },
+   {
+    "type": "evaluation",
+    "plan": "28660fdcda21c6b7ebffb83e426b81710b4910bddd9c7b99d96bddb6d98cc14b",
+    "slot": "candidate:1",
+    "package": "d066e0b6836b021024c0719ce0102715ed182fc30b61655f524388a7fcd1e892",
+    "scores": [
+     {
+      "instance": "jobshop-10x5/e602ade4/0",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.792063492063492,
+      "cost": 1,
+      "detail": {
+       "makespan": 630,
+       "lower_bound": 499,
+       "ratio": 1.2625250501002003
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/1",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8070175438596491,
+      "cost": 1,
+      "detail": {
+       "makespan": 969,
+       "lower_bound": 782,
+       "ratio": 1.2391304347826086
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/2",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9937694704049844,
+      "cost": 1,
+      "detail": {
+       "makespan": 642,
+       "lower_bound": 638,
+       "ratio": 1.006269592476489
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/3",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.867430441898527,
+      "cost": 1,
+      "detail": {
+       "makespan": 611,
+       "lower_bound": 530,
+       "ratio": 1.1528301886792454
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/4",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9777777777777777,
+      "cost": 1,
+      "detail": {
+       "makespan": 585,
+       "lower_bound": 572,
+       "ratio": 1.0227272727272727
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/5",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8974008207934336,
+      "cost": 1,
+      "detail": {
+       "makespan": 731,
+       "lower_bound": 656,
+       "ratio": 1.1143292682926829
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/6",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8561452513966481,
+      "cost": 1,
+      "detail": {
+       "makespan": 716,
+       "lower_bound": 613,
+       "ratio": 1.168026101141925
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/7",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9197622585438335,
+      "cost": 1,
+      "detail": {
+       "makespan": 673,
+       "lower_bound": 619,
+       "ratio": 1.0872374798061388
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/8",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8874824191279888,
+      "cost": 1,
+      "detail": {
+       "makespan": 711,
+       "lower_bound": 631,
+       "ratio": 1.126782884310618
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/9",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7513297872340425,
+      "cost": 1,
+      "detail": {
+       "makespan": 752,
+       "lower_bound": 565,
+       "ratio": 1.3309734513274336
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/10",
+      "outcome": "scored",
+      "success": true,
+      "progress": 1,
+      "cost": 1,
+      "detail": {
+       "makespan": 642,
+       "lower_bound": 642,
+       "ratio": 1
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/11",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.911504424778761,
+      "cost": 1,
+      "detail": {
+       "makespan": 678,
+       "lower_bound": 618,
+       "ratio": 1.0970873786407767
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/12",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.781010719754977,
+      "cost": 1,
+      "detail": {
+       "makespan": 653,
+       "lower_bound": 510,
+       "ratio": 1.280392156862745
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/13",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.835742444152431,
+      "cost": 1,
+      "detail": {
+       "makespan": 761,
+       "lower_bound": 636,
+       "ratio": 1.1965408805031446
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/14",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.830945558739255,
+      "cost": 1,
+      "detail": {
+       "makespan": 698,
+       "lower_bound": 580,
+       "ratio": 1.203448275862069
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/15",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7070707070707071,
+      "cost": 1,
+      "detail": {
+       "makespan": 792,
+       "lower_bound": 560,
+       "ratio": 1.4142857142857144
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/16",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9105571847507331,
+      "cost": 1,
+      "detail": {
+       "makespan": 682,
+       "lower_bound": 621,
+       "ratio": 1.0982286634460547
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/17",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9562594268476622,
+      "cost": 1,
+      "detail": {
+       "makespan": 663,
+       "lower_bound": 634,
+       "ratio": 1.0457413249211356
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/18",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7894002789400278,
+      "cost": 1,
+      "detail": {
+       "makespan": 717,
+       "lower_bound": 566,
+       "ratio": 1.2667844522968197
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/19",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7505882352941177,
+      "cost": 1,
+      "detail": {
+       "makespan": 850,
+       "lower_bound": 638,
+       "ratio": 1.3322884012539185
+      }
+     }
+    ],
+    "outcome": "scored",
+    "success_count": 12,
+    "of": 20,
+    "attempt": "first",
+    "lab": "lab_a",
+    "index": 17,
+    "prev": "bf47dcac5d5a34dff617d078e9bc3e71fb3a18bb37eac27599bfb2193ca8dbfe",
+    "sha256": "6240752fe59893640eac0a2b6b9620b28d6660fbbb8edc70b29efad3ba6619d7"
+   },
+   {
+    "type": "evaluation",
+    "plan": "28660fdcda21c6b7ebffb83e426b81710b4910bddd9c7b99d96bddb6d98cc14b",
+    "slot": "candidate:2",
+    "package": "7c0bf24406d50d8dc10caf3495a2d804e6411ab0abeb1f372e725ea4cb9e089f",
+    "scores": [
+     {
+      "instance": "jobshop-10x5/e602ade4/0",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.792063492063492,
+      "cost": 1,
+      "detail": {
+       "makespan": 630,
+       "lower_bound": 499,
+       "ratio": 1.2625250501002003
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/1",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.85,
+      "cost": 1,
+      "detail": {
+       "makespan": 920,
+       "lower_bound": 782,
+       "ratio": 1.1764705882352942
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/2",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9937694704049844,
+      "cost": 1,
+      "detail": {
+       "makespan": 642,
+       "lower_bound": 638,
+       "ratio": 1.006269592476489
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/3",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.867430441898527,
+      "cost": 1,
+      "detail": {
+       "makespan": 611,
+       "lower_bound": 530,
+       "ratio": 1.1528301886792454
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/4",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.89937106918239,
+      "cost": 1,
+      "detail": {
+       "makespan": 636,
+       "lower_bound": 572,
+       "ratio": 1.1118881118881119
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/5",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8974008207934336,
+      "cost": 1,
+      "detail": {
+       "makespan": 731,
+       "lower_bound": 656,
+       "ratio": 1.1143292682926829
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/6",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.871977240398293,
+      "cost": 1,
+      "detail": {
+       "makespan": 703,
+       "lower_bound": 613,
+       "ratio": 1.1468189233278956
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/7",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9197622585438335,
+      "cost": 1,
+      "detail": {
+       "makespan": 673,
+       "lower_bound": 619,
+       "ratio": 1.0872374798061388
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/8",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8874824191279888,
+      "cost": 1,
+      "detail": {
+       "makespan": 711,
+       "lower_bound": 631,
+       "ratio": 1.126782884310618
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/9",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7513297872340425,
+      "cost": 1,
+      "detail": {
+       "makespan": 752,
+       "lower_bound": 565,
+       "ratio": 1.3309734513274336
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/10",
+      "outcome": "scored",
+      "success": true,
+      "progress": 1,
+      "cost": 1,
+      "detail": {
+       "makespan": 642,
+       "lower_bound": 642,
+       "ratio": 1
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/11",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.911504424778761,
+      "cost": 1,
+      "detail": {
+       "makespan": 678,
+       "lower_bound": 618,
+       "ratio": 1.0970873786407767
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/12",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.781010719754977,
+      "cost": 1,
+      "detail": {
+       "makespan": 653,
+       "lower_bound": 510,
+       "ratio": 1.280392156862745
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/13",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8945147679324894,
+      "cost": 1,
+      "detail": {
+       "makespan": 711,
+       "lower_bound": 636,
+       "ratio": 1.1179245283018868
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/14",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.830945558739255,
+      "cost": 1,
+      "detail": {
+       "makespan": 698,
+       "lower_bound": 580,
+       "ratio": 1.203448275862069
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/15",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7070707070707071,
+      "cost": 1,
+      "detail": {
+       "makespan": 792,
+       "lower_bound": 560,
+       "ratio": 1.4142857142857144
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/16",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9105571847507331,
+      "cost": 1,
+      "detail": {
+       "makespan": 682,
+       "lower_bound": 621,
+       "ratio": 1.0982286634460547
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/17",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9606060606060606,
+      "cost": 1,
+      "detail": {
+       "makespan": 660,
+       "lower_bound": 634,
+       "ratio": 1.0410094637223974
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/18",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7894002789400278,
+      "cost": 1,
+      "detail": {
+       "makespan": 717,
+       "lower_bound": 566,
+       "ratio": 1.2667844522968197
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/19",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7505882352941177,
+      "cost": 1,
+      "detail": {
+       "makespan": 850,
+       "lower_bound": 638,
+       "ratio": 1.3322884012539185
+      }
+     }
+    ],
+    "outcome": "scored",
+    "success_count": 13,
+    "of": 20,
+    "attempt": "first",
+    "lab": "lab_a",
+    "index": 18,
+    "prev": "6240752fe59893640eac0a2b6b9620b28d6660fbbb8edc70b29efad3ba6619d7",
+    "sha256": "ce0aebddeb205e21a478b1631cfdacad88ecfb277b325eee1545dc21a324f67d"
+   },
+   {
+    "type": "evaluation",
+    "plan": "28660fdcda21c6b7ebffb83e426b81710b4910bddd9c7b99d96bddb6d98cc14b",
+    "slot": "candidate:3",
+    "package": "62f35caf942015df3d9c5c477813cbb9902bc2c2137941ff2b92ca52f1ebd6ed",
+    "scores": [
+     {
+      "instance": "jobshop-10x5/e602ade4/0",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.792063492063492,
+      "cost": 1,
+      "detail": {
+       "makespan": 630,
+       "lower_bound": 499,
+       "ratio": 1.2625250501002003
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/1",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8070175438596491,
+      "cost": 1,
+      "detail": {
+       "makespan": 969,
+       "lower_bound": 782,
+       "ratio": 1.2391304347826086
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/2",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9937694704049844,
+      "cost": 1,
+      "detail": {
+       "makespan": 642,
+       "lower_bound": 638,
+       "ratio": 1.006269592476489
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/3",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.867430441898527,
+      "cost": 1,
+      "detail": {
+       "makespan": 611,
+       "lower_bound": 530,
+       "ratio": 1.1528301886792454
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/4",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9777777777777777,
+      "cost": 1,
+      "detail": {
+       "makespan": 585,
+       "lower_bound": 572,
+       "ratio": 1.0227272727272727
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/5",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8974008207934336,
+      "cost": 1,
+      "detail": {
+       "makespan": 731,
+       "lower_bound": 656,
+       "ratio": 1.1143292682926829
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/6",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8561452513966481,
+      "cost": 1,
+      "detail": {
+       "makespan": 716,
+       "lower_bound": 613,
+       "ratio": 1.168026101141925
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/7",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9197622585438335,
+      "cost": 1,
+      "detail": {
+       "makespan": 673,
+       "lower_bound": 619,
+       "ratio": 1.0872374798061388
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/8",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8874824191279888,
+      "cost": 1,
+      "detail": {
+       "makespan": 711,
+       "lower_bound": 631,
+       "ratio": 1.126782884310618
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/9",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7513297872340425,
+      "cost": 1,
+      "detail": {
+       "makespan": 752,
+       "lower_bound": 565,
+       "ratio": 1.3309734513274336
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/10",
+      "outcome": "scored",
+      "success": true,
+      "progress": 1,
+      "cost": 1,
+      "detail": {
+       "makespan": 642,
+       "lower_bound": 642,
+       "ratio": 1
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/11",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.911504424778761,
+      "cost": 1,
+      "detail": {
+       "makespan": 678,
+       "lower_bound": 618,
+       "ratio": 1.0970873786407767
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/12",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.781010719754977,
+      "cost": 1,
+      "detail": {
+       "makespan": 653,
+       "lower_bound": 510,
+       "ratio": 1.280392156862745
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/13",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.835742444152431,
+      "cost": 1,
+      "detail": {
+       "makespan": 761,
+       "lower_bound": 636,
+       "ratio": 1.1965408805031446
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/14",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.830945558739255,
+      "cost": 1,
+      "detail": {
+       "makespan": 698,
+       "lower_bound": 580,
+       "ratio": 1.203448275862069
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/15",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7070707070707071,
+      "cost": 1,
+      "detail": {
+       "makespan": 792,
+       "lower_bound": 560,
+       "ratio": 1.4142857142857144
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/16",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9105571847507331,
+      "cost": 1,
+      "detail": {
+       "makespan": 682,
+       "lower_bound": 621,
+       "ratio": 1.0982286634460547
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/17",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9562594268476622,
+      "cost": 1,
+      "detail": {
+       "makespan": 663,
+       "lower_bound": 634,
+       "ratio": 1.0457413249211356
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/18",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7894002789400278,
+      "cost": 1,
+      "detail": {
+       "makespan": 717,
+       "lower_bound": 566,
+       "ratio": 1.2667844522968197
+      }
+     },
+     {
+      "instance": "jobshop-10x5/e602ade4/19",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7505882352941177,
+      "cost": 1,
+      "detail": {
+       "makespan": 850,
+       "lower_bound": 638,
+       "ratio": 1.3322884012539185
+      }
+     }
+    ],
+    "outcome": "scored",
+    "success_count": 12,
+    "of": 20,
+    "attempt": "first",
+    "lab": "lab_a",
+    "index": 19,
+    "prev": "ce0aebddeb205e21a478b1631cfdacad88ecfb277b325eee1545dc21a324f67d",
+    "sha256": "f79c07031076b76fc679ee81b38efd84e9211c5b0e2cd421db27b986cedb32b7"
+   },
+   {
+    "type": "verdict",
+    "plan": "28660fdcda21c6b7ebffb83e426b81710b4910bddd9c7b99d96bddb6d98cc14b",
+    "generation": 2,
+    "slot": "candidate:0",
+    "package": "50d52533434a0007e7b67cb59b3355a3df12304d3b54693b5bd1c001b1316ab5",
+    "verdict": "promoted",
+    "reason": "14/20 vs incumbent 12/20 (success-count margin >= 1 required)",
+    "margins": [
+     {
+      "against": "incumbent",
+      "candidate": 14,
+      "other": 12,
+      "margin": 2,
+      "known": true
+     }
+    ],
+    "lab": "lab_a",
+    "index": 20,
+    "prev": "f79c07031076b76fc679ee81b38efd84e9211c5b0e2cd421db27b986cedb32b7",
+    "sha256": "e394d0ffc633be53c408c8bc0c818c8908fe695d8f0e7e291b222fa6419576c6"
+   },
+   {
+    "type": "verdict",
+    "plan": "28660fdcda21c6b7ebffb83e426b81710b4910bddd9c7b99d96bddb6d98cc14b",
+    "generation": 2,
+    "slot": "candidate:1",
+    "package": "d066e0b6836b021024c0719ce0102715ed182fc30b61655f524388a7fcd1e892",
+    "verdict": "rejected",
+    "reason": "12/20 vs incumbent 12/20 (success-count margin >= 1 required)",
+    "margins": [
+     {
+      "against": "incumbent",
+      "candidate": 12,
+      "other": 12,
+      "margin": 0,
+      "known": true
+     }
+    ],
+    "lab": "lab_a",
+    "index": 21,
+    "prev": "e394d0ffc633be53c408c8bc0c818c8908fe695d8f0e7e291b222fa6419576c6",
+    "sha256": "a78f157d8cf545bb04515b55f1788826461625eb76c2488e26cb8c06e7025db0"
+   },
+   {
+    "type": "verdict",
+    "plan": "28660fdcda21c6b7ebffb83e426b81710b4910bddd9c7b99d96bddb6d98cc14b",
+    "generation": 2,
+    "slot": "candidate:2",
+    "package": "7c0bf24406d50d8dc10caf3495a2d804e6411ab0abeb1f372e725ea4cb9e089f",
+    "verdict": "rejected",
+    "reason": "13/20 vs incumbent 12/20 (success-count margin >= 1 required)",
+    "margins": [
+     {
+      "against": "incumbent",
+      "candidate": 13,
+      "other": 12,
+      "margin": 1,
+      "known": true
+     }
+    ],
+    "lab": "lab_a",
+    "index": 22,
+    "prev": "a78f157d8cf545bb04515b55f1788826461625eb76c2488e26cb8c06e7025db0",
+    "sha256": "3cd5163be057cfc8ab5d05347b418e7e1f37813df29ee77252f54efe7bbb05e5"
+   },
+   {
+    "type": "verdict",
+    "plan": "28660fdcda21c6b7ebffb83e426b81710b4910bddd9c7b99d96bddb6d98cc14b",
+    "generation": 2,
+    "slot": "candidate:3",
+    "package": "62f35caf942015df3d9c5c477813cbb9902bc2c2137941ff2b92ca52f1ebd6ed",
+    "verdict": "rejected",
+    "reason": "12/20 vs incumbent 12/20 (success-count margin >= 1 required)",
+    "margins": [
+     {
+      "against": "incumbent",
+      "candidate": 12,
+      "other": 12,
+      "margin": 0,
+      "known": true
+     }
+    ],
+    "lab": "lab_a",
+    "index": 23,
+    "prev": "3cd5163be057cfc8ab5d05347b418e7e1f37813df29ee77252f54efe7bbb05e5",
+    "sha256": "3c3e1fb35ff8fd058a36d7a403e689efcadbe985b6c6b3dcf78d344df6cfb58d"
+   },
+   {
+    "type": "promotion",
+    "generation": 2,
+    "family": "jobshop-10x5",
+    "package": "50d52533434a0007e7b67cb59b3355a3df12304d3b54693b5bd1c001b1316ab5",
+    "parent": "cc4dd741392f963f12b9677426e3ef14324e44512c8ecd95c8674e61a3ce42fc",
+    "success_count": 14,
+    "incumbent_count": 12,
+    "of": 20,
+    "plan": "28660fdcda21c6b7ebffb83e426b81710b4910bddd9c7b99d96bddb6d98cc14b",
+    "lab": "lab_a",
+    "index": 24,
+    "prev": "3c3e1fb35ff8fd058a36d7a403e689efcadbe985b6c6b3dcf78d344df6cfb58d",
+    "sha256": "9e8316d844c46b14ef17c8c06edad7967c0942c5b11e589a92cef1011ca20a88"
+   },
+   {
+    "type": "candidates_proposed",
+    "generation": 3,
+    "family": "jobshop-10x5",
+    "parent": "50d52533434a0007e7b67cb59b3355a3df12304d3b54693b5bd1c001b1316ab5",
+    "candidates": [
+     "5462da50a3da1e0bf6ff4790f926394398cd4fdf9d11efef8bca3a8494f20f05",
+     "e76bff5a9e056f682ea25cb7eb44014074a83851f33f03588c7544e91b9306ff",
+     "b6c29cb409a0246cfa59e5186b080a6be7c48bba4918371771760c5fd15de5dc",
+     "7aebfc1669a92af0348141c9b3f97c43e0dfbef832e19bbec63eef3c576e0d9b"
+    ],
+    "dropped": [],
+    "imported": false,
+    "lab": "lab_a",
+    "index": 25,
+    "prev": "9e8316d844c46b14ef17c8c06edad7967c0942c5b11e589a92cef1011ca20a88",
+    "sha256": "f3e31d2102f8c2baa186d18557e9c848256f47ea74effea457c4315a9ad4e7f0"
+   },
+   {
+    "type": "plan_frozen",
+    "plan": "392cb8478c18b911f2cbcffc5e894096a7acd13001dc662dda13e2395f94f0d8",
+    "family": "jobshop-10x5",
+    "generation": 3,
+    "arms": [
+     {
+      "slot": "incumbent",
+      "package": "50d52533434a0007e7b67cb59b3355a3df12304d3b54693b5bd1c001b1316ab5"
+     },
+     {
+      "slot": "candidate:0",
+      "package": "5462da50a3da1e0bf6ff4790f926394398cd4fdf9d11efef8bca3a8494f20f05"
+     },
+     {
+      "slot": "candidate:1",
+      "package": "e76bff5a9e056f682ea25cb7eb44014074a83851f33f03588c7544e91b9306ff"
+     },
+     {
+      "slot": "candidate:2",
+      "package": "b6c29cb409a0246cfa59e5186b080a6be7c48bba4918371771760c5fd15de5dc"
+     },
+     {
+      "slot": "candidate:3",
+      "package": "7aebfc1669a92af0348141c9b3f97c43e0dfbef832e19bbec63eef3c576e0d9b"
+     }
+    ],
+    "criterion": {
+     "rule": "success-count-margin",
+     "min_margin": 1
+    },
+    "instances": [
+     "jobshop-10x5/b70590b5/0",
+     "jobshop-10x5/b70590b5/1",
+     "jobshop-10x5/b70590b5/2",
+     "jobshop-10x5/b70590b5/3",
+     "jobshop-10x5/b70590b5/4",
+     "jobshop-10x5/b70590b5/5",
+     "jobshop-10x5/b70590b5/6",
+     "jobshop-10x5/b70590b5/7",
+     "jobshop-10x5/b70590b5/8",
+     "jobshop-10x5/b70590b5/9",
+     "jobshop-10x5/b70590b5/10",
+     "jobshop-10x5/b70590b5/11",
+     "jobshop-10x5/b70590b5/12",
+     "jobshop-10x5/b70590b5/13",
+     "jobshop-10x5/b70590b5/14",
+     "jobshop-10x5/b70590b5/15",
+     "jobshop-10x5/b70590b5/16",
+     "jobshop-10x5/b70590b5/17",
+     "jobshop-10x5/b70590b5/18",
+     "jobshop-10x5/b70590b5/19"
+    ],
+    "instance_seed": "b70590b5d6aa21e863322b40fa5655a3abb68687e7d2d0566ec760c078299634",
+    "lab": "lab_a",
+    "index": 26,
+    "prev": "f3e31d2102f8c2baa186d18557e9c848256f47ea74effea457c4315a9ad4e7f0",
+    "sha256": "b568f7df10028d1f155b6a865e500545307a67d3bb8296b99571c0eb60cf4693"
+   },
+   {
+    "type": "evaluation",
+    "plan": "392cb8478c18b911f2cbcffc5e894096a7acd13001dc662dda13e2395f94f0d8",
+    "slot": "incumbent",
+    "package": "50d52533434a0007e7b67cb59b3355a3df12304d3b54693b5bd1c001b1316ab5",
+    "scores": [
+     {
+      "instance": "jobshop-10x5/b70590b5/0",
+      "outcome": "scored",
+      "success": true,
+      "progress": 1,
+      "cost": 1,
+      "detail": {
+       "makespan": 606,
+       "lower_bound": 606,
+       "ratio": 1
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/1",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9654676258992806,
+      "cost": 1,
+      "detail": {
+       "makespan": 695,
+       "lower_bound": 671,
+       "ratio": 1.0357675111773472
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/2",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.858433734939759,
+      "cost": 1,
+      "detail": {
+       "makespan": 664,
+       "lower_bound": 570,
+       "ratio": 1.1649122807017545
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/3",
+      "outcome": "scored",
+      "success": true,
+      "progress": 1,
+      "cost": 1,
+      "detail": {
+       "makespan": 612,
+       "lower_bound": 612,
+       "ratio": 1
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/4",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7832258064516129,
+      "cost": 1,
+      "detail": {
+       "makespan": 775,
+       "lower_bound": 607,
+       "ratio": 1.2767710049423393
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/5",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8601997146932953,
+      "cost": 1,
+      "detail": {
+       "makespan": 701,
+       "lower_bound": 603,
+       "ratio": 1.1625207296849087
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/6",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9475138121546961,
+      "cost": 1,
+      "detail": {
+       "makespan": 724,
+       "lower_bound": 686,
+       "ratio": 1.055393586005831
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/7",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8953662182361734,
+      "cost": 1,
+      "detail": {
+       "makespan": 669,
+       "lower_bound": 599,
+       "ratio": 1.1168614357262103
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/8",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7826747720364742,
+      "cost": 1,
+      "detail": {
+       "makespan": 658,
+       "lower_bound": 515,
+       "ratio": 1.2776699029126213
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/9",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8040638606676342,
+      "cost": 1,
+      "detail": {
+       "makespan": 689,
+       "lower_bound": 554,
+       "ratio": 1.243682310469314
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/10",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9745042492917847,
+      "cost": 1,
+      "detail": {
+       "makespan": 706,
+       "lower_bound": 688,
+       "ratio": 1.0261627906976745
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/11",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9606299212598425,
+      "cost": 1,
+      "detail": {
+       "makespan": 635,
+       "lower_bound": 610,
+       "ratio": 1.040983606557377
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/12",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9036827195467422,
+      "cost": 1,
+      "detail": {
+       "makespan": 706,
+       "lower_bound": 638,
+       "ratio": 1.1065830721003134
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/13",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7922769640479361,
+      "cost": 1,
+      "detail": {
+       "makespan": 751,
+       "lower_bound": 595,
+       "ratio": 1.2621848739495798
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/14",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9356913183279743,
+      "cost": 1,
+      "detail": {
+       "makespan": 622,
+       "lower_bound": 582,
+       "ratio": 1.0687285223367697
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/15",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9176300578034682,
+      "cost": 1,
+      "detail": {
+       "makespan": 692,
+       "lower_bound": 635,
+       "ratio": 1.089763779527559
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/16",
+      "outcome": "scored",
+      "success": true,
+      "progress": 1,
+      "cost": 1,
+      "detail": {
+       "makespan": 600,
+       "lower_bound": 600,
+       "ratio": 1
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/17",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.928679817905918,
+      "cost": 1,
+      "detail": {
+       "makespan": 659,
+       "lower_bound": 612,
+       "ratio": 1.076797385620915
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/18",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8238434163701067,
+      "cost": 1,
+      "detail": {
+       "makespan": 562,
+       "lower_bound": 463,
+       "ratio": 1.2138228941684666
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/19",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8155583437892095,
+      "cost": 1,
+      "detail": {
+       "makespan": 797,
+       "lower_bound": 650,
+       "ratio": 1.2261538461538461
+      }
+     }
+    ],
+    "outcome": "scored",
+    "success_count": 14,
+    "of": 20,
+    "attempt": "first",
+    "lab": "lab_a",
+    "index": 27,
+    "prev": "b568f7df10028d1f155b6a865e500545307a67d3bb8296b99571c0eb60cf4693",
+    "sha256": "3b39d03aada2a36899e421bd5d43cc34637c77555038f4f70d8c2c1a5b66c106"
+   },
+   {
+    "type": "evaluation",
+    "plan": "392cb8478c18b911f2cbcffc5e894096a7acd13001dc662dda13e2395f94f0d8",
+    "slot": "candidate:0",
+    "package": "5462da50a3da1e0bf6ff4790f926394398cd4fdf9d11efef8bca3a8494f20f05",
+    "scores": [
+     {
+      "instance": "jobshop-10x5/b70590b5/0",
+      "outcome": "scored",
+      "success": true,
+      "progress": 1,
+      "cost": 1,
+      "detail": {
+       "makespan": 606,
+       "lower_bound": 606,
+       "ratio": 1
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/1",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8958611481975968,
+      "cost": 1,
+      "detail": {
+       "makespan": 749,
+       "lower_bound": 671,
+       "ratio": 1.1162444113263785
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/2",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9163987138263665,
+      "cost": 1,
+      "detail": {
+       "makespan": 622,
+       "lower_bound": 570,
+       "ratio": 1.0912280701754387
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/3",
+      "outcome": "scored",
+      "success": true,
+      "progress": 1,
+      "cost": 1,
+      "detail": {
+       "makespan": 612,
+       "lower_bound": 612,
+       "ratio": 1
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/4",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7832258064516129,
+      "cost": 1,
+      "detail": {
+       "makespan": 775,
+       "lower_bound": 607,
+       "ratio": 1.2767710049423393
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/5",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8601997146932953,
+      "cost": 1,
+      "detail": {
+       "makespan": 701,
+       "lower_bound": 603,
+       "ratio": 1.1625207296849087
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/6",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9475138121546961,
+      "cost": 1,
+      "detail": {
+       "makespan": 724,
+       "lower_bound": 686,
+       "ratio": 1.055393586005831
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/7",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8953662182361734,
+      "cost": 1,
+      "detail": {
+       "makespan": 669,
+       "lower_bound": 599,
+       "ratio": 1.1168614357262103
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/8",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8034321372854915,
+      "cost": 1,
+      "detail": {
+       "makespan": 641,
+       "lower_bound": 515,
+       "ratio": 1.2446601941747573
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/9",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8864,
+      "cost": 1,
+      "detail": {
+       "makespan": 625,
+       "lower_bound": 554,
+       "ratio": 1.128158844765343
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/10",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9927849927849928,
+      "cost": 1,
+      "detail": {
+       "makespan": 693,
+       "lower_bound": 688,
+       "ratio": 1.007267441860465
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/11",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9442724458204335,
+      "cost": 1,
+      "detail": {
+       "makespan": 646,
+       "lower_bound": 610,
+       "ratio": 1.0590163934426229
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/12",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9710806697108066,
+      "cost": 1,
+      "detail": {
+       "makespan": 657,
+       "lower_bound": 638,
+       "ratio": 1.0297805642633229
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/13",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8062330623306233,
+      "cost": 1,
+      "detail": {
+       "makespan": 738,
+       "lower_bound": 595,
+       "ratio": 1.2403361344537815
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/14",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9356913183279743,
+      "cost": 1,
+      "detail": {
+       "makespan": 622,
+       "lower_bound": 582,
+       "ratio": 1.0687285223367697
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/15",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9890965732087228,
+      "cost": 1,
+      "detail": {
+       "makespan": 642,
+       "lower_bound": 635,
+       "ratio": 1.0110236220472442
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/16",
+      "outcome": "scored",
+      "success": true,
+      "progress": 1,
+      "cost": 1,
+      "detail": {
+       "makespan": 600,
+       "lower_bound": 600,
+       "ratio": 1
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/17",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9329268292682927,
+      "cost": 1,
+      "detail": {
+       "makespan": 656,
+       "lower_bound": 612,
+       "ratio": 1.0718954248366013
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/18",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9025341130604289,
+      "cost": 1,
+      "detail": {
+       "makespan": 513,
+       "lower_bound": 463,
+       "ratio": 1.1079913606911447
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/19",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8333333333333334,
+      "cost": 1,
+      "detail": {
+       "makespan": 780,
+       "lower_bound": 650,
+       "ratio": 1.2
+      }
+     }
+    ],
+    "outcome": "scored",
+    "success_count": 17,
+    "of": 20,
+    "attempt": "first",
+    "lab": "lab_a",
+    "index": 28,
+    "prev": "3b39d03aada2a36899e421bd5d43cc34637c77555038f4f70d8c2c1a5b66c106",
+    "sha256": "49ac5f882ef8e5f12fb2320d4b616f38d7780c02e97d56e19793667bb97c4178"
+   },
+   {
+    "type": "evaluation",
+    "plan": "392cb8478c18b911f2cbcffc5e894096a7acd13001dc662dda13e2395f94f0d8",
+    "slot": "candidate:1",
+    "package": "e76bff5a9e056f682ea25cb7eb44014074a83851f33f03588c7544e91b9306ff",
+    "scores": [
+     {
+      "instance": "jobshop-10x5/b70590b5/0",
+      "outcome": "scored",
+      "success": true,
+      "progress": 1,
+      "cost": 1,
+      "detail": {
+       "makespan": 606,
+       "lower_bound": 606,
+       "ratio": 1
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/1",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8958611481975968,
+      "cost": 1,
+      "detail": {
+       "makespan": 749,
+       "lower_bound": 671,
+       "ratio": 1.1162444113263785
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/2",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.852017937219731,
+      "cost": 1,
+      "detail": {
+       "makespan": 669,
+       "lower_bound": 570,
+       "ratio": 1.1736842105263159
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/3",
+      "outcome": "scored",
+      "success": true,
+      "progress": 1,
+      "cost": 1,
+      "detail": {
+       "makespan": 612,
+       "lower_bound": 612,
+       "ratio": 1
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/4",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7832258064516129,
+      "cost": 1,
+      "detail": {
+       "makespan": 775,
+       "lower_bound": 607,
+       "ratio": 1.2767710049423393
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/5",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8601997146932953,
+      "cost": 1,
+      "detail": {
+       "makespan": 701,
+       "lower_bound": 603,
+       "ratio": 1.1625207296849087
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/6",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9702970297029703,
+      "cost": 1,
+      "detail": {
+       "makespan": 707,
+       "lower_bound": 686,
+       "ratio": 1.030612244897959
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/7",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9492868462757528,
+      "cost": 1,
+      "detail": {
+       "makespan": 631,
+       "lower_bound": 599,
+       "ratio": 1.0534223706176962
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/8",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8034321372854915,
+      "cost": 1,
+      "detail": {
+       "makespan": 641,
+       "lower_bound": 515,
+       "ratio": 1.2446601941747573
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/9",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8864,
+      "cost": 1,
+      "detail": {
+       "makespan": 625,
+       "lower_bound": 554,
+       "ratio": 1.128158844765343
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/10",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9927849927849928,
+      "cost": 1,
+      "detail": {
+       "makespan": 693,
+       "lower_bound": 688,
+       "ratio": 1.007267441860465
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/11",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9591194968553459,
+      "cost": 1,
+      "detail": {
+       "makespan": 636,
+       "lower_bound": 610,
+       "ratio": 1.042622950819672
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/12",
+      "outcome": "scored",
+      "success": true,
+      "progress": 1,
+      "cost": 1,
+      "detail": {
+       "makespan": 638,
+       "lower_bound": 638,
+       "ratio": 1
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/13",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.827538247566064,
+      "cost": 1,
+      "detail": {
+       "makespan": 719,
+       "lower_bound": 595,
+       "ratio": 1.2084033613445377
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/14",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9267515923566879,
+      "cost": 1,
+      "detail": {
+       "makespan": 628,
+       "lower_bound": 582,
+       "ratio": 1.0790378006872852
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/15",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9890965732087228,
+      "cost": 1,
+      "detail": {
+       "makespan": 642,
+       "lower_bound": 635,
+       "ratio": 1.0110236220472442
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/16",
+      "outcome": "scored",
+      "success": true,
+      "progress": 1,
+      "cost": 1,
+      "detail": {
+       "makespan": 600,
+       "lower_bound": 600,
+       "ratio": 1
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/17",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9329268292682927,
+      "cost": 1,
+      "detail": {
+       "makespan": 656,
+       "lower_bound": 612,
+       "ratio": 1.0718954248366013
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/18",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9025341130604289,
+      "cost": 1,
+      "detail": {
+       "makespan": 513,
+       "lower_bound": 463,
+       "ratio": 1.1079913606911447
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/19",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8333333333333334,
+      "cost": 1,
+      "detail": {
+       "makespan": 780,
+       "lower_bound": 650,
+       "ratio": 1.2
+      }
+     }
+    ],
+    "outcome": "scored",
+    "success_count": 17,
+    "of": 20,
+    "attempt": "first",
+    "lab": "lab_a",
+    "index": 29,
+    "prev": "49ac5f882ef8e5f12fb2320d4b616f38d7780c02e97d56e19793667bb97c4178",
+    "sha256": "f261cffc6975fbb9c8380a892cc262e66363c62190d7ad32b5e30c7031176005"
+   },
+   {
+    "type": "evaluation",
+    "plan": "392cb8478c18b911f2cbcffc5e894096a7acd13001dc662dda13e2395f94f0d8",
+    "slot": "candidate:2",
+    "package": "b6c29cb409a0246cfa59e5186b080a6be7c48bba4918371771760c5fd15de5dc",
+    "scores": [
+     {
+      "instance": "jobshop-10x5/b70590b5/0",
+      "outcome": "scored",
+      "success": true,
+      "progress": 1,
+      "cost": 1,
+      "detail": {
+       "makespan": 606,
+       "lower_bound": 606,
+       "ratio": 1
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/1",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9654676258992806,
+      "cost": 1,
+      "detail": {
+       "makespan": 695,
+       "lower_bound": 671,
+       "ratio": 1.0357675111773472
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/2",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.858433734939759,
+      "cost": 1,
+      "detail": {
+       "makespan": 664,
+       "lower_bound": 570,
+       "ratio": 1.1649122807017545
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/3",
+      "outcome": "scored",
+      "success": true,
+      "progress": 1,
+      "cost": 1,
+      "detail": {
+       "makespan": 612,
+       "lower_bound": 612,
+       "ratio": 1
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/4",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7832258064516129,
+      "cost": 1,
+      "detail": {
+       "makespan": 775,
+       "lower_bound": 607,
+       "ratio": 1.2767710049423393
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/5",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8601997146932953,
+      "cost": 1,
+      "detail": {
+       "makespan": 701,
+       "lower_bound": 603,
+       "ratio": 1.1625207296849087
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/6",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9475138121546961,
+      "cost": 1,
+      "detail": {
+       "makespan": 724,
+       "lower_bound": 686,
+       "ratio": 1.055393586005831
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/7",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8953662182361734,
+      "cost": 1,
+      "detail": {
+       "makespan": 669,
+       "lower_bound": 599,
+       "ratio": 1.1168614357262103
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/8",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7826747720364742,
+      "cost": 1,
+      "detail": {
+       "makespan": 658,
+       "lower_bound": 515,
+       "ratio": 1.2776699029126213
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/9",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8040638606676342,
+      "cost": 1,
+      "detail": {
+       "makespan": 689,
+       "lower_bound": 554,
+       "ratio": 1.243682310469314
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/10",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9745042492917847,
+      "cost": 1,
+      "detail": {
+       "makespan": 706,
+       "lower_bound": 688,
+       "ratio": 1.0261627906976745
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/11",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9606299212598425,
+      "cost": 1,
+      "detail": {
+       "makespan": 635,
+       "lower_bound": 610,
+       "ratio": 1.040983606557377
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/12",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9036827195467422,
+      "cost": 1,
+      "detail": {
+       "makespan": 706,
+       "lower_bound": 638,
+       "ratio": 1.1065830721003134
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/13",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7922769640479361,
+      "cost": 1,
+      "detail": {
+       "makespan": 751,
+       "lower_bound": 595,
+       "ratio": 1.2621848739495798
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/14",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9356913183279743,
+      "cost": 1,
+      "detail": {
+       "makespan": 622,
+       "lower_bound": 582,
+       "ratio": 1.0687285223367697
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/15",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9176300578034682,
+      "cost": 1,
+      "detail": {
+       "makespan": 692,
+       "lower_bound": 635,
+       "ratio": 1.089763779527559
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/16",
+      "outcome": "scored",
+      "success": true,
+      "progress": 1,
+      "cost": 1,
+      "detail": {
+       "makespan": 600,
+       "lower_bound": 600,
+       "ratio": 1
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/17",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.928679817905918,
+      "cost": 1,
+      "detail": {
+       "makespan": 659,
+       "lower_bound": 612,
+       "ratio": 1.076797385620915
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/18",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8238434163701067,
+      "cost": 1,
+      "detail": {
+       "makespan": 562,
+       "lower_bound": 463,
+       "ratio": 1.2138228941684666
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/19",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8155583437892095,
+      "cost": 1,
+      "detail": {
+       "makespan": 797,
+       "lower_bound": 650,
+       "ratio": 1.2261538461538461
+      }
+     }
+    ],
+    "outcome": "scored",
+    "success_count": 14,
+    "of": 20,
+    "attempt": "first",
+    "lab": "lab_a",
+    "index": 30,
+    "prev": "f261cffc6975fbb9c8380a892cc262e66363c62190d7ad32b5e30c7031176005",
+    "sha256": "61771736b28993d3a1112377274bd02a34f67a0520c860dc2dce6fff9e7244cf"
+   },
+   {
+    "type": "evaluation",
+    "plan": "392cb8478c18b911f2cbcffc5e894096a7acd13001dc662dda13e2395f94f0d8",
+    "slot": "candidate:3",
+    "package": "7aebfc1669a92af0348141c9b3f97c43e0dfbef832e19bbec63eef3c576e0d9b",
+    "scores": [
+     {
+      "instance": "jobshop-10x5/b70590b5/0",
+      "outcome": "scored",
+      "success": true,
+      "progress": 1,
+      "cost": 1,
+      "detail": {
+       "makespan": 606,
+       "lower_bound": 606,
+       "ratio": 1
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/1",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8958611481975968,
+      "cost": 1,
+      "detail": {
+       "makespan": 749,
+       "lower_bound": 671,
+       "ratio": 1.1162444113263785
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/2",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.858433734939759,
+      "cost": 1,
+      "detail": {
+       "makespan": 664,
+       "lower_bound": 570,
+       "ratio": 1.1649122807017545
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/3",
+      "outcome": "scored",
+      "success": true,
+      "progress": 1,
+      "cost": 1,
+      "detail": {
+       "makespan": 612,
+       "lower_bound": 612,
+       "ratio": 1
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/4",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7832258064516129,
+      "cost": 1,
+      "detail": {
+       "makespan": 775,
+       "lower_bound": 607,
+       "ratio": 1.2767710049423393
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/5",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8601997146932953,
+      "cost": 1,
+      "detail": {
+       "makespan": 701,
+       "lower_bound": 603,
+       "ratio": 1.1625207296849087
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/6",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9475138121546961,
+      "cost": 1,
+      "detail": {
+       "makespan": 724,
+       "lower_bound": 686,
+       "ratio": 1.055393586005831
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/7",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8953662182361734,
+      "cost": 1,
+      "detail": {
+       "makespan": 669,
+       "lower_bound": 599,
+       "ratio": 1.1168614357262103
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/8",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7551319648093842,
+      "cost": 1,
+      "detail": {
+       "makespan": 682,
+       "lower_bound": 515,
+       "ratio": 1.3242718446601942
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/9",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8040638606676342,
+      "cost": 1,
+      "detail": {
+       "makespan": 689,
+       "lower_bound": 554,
+       "ratio": 1.243682310469314
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/10",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9745042492917847,
+      "cost": 1,
+      "detail": {
+       "makespan": 706,
+       "lower_bound": 688,
+       "ratio": 1.0261627906976745
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/11",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9606299212598425,
+      "cost": 1,
+      "detail": {
+       "makespan": 635,
+       "lower_bound": 610,
+       "ratio": 1.040983606557377
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/12",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9036827195467422,
+      "cost": 1,
+      "detail": {
+       "makespan": 706,
+       "lower_bound": 638,
+       "ratio": 1.1065830721003134
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/13",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7922769640479361,
+      "cost": 1,
+      "detail": {
+       "makespan": 751,
+       "lower_bound": 595,
+       "ratio": 1.2621848739495798
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/14",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9356913183279743,
+      "cost": 1,
+      "detail": {
+       "makespan": 622,
+       "lower_bound": 582,
+       "ratio": 1.0687285223367697
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/15",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9176300578034682,
+      "cost": 1,
+      "detail": {
+       "makespan": 692,
+       "lower_bound": 635,
+       "ratio": 1.089763779527559
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/16",
+      "outcome": "scored",
+      "success": true,
+      "progress": 1,
+      "cost": 1,
+      "detail": {
+       "makespan": 600,
+       "lower_bound": 600,
+       "ratio": 1
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/17",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9329268292682927,
+      "cost": 1,
+      "detail": {
+       "makespan": 656,
+       "lower_bound": 612,
+       "ratio": 1.0718954248366013
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/18",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8238434163701067,
+      "cost": 1,
+      "detail": {
+       "makespan": 562,
+       "lower_bound": 463,
+       "ratio": 1.2138228941684666
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b70590b5/19",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8333333333333334,
+      "cost": 1,
+      "detail": {
+       "makespan": 780,
+       "lower_bound": 650,
+       "ratio": 1.2
+      }
+     }
+    ],
+    "outcome": "scored",
+    "success_count": 15,
+    "of": 20,
+    "attempt": "first",
+    "lab": "lab_a",
+    "index": 31,
+    "prev": "61771736b28993d3a1112377274bd02a34f67a0520c860dc2dce6fff9e7244cf",
+    "sha256": "00d7a4e8c948d73ddd88250b7b3c215c470031167558825ebd3c34e791bc0b9c"
+   },
+   {
+    "type": "verdict",
+    "plan": "392cb8478c18b911f2cbcffc5e894096a7acd13001dc662dda13e2395f94f0d8",
+    "generation": 3,
+    "slot": "candidate:0",
+    "package": "5462da50a3da1e0bf6ff4790f926394398cd4fdf9d11efef8bca3a8494f20f05",
+    "verdict": "promoted",
+    "reason": "17/20 vs incumbent 14/20 (success-count margin >= 1 required)",
+    "margins": [
+     {
+      "against": "incumbent",
+      "candidate": 17,
+      "other": 14,
+      "margin": 3,
+      "known": true
+     }
+    ],
+    "lab": "lab_a",
+    "index": 32,
+    "prev": "00d7a4e8c948d73ddd88250b7b3c215c470031167558825ebd3c34e791bc0b9c",
+    "sha256": "a3cefe1cb105a6cfff0989b5d7663565f6e413ec9b5705fe76818b6a2e913c8b"
+   },
+   {
+    "type": "verdict",
+    "plan": "392cb8478c18b911f2cbcffc5e894096a7acd13001dc662dda13e2395f94f0d8",
+    "generation": 3,
+    "slot": "candidate:1",
+    "package": "e76bff5a9e056f682ea25cb7eb44014074a83851f33f03588c7544e91b9306ff",
+    "verdict": "rejected",
+    "reason": "17/20 vs incumbent 14/20 (success-count margin >= 1 required)",
+    "margins": [
+     {
+      "against": "incumbent",
+      "candidate": 17,
+      "other": 14,
+      "margin": 3,
+      "known": true
+     }
+    ],
+    "lab": "lab_a",
+    "index": 33,
+    "prev": "a3cefe1cb105a6cfff0989b5d7663565f6e413ec9b5705fe76818b6a2e913c8b",
+    "sha256": "4284f97e270cd75160f2df74d5fa3f2343ef5ada5017b4fe4ab478b53484de4a"
+   },
+   {
+    "type": "verdict",
+    "plan": "392cb8478c18b911f2cbcffc5e894096a7acd13001dc662dda13e2395f94f0d8",
+    "generation": 3,
+    "slot": "candidate:2",
+    "package": "b6c29cb409a0246cfa59e5186b080a6be7c48bba4918371771760c5fd15de5dc",
+    "verdict": "rejected",
+    "reason": "14/20 vs incumbent 14/20 (success-count margin >= 1 required)",
+    "margins": [
+     {
+      "against": "incumbent",
+      "candidate": 14,
+      "other": 14,
+      "margin": 0,
+      "known": true
+     }
+    ],
+    "lab": "lab_a",
+    "index": 34,
+    "prev": "4284f97e270cd75160f2df74d5fa3f2343ef5ada5017b4fe4ab478b53484de4a",
+    "sha256": "335a234bfa18736ef985c6d61085583a5359f7404e83b1a9ba4819cd72f69186"
+   },
+   {
+    "type": "verdict",
+    "plan": "392cb8478c18b911f2cbcffc5e894096a7acd13001dc662dda13e2395f94f0d8",
+    "generation": 3,
+    "slot": "candidate:3",
+    "package": "7aebfc1669a92af0348141c9b3f97c43e0dfbef832e19bbec63eef3c576e0d9b",
+    "verdict": "rejected",
+    "reason": "15/20 vs incumbent 14/20 (success-count margin >= 1 required)",
+    "margins": [
+     {
+      "against": "incumbent",
+      "candidate": 15,
+      "other": 14,
+      "margin": 1,
+      "known": true
+     }
+    ],
+    "lab": "lab_a",
+    "index": 35,
+    "prev": "335a234bfa18736ef985c6d61085583a5359f7404e83b1a9ba4819cd72f69186",
+    "sha256": "088b264e268847c4874f085ad7ead7de24309258b23fb6bc139646d56db73289"
+   },
+   {
+    "type": "promotion",
+    "generation": 3,
+    "family": "jobshop-10x5",
+    "package": "5462da50a3da1e0bf6ff4790f926394398cd4fdf9d11efef8bca3a8494f20f05",
+    "parent": "50d52533434a0007e7b67cb59b3355a3df12304d3b54693b5bd1c001b1316ab5",
+    "success_count": 17,
+    "incumbent_count": 14,
+    "of": 20,
+    "plan": "392cb8478c18b911f2cbcffc5e894096a7acd13001dc662dda13e2395f94f0d8",
+    "lab": "lab_a",
+    "index": 36,
+    "prev": "088b264e268847c4874f085ad7ead7de24309258b23fb6bc139646d56db73289",
+    "sha256": "3c26ff6ad0ce5e2f7bfd8dcc0ced19784b8c24580360af1a5ae241eb2f831fa7"
+   },
+   {
+    "type": "candidates_proposed",
+    "generation": 4,
+    "family": "jobshop-10x5",
+    "parent": "5462da50a3da1e0bf6ff4790f926394398cd4fdf9d11efef8bca3a8494f20f05",
+    "candidates": [
+     "2b15007d87d47b158e8c1c6f1970ccc1fff2fc7b1700d1b4d338ba8a67e21060",
+     "7f18612aff585fc67bc58095ec6c07948866422da3384396a50f143ab30fffd3",
+     "90749d05c24381e0d4f21010f2d54f3baa48b6786a75655515b6465329f2f673",
+     "a16fd775c80c9eb77ec9179586f67e6380dcc3a0608e957e249e9139d34aea25"
+    ],
+    "dropped": [],
+    "imported": false,
+    "lab": "lab_a",
+    "index": 37,
+    "prev": "3c26ff6ad0ce5e2f7bfd8dcc0ced19784b8c24580360af1a5ae241eb2f831fa7",
+    "sha256": "cdd06a49cf1befd09c2d8cdaa1c5d049278254905fe54a85c9aef0628eac44f2"
+   },
+   {
+    "type": "plan_frozen",
+    "plan": "01dd5a619c56e9b94e3c0b75a1ceeab25d63d97fc600c59ce3f4184231f28c66",
+    "family": "jobshop-10x5",
+    "generation": 4,
+    "arms": [
+     {
+      "slot": "incumbent",
+      "package": "5462da50a3da1e0bf6ff4790f926394398cd4fdf9d11efef8bca3a8494f20f05"
+     },
+     {
+      "slot": "candidate:0",
+      "package": "2b15007d87d47b158e8c1c6f1970ccc1fff2fc7b1700d1b4d338ba8a67e21060"
+     },
+     {
+      "slot": "candidate:1",
+      "package": "7f18612aff585fc67bc58095ec6c07948866422da3384396a50f143ab30fffd3"
+     },
+     {
+      "slot": "candidate:2",
+      "package": "90749d05c24381e0d4f21010f2d54f3baa48b6786a75655515b6465329f2f673"
+     },
+     {
+      "slot": "candidate:3",
+      "package": "a16fd775c80c9eb77ec9179586f67e6380dcc3a0608e957e249e9139d34aea25"
+     }
+    ],
+    "criterion": {
+     "rule": "success-count-margin",
+     "min_margin": 1
+    },
+    "instances": [
+     "jobshop-10x5/fd5bc522/0",
+     "jobshop-10x5/fd5bc522/1",
+     "jobshop-10x5/fd5bc522/2",
+     "jobshop-10x5/fd5bc522/3",
+     "jobshop-10x5/fd5bc522/4",
+     "jobshop-10x5/fd5bc522/5",
+     "jobshop-10x5/fd5bc522/6",
+     "jobshop-10x5/fd5bc522/7",
+     "jobshop-10x5/fd5bc522/8",
+     "jobshop-10x5/fd5bc522/9",
+     "jobshop-10x5/fd5bc522/10",
+     "jobshop-10x5/fd5bc522/11",
+     "jobshop-10x5/fd5bc522/12",
+     "jobshop-10x5/fd5bc522/13",
+     "jobshop-10x5/fd5bc522/14",
+     "jobshop-10x5/fd5bc522/15",
+     "jobshop-10x5/fd5bc522/16",
+     "jobshop-10x5/fd5bc522/17",
+     "jobshop-10x5/fd5bc522/18",
+     "jobshop-10x5/fd5bc522/19"
+    ],
+    "instance_seed": "fd5bc522694e074d476394e07d468e7495fe95c925ea6f7eb4a39c45800eb71c",
+    "lab": "lab_a",
+    "index": 38,
+    "prev": "cdd06a49cf1befd09c2d8cdaa1c5d049278254905fe54a85c9aef0628eac44f2",
+    "sha256": "b74ba5ae407d388e2f593e961a1d2261dfdc4f2cc77d7520c7c5c2f2139ddf86"
+   },
+   {
+    "type": "evaluation",
+    "plan": "01dd5a619c56e9b94e3c0b75a1ceeab25d63d97fc600c59ce3f4184231f28c66",
+    "slot": "incumbent",
+    "package": "5462da50a3da1e0bf6ff4790f926394398cd4fdf9d11efef8bca3a8494f20f05",
+    "scores": [
+     {
+      "instance": "jobshop-10x5/fd5bc522/0",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8948717948717949,
+      "cost": 1,
+      "detail": {
+       "makespan": 780,
+       "lower_bound": 698,
+       "ratio": 1.1174785100286533
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/1",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8712121212121212,
+      "cost": 1,
+      "detail": {
+       "makespan": 660,
+       "lower_bound": 575,
+       "ratio": 1.1478260869565218
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/2",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9333333333333333,
+      "cost": 1,
+      "detail": {
+       "makespan": 615,
+       "lower_bound": 574,
+       "ratio": 1.0714285714285714
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/3",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8114630467571644,
+      "cost": 1,
+      "detail": {
+       "makespan": 663,
+       "lower_bound": 538,
+       "ratio": 1.2323420074349443
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/4",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.930116472545757,
+      "cost": 1,
+      "detail": {
+       "makespan": 601,
+       "lower_bound": 559,
+       "ratio": 1.075134168157424
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/5",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8258345428156749,
+      "cost": 1,
+      "detail": {
+       "makespan": 689,
+       "lower_bound": 569,
+       "ratio": 1.210896309314587
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/6",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8003169572107766,
+      "cost": 1,
+      "detail": {
+       "makespan": 631,
+       "lower_bound": 505,
+       "ratio": 1.2495049504950495
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/7",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8597883597883598,
+      "cost": 1,
+      "detail": {
+       "makespan": 756,
+       "lower_bound": 650,
+       "ratio": 1.1630769230769231
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/8",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.784471218206158,
+      "cost": 1,
+      "detail": {
+       "makespan": 747,
+       "lower_bound": 586,
+       "ratio": 1.2747440273037542
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/9",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9596412556053812,
+      "cost": 1,
+      "detail": {
+       "makespan": 669,
+       "lower_bound": 642,
+       "ratio": 1.0420560747663552
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/10",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7821316614420063,
+      "cost": 1,
+      "detail": {
+       "makespan": 638,
+       "lower_bound": 499,
+       "ratio": 1.2785571142284569
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/11",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8180354267310789,
+      "cost": 1,
+      "detail": {
+       "makespan": 621,
+       "lower_bound": 508,
+       "ratio": 1.2224409448818898
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/12",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9372623574144486,
+      "cost": 1,
+      "detail": {
+       "makespan": 526,
+       "lower_bound": 493,
+       "ratio": 1.0669371196754565
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/13",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8284839203675345,
+      "cost": 1,
+      "detail": {
+       "makespan": 653,
+       "lower_bound": 541,
+       "ratio": 1.2070240295748613
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/14",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7836021505376344,
+      "cost": 1,
+      "detail": {
+       "makespan": 744,
+       "lower_bound": 583,
+       "ratio": 1.2761578044596913
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/15",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.6976127320954907,
+      "cost": 1,
+      "detail": {
+       "makespan": 754,
+       "lower_bound": 526,
+       "ratio": 1.4334600760456273
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/16",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.873546511627907,
+      "cost": 1,
+      "detail": {
+       "makespan": 688,
+       "lower_bound": 601,
+       "ratio": 1.1447587354409319
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/17",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9496221662468514,
+      "cost": 1,
+      "detail": {
+       "makespan": 794,
+       "lower_bound": 754,
+       "ratio": 1.0530503978779842
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/18",
+      "outcome": "scored",
+      "success": true,
+      "progress": 1,
+      "cost": 1,
+      "detail": {
+       "makespan": 583,
+       "lower_bound": 583,
+       "ratio": 1
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/19",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8973143759873617,
+      "cost": 1,
+      "detail": {
+       "makespan": 633,
+       "lower_bound": 568,
+       "ratio": 1.1144366197183098
+      }
+     }
+    ],
+    "outcome": "scored",
+    "success_count": 11,
+    "of": 20,
+    "attempt": "first",
+    "lab": "lab_a",
+    "index": 39,
+    "prev": "b74ba5ae407d388e2f593e961a1d2261dfdc4f2cc77d7520c7c5c2f2139ddf86",
+    "sha256": "d4ecefb7c205cce0eb30a7a15c6f54d67181652f6a74c65f70eee8879dca9f15"
+   },
+   {
+    "type": "evaluation",
+    "plan": "01dd5a619c56e9b94e3c0b75a1ceeab25d63d97fc600c59ce3f4184231f28c66",
+    "slot": "candidate:0",
+    "package": "2b15007d87d47b158e8c1c6f1970ccc1fff2fc7b1700d1b4d338ba8a67e21060",
+    "scores": [
+     {
+      "instance": "jobshop-10x5/fd5bc522/0",
+      "outcome": "scored",
+      "success": true,
+      "progress": 1,
+      "cost": 1,
+      "detail": {
+       "makespan": 698,
+       "lower_bound": 698,
+       "ratio": 1
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/1",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.869894099848714,
+      "cost": 1,
+      "detail": {
+       "makespan": 661,
+       "lower_bound": 575,
+       "ratio": 1.1495652173913042
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/2",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9067930489731437,
+      "cost": 1,
+      "detail": {
+       "makespan": 633,
+       "lower_bound": 574,
+       "ratio": 1.102787456445993
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/3",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8114630467571644,
+      "cost": 1,
+      "detail": {
+       "makespan": 663,
+       "lower_bound": 538,
+       "ratio": 1.2323420074349443
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/4",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9442567567567568,
+      "cost": 1,
+      "detail": {
+       "makespan": 592,
+       "lower_bound": 559,
+       "ratio": 1.0590339892665475
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/5",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8582202111613876,
+      "cost": 1,
+      "detail": {
+       "makespan": 663,
+       "lower_bound": 569,
+       "ratio": 1.165202108963093
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/6",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8003169572107766,
+      "cost": 1,
+      "detail": {
+       "makespan": 631,
+       "lower_bound": 505,
+       "ratio": 1.2495049504950495
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/7",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8597883597883598,
+      "cost": 1,
+      "detail": {
+       "makespan": 756,
+       "lower_bound": 650,
+       "ratio": 1.1630769230769231
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/8",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7855227882037533,
+      "cost": 1,
+      "detail": {
+       "makespan": 746,
+       "lower_bound": 586,
+       "ratio": 1.273037542662116
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/9",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9596412556053812,
+      "cost": 1,
+      "detail": {
+       "makespan": 669,
+       "lower_bound": 642,
+       "ratio": 1.0420560747663552
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/10",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7821316614420063,
+      "cost": 1,
+      "detail": {
+       "makespan": 638,
+       "lower_bound": 499,
+       "ratio": 1.2785571142284569
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/11",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8180354267310789,
+      "cost": 1,
+      "detail": {
+       "makespan": 621,
+       "lower_bound": 508,
+       "ratio": 1.2224409448818898
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/12",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9372623574144486,
+      "cost": 1,
+      "detail": {
+       "makespan": 526,
+       "lower_bound": 493,
+       "ratio": 1.0669371196754565
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/13",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8284839203675345,
+      "cost": 1,
+      "detail": {
+       "makespan": 653,
+       "lower_bound": 541,
+       "ratio": 1.2070240295748613
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/14",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7836021505376344,
+      "cost": 1,
+      "detail": {
+       "makespan": 744,
+       "lower_bound": 583,
+       "ratio": 1.2761578044596913
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/15",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.6976127320954907,
+      "cost": 1,
+      "detail": {
+       "makespan": 754,
+       "lower_bound": 526,
+       "ratio": 1.4334600760456273
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/16",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.873546511627907,
+      "cost": 1,
+      "detail": {
+       "makespan": 688,
+       "lower_bound": 601,
+       "ratio": 1.1447587354409319
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/17",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9496221662468514,
+      "cost": 1,
+      "detail": {
+       "makespan": 794,
+       "lower_bound": 754,
+       "ratio": 1.0530503978779842
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/18",
+      "outcome": "scored",
+      "success": true,
+      "progress": 1,
+      "cost": 1,
+      "detail": {
+       "makespan": 583,
+       "lower_bound": 583,
+       "ratio": 1
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/19",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9176090468497576,
+      "cost": 1,
+      "detail": {
+       "makespan": 619,
+       "lower_bound": 568,
+       "ratio": 1.0897887323943662
+      }
+     }
+    ],
+    "outcome": "scored",
+    "success_count": 12,
+    "of": 20,
+    "attempt": "first",
+    "lab": "lab_a",
+    "index": 40,
+    "prev": "d4ecefb7c205cce0eb30a7a15c6f54d67181652f6a74c65f70eee8879dca9f15",
+    "sha256": "5a9e720325f5f0dc0e7239d56e8086b6bc95d3d63e71a89d5045e773d1db3aca"
+   },
+   {
+    "type": "evaluation",
+    "plan": "01dd5a619c56e9b94e3c0b75a1ceeab25d63d97fc600c59ce3f4184231f28c66",
+    "slot": "candidate:1",
+    "package": "7f18612aff585fc67bc58095ec6c07948866422da3384396a50f143ab30fffd3",
+    "scores": [
+     {
+      "instance": "jobshop-10x5/fd5bc522/0",
+      "outcome": "scored",
+      "success": true,
+      "progress": 1,
+      "cost": 1,
+      "detail": {
+       "makespan": 698,
+       "lower_bound": 698,
+       "ratio": 1
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/1",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8712121212121212,
+      "cost": 1,
+      "detail": {
+       "makespan": 660,
+       "lower_bound": 575,
+       "ratio": 1.1478260869565218
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/2",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9067930489731437,
+      "cost": 1,
+      "detail": {
+       "makespan": 633,
+       "lower_bound": 574,
+       "ratio": 1.102787456445993
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/3",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8163884673748103,
+      "cost": 1,
+      "detail": {
+       "makespan": 659,
+       "lower_bound": 538,
+       "ratio": 1.224907063197026
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/4",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9442567567567568,
+      "cost": 1,
+      "detail": {
+       "makespan": 592,
+       "lower_bound": 559,
+       "ratio": 1.0590339892665475
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/5",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8582202111613876,
+      "cost": 1,
+      "detail": {
+       "makespan": 663,
+       "lower_bound": 569,
+       "ratio": 1.165202108963093
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/6",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8003169572107766,
+      "cost": 1,
+      "detail": {
+       "makespan": 631,
+       "lower_bound": 505,
+       "ratio": 1.2495049504950495
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/7",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8701472556894244,
+      "cost": 1,
+      "detail": {
+       "makespan": 747,
+       "lower_bound": 650,
+       "ratio": 1.1492307692307693
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/8",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.784471218206158,
+      "cost": 1,
+      "detail": {
+       "makespan": 747,
+       "lower_bound": 586,
+       "ratio": 1.2747440273037542
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/9",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9596412556053812,
+      "cost": 1,
+      "detail": {
+       "makespan": 669,
+       "lower_bound": 642,
+       "ratio": 1.0420560747663552
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/10",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7821316614420063,
+      "cost": 1,
+      "detail": {
+       "makespan": 638,
+       "lower_bound": 499,
+       "ratio": 1.2785571142284569
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/11",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8494983277591973,
+      "cost": 1,
+      "detail": {
+       "makespan": 598,
+       "lower_bound": 508,
+       "ratio": 1.1771653543307086
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/12",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9372623574144486,
+      "cost": 1,
+      "detail": {
+       "makespan": 526,
+       "lower_bound": 493,
+       "ratio": 1.0669371196754565
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/13",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8284839203675345,
+      "cost": 1,
+      "detail": {
+       "makespan": 653,
+       "lower_bound": 541,
+       "ratio": 1.2070240295748613
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/14",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.840057636887608,
+      "cost": 1,
+      "detail": {
+       "makespan": 694,
+       "lower_bound": 583,
+       "ratio": 1.1903945111492282
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/15",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.6976127320954907,
+      "cost": 1,
+      "detail": {
+       "makespan": 754,
+       "lower_bound": 526,
+       "ratio": 1.4334600760456273
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/16",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8710144927536232,
+      "cost": 1,
+      "detail": {
+       "makespan": 690,
+       "lower_bound": 601,
+       "ratio": 1.1480865224625625
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/17",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9496221662468514,
+      "cost": 1,
+      "detail": {
+       "makespan": 794,
+       "lower_bound": 754,
+       "ratio": 1.0530503978779842
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/18",
+      "outcome": "scored",
+      "success": true,
+      "progress": 1,
+      "cost": 1,
+      "detail": {
+       "makespan": 583,
+       "lower_bound": 583,
+       "ratio": 1
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/19",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9073482428115016,
+      "cost": 1,
+      "detail": {
+       "makespan": 626,
+       "lower_bound": 568,
+       "ratio": 1.102112676056338
+      }
+     }
+    ],
+    "outcome": "scored",
+    "success_count": 14,
+    "of": 20,
+    "attempt": "first",
+    "lab": "lab_a",
+    "index": 41,
+    "prev": "5a9e720325f5f0dc0e7239d56e8086b6bc95d3d63e71a89d5045e773d1db3aca",
+    "sha256": "7436a758472933e18083900bc10aab26056de895b2cd3f4d37975010a82a6fe6"
+   },
+   {
+    "type": "evaluation",
+    "plan": "01dd5a619c56e9b94e3c0b75a1ceeab25d63d97fc600c59ce3f4184231f28c66",
+    "slot": "candidate:2",
+    "package": "90749d05c24381e0d4f21010f2d54f3baa48b6786a75655515b6465329f2f673",
+    "scores": [
+     {
+      "instance": "jobshop-10x5/fd5bc522/0",
+      "outcome": "scored",
+      "success": true,
+      "progress": 1,
+      "cost": 1,
+      "detail": {
+       "makespan": 698,
+       "lower_bound": 698,
+       "ratio": 1
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/1",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.869894099848714,
+      "cost": 1,
+      "detail": {
+       "makespan": 661,
+       "lower_bound": 575,
+       "ratio": 1.1495652173913042
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/2",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9067930489731437,
+      "cost": 1,
+      "detail": {
+       "makespan": 633,
+       "lower_bound": 574,
+       "ratio": 1.102787456445993
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/3",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8114630467571644,
+      "cost": 1,
+      "detail": {
+       "makespan": 663,
+       "lower_bound": 538,
+       "ratio": 1.2323420074349443
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/4",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9442567567567568,
+      "cost": 1,
+      "detail": {
+       "makespan": 592,
+       "lower_bound": 559,
+       "ratio": 1.0590339892665475
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/5",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8582202111613876,
+      "cost": 1,
+      "detail": {
+       "makespan": 663,
+       "lower_bound": 569,
+       "ratio": 1.165202108963093
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/6",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8003169572107766,
+      "cost": 1,
+      "detail": {
+       "makespan": 631,
+       "lower_bound": 505,
+       "ratio": 1.2495049504950495
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/7",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8597883597883598,
+      "cost": 1,
+      "detail": {
+       "makespan": 756,
+       "lower_bound": 650,
+       "ratio": 1.1630769230769231
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/8",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7855227882037533,
+      "cost": 1,
+      "detail": {
+       "makespan": 746,
+       "lower_bound": 586,
+       "ratio": 1.273037542662116
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/9",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9596412556053812,
+      "cost": 1,
+      "detail": {
+       "makespan": 669,
+       "lower_bound": 642,
+       "ratio": 1.0420560747663552
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/10",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7821316614420063,
+      "cost": 1,
+      "detail": {
+       "makespan": 638,
+       "lower_bound": 499,
+       "ratio": 1.2785571142284569
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/11",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8180354267310789,
+      "cost": 1,
+      "detail": {
+       "makespan": 621,
+       "lower_bound": 508,
+       "ratio": 1.2224409448818898
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/12",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9372623574144486,
+      "cost": 1,
+      "detail": {
+       "makespan": 526,
+       "lower_bound": 493,
+       "ratio": 1.0669371196754565
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/13",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8284839203675345,
+      "cost": 1,
+      "detail": {
+       "makespan": 653,
+       "lower_bound": 541,
+       "ratio": 1.2070240295748613
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/14",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7836021505376344,
+      "cost": 1,
+      "detail": {
+       "makespan": 744,
+       "lower_bound": 583,
+       "ratio": 1.2761578044596913
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/15",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.6976127320954907,
+      "cost": 1,
+      "detail": {
+       "makespan": 754,
+       "lower_bound": 526,
+       "ratio": 1.4334600760456273
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/16",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.873546511627907,
+      "cost": 1,
+      "detail": {
+       "makespan": 688,
+       "lower_bound": 601,
+       "ratio": 1.1447587354409319
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/17",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9496221662468514,
+      "cost": 1,
+      "detail": {
+       "makespan": 794,
+       "lower_bound": 754,
+       "ratio": 1.0530503978779842
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/18",
+      "outcome": "scored",
+      "success": true,
+      "progress": 1,
+      "cost": 1,
+      "detail": {
+       "makespan": 583,
+       "lower_bound": 583,
+       "ratio": 1
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/19",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9176090468497576,
+      "cost": 1,
+      "detail": {
+       "makespan": 619,
+       "lower_bound": 568,
+       "ratio": 1.0897887323943662
+      }
+     }
+    ],
+    "outcome": "scored",
+    "success_count": 12,
+    "of": 20,
+    "attempt": "first",
+    "lab": "lab_a",
+    "index": 42,
+    "prev": "7436a758472933e18083900bc10aab26056de895b2cd3f4d37975010a82a6fe6",
+    "sha256": "ebb774b12accd3abf0e94c6e1ac2936d71c01fef90bc1d1d04dccc97e746bd96"
+   },
+   {
+    "type": "evaluation",
+    "plan": "01dd5a619c56e9b94e3c0b75a1ceeab25d63d97fc600c59ce3f4184231f28c66",
+    "slot": "candidate:3",
+    "package": "a16fd775c80c9eb77ec9179586f67e6380dcc3a0608e957e249e9139d34aea25",
+    "scores": [
+     {
+      "instance": "jobshop-10x5/fd5bc522/0",
+      "outcome": "scored",
+      "success": true,
+      "progress": 1,
+      "cost": 1,
+      "detail": {
+       "makespan": 698,
+       "lower_bound": 698,
+       "ratio": 1
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/1",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.869894099848714,
+      "cost": 1,
+      "detail": {
+       "makespan": 661,
+       "lower_bound": 575,
+       "ratio": 1.1495652173913042
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/2",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9067930489731437,
+      "cost": 1,
+      "detail": {
+       "makespan": 633,
+       "lower_bound": 574,
+       "ratio": 1.102787456445993
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/3",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8114630467571644,
+      "cost": 1,
+      "detail": {
+       "makespan": 663,
+       "lower_bound": 538,
+       "ratio": 1.2323420074349443
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/4",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9442567567567568,
+      "cost": 1,
+      "detail": {
+       "makespan": 592,
+       "lower_bound": 559,
+       "ratio": 1.0590339892665475
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/5",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8582202111613876,
+      "cost": 1,
+      "detail": {
+       "makespan": 663,
+       "lower_bound": 569,
+       "ratio": 1.165202108963093
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/6",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8003169572107766,
+      "cost": 1,
+      "detail": {
+       "makespan": 631,
+       "lower_bound": 505,
+       "ratio": 1.2495049504950495
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/7",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8597883597883598,
+      "cost": 1,
+      "detail": {
+       "makespan": 756,
+       "lower_bound": 650,
+       "ratio": 1.1630769230769231
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/8",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7855227882037533,
+      "cost": 1,
+      "detail": {
+       "makespan": 746,
+       "lower_bound": 586,
+       "ratio": 1.273037542662116
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/9",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9596412556053812,
+      "cost": 1,
+      "detail": {
+       "makespan": 669,
+       "lower_bound": 642,
+       "ratio": 1.0420560747663552
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/10",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7821316614420063,
+      "cost": 1,
+      "detail": {
+       "makespan": 638,
+       "lower_bound": 499,
+       "ratio": 1.2785571142284569
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/11",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8180354267310789,
+      "cost": 1,
+      "detail": {
+       "makespan": 621,
+       "lower_bound": 508,
+       "ratio": 1.2224409448818898
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/12",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9372623574144486,
+      "cost": 1,
+      "detail": {
+       "makespan": 526,
+       "lower_bound": 493,
+       "ratio": 1.0669371196754565
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/13",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8284839203675345,
+      "cost": 1,
+      "detail": {
+       "makespan": 653,
+       "lower_bound": 541,
+       "ratio": 1.2070240295748613
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/14",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7836021505376344,
+      "cost": 1,
+      "detail": {
+       "makespan": 744,
+       "lower_bound": 583,
+       "ratio": 1.2761578044596913
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/15",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.6976127320954907,
+      "cost": 1,
+      "detail": {
+       "makespan": 754,
+       "lower_bound": 526,
+       "ratio": 1.4334600760456273
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/16",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.873546511627907,
+      "cost": 1,
+      "detail": {
+       "makespan": 688,
+       "lower_bound": 601,
+       "ratio": 1.1447587354409319
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/17",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9496221662468514,
+      "cost": 1,
+      "detail": {
+       "makespan": 794,
+       "lower_bound": 754,
+       "ratio": 1.0530503978779842
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/18",
+      "outcome": "scored",
+      "success": true,
+      "progress": 1,
+      "cost": 1,
+      "detail": {
+       "makespan": 583,
+       "lower_bound": 583,
+       "ratio": 1
+      }
+     },
+     {
+      "instance": "jobshop-10x5/fd5bc522/19",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8973143759873617,
+      "cost": 1,
+      "detail": {
+       "makespan": 633,
+       "lower_bound": 568,
+       "ratio": 1.1144366197183098
+      }
+     }
+    ],
+    "outcome": "scored",
+    "success_count": 12,
+    "of": 20,
+    "attempt": "first",
+    "lab": "lab_a",
+    "index": 43,
+    "prev": "ebb774b12accd3abf0e94c6e1ac2936d71c01fef90bc1d1d04dccc97e746bd96",
+    "sha256": "7d7c47c7d5912bd532a02fcef0639f84378a9dcbe1a6274545bd1740475dc58a"
+   },
+   {
+    "type": "verdict",
+    "plan": "01dd5a619c56e9b94e3c0b75a1ceeab25d63d97fc600c59ce3f4184231f28c66",
+    "generation": 4,
+    "slot": "candidate:0",
+    "package": "2b15007d87d47b158e8c1c6f1970ccc1fff2fc7b1700d1b4d338ba8a67e21060",
+    "verdict": "rejected",
+    "reason": "12/20 vs incumbent 11/20 (success-count margin >= 1 required)",
+    "margins": [
+     {
+      "against": "incumbent",
+      "candidate": 12,
+      "other": 11,
+      "margin": 1,
+      "known": true
+     }
+    ],
+    "lab": "lab_a",
+    "index": 44,
+    "prev": "7d7c47c7d5912bd532a02fcef0639f84378a9dcbe1a6274545bd1740475dc58a",
+    "sha256": "6a592d2d6133de35aa9bdbe95566593edfab237d687ad3ec46ddf6e7903434b3"
+   },
+   {
+    "type": "verdict",
+    "plan": "01dd5a619c56e9b94e3c0b75a1ceeab25d63d97fc600c59ce3f4184231f28c66",
+    "generation": 4,
+    "slot": "candidate:1",
+    "package": "7f18612aff585fc67bc58095ec6c07948866422da3384396a50f143ab30fffd3",
+    "verdict": "promoted",
+    "reason": "14/20 vs incumbent 11/20 (success-count margin >= 1 required)",
+    "margins": [
+     {
+      "against": "incumbent",
+      "candidate": 14,
+      "other": 11,
+      "margin": 3,
+      "known": true
+     }
+    ],
+    "lab": "lab_a",
+    "index": 45,
+    "prev": "6a592d2d6133de35aa9bdbe95566593edfab237d687ad3ec46ddf6e7903434b3",
+    "sha256": "bc42b86e079da29f2df595384c82bd7edf1b57ef833966c34f67e7874aa88749"
+   },
+   {
+    "type": "verdict",
+    "plan": "01dd5a619c56e9b94e3c0b75a1ceeab25d63d97fc600c59ce3f4184231f28c66",
+    "generation": 4,
+    "slot": "candidate:2",
+    "package": "90749d05c24381e0d4f21010f2d54f3baa48b6786a75655515b6465329f2f673",
+    "verdict": "rejected",
+    "reason": "12/20 vs incumbent 11/20 (success-count margin >= 1 required)",
+    "margins": [
+     {
+      "against": "incumbent",
+      "candidate": 12,
+      "other": 11,
+      "margin": 1,
+      "known": true
+     }
+    ],
+    "lab": "lab_a",
+    "index": 46,
+    "prev": "bc42b86e079da29f2df595384c82bd7edf1b57ef833966c34f67e7874aa88749",
+    "sha256": "36a4d355d868e5fb7cd44dc3f5f32b3ad3ce0b0330302b43c877b5c951bc7470"
+   },
+   {
+    "type": "verdict",
+    "plan": "01dd5a619c56e9b94e3c0b75a1ceeab25d63d97fc600c59ce3f4184231f28c66",
+    "generation": 4,
+    "slot": "candidate:3",
+    "package": "a16fd775c80c9eb77ec9179586f67e6380dcc3a0608e957e249e9139d34aea25",
+    "verdict": "rejected",
+    "reason": "12/20 vs incumbent 11/20 (success-count margin >= 1 required)",
+    "margins": [
+     {
+      "against": "incumbent",
+      "candidate": 12,
+      "other": 11,
+      "margin": 1,
+      "known": true
+     }
+    ],
+    "lab": "lab_a",
+    "index": 47,
+    "prev": "36a4d355d868e5fb7cd44dc3f5f32b3ad3ce0b0330302b43c877b5c951bc7470",
+    "sha256": "f10b34ff9a2801fbfe5362bde916d84105c5f8f8b1bdb6e60f4b1573f245f4ae"
+   },
+   {
+    "type": "promotion",
+    "generation": 4,
+    "family": "jobshop-10x5",
+    "package": "7f18612aff585fc67bc58095ec6c07948866422da3384396a50f143ab30fffd3",
+    "parent": "5462da50a3da1e0bf6ff4790f926394398cd4fdf9d11efef8bca3a8494f20f05",
+    "success_count": 14,
+    "incumbent_count": 11,
+    "of": 20,
+    "plan": "01dd5a619c56e9b94e3c0b75a1ceeab25d63d97fc600c59ce3f4184231f28c66",
+    "lab": "lab_a",
+    "index": 48,
+    "prev": "f10b34ff9a2801fbfe5362bde916d84105c5f8f8b1bdb6e60f4b1573f245f4ae",
+    "sha256": "ee0f7780b913b22bed94474a0e518b52cb5cf7f6ea343b0389bca56b08fe53d3"
+   },
+   {
+    "type": "candidates_proposed",
+    "generation": 5,
+    "family": "jobshop-10x5",
+    "parent": "7f18612aff585fc67bc58095ec6c07948866422da3384396a50f143ab30fffd3",
+    "candidates": [
+     "ece026a85fe1413e85939e2ef56ca72d4e9f38111814e1e0debf62315c089e7d",
+     "63aadd6a8f0a148fb39b9936eefbf01fc5d14b40388fcbcf7f7e21a1ed11636c",
+     "3c56c5bfe137c6745d1262c3cc27966411dca711f9ccf0fcee6f846e2c33a568",
+     "756ebb9932fee6088314d38e8888bdc2d616848df9e246670e32fe97ec581a8c"
+    ],
+    "dropped": [],
+    "imported": false,
+    "lab": "lab_a",
+    "index": 49,
+    "prev": "ee0f7780b913b22bed94474a0e518b52cb5cf7f6ea343b0389bca56b08fe53d3",
+    "sha256": "16207d64d677f44eb3ea8fe864d7d95a6db6f3d2eee9df6f84cead44ddea9459"
+   },
+   {
+    "type": "plan_frozen",
+    "plan": "d231f7cbe13c9a7bc13e758927f85d1a0249b4a4ba7a87608d10d2a95ea5d72b",
+    "family": "jobshop-10x5",
+    "generation": 5,
+    "arms": [
+     {
+      "slot": "incumbent",
+      "package": "7f18612aff585fc67bc58095ec6c07948866422da3384396a50f143ab30fffd3"
+     },
+     {
+      "slot": "candidate:0",
+      "package": "ece026a85fe1413e85939e2ef56ca72d4e9f38111814e1e0debf62315c089e7d"
+     },
+     {
+      "slot": "candidate:1",
+      "package": "63aadd6a8f0a148fb39b9936eefbf01fc5d14b40388fcbcf7f7e21a1ed11636c"
+     },
+     {
+      "slot": "candidate:2",
+      "package": "3c56c5bfe137c6745d1262c3cc27966411dca711f9ccf0fcee6f846e2c33a568"
+     },
+     {
+      "slot": "candidate:3",
+      "package": "756ebb9932fee6088314d38e8888bdc2d616848df9e246670e32fe97ec581a8c"
+     }
+    ],
+    "criterion": {
+     "rule": "success-count-margin",
+     "min_margin": 1
+    },
+    "instances": [
+     "jobshop-10x5/b4a67940/0",
+     "jobshop-10x5/b4a67940/1",
+     "jobshop-10x5/b4a67940/2",
+     "jobshop-10x5/b4a67940/3",
+     "jobshop-10x5/b4a67940/4",
+     "jobshop-10x5/b4a67940/5",
+     "jobshop-10x5/b4a67940/6",
+     "jobshop-10x5/b4a67940/7",
+     "jobshop-10x5/b4a67940/8",
+     "jobshop-10x5/b4a67940/9",
+     "jobshop-10x5/b4a67940/10",
+     "jobshop-10x5/b4a67940/11",
+     "jobshop-10x5/b4a67940/12",
+     "jobshop-10x5/b4a67940/13",
+     "jobshop-10x5/b4a67940/14",
+     "jobshop-10x5/b4a67940/15",
+     "jobshop-10x5/b4a67940/16",
+     "jobshop-10x5/b4a67940/17",
+     "jobshop-10x5/b4a67940/18",
+     "jobshop-10x5/b4a67940/19"
+    ],
+    "instance_seed": "b4a67940e9a40e19364dda119140e43db4e1c7fe53d1e2e8ea3380450b4b6749",
+    "lab": "lab_a",
+    "index": 50,
+    "prev": "16207d64d677f44eb3ea8fe864d7d95a6db6f3d2eee9df6f84cead44ddea9459",
+    "sha256": "49e4bed21648844f14713b5f1617249c6f530ea68529c893666e2e918d15609d"
+   },
+   {
+    "type": "evaluation",
+    "plan": "d231f7cbe13c9a7bc13e758927f85d1a0249b4a4ba7a87608d10d2a95ea5d72b",
+    "slot": "incumbent",
+    "package": "7f18612aff585fc67bc58095ec6c07948866422da3384396a50f143ab30fffd3",
+    "scores": [
+     {
+      "instance": "jobshop-10x5/b4a67940/0",
+      "outcome": "scored",
+      "success": true,
+      "progress": 1,
+      "cost": 1,
+      "detail": {
+       "makespan": 676,
+       "lower_bound": 676,
+       "ratio": 1
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/1",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9322033898305084,
+      "cost": 1,
+      "detail": {
+       "makespan": 590,
+       "lower_bound": 550,
+       "ratio": 1.0727272727272728
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/2",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7956204379562044,
+      "cost": 1,
+      "detail": {
+       "makespan": 685,
+       "lower_bound": 545,
+       "ratio": 1.2568807339449541
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/3",
+      "outcome": "scored",
+      "success": true,
+      "progress": 1,
+      "cost": 1,
+      "detail": {
+       "makespan": 654,
+       "lower_bound": 654,
+       "ratio": 1
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/4",
+      "outcome": "scored",
+      "success": true,
+      "progress": 1,
+      "cost": 1,
+      "detail": {
+       "makespan": 677,
+       "lower_bound": 677,
+       "ratio": 1
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/5",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8538587848932676,
+      "cost": 1,
+      "detail": {
+       "makespan": 609,
+       "lower_bound": 520,
+       "ratio": 1.1711538461538462
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/6",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9111791730474732,
+      "cost": 1,
+      "detail": {
+       "makespan": 653,
+       "lower_bound": 595,
+       "ratio": 1.0974789915966388
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/7",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9594594594594594,
+      "cost": 1,
+      "detail": {
+       "makespan": 666,
+       "lower_bound": 639,
+       "ratio": 1.0422535211267605
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/8",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9510603588907015,
+      "cost": 1,
+      "detail": {
+       "makespan": 613,
+       "lower_bound": 583,
+       "ratio": 1.0514579759862779
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/9",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9600591715976331,
+      "cost": 1,
+      "detail": {
+       "makespan": 676,
+       "lower_bound": 649,
+       "ratio": 1.041602465331279
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/10",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7957920792079208,
+      "cost": 1,
+      "detail": {
+       "makespan": 808,
+       "lower_bound": 643,
+       "ratio": 1.2566096423017108
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/11",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8383128295254832,
+      "cost": 1,
+      "detail": {
+       "makespan": 569,
+       "lower_bound": 477,
+       "ratio": 1.1928721174004193
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/12",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9152759948652118,
+      "cost": 1,
+      "detail": {
+       "makespan": 779,
+       "lower_bound": 713,
+       "ratio": 1.0925666199158486
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/13",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.984472049689441,
+      "cost": 1,
+      "detail": {
+       "makespan": 644,
+       "lower_bound": 634,
+       "ratio": 1.0157728706624605
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/14",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8755129958960328,
+      "cost": 1,
+      "detail": {
+       "makespan": 731,
+       "lower_bound": 640,
+       "ratio": 1.1421875
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/15",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7848739495798319,
+      "cost": 1,
+      "detail": {
+       "makespan": 595,
+       "lower_bound": 467,
+       "ratio": 1.2740899357601714
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/16",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.834658187599364,
+      "cost": 1,
+      "detail": {
+       "makespan": 629,
+       "lower_bound": 525,
+       "ratio": 1.198095238095238
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/17",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7464788732394366,
+      "cost": 1,
+      "detail": {
+       "makespan": 781,
+       "lower_bound": 583,
+       "ratio": 1.3396226415094339
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/18",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7904903417533432,
+      "cost": 1,
+      "detail": {
+       "makespan": 673,
+       "lower_bound": 532,
+       "ratio": 1.2650375939849625
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/19",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9605734767025089,
+      "cost": 1,
+      "detail": {
+       "makespan": 558,
+       "lower_bound": 536,
+       "ratio": 1.041044776119403
+      }
+     }
+    ],
+    "outcome": "scored",
+    "success_count": 15,
+    "of": 20,
+    "attempt": "first",
+    "lab": "lab_a",
+    "index": 51,
+    "prev": "49e4bed21648844f14713b5f1617249c6f530ea68529c893666e2e918d15609d",
+    "sha256": "a6126f3582a561239618696e17d10acd63dbada5b3f9787ae16a9e207d500a68"
+   },
+   {
+    "type": "evaluation",
+    "plan": "d231f7cbe13c9a7bc13e758927f85d1a0249b4a4ba7a87608d10d2a95ea5d72b",
+    "slot": "candidate:0",
+    "package": "ece026a85fe1413e85939e2ef56ca72d4e9f38111814e1e0debf62315c089e7d",
+    "scores": [
+     {
+      "instance": "jobshop-10x5/b4a67940/0",
+      "outcome": "scored",
+      "success": true,
+      "progress": 1,
+      "cost": 1,
+      "detail": {
+       "makespan": 676,
+       "lower_bound": 676,
+       "ratio": 1
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/1",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9322033898305084,
+      "cost": 1,
+      "detail": {
+       "makespan": 590,
+       "lower_bound": 550,
+       "ratio": 1.0727272727272728
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/2",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7956204379562044,
+      "cost": 1,
+      "detail": {
+       "makespan": 685,
+       "lower_bound": 545,
+       "ratio": 1.2568807339449541
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/3",
+      "outcome": "scored",
+      "success": true,
+      "progress": 1,
+      "cost": 1,
+      "detail": {
+       "makespan": 654,
+       "lower_bound": 654,
+       "ratio": 1
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/4",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9455307262569832,
+      "cost": 1,
+      "detail": {
+       "makespan": 716,
+       "lower_bound": 677,
+       "ratio": 1.0576070901033974
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/5",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8538587848932676,
+      "cost": 1,
+      "detail": {
+       "makespan": 609,
+       "lower_bound": 520,
+       "ratio": 1.1711538461538462
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/6",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9111791730474732,
+      "cost": 1,
+      "detail": {
+       "makespan": 653,
+       "lower_bound": 595,
+       "ratio": 1.0974789915966388
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/7",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9594594594594594,
+      "cost": 1,
+      "detail": {
+       "makespan": 666,
+       "lower_bound": 639,
+       "ratio": 1.0422535211267605
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/8",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9510603588907015,
+      "cost": 1,
+      "detail": {
+       "makespan": 613,
+       "lower_bound": 583,
+       "ratio": 1.0514579759862779
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/9",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9984615384615385,
+      "cost": 1,
+      "detail": {
+       "makespan": 650,
+       "lower_bound": 649,
+       "ratio": 1.0015408320493067
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/10",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7957920792079208,
+      "cost": 1,
+      "detail": {
+       "makespan": 808,
+       "lower_bound": 643,
+       "ratio": 1.2566096423017108
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/11",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8383128295254832,
+      "cost": 1,
+      "detail": {
+       "makespan": 569,
+       "lower_bound": 477,
+       "ratio": 1.1928721174004193
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/12",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9930362116991643,
+      "cost": 1,
+      "detail": {
+       "makespan": 718,
+       "lower_bound": 713,
+       "ratio": 1.0070126227208975
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/13",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.984472049689441,
+      "cost": 1,
+      "detail": {
+       "makespan": 644,
+       "lower_bound": 634,
+       "ratio": 1.0157728706624605
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/14",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8755129958960328,
+      "cost": 1,
+      "detail": {
+       "makespan": 731,
+       "lower_bound": 640,
+       "ratio": 1.1421875
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/15",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7848739495798319,
+      "cost": 1,
+      "detail": {
+       "makespan": 595,
+       "lower_bound": 467,
+       "ratio": 1.2740899357601714
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/16",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.834658187599364,
+      "cost": 1,
+      "detail": {
+       "makespan": 629,
+       "lower_bound": 525,
+       "ratio": 1.198095238095238
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/17",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7464788732394366,
+      "cost": 1,
+      "detail": {
+       "makespan": 781,
+       "lower_bound": 583,
+       "ratio": 1.3396226415094339
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/18",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7904903417533432,
+      "cost": 1,
+      "detail": {
+       "makespan": 673,
+       "lower_bound": 532,
+       "ratio": 1.2650375939849625
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/19",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9605734767025089,
+      "cost": 1,
+      "detail": {
+       "makespan": 558,
+       "lower_bound": 536,
+       "ratio": 1.041044776119403
+      }
+     }
+    ],
+    "outcome": "scored",
+    "success_count": 15,
+    "of": 20,
+    "attempt": "first",
+    "lab": "lab_a",
+    "index": 52,
+    "prev": "a6126f3582a561239618696e17d10acd63dbada5b3f9787ae16a9e207d500a68",
+    "sha256": "4ce28986e4988dc00bdd4e7951e5bb09e00e42b32247b30fc43384df4f1efa48"
+   },
+   {
+    "type": "evaluation",
+    "plan": "d231f7cbe13c9a7bc13e758927f85d1a0249b4a4ba7a87608d10d2a95ea5d72b",
+    "slot": "candidate:1",
+    "package": "63aadd6a8f0a148fb39b9936eefbf01fc5d14b40388fcbcf7f7e21a1ed11636c",
+    "scores": [
+     {
+      "instance": "jobshop-10x5/b4a67940/0",
+      "outcome": "scored",
+      "success": true,
+      "progress": 1,
+      "cost": 1,
+      "detail": {
+       "makespan": 676,
+       "lower_bound": 676,
+       "ratio": 1
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/1",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9322033898305084,
+      "cost": 1,
+      "detail": {
+       "makespan": 590,
+       "lower_bound": 550,
+       "ratio": 1.0727272727272728
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/2",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.923728813559322,
+      "cost": 1,
+      "detail": {
+       "makespan": 590,
+       "lower_bound": 545,
+       "ratio": 1.0825688073394495
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/3",
+      "outcome": "scored",
+      "success": true,
+      "progress": 1,
+      "cost": 1,
+      "detail": {
+       "makespan": 654,
+       "lower_bound": 654,
+       "ratio": 1
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/4",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9548660084626234,
+      "cost": 1,
+      "detail": {
+       "makespan": 709,
+       "lower_bound": 677,
+       "ratio": 1.0472673559822747
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/5",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8538587848932676,
+      "cost": 1,
+      "detail": {
+       "makespan": 609,
+       "lower_bound": 520,
+       "ratio": 1.1711538461538462
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/6",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9111791730474732,
+      "cost": 1,
+      "detail": {
+       "makespan": 653,
+       "lower_bound": 595,
+       "ratio": 1.0974789915966388
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/7",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9594594594594594,
+      "cost": 1,
+      "detail": {
+       "makespan": 666,
+       "lower_bound": 639,
+       "ratio": 1.0422535211267605
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/8",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9510603588907015,
+      "cost": 1,
+      "detail": {
+       "makespan": 613,
+       "lower_bound": 583,
+       "ratio": 1.0514579759862779
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/9",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9984615384615385,
+      "cost": 1,
+      "detail": {
+       "makespan": 650,
+       "lower_bound": 649,
+       "ratio": 1.0015408320493067
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/10",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8170266836086404,
+      "cost": 1,
+      "detail": {
+       "makespan": 787,
+       "lower_bound": 643,
+       "ratio": 1.223950233281493
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/11",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8383128295254832,
+      "cost": 1,
+      "detail": {
+       "makespan": 569,
+       "lower_bound": 477,
+       "ratio": 1.1928721174004193
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/12",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9930362116991643,
+      "cost": 1,
+      "detail": {
+       "makespan": 718,
+       "lower_bound": 713,
+       "ratio": 1.0070126227208975
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/13",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.984472049689441,
+      "cost": 1,
+      "detail": {
+       "makespan": 644,
+       "lower_bound": 634,
+       "ratio": 1.0157728706624605
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/14",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8755129958960328,
+      "cost": 1,
+      "detail": {
+       "makespan": 731,
+       "lower_bound": 640,
+       "ratio": 1.1421875
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/15",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7680921052631579,
+      "cost": 1,
+      "detail": {
+       "makespan": 608,
+       "lower_bound": 467,
+       "ratio": 1.3019271948608138
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/16",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.834658187599364,
+      "cost": 1,
+      "detail": {
+       "makespan": 629,
+       "lower_bound": 525,
+       "ratio": 1.198095238095238
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/17",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7464788732394366,
+      "cost": 1,
+      "detail": {
+       "makespan": 781,
+       "lower_bound": 583,
+       "ratio": 1.3396226415094339
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/18",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7904903417533432,
+      "cost": 1,
+      "detail": {
+       "makespan": 673,
+       "lower_bound": 532,
+       "ratio": 1.2650375939849625
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/19",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9605734767025089,
+      "cost": 1,
+      "detail": {
+       "makespan": 558,
+       "lower_bound": 536,
+       "ratio": 1.041044776119403
+      }
+     }
+    ],
+    "outcome": "scored",
+    "success_count": 16,
+    "of": 20,
+    "attempt": "first",
+    "lab": "lab_a",
+    "index": 53,
+    "prev": "4ce28986e4988dc00bdd4e7951e5bb09e00e42b32247b30fc43384df4f1efa48",
+    "sha256": "2e5a6d6668cbef2e4cd1519ed0382f74e6e54864a201cb807738691c48222fc8"
+   },
+   {
+    "type": "evaluation",
+    "plan": "d231f7cbe13c9a7bc13e758927f85d1a0249b4a4ba7a87608d10d2a95ea5d72b",
+    "slot": "candidate:2",
+    "package": "3c56c5bfe137c6745d1262c3cc27966411dca711f9ccf0fcee6f846e2c33a568",
+    "scores": [
+     {
+      "instance": "jobshop-10x5/b4a67940/0",
+      "outcome": "scored",
+      "success": true,
+      "progress": 1,
+      "cost": 1,
+      "detail": {
+       "makespan": 676,
+       "lower_bound": 676,
+       "ratio": 1
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/1",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9322033898305084,
+      "cost": 1,
+      "detail": {
+       "makespan": 590,
+       "lower_bound": 550,
+       "ratio": 1.0727272727272728
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/2",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7956204379562044,
+      "cost": 1,
+      "detail": {
+       "makespan": 685,
+       "lower_bound": 545,
+       "ratio": 1.2568807339449541
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/3",
+      "outcome": "scored",
+      "success": true,
+      "progress": 1,
+      "cost": 1,
+      "detail": {
+       "makespan": 654,
+       "lower_bound": 654,
+       "ratio": 1
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/4",
+      "outcome": "scored",
+      "success": true,
+      "progress": 1,
+      "cost": 1,
+      "detail": {
+       "makespan": 677,
+       "lower_bound": 677,
+       "ratio": 1
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/5",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8538587848932676,
+      "cost": 1,
+      "detail": {
+       "makespan": 609,
+       "lower_bound": 520,
+       "ratio": 1.1711538461538462
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/6",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9111791730474732,
+      "cost": 1,
+      "detail": {
+       "makespan": 653,
+       "lower_bound": 595,
+       "ratio": 1.0974789915966388
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/7",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9594594594594594,
+      "cost": 1,
+      "detail": {
+       "makespan": 666,
+       "lower_bound": 639,
+       "ratio": 1.0422535211267605
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/8",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9510603588907015,
+      "cost": 1,
+      "detail": {
+       "makespan": 613,
+       "lower_bound": 583,
+       "ratio": 1.0514579759862779
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/9",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9600591715976331,
+      "cost": 1,
+      "detail": {
+       "makespan": 676,
+       "lower_bound": 649,
+       "ratio": 1.041602465331279
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/10",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7957920792079208,
+      "cost": 1,
+      "detail": {
+       "makespan": 808,
+       "lower_bound": 643,
+       "ratio": 1.2566096423017108
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/11",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8383128295254832,
+      "cost": 1,
+      "detail": {
+       "makespan": 569,
+       "lower_bound": 477,
+       "ratio": 1.1928721174004193
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/12",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9152759948652118,
+      "cost": 1,
+      "detail": {
+       "makespan": 779,
+       "lower_bound": 713,
+       "ratio": 1.0925666199158486
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/13",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.984472049689441,
+      "cost": 1,
+      "detail": {
+       "makespan": 644,
+       "lower_bound": 634,
+       "ratio": 1.0157728706624605
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/14",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8755129958960328,
+      "cost": 1,
+      "detail": {
+       "makespan": 731,
+       "lower_bound": 640,
+       "ratio": 1.1421875
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/15",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7848739495798319,
+      "cost": 1,
+      "detail": {
+       "makespan": 595,
+       "lower_bound": 467,
+       "ratio": 1.2740899357601714
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/16",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.834658187599364,
+      "cost": 1,
+      "detail": {
+       "makespan": 629,
+       "lower_bound": 525,
+       "ratio": 1.198095238095238
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/17",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7464788732394366,
+      "cost": 1,
+      "detail": {
+       "makespan": 781,
+       "lower_bound": 583,
+       "ratio": 1.3396226415094339
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/18",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7904903417533432,
+      "cost": 1,
+      "detail": {
+       "makespan": 673,
+       "lower_bound": 532,
+       "ratio": 1.2650375939849625
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/19",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9605734767025089,
+      "cost": 1,
+      "detail": {
+       "makespan": 558,
+       "lower_bound": 536,
+       "ratio": 1.041044776119403
+      }
+     }
+    ],
+    "outcome": "scored",
+    "success_count": 15,
+    "of": 20,
+    "attempt": "first",
+    "lab": "lab_a",
+    "index": 54,
+    "prev": "2e5a6d6668cbef2e4cd1519ed0382f74e6e54864a201cb807738691c48222fc8",
+    "sha256": "060ed0d04738976f0de828434ccc129e32cdc82964c66f234037f8f8cd2df289"
+   },
+   {
+    "type": "evaluation",
+    "plan": "d231f7cbe13c9a7bc13e758927f85d1a0249b4a4ba7a87608d10d2a95ea5d72b",
+    "slot": "candidate:3",
+    "package": "756ebb9932fee6088314d38e8888bdc2d616848df9e246670e32fe97ec581a8c",
+    "scores": [
+     {
+      "instance": "jobshop-10x5/b4a67940/0",
+      "outcome": "scored",
+      "success": true,
+      "progress": 1,
+      "cost": 1,
+      "detail": {
+       "makespan": 676,
+       "lower_bound": 676,
+       "ratio": 1
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/1",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.900163666121113,
+      "cost": 1,
+      "detail": {
+       "makespan": 611,
+       "lower_bound": 550,
+       "ratio": 1.1109090909090908
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/2",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8596214511041009,
+      "cost": 1,
+      "detail": {
+       "makespan": 634,
+       "lower_bound": 545,
+       "ratio": 1.163302752293578
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/3",
+      "outcome": "scored",
+      "success": true,
+      "progress": 1,
+      "cost": 1,
+      "detail": {
+       "makespan": 654,
+       "lower_bound": 654,
+       "ratio": 1
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/4",
+      "outcome": "scored",
+      "success": true,
+      "progress": 1,
+      "cost": 1,
+      "detail": {
+       "makespan": 677,
+       "lower_bound": 677,
+       "ratio": 1
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/5",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8538587848932676,
+      "cost": 1,
+      "detail": {
+       "makespan": 609,
+       "lower_bound": 520,
+       "ratio": 1.1711538461538462
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/6",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9111791730474732,
+      "cost": 1,
+      "detail": {
+       "makespan": 653,
+       "lower_bound": 595,
+       "ratio": 1.0974789915966388
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/7",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9594594594594594,
+      "cost": 1,
+      "detail": {
+       "makespan": 666,
+       "lower_bound": 639,
+       "ratio": 1.0422535211267605
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/8",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9137931034482759,
+      "cost": 1,
+      "detail": {
+       "makespan": 638,
+       "lower_bound": 583,
+       "ratio": 1.0943396226415094
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/9",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9774096385542169,
+      "cost": 1,
+      "detail": {
+       "makespan": 664,
+       "lower_bound": 649,
+       "ratio": 1.0231124807395995
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/10",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.8108448928121059,
+      "cost": 1,
+      "detail": {
+       "makespan": 793,
+       "lower_bound": 643,
+       "ratio": 1.2332814930015552
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/11",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8383128295254832,
+      "cost": 1,
+      "detail": {
+       "makespan": 569,
+       "lower_bound": 477,
+       "ratio": 1.1928721174004193
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/12",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9152759948652118,
+      "cost": 1,
+      "detail": {
+       "makespan": 779,
+       "lower_bound": 713,
+       "ratio": 1.0925666199158486
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/13",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.984472049689441,
+      "cost": 1,
+      "detail": {
+       "makespan": 644,
+       "lower_bound": 634,
+       "ratio": 1.0157728706624605
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/14",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8755129958960328,
+      "cost": 1,
+      "detail": {
+       "makespan": 731,
+       "lower_bound": 640,
+       "ratio": 1.1421875
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/15",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7848739495798319,
+      "cost": 1,
+      "detail": {
+       "makespan": 595,
+       "lower_bound": 467,
+       "ratio": 1.2740899357601714
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/16",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.834658187599364,
+      "cost": 1,
+      "detail": {
+       "makespan": 629,
+       "lower_bound": 525,
+       "ratio": 1.198095238095238
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/17",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.752258064516129,
+      "cost": 1,
+      "detail": {
+       "makespan": 775,
+       "lower_bound": 583,
+       "ratio": 1.3293310463121784
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/18",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7904903417533432,
+      "cost": 1,
+      "detail": {
+       "makespan": 673,
+       "lower_bound": 532,
+       "ratio": 1.2650375939849625
+      }
+     },
+     {
+      "instance": "jobshop-10x5/b4a67940/19",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9605734767025089,
+      "cost": 1,
+      "detail": {
+       "makespan": 558,
+       "lower_bound": 536,
+       "ratio": 1.041044776119403
+      }
+     }
+    ],
+    "outcome": "scored",
+    "success_count": 16,
+    "of": 20,
+    "attempt": "first",
+    "lab": "lab_a",
+    "index": 55,
+    "prev": "060ed0d04738976f0de828434ccc129e32cdc82964c66f234037f8f8cd2df289",
+    "sha256": "cab637fdf092c125f14897318ba97b2a82a4924d4ddaecd7b6893b9d1232194c"
+   },
+   {
+    "type": "verdict",
+    "plan": "d231f7cbe13c9a7bc13e758927f85d1a0249b4a4ba7a87608d10d2a95ea5d72b",
+    "generation": 5,
+    "slot": "candidate:0",
+    "package": "ece026a85fe1413e85939e2ef56ca72d4e9f38111814e1e0debf62315c089e7d",
+    "verdict": "rejected",
+    "reason": "15/20 vs incumbent 15/20 (success-count margin >= 1 required)",
+    "margins": [
+     {
+      "against": "incumbent",
+      "candidate": 15,
+      "other": 15,
+      "margin": 0,
+      "known": true
+     }
+    ],
+    "lab": "lab_a",
+    "index": 56,
+    "prev": "cab637fdf092c125f14897318ba97b2a82a4924d4ddaecd7b6893b9d1232194c",
+    "sha256": "f8e972f5f8421a301a7814529013a1eccdf9d1f915e78000120dfdc710c38c5a"
+   },
+   {
+    "type": "verdict",
+    "plan": "d231f7cbe13c9a7bc13e758927f85d1a0249b4a4ba7a87608d10d2a95ea5d72b",
+    "generation": 5,
+    "slot": "candidate:1",
+    "package": "63aadd6a8f0a148fb39b9936eefbf01fc5d14b40388fcbcf7f7e21a1ed11636c",
+    "verdict": "promoted",
+    "reason": "16/20 vs incumbent 15/20 (success-count margin >= 1 required)",
+    "margins": [
+     {
+      "against": "incumbent",
+      "candidate": 16,
+      "other": 15,
+      "margin": 1,
+      "known": true
+     }
+    ],
+    "lab": "lab_a",
+    "index": 57,
+    "prev": "f8e972f5f8421a301a7814529013a1eccdf9d1f915e78000120dfdc710c38c5a",
+    "sha256": "76494d7733e684e0cd4da9ce9ae10107263c6044f85b4c224bc998144a8009c9"
+   },
+   {
+    "type": "verdict",
+    "plan": "d231f7cbe13c9a7bc13e758927f85d1a0249b4a4ba7a87608d10d2a95ea5d72b",
+    "generation": 5,
+    "slot": "candidate:2",
+    "package": "3c56c5bfe137c6745d1262c3cc27966411dca711f9ccf0fcee6f846e2c33a568",
+    "verdict": "rejected",
+    "reason": "15/20 vs incumbent 15/20 (success-count margin >= 1 required)",
+    "margins": [
+     {
+      "against": "incumbent",
+      "candidate": 15,
+      "other": 15,
+      "margin": 0,
+      "known": true
+     }
+    ],
+    "lab": "lab_a",
+    "index": 58,
+    "prev": "76494d7733e684e0cd4da9ce9ae10107263c6044f85b4c224bc998144a8009c9",
+    "sha256": "a441e64a51d3653230ef1e34374f91cea22212e981cced10567456430f4fdcb9"
+   },
+   {
+    "type": "verdict",
+    "plan": "d231f7cbe13c9a7bc13e758927f85d1a0249b4a4ba7a87608d10d2a95ea5d72b",
+    "generation": 5,
+    "slot": "candidate:3",
+    "package": "756ebb9932fee6088314d38e8888bdc2d616848df9e246670e32fe97ec581a8c",
+    "verdict": "rejected",
+    "reason": "16/20 vs incumbent 15/20 (success-count margin >= 1 required)",
+    "margins": [
+     {
+      "against": "incumbent",
+      "candidate": 16,
+      "other": 15,
+      "margin": 1,
+      "known": true
+     }
+    ],
+    "lab": "lab_a",
+    "index": 59,
+    "prev": "a441e64a51d3653230ef1e34374f91cea22212e981cced10567456430f4fdcb9",
+    "sha256": "25e2fa05932c9fde2f1e2a1e339260517fcb6518cc5d03cfb7d7791237400712"
+   },
+   {
+    "type": "promotion",
+    "generation": 5,
+    "family": "jobshop-10x5",
+    "package": "63aadd6a8f0a148fb39b9936eefbf01fc5d14b40388fcbcf7f7e21a1ed11636c",
+    "parent": "7f18612aff585fc67bc58095ec6c07948866422da3384396a50f143ab30fffd3",
+    "success_count": 16,
+    "incumbent_count": 15,
+    "of": 20,
+    "plan": "d231f7cbe13c9a7bc13e758927f85d1a0249b4a4ba7a87608d10d2a95ea5d72b",
+    "lab": "lab_a",
+    "index": 60,
+    "prev": "25e2fa05932c9fde2f1e2a1e339260517fcb6518cc5d03cfb7d7791237400712",
+    "sha256": "09c6f2d0ad7ee9c4ca475f40dd4d378e18483ea8ac958f57f69c5802383c05f3"
+   },
+   {
+    "type": "confirmation_declared",
+    "family": "jobshop-10x5",
+    "package": "63aadd6a8f0a148fb39b9936eefbf01fc5d14b40388fcbcf7f7e21a1ed11636c",
+    "selection_plan": "d231f7cbe13c9a7bc13e758927f85d1a0249b4a4ba7a87608d10d2a95ea5d72b",
+    "instance_seed": "c87960ebfd0a3071bf16aa458b5735319050a634a72212ff0260445350090062",
+    "instances": [
+     "jobshop-10x5/c87960eb/0",
+     "jobshop-10x5/c87960eb/1",
+     "jobshop-10x5/c87960eb/2",
+     "jobshop-10x5/c87960eb/3",
+     "jobshop-10x5/c87960eb/4",
+     "jobshop-10x5/c87960eb/5",
+     "jobshop-10x5/c87960eb/6",
+     "jobshop-10x5/c87960eb/7",
+     "jobshop-10x5/c87960eb/8",
+     "jobshop-10x5/c87960eb/9",
+     "jobshop-10x5/c87960eb/10",
+     "jobshop-10x5/c87960eb/11",
+     "jobshop-10x5/c87960eb/12",
+     "jobshop-10x5/c87960eb/13",
+     "jobshop-10x5/c87960eb/14",
+     "jobshop-10x5/c87960eb/15",
+     "jobshop-10x5/c87960eb/16",
+     "jobshop-10x5/c87960eb/17",
+     "jobshop-10x5/c87960eb/18",
+     "jobshop-10x5/c87960eb/19"
+    ],
+    "lab": "lab_a",
+    "index": 61,
+    "prev": "09c6f2d0ad7ee9c4ca475f40dd4d378e18483ea8ac958f57f69c5802383c05f3",
+    "sha256": "3ad2e15fc00eb916cda0f903d288a34b458deaa94eee786c6fabce249baee988"
+   },
+   {
+    "type": "confirmation",
+    "family": "jobshop-10x5",
+    "package": "63aadd6a8f0a148fb39b9936eefbf01fc5d14b40388fcbcf7f7e21a1ed11636c",
+    "selection_plan": "d231f7cbe13c9a7bc13e758927f85d1a0249b4a4ba7a87608d10d2a95ea5d72b",
+    "instance_seed": "c87960ebfd0a3071bf16aa458b5735319050a634a72212ff0260445350090062",
+    "instances": [
+     "jobshop-10x5/c87960eb/0",
+     "jobshop-10x5/c87960eb/1",
+     "jobshop-10x5/c87960eb/2",
+     "jobshop-10x5/c87960eb/3",
+     "jobshop-10x5/c87960eb/4",
+     "jobshop-10x5/c87960eb/5",
+     "jobshop-10x5/c87960eb/6",
+     "jobshop-10x5/c87960eb/7",
+     "jobshop-10x5/c87960eb/8",
+     "jobshop-10x5/c87960eb/9",
+     "jobshop-10x5/c87960eb/10",
+     "jobshop-10x5/c87960eb/11",
+     "jobshop-10x5/c87960eb/12",
+     "jobshop-10x5/c87960eb/13",
+     "jobshop-10x5/c87960eb/14",
+     "jobshop-10x5/c87960eb/15",
+     "jobshop-10x5/c87960eb/16",
+     "jobshop-10x5/c87960eb/17",
+     "jobshop-10x5/c87960eb/18",
+     "jobshop-10x5/c87960eb/19"
+    ],
+    "scores": [
+     {
+      "instance": "jobshop-10x5/c87960eb/0",
+      "outcome": "scored",
+      "success": true,
+      "progress": 1,
+      "cost": 1,
+      "detail": {
+       "makespan": 650,
+       "lower_bound": 650,
+       "ratio": 1
+      }
+     },
+     {
+      "instance": "jobshop-10x5/c87960eb/1",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9699248120300752,
+      "cost": 1,
+      "detail": {
+       "makespan": 665,
+       "lower_bound": 645,
+       "ratio": 1.0310077519379846
+      }
+     },
+     {
+      "instance": "jobshop-10x5/c87960eb/2",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9982847341337907,
+      "cost": 1,
+      "detail": {
+       "makespan": 583,
+       "lower_bound": 582,
+       "ratio": 1.0017182130584192
+      }
+     },
+     {
+      "instance": "jobshop-10x5/c87960eb/3",
+      "outcome": "scored",
+      "success": true,
+      "progress": 1,
+      "cost": 1,
+      "detail": {
+       "makespan": 543,
+       "lower_bound": 543,
+       "ratio": 1
+      }
+     },
+     {
+      "instance": "jobshop-10x5/c87960eb/4",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8497652582159625,
+      "cost": 1,
+      "detail": {
+       "makespan": 639,
+       "lower_bound": 543,
+       "ratio": 1.1767955801104972
+      }
+     },
+     {
+      "instance": "jobshop-10x5/c87960eb/5",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8673050615595075,
+      "cost": 1,
+      "detail": {
+       "makespan": 731,
+       "lower_bound": 634,
+       "ratio": 1.1529968454258674
+      }
+     },
+     {
+      "instance": "jobshop-10x5/c87960eb/6",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8814055636896047,
+      "cost": 1,
+      "detail": {
+       "makespan": 683,
+       "lower_bound": 602,
+       "ratio": 1.1345514950166113
+      }
+     },
+     {
+      "instance": "jobshop-10x5/c87960eb/7",
+      "outcome": "scored",
+      "success": true,
+      "progress": 1,
+      "cost": 1,
+      "detail": {
+       "makespan": 581,
+       "lower_bound": 581,
+       "ratio": 1
+      }
+     },
+     {
+      "instance": "jobshop-10x5/c87960eb/8",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9834162520729685,
+      "cost": 1,
+      "detail": {
+       "makespan": 603,
+       "lower_bound": 593,
+       "ratio": 1.0168634064080944
+      }
+     },
+     {
+      "instance": "jobshop-10x5/c87960eb/9",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.981651376146789,
+      "cost": 1,
+      "detail": {
+       "makespan": 654,
+       "lower_bound": 642,
+       "ratio": 1.0186915887850467
+      }
+     },
+     {
+      "instance": "jobshop-10x5/c87960eb/10",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9188405797101449,
+      "cost": 1,
+      "detail": {
+       "makespan": 690,
+       "lower_bound": 634,
+       "ratio": 1.088328075709779
+      }
+     },
+     {
+      "instance": "jobshop-10x5/c87960eb/11",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7908309455587392,
+      "cost": 1,
+      "detail": {
+       "makespan": 698,
+       "lower_bound": 552,
+       "ratio": 1.2644927536231885
+      }
+     },
+     {
+      "instance": "jobshop-10x5/c87960eb/12",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9633507853403142,
+      "cost": 1,
+      "detail": {
+       "makespan": 573,
+       "lower_bound": 552,
+       "ratio": 1.0380434782608696
+      }
+     },
+     {
+      "instance": "jobshop-10x5/c87960eb/13",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.831081081081081,
+      "cost": 1,
+      "detail": {
+       "makespan": 740,
+       "lower_bound": 615,
+       "ratio": 1.2032520325203253
+      }
+     },
+     {
+      "instance": "jobshop-10x5/c87960eb/14",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.8713286713286713,
+      "cost": 1,
+      "detail": {
+       "makespan": 715,
+       "lower_bound": 623,
+       "ratio": 1.1476725521669342
+      }
+     },
+     {
+      "instance": "jobshop-10x5/c87960eb/15",
+      "outcome": "scored",
+      "success": false,
+      "progress": 0.7943786982248521,
+      "cost": 1,
+      "detail": {
+       "makespan": 676,
+       "lower_bound": 537,
+       "ratio": 1.2588454376163873
+      }
+     },
+     {
+      "instance": "jobshop-10x5/c87960eb/16",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.9064327485380117,
+      "cost": 1,
+      "detail": {
+       "makespan": 684,
+       "lower_bound": 620,
+       "ratio": 1.103225806451613
+      }
+     },
+     {
+      "instance": "jobshop-10x5/c87960eb/17",
+      "outcome": "scored",
+      "success": true,
+      "progress": 1,
+      "cost": 1,
+      "detail": {
+       "makespan": 605,
+       "lower_bound": 605,
+       "ratio": 1
+      }
+     },
+     {
+      "instance": "jobshop-10x5/c87960eb/18",
+      "outcome": "scored",
+      "success": true,
+      "progress": 0.940983606557377,
+      "cost": 1,
+      "detail": {
+       "makespan": 610,
+       "lower_bound": 574,
+       "ratio": 1.0627177700348431
+      }
+     },
+     {
+      "instance": "jobshop-10x5/c87960eb/19",
+      "outcome": "scored",
+      "success": true,
+      "progress": 1,
+      "cost": 1,
+      "detail": {
+       "makespan": 658,
+       "lower_bound": 658,
+       "ratio": 1
+      }
+     }
+    ],
+    "success_count": 17,
+    "of": 20,
+    "outcome": "scored",
+    "lab": "lab_a",
+    "index": 62,
+    "prev": "3ad2e15fc00eb916cda0f903d288a34b458deaa94eee786c6fabce249baee988",
+    "sha256": "5cf6766f7b01c70e41091bf85ea615e1930be0f41def38714af080ee1251d48e"
+   },
+   {
+    "type": "bundle_sealed",
+    "family": "jobshop-10x5",
+    "package": "63aadd6a8f0a148fb39b9936eefbf01fc5d14b40388fcbcf7f7e21a1ed11636c",
+    "records_before": 63,
+    "lineage": [
+     "63aadd6a8f0a148fb39b9936eefbf01fc5d14b40388fcbcf7f7e21a1ed11636c",
+     "7f18612aff585fc67bc58095ec6c07948866422da3384396a50f143ab30fffd3",
+     "5462da50a3da1e0bf6ff4790f926394398cd4fdf9d11efef8bca3a8494f20f05",
+     "50d52533434a0007e7b67cb59b3355a3df12304d3b54693b5bd1c001b1316ab5",
+     "cc4dd741392f963f12b9677426e3ef14324e44512c8ecd95c8674e61a3ce42fc",
+     "79e109cb0a1ced1fbd3541c45b33e428d5abf71df00ba2b7e380d8e5c1b93349"
+    ],
+    "lab": "lab_a",
+    "index": 63,
+    "prev": "5cf6766f7b01c70e41091bf85ea615e1930be0f41def38714af080ee1251d48e",
+    "sha256": "ef28abf5001c1a0318b9da4f6ff8775101fe0afa2ea055ab094fe935ac05adda"
+   }
+  ],
+  "head": "ef28abf5001c1a0318b9da4f6ff8775101fe0afa2ea055ab094fe935ac05adda"
+ },
+ "ledger_sha256": "ef28abf5001c1a0318b9da4f6ff8775101fe0afa2ea055ab094fe935ac05adda",
+ "exported_by": "lab_a",
+ "seal": "ef28abf5001c1a0318b9da4f6ff8775101fe0afa2ea055ab094fe935ac05adda"
+}

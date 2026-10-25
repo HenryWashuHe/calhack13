@@ -421,7 +421,7 @@ async fn method_operations_keep_transport_limits_no_redirects_no_retries_and_san
         assert_eq!(
             *canned.seen.lock().unwrap(),
             vec![
-                "/registry/v1/methods",
+                "/registry/v1/methods?expected_publisher=org-a",
                 "/registry/v1/methods/fetch",
                 "/registry/v1/methods/search"
             ]
