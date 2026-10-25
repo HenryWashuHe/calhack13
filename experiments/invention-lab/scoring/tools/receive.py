@@ -31,6 +31,10 @@ SCHEMA = "lab-receive-spec/1"
 SPEC_KEYS = {"schema", "org_id", "sandbox", "instances", "simulation_steps",
              "wall_time_ms", "packages", "trials"}
 TRIAL_KEYS = {"id", "family", "candidate", "control"}
+# Optional: seeds first_seed..first_seed+instances (a fresh public panel),
+# passed to `lab-exec example-plan` only when present.
+OPTIONAL_TRIAL_KEYS = {"first_seed"}
+PUBLIC_SEED_LIMIT = 1 << 63
 
 
 def die(msg):
@@ -77,8 +81,13 @@ def load_spec(path, base):
         packages[name] = data
     ids = set()
     for t in spec["trials"]:
-        if set(t) != TRIAL_KEYS:
-            die(f"trial needs exactly {sorted(TRIAL_KEYS)}")
+        if not TRIAL_KEYS <= set(t) <= TRIAL_KEYS | OPTIONAL_TRIAL_KEYS:
+            die(f"trial needs {sorted(TRIAL_KEYS)} and optionally {sorted(OPTIONAL_TRIAL_KEYS)}")
+        if "first_seed" in t:
+            seed = t["first_seed"]
+            if (not isinstance(seed, int) or isinstance(seed, bool) or seed < 0
+                    or seed + spec["instances"] > PUBLIC_SEED_LIMIT):
+                die(f"trial {t['id']} first_seed must leave the range below 2^63")
         if t["id"] in ids or not t["id"].replace("-", "").isalnum():
             die(f"trial id {t['id']!r} is repeated or not a plain name")
         ids.add(t["id"])
@@ -103,9 +112,12 @@ def trial(spec, packages, t, d, lab_exec, lab_score):
     for name in (t["candidate"], t["control"]):
         if sha256(packages[name]) != spec["packages"][name]["sha256"]:
             return {"trial": t["id"], "error": f"retained package {name} changed"}
-    code, _ = run([lab_exec, "example-plan", spec["sandbox"], str(spec["instances"]),
-                   str(spec["simulation_steps"]), str(spec["wall_time_ms"]), d,
-                   t["family"], cand], os.path.join(d, "example-plan.json"))
+    plan_args = [lab_exec, "example-plan", spec["sandbox"], str(spec["instances"]),
+                 str(spec["simulation_steps"]), str(spec["wall_time_ms"]), d,
+                 t["family"], cand]
+    if "first_seed" in t:
+        plan_args.append(str(t["first_seed"]))
+    code, _ = run(plan_args, os.path.join(d, "example-plan.json"))
     if code != 0:
         return {"trial": t["id"], "error": "plan could not be built"}
     with open(os.path.join(d, "plan.json")) as f:
@@ -120,7 +132,7 @@ def trial(spec, packages, t, d, lab_exec, lab_score):
     shutil.copyfile(ctrl, os.path.join(d, "control.package.json"))
     os.remove(os.path.join(d, "example-plan.json"))
     os.remove(os.path.join(d, "example-plan.json.err"))
-    result = {"trial": t["id"], "family": t["family"],
+    result = {"trial": t["id"], "family": t["family"], "first_seed": t.get("first_seed", 0),
               "candidate": t["candidate"], "control": t["control"], "slots": {}}
     p = os.path.join(d, "plan.json")
     for slot in ("candidate", "control"):
