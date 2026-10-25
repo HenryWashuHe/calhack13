@@ -42,6 +42,12 @@ planner doesn't record token usage; the call was one Opus request with a
 Fix for next time: send the lead-refusal request only when the lead isn't the
 owner.
 
+The predeclared driver also still had rehearsal 4's restart ordering (B's
+replacement spawned inside `mem::replace` before the old B was dropped on the
+same port), which #245 later fixed. It didn't bite in this run: B came back
+up and served the receiver-pinned adoption. Both fixes are on this branch for
+any rerun; the retained run is pinned to driver `ab02b947…`.
+
 
 
 ## What changes from rehearsal 4
