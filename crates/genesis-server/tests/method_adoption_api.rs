@@ -388,8 +388,12 @@ async fn adoption_authorizes_only_the_owner_for_the_exact_version_under_current_
         "requirement_id":current["requirement_id"],"role_id":g["role_id"],
         "responsibility_id":g["responsibility_id"],"assignment_id":g["assignment_id"],"epoch":g["epoch"]}});
     invocation["slots"] = json!([slot]);
-    let run =
-        |key: &str| json!({"client_request_id":key,"request":ask(&owner, &v1),"plan":invocation});
+    let run = |key: &str| {
+        // One run per exact plan, so each run names its own plan id.
+        let mut plan = invocation.clone();
+        plan["id"] = json!(format!("invoke-{key}"));
+        json!({"client_request_id":key,"request":ask(&owner, &v1),"plan":plan})
+    };
     let runs = format!("{base}/method-runs");
     let (status, prepared) = call(&runs, &token, run("r1")).await;
     assert_eq!(status, 201, "{prepared}");
@@ -417,7 +421,7 @@ async fn adoption_authorizes_only_the_owner_for_the_exact_version_under_current_
     .unwrap();
     let receipt_url = format!("{runs}/{id}/receipt");
     assert_eq!(call(&receipt_url, &token, json!(original)).await.0, 422);
-    let frozen: TrialPlan = serde_json::from_value(invocation.clone()).unwrap();
+    let frozen: TrialPlan = serde_json::from_value(prepared["plan"].clone()).unwrap();
     let binding = frozen.expected_binding("use").unwrap();
     let mut receipt = original.clone();
     receipt.binding_sha256 = binding.canonical_hash().unwrap();

@@ -232,7 +232,7 @@ fn still_authorized(
 
 impl Store {
     pub fn init_method_runs(&self) -> Result<()> {
-        self.lock().execute_batch("CREATE TABLE IF NOT EXISTS method_runs(ordinal INTEGER PRIMARY KEY AUTOINCREMENT,id TEXT NOT NULL UNIQUE,client_request_id TEXT NOT NULL UNIQUE,status TEXT NOT NULL,record_json TEXT NOT NULL);")?;
+        self.lock().execute_batch("CREATE TABLE IF NOT EXISTS method_runs(ordinal INTEGER PRIMARY KEY AUTOINCREMENT,id TEXT NOT NULL UNIQUE,client_request_id TEXT NOT NULL UNIQUE,plan_sha256 TEXT NOT NULL UNIQUE,status TEXT NOT NULL,record_json TEXT NOT NULL);")?;
         Ok(())
     }
 
@@ -281,9 +281,24 @@ impl Store {
         if count as usize >= MAX_METHOD_RUNS {
             return Err(E::Limit);
         }
+        // One run per exact plan: two runs of one plan would share run and
+        // attempt identities, so either's receipt would fit the other.
+        let plan_sha256 = record
+            .plan
+            .reference()
+            .map_err(|_| E::InvalidRecord)?
+            .sha256;
+        let taken: bool = tx.query_row(
+            "SELECT EXISTS(SELECT 1 FROM method_runs WHERE plan_sha256=?1)",
+            params![plan_sha256],
+            |r| r.get(0),
+        )?;
+        if taken {
+            return Err(E::Plan("this exact plan is already frozen in another run"));
+        }
         tx.execute(
-            "INSERT INTO method_runs(id,client_request_id,status,record_json) VALUES(?1,?2,'prepared',?3)",
-            params![record.id, record.client_request_id, json],
+            "INSERT INTO method_runs(id,client_request_id,plan_sha256,status,record_json) VALUES(?1,?2,?3,'prepared',?4)",
+            params![record.id, record.client_request_id, plan_sha256, json],
         )?;
         tx.commit()?;
         Ok((record, true))
