@@ -11,8 +11,8 @@ weights. Event organization remains superseded. G0–G4 are still open.
 The revised app Goal was activated on October 24, 2026 after the stale record
 was cleared; the existing hourly continuation remains active.
 
-Main through `a3be74d0fd4d067c99a928bb8315d69fd05010ea`, tree
-`7731ec5a4d69c5631d50e827f7acbf9d87254d28`, includes the reviewed
+Main through `fc16ba142d3757e8d5e804902558010801a6938f`, tree
+`a45f1d8f4f7aaafed2aa473a64f80c406af76869`, includes the reviewed
 foundations below. Method generation merged at `d1be8443fee46e1196861926a963563f48407936`,
 whose tree `dc9d6adc19863d8584fd5af1fd11eae7552014eb` exactly matches the independently
 validated generation stack. Counts refer to the named source/composition, not a
@@ -20,6 +20,7 @@ combined main run.
 
 | Work | Validation and evidence boundary |
 | --- | --- |
+| Read-only chain-cost CLI #130 `04e22315` → `fc16ba14` | Independent 21 focused tests/6 targets, scoped strict Clippy/fmt/diff pass, including a permanent 106-line retained-#113 regression. Author 247 tests/48 targets cover unchanged production source; no full 248-test claim. [Original-file assessment](invention-lab/contracts/chain-allocation.md#read-only-chain-cost-cli) retains missing stages as unknown and rejects invalid evidence without writes or provider/runtime calls. Report construction is not acceptance, enforcement or gate closure. |
 | Whole-chain cost assembly #127 `f5fad35` → `f335cc6` | Full forge 243 tests/47 targets, zero failed/ignored; strict all-target Clippy/fmt. Includes six author and three independent cases, preserving the independent 207-line file. [Pure original-record aggregation](invention-lab/contracts/chain-allocation.md#whole-chain-observed-costs) retains unknowns/local overruns and rejects duplicate identities. No provider/runtime work, chronology, exhaustive billing or gate closure. |
 | Catalogue audit #124 final `ed573c69` → `2f9cfea9` | Author source `e6940b22`: 142 core tests pass. Independent 11 focused tests pass, including three unchanged `1c2bfd29` cases; scoped strict Clippy/fmt pass. [Post-run full-reference membership](invention-lab/contracts/catalogue.md) retains missing/unknown/failed/overrun evidence. No byte verification, chronology, runtime enforcement or gate closure. |
 | Real-evidence UI #123/#128 | #123 `7196d5c` merged into its parent branch at `4515f728`; #128 final `2f0b6734` integrated identical web bytes into main at `a3be74d0`. Independent 81 UI tests/13 files and typecheck pass on the final composition; original regressions unchanged. Folder deduplication, package bytes and inspection identity holds cleared. Display correctness is separate from organization authority or adoption. |
@@ -213,11 +214,13 @@ is now merged: Sonnet 5.5 adaptive effort is part of frozen client settings.
 It does not pin hosted weights/stochasticity or upgrade prior runs to G4. No live
 request or new generation is declared. The pure retained-reference catalogue
 audit #124 is merged; Henry retains any future pre-experiment enforcement.
-Whole-chain cost assembly #127 `f5fad35` is merged at `f335cc6`, preserving
-unknowns and local overruns without counting nested totals twice. This is a pure
-library, not a new experiment result. Codex's [read-only retained-file CLI
-follow-up](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388541662)
-is scoped but not merged.
+Whole-chain cost assembly #127 and its [read-only CLI #130](invention-lab/contracts/chain-allocation.md#read-only-chain-cost-cli)
+are merged, preserving unknowns and local overruns without counting nested totals
+twice. These are accounting mechanisms, not a new experiment result. Codex is
+[implementing exact method publication/discovery](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388691194)
+in the existing registry: authenticated publisher, bounded source-free metadata
+search and full-reference fetch. This new path is not merged and grants no acceptance
+or invocation authority; Henry retains receiver adoption and role/grant work.
 Henry's [next requested vertical product slice](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388567745)
 connects selected method/receiver acceptance to the requirement, responsibility
 and current role grant, then pinned invocation, decline/revocation and an
