@@ -55,11 +55,11 @@ It holds no logic of its own.
 
 ## Identity
 
-- **The package identity does not change.** The split is an ordinary
-  `development-method-source/1` package: up to 256 files, sorted by path, one SHA-256 over the
-  canonical artifact (`docs/invention-lab/contracts/packages.md`). The executor copies every file
-  into the run directory and starts the entrypoint there, so trial plans, receipts and scoring keep
-  using that one identity unchanged.
+- **The package identity scheme does not change; the package digest does.** The split is an
+  ordinary `development-method-source/1` package: up to 256 files, sorted by path, one SHA-256 over
+  the canonical artifact (`docs/invention-lab/contracts/packages.md`). Changed package bytes create
+  a new whole-package digest and exact method reference. New trial plans, receipts and scoring bind
+  that reference; retained records keep the original package reference unchanged.
 - **Two derived identities travel beside it, as a sidecar.** `strategy` and `adapter` are each the
   SHA-256 of that file's bytes inside the package (and `glue` likewise). A sidecar names the package
   by its exact reference and lists `{ path, sha256 }` for each role. Anyone holding the package can
@@ -92,9 +92,11 @@ Two kinds of change need different evidence.
    that is on `main` and must see the same requests in the same order and the same submission;
    `replay.py diff` must find no difference on synthetic oracle cases (synthetic outcomes are for
    equivalence only, never scores). Then **live**: `lab-exec run`, `lab-score score` and
-   `lab-exec check` on the same plan must reproduce the retained per-experiment records. A replay
-   failure ends it; a live run is not a substitute, because it covers one plan where replay covers
-   every retained transcript.
+   `lab-exec check` use a newly declared comparison plan with the split package's exact reference
+   and unique run, attempt and scoring IDs. Keep the intended context, instances, grants and
+   controls comparable, and compare corresponding requests and outcomes without rewriting the
+   original records. A replay failure ends it; a live run is not a substitute, because it covers
+   one comparison where replay covers every retained transcript.
 2. **A mutation** (claimed to behave differently): replay does not apply. The predeclared trial
    decides, as for any candidate: a `development-trial-plan/1` with `success-count-margin`
    (`docs/invention-lab/contracts/trials.md`) against the controls, with seeded random search among
@@ -113,8 +115,10 @@ The parent's "screen on the hardest instance" sorts by `gap + step_height` (pare
 lines 64 to 67, in `docs/invention-lab/evidence/live-method-20261024-generated/method-package.json`).
 Those are ravine fields: the generator leaves both at 0.0 for rough-transport
 (`experiments/invention-lab/evaluator/src/family.rs`, lines 110 to 111 and 137 to 151). On that family
-the sort was a no-op; the parent screened instance 0 because it came first, and its 6/6 came from
-the first admissible grid point. The merged regression analysis already states this correction
+the sort was a no-op. In the particular original six-experiment rough-transport trace cited above,
+the parent screened instance 0 because it came first, and its 6/6 came from the first admissible
+grid point. This does not describe every later rough-transport trace. The merged regression
+analysis already states this correction
 (`docs/invention-lab/analysis/why-generation-2-regressed.md`, §1, PR #160).
 
 What the split adds is where the fault sits. The screen-then-confirm loop is in `strategy.py`
@@ -137,9 +141,10 @@ A strategy is called **a strategy** until it has **verified wins in two families
 
 Wins by different strategy bytes do not add up. "Capability" here is claim language only; adopting
 anything into an organization still goes through the receiver's own acceptance and adoption path.
-Today nothing qualifies. No retained trial on `main` accepts a generated method against seeded
-random search in any family (`live-method-20261024-a-return/README.md`, "Result"; the two receiver
-READMEs).
+Today no split strategy qualifies under that two-family rule. [PR #165](https://github.com/HenryWashuHe/genesis-history-experiment/pull/165)
+records author-run acceptance of the unchanged parent on rough-transport against seeded random
+search: public 12/12 versus 7/12, and hidden attempt 2, 12/12 versus 9/12. That single-family parent
+result does not establish a verified two-family split strategy or recursive improvement.
 
 ## Open questions for the lane owners
 
@@ -152,7 +157,7 @@ READMEs).
 
 ## Limits
 
-One method, split by hand, replayed on one family. The split is not generated and does not improve
-anything; it only shows that a generated method can be separated without changing its behavior.
+One method, split by hand, with author-reported replay and live checks on one family. The split is
+not generated; those checks do not independently establish general equivalence or improvement.
 Whether mutating the halves separately produces better methods is an open empirical question for
 the iteration proposal (`iteration-algorithms.md`).
