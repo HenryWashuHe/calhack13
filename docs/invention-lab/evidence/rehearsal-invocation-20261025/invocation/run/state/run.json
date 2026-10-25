@@ -1,0 +1,19 @@
+{
+  "started": true,
+  "method": {
+    "domain": "genesis",
+    "schema": "development-method-source/1",
+    "id": "receiver-revised-method",
+    "version": "0.1.0",
+    "sha256": "4f455dc6e625bdaf554d567bdd7f0bc0c7b601a1ea6332d4e7a13e02005db14d"
+  },
+  "submission": {
+    "domain": "genesis-lab",
+    "schema": "lab-design/1",
+    "id": "output",
+    "version": "1",
+    "sha256": "1cc0dd6e94d5111c4ce0d755872e961405dc479b2f09da2712978a7dd46200ce"
+  },
+  "sealed": true,
+  "finished": true
+}
