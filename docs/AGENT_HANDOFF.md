@@ -11,8 +11,8 @@ issue #4/task numbers below are historical. Preserve rewritten ancestry.
 
 The [ongoing goal](ONGOING_GOAL.md), revised app Goal and hourly continuation are
 active. The stale app record was cleared and replaced on October 24, 2026. Main
-through `f335cc6ca7da193ef6e4ae98beb49ddaa6f11810`, tree
-`75d39a7bb965b5c5034b9914e6237bdb82add8eb`, includes the experimental core
+through `a3be74d0fd4d067c99a928bb8315d69fd05010ea`, tree
+`7731ec5a4d69c5631d50e827f7acbf9d87254d28`, includes the experimental core
 contracts, source loader, corrected adoption proposal/UI, simulator primitives,
 #50–#52 method-source generation, #42/#43 executor foundations/session and #56
 accounting identity checks plus #58/#59 declared combined-cost assessment and
@@ -53,7 +53,7 @@ Apify baseline do not close those gates. Event organizing remains superseded.
 | Henry's core Claude | Adoption/planner acknowledged; next product milestone requested, not yet acknowledged | [Requested vertical slice](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388567745): connect selected method/receiver acceptance to the requirement, responsibility and current role grant; gate pinned invocation, local decline/revocation and an existing-owner control. Keep existing adoption/role paths; no lane transfer. Prior #64 evidence and W/F process tests alone do not close G2. |
 | Henry's core Claude | Evaluator/executor active; simulator and #42–#45 executor stack merged | Own evaluator/executor. #57/#65 portable fixes clear their prior findings; namespace lifecycle assurance remains unverified after interrupted review. Preserve exact evidence limits and avoid claiming Linux enforcement. |
 | Henry's core Claude | #46/#48/#64/#70/#72 merged; #98 `cb29a95` receiving records merged after independent checks; #102 `c8bf7a0` checked public feedback merged at `7accefd3` | Own execution/scoring/adoption and receiving-side record plumbing. Retain B's explicit selection/local acceptance decision and intended responsibility, including the rejected random-search comparison. #116 retains checked rough-transport trials of frozen child `4f455dc6`, rejected against parent/random control. Local acceptance remains unestablished; #117 checked A-return records are Rejected in every comparison. Retain prior declarations and all negative results; do not edit forge. #57/#65 are separate unmerged assurance work. |
-| Eric / Eric's Claude | #93/#94/#99/#100/#101/#109 merged; real-evidence #123 reviewed, main integration pending | `docs/invention-lab/ui.md` and `apps/web/src/invention-lab/**`, no shared routes. #123 `7196d5c` → parent-branch merge `4515f728`: 81 tests/13 files and typecheck pass, original regressions unchanged. Preserve `78adef37`, `59c3e1c`, `f2ac45e5` and `0672dcbe`. The separate `apps/stage` queue below does not transfer this lane. |
+| Eric / Eric's Claude | #93/#94/#99/#100/#101/#109 merged; real-evidence #123 integrated through #128 | `docs/invention-lab/ui.md` and `apps/web/src/invention-lab/**`, no shared routes. #123 `7196d5c` → parent merge `4515f728`; #128 `2f0b6734` → main `a3be74d0`, identical web bytes. Independent 81 tests/13 files and typecheck pass, original regressions unchanged. Preserve `78adef37`, `59c3e1c`, `f2ac45e5` and `0672dcbe`. The separate `apps/stage` queue below does not transfer this lane. |
 | ACP Claude session | #3 `f64e131` / #5 `e95a286` merged; stage #20 merged | Migration holds cleared with all eight independent cases unchanged. Reconcile held #4 routing/status/demo docs with merged #3/#5, local executor/scorer and issue #1; preserve the superseded event-organizer boundary. Bridge ownership remains with ACP. |
 | Codex main chat | #120 reasoning policy, #124 catalogue audit and #127 whole-chain costs merged | Own the [next read-only chain-cost CLI slice](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388541662): original retained manifests/bindings, no writes or provider/runtime work. The CLI is not merged. Catalogue is post-run reference membership only, not runtime enforcement/byte verification. Henry's corrected K=3 workflow/fresh protocol awaits freezing before new generation. Fixed-pool ablation remains a separate proposed diagnostic; Henry retains runtime/adoption authority. |
 | EricZhu-31 / Codex provider session | [CREAO nullable-ticket slice claimed](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6387513389); #104 `5023a48` merged as `62a2f009` after independent review; prior Apify baseline remains operator-reported | Only `crates/genesis-creao/src/{client,model,runtime,main}.rs`, focused CREAO tests and `docs/CREAO_RUNTIME.md`. Preserve exact account/version/request/run ticket before operator read-only reconciliation; wrong IDs/read failures leave it unchanged. No duplicate create, name/time-window binding or retroactive recovery of the old lost run ID. 69 original and 3 independent local tests pass; no hosted recovery; ACP keeps hosted-gate evidence. |
@@ -225,7 +225,10 @@ reviewed main composition `e2914b6` had identical web bytes. Real-evidence #123
 source `7196d5c63fecccd1c36a48462d63aa3d9bf80272` passed 81 UI tests across
 13 files/typecheck; original regressions are unchanged. Its merge
 `4515f728db2a0675c830907100f168fe80db3d4b` went to the parent branch only;
-main integration is pending.
+#128 final `2f0b6734a5dfe61f7b51e11b1aa23e461fdc0ce3` then integrated it
+into main at `a3be74d0fd4d067c99a928bb8315d69fd05010ea`, tree
+`7731ec5a4d69c5631d50e827f7acbf9d87254d28`. Main ancestry and identical web
+bytes were checked; 81 tests/13 files and typecheck independently reran and passed.
 
 Catalogue #124 source `e6940b2224db0dfcd5f164fcb3a3ec0aa1f69901`, final
 `ed573c694f0364392502fcfdc3899ed737d87b7c`, merged at
