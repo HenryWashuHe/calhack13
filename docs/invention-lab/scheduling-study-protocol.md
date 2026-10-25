@@ -73,6 +73,8 @@ The five additional run directories are `data/scheduling-study/pilot-seed83000-1
 
 `verify_run.py` independently replays all 1,040 evaluations, rechecks schedules and aggregate counts, validates source/instance/policy/summary hashes and the complete chain. Verification observed 1,132 events and finished at event hash `425fc486aafad1d9eb129eb6fc3cd2b4b5d583f58a51283bb6f9ae84b533900a`; summary hash `3ca86fc1b8438e1589fb3e87b75caddd7ff55d1da83336f4532dcdaa0c1ed70c`. The checker also has tests that mutate schedules and the journal to confirm rejection behavior.
 
+After independent review of PR #201, the verifier also regenerates every declared instance from the manifest seed, requires the exact three source-hash entries, reconstructs every fixed and seeded-random policy, and enforces the complete event lifecycle. Selection must follow all development evaluations and precede every calibration evaluation; a failed run cannot also verify as completed. The reviewer's five original guard tests are retained unchanged alongside the six original tests. All 11 tests pass, and the stricter verifier accepts all six pre-existing local calibration runs with their original event-head hashes.
+
 ## Reproduce the local calibration
 
 From the repository root on Python 3.14:
