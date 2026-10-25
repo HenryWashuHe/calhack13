@@ -294,7 +294,10 @@ explanation contradicts hidden-2's retained search trace. All 713 manifest entri
 no runtime validation, independent secrecy/chronology or gate closure follows.
 Pure invocation identity #185/#188 is merged; #179 `0946e6bc` remains held on
 legacy migration, policy reacceptance and runtime/protocol fences (11 existing
-cases pass, four new guards fail). Draft #186 does not yet supply governed execution.
+cases pass, four new guards fail). #186 `b069b129` is held on disabled-receiver
+receipt retention and an oversized mandatory receipt binding (12 library + four
+HTTP controls pass, two guards fail). No method source/runtime was executed;
+operator-reported receipt validation does not prove governed execution.
 Receiver ID mechanics are merged; runtime assurance remains open.
 Public-range #121/#136 is merged and the reserved-seed hold is cleared. These are
 public instances, not hidden assessment; source/selection must freeze before assessment.

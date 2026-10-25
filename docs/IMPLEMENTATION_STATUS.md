@@ -326,7 +326,12 @@ records are unchanged. This is no rerun, secrecy/chronology proof or runtime cle
 on legacy schema migration, policy-fenced reacceptance and runtime/protocol
 compatibility fences. Eleven original store cases pass; four pure SQLite/record
 guards fail at `39a979a9`. Merged #185/#188 supplies invocation identity only;
-draft #186 and actual current-grant execution remain separately unmerged.
+[#186 `b069b129` is held](https://github.com/HenryWashuHe/genesis-history-experiment/pull/186#pullrequestreview-5641441324)
+on disabled-receiver final-receipt retention and accepting a frozen binding too
+large for its receipt cap. Twelve library and four HTTP controls pass; two new
+guards fail at `d771f69f`, using SQLite/retained data and loopback HTTP only.
+The receipt is operator-reported evidence, not independent execution proof;
+actual current-grant execution remains unestablished.
 Public-range #121/#136 is merged with the reserved-seed
 hold cleared; metadata/preflight and mocked checks do not hide inputs or establish
 an evaluation result. Freeze

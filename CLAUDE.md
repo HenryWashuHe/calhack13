@@ -92,8 +92,11 @@ every milestone. All lower checkpoints are historical.
   guards #188 `e4824046` → `68604b92` are merged: 23 pure core cases and scoped
   strict Clippy pass. Claimed grant identity is bound, not authenticated authority.
   #179 `0946e6bc` is held on legacy-store migration, policy reacceptance and
-  runtime/protocol fences (11 old tests pass, four new guards fail). Draft #186
-  is separate unmerged invocation integration. Henry retains this lane.
+  runtime/protocol fences (11 old tests pass, four new guards fail). #186
+  `b069b129` is held on disabled-receiver receipt retention and a frozen binding
+  that can exceed the receipt cap (12 library + four HTTP controls pass, two
+  new guards fail). These are record/loopback checks, not execution proof.
+  Henry retains this lane.
   #116 B-task records are now checked; local adoption and an accepted fresh
   A return remain unestablished. Receiving wrapper #118 `68bc82d0` merged at
   `ec23efb5`: frozen package/spec bytes and atomic failure summaries clear all
