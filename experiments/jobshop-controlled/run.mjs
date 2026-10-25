@@ -105,7 +105,7 @@ function main() {
   const output = path.resolve(required("output-dir"));
   const envFile = path.resolve(required("key-file"));
   const priorUsd = Number(required("prior-project-reserve-usd"));
-  if (!Number.isFinite(priorUsd) || priorUsd < 0) throw new Error("prior project reserve must be a verified nonnegative USD bound");
+  if (!Number.isFinite(priorUsd) || priorUsd < 20) throw new Error("prior project reserve must be at least USD 20 for delayed billing");
   const priorMicro = Math.ceil(priorUsd * 1_000_000);
   const fullReserve = PER_CALL_MICRO_USD * CALL_COUNT;
   if (fullReserve > RUN_CAP || priorMicro + fullReserve > STUDY_CAP) throw new Error("full predeclared request reserve exceeds a dollar ceiling");
