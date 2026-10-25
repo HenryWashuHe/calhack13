@@ -26,7 +26,7 @@ research scripts, not the bounded executor. `calibrate.py` starts a supplied
 Python control directly, without an OS sandbox. Only trusted, hand-written
 controls were reported used here; no generated method source was reported run
 for this analysis. The harness's failure accounting and process-lifecycle
-limitations are listed below. The commands are not an instruction to execute
+fixes are described below. The commands are not an instruction to execute
 untrusted source or overwrite the retained results.
 
 Successes out of 40 (selected rows; all 15 are in the JSON):
@@ -162,17 +162,22 @@ The aggregate results lack immutable execution bindings and full evaluator
 failure records; they cannot establish measured model usage, adoption,
 execution authority, a controlled G4 gate or recursive benefit.
 
-Static review found that `calibrate.py` can report a failed/missing experiment
-receipt as an `ok` response with zero charged steps. Its summary and
-`headroom.py` sum missing acceptance results as zero successes. `panel_cap.py`
-omits unsuccessful evaluator processes from its histogram without a separate
-failure count. The checked-in calibration and headroom JSON has no null
-success values, and every panel histogram sums to the requested 4,000, so
-these checks do not change the reported arithmetic. They do not independently
-verify the author's usage accounting. The harness also lacks a deadline for
-its blocking protocol reads and guaranteed child cleanup. These issues need
-an author fix before treating the scripts as reliable repeatable measurement
-harnesses; no new experiment was needed for these documentation corrections.
+Static review found that `calibrate.py` could report a failed or missing
+experiment receipt as an `ok` response with zero charged steps, that it and
+`headroom.py` summed missing acceptance results as zero successes, that
+`panel_cap.py` left failed evaluator calls out of its histogram, and that the
+harness had no deadline on its protocol reads and no guaranteed child
+cleanup. Those are fixed (PR after #184). An evaluator call that fails, times
+out or prints no valid count makes a calibration panel *unavailable*, with the
+reason, and its successes `null`. Any unavailable panel makes the total
+`null`. `panel_cap.py` refuses to print a partial histogram. Each evaluator
+call has a 120 s limit and each panel a 900 s deadline, and the control
+process is always stopped and reaped. `test_harness.py` covers these with a
+fake evaluator. Re-running `headroom.py` and every `calibrate.py` entry after
+the fix reproduced the checked-in `headroom.json` and `calibration.json`
+byte for byte (the retained runs had no failures). `panel-cap.json` was not
+regenerated. These are still author-run analysis scripts for hand-written
+controls, not the executor or a sandbox.
 
 GENESIS's goal remains networked recursive capability improvement with fixed
 model weights. This analysis informs that work; it is not a substitute for

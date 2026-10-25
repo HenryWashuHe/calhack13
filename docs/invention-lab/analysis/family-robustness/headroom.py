@@ -13,7 +13,6 @@ executor, not trial evidence). The fixed designs run only through
 """
 import json
 import os
-import subprocess
 import sys
 import tempfile
 
@@ -59,14 +58,18 @@ def main(argv):
                 runs = [calibrate.panel_run(lab_eval, path, family, seeds, GRANT, tmp)
                         for seeds in panels]
                 row[name] = {"per_panel": [r["successes"] for r in runs],
-                             "total": sum(r["successes"] or 0 for r in runs)}
+                             "total": calibrate.total(runs)}
             for name, path in FIXED.items():
                 per = []
                 for seeds in panels:
-                    done = subprocess.run([lab_eval, "accept", path, family, *map(str, seeds)],
-                                          capture_output=True, text=True, check=True)
-                    per.append(json.loads(done.stdout)["succeeded"])
-                row[name] = {"per_panel": per, "total": sum(per)}
+                    try:
+                        scored = calibrate.lab(lab_eval, "accept", path, family, *map(str, seeds))
+                        count = scored.get("succeeded")
+                        per.append(count if isinstance(count, int) else None)
+                    except calibrate.Unavailable:
+                        per.append(None)
+                row[name] = {"per_panel": per,
+                             "total": None if None in per else sum(per)}
             out["families"][family] = row
     json.dump(out, sys.stdout, indent=1)
     sys.stdout.write("\n")
