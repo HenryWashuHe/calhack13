@@ -82,6 +82,7 @@ text.big { font-family: var(--display); font-weight: 700; font-size: 22px; fill:
 .verify { fill: none; stroke: var(--accent); stroke-width: 2; stroke-dasharray: 10 8; opacity: 0; transform-origin: center; transform-box: fill-box; }
 .verify.on { opacity: 1; animation: spin 1.2s linear infinite; }
 .verify.bad { stroke: var(--refuse); }
+.paused .verify.on { animation-play-state: paused; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .fade { transition: opacity .5s; }
 @media (prefers-reduced-motion: reduce) { .verify.on { animation: none; } .rung, .stop, .org, .edge, .fade, .dots button { transition: none; } }
@@ -92,7 +93,7 @@ text.big { font-family: var(--display); font-weight: 700; font-size: 22px; fill:
 <header class="brand">GENESIS <span class="chip fixture" id="chip">scripted · fixture scenario</span><span class="chip" id="act-name">kernel</span></header>
 <main>
   <section class="act" id="act-kernel" aria-label="The kernel at work"><svg id="svg-kernel" viewBox="0 0 1200 640" role="img" aria-label="Evidence enters an organization, the planner chooses a rung, the kernel moves the change through its states"></svg></section>
-  <section class="act" id="act-improve" hidden aria-label="Improvement"><svg id="svg-improve" viewBox="0 0 1200 640" role="img" aria-label="Candidates rise each generation, the promoted one lifts the frontier, controls stay as lines"></svg></section>
+  <section class="act" id="act-improve" hidden aria-label="Improvement"><svg id="svg-improve" viewBox="0 0 1200 640" role="img" aria-label="Survivor scores on separate generation selection panels, followed by fresh-panel confirmation bars"></svg></section>
   <section class="act" id="act-network" hidden aria-label="The network"><svg id="svg-network" viewBox="0 0 1200 640" role="img" aria-label="Verified bundles travel between organizations and raise their meters"></svg></section>
 </main>
 <footer class="dots" aria-label="Acts">
@@ -121,10 +122,12 @@ text.big { font-family: var(--display); font-weight: 700; font-size: 22px; fill:
   const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const ease = (t) => (t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
 
-  // A pausable clock drives both the step timeline and the tweens, so Space freezes everything at once.
+  // Space pauses the logical steps, delayed mutations and SVG tweens; CSS color transitions may finish.
   const clock = { t: 0, last: null, paused: false };
   const timeline = { steps: [], i: 0, start: 0, length: 0 };
   const tweens = new Set();
+  const delays = new Set();
+  function delay(fn, ms) { delays.add({ at: clock.t + ms, fn }); }
   function at(ms, fn) { timeline.steps.push([ms, fn]); timeline.length = Math.max(timeline.length, ms); }
   function tween(ms, fn, done) { const s = { start: clock.t, ms: reduced ? 1 : ms, fn, done }; tweens.add(s); return s; }
   function frame(now) {
@@ -132,6 +135,9 @@ text.big { font-family: var(--display); font-weight: 700; font-size: 22px; fill:
     if (!clock.paused) clock.t += now - clock.last;
     clock.last = now;
     while (timeline.i < timeline.steps.length && clock.t - timeline.start >= timeline.steps[timeline.i][0]) timeline.steps[timeline.i++][1]();
+    for (const d of delays) {
+      if (clock.t >= d.at) { delays.delete(d); d.fn(); }
+    }
     for (const s of tweens) {
       const p = Math.min(1, (clock.t - s.start) / s.ms);
       s.fn(ease(p));
@@ -154,7 +160,7 @@ text.big { font-family: var(--display); font-weight: 700; font-size: 22px; fill:
     const a = ACTS[current];
     $("chip").className = "chip " + a.chip[0]; $("chip").textContent = a.chip[1]; $("act-name").textContent = a.name;
     const svg = $(a.svg); svg.replaceChildren();
-    tweens.clear(); timeline.steps = []; timeline.i = 0; timeline.length = 0; timeline.start = clock.t;
+    tweens.clear(); delays.clear(); timeline.steps = []; timeline.i = 0; timeline.length = 0; timeline.start = clock.t;
     a.build(svg);
     at(timeline.length + 1800, () => show(current + 1)); // the acts loop
   }
@@ -206,17 +212,17 @@ text.big { font-family: var(--display); font-weight: 700; font-size: 22px; fill:
     let t = 400;
     // cycle 1: evidence arrives, the planner climbs to "create a role", the kernel commits, the ring grows
     at(t, () => evidence(g, cx - R - 300, cy, cx - R - 20, cy, false)); t += 1400;
-    at(t, () => { for (let i = 0; i < 5; i++) setTimeout(() => light(i), i * 180); }); t += 1500;
+    at(t, () => { for (let i = 0; i < 5; i++) delay(() => light(i), i * 180); }); t += 1500;
     at(t, () => { token.setAttribute("r", 9); token.setAttribute("class", "token"); setStops(0, "current"); }); t += 700;
-    STAGES.slice(1).forEach((s, i) => { at(t, () => { move(px + (i + 1) * step, ty, 500); setTimeout(() => setStops(i + 1, "current"), 480); }); t += 1000; });
+    STAGES.slice(1).forEach((s, i) => { at(t, () => { move(px + (i + 1) * step, ty, 500); delay(() => setStops(i + 1, "current"), 480); }); t += 1000; });
     at(t, () => { const n = placeRole(g, cx, cy, R, -90 + 3 * 72, "relocation", true); nodes.push(n); rev.textContent = "r2"; }); t += 2200;
     // cycle 2: a hostile instruction; the planner would create a role; the kernel refuses at validation
     at(t, () => { clearLadder(); setStops(-1, ""); token.setAttribute("r", 0); token.setAttribute("cx", px); token.setAttribute("cy", ty); }); t += 300;
     at(t, () => evidence(g, cx - R - 300, cy, cx - R - 20, cy, true)); t += 1400;
-    at(t, () => { for (let i = 0; i < 5; i++) setTimeout(() => light(i, i === 4), i * 180); }); t += 1500;
+    at(t, () => { for (let i = 0; i < 5; i++) delay(() => light(i, i === 4), i * 180); }); t += 1500;
     at(t, () => { token.setAttribute("r", 9); setStops(0, "current"); }); t += 700;
-    at(t, () => { move(px + step, ty, 500); setTimeout(() => setStops(1, "current"), 480); }); t += 1000;
-    at(t, () => { token.setAttribute("class", "token refused"); move(px + step + 90, py + 40, 700); setTimeout(() => { stops.forEach((s, i) => s.set(i < 1 ? "done" : "")); rejected.set("rejected"); }, 650); }); t += 2200;
+    at(t, () => { move(px + step, ty, 500); delay(() => setStops(1, "current"), 480); }); t += 1000;
+    at(t, () => { token.setAttribute("class", "token refused"); move(px + step + 90, py + 40, 700); delay(() => { stops.forEach((s, i) => s.set(i < 1 ? "done" : "")); rejected.set("rejected"); }, 650); }); t += 2200;
     // cycle 3: a routine report; the planner stays on rung one; nothing moves on the rail
     at(t, () => { clearLadder(); setStops(-1, ""); token.setAttribute("r", 0); token.setAttribute("cx", px); token.setAttribute("cy", ty); }); t += 300;
     at(t, () => evidence(g, cx - R - 300, cy, cx - R - 20, cy, false)); t += 1400;
@@ -260,9 +266,8 @@ text.big { font-family: var(--display); font-weight: 700; font-size: 22px; fill:
     seed.gens.forEach((_, i) => el("text", { x: X(i), y: y0 + 22, "text-anchor": "middle" }, g, `g${i + 1}`));
     el("text", { x: x0, y: 80, class: "big" }, g, seed.id);
     el("text", { x: x0 + 150, y: 80 }, g, `${seed.head}…`);
-    // controls as lines, drawn from the fresh panel
-    const ctrl = [["random-search", "rs"], ["MWKR", ""], ["SPT", ""]];
-    ctrl.forEach(([name, cls]) => { const y = Y(seed.panel[name]); el("line", { x1: x0, y1: y, x2: x1, y2: y, class: "control " + cls }, g); el("text", { x: x1 + 8, y: y + 4 }, g, `${name} ${seed.panel[name]}`); });
+    el("text", { x: x0, y: 102 }, g, "survivor scores · separate selection panels");
+    // Each panel remeasures the survivor. Fresh-panel controls belong only in the confirmation bars.
     // the frontier
     let level = seed.gens[0][0];
     const frontier = el("path", { d: `M ${x0} ${Y(level)} H ${X(0)}`, class: "frontier" }, g);
@@ -279,12 +284,12 @@ text.big { font-family: var(--display); font-weight: 700; font-size: 22px; fill:
       t += 1500;
       at(t, () => {
         dots.forEach((c, k) => c.setAttribute("class", "cand" + (k === promoted ? " promoted" : " lost")));
+        const v = promoted === null ? inc : cands[promoted], from = Y(level), to = Y(v);
+        level = v;
+        const d = frontier.getAttribute("d");
+        ghost.setAttribute("d", `M ${x} ${from} V ${to}`);
+        tween(700, (p) => frontier.setAttribute("d", d + ` V ${from + (to - from) * p}`));
         if (promoted !== null) {
-          const v = cands[promoted], from = Y(level), to = Y(v);
-          level = v;
-          const d = frontier.getAttribute("d");
-          ghost.setAttribute("d", `M ${x} ${from} V ${to}`);
-          tween(700, (p) => frontier.setAttribute("d", d + ` V ${from + (to - from) * p}`));
           const c = dots[promoted], cx = +c.getAttribute("cx"); tween(700, (p) => c.setAttribute("cx", cx + (x - cx) * p));
         }
       });
@@ -334,7 +339,7 @@ text.big { font-family: var(--display); font-weight: 700; font-size: 22px; fill:
         tween(1300, (p) => tag.setAttribute("transform", `translate(${A.x + (B.x - A.x) * p} ${A.y + (B.y - A.y) * p})`), () => {
           B.verify.setAttribute("class", "verify on" + (ok ? "" : " bad"));
           const e = edgeOf(a, b);
-          setTimeout(() => {
+          delay(() => {
             B.verify.setAttribute("class", "verify");
             if (ok) { tag.remove(); B.set(Math.max(B.level, A.level - 0.08)); B.ring.setAttribute("class", "org lit"); e.setAttribute("class", "edge lit"); }
             else { tag.setAttribute("class", "bundle bad"); e.setAttribute("class", "edge bad"); B.ring.setAttribute("class", "org bad"); tween(1000, (p) => tag.setAttribute("transform", `translate(${B.x + (A.x - B.x) * p} ${B.y + (A.y - B.y) * p})`), () => { tag.remove(); B.ring.setAttribute("class", "org"); e.setAttribute("class", "edge"); }); }
