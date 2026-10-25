@@ -257,8 +257,10 @@ every milestone. All lower checkpoints are historical.
   Complete six-operation/four-family roster, numeric ceilings, adaptive Prepared
   chronology, frozen selection export and runtime assurance remain open.
   Preparation #164 `55e14cc4` clears its prior publication/byte-pin defects
-  with eight pure file tests; it awaits PR-description correction and merge.
-  This is preparation only, without trusted selection lineage. Endpoint #168 `9931a77d` is held on unbound receipts, malformed usage
+  with eight pure file tests and is merged at `a056ec65`; its PR description
+  is corrected.
+  This is preparation only, without trusted selection lineage. Endpoint #168
+  `9931a77d` is held on unbound receipts, malformed usage
   and incorrect fresh panels. #165 `de40669c` is held on the wrong hidden-run
   reproduction build; static manifest/artifact/slot checks pass without runtime
   validation or gate closure. #171 `1d3d28e3` → `ef7cb923` merges the shared typed
@@ -268,7 +270,9 @@ every milestone. All lower checkpoints are historical.
   [next claimed slice](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6391230947)
   is create-only `process-select-prepare` plus read-only `process-select-check`,
   retaining/recomputing the existing three-round selector inputs and report.
-  It is in progress, not merged, and does not cover the full 24-cell roster.
+  It is open as #173 `332f4f01`: root four new plus eight binary cases and
+  Clippy/fmt pass; independent review is pending. It does not cover the full
+  24-cell roster and is not merged.
   #160's regression analysis is merged as retrospective explanation, not a new
   trial, mechanism fix or proof the proposed #144 iteration engine works.
   No new model request is declared.
@@ -288,9 +292,11 @@ every milestone. All lower checkpoints are historical.
   evidence.
 - Ines remains unassigned by explicit user instruction.
 
-Separate `apps/stage` review queue: new #125 `811d0df2` and #126 `957edf8b`
-heads are unreviewed. The prior timing/acknowledgment holds remain recorded at
-`973aa9c` / `b7bdb18`; no clearance or new-head failure reproduction is claimed.
+Separate `apps/stage` queue: #125 `811d0df2` → `c0c2cae1` is merged after
+33 offline VM tests, with the original timing guard unchanged. #126 `957edf8b`,
+retargeted to main, remains held: a valid A acknowledgment points to B's card.
+All 45 original tests pass; two new guards fail in preserved `27afe99c`.
+Sponsor framing #161 `c936bcf6` is under separate review.
 ACP #144 has new unreviewed head `fd35c2fe`; preserve the emitter findings at
 `880f7bc` and original engine guards pending exact-head review. These changes
 transfer no ownership or adoption authority.
