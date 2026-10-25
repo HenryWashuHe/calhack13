@@ -267,6 +267,8 @@ export interface ExecutionReceipt {
   /** The method the executor reports it actually ran. */
   actual_method: ExactRef;
   actual_environment: ExactRef;
+  /** The task family the binding names (e.g. `ravine-crossing`). */
+  public_task: ExactRef;
   purpose: Purpose;
   outcome: string;
   outputs: ExactRef[];
@@ -288,6 +290,7 @@ export function decodeExecutionReceipt(v: unknown): ExecutionReceipt {
     bound_method: decodeRef(b.method, `${at}.binding.method`),
     actual_method: decodeRef(o.actual_method, `${at}.actual_method`),
     actual_environment: decodeRef(o.actual_environment, `${at}.actual_environment`),
+    public_task: decodeRef(b.public_task, `${at}.binding.public_task`),
     purpose: decodePurpose(b.purpose, `${at}.binding.purpose`),
     outcome: str(o, "outcome", at),
     outputs: refs(o.outputs, `${at}.outputs`),
@@ -449,5 +452,33 @@ export function decodeTrialPlan(v: unknown): TrialPlan {
       sha256: canonicalSha256({ domain: "genesis.development_trial_plan", version: 1, plan: o }),
     },
     criterion: decodeRef(o.criterion, `${at}.criterion`),
+  };
+}
+
+/** A scoring metrics artifact (`lab-scoring-metrics/1`), identified by the
+ * SHA-256 of its exact bytes, which a scored evaluation names. Each row is one
+ * scored instance; only the recorded boolean `success` is counted. */
+export interface MetricsArtifact {
+  sha256: string;
+  instances: { instance: string; success: boolean }[];
+}
+export function isMetricsShape(o: Obj): boolean {
+  return (
+    Array.isArray(o.instances) &&
+    o.instances.length > 0 &&
+    o.instances.every((r) => typeof r === "object" && r !== null && "instance" in r && "success" in r)
+  );
+}
+export function decodeMetricsArtifact(bytes: Uint8Array): MetricsArtifact {
+  const at = "metrics";
+  const o = obj(JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes)), at);
+  if (!Array.isArray(o.instances)) throw new DecodeError(`${at}.instances: expected array`);
+  return {
+    sha256: sha256Hex(bytes),
+    instances: o.instances.map((r, i) => {
+      const row = obj(r, `${at}.instances[${i}]`);
+      if (typeof row.success !== "boolean") throw new DecodeError(`${at}.instances[${i}].success: expected boolean`);
+      return { instance: str(row, "instance", `${at}.instances[${i}]`), success: row.success };
+    }),
   };
 }
