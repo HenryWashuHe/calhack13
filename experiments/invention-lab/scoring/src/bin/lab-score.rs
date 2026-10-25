@@ -20,8 +20,35 @@ use genesis_lab_score::verdict::{assess_process_slot, decide, SlotEvidence};
 use std::path::Path;
 use std::process::ExitCode;
 
+/// Largest retained JSON record (plan, receipt, criterion) this tool reads.
+const MAX_JSON_BYTES: u64 = 8 * 1024 * 1024;
+/// Largest metrics artifact; matches the shared assessment's own bound.
+const MAX_METRICS_BYTES: u64 = 1024 * 1024;
+
+/// Reads at most `limit` bytes of one regular file, refusing anything larger
+/// without loading it.
+fn bounded(path: &str, limit: u64) -> Result<Vec<u8>, String> {
+    use std::io::Read;
+    let file = std::fs::File::open(path).map_err(|e| format!("read {path}: {e}"))?;
+    if !file
+        .metadata()
+        .map_err(|e| format!("read {path}: {e}"))?
+        .is_file()
+    {
+        return Err(format!("{path}: not a regular file"));
+    }
+    let mut bytes = Vec::new();
+    file.take(limit + 1)
+        .read_to_end(&mut bytes)
+        .map_err(|e| format!("read {path}: {e}"))?;
+    if bytes.len() as u64 > limit {
+        return Err(format!("{path}: larger than {limit} bytes"));
+    }
+    Ok(bytes)
+}
+
 fn json<T: serde::de::DeserializeOwned>(path: &str) -> Result<T, String> {
-    let bytes = std::fs::read(path).map_err(|e| format!("read {path}: {e}"))?;
+    let bytes = bounded(path, MAX_JSON_BYTES)?;
     serde_json::from_slice(&bytes).map_err(|e| format!("{path}: {e}"))
 }
 
@@ -36,10 +63,21 @@ fn slot_evidence(state: &str, score: &str) -> Result<SlotEvidence, String> {
         None
     };
     let metrics = match scoring.as_ref().map(|r| &r.outcome) {
-        Some(EvaluationOutcome::Scored { metrics }) => Some(
-            std::fs::read(format!("{score}/artifacts/{}", metrics.sha256))
-                .map_err(|e| format!("read metrics: {e}"))?,
-        ),
+        Some(EvaluationOutcome::Scored { metrics }) => {
+            // The digest names a file: check its shape before it becomes a path.
+            let digest = &metrics.sha256;
+            if digest.len() != 64
+                || !digest
+                    .bytes()
+                    .all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'f'))
+            {
+                return Err("metrics digest is not a lowercase SHA-256".into());
+            }
+            Some(bounded(
+                &format!("{score}/artifacts/{digest}"),
+                MAX_METRICS_BYTES,
+            )?)
+        }
         _ => None,
     };
     Ok(SlotEvidence {
