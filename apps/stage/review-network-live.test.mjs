@@ -92,3 +92,13 @@ test('role identity remains distinct when names are equal after case folding',()
   h.run('applyLiveEvent({type:"role_created",payload:{role_id:"role-3",name:"Lead"}})');
   assert.equal(roles().length,3,'repeated same-ID event must not duplicate the role');
 });
+
+test('a newer proposal invalidates older delayed ladder and token callbacks',()=>{
+  const h=harness();
+  h.run('live.on=true;timeline.steps=[];live.state='+JSON.stringify(org)+';buildKernelLive($("svg-kernel"));applyLiveEvent({type:"change_proposed",payload:{change_id:"c1",operations:["CreateRole"]}});applyLiveEvent({type:"change_status_changed",payload:{change_id:"c1",from:"READY",to:"COMMITTED"}});applyLiveEvent({type:"change_proposed",payload:{change_id:"c2",operations:["AssignResponsibility"]}})');
+  flush(h);
+  const nodes=h.nodes(h.get('svg-kernel'));
+  const rungs=nodes.filter(n=>(n.attrs.class||'').split(' ').includes('rung'));
+  assert.equal(rungs.findIndex(n=>(n.attrs.class||'').split(' ').includes('lit')),1);
+  assert.equal(nodes.find(n=>n.attrs.class==='token').attrs.cx,'560');
+});
