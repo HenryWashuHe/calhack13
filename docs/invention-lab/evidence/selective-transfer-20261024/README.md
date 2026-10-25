@@ -127,5 +127,14 @@ for t in st-rough-transport st-ravine-crossing; do
 done
 ```
 
+The hidden checks re-score with the revealed salt. The re-score checks that the
+salt opens the committed descriptor and that the comparison is closed. The
+metrics digest it reports must equal the retained one (only wall time differs):
+
+```sh
+cd hidden-2/rough-transport/run
+lab-score score-hidden plan.json candidate descriptor.json ../../salt-revealed.txt /tmp/rescore candidate=candidate control=control
+```
+
 Re-running a slot needs root, the namespaces sandbox and a `python3` that
 reports exactly `Python 3.14.0`, with a new state directory.
