@@ -37,7 +37,25 @@ identities are the SHA-256 of their file bytes, derived from the package.
   (`replay.py diff`; synthetic outcomes, never scores);
 - static checks for the two "must not hold" columns above.
 
-A live run through `lab-exec` / `lab-score` is the remaining direct check.
+## Live check
+
+The same acceptance through the real executor and scorer, from
+`experiments/invention-lab/executor` after `cargo build`:
+
+```sh
+B=target/debug/lab-exec; O=/tmp/split
+$B package ../../strategy-adapter/parent-split parent-split 0.1.0 method.py $O.package.json
+$B example-plan namespaces 6 72000 60000 $O rough-transport $O.package.json 0
+$B run $O/plan.json candidate $O.package.json $O/candidate namespaces
+(cd ../scoring && cargo run -q --bin lab-score -- score $O/plan.json candidate $O/candidate $O/candidate-score)
+$B check $O/plan.json candidate $O/candidate $O/candidate-score
+```
+
+Use `none` in place of `namespaces` where the host cannot create namespaces,
+and say which ran. Expected: 6 experiments, 5,205 steps, output `2483f08f…`,
+6 of 6, and the same instance, design, step count and result artifact for each
+experiment as `…/vs-parent/control/transcript.json`. A run of this is an
+author-run local process, not retained evidence.
 
 ## One finding the split made visible
 
