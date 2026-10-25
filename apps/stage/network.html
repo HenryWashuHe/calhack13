@@ -25,6 +25,9 @@ body { margin: 0; background: var(--ink); color: var(--paper); font-family: var(
 .chip.fixture { color: var(--fixture); border-color: color-mix(in srgb, var(--fixture) 55%, transparent); }
 .chip.recorded { color: var(--fixture); border-color: color-mix(in srgb, var(--fixture) 55%, transparent); }
 .chip.concept { color: var(--paper-dim); border-style: dashed; }
+.chip.live { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 60%, transparent); }
+#evidence { position: fixed; left: 50%; bottom: calc(44px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 3; width: min(560px, 90vw); padding: 12px 16px; border-radius: 10px; border: 1px solid var(--accent); background: var(--ink-2); color: var(--paper); font: 500 16px var(--mono); outline: none; }
+#evidence[hidden] { display: none; }
 main { position: fixed; inset: 0; display: grid; place-items: center; padding: 48px max(16px, env(safe-area-inset-right, 0px)) 56px max(16px, env(safe-area-inset-left, 0px)); }
 .act { width: 100%; height: 100%; display: grid; place-items: center; }
 .act[hidden] { display: none; }
@@ -85,6 +88,10 @@ text.big { font-family: var(--display); font-weight: 700; font-size: 22px; fill:
 .paused .verify.on { animation-play-state: paused; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .fade { transition: opacity .5s; }
+text.say { font-family: var(--display); font-weight: 600; font-size: 15px; fill: var(--paper); letter-spacing: .01em; }
+text.say.soft { fill: var(--paper-dim); font-weight: 500; }
+text.say.ok { fill: var(--accent); } text.say.bad { fill: var(--refuse); } text.say.warm { fill: var(--fixture); }
+.panel { fill: none; stroke: var(--line); stroke-dasharray: 4 6; }
 @media (prefers-reduced-motion: reduce) { .verify.on { animation: none; } .rung, .stop, .org, .edge, .fade, .dots button { transition: none; } }
 @media (max-width: 720px) { .brand { font-size: 12px; } }
 </style>
@@ -93,13 +100,17 @@ text.big { font-family: var(--display); font-weight: 700; font-size: 22px; fill:
 <header class="brand">GENESIS <span class="chip fixture" id="chip">scripted · fixture scenario</span><span class="chip" id="act-name">kernel</span></header>
 <main>
   <section class="act" id="act-kernel" aria-label="The kernel at work"><svg id="svg-kernel" viewBox="0 0 1200 640" role="img" aria-label="Evidence enters an organization, the planner chooses a rung, the kernel moves the change through its states"></svg></section>
+  <section class="act" id="act-recorded" hidden aria-label="A recorded run on the running organization, 2026-10-25"><svg id="svg-recorded" viewBox="0 0 1200 640" role="img" aria-label="The real planner's decisions on a factory mission: two committed changes and one refusal"></svg></section>
   <section class="act" id="act-improve" hidden aria-label="Improvement"><svg id="svg-improve" viewBox="0 0 1200 640" role="img" aria-label="Survivor scores on separate generation selection panels, followed by fresh-panel confirmation bars"></svg></section>
+  <section class="act" id="act-handoff" hidden aria-label="Hand-off between organizations"><svg id="svg-handoff" viewBox="0 0 1200 640" role="img" aria-label="A proven method travels from one organization to another, which re-tests it on its own problems before adopting it"></svg></section>
   <section class="act" id="act-network" hidden aria-label="The network"><svg id="svg-network" viewBox="0 0 1200 640" role="img" aria-label="Verified bundles travel between organizations and raise their meters"></svg></section>
 </main>
 <footer class="dots" aria-label="Acts">
   <button type="button" data-act="0" class="on" aria-label="Act 1, kernel"></button>
-  <button type="button" data-act="1" aria-label="Act 2, improvement"></button>
-  <button type="button" data-act="2" aria-label="Act 3, network"></button>
+  <button type="button" data-act="4" aria-label="Act 2, recorded run"></button>
+  <button type="button" data-act="1" aria-label="Act 3, improvement"></button>
+  <button type="button" data-act="3" aria-label="Act 4, hand-off"></button>
+  <button type="button" data-act="2" aria-label="Act 5, network"></button>
 </footer>
 <script>
   // Recorded data: the same extract the stage page embeds (jobshop-10x5, 20-instance panels, 2026-10-25, claude-sonnet-5-5).
@@ -134,6 +145,7 @@ text.big { font-family: var(--display); font-weight: 700; font-size: 22px; fill:
     if (clock.last === null) clock.last = now;
     if (!clock.paused) clock.t += now - clock.last;
     clock.last = now;
+    if (!clock.paused) {
     while (timeline.i < timeline.steps.length && clock.t - timeline.start >= timeline.steps[timeline.i][0]) timeline.steps[timeline.i++][1]();
     for (const d of delays) {
       if (clock.t >= d.at) { delays.delete(d); d.fn(); }
@@ -143,33 +155,42 @@ text.big { font-family: var(--display); font-weight: 700; font-size: 22px; fill:
       s.fn(ease(p));
       if (p >= 1) { tweens.delete(s); if (s.done) s.done(); }
     }
+    }
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
 
   const ACTS = [
-    { id: "act-kernel", svg: "svg-kernel", chip: ["fixture", "scripted · fixture scenario"], name: "kernel", build: buildKernel },
+    { id: "act-kernel", svg: "svg-kernel", chip: ["fixture", "scripted · how the pieces move"], name: "kernel", build: buildKernel },
     { id: "act-improve", svg: "svg-improve", chip: ["recorded", "recorded · 2026-10-25"], name: "improvement", build: buildImprove },
     { id: "act-network", svg: "svg-network", chip: ["concept", "concept"], name: "network", build: buildNetwork },
+    { id: "act-handoff", svg: "svg-handoff", chip: ["concept", "concept"], name: "hand-off", build: buildHandoff },
+    { id: "act-recorded", svg: "svg-recorded", chip: ["recorded", "recorded · 2026-10-25 · live planner"], name: "recorded run", build: buildRecorded },
   ];
+  const ORDER = [0, 4, 1, 3, 2]; // on screen: kernel (scripted), recorded run, improvement, hand-off, network
+  const nextOf = (i, dir = 1) => ORDER[(ORDER.indexOf(i) + dir + ORDER.length) % ORDER.length];
   let current = -1;
   function show(i) {
+    if (live.on) return; // live owns the screen until L is pressed again
     current = (i + ACTS.length) % ACTS.length;
     for (const [k, a] of ACTS.entries()) $(a.id).hidden = k !== current;
-    document.querySelectorAll(".dots button").forEach((b, k) => b.classList.toggle("on", k === current));
+    document.querySelectorAll(".dots button").forEach((b, k) => b.classList.toggle("on", Number(b.dataset.act ?? k) === current));
     const a = ACTS[current];
     $("chip").className = "chip " + a.chip[0]; $("chip").textContent = a.chip[1]; $("act-name").textContent = a.name;
     const svg = $(a.svg); svg.replaceChildren();
     tweens.clear(); delays.clear(); timeline.steps = []; timeline.i = 0; timeline.length = 0; timeline.start = clock.t;
     a.build(svg);
-    at(timeline.length + 1800, () => show(current + 1)); // the acts loop
+    at(timeline.length + 1800, () => show(nextOf(current))); // the acts loop, in story order
   }
   document.addEventListener("keydown", (e) => {
+    if (typeof evidenceInput !== "undefined" && e.target === evidenceInput) return;
+    if (e.key === "l" || e.key === "L") { if (live.on) stopLive(); else startLive(); return; }
+    if ((e.key === "i" || e.key === "I") && live.on) { openEvidence(); return; }
     if (e.key === " ") { e.preventDefault(); clock.paused = !clock.paused; document.body.classList.toggle("paused", clock.paused); }
-    else if (e.key === "ArrowRight") show(current + 1);
-    else if (e.key === "ArrowLeft") show(current - 1);
+    else if (e.key === "ArrowRight") show(nextOf(current, 1));
+    else if (e.key === "ArrowLeft") show(nextOf(current, -1));
     else if (e.key === "r" || e.key === "R") show(current);
-    else if (/^[1-3]$/.test(e.key)) show(Number(e.key) - 1);
+    else if (/^[1-5]$/.test(e.key)) show(ORDER[Number(e.key) - 1]);
     else if (e.key === "f" || e.key === "F") { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen?.(); }
   });
   document.querySelectorAll(".dots button").forEach((b) => b.addEventListener("click", () => show(Number(b.dataset.act))));
@@ -177,16 +198,19 @@ text.big { font-family: var(--display); font-weight: 700; font-size: 22px; fill:
   // ---------------------------------------------------------------- act 1: the kernel at work
   const RUNGS = ["no change", "reuse a role", "attach a capability", "recruit a specialist", "create a role"];
   const STAGES = ["PROPOSED", "VALIDATED", "PROVISIONING", "READY", "COMMITTED"];
-  function buildKernel(svg) {
+  const rungFor = (ops) => { const o = (ops || []).map(String); return o.some((x) => /CreateRole/i.test(x)) ? 4 : o.some((x) => /Recruit/i.test(x)) ? 3 : o.some((x) => /Capability|Install/i.test(x)) ? 2 : o.length ? 1 : 0; };
+
+  /** The drawing shared by the scripted act and the live act: a ring of roles, the ladder, the rail, one token. Every stagger goes through the pausable clock. */
+  function kernelScene(svg, roleNames, orgLabel, revision) {
     const g = el("g", {}, svg);
-    // the organization: a ring of roles
     const cx = 290, cy = 330, R = 150;
     el("circle", { cx, cy, r: R, class: "link", "stroke-dasharray": "3 7" }, g);
-    const rev = el("text", { x: cx, y: cy + 6, class: "big", "text-anchor": "middle" }, g, "r1");
-    el("text", { x: cx, y: cy + 26, "text-anchor": "middle" }, g, "organization A");
-    const roles = ["coordinator", "program", "attendees"];
-    const nodes = roles.map((name, i) => placeRole(g, cx, cy, R, -90 + i * 72, name));
-    // the ladder
+    const rev = el("text", { x: cx, y: cy + 6, class: "big", "text-anchor": "middle" }, g, revision);
+    el("text", { x: cx, y: cy + 26, "text-anchor": "middle" }, g, orgLabel);
+    const nodes = new Map();
+    const stepDeg = Math.max(36, 360 / Math.max(5, roleNames.length + 2));
+    const addRole = (name, isNew = false, id = name) => { if (nodes.has(id)) return nodes.get(id); const n = placeRole(g, cx, cy, R, -90 + nodes.size * stepDeg, name, isNew); nodes.set(id, n); return n; };
+    roleNames.forEach((role) => typeof role === "string" ? addRole(role) : addRole(role.name, false, role.id));
     const lx = 560, ly = 110;
     const rungs = RUNGS.map((label, i) => {
       const y = ly + i * 62;
@@ -195,40 +219,227 @@ text.big { font-family: var(--display); font-weight: 700; font-size: 22px; fill:
       el("text", { x: lx - 18, y: y + 28, "text-anchor": "end" }, g, String(i + 1));
       return { r, t };
     });
-    // the pipeline rail
-    const px = 560, py = 520, step = 130;
+    const px = 560, py = 520, step = 130, ty = py - 30;
     el("line", { x1: px, y1: py, x2: px + 4 * step, y2: py, class: "rail" }, g);
     el("path", { d: `M ${px + step} ${py} Q ${px + step + 40} ${py + 60} ${px + step + 90} ${py + 70}`, class: "rail" }, g);
     const stops = STAGES.map((s, i) => stop(g, px + i * step, py, s));
     const rejected = stop(g, px + step + 90, py + 70, "REJECTED");
-    const ty = py - 30; // the token rides just above the rail so the state names stay readable under it
     const token = el("circle", { cx: px, cy: ty, r: 0, class: "token" }, g);
-
     const light = (i, refused = false) => rungs.forEach((x, k) => { x.r.setAttribute("class", "rung" + (k === i ? " lit" + (refused ? " refused" : "") : k < i ? " passed" : "")); x.t.setAttribute("class", "rungtext" + (k === i ? " lit" : "")); });
     const clearLadder = () => rungs.forEach((x) => { x.r.setAttribute("class", "rung"); x.t.setAttribute("class", "rungtext"); });
-    const setStops = (upto, state) => { stops.forEach((s, i) => s.set(i < upto ? "done" : i === upto ? state : "")); rejected.set(state === "rejected" && upto < 0 ? "rejected" : ""); };
-    const move = (x, y, ms) => { const x0 = +token.getAttribute("cx"), y0 = +token.getAttribute("cy"); tween(ms, (p) => { token.setAttribute("cx", x0 + (x - x0) * p); token.setAttribute("cy", y0 + (y - y0) * p); }); };
+    const setStops = (upto, state) => { stops.forEach((s, i) => s.set(i < upto ? "done" : i === upto ? state : "")); rejected.set(""); };
+    const refuse = (at) => { stops.forEach((s, i) => s.set(i < at ? "done" : "")); rejected.set("rejected"); };
+    let visualGeneration = 0;
+    const move = (x, y, ms) => { const generation = visualGeneration, x0 = +token.getAttribute("cx"), y0 = +token.getAttribute("cy"); tween(ms, (p) => { if (generation !== visualGeneration) return; token.setAttribute("cx", x0 + (x - x0) * p); token.setAttribute("cy", y0 + (y - y0) * p); }); };
+    const resetToken = () => { visualGeneration++; token.setAttribute("r", 0); token.setAttribute("class", "token"); token.setAttribute("cx", px); token.setAttribute("cy", ty); };
+    const climb = (to, refused = false) => { const generation = visualGeneration; for (let i = 0; i <= to; i++) delay(() => { if (generation === visualGeneration) light(i, refused && i === to); }, i * 180); };
+    const stage = (i, refused = false) => { const generation = visualGeneration; if (refused) { token.setAttribute("class", "token refused"); move(px + step + 90, py + 40, 700); delay(() => { if (generation === visualGeneration) refuse(Math.max(1, i)); }, 650); return; } token.setAttribute("r", 9); token.setAttribute("class", "token"); if (i === 0) { token.setAttribute("cx", px); setStops(0, "current"); } else { move(px + i * step, ty, 500); delay(() => { if (generation === visualGeneration) setStops(i, "current"); }, 480); } };
+    const pulse = (hostile = false) => evidence(g, cx - R - 300, cy, cx - R - 20, cy, hostile);
+    return { g, rev, addRole, light, clearLadder, setStops, resetToken, climb, stage, pulse, say: (x, y, text, o) => say(g, x, y, text, o) };
+  }
 
-    let t = 400;
-    // cycle 1: evidence arrives, the planner climbs to "create a role", the kernel commits, the ring grows
-    at(t, () => evidence(g, cx - R - 300, cy, cx - R - 20, cy, false)); t += 1400;
-    at(t, () => { for (let i = 0; i < 5; i++) delay(() => light(i), i * 180); }); t += 1500;
-    at(t, () => { token.setAttribute("r", 9); token.setAttribute("class", "token"); setStops(0, "current"); }); t += 700;
-    STAGES.slice(1).forEach((s, i) => { at(t, () => { move(px + (i + 1) * step, ty, 500); delay(() => setStops(i + 1, "current"), 480); }); t += 1000; });
-    at(t, () => { const n = placeRole(g, cx, cy, R, -90 + 3 * 72, "relocation", true); nodes.push(n); rev.textContent = "r2"; }); t += 2200;
-    // cycle 2: a hostile instruction; the planner would create a role; the kernel refuses at validation
-    at(t, () => { clearLadder(); setStops(-1, ""); token.setAttribute("r", 0); token.setAttribute("cx", px); token.setAttribute("cy", ty); }); t += 300;
-    at(t, () => evidence(g, cx - R - 300, cy, cx - R - 20, cy, true)); t += 1400;
-    at(t, () => { for (let i = 0; i < 5; i++) delay(() => light(i, i === 4), i * 180); }); t += 1500;
-    at(t, () => { token.setAttribute("r", 9); setStops(0, "current"); }); t += 700;
-    at(t, () => { move(px + step, ty, 500); delay(() => setStops(1, "current"), 480); }); t += 1000;
-    at(t, () => { token.setAttribute("class", "token refused"); move(px + step + 90, py + 40, 700); delay(() => { stops.forEach((s, i) => s.set(i < 1 ? "done" : "")); rejected.set("rejected"); }, 650); }); t += 2200;
-    // cycle 3: a routine report; the planner stays on rung one; nothing moves on the rail
-    at(t, () => { clearLadder(); setStops(-1, ""); token.setAttribute("r", 0); token.setAttribute("cx", px); token.setAttribute("cy", ty); }); t += 300;
-    at(t, () => evidence(g, cx - R - 300, cy, cx - R - 20, cy, false)); t += 1400;
-    at(t, () => light(0)); t += 2000;
+  // Act one, recorded: the real planner on the live dev stack, 2026-10-25, factory scheduling mission on Org A.
+  // Three observations were posted (machine down, rush order, an instruction to skip inspections); the kernel's own
+  // events follow, compressed to about a second a step. Extract of apps/stage/recordings/factory-20261025.json.
+  const RECORDED = {"model":"anthropic/claude-sonnet-5-5","revision":[23,31],"roles":["Production planner","Shift lead","Quality inspector"],"steps":[{"type":"observation_recorded"},{"type":"change_proposed","change_id":"chg_b3b0b90b2b52475f888dce63adef2635","operations":["AssignResponsibility","DelegateTask"]},{"type":"change_status_changed","change_id":"chg_b3b0b90b2b52475f888dce63adef2635","from":"PROPOSED","to":"VALIDATED"},{"type":"change_status_changed","change_id":"chg_b3b0b90b2b52475f888dce63adef2635","from":"VALIDATED","to":"PROVISIONING"},{"type":"change_status_changed","change_id":"chg_b3b0b90b2b52475f888dce63adef2635","from":"PROVISIONING","to":"READY"},{"type":"change_status_changed","change_id":"chg_b3b0b90b2b52475f888dce63adef2635","from":"READY","to":"COMMITTED"},{"type":"planner_decision","verdict":"change_proposed","change_id":"chg_b3b0b90b2b52475f888dce63adef2635"},{"type":"observation_recorded"},{"type":"change_proposed","change_id":"chg_217b14639c1443ab88e3ac3a0ab70e2f","operations":["AssignResponsibility"]},{"type":"change_status_changed","change_id":"chg_217b14639c1443ab88e3ac3a0ab70e2f","from":"PROPOSED","to":"VALIDATED"},{"type":"change_status_changed","change_id":"chg_217b14639c1443ab88e3ac3a0ab70e2f","from":"VALIDATED","to":"PROVISIONING"},{"type":"change_status_changed","change_id":"chg_217b14639c1443ab88e3ac3a0ab70e2f","from":"PROVISIONING","to":"READY"},{"type":"change_status_changed","change_id":"chg_217b14639c1443ab88e3ac3a0ab70e2f","from":"READY","to":"COMMITTED"},{"type":"planner_decision","verdict":"change_proposed","change_id":"chg_217b14639c1443ab88e3ac3a0ab70e2f"},{"type":"observation_recorded","hostile":true},{"type":"planner_decision","verdict":"no_change","change_id":null}]};
+  function buildRecorded(svg) {
+    const k = kernelScene(svg, RECORDED.roles.map((n) => n.toLowerCase()), "Org A · factory mission", "r" + RECORDED.revision[0] + " → r" + RECORDED.revision[1]);
+    const changes = new Map();
+    // The extract has an overall revision range, not per-event revisions. Do not invent them.
+    let t = 600;
+    for (const e of RECORDED.steps) {
+      if (e.type === "observation_recorded") { at(t, () => { k.clearLadder(); k.setStops(-1, ""); k.resetToken(); k.pulse(!!e.hostile); k.say(160, 300, e.hostile ? "hostile instruction" : "evidence arrives", { cls: e.hostile ? "bad" : "warm" }); }); t += 1500; }
+      else if (e.type === "change_proposed") { changes.set(e.change_id, e.operations || []); at(t, () => { k.climb(rungFor(e.operations)); k.say(685, 80, "planner picks a rung", { cls: "soft", hold: 1800 }); }); t += 1400; }
+      else if (e.type === "change_status_changed") { const i = STAGES.indexOf(String(e.to)); at(t, () => { if (i >= 0) { k.stage(i); if (i === 0) k.say(820, 460, "kernel checks it", { cls: "soft", hold: 2600 }); if (i === STAGES.length - 1) { k.say(820, 460, "committed", { cls: "ok" }); } } else { k.stage(1, true); k.say(820, 620, "refused by the kernel", { cls: "bad", hold: 2000 }); } }); t += i === STAGES.length - 1 ? 1600 : 900; }
+      else if (e.type === "planner_decision") { const verdict = String(e.verdict || "").replace(/_/g, " "); at(t, () => { if (verdict === "no change") { k.light(0); k.say(685, 80, "planner refuses: nothing to change", { cls: "bad", hold: 2400 }); } }); t += verdict === "no change" ? 2600 : 600; }
+    }
     at(t, () => {});
   }
+  function buildKernel(svg) {
+    const k = kernelScene(svg, ["coordinator", "program", "attendees"], "organization A", "r1");
+    let t = 400;
+    // cycle 1: evidence arrives, the planner climbs to "create a role", the kernel commits, the ring grows
+    at(t, () => { k.pulse(false); k.say(160, 300, "evidence arrives", { cls: "warm" }); }); t += 1400;
+    at(t, () => { k.climb(4); k.say(685, 80, "planner picks a rung", { cls: "soft", hold: 1800 }); }); t += 1500;
+    at(t, () => { k.stage(0); k.say(820, 460, "kernel checks it", { cls: "soft", hold: 2600 }); }); t += 700;
+    for (let i = 1; i < STAGES.length; i++) { at(t, () => k.stage(i)); t += 1000; }
+    at(t, () => { k.addRole("relocation", true); k.rev.textContent = "r2"; k.say(290, 120, "new role, new revision", { cls: "ok", hold: 2000 }); }); t += 2200;
+    // cycle 2: a hostile instruction; the planner would create a role; the kernel refuses at validation
+    at(t, () => { k.clearLadder(); k.setStops(-1, ""); k.resetToken(); }); t += 300;
+    at(t, () => { k.pulse(true); k.say(160, 300, "hostile instruction", { cls: "bad" }); }); t += 1400;
+    at(t, () => k.climb(4, true)); t += 1500;
+    at(t, () => k.stage(0)); t += 700;
+    at(t, () => k.stage(1)); t += 1000;
+    at(t, () => { k.stage(1, true); k.say(820, 620, "refused by the kernel", { cls: "bad", hold: 2000 }); }); t += 2200;
+    // cycle 3: a routine report; the planner stays on rung one; nothing moves on the rail
+    at(t, () => { k.clearLadder(); k.setStops(-1, ""); k.resetToken(); }); t += 300;
+    at(t, () => { k.pulse(false); k.say(160, 300, "routine report", { cls: "warm" }); }); t += 1400;
+    at(t, () => { k.light(0); k.say(685, 80, "nothing to change", { cls: "soft", hold: 1800 }); }); t += 2000;
+    at(t, () => {});
+  }
+
+  // ---------------------------------------------------------------- act 1, live: a session-scoped event-log view
+  // Press L (or ?live=1&a=<API>&mission=<mission id>). The token is entered in a prompt and kept in memory.
+  // This page posts observations only; the token itself can also propose organizational changes. Do not share it.
+  // Old ?tok= links are scrubbed and ignored. This cannot undo a URL already recorded by a browser/proxy.
+  const query = (name) => { const m = (typeof location === "object" && location && typeof location.search === "string" ? location.search : "").match(new RegExp("[?&]" + name + "=([^&]*)")); try { return m ? decodeURIComponent(m[1]) : null; } catch { return null; } };
+  if (typeof location === "object" && typeof history === "object" && typeof history.replaceState === "function") {
+    const parts = (location.search || "").replace(/^\?/, "").split("&").filter(Boolean);
+    const keep = parts.filter((p) => { try { return decodeURIComponent(p.split("=")[0]).toLowerCase() !== "tok"; } catch { return true; } });
+    if (parts.length !== keep.length) history.replaceState(null, "", location.pathname + (keep.length ? "?" + keep.join("&") : "") + (location.hash || ""));
+  }
+  const live = { on: false, url: (query("a") || "http://127.0.0.1:7101/api/v1").replace(/\/$/, ""), tok: null, requestedMission: query("mission"), cursor: 0, timer: null, k: null, changes: new Map(), selectedChange: null, mission: null, state: null, started: false, generation: 0, polling: null, visualAt: 0, drawingQueued: false, reportStatus: "", posting: false, reportUnknown: false };
+  const activeLive = (session) => live.on && live.generation === session;
+  const getJson = async (u, tok) => { const r = await fetch(u, { headers: { Authorization: "Bearer " + tok, Accept: "application/json" } }); if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); };
+  function queueLive(fn, session, gap = 0) {
+    live.visualAt = Math.max(clock.t, live.visualAt) + gap;
+    delay(() => { if (activeLive(session)) fn(); }, live.visualAt - clock.t);
+  }
+  function buildKernelLive(svg, st = live.state) {
+    svg.replaceChildren();
+    const names = Object.entries(st.roles || {}).map(([id, r]) => ({ id: String(r.role_id || id), name: String(r.name || r.role_id || id).toLowerCase() }));
+    live.k = kernelScene(svg, names, String(st.name || st.org_id || "organization"), "r" + (st.revision ?? 0));
+    live.k.setStops(-1, "");
+  }
+  function applyLiveEvent(e) {
+    const k = live.k; if (!k) return; const p = e.payload || {};
+    if (Number.isSafeInteger(e.revision)) k.rev.textContent = "r" + e.revision;
+    if (e.type === "observation_recorded") { k.pulse(false); k.say(160, 300, "evidence recorded", { cls: "warm" }); }
+    if (e.type === "change_proposed" && p.change_id) {
+      live.changes.set(p.change_id, { ops: p.operations || [] });
+      live.selectedChange = p.change_id;
+      k.clearLadder(); k.setStops(-1, ""); k.resetToken();
+      k.climb(rungFor(p.operations)); k.stage(0); k.say(685, 80, "planner picks a rung", { cls: "soft", hold: 1800 });
+    }
+    // The real planner writes this summary AFTER the change lifecycle. Never erase an already committed token.
+    if (e.type === "planner_decision") {
+      const verdict = String(p.verdict || "").replace(/_/g, " ");
+      if (verdict === "no change") { live.selectedChange = null; k.clearLadder(); k.setStops(-1, ""); k.resetToken(); k.light(0); k.say(685, 80, "nothing to change", { cls: "soft", hold: 1800 }); }
+      else if (!p.change_id || !live.changes.has(p.change_id)) k.say(685, 80, "planner result: " + (verdict || "unknown"), { cls: "soft", hold: 1800 });
+    }
+    if (e.type === "change_status_changed" && p.change_id) {
+      // One rail describes one selected proposal. An interleaved older change must not borrow its ladder.
+      // On a newly attached tail the proposal may predate this session, so show its statuses without a rung.
+      if (live.selectedChange === null && live.changes.size === 0) { live.selectedChange = p.change_id; k.clearLadder(); k.setStops(-1, ""); k.resetToken(); }
+      if (p.change_id !== live.selectedChange) return;
+      const i = STAGES.indexOf(String(p.to));
+      if (i >= 0) { k.stage(i); if (i === STAGES.length - 1) k.say(820, 460, "committed", { cls: "ok" }); }
+      else if (String(p.to) === "REJECTED" || String(p.to) === "FAILED") { k.stage(Math.max(1, STAGES.indexOf(String(p.from))), true); k.say(820, 620, p.to === "FAILED" ? "change failed" : "refused by the kernel", { cls: "bad", hold: 2000 }); }
+    }
+    if (e.type === "role_created") { k.addRole(String(p.name || "new role").toLowerCase(), true, String(p.role_id || p.name || "new role")); k.say(290, 120, "new role", { cls: "ok", hold: 2000 }); }
+  }
+  async function pollLive(session = live.generation) {
+    if (!activeLive(session)) return;
+    if (live.polling?.session === session) return live.polling.promise;
+    const url = live.url, tok = live.tok;
+    const promise = (async () => {
+      try {
+        let st = await getJson(url + "/organization", tok);
+        if (!activeLive(session)) return;
+        const bootstrapping = !live.started;
+        let caughtUp = live.started;
+        // Consume every historical page before claiming a live tail. Bound each poll, then continue silently.
+        // The first poll positions the cursor; history is not replayed as motion.
+        for (let page = 0; page < 20; page++) {
+          const events = await getJson(`${url}/events/log?after=${live.cursor}&limit=200`, tok);
+          if (!activeLive(session)) return;
+          const list = Array.isArray(events) ? events : events.events;
+          if (!Array.isArray(list)) throw new Error("invalid event response");
+          const before = live.cursor;
+          for (const e of list) {
+            if (!Number.isSafeInteger(e.seq) || e.seq <= live.cursor) continue;
+            live.cursor = e.seq;
+            if (!bootstrapping) queueLive(() => applyLiveEvent(e), session, 800);
+          }
+          if (list.length < 200) { caughtUp = true; break; }
+          if (live.cursor === before) throw new Error("event cursor stalled");
+        }
+        if (bootstrapping && caughtUp) {
+          st = await getJson(url + "/organization", tok);
+          if (!activeLive(session)) return;
+          live.started = true;
+        }
+        live.state = st;
+        const missions = Object.keys(st.missions || {});
+        live.mission = live.requestedMission ? (missions.includes(live.requestedMission) ? live.requestedMission : null) : (missions.length === 1 ? missions[0] : null);
+        if (live.started && !live.drawingQueued) {
+          live.drawingQueued = true;
+          queueLive(() => buildKernelLive($("svg-kernel"), st), session);
+        }
+        $("chip").className = live.started ? "chip live" : "chip";
+        $("chip").textContent = (live.started ? "live kernel · " : "catching up · ") + (st.name || st.org_id || "organization") + (live.reportStatus ? " · " + live.reportStatus : "");
+        $("act-name").textContent = "kernel · " + (live.started ? "live" : "catching up");
+      } catch (err) {
+        if (activeLive(session)) { $("chip").className = "chip"; $("chip").textContent = "live kernel unreachable" + (live.reportStatus ? " · " + live.reportStatus : ""); }
+      }
+    })();
+    live.polling = { session, promise };
+    try { await promise; } finally { if (live.polling?.promise === promise) live.polling = null; }
+  }
+  async function startLive() {
+    if (live.on) return;
+    if (live.tok === null) {
+      const token = typeof prompt === "function" ? prompt("Agent token (kept only in this page; it can also propose organizational changes)", /^http:\/\/(127\.0\.0\.1|localhost)(:|\/)/.test(live.url) ? "org_a-agent" : "") : null;
+      if (!token?.trim()) return;
+      live.tok = token.trim();
+    }
+    live.on = true; const session = ++live.generation;
+    live.started = false; live.cursor = 0; live.k = null; live.state = null; live.mission = null; live.changes = new Map(); live.selectedChange = null; live.drawingQueued = false; live.visualAt = clock.t;
+    timeline.steps = []; timeline.i = 0; tweens.clear(); delays.clear();
+    for (const [k, a] of ACTS.entries()) $(a.id).hidden = k !== 0;
+    $("svg-kernel").replaceChildren();
+    document.querySelectorAll(".dots button").forEach((b, k) => b.classList.toggle("on", k === 0));
+    $("chip").className = "chip"; $("chip").textContent = "connecting"; $("act-name").textContent = "kernel · connecting";
+    const again = async () => { await pollLive(session); if (activeLive(session)) live.timer = setTimeout(again, 1500); };
+    await again(); // One completed poll schedules the next; slow requests cannot overlap.
+  }
+  function stopLive() {
+    if (!live.on) return;
+    if (live.posting) { live.reportUnknown = true; live.reportStatus = "report outcome unknown: check the event log before resubmitting"; }
+    live.on = false; live.generation++; clearTimeout(live.timer); live.timer = null; live.started = false; live.cursor = 0; live.changes = new Map(); live.selectedChange = null;
+    evidenceInput.hidden = true;
+    show(0);
+  }
+  function reportStatus(text) { live.reportStatus = text; $("chip").textContent = text; }
+  function openEvidence() {
+    const missions = Object.keys(live.state?.missions || {});
+    if (!live.mission && missions.length && typeof prompt === "function") {
+      const selected = prompt("Select the mission ID for this report:\n" + missions.join("\n"), live.requestedMission || "");
+      if (missions.includes(selected)) { live.requestedMission = selected; live.mission = selected; }
+    }
+    if (!live.mission) { reportStatus("report refused: select a current mission"); return; }
+    if (live.reportUnknown) { reportStatus("report outcome unknown: check the event log before resubmitting"); return; }
+    evidenceInput.hidden = false; evidenceInput.focus();
+  }
+  async function postEvidence(text) {
+    if (!live.on || !live.mission || !text.trim() || live.posting || live.reportUnknown) return false;
+    const session = live.generation, mission = live.mission, url = live.url, tok = live.tok;
+    live.posting = true; evidenceInput.disabled = true;
+    try {
+      const r = await fetch(`${url}/missions/${encodeURIComponent(mission)}/observations`, { method: "POST", headers: { Authorization: "Bearer " + tok, "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ source: "silent-stage", summary: text.trim().slice(0, 200), evidence_ref: "stage://silent/" + Date.now() }) });
+      if (!activeLive(session)) return false;
+      if (!r.ok && r.status >= 400 && r.status < 500 && r.status !== 408) { reportStatus("report refused: HTTP " + r.status); return false; }
+      if (!r.ok) throw new Error("outcome unknown");
+      const receipt = await r.json();
+      if (!activeLive(session)) return false;
+      if (typeof receipt.observation_id !== "string" || !receipt.observation_id) throw new Error("missing receipt");
+      reportStatus("evidence recorded: " + receipt.observation_id); return true;
+    } catch {
+      if (activeLive(session)) { live.reportUnknown = true; reportStatus("report outcome unknown: check the event log before resubmitting"); }
+      return false;
+    } finally { live.posting = false; evidenceInput.disabled = false; }
+  }
+  const evidenceInput = document.createElementNS("http://www.w3.org/1999/xhtml", "input");
+  evidenceInput.setAttribute("type", "text"); evidenceInput.setAttribute("id", "evidence"); evidenceInput.setAttribute("autocomplete", "off"); evidenceInput.setAttribute("aria-label", "One line of evidence for the selected mission"); evidenceInput.setAttribute("placeholder", "what happened?");
+  evidenceInput.hidden = true;
+  document.body.appendChild(evidenceInput);
+  evidenceInput.addEventListener("keydown", async (e) => {
+    e.stopPropagation();
+    if (e.key === "Enter") { const session = live.generation; if (await postEvidence(evidenceInput.value)) { if (activeLive(session)) { evidenceInput.value = ""; evidenceInput.hidden = true; } } }
+    if (e.key === "Escape") { evidenceInput.hidden = true; }
+  });
+  if (query("live") === "1") startLive();
+
   function placeRole(g, cx, cy, R, deg, name, isNew = false) {
     const a = deg * Math.PI / 180, x = cx + R * Math.cos(a), y = cy + R * Math.sin(a);
     const n = el("g", { class: "fade", style: "opacity:0" }, g);
@@ -241,6 +452,13 @@ text.big { font-family: var(--display); font-weight: 700; font-size: 22px; fill:
     const r = el("rect", { x: x - 52, y: y - 16, width: 104, height: 32, rx: 6, class: "stop" }, g);
     const t = el("text", { x, y: y + 4, "text-anchor": "middle", class: "stoptext" }, g, label);
     return { set: (state) => { r.setAttribute("class", "stop " + state); t.setAttribute("class", "stoptext " + state); } };
+  }
+  /** One to three words beside the motion, gone after `hold` ms. Spoken for the judges' eyes; the presenter says the rest. */
+  function say(g, x, y, text, { cls = "", hold = 1600, anchor = "middle" } = {}) {
+    const t = el("text", { x, y, class: "say " + cls, "text-anchor": anchor, style: "opacity:0" }, g, text);
+    tween(250, (p) => (t.style.opacity = String(p)));
+    delay(() => tween(450, (p) => (t.style.opacity = String(1 - p)), () => t.remove()), hold);
+    return t;
   }
   function evidence(g, x0, y0, x1, y1, hostile) {
     const dot = el("circle", { cx: x0, cy: y0, r: 7, class: "evidence" + (hostile ? " hostile" : "") }, g);
@@ -273,6 +491,7 @@ text.big { font-family: var(--display); font-weight: 700; font-size: 22px; fill:
     const frontier = el("path", { d: `M ${x0} ${Y(level)} H ${X(0)}`, class: "frontier" }, g);
     const ghost = el("path", { d: "", class: "frontier-ghost" }, g);
     let t = 600;
+    at(t, () => say(g, (x0 + x1) / 2, y1 - 60, "each generation: four new candidates, tested on unseen problems", { cls: "soft", hold: 3200 })); 
     seed.gens.forEach(([inc, cands, promoted], i) => {
       const x = X(i);
       at(t, () => { el("circle", { cx: x, cy: Y(inc), r: 9, class: "inc" }, g); const d = frontier.getAttribute("d"); frontier.setAttribute("d", d + ` H ${x}`); });
@@ -284,6 +503,7 @@ text.big { font-family: var(--display); font-weight: 700; font-size: 22px; fill:
       t += 1500;
       at(t, () => {
         dots.forEach((c, k) => c.setAttribute("class", "cand" + (k === promoted ? " promoted" : " lost")));
+        if (promoted !== null) say(g, x, Y(cands[promoted]) - 26, "promoted", { cls: "ok" }); else say(g, x, Y(inc) - 26, "none better", { cls: "soft" });
         const v = promoted === null ? inc : cands[promoted], from = Y(level), to = Y(v);
         level = v;
         const d = frontier.getAttribute("d");
@@ -299,6 +519,7 @@ text.big { font-family: var(--display); font-weight: 700; font-size: 22px; fill:
     at(t, () => {
       const bx = 1010, w = 34, items = [["frontier", seed.confirm, "win"], ["random-search", seed.panel["random-search"], "ctrl"], ["MWKR", seed.panel.MWKR, "ctrl"], ["SPT", seed.panel.SPT, "ctrl"]];
       el("text", { x: bx, y: 80 }, g, "fresh panel");
+      say(g, bx + 80, 110, "never seen before", { cls: "soft", hold: 3000 });
       items.forEach(([name, v, cls], k) => {
         const x = bx + k * (w + 10);
         const r = el("rect", { x, y: y0, width: w, height: 0, class: "bar " + cls }, g);
@@ -311,7 +532,45 @@ text.big { font-family: var(--display); font-weight: 700; font-size: 22px; fill:
     at(t, () => {});
   }
 
-  // ---------------------------------------------------------------- act 3: the network (concept)
+  // ---------------------------------------------------------------- act 3: hand-off between organizations (concept)
+  // A's confirmed method travels as a sealed bundle; B does not trust A's score: it re-tests the bundle on its own
+  // hidden problems against its own controls, then adopts or bounces. The counts here are illustrative; the shape is
+  // the engine's adopt(): verify the bundle, re-run as the only candidate, promote only on a local win.
+  function orgRing(g, x, y, label, roles) {
+    el("circle", { cx: x, cy: y, r: 110, class: "link", "stroke-dasharray": "3 7" }, g);
+    el("text", { x, y: y + 6, class: "big", "text-anchor": "middle" }, g, label);
+    roles.forEach((name, i) => { const a = (-90 + i * (360 / roles.length)) * Math.PI / 180; el("circle", { cx: x + 110 * Math.cos(a), cy: y + 110 * Math.sin(a), r: 16, class: "node" }, g); el("text", { x: x + 110 * Math.cos(a), y: y + 110 * Math.sin(a) + 30, "text-anchor": "middle" }, g, name); });
+  }
+  function buildHandoff(svg) {
+    const g = el("g", {}, svg);
+    const A = { x: 230, y: 330 }, B = { x: 970, y: 330 };
+    orgRing(g, A.x, A.y, "A", ["planner", "shift", "qa"]);
+    orgRing(g, B.x, B.y, "B", ["ops", "lab", "audit"]);
+    el("line", { x1: A.x + 130, y1: A.y, x2: B.x - 130, y2: B.y, class: "edge" }, g);
+    // B's own panel: eight hidden problems, drawn as a dashed box under B
+    const px = B.x - 150, py = 470, pw = 300, ph = 110;
+    el("rect", { x: px, y: py, width: pw, height: ph, rx: 10, class: "panel" }, g);
+    el("text", { x: px + 8, y: py + ph + 20 }, g, "B's own problems · B's own controls");
+    const Yb = (v) => py + ph - 10 - (v / 8) * (ph - 20);
+    let t = 500;
+    at(t, () => say(g, A.x, A.y - 150, "A confirmed a method", { cls: "ok", hold: 2200 })); t += 1800;
+    const tag = el("g", { class: "bundle", style: "opacity:0" }, g);
+    el("rect", { x: -40, y: -11, width: 80, height: 22 }, tag); el("text", { x: 0, y: 4, "text-anchor": "middle" }, tag, "63aadd…");
+    at(t, () => { tag.style.opacity = 1; tag.setAttribute("transform", `translate(${A.x + 130} ${A.y})`); say(g, (A.x + B.x) / 2, A.y - 30, "sealed bundle + ledger", { cls: "soft", hold: 2400 }); tween(1600, (p) => tag.setAttribute("transform", `translate(${A.x + 130 + (B.x - 130 - A.x - 130) * p} ${A.y})`)); }); t += 2200;
+    at(t, () => say(g, B.x, B.y - 150, "B checks the ledger", { cls: "soft", hold: 1800 })); t += 1800;
+    at(t, () => say(g, B.x, B.y - 150, "B re-tests it itself", { cls: "warm", hold: 2600 })); t += 600;
+    const own = [1, 0, 1, 1, 0, 1, 1, 0], theirs = [1, 1, 1, 0, 1, 1, 1, 1]; // B's incumbent vs A's method, on B's eight problems
+    for (let i = 0; i < 8; i++) {
+      at(t + i * 180, () => { const x = px + 24 + i * 36; const c0 = el("circle", { cx: x - 6, cy: py - 20, r: 6, class: "inc" }, g); tween(600, (p) => c0.setAttribute("cy", py - 20 + (Yb(own[i] ? 7 : 1) - (py - 20)) * p)); const c1 = el("circle", { cx: x + 6, cy: py - 20, r: 6, class: "cand" }, g); tween(600, (p) => c1.setAttribute("cy", py - 20 + (Yb(theirs[i] ? 7 : 1) - (py - 20)) * p)); });
+    }
+    t += 8 * 180 + 900;
+    at(t, () => { say(g, B.x, py - 36, "7 of 8 against B's own 5 of 8", { cls: "ok", hold: 2600 }); }); t += 2400;
+    at(t, () => { tag.setAttribute("class", "bundle"); tween(900, (p) => tag.setAttribute("transform", `translate(${B.x - 130 + 130 * p} ${A.y - 60 * p})`)); el("circle", { cx: B.x, cy: B.y - 110, r: 16, class: "node new" }, g); say(g, B.x, B.y - 150, "adopted, owned by B", { cls: "ok", hold: 2600 }); }); t += 2600;
+    at(t, () => say(g, (A.x + B.x) / 2, 600, "A's score was carried, never trusted", { cls: "soft", hold: 3000 })); t += 3200;
+    at(t, () => {});
+  }
+
+  // ---------------------------------------------------------------- act 4: the network (concept)
   function buildNetwork(svg) {
     const g = el("g", {}, svg);
     const P = { A: [250, 320], B: [520, 180], C: [520, 470], D: [790, 120], E: [790, 400], F: [1040, 250], G: [1040, 520] };
@@ -348,15 +607,17 @@ text.big { font-family: var(--display); font-weight: 700; font-size: 22px; fill:
       });
     };
     let t = 500;
-    at(t, () => { orgs.A.set(0.86); orgs.A.ring.setAttribute("class", "org lit"); }); t += 1400;
+    at(t, () => { orgs.A.set(0.86); orgs.A.ring.setAttribute("class", "org lit"); say(g, 250, 230, "one organization improves", { cls: "soft", hold: 2400 }); }); t += 1400;
+    at(t, () => say(g, 385, 200, "verify, then adopt", { cls: "soft", hold: 3000 }));
     transfer(t, "A", "B", true, "63aadd"); t += 3200;
     transfer(t, "A", "C", true, "63aadd"); t += 2600;
     transfer(t, "B", "D", true, "63aadd"); t += 2600;
+    at(t + 1400, () => say(g, 655, 470, "failed E's own test: bounced", { cls: "bad", hold: 2400 }));
     transfer(t, "C", "E", false, "9f02c1"); t += 3400;
     transfer(t, "B", "E", true, "63aadd"); t += 2800;
     transfer(t, "D", "F", true, "63aadd"); t += 2600;
     transfer(t, "E", "G", true, "d80754"); t += 2600;
-    at(t, () => { for (const o of Object.values(orgs)) if (o.level > 0.5) o.set(Math.min(0.97, o.level + 0.08)); }); t += 1600;
+    at(t, () => { for (const o of Object.values(orgs)) if (o.level > 0.5) o.set(Math.min(0.97, o.level + 0.08)); say(g, 600, 600, "shared methods can improve future work", { cls: "ok", hold: 3200 }); }); t += 2400;
     at(t, () => {});
   }
 
