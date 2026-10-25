@@ -6,15 +6,18 @@ weights, and passes the result on with its evidence. Node only, no dependencies,
 calls. Not a second orchestrator; its ledger and score objects do not replace the retained
 contracts (method packages, trial plans, execution and scoring receipts, chain cost records).
 
-- `emit.mjs`: `toTrialPlan`, `toCriterion`, `toVerdict`: the engine's plan and verdicts in the retained
-  `development-trial-plan/1`, `criterion.json` and `verdict.json` shapes; every `ExactContentRef`
-  and grant comes from the adapter, none is invented.
+- `emit.mjs`: `toTrialPlans`, `toCriterion`, `toVerdicts`: one acceptance `development-trial-plan/1`
+  per (candidate, control-arm) pairing with exactly one candidate and one control slot and
+  trial-qualified identities; the adapter supplies package references and dependencies, raw source
+  hashes travel separately under `iteration-source/1`; verdicts are per pairing with `candidate`,
+  `control`, `of` and `insufficient`, independent of the engine's one-frontier selection.
 - `engine.mjs`: `createState`, `runGeneration`, `run`, `confirm` (final fresh panel, never used
   for selection), `exportBundle`, `adopt`, `verifyLedger`.
 - `synthetic-family.mjs`: a SYNTHETIC family, controls and mutator used only by the tests and the
   demo below. It proves the protocol, not any task.
-- `engine.test.mjs`: eight probes (ordering, promotion margin, rejection, ledger tamper detection,
-  determinism, monotone frontier, stop rules, inheritance with re-verification).
+- `engine.test.mjs`: nine author probes; `emit.test.mjs`: six emitter probes.
+- `review-budget.test.mjs`, `review-provenance.test.mjs` (Codex) and `review-iteration.test.mjs`
+  (Henry's Claude): the reviewers' 23 adversarial probes, retained byte-identical and passing.
 - `run-synthetic.mjs`: prints a ledger summary for a few generations and one adoption.
 
 ```sh

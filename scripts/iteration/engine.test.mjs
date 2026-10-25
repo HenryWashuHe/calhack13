@@ -122,7 +122,7 @@ test("passing on: a frontier package travels with its lineage, and the adopting 
   assert.equal(bundle.package.sha256, a.state.frontier[a.family.id].package.sha256);
   assert.ok(bundle.lineage.length >= 1, "ancestors are listed back to the root");
   assert.equal(verifyLedger(bundle.ledger).ok, true);
-  assert.equal(sha256(JSON.stringify(bundle.ledger.records)), bundle.ledger_sha256);
+  assert.equal(bundle.ledger_sha256, verifyLedger(bundle.ledger).head, "the bundle is bound to its ledger's canonical head");
   // Family B has a different target: A's winner is probably wrong for B and must be rejected there.
   const b = setup(21, 120);
   const outcome = adopt(b.state, { bundle, family: b.family, controls: b.controls, criterion, heldout: 6 });
