@@ -1,0 +1,1 @@
+{"schema": "genesis-method-cost-input/1", "scope": "cost-scope.json", "generation_checkpoints": ["../../live-method-20261024-b-revision/generation.json"], "trial": {"plan": "plan.json", "evidence": "trial-evidence.json"}}
