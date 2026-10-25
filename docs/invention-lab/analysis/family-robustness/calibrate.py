@@ -77,7 +77,7 @@ def acceptance_count(scored, seeds):
     successes = 0
     for r in receipts:
         outcome = r.get("outcome")
-        if outcome not in MEASURED:
+        if not isinstance(outcome, str) or outcome not in MEASURED:
             raise Unavailable(f"acceptance receipt for seed {r.get('seed')} is {outcome!r}")
         if outcome == "scored":
             metrics = r.get("metrics")
@@ -135,6 +135,8 @@ def panel_run(lab_eval, method, family, seeds, grant, tmp):
                 req = json.loads(line)
             except ValueError:
                 raise Unavailable("control wrote a malformed line")
+            if not isinstance(req, dict):
+                raise Unavailable("control request is not a JSON object")
             if req.get("op") == "instances":
                 reply = {"ok": True, "instances": instances, "remaining_steps": remaining}
             elif req.get("op") == "experiment":
