@@ -9,6 +9,7 @@
 //! Elastic (or if it fails) search falls back to a keyword ranking.
 //! Installation always re-fetches the canonical manifest.
 
+mod method_client;
 pub mod methods;
 
 use crate::error::{ApiError, ApiResult};
