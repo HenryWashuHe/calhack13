@@ -75,7 +75,7 @@ data/scheduling-study/pilot-seed81000-40/summary.json
 
 The manifest binds source hashes, instance counts, selection rule, and zero model/provider requests. The instance bundle retains every synthetic input. The append-only event file records run start, frozen instances, each candidate policy, every per-instance score and schedule hash, candidate selection, and run completion. Each event carries a sequence number, previous-event hash and its own hash; writes are flushed and synchronized. It is an operator-local integrity and completeness check, **not** an authenticated external chronology or a substitute for the governed experiment ledger.
 
-The five additional run directories are `data/scheduling-study/pilot-seed83000-10/` through `data/scheduling-study/pilot-seed87000-10/` in steps of 1000; each retains the same four file types. Their verification event-head hashes, in seed order, are `659cffa5ab551f2e206e920100e2ed21a5c513c29c47add57f87e1b0d846e07b`, `4e8db2281f7d20e67a83c1f6c0c2f980931104ada068e117f902bc07e307c431`, `2fdd53c6dfd1b2b3fc5349bbca2eb9606b904ae73d4fc452e66324b275cd658`, `afba71d4970522fd3b2222747107359ba674d37fc1a88c4ba75e0c1d9ac3201c`, and `b143809c05503b3715e0387ea844fdb45fc78dba308e118c56332ba4d220bc6e`.
+The five additional run directories are `data/scheduling-study/pilot-seed83000-10/` through `data/scheduling-study/pilot-seed87000-10/` in steps of 1000; each retains the same four file types. Their verification event-head hashes, in seed order, are `659cffa5ab551f2e206e920100e2ed21a5c513c29c47add57f87e1b0d846e07b`, `4e8db2281f7d20e67a83c1f6c0c2f980931104ada068e117f902bc07e307c431`, `2fdd53c6df5bb3fc5349bbca2eb9606b904ae73d4fc452e66324b275cd658bc4`, `afba71d4970522fd3b2222747107359ba674d37fc1a88c4ba75e0c1d9ac3201c`, and `b143809c05503b3715e0387ea844fdb45fc78dba308e118c56332ba4d220bc6e`. The seed 85000 digest corrects a truncated transcription in the first published protocol; the retained run bytes did not change.
 
 `verify_run.py` independently replays all 1,040 evaluations, rechecks schedules and aggregate counts, validates source/instance/policy/summary hashes and the complete chain. Verification observed 1,132 events and finished at event hash `425fc486aafad1d9eb129eb6fc3cd2b4b5d583f58a51283bb6f9ae84b533900a`; summary hash `3ca86fc1b8438e1589fb3e87b75caddd7ff55d1da83336f4532dcdaa0c1ed70c`. The checker also has tests that mutate schedules and the journal to confirm rejection behavior.
 
@@ -92,6 +92,14 @@ python3 experiments/scheduling-study/run_local_pilot.py \
   --seed 81000 --random-candidates 40
 python3 experiments/scheduling-study/verify_run.py \
   --output-dir data/scheduling-study/pilot-seed81000-40
+```
+
+For the **original retained run only**, independently compare against its previously published event head:
+
+```sh
+python3 experiments/scheduling-study/verify_run.py \
+  --output-dir data/scheduling-study/pilot-seed81000-40 \
+  --expected-head 425fc486aafad1d9eb129eb6fc3cd2b4b5d583f58a51283bb6f9ae84b533900a
 ```
 
 The output directory must not already exist. To reproduce on a machine that already has it, choose a new directory name while keeping the same seed and code. Timestamps and elapsed times will differ, so event and summary hashes will differ; instance hashes and scores should match.
@@ -124,4 +132,4 @@ These gates are concrete engineering work and coordination points. Their absence
 
 ### Readiness decision at the PR #201 review follow-up
 
-**No-go for paid formal iteration yet.** This decision is about missing integration and assurance, not an experimental failure. PR #201's four independent verifier findings have been fixed at `f91952b`; its independent re-review is pending. The domain-free iteration PR #144 still has a source-binding promotion hold. Hidden scoring #57 and Linux executor isolation #65 remain open, and this macOS host cannot establish the Linux namespace behavior required for generated source. The exploratory strategy/adapter harness #180/#181 is also under lifecycle and host-execution review. The provider-default Opus setting, exact full-chain accounting, hidden panel commitments and an agreed spend ceiling remain to be frozen. A complete formal run must satisfy these conditions on the exact merged heads and then pass an English pre-run checklist before its first model call.
+**No-go for paid formal iteration yet.** This decision is about missing integration and assurance, not an experimental failure. PR #201's first four independent verifier findings were fixed at `f91952b` and independently cleared before merge. A later pressure test found duplicate-key and overflowing-number acceptance in the offline verifier and a truncated published calibration head; a verifier-integrity follow-up is in progress. The domain-free iteration PR #144 still has a source-binding promotion hold. Hidden scoring #57 and Linux executor isolation #65 remain open, and this macOS host cannot establish the Linux namespace behavior required for generated source. The exploratory strategy/adapter harness #180/#181 is also under lifecycle and host-execution review. The provider-default Opus setting, exact full-chain accounting, hidden panel commitments and an agreed spend ceiling remain to be frozen. A complete formal run must satisfy these conditions on the exact merged heads and then pass an English pre-run checklist before its first model call.
