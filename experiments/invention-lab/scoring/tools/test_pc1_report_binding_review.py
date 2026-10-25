@@ -60,7 +60,8 @@ def retained(out, missing=()):
                                                for i in range(12)]
             for key in ("public_task", "generator", "scoring_rule"):
                 plan["context"][key]["id"] = family
-            plan["scoring_grant"]["simulation_steps"] = 28800
+            plan["scoring_grant"]["simulation_steps"] = (
+                14400 if family == "projectile-target" else 28800)
             for slot, role, package in zip(plan["slots"], ("candidate", "control"),
                                             (candidate, control)):
                 slot.update(org_id=frozen["org_id"], run_id=f"run-{plan['id']}-{role}",
@@ -71,6 +72,11 @@ def retained(out, missing=()):
                                    "sha256": packages[package]["sha256"]}
             directory = out / tid
             directory.mkdir()
+            # Retain the real panel criterion so positive controls satisfy the
+            # frozen protocol; none of the independent assertions are relaxed.
+            criterion = {"rule": "success-count-margin", "min_margin": 1,
+                         "instances": [row["id"] for row in plan["development_instances"]]}
+            plan["criterion"]["sha256"] = write(directory / "criterion.json", criterion)
             write(directory / "plan.json", plan)
     return not_run, write(out / "spec.json", frozen)
 
