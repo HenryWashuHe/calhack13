@@ -1,0 +1,210 @@
+{
+  "b1-parent": {
+    "b": "b1",
+    "controls": {
+      "mismatched_grant": 409,
+      "unknown_token": 401
+    },
+    "decision": "adopted",
+    "invocation": {
+      "attachment": "attached",
+      "run": "mrun_3f1a96b690bf4b7481550a12",
+      "status": "completed"
+    },
+    "lead": "role_efadb8a0f35a41e88db11b3cb4bec4f0",
+    "offer": "parent",
+    "owner": {
+      "charter": "Own the lab and evaluate reusable methods",
+      "is_lead": true,
+      "name": "Lab lead",
+      "role_id": "role_efadb8a0f35a41e88db11b3cb4bec4f0",
+      "scopes": [
+        "method.develop",
+        "mission.coordinate"
+      ]
+    },
+    "planner": "assigned",
+    "planner_exit": 0,
+    "reported_vs_random": {
+      "candidate": 12,
+      "control": 2,
+      "of": 12,
+      "verdict": "accepted"
+    },
+    "requirement": {
+      "acceptance": "The developed cart design achieves at least one more success than the fixed cart baseline across twelve fresh public instances, with results recorded as evidence.",
+      "mission_id": "mis_9d07b8c493bb44a48ff280748bdf8629",
+      "owner": {
+        "id": "role_efadb8a0f35a41e88db11b3cb4bec4f0",
+        "kind": "role"
+      },
+      "requirement_id": "req_83873f26ae9b458db290ebecdad41be6",
+      "status": "ASSIGNED",
+      "summary": "Develop rough-transport cart designs using the externally published method, and evaluate that method for reuse.",
+      "triggering_evidence": [
+        "obs_f7d2524391054d99875cfb1a6f9da91c"
+      ]
+    },
+    "trial": {
+      "id": "b1-parent-pinned",
+      "verdict": {
+        "candidate": 12,
+        "control": 4,
+        "of": 12,
+        "verdict": "accepted"
+      }
+    }
+  },
+  "b1-same-cart": {
+    "b": "b1",
+    "controls": {
+      "mismatched_grant": 409,
+      "unknown_token": 401
+    },
+    "decision": "not_applicable",
+    "lead": "role_285b0ea0e4754cc38e1fecf77bb2a5d5",
+    "offer": "same-cart",
+    "owner": {
+      "charter": "Own the lab and evaluate reusable methods",
+      "is_lead": true,
+      "name": "Lab lead",
+      "role_id": "role_285b0ea0e4754cc38e1fecf77bb2a5d5",
+      "scopes": [
+        "method.develop",
+        "mission.coordinate"
+      ]
+    },
+    "planner": "assigned",
+    "planner_exit": 0,
+    "reported_vs_random": {
+      "candidate": 7,
+      "control": 4,
+      "of": 12,
+      "verdict": "accepted"
+    },
+    "requirement": {
+      "acceptance": "The developed cart design achieves at least one more success than the fixed cart baseline across twelve fresh public instances.",
+      "mission_id": "mis_3882e1a6ffff4dc5987578e3d744e5b5",
+      "owner": {
+        "id": "role_285b0ea0e4754cc38e1fecf77bb2a5d5",
+        "kind": "role"
+      },
+      "requirement_id": "req_aa7936c4805d4258a73b2646453a3bc4",
+      "status": "ASSIGNED",
+      "summary": "Develop rough-transport cart designs using the externally published method (selection retained as evidence 4e0281aaef087ff34af137f4b35b0a3edcc342e84e138f8de464bf1c04ec9b99).",
+      "triggering_evidence": [
+        "obs_862be6b7e37b4029b8c867b20c6dcfd7"
+      ]
+    },
+    "trial": {
+      "id": "b1-same-pinned",
+      "verdict": {
+        "reason": "candidate 7/12 does not exceed control 7/12 by 1",
+        "verdict": "rejected"
+      }
+    }
+  },
+  "b2-parent": {
+    "b": "b2",
+    "controls": {
+      "mismatched_grant": 409,
+      "unknown_token": 401
+    },
+    "decision": "adopted",
+    "invocation": {
+      "attachment": "attached",
+      "run": "mrun_bed9ab2d19c9f38e0655d772",
+      "status": "completed"
+    },
+    "lead": "role_7534b6ed0d1d410a8be5de339eac87f6",
+    "offer": "parent",
+    "owner": {
+      "charter": "Own the lab and run rough-transport deliveries",
+      "is_lead": true,
+      "name": "Lab lead",
+      "role_id": "role_7534b6ed0d1d410a8be5de339eac87f6",
+      "scopes": [
+        "mission.coordinate"
+      ]
+    },
+    "planner": "assigned",
+    "planner_exit": 0,
+    "reported_vs_random": {
+      "candidate": 11,
+      "control": 9,
+      "of": 12,
+      "verdict": "accepted"
+    },
+    "requirement": {
+      "acceptance": "On twelve fresh public instances, the developed cart design achieves at least one more success than the fixed cart.",
+      "mission_id": "mis_b270974e39c44fc8a120bf4bd7bf1520",
+      "owner": {
+        "id": "role_7534b6ed0d1d410a8be5de339eac87f6",
+        "kind": "role"
+      },
+      "requirement_id": "req_bd292238294d4e5ebd29d7d2a260cbdc",
+      "status": "ASSIGNED",
+      "summary": "Develop rough-transport cart designs using the externally published method, so that they outperform the fixed cart baseline.",
+      "triggering_evidence": [
+        "obs_01fbe467fbf74ff680f0180026a03329"
+      ]
+    },
+    "trial": {
+      "id": "b2-parent-pinned",
+      "verdict": {
+        "candidate": 11,
+        "control": 7,
+        "of": 12,
+        "verdict": "accepted"
+      }
+    }
+  },
+  "b2-same-cart": {
+    "b": "b2",
+    "controls": {
+      "mismatched_grant": 409,
+      "unknown_token": 401
+    },
+    "decision": "not_applicable",
+    "lead": "role_9a21e3de10dc4f32bf6571d6f28bad70",
+    "offer": "same-cart",
+    "owner": {
+      "charter": "Own the lab and run rough-transport deliveries",
+      "is_lead": true,
+      "name": "Lab lead",
+      "role_id": "role_9a21e3de10dc4f32bf6571d6f28bad70",
+      "scopes": [
+        "mission.coordinate"
+      ]
+    },
+    "planner": "assigned",
+    "planner_exit": 0,
+    "reported_vs_random": {
+      "candidate": 8,
+      "control": 7,
+      "of": 12,
+      "verdict": "accepted"
+    },
+    "requirement": {
+      "acceptance": "The developed cart design achieves at least one more success than the fixed cart on twelve fresh public instances.",
+      "mission_id": "mis_785af6e636eb406dba49b76b44808c87",
+      "owner": {
+        "id": "role_9a21e3de10dc4f32bf6571d6f28bad70",
+        "kind": "role"
+      },
+      "requirement_id": "req_280b075fc8db45959c7dc6a1bb92ae0e",
+      "status": "ASSIGNED",
+      "summary": "Develop rough-transport cart designs using the method published by another lab (selection evidence fc30206d62608928c7953bb95cdcf72fdfa8bbe8fac3ad1e8e026f605284fb05).",
+      "triggering_evidence": [
+        "obs_44eab5c79699423a832818c37648d4bf"
+      ]
+    },
+    "trial": {
+      "id": "b2-same-pinned",
+      "verdict": {
+        "reason": "candidate 8/12 does not exceed control 8/12 by 1",
+        "verdict": "rejected"
+      }
+    }
+  }
+}
