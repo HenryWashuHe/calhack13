@@ -4,7 +4,7 @@
 // unexpected value is shown as unrecognized rather than guessed. Decoders never
 // read generated text, prompts or request bodies.
 
-import { canonicalSha256 } from "./digest";
+import { canonicalSha256, sha256Hex } from "./digest";
 
 export class DecodeError extends Error {}
 
@@ -321,5 +321,82 @@ export function decodeEvaluationReceipt(v: unknown): EvaluationReceipt {
     metrics: kind === "scored" ? decodeRef(out.metrics, `${at}.outcome.metrics`) : null,
     reason: kind === "scored" ? null : optStr(out, "reason", `${at}.outcome`),
     usage: decodeUsageRecord(o.usage, `${at}.usage`),
+  };
+}
+
+/** An exported canonical method package file (`genesis.development_method_source`).
+ * Its identity is the SHA-256 of the exact file bytes, computed here; source text
+ * is measured, never retained in the view. */
+export interface PackageFile {
+  ref: ExactRef;
+  entrypoint: string;
+  runtime: ExactRef;
+  protocol: ExactRef;
+  dependencies: ExactRef[];
+  files: { path: string; bytes: number; lines: number; sha256: string }[];
+}
+export const PACKAGE_DOMAIN = "genesis.development_method_source";
+export function decodePackageFile(bytes: Uint8Array): PackageFile {
+  const at = "package";
+  const o = obj(JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes)), at);
+  if (o.domain !== PACKAGE_DOMAIN) throw new DecodeError(`${at}.domain: expected ${PACKAGE_DOMAIN}`);
+  // Only the envelope version this view understands; anything else is not
+  // labelled as a checked package.
+  if (o.version !== 1) throw new DecodeError(`${at}.version: expected 1`);
+  const p = obj(o.package, `${at}.package`);
+  if (!Array.isArray(p.files)) throw new DecodeError(`${at}.package.files: expected array`);
+  const enc = new TextEncoder();
+  const files = p.files.map((f, i) => {
+    const fo = obj(f, `${at}.package.files[${i}]`);
+    const text = str(fo, "content", `${at}.package.files[${i}]`);
+    const content = enc.encode(text);
+    return {
+      path: str(fo, "path", `${at}.package.files[${i}]`),
+      bytes: content.length,
+      lines: text === "" ? 0 : text.split("\n").length - (text.endsWith("\n") ? 1 : 0),
+      sha256: sha256Hex(content),
+    };
+  });
+  return {
+    ref: {
+      domain: "genesis",
+      schema: "development-method-source/1",
+      id: str(p, "id", `${at}.package`),
+      version: str(p, "version", `${at}.package`),
+      sha256: sha256Hex(bytes),
+    },
+    entrypoint: str(p, "entrypoint", `${at}.package`),
+    runtime: decodeRef(p.runtime, `${at}.package.runtime`),
+    protocol: decodeRef(p.protocol, `${at}.package.protocol`),
+    dependencies: refs(p.dependencies, `${at}.package.dependencies`),
+    files,
+  };
+}
+
+/** `genesis-static-source-inspection/1`: syntax and observed imports only. */
+export interface StaticInspection {
+  method_package_sha256: string;
+  entrypoint: string;
+  source_sha256: string;
+  python_ast_parse: string;
+  imports: string[];
+  execution: string;
+  claim: string;
+}
+export const INSPECTION_SCHEMA = "genesis-static-source-inspection/1";
+export function decodeStaticInspection(v: unknown): StaticInspection {
+  const at = "inspection";
+  const o = obj(v, at);
+  if (o.schema !== INSPECTION_SCHEMA) throw new DecodeError(`${at}.schema: expected ${INSPECTION_SCHEMA}`);
+  if (!Array.isArray(o.imports) || !o.imports.every((x) => typeof x === "string"))
+    throw new DecodeError(`${at}.imports: expected strings`);
+  return {
+    method_package_sha256: str(o, "method_package_sha256", at),
+    entrypoint: str(o, "entrypoint", at),
+    source_sha256: str(o, "source_sha256", at),
+    python_ast_parse: str(o, "python_ast_parse", at),
+    imports: o.imports as string[],
+    execution: str(o, "execution", at),
+    claim: str(o, "claim", at),
   };
 }

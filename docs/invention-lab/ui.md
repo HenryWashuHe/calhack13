@@ -180,6 +180,31 @@ while acceptance remains the adoption verdict. The retained receiver evidence
 (`live-method-20261024-receiver`) is checked to attach by hash; other cases use
 synthetic receipts shaped like the Rust serializers.
 
+## Generated packages and static inspection
+
+An exported package file (`genesis.development_method_source`) is identified
+by the SHA-256 of its exact bytes, which the view computes in the browser. When
+that hash equals a version a generation status recorded, the card says "its
+bytes hash to exactly this version (checked in this browser)". It shows the
+entrypoint, each file's byte and line counts, runtime, protocol and dependency
+count. Source text is measured, not displayed. A package file with the same
+id/version but a different hash appears as its own version and is reported as a
+problem.
+
+A `genesis-static-source-inspection/1` record attaches to the version whose
+package hash it names. The card shows the parse result, observed imports and
+`execution` value, followed by the record's own `claim` verbatim ("syntax and
+observed imports only; …"). If the supplied package's entrypoint bytes differ
+from the inspected `source_sha256`, or no supplied record contains the named
+package, that is reported. Neither check establishes runtime compatibility,
+behavior, safety or acceptance.
+
+With the three [retained live attempts](evidence/live-method-20261024-generated/README.md),
+the view shows one version, `generated-method@0.1.0 8215c3679a06`, generated
+by `org_example_a`. Its ledger totals 3 calls, 12027 input / 18315 output
+tokens, 141119 ms and 1 package, as that README does. The checklist records
+A's first package and no record for any later beat.
+
 ## Attempt ledger
 
 Status records may carry the optional enum-only `diagnostic` from

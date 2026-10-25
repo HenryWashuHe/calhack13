@@ -33,10 +33,11 @@ const liveFiles = [
 ];
 const textOf = (html: string) => html.replace(/<[^>]+>/g, " ").replace(/&#x27;/g, "'").replace(/\s+/g, " ");
 
-describe("intake of the committed live evidence", () => {
-  const i = intake(liveFiles);
+describe("intake of the two failed live attempts", () => {
+  const ready = intake(liveFiles);
 
-  it("uses each status with its same-phase checkpoint and lists every other file with a reason", () => {
+  it("uses each status with its same-phase checkpoint and lists every other file with a reason", async () => {
+    const i = await ready;
     expect(i.used.map((n) => `${n.file}: ${n.note}`).sort()).toEqual([
       "1/final-status.json: generation status",
       "1/generation.json: generation checkpoint (outcome enum only)",
@@ -51,8 +52,8 @@ describe("intake of the committed live evidence", () => {
     expect(orgsIn(i)).toEqual(["org_example_a"]);
   });
 
-  it("shows A's two failed attempts and no record for any later beat", () => {
-    const l = buildLineage(i.records);
+  it("shows A's two failed attempts and no record for any later beat", async () => {
+    const l = buildLineage((await ready).records);
     expect(l.problems).toEqual([]);
     const b = beats(l, "org_example_a", "org_example_b");
     expect(b[0]!.facts).toEqual([
@@ -65,8 +66,8 @@ describe("intake of the committed live evidence", () => {
     );
   });
 
-  it("renders no method version, the checklist and the ledger", () => {
-    const text = textOf(renderToStaticMarkup(<LineagePanel lineage={buildLineage(i.records)} orgA="org_example_a" orgB="org_example_b" />));
+  it("renders no method version, the checklist and the ledger", async () => {
+    const text = textOf(renderToStaticMarkup(<LineagePanel lineage={buildLineage((await ready).records)} orgA="org_example_a" orgB="org_example_b" />));
     expect(text).toContain("No exact method version is recorded in the supplied files.");
     expect(text).toContain("no record: org_example_b revisions of org_example_a's methods: none recorded");
     expect(text).toContain("2 attempts · 2 generation failed · 0 packages");
@@ -75,8 +76,8 @@ describe("intake of the committed live evidence", () => {
 });
 
 describe("intake edge cases", () => {
-  it("skips adoption outcomes that cannot name their receiver, and malformed records", () => {
-    const i = intake([
+  it("skips adoption outcomes that cannot name their receiver, and malformed records", async () => {
+    const i = await intake([
       file("na.json", { outcome: "not_applicable", reason: "0/3" }),
       file("bad.json", { binding: {}, actual_method: {}, outputs: [], transcript: {} }),
       { name: "list.json", text: "[1]" },

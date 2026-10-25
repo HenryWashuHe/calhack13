@@ -16,7 +16,12 @@ export function Preview({ initial }: { initial?: Intake }) {
   const orgs = loaded ? orgsIn(loaded) : [];
 
   async function choose(list: FileList | null) {
-    const files = await Promise.all([...(list ?? [])].map(async (f) => ({ name: f.webkitRelativePath || f.name, text: await f.text() })));
+    const files = await Promise.all(
+      [...(list ?? [])].map(async (f) => {
+        const bytes = new Uint8Array(await f.arrayBuffer());
+        return { name: f.webkitRelativePath || f.name, text: new TextDecoder().decode(bytes), bytes };
+      }),
+    );
     setLoaded(intake(files));
   }
 
@@ -24,8 +29,17 @@ export function Preview({ initial }: { initial?: Intake }) {
     <main style={{ padding: 16, maxWidth: 960 }}>
       <h2>Invention-lab evidence (local preview)</h2>
       <p>Choose retained record files or a whole evidence folder. Files are read in this browser only.</p>
-      <input type="file" multiple onChange={(e) => void choose(e.currentTarget.files)} aria-label="record files" />{" "}
-      <input type="file" {...{ webkitdirectory: "" }} onChange={(e) => void choose(e.currentTarget.files)} aria-label="evidence folder" />
+      <p>
+        <label>
+          Record files: <input type="file" multiple onChange={(e) => void choose(e.currentTarget.files)} />
+        </label>
+      </p>
+      <p>
+        <label>
+          Or an evidence folder:{" "}
+          <input type="file" {...{ webkitdirectory: "" }} onChange={(e) => void choose(e.currentTarget.files)} />
+        </label>
+      </p>
       {loaded && lineage && (
         <>
           <p>
