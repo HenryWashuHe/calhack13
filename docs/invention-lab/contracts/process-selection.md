@@ -134,3 +134,34 @@ before fresh-task preparation. Rewriting both declaration and evidence defeats
 this cooperative consistency check; hashes do not prove origin, chronology or
 complete history. No CLI, generation-settings/feedback provenance, whole-chain
 cost link, fresh-panel spec generation, execution or adoption is added here.
+
+## Whole-roster capture and recheck
+
+```text
+genesis-forge process-cohort-prepare --manifest cohort-input.json --cohort cohort.json
+genesis-forge process-cohort-check --cohort cohort.json
+```
+
+The strict manifest is `{"schema":"genesis-process-cohort-input/1",
+"declaration":"declaration.json","selections":[...eight selection paths...]}`.
+Paths resolve relative to the manifest. Supply the independent declaration above
+and the eight original `process-select-prepare` captures, in any arrival order.
+Every input must be a bounded regular JSON file (8 MiB maximum). Empty paths,
+unknown fields, repeated/missing pairs, conflicting pins or inconsistent original
+reports fail before publication.
+
+Preparation creates a private, durable, create-only `genesis-retained-process-cohort/1`
+snapshot containing the declaration, all eight selections and the recomputed cohort
+report. The complete encoded snapshot is also limited to 8 MiB; individually valid
+large inputs can exceed this aggregate storage limit and be refused. Checking needs
+only that snapshot and writes nothing, even if a stale lock exists. It revalidates
+all original selection records and compares the complete derived report.
+
+Both commands emit `genesis-process-cohort-summary/1`: canonical parsed-JSON
+`cohort_sha256`, `declaration_sha256`, `report_sha256`, plus all eight arm/family
+selection digests and full selected method/plan/round or `null`. A valid all-absent
+roster succeeds and retains unknown costs; it is not a successful experiment.
+Independently retain/publish these pins before downstream fresh-panel work.
+As with the selection CLI, an output-stream failure can follow successful capture:
+inspect/recheck the retained destination instead of inventing a new destination.
+The preceding trust, chronology, authority and evidence limitations still apply.
