@@ -1,13 +1,13 @@
-"""Acceptance tests for the hand split of generated method 8215c367.
+"""Static checks for the hand split of generated method 8215c367.
 
 Run from the repository root:  python3 -m unittest discover -s experiments/strategy-adapter/harness
-Standard library only; no simulator, no model call.
+Standard library only. Nothing here starts a method: the checks that execute
+the retained generated parent and child, and the split, are in
+acceptance_split.py, which must be run explicitly with a named isolation.
 """
 import ast
 import json
-import shutil
 import sys
-import tempfile
 import unittest
 from pathlib import Path
 
@@ -15,37 +15,13 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
 sys.path.insert(0, str(HERE))
 import labworld  # noqa: E402
-import replay  # noqa: E402
 
 EV = ROOT / 'docs/invention-lab/evidence'
 VS_PARENT = EV / 'live-method-20261024-b-revision-receiver/vs-parent'
 SPLIT = HERE.parent / 'parent-split'
 
 
-def unpack(package_json, into):
-    into.mkdir()
-    pkg = json.loads(package_json.read_text())['package']
-    for f in pkg['files']:
-        (into / f['path']).write_text(f['content'])
-    return into
-
-
-class SplitAcceptance(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.tmp = Path(tempfile.mkdtemp())
-        cls.parent = unpack(EV / 'live-method-20261024-generated/method-package.json', cls.tmp / 'parent')
-        cls.child = unpack(EV / 'live-method-20261024-b-revision/method-package.json', cls.tmp / 'child')
-
-    @classmethod
-    def tearDownClass(cls):
-        shutil.rmtree(cls.tmp)
-
-    def replay(self, slot, method_dir):
-        oracle = replay.Retained(VS_PARENT / 'plan.json', VS_PARENT / slot)
-        _, code = replay.run_method(method_dir, oracle)
-        return oracle.summary(code)
-
+class SplitStatic(unittest.TestCase):
     def test_worlds_rebuild_to_plan_digests(self):
         plan = json.loads((VS_PARENT / 'plan.json').read_text())
         for ref in plan['development_instances']:
@@ -58,32 +34,6 @@ class SplitAcceptance(unittest.TestCase):
         for s in range(6):
             w = labworld.instance('rough-transport', s)
             self.assertEqual((w['gap'], w['step_height']), (0.0, 0.0))
-
-    def test_harness_reproduces_both_retained_runs(self):
-        p = self.replay('control', self.parent)
-        self.assertTrue(p['identical'], p['divergence'])
-        self.assertEqual((p['experiments'], p['steps']), (6, 5205))
-        c = self.replay('candidate', self.child)
-        self.assertTrue(c['identical'], c['divergence'])
-        self.assertEqual((c['experiments'], c['steps']), (32, 39778))
-
-    def test_split_reproduces_parent_run(self):
-        s = self.replay('control', SPLIT)
-        self.assertTrue(s['identical'], s['divergence'])
-        self.assertEqual((s['experiments'], s['steps']), (6, 5205))
-        self.assertEqual(s['submitted'], '2483f08f8ec33f4144a4a6105842bd9e2da7702275592140c3aca35c2ac61cec')
-        self.assertTrue(all(r['success'] for r in s['rows']))
-
-    def test_a_changed_strategy_is_detected(self):
-        bad = self.tmp / 'bad'
-        shutil.copytree(SPLIT, bad)
-        src = (bad / 'strategy.py').read_text().replace('reverse=True', 'reverse=False')
-        src = src.replace('return sorted(items', 'return list(reversed(items)) or sorted(items')
-        (bad / 'strategy.py').write_text(src)
-        self.assertFalse(self.replay('control', bad)['identical'])
-
-    def test_split_equals_parent_on_synthetic_cases(self):
-        self.assertEqual(replay.diff(self.parent, SPLIT, 200), {'identical': True, 'cases': 200})
 
     def test_strategy_has_no_domain_nouns(self):
         banned = {'design', 'world', 'wheel', 'deck', 'budget', 'motor', 'instance', 'gap', 'cart',
