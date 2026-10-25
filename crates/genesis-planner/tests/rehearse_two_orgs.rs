@@ -235,7 +235,7 @@ async fn rehearse_two_organizations_in_separate_processes() {
         constitution: constitution_path.clone(),
     };
     let _a_proc = a.spawn(&bin, &registry_url, None);
-    let mut b_proc = b.spawn(&bin, &registry_url, None);
+    let b_proc = b.spawn(&bin, &registry_url, None);
     wait_up(&a.url()).await;
     wait_up(&b.url()).await;
     let (a_api, b_api) = (a.api(), b.api());
@@ -438,10 +438,10 @@ async fn rehearse_two_organizations_in_separate_processes() {
     };
     let receiver_path = state.join("b-receiver.json");
     write(&receiver_path, &json!(receiver));
-    drop(std::mem::replace(
-        &mut b_proc,
-        b.spawn(&bin, &registry_url, Some(&receiver_path)),
-    ));
+    // Stop and reap the old listener before starting its replacement on the
+    // same port. Spawning inside mem::replace races the old process's exit.
+    drop(b_proc);
+    let _b_proc = b.spawn(&bin, &registry_url, Some(&receiver_path));
     wait_up(&b.url()).await;
 
     let intent = |key: &str, role: &str, decision: Value| {
