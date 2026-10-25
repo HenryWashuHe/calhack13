@@ -38,7 +38,7 @@ Event organization is not the product, demo requirement or completion gate.
 | --- | --- | --- | --- |
 | G0: shared contracts | A versioned method interface, exact artifact/dependency identity, evaluator/task contract, resource accounting and separate execution/evaluation/adoption records | Reviewed contracts and compatibility/unknown-outcome cases agreed by affected owners; selected runtime/evaluator documented | Open: records, source loader, corrected #13/#14 proposals, simulator and #42/#43 executor foundations/session merged; runtime/acceptance scoring merged; receiver-bound adoption #64 merged; #57/#65 namespace lifecycle validation remains incomplete; complete enforcement/compatibility remain open |
 | G1: executable development | A develops or improves an executable method through the governed process and uses it to develop a capability/design | Generated/changed method source and derivation, runnable executor, independently scored outputs, enforced limits, receipts and meaningful failure/restart tests; a supplied seed alone is a control | Open: simulator, source-generation plumbing and #42–#46/#48 executor/acceptance stack merged. A live model-generated package is retained; #98 receiving execution/scoring records are merged after independent consistency checks. Local adoption, enforced limits and G1 closure remain open |
-| G2: independent inheritance | B discovers, locally checks and uses A's exact method on a distinct task, with justified organizational responsibility | Separate state/grants, exact invocation/acceptance evidence, a justified role change and an existing-owner control, appropriate non-reuse with scored task outcome | Open: #116 retains checked exact-parent/child trials on distinct rough-transport; child loses to parent/random control. Authenticated registry source API/client/CLI #132/#133/#141 and receiver-bound adoption mechanics exist, but their connection to selective inheritance with local acceptance/organizational responsibility remains unproved |
+| G2: independent inheritance | B discovers, locally checks and uses A's exact method on a distinct task, with justified organizational responsibility | Separate state/grants, exact invocation/acceptance evidence, a justified role change and an existing-owner control, appropriate non-reuse with scored task outcome | Open: #116 retains checked exact-parent/child trials on distinct rough-transport; child loses to parent/random control. Authenticated registry source API/client/CLI #132/#133/#141 and intake/planner integration #157/#158 are merged; scripted new-specialist/existing-owner/no-change controls exercise the organizational path. Selective inheritance under receiver-owned acceptance/current authority and real model judgment remain unproved |
 | G3: recursive return | B develops an executable revision; in at least one chain A independently accepts and executes that frozen revision to develop a later capability on a fresh return task | Genuine method changes/derivation, pinned versions, local acceptance and execution evidence closing A → B → A; declines remain valid controls but do not close this gate; positive improvement is not required | Open: #113 retains actual model-generated B revision source from exact parent and checked public feedback, with changed bytes and AST parsing only. #116 B execution/scoring records are checked, without adoption; #117 A-return records are checked and retain rejection in every comparison. An accepted return remains unestablished; #72 is still a handwritten fixture |
 | G4: controlled evaluation | Reproducible comparison of no accumulation, task-capability accumulation and development-method accumulation, plus a fair local-history control for network benefit | Fixed model/settings and trusted evaluators, isolated state/holdouts, predeclared criteria, repeated task orders, costs/latency/interventions/failures and uncertainty reported | Open: accounting, pre-result rosters, optional generation reservations, admission-aware trial/cost join and structural stage allocation/retained binding #85/#86 and finite-chain ceilings/retained CLI #103/#107 are merged, as are post-run catalogue #124, whole-chain cost library/CLI #127/#130 and explicit generation-only stages #153. Runtime entry consumption, prior host retention of one authoritative chain, provider-default sampling, exhaustive history, broader enforcement and controlled comparison remain open. No positive recursive-benefit result exists |
 | Delivery | Reviewable, runnable work and an honest demonstration | Focused merged PRs, reproducible commands, source revisions, updated implementation inventory and explicitly labeled fixture/native/cloud evidence | Open |
@@ -171,6 +171,9 @@ failures or input that is actually required.
 | Operator method exchange, G2/G3 prerequisite | #141 final `e938db0ab339653043188fc3f636baf8f782a04f`, tree `b427b635b55656e280764bd90be363ea4c31cb73` → `ec28434bcaea0454e60958f124cffdb1595a38d7`. Behavior `be639af`: four CLI plus 16 binary cases pass on final composition; four independent CLI checks, scoped strict Clippy/fmt overlap | [Existing-client CLI](invention-lab/contracts/method-registry.md#operator-cli), explicit selection and JSON stdout. No automatic `.env` load, journal, retry, adoption or source execution; publication error can follow a committed write. Loopback checks, no gate closure. |
 | Revision-input bundle, G3 prerequisite | #150 source `6376713a14500ebfca7286765ce3e1c4efa2acf8` → `a5f87bfe5deb9939e1ea11d40ebbfc71b84966aa`: root 18 focused tests and scoped strict Clippy/fmt pass; independent exact-source/guide review clear | [Bounded generic input](invention-lab/contracts/revision.md#bundled-input) reuses revision preparation/observation; legacy identities and read-only pending behavior unchanged. No new session, provider call, execution or authority. |
 | Selected network source → revision Prepared, G2/G3 prerequisite | #151 source `54283b57d85f55fd1de7fceead675ef49d97668e` → `d18591ad6eb97f0eb59a3c70dea097878f8fb10b`, matching tree `e457ac0b472fe7531906e042ae2f1d9638e12810`. Behavior `7d0d30f`: root 25 scoped tests (five new including two independent, four legacy CLI, 16 binary), strict Clippy/fmt; independent exact-source review clear | [Explicit selected-parent bridge](invention-lab/contracts/method-registry.md#selected-parent-to-revision-input) retains full publisher-qualified selection and exact source in the receiver-owned bounded plan. Preserved 88-line guard checks 14+2 inputs and post-augmentation overflow. Loopback/pure preparation stops at Prepared; no new model/source execution, acceptance or gate closure. |
+| Organizational intake and planner path, G2 prerequisite | #157 source `34b90c2ed63905a521600c02ac7bedb4a35a5b62` (behavior `d4f5e38`) → `6dc77233b2f8cea3450f5254712618b9175b4f26`; #158 source `ea11acded1a2a0a7fff1a48f25925aaf0e6f0f23` → `e513cc9cf6e5dd0fb34e12566eb30e7d13ab5261`, tree `886e1276d9d31f8efa7f617edccbea636eaa378d`. Root six HTTP/SQLite plus three independent planner cases pass; scoped strict Clippy/fmt. Original 346-line `7dd59e04` file unchanged; [independent source review](https://github.com/HenryWashuHe/genesis-history-experiment/pull/157#pullrequestreview-5640025073) clear | [Selected method + receiver need](invention-lab/contracts/method-development-intake.md) reaches an atomic ordinary observation and existing planner/Runner → kernel/saga. ReplayClient/development stubs cover new specialist, existing owner and no change. Local fixtures, not model judgment, hosted readiness, adoption, method execution or G2 closure. |
+| Frozen W/F process protocol, G4 prerequisite | #135 source `5a1e24807adadc4d1b8e3f8ad3e5f4d67ab7d91a` → `773eeba83967bb27a958e47cab73e89d0a7b38f6`, tree `f9b4eab1a4de9dce9fe824986e25fb8dae0fb3b0`: root and independent source/delta reviews clear | [Single eligibility rule](invention-lab/protocols/process-comparison-1.md#selection-frozen-before-the-fresh-panel) resolves the prior selection/positive-endpoint ambiguity. Protocol-only: no experiment execution/tests or G4 result. Numeric capacity, family-input parity, adaptive preparation chronology, unique receiver IDs and runtime assurance remain prerequisites. |
+| Retained acceptance assessor, G2 prerequisite | #154 source `cc099833db28983f0e224fe1a5aacb14dacd9959` → `a7c56b1cd8d838389e234e05d983f9e4f9a28002`, tree `161af53371bcef69ccf941a6ffb1748c99d7e930` matches reviewed composition `511ddc2e`. Root four assessor + six intake + three planner cases and scoped strict server/planner Clippy/fmt pass | Recomputes consistency of selected source and retained records. Not a receiver-controlled acceptance-policy pin, authoritative measurement origin, adoption or G2 closure. #155 and stacked #159 held. No method/evaluator/provider/namespace execution. Counts overlap #157/#158. |
 | Shared pure verdict, G2 prerequisite | [#146](https://github.com/HenryWashuHe/genesis-history-experiment/pull/146) source `0c9a553388687dee6fd055f4768b277fbee30f19` → `c68705045748d74c2257489bdd84cc549e33d0f6`: root full core tests, strict all-target core Clippy/fmt and standalone scorer compile-only `cargo check --tests` pass; original verdict tests unchanged | Existing decision logic moved without behavior change, with scorer re-export. No lab tests executed in review; no server authority connection, acceptance evidence or gate closure. |
 | Registry boundary guards, Delivery | #142 `59faaaf05a4a36beb78a0f7b98743464af91441d` → `f2b33d50610c19ee19a31965ad195fd54010bd9a`: three independent cases and scoped strict Clippy/fmt pass; original 144-line file unchanged | Exact query-limit, applicability and lookup boundaries; mutation campaign author-reported only. A complete literal query result is not universal semantic absence. |
 | Chain exact-fit guards, G4 prerequisite | #134 source `edf1a56d123daf3d4fe92e3cb12ec0b4247422e2` → `7955c957b91273a8effde3e2e88e6e07353ce5d1`: original 76-line file, two independent tests and scoped strict Clippy/fmt pass | Exact generation call/output capacity accepted, one-unit-short refused. Test-only; author mutation campaign not independently rerun. |
@@ -225,20 +228,26 @@ that selection and exact source into the receiver's bounded revision input and
 ordinary Prepared checkpoint, without receiver acceptance. G2/G3 still need
 organizational authority, local selection and adoption evidence. Henry [acknowledged the vertical slice](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388913830)
 tying recomputed receiver acceptance to requirement/responsibility/current owner
-grant, pinned invocation, decline and stale/revoked controls. His new
+grant, pinned invocation, decline and stale/revoked controls. Lower-level
 [server acceptance #154](https://github.com/HenryWashuHe/genesis-history-experiment/pull/154)
-`cc099833` and [adoption-store #155](https://github.com/HenryWashuHe/genesis-history-experiment/pull/155)
-`df286ad4` are unmerged under independent review, without clearance. Retarget
-the stacked branches to main as dependencies merge and check their composition;
-[pure verdict #146](https://github.com/HenryWashuHe/genesis-history-experiment/pull/146)
-is already merged as a prerequisite. Actual invocation and justified specialist creation remain
-future work, not removed completion requirements. Codex
-[has claimed an intake integration](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6389431891)
-from exact selected method and receiver-owned need to one atomic ordinary
-observation and the existing planner/saga. The new module, minimal init/router
-wiring and separate scripted-planner controls are active work, not merged or
-demonstrated. No new responsibility planner or transfer of Henry's
-adoption/current-grant lane is implied.
+`cc099833` merged at `a7c56b1c` after four assessor, six intake and three planner
+cases plus scoped strict Clippy/fmt passed. This is retained-record consistency,
+not receiver-authorized adoption. [Adoption-store #155 `df286ad4` is held](https://github.com/HenryWashuHe/genesis-history-experiment/pull/155#pullrequestreview-5640018669):
+requirement-scoped adoption must pin the receiver's exact intended acceptance
+plan, and authorization must preserve the accepted method/verdict invariant.
+Independent `8fee7787` probes retain one passing characterization and two failing
+invariants. Henry owns these corrections. New [routes/invocation #159](https://github.com/HenryWashuHe/genesis-history-experiment/pull/159)
+`00413c66`, stacked on #155, is held: a disabled receiver still returns a grant,
+and an identical stored POST replay refetches unavailable registry data instead
+of returning its record. These are independent HTTP regressions, not clearance.
+[Organizational intake #157/#158](invention-lab/contracts/method-development-intake.md)
+is now merged: exact selected method and receiver-owned need produce one atomic
+ordinary observation consumed by the existing planner/Runner and kernel/saga.
+Scripted new-specialist, existing-owner and no-change paths pass; this is local
+fixture orchestration, not independent model judgment, hosted readiness or
+adoption. Justified restructuring in the governed method loop remains a gate.
+Codex's next integration must use Henry's reviewed policy/authority boundary;
+no second responsibility planner or implicit transfer of ownership is intended.
 The W/F process pilot alone cannot close organizational evolution. ACP's new
 [iteration proposal](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6389024893)
 #144 remains held pending corrections and existing-contract interface agreement;
@@ -248,12 +257,16 @@ A fixed-pool
 policy ablation remains a separate proposed mechanism study: task-artifact controls
 would isolate search-policy benefit; an identical-information local control would
 measure delivery overhead. It is not full G4 or a limit on capability expressivity.
-Henry is preparing a corrected K=3 workflow-versus-fresh protocol across four
-families, with public fresh-task assessment, explicit selection/failure outcomes
-and all costs retained. Client effort is adaptive/high; neither arm receives old
-#116/#117 feedback in round one. [Protocol #135 `e5f7c326` is held](https://github.com/HenryWashuHe/genesis-history-experiment/pull/135#issuecomment-6389154691)
-on conflicting Failed+Scored eligibility and an unspecified Interrupted rule;
-prior preparation, missing-pair and random-reference holds are addressed.
+The merged K=3 workflow-versus-fresh protocol covers four families, with public
+fresh-task assessment, explicit selection/failure outcomes and all costs retained. Client effort is adaptive/high; neither arm receives old
+#116/#117 feedback in round one. [Protocol #135](invention-lab/protocols/process-comparison-1.md)
+source `5a1e2480` is merged at `773eeba8` after independent source/delta review.
+Its shared selection/positive-endpoint rule excludes Failed, Interrupted and
+Unknown executions even when scored, retaining those observations. The old
+eligibility hold is cleared; this is a frozen protocol, not execution or G4.
+Codex is preparing the offline protocol/selection connection: numeric six-slot
+and whole-chain ceilings, four-family input parity and adaptive Prepared
+chronology. Henry's unique receiver IDs and runtime assurance remain prerequisites.
 Public-range #121/#136 is merged and the reserved-seed hold is cleared. These are
 public instances, not hidden assessment; source/selection must freeze before assessment.
 Exact declarations and full chain ceilings must precede any new generation;
