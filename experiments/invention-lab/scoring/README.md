@@ -62,3 +62,19 @@ unless the plan's criterion explicitly accepts unknown model calls and tokens.
 The verdict is acceptance evidence for adoption, not an adoption decision or
 an installation.
 
+
+## Predeclared receiving runs (`tools/receive.py`)
+
+`tools/receive.py <spec.json> <out-dir>` runs a whole set of receiving-side
+trials from one `lab-receive-spec/1` file, with `LAB_EXEC` and `LAB_SCORE`
+pointing at the built binaries. The spec names the receiving organization,
+the sandbox, equal per-arm grants, each method package by path and expected
+SHA-256, and the trials (family, candidate, control). The tool prints the
+spec's SHA-256 before anything runs, so the declaration can be posted first.
+Each trial is a fresh two-slot plan from `lab-exec example-plan`, with the
+control method, slot organization and plan id rewritten. Each slot runs once,
+then the tool scores both, decides the strict verdict and writes the
+candidate's `lab-score feedback`. Failures are recorded, not retried. The
+output directory must not already exist, and `summary.json` repeats the spec
+hash and the host's runtime ref. A package whose bytes don't match its
+declared hash stops the run before anything executes.
