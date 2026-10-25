@@ -76,7 +76,9 @@ every milestone. All lower checkpoints are historical.
   `8ad9d645` regressions are unchanged. This supplies feedback, not adoption.
   Retain B's explicit selection/local acceptance decision and intended responsibility;
   #116 B-task records are now checked; local adoption and an accepted fresh
-  A return remain unestablished.
+  A return remain unestablished. Receiving wrapper #118 remains held at last
+  reviewed `5cf77828`: mutable input/spec binding and lost failure-history cases
+  persist in `e3f3779` (four failures/two controls). Newer pushes are unreviewed.
 - Eric (`EricZhu-31`) [acknowledged](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6386421464)
   the lab UI lane: `docs/invention-lab/ui.md` and `apps/web/src/invention-lab/**`,
   without shared routes. #93/#94 label/organization corrections and #99/#100
@@ -86,8 +88,9 @@ every milestone. All lower checkpoints are historical.
   original file. #99 `f09bf473` / #100 `76c2cd54` passed 42 focused checks/
   typecheck, including four unchanged `59c3e1c` cases. #101 `ed8b64de` merged
   at `95256998`: 52 focused UI checks/typecheck pass, preserving all of
-  `59c3e1c`. last reviewed #109 `723ce82` remains held with four unchanged failures/eight
-  controls and typecheck passing. Preserve `f2ac45e5`; review later pushes.
+  `59c3e1c`. #109 `2cfb4058` merged at `5ed65deb`: 66 focused tests across
+  11 files/typecheck pass, including all five original `f2ac45e5` cases unchanged.
+  Its separate `eric/lab-real-evidence` continuation is unreviewed.
   Do not transfer this lane implicitly. Archival stage presenter #108 `ece3c614`
   merged at `d810a670`: 22 Node checks and independent DOM probes pass on
   composition `1632f08`. It is supporting presentation, not goal progress or
@@ -151,9 +154,13 @@ every milestone. All lower checkpoints are historical.
   excludes other trials and earlier generations. A return #117 `3c1994f` merged
   at `8eed5043` after retained-record checks: child 0/6 versus random 3/6 or
   parent 1/6, and parent 1/6 versus random 3/6, all Rejected. No adoption,
-  accepted return or benefit is established; G0–G4 remain open. Codex's next
-  proposed prerequisite is an explicit reasoning policy in forge, not yet
-  implemented; no new generation is declared.
+  accepted return or benefit is established; G0–G4 remain open. Explicit
+  [reasoning policy #120](docs/invention-lab/contracts/generation.md#settings-and-accounting)
+  merged at `70a00d51`: supported Sonnet 5.5 adaptive effort is frozen into
+  client requests; historical identities stay unchanged. This is locally tested,
+  not a live request, fixed hosted weights or G4 result. No generation is declared.
+  A fixed-candidate-pool policy experiment is only a proposed follow-up awaiting
+  interface agreement; it is not assigned work or a restriction on the moonshot.
   Retain input-token/wall, billing, global enforcement and history limits.
   Preserve Henry's runtime files; provider/settings reproducibility, complete
   history, enforcement and end-to-end comparison remain open.
