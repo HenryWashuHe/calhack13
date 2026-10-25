@@ -387,12 +387,23 @@ impl MethodRescorer {
         stage(&state.join("receipt.json"), &json(receipt)?)?;
         stage(&state.join("artifacts").join(&digest), output)?;
         let out = work.path().join("score");
-        self.run(&scorer, &[&plan_path, &state, &out], slot, work.path())?;
-        let fresh = bounded(&out.join("evaluation.json"), MAX_OUTPUT_BYTES)?;
+        let fresh = self.score(&scorer, (&plan_path, &state, &out), slot, work.path())?;
         match (comparable(&fresh), comparable(&json(posted)?)) {
-            (Some(a), Some(b)) if a == b => Ok(()),
-            _ => Err(fail("the posted evaluation does not reproduce")),
+            (Some(a), Some(b)) if a == b => {}
+            _ => return Err(fail("the posted evaluation does not reproduce")),
         }
+        // Wall time is left out of the comparison, but the posted value decides
+        // whether the result fits its scoring grant. A claim that it fits must
+        // also hold here.
+        let grant = plan.scoring_grant.wall_time_ms;
+        let here = wall_ms(&fresh).ok_or_else(|| fail("rescoring measured no wall time"))?;
+        let claims_fit = wall_ms(&json(posted)?).is_some_and(|ms| ms <= grant);
+        if claims_fit && here > grant {
+            return Err(fail(
+                "the posted evaluation fits its scoring grant but rescoring here did not",
+            ));
+        }
+        Ok(())
     }
 }
 
