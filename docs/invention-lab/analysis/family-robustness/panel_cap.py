@@ -5,10 +5,12 @@
 
 For each panel (6 consecutive public seeds from each first-seed), scores
 <designs> random launchers from mixed_search.launcher on all six instances
-with `lab-eval accept` and reports the histogram of success counts. Since a
-trial scores one submitted design on every panel instance, the best count
-bounds what a method that submits a launcher of this shape can reach.
-Only the evaluator runs. Prints JSON.
+with `lab-eval accept` and reports the histogram of success counts. A trial
+scores one submitted design on every panel instance, so the best sampled
+count describes what this finite random sample reached; it is not a bound on
+what a method that submits a launcher of this shape can reach. Evaluator
+processes that fail are omitted from the histogram, so a histogram summing to
+<designs> shows no failures occurred. Only the evaluator runs. Prints JSON.
 """
 import json, os, random, subprocess, sys, tempfile
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
