@@ -1,0 +1,17 @@
+[package]
+name = "genesis-lab-eval-mixed"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+publish = false
+description = "Invention-lab research family mixed-terrain/1 (proposal #195): its own generator, simulation and evaluator identity on top of design language v1 (experimental, calibration only)."
+
+# Standalone, like the v1 evaluator. v1 is a path dependency and is not edited.
+[workspace]
+
+[dependencies]
+genesis-lab-eval = { path = "../evaluator" }
+rapier2d = { version = "=0.22.0", features = ["enhanced-determinism"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
