@@ -2,23 +2,27 @@
 
 ## Active repository checkpoint
 
-**Final snapshot: main `fa9516cb`, ten open PRs before this checkpoint:**
-#204, #203, #199, #181, #180, #149, #144, #65, #57 and draft #7.
-#201 `f41e99e9` merged at `05f84f2d`; code/tests match independently cleared
-`f91952b7`, with the final documentation delta checked separately. Its earlier
-source/seed/lifecycle failures are resolved; author pilot results remain unverified.
-#180 `c5e916b8` remains held on lifecycle/buffered-deadline/staging-cleanup findings;
-#181 `f1df31b5` clears its own finding but inherits #180. Exchange UI #204
-`d5d6f7fe` is under independent review; Stage visual stack #203 `abc55ce4` is
-unreviewed. Later source changes require review; no goal gate closes.
+**Frozen snapshot: main `0cc38e6`, nine open PRs before this checkpoint:**
+#204, #203, #199, #181, #180, #144, #65, #57 and draft #7.
+#201 `f41e99e9` merged at `05f84f2d`; its earlier source/seed/lifecycle findings
+are cleared, while author pilot results remain unverified. #180 `c5e916b8` is held;
+#181 `f1df31b5` clears its own finding but inherits #180. #203 is unreviewed.
+#204 `d5d6f7fe` is held on immutable-version conflicts and nested-reference parsing:
+94 original cases pass; with seven guards, 96/101 pass and five fail; typecheck passes.
 
-**Merged with unresolved findings:** #148 `62c2a0c3` → `fa9516cb`, #168
-`8e132a96` → `e89a47a9`, #184 `2a4a1ccd` → `61125e72` and #198 `adf43e07` →
-`8186fb84`. Their recorded domain/context, resource-limit/criterion, calibration
-unknown/timeout/failure and Stage-evidence/CSS findings are not cleared by merge.
-[Corrective scopes](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6393885331)
-assign #168 to Codex and #198 to the protocol-review agent; #184 is assigned to
-Henry, not yet acknowledged. These corrections are in progress, not completed.
+**Corrective merges:** #205 `73ed916a` → `0cc38e61` clears #168's resource-limit/
+missing-criterion findings; eight inert test methods pass with the original eight
+mutation subcases preserved. #206 `3d8a4a60` → `281f66ef` clears #198's Stage
+receipt/foreign-card/CSS findings; root and independent reviewer each pass 61
+inert Node cases (overlapping). #199's own outcome/identity/CSS holds remain.
+These checks run no provider, scorer, executor, namespace or generated method.
+
+**Merged with unresolved findings:** #148 `62c2a0c3` → `fa9516cb`, #149
+`6e08ba9` → `ba8e1997` and #184 `2a4a1ccd` → `61125e72`. Their exact-reference/
+scoring-context, request-cost/unknown-panel and calibration findings remain open.
+[Corrective scope](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6393885331)
+assigns #184 to Henry, not yet acknowledged. Later sources require review;
+no merge, local check or scheduling proposal closes a goal gate.
 
 Eric [acknowledged the exchange UI slice](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6393807882):
 `records.ts`, `intake.ts`, new `exchange.ts`/`ExchangePanel.tsx`, its
@@ -52,8 +56,8 @@ by a colleague at `c113cfc567f0bf450a489d58573427849d214a2b` and independently
 reviewed. Finite samples no longer imply a family-wide cap or equivalence;
 corrected/pinned calibration and full controls/builds/scoring/panels/grants are
 required. Proposal only: no runs, comparative benefit or goal result.
-ACP #198 `adf43e07` is merged with unresolved findings after [review 5641631281](https://github.com/HenryWashuHe/genesis-history-experiment/pull/198#pullrequestreview-5641631281):
-56 original VM tests pass; three `b8da38d5` guards fail on inferred planner
+ACP Prior #198 source `adf43e07` had findings now cleared by #206 after [review 5641631281](https://github.com/HenryWashuHe/genesis-history-experiment/pull/198#pullrequestreview-5641631281):
+56 original VM tests pass; three `b8da38d5` guards failed on that source on inferred planner
 activity, foreign pending-card replacement and Explain CSS applying to `body`.
 #199 `5567f827` is held after review5641682200: 58 original VM cases and one
 new control pass, five guards fail on outcome labels, cross-change IDs and CSS. No browser,
@@ -371,9 +375,9 @@ corrected. Trusted full selection lineage remains upstream. Eligibility CLI
 #174 `f67ae448` is merged at `73d039b5` after its bounded-read/path fix;
 [review 5641409679](https://github.com/HenryWashuHe/genesis-history-experiment/pull/174#pullrequestreview-5641409679)
 checks five focused tests plus three inert-file cases and scoped strict Clippy/fmt.
-Endpoint [#168 `8e132a96` is merged with unresolved findings](https://github.com/HenryWashuHe/genesis-history-experiment/pull/168#pullrequestreview-5641653972).
+[Prior #168 source `8e132a96` had findings now cleared by #205](https://github.com/HenryWashuHe/genesis-history-experiment/pull/168#pullrequestreview-5641653972).
 Five prior guards and a valid-policy control pass; eight independent subcases
-in `daf04dd5700aa9676eefe07b247ec12ace1fb4fc` fail on wrong-but-consistent
+in `daf04dd5700aa9676eefe07b247ec12ace1fb4fc` failed on that source on wrong-but-consistent
 resource limits and a missing-criterion skip. These are pure/mocked checks,
 not scorer/evaluator or generated-method execution.
 Selective-transfer #165 source `cb5f28f0d71d65ec6b7c3376ebc05ec73485d7fc` merged

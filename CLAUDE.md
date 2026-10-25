@@ -10,23 +10,27 @@
 
 ## Current direction and coordination
 
-**Final snapshot: main `fa9516cb`, ten open PRs before this checkpoint:**
-#204, #203, #199, #181, #180, #149, #144, #65, #57 and draft #7.
-#201 `f41e99e9` merged at `05f84f2d`; code/tests match independently cleared
-`f91952b7`, with the final documentation delta checked separately. Its earlier
-source/seed/lifecycle failures are resolved; author pilot results remain unverified.
-#180 `c5e916b8` remains held on lifecycle/buffered-deadline/staging-cleanup findings;
-#181 `f1df31b5` clears its own finding but inherits #180. Exchange UI #204
-`d5d6f7fe` is under independent review; Stage visual stack #203 `abc55ce4` is
-unreviewed. Later source changes require review; no goal gate closes.
+**Frozen snapshot: main `0cc38e6`, nine open PRs before this checkpoint:**
+#204, #203, #199, #181, #180, #144, #65, #57 and draft #7.
+#201 `f41e99e9` merged at `05f84f2d`; its earlier source/seed/lifecycle findings
+are cleared, while author pilot results remain unverified. #180 `c5e916b8` is held;
+#181 `f1df31b5` clears its own finding but inherits #180. #203 is unreviewed.
+#204 `d5d6f7fe` is held on immutable-version conflicts and nested-reference parsing:
+94 original cases pass; with seven guards, 96/101 pass and five fail; typecheck passes.
 
-**Merged with unresolved findings:** #148 `62c2a0c3` → `fa9516cb`, #168
-`8e132a96` → `e89a47a9`, #184 `2a4a1ccd` → `61125e72` and #198 `adf43e07` →
-`8186fb84`. Their recorded domain/context, resource-limit/criterion, calibration
-unknown/timeout/failure and Stage-evidence/CSS findings are not cleared by merge.
-[Corrective scopes](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6393885331)
-assign #168 to Codex and #198 to the protocol-review agent; #184 is assigned to
-Henry, not yet acknowledged. These corrections are in progress, not completed.
+**Corrective merges:** #205 `73ed916a` → `0cc38e61` clears #168's resource-limit/
+missing-criterion findings; eight inert test methods pass with the original eight
+mutation subcases preserved. #206 `3d8a4a60` → `281f66ef` clears #198's Stage
+receipt/foreign-card/CSS findings; root and independent reviewer each pass 61
+inert Node cases (overlapping). #199's own outcome/identity/CSS holds remain.
+These checks run no provider, scorer, executor, namespace or generated method.
+
+**Merged with unresolved findings:** #148 `62c2a0c3` → `fa9516cb`, #149
+`6e08ba9` → `ba8e1997` and #184 `2a4a1ccd` → `61125e72`. Their exact-reference/
+scoring-context, request-cost/unknown-panel and calibration findings remain open.
+[Corrective scope](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6393885331)
+assigns #184 to Henry, not yet acknowledged. Later sources require review;
+no merge, local check or scheduling proposal closes a goal gate.
 
 **Networked recursive capability improvement with fixed model weights** is the
 user-selected product framing. It supersedes the previous decision to relegate
@@ -298,10 +302,9 @@ every milestone. All lower checkpoints are historical.
   This is preparation only, without trusted selection lineage. Eligibility CLI
   #174 `f67ae448` → `73d039b5` clears its bounded-read/path hold: five focused
   tests, three temporary inert-file checks and scoped strict Clippy/fmt pass.
-  It delegates to merged typed `assess_process_slot`; no scorer ran. Endpoint
-  #168 `8e132a96` is merged with unresolved findings after exact review: five prior guards and a valid
-  policy control pass, but eight new `daf04dd5` subcases fail on consistently
-  wrong resource limits and skipped missing criterion. These are pure/mocked
+  It delegates to merged typed `assess_process_slot`; no scorer ran. For prior #168 source `8e132a96` the review recorded five prior guards and a valid policy control passing, but eight
+  `daf04dd5` subcases failing on consistently wrong resource limits and skipped
+  missing criterion. #205 now clears those findings. These are pure/mocked
   checks, not runtime evidence.
   Selective-transfer #165 `cb5f28f0` merged at `b99839df` after corrected claims
   and static checks of 713 manifest entries, 523 artifact hashes, 12 slot joins
@@ -368,13 +371,13 @@ metadata becomes another family's root, drops verified source and falsely
 promotes 1/2 over the actual 2/2 control. Root independently reran that failure.
 Inert callbacks only, not runtime, improvement or adoption authority.
 ACP's [stage-clarity claim](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6393603972)
-is active, but [#198 `adf43e07` is merged with unresolved findings](https://github.com/HenryWashuHe/genesis-history-experiment/pull/198#pullrequestreview-5641631281):
-56 existing VM tests pass; three new `b8da38d5` guards fail on inferred planner
+is active. [Prior #198 source `adf43e07` had findings now cleared by #206](https://github.com/HenryWashuHe/genesis-history-experiment/pull/198#pullrequestreview-5641631281):
+On that source, 56 VM tests passed; three `b8da38d5` guards failed on inferred planner
 activity, a foreign decision replacing a pending card, and Explain CSS matching
 `body`. No browser/live POST ran. Decision-strip #199 `5567f827` is also held:
 58 originals and one new control pass; five guards fail on outcome labels,
 mismatched change IDs and CSS collision. It grants no authority or ownership.
-Eric's #148 `62c2a0c3` is merged with unresolved findings; #149 `6e08ba9` remains held. Prior
+Eric's #148 `62c2a0c3` is merged with unresolved findings; #149 `6e08ba9` is merged with unresolved findings. Prior
 findings clear, but exact-reference/scoring-context checks and request-cost/public-
 feedback labels still fail. The final inert UI stack has 133 pass, four fail and
 one skipped exporter case; typecheck passes. Prior scheduling-study #201 source `557127b4` was
@@ -393,7 +396,7 @@ Queue cleanup preserved branches: #176/#177/#178 closed as superseded by
 #143 closed as deferred, outside the active goal. #167 `d2b76522` merged at `0643c9ef`
 after root source review, locked executor check and strict all-target Clippy.
 The five-line staging-collision fix is not runtime or namespace assurance.
-Codex owns the scoped #168 correction; Henry's next scored-output/attachment slice remains unacknowledged; #184 has unresolved findings at reviewed `68e05610` on
+Codex’s scoped #168 correction is merged in #205; Henry's next scored-output/attachment slice remains unacknowledged; #184 has unresolved findings at reviewed `68e05610` on
 calibration unknown-to-zero and timeout/failure handling before new research runs.
 The `b5a35bf` invocation rehearsal is author-reported and unreviewed here,
 not independent organizational evidence or gate closure.
