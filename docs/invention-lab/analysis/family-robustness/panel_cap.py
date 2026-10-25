@@ -15,6 +15,7 @@ Prints JSON.
 """
 import json, os, random, subprocess, sys, tempfile
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import calibrate
 import mixed_search
 
 
@@ -41,9 +42,12 @@ def main(argv):
             for _ in range(n):
                 with open(path, "w") as f:
                     json.dump(mixed_search.launcher(rnd, worlds[0]["rules"]), f)
-                k = lab(lab_eval, "accept", path, "projectile-target", *seeds).get("succeeded")
-                if isinstance(k, bool) or not isinstance(k, int):
-                    sys.exit("panel_cap: evaluator printed no success count; refusing a partial histogram")
+                try:
+                    k = calibrate.acceptance_count(
+                        lab(lab_eval, "accept", path, "projectile-target", *seeds),
+                        [int(x) for x in seeds])
+                except calibrate.Unavailable as e:
+                    sys.exit(f"panel_cap: {e}; refusing a partial histogram")
                 hist[k] = hist.get(k, 0) + 1
             rows.append({"seeds": [first, first + 5],
                          "targets": [round(w["target_x"], 2) for w in worlds],

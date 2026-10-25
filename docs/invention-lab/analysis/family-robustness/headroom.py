@@ -64,8 +64,7 @@ def main(argv):
                 for seeds in panels:
                     try:
                         scored = calibrate.lab(lab_eval, "accept", path, family, *map(str, seeds))
-                        count = scored.get("succeeded")
-                        per.append(count if isinstance(count, int) else None)
+                        per.append(calibrate.acceptance_count(scored, seeds))
                     except calibrate.Unavailable:
                         per.append(None)
                 row[name] = {"per_panel": per,

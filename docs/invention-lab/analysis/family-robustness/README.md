@@ -167,12 +167,17 @@ experiment receipt as an `ok` response with zero charged steps, that it and
 `headroom.py` summed missing acceptance results as zero successes, that
 `panel_cap.py` left failed evaluator calls out of its histogram, and that the
 harness had no deadline on its protocol reads and no guaranteed child
-cleanup. Those are fixed (PR after #184). An evaluator call that fails, times
-out or prints no valid count makes a calibration panel *unavailable*, with the
-reason, and its successes `null`. Any unavailable panel makes the total
+cleanup. Those are fixed (#207). An evaluator call that fails or times
+out, or an acceptance result whose receipts aren't one measured outcome
+(`scored` with a boolean success, or `invalid`) per declared seed matching the
+reported count, makes a calibration panel *unavailable*, with the reason, and
+its successes `null`. Steps already charged stay recorded when a later request
+fails. Any unavailable panel makes the total
 `null`. `panel_cap.py` refuses to print a partial histogram. Each evaluator
-call has a 120 s limit and each panel a 900 s deadline, and the control
-process is always stopped and reaped. `test_harness.py` covers these with a
+call has a 120 s limit, cut short by the panel's 900 s deadline, which also
+covers the final acceptance. The control process is always stopped and
+reaped. Writes to the control's stdin are not separately bounded; the protocol
+keeps at most one small reply outstanding. `test_harness.py` covers these with a
 fake evaluator. Re-running `headroom.py` and every `calibrate.py` entry after
 the fix reproduced the checked-in `headroom.json` and `calibration.json`
 byte for byte (the retained runs had no failures). `panel-cap.json` was not

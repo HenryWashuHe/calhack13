@@ -29,7 +29,10 @@ elif op == "experiment":
 elif op == "accept":
     if mode == "accept_fails":
         sys.exit(3)
-    print(json.dumps({"succeeded": 4}))
+    seeds = [int(x) for x in sys.argv[4:]]
+    print(json.dumps({"succeeded": 4, "of": len(seeds), "receipts": [
+        {"seed": x, "outcome": "scored", "metrics": {"success": i < 4}}
+        for i, x in enumerate(seeds)]}))
 '''
 
 CONTROL = r'''import json, sys, time
