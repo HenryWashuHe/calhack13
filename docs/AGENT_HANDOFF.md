@@ -59,10 +59,15 @@ Apify baseline do not close those gates. Event organizing remains superseded.
 | EricZhu-31 / Codex provider session | #104 nullable-ticket correction merged; [separate CREAO Trigger smoke slice claimed](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388887582), #137 held at `08a68e3` | Own `scripts/live-gates/creao-trigger.mjs`, focused offline test, trigger guide and narrow live-gate docs link. Keep team `capi_`/app-ID Trigger separate from existing Developer API adapters/gate. Offline infrastructure only, no hosted run or G0–G4 result; ACP retains hosted-gate evidence. [Review](https://github.com/HenryWashuHe/genesis-history-experiment/pull/137#issuecomment-6389011299): 32 original offline cases pass; three new regressions fail for directory durability, stream bounds and stale concurrent polling. Preserve 102-line `f8f9ea3` unchanged. This provider claim does not acknowledge the lab UI request. |
 | Ines | Unassigned by explicit user instruction | Do not infer identity from another collaborator handle. |
 
-Eric's results UI [#148 `1519c275`](https://github.com/HenryWashuHe/genesis-history-experiment/pull/148)
-and stacked [#149 `f180a83a`](https://github.com/HenryWashuHe/genesis-history-experiment/pull/149)
-are under independent review, not merged. The 90 author/review-agent checks have
-not been rerun by root; the earlier 81-test main evidence above remains separate.
+Eric's results UI [#148 `1519c275` is held](https://github.com/HenryWashuHe/genesis-history-experiment/pull/148#issuecomment-6389291887):
+first-match conflicting metrics, unsupported metrics identity and mislabeled Unknown.
+Stacked [#149 `f180a83a` is held](https://github.com/HenryWashuHe/genesis-history-experiment/pull/149#issuecomment-6389292133):
+unrelated/missing revision cost, Prepared labeled as a request, unbound feedback
+causality and unknown origin labeled as control. Preserve all nine independent
+cases at `f0736d78928e4fc639ecf0739f4fe77abfb5de6f` on `codex/review-results149`:
+root rerun is eight failures / one retained-score control pass; all original
+regressions remain. The review agent's 90 original UI tests and typecheck pass;
+these were not root-rerun. Earlier 81-test main evidence above remains separate.
 
 Receiving wrapper [#118](https://github.com/HenryWashuHe/genesis-history-experiment/pull/118#issuecomment-6388306630)
 `68bc82d0061eb50e58acd45aa811b4895a9e4a17` merged at `ec23efb5`.
