@@ -62,6 +62,14 @@ fn amounts(g: &ResourceGrant) -> [u64; 5] {
 }
 
 impl ChainAllocation {
+    pub fn stages(&self) -> &[ChainStage] {
+        &self.0.stages
+    }
+
+    pub fn total_grant(&self) -> &ResourceGrant {
+        &self.0.total_grant
+    }
+
     /// Retain before any participating work. Pure construction proves no timing.
     pub fn new(
         id: String,
@@ -257,6 +265,10 @@ pub struct ChainStageBinding {
 }
 
 impl ChainStageBinding {
+    pub fn stage_id(&self) -> &str {
+        &self.stage_id
+    }
+
     pub fn validate_generation(
         &self,
         chain: &ChainAllocation,
