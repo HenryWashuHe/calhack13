@@ -7,8 +7,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import { createState, runGeneration, confirm, exportBundle, verifyLedger, sha256 } from "./engine.mjs";
-import * as jobshop from "./families/jobshop.mjs";
-import * as binpack from "./families/binpack.mjs";
+import { jobshopFamily, jobshopControls, featureDoc as jobshopDoc, FEATURES as jobshopFeatures, linearSource as jobshopLinear } from "./families/jobshop.mjs";
+import { binpackFamily, binpackControls, featureDoc as binpackDoc, FEATURES as binpackFeatures, linearSource as binpackLinear } from "./families/binpack.mjs";
 import { claudeMutator } from "./mutators/claude.mjs";
 import { cascade } from "./cascade.mjs";
 import { toBulk, post } from "./sponsors/elastic.mjs";
@@ -25,17 +25,19 @@ function loadEnv(file = ".env") { // only fills variables that are unset; never 
   }
 }
 
-const FAMILIES = {
-  jobshop: { id: "jobshop-10x5", make: jobshop.jobshopFamily, controls: jobshop.jobshopControls, featureDoc: jobshop.featureDoc, target: 1.2, root: "SPT", subject: "a dispatching rule for job-shop scheduling",
-    task: `The task: 10 jobs, 5 machines; every job visits every machine once in its own order, with integer processing times between 1 and 99. A greedy dispatcher runs the shop: whenever a machine is free and has ready operations, it starts the one with the HIGHEST priority value. Success on an instance means makespan <= target × lower bound, where the lower bound is the larger of the heaviest machine load and the longest job. Progress is lower_bound / makespan. Instances are drawn fresh and hidden every generation.` },
-  binpack: { id: "binpack-100", make: binpack.binpackFamily, controls: binpack.binpackControls, featureDoc: binpack.featureDoc, target: undefined, root: "first-fit", subject: "a bin-choice rule for online bin packing",
-    task: `The task: 100 items with integer sizes in the range given below arrive one at a time; bins have capacity 100. For each item, every open bin with enough room is a candidate; the rule scores each candidate and the item goes into the HIGHEST-scoring bin; if no open bin has room, a new bin is opened. Success on an instance means bins used <= target × lower bound, where the lower bound is ceil(total size / capacity). Progress is lower_bound / bins. Instances are drawn fresh and hidden every generation.` },
-};
+function familySpec(name) {
+  const specs = {
+  jobshop: () => ({ id: "jobshop-10x5", make: jobshopFamily, controls: jobshopControls, featureDoc: () => jobshopDoc, linear: () => [jobshopFeatures, jobshopLinear], target: 1.2, root: "SPT", subject: "a dispatching rule for job-shop scheduling",
+    task: `The task: 10 jobs, 5 machines; every job visits every machine once in its own order, with integer processing times between 1 and 99. A greedy dispatcher runs the shop: whenever a machine is free and has ready operations, it starts the one with the HIGHEST priority value. Success on an instance means makespan <= target × lower bound, where the lower bound is the larger of the heaviest machine load and the longest job. Progress is lower_bound / makespan. Instances are drawn fresh and hidden every generation.` }),
+  binpack: () => ({ id: "binpack-100", make: binpackFamily, controls: binpackControls, featureDoc: () => binpackDoc, linear: () => [binpackFeatures, binpackLinear], target: undefined, root: "first-fit", subject: "a bin-choice rule for online bin packing",
+    task: `The task: 100 items with integer sizes in the range given below arrive one at a time; bins have capacity 100. For each item, every open bin with enough room is a candidate; the rule scores each candidate and the item goes into the HIGHEST-scoring bin; if no open bin has room, a new bin is opened. Success on an instance means bins used <= target × lower bound, where the lower bound is ceil(total size / capacity). Progress is lower_bound / bins. Instances are drawn fresh and hidden every generation.` }),
+  };
+  return specs[name] ? specs[name]() : null;
+}
 
 function mockMutator(spec) { // a local stand-in for dry runs: seeded linear rules from the family's own feature list, no model
   let n = 0;
-  const lib = spec.id.startsWith("binpack") ? binpack : jobshop;
-  return { usage: { calls: 0, input_tokens: 0, output_tokens: 0, failures: 0 }, observe() {}, propose: ({ k }) => Array.from({ length: k }, () => ({ source: lib.linearSource(lib.FEATURES.map((_, i) => ((parseInt(sha256(`mock:${n++}:${i}`).slice(0, 6), 16) % 200) - 100) / 100)), note: "mock linear rule" })) };
+  return { usage: { calls: 0, input_tokens: 0, output_tokens: 0, failures: 0 }, observe() {}, propose: ({ k }) => { const [features, linear] = spec.linear(); return Array.from({ length: k }, () => ({ source: linear(features.map((_, i) => ((parseInt(sha256(`mock:${n++}:${i}`).slice(0, 6), 16) % 200) - 100) / 100)), note: "mock linear rule" })); } };
 }
 
 function reportPanel(family, instances, arms) { // report-only: every arm on the same final panel, outside selection
@@ -44,10 +46,12 @@ function reportPanel(family, instances, arms) { // report-only: every arm on the
 
 function main() {
   loadEnv();
-  const spec = FAMILIES[String(arg("family", "jobshop"))];
-  if (!spec) throw new Error(`--family must be one of ${Object.keys(FAMILIES).join(", ")}`);
+  const spec = familySpec(String(arg("family", "jobshop")));
+  if (!spec) throw new Error("--family must be one of jobshop, binpack");
   const cfg = { family: spec.id, generations: num("generations", 5), k: num("k", 4), heldout: num("heldout", 20), screen: num("screen", 3), factor: num("factor", 2), target: arg("target", undefined) === undefined ? spec.target : num("target"), seed: String(arg("seed", "smoke-1")), stall: num("stall", 3), mock: arg("mock", false) === true, effort: String(arg("effort", "medium")), gate: String(arg("gate", "all")), model: process.env.GENESIS_LLM_MODEL || "claude-sonnet-5-5" };
   const out = String(arg("out", path.join("scripts", "iteration", "results", `${String(arg("family", "jobshop"))}-${cfg.seed}${cfg.mock ? "-mock" : ""}`)));
+  // A run directory is evidence: an occupied one is refused before any work or write, never overwritten.
+  if (fs.existsSync(out) && fs.readdirSync(out).length) throw new Error(`refusing to reuse the occupied run directory ${out}; choose a new --seed or --out`);
   fs.mkdirSync(out, { recursive: true });
   const sizes = arg("sizes", undefined) === undefined ? undefined : String(arg("sizes")).split(",").map(Number); // binpack only: item size range, e.g. --sizes 20,70
   cfg.sizes = sizes || null;
@@ -56,7 +60,7 @@ function main() {
   const controls = spec.controls(family, { randomSearch: { seed: cfg.seed + ":rs", samples, panel } });
   const calls = [];
   const task = spec.task + (sizes ? ` Item sizes are integers in [${sizes[0]}, ${sizes[1]}].` : spec.id.startsWith("binpack") ? " Item sizes are integers in [1, 50]." : "");
-  const inner = cfg.mock ? mockMutator(spec) : claudeMutator({ subject: spec.subject, task, featureDoc: spec.featureDoc, model: cfg.model, effort: cfg.effort, log: (e) => calls.push(e) });
+  const inner = cfg.mock ? mockMutator(spec) : claudeMutator({ subject: spec.subject, task, featureDoc: spec.featureDoc(), model: cfg.model, effort: cfg.effort, log: (e) => calls.push(e) });
   const mutator = cascade(inner, { family, screenSeed: cfg.seed + ":screen", m: cfg.screen, factor: cfg.factor });
   const criterion = { rule: "success-count-margin", min_margin: 1 };
   const state = createState({ lab: "lab_a", seed: cfg.seed });

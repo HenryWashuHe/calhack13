@@ -54,6 +54,13 @@ the engine itself is unchanged except for the root-hydration fix.
   `fixed-first-fit`, `fixed-best-fit`, `fixed-worst-fit`, `random-search`. Known property: with sizes in
   [1, 50] first-fit and best-fit tie on most instances, so this family separates rules less sharply than
   job-shop; it is here to show the same engine, mutator, cascade and exports run unchanged on a second domain.
+- `families/sandbox.mjs` + `families/rule-child.mjs`: where generated rules run. `node:vm` is not a security
+  boundary (a rule's top-level `this` reaches the host realm), so every rule, controls included, is scored in
+  a child process started with an empty environment, an empty working directory, a wall-clock timeout and
+  SIGKILL; the parent never evaluates model text, and the API key never enters the scoring process. Residual:
+  CPU until the wall timeout, and grandchildren that outlive the child's kill; `lab-exec`'s namespace mode is
+  the stronger boundary. Thrown values are reported through a bounded primitive diagnostic that invokes no
+  getters. Run directories are evidence: an occupied `--out` is refused before any write.
 - `mutators/claude.mjs`: the model mutator. One Messages API request per generation through a child
   process (`claude-call.mjs`, raw HTTP, key from `GENESIS_LLM_API_KEY`, server-side `fallbacks: "default"`)
   so the engine stays synchronous. The prompt follows the FunSearch/AlphaEvolve finding: scored programs,
