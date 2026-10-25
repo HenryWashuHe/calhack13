@@ -90,14 +90,20 @@ generation record:
 
 ## Readings
 
-- **G3-relevant outcome:** A's pinned trial Accepts, A's owner adopts, the
-  invocation completes under A's grant, **and `child2` does not lose to random
+- **Return-path evidence:** A's pinned trial Accepts, A's owner adopts, and
+  the invocation completes under A's grant. Assess G3 against the separate
+  [mechanism contract](../../ONGOING_GOAL.md#completion-gates-and-evidence);
+  it does not require a positive improvement result. One exploratory chain
+  does not by itself close that gate.
+- **Exploratory quality floor met:** the return path above is recorded,
+  **and `child2` does not lose to random
   search on A's panel** (`a2-vs-random`: `child2`'s success count at least
   random search's). Even then this is one exploratory chain.
-- **Adopted, not G3-relevant:** A's pinned trial Accepts and A adopts, but
+- **Adopted, below the quality floor:** A's pinned trial Accepts and A adopts, but
   random search beats `child2` on the same panel. The adoption stands as A's
-  own decision against its own method; it is reported as reuse of a method
-  better than A's, not as improved development. Rehearsal 5 ended this way
+  own decision against its own method; report its higher success count than
+  A's method on this panel and its loss to random without an improvement claim.
+  This remains evidence about the return mechanism. Rehearsal 5 ended this way
   with the stand-in (3/12 vs parent 2/12, random 6/12).
 - The random comparison stays out of A's receiver pin: the receiver decides
   against what A has, and this floor only governs how the result is read. It
