@@ -1,0 +1,9 @@
+{
+  "budget_cents": 1000000,
+  "max_active_contracts": 3,
+  "max_active_roles": 10,
+  "scopes": [
+    "method.develop",
+    "mission.coordinate"
+  ]
+}

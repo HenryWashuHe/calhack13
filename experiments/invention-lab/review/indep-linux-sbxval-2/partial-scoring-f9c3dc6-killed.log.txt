@@ -1,0 +1,64 @@
+head=f9c3dc6fb8c771436f132bb9c47afb6db722bafe date=2026-10-25T07:10:27Z uname=6.18.44-fc-v153
+   Compiling genesis-lab-score v0.1.0 (/home/claude/xwt/indep-score2/experiments/invention-lab/scoring)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 33.51s
+     Running unittests src/lib.rs (/tmp/claude-0/target-indep/debug/deps/genesis_lab_score-a71b50692f94546d)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/lab-score.rs (/tmp/claude-0/target-indep/debug/deps/lab_score-88b09b6706205b30)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/feedback.rs (/tmp/claude-0/target-indep/debug/deps/feedback-f99de7a039e5d5b3)
+
+running 5 tests
+test a_tampered_artifact_or_mismatched_records_are_refused ... ok
+test an_oversized_experiment_design_is_listed_by_digest_and_the_document_fits ... ok
+test an_unscored_slot_has_no_feedback ... ok
+test feedback_lists_public_experiments_the_submission_and_its_scores ... ok
+test hidden_comparison_plans_never_yield_feedback ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 10.56s
+
+     Running tests/generation_rehearsal.rs (/tmp/claude-0/target-indep/debug/deps/generation_rehearsal-853042c3e26023af)
+
+running 1 test
+test generation_to_verdict_runs_end_to_end_offline ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 13.01s
+
+     Running tests/hidden.rs (/tmp/claude-0/target-indep/debug/deps/hidden-99baa9ff49314280)
+
+running 4 tests
+test a_parent_only_termination_does_not_close_the_comparison ... ok
+test a_slot_without_output_has_nothing_to_score ... ok
+test hidden_scoring_refuses_before_simulating_anything ... ok
+test a_closed_comparison_is_scored_on_the_committed_draw_and_validates ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.97s
+
+     Running tests/indep_hidden_closure.rs (/tmp/claude-0/target-indep/debug/deps/indep_hidden_closure-a70146e6422500d8)
+
+running 2 tests
+test none_mode_is_never_certified_whole_tree_so_hidden_scoring_refuses ... ok
+test namespaces_closure_scores_only_with_observed_whole_tree_termination ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 12.69s
+
+     Running tests/review_feedback_public_boundary.rs (/tmp/claude-0/target-indep/debug/deps/review_feedback_public_boundary-a9d7edc4b7891618)
+
+running 3 tests
+test exact_public_records_still_produce_bound_deterministic_feedback ... ok
+test public_feedback_fits_the_revision_public_document_byte_limit_or_refuses ... ok
+test public_feedback_refuses_valid_hidden_comparison_records ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.57s
+
+     Running tests/review_hidden_closure.rs (/tmp/claude-0/target-indep/debug/deps/review_hidden_closure-7d886bfbf8683151)
+
+running 2 tests
+test review_executor_child_process ... ignored, Subprocess entry point invoked only by the supervised closure test
