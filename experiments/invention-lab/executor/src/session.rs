@@ -29,6 +29,15 @@ pub struct RunState {
     pub sealed: bool,
     /// Set only after the receipt is durable.
     pub finished: bool,
+    /// How the executor observed the method process end before finalizing,
+    /// when it did. A recovered slot never has this: its executor stopped
+    /// without seeing the method exit.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub terminated: Option<String>,
+    /// Whether that observation covers every process the method could have
+    /// started (a whole PID namespace), not only the reaped method process.
+    #[serde(default)]
+    pub terminated_tree: bool,
 }
 
 #[derive(Debug)]

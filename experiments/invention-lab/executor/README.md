@@ -88,9 +88,11 @@ Trusted acceptance scoring lives in the separate `../scoring` crate.
     chroot;
   - the method runs as `nobody` with `no_new_privs`, so it can't leave the
     chroot;
-  - at the deadline or after the outcome, the namespace's first process is
-    SIGKILLed with kill(2), which ends every process in the namespace, and
-    `execute` returns only after the kernel has torn it down;
+  - at the deadline or after the outcome, the executor attempts to SIGKILL
+    the namespace's first process with kill(2). Whole-tree termination
+    evidence requires a confirming stop outcome and successful launcher
+    reap; a launcher-only fallback remains unconfirmed and cannot authorize
+    hidden scoring;
   - resource limits set with prlimit before the privilege drop: 1 GiB address
     space, 64 processes for `nobody`, 64 MiB per written file, 256 open files.
 - **Model use is measured zero in this mode.** With no network, no socket file
