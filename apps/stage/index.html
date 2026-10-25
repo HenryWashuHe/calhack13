@@ -909,8 +909,9 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
               mech: org === "A" ? { verdict, change_id: typeof p.change_id === "string" && p.change_id ? p.change_id : null, summary: p.summary || "", model: p.model || "model unknown", kernel_errors: Array.isArray(p.kernel_errors) ? p.kernel_errors.slice(0, 3) : [] } : null };
             if (org === "A") app.latestA = card;
             const answersReport = org === "A" && p.observation_id && p.observation_id === app.lastJudgeObs;
-            // Keep a submitted report pinned until its own answer arrives; other decisions stay in the log.
-            if (!app.lastJudgeObs || answersReport) showDecision(card);
+            // The live card and mechanism both select Org A. B's decisions stay in the log/cache.
+            // Keep a submitted report pinned until its own answer arrives.
+            if (org === "A" && (!app.lastJudgeObs || answersReport)) showDecision(card);
             if (p.observation_id) app.answers.set(org + ":" + p.observation_id, card); // the complete answer, keyed by organization and observation
             if (answersReport) ack = org + ":" + p.observation_id;
           }
