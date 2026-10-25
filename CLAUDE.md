@@ -36,6 +36,9 @@ historical-session and CLI-boundary guards are preserved unchanged in #83.
 Structural stage allocation and retained trial-binding commands (#85/#86), with
 independent overflow/recovery guards (#87), are merged. Optional allocation
 checks reuse generation and cost assessment; runtime entry checks remain open.
+The shared stage validation prerequisite #97 and finite whole-chain ceilings #103
+are merged: generation and trial-only stages reserve full declared capacity.
+These pure checks add no runtime enforcement or retrospective allocation.
 ACP #3/#5 are also merged with unchanged migration regressions. The two rehearsals
 use handwritten fixture sources and return Rejected; they establish no actual
 model generation or recursive benefit.
@@ -64,10 +67,29 @@ every milestone. All lower checkpoints are historical.
   #57/#65 still need scoped namespace-lifecycle assurance; portable recovery and
   compilation checks do not establish whole-tree stopping. Existing receipts
   and installation records do not authenticate an organization's identity or
-  replace independently retained acceptance evidence.
+  replace independently retained acceptance evidence. #98 `cb29a95` receiving
+  records are merged after independent checks, retaining Accepted 1/6 versus 0/6
+  and Rejected 1/6 versus 2/6. They do not establish local adoption or a return.
+  #102 `c8bf7a0` public feedback is merged at `7accefd3`: hidden-comparison
+  records are refused before reads and the document is bounded to 128 KiB.
+  Eight focused tests and strict Clippy/fmt independently pass; the original
+  `8ad9d645` regressions are unchanged. This supplies feedback, not adoption.
+  Retain B's explicit selection/local acceptance decision and intended responsibility;
+  a distinct B task and fresh A return remain required.
 - Eric (`EricZhu-31`) [acknowledged](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6386421464)
   the lab UI lane: `docs/invention-lab/ui.md` and `apps/web/src/invention-lab/**`,
-  without shared routes. #93/#94 are open; do not transfer this lane implicitly.
+  without shared routes. #93 `c723533` / #94 `8eeb8db` only merged main;
+  their existing label/organization findings remain, with `78adef37` unchanged.
+  #99–#101 also remain held on precise ledger sums, foreign-execution scoring
+  attribution and cross-org lineage/checkpoint pairing; preserve `59c3e1c`.
+  Do not transfer this lane implicitly. Archival stage presenter #108 `feb3da7`
+  is held on visible hidden controls and a stale Live caption after failure;
+  it does not advance the goal or revive the event-organizer direction.
+  Eric also [claimed a separate CREAO nullable-ticket reconciliation slice](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6387513389):
+  exact saved run/account/version binding and operator read-only reconciliation,
+  no duplicate create or name/time-window matching. The old lost run ID cannot
+  be recovered retroactively. Its implementation #104 `5023a48` merged as `62a2f009`; independent
+  guards are retained in #106. No hosted recovery or readiness is established.
 - ACP Claude owns the bridge and held #4 documentation proposal. #3 `f64e131`
   and #5 `e95a286` are merged; all eight `bb5a841`/`0705ecd`/`b60a755` cases
   remain unchanged and pass. Reconcile #4 with those merges, the local
@@ -100,10 +122,19 @@ every milestone. All lower checkpoints are historical.
   forge 211 tests/40 targets pass, plus five independently rerun focused cases.
   The old response shape remains unknown. The [third live attempt](docs/invention-lab/evidence/live-method-20261024-generated/README.md)
   on `07c098c` produced the first actual model-generated package, statically parsed
-  but not executed. Henry owns the exact-bound runtime/acceptance handoff; never
-  retag its runtime to fit another host. G0–G4 remain open.
-  Finite whole-chain
-  ceilings remain proposed behind the genuine method run; hashes prove no timing.
+  but not executed in that evidence bundle. Henry owns the exact-bound
+  runtime/acceptance handoff; never retag its runtime to fit another host. #98
+  retained receiving execution/scoring records passed independent consistency
+  checks without source/scorer re-execution; the first-trial report excludes the
+  failed generations and separate reference/comparison runs. No gate closes.
+  Finite-chain ceilings #103 and retained CLI #107 are merged; hashes prove
+  no timing and do not predeclare the three previous calls. Optional generation
+  chain guard #110 `4b57cfa` is merged at `0f277d7`: 34 focused checks pass
+  independently. Codex's next planned step is one operator-assigned, source-only
+  exploratory B revision using checked #102 feedback, an exact parent, immutable
+  request/settings and a separate prior budget; offline preparation comes first. Retain #98 decision context; this does not replace Henry's receiving
+  acceptance, distinct B task or fresh A return. No spent-operation replay.
+  G0–G4 remain open.
   Retain input-token/wall, billing, global enforcement and history limits.
   Preserve Henry's runtime files; provider/settings reproducibility, complete
   history, enforcement and end-to-end comparison remain open.
@@ -114,6 +145,9 @@ every milestone. All lower checkpoints are historical.
 
 Legacy task numbers are historical references in the migration map. Current
 assignments and exact file scopes are recorded in issue #1 and the handoff.
+The [current direction and ownership checkpoint](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6387556484)
+prioritizes feedback-driven B revision and return to A; provider recovery and UI
+work remain separate supporting lanes.
 
 New method/adoption/UI implementation depends on agreed method and evaluator
 contracts. Claim shared wiring explicitly; do not take another session's files.

@@ -1,0 +1,8 @@
+{
+  "chain_sha256": "efac55be8a2bf09ca0b7d23d05e230442c1c25e07e4776b0a1f3666436e957a4",
+  "stage_id": "revise-b-source",
+  "target": {
+    "kind": "generation",
+    "allocation_sha256": "0252f80d8b5dfdeb426a071a6c44c7703cc1cd072e5f13253c101498cb10398c"
+  }
+}
