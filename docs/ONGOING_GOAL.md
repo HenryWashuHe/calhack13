@@ -112,12 +112,14 @@ Eric #148/#149 and #180/#181; ACP #144 after #126 merged. #184 `68e05610` remain
 calibration unknown-to-zero and timeout/failure handling before new research runs.
 Corrected proposal #195 `ec3bb5d8` is merged at `c113cfc5` after colleague merge
 and independent document review; no calibration/run or gate result follows.
-ACP #198 `adf43e07` is held on three VM guards; #199 `5567f827` is unreviewed and
-inherits that base hold. #148 `62c2a0c3` and #149 `6e08ba9` await review; prior
-findings are historical. #168 `8e132a96` is held on eight new resource-limit/
-missing-criterion cases; five prior guards and a valid policy control pass.
-Scheduling-study #201 `557127b4` is unreviewed in its separately claimed
-subtree; calibration/replay counts are author-reported, not formal study evidence.
+ACP #198 `adf43e07` is held on three VM guards; #199 `5567f827` remains under review
+and inherits that base hold. #148 `62c2a0c3` / #149 `6e08ba9` have new holds after
+prior fixes: exact-reference/scoring-context checks, request-cost attribution and
+unknown-panel labels. The inert stack is 133 pass/four fail/one exporter skip;
+typecheck passes. #168 `8e132a96` remains held on resource-limit/criterion cases.
+Scheduling-study #201 `557127b4` is held on source/seed binding and lifecycle
+ordering: six originals and one control pass, four new guards fail. Only trusted
+synthetic scheduler/static-policy tests ran; author pilot results are unverified.
 CodeRabbit config #202 `6640fac8` merged at `038b8ce9` after official-key review;
 explicit bot commands and GitHub App installation remain separate. No app tests
 or new execution are claimed. Existing lane ownership is unchanged; Ines remains unassigned.

@@ -349,10 +349,13 @@ is active, but [#198 `adf43e07` is held](https://github.com/HenryWashuHe/genesis
 activity, a foreign decision replacing a pending card, and Explain CSS matching
 `body`. No browser/live POST ran. Decision-strip #199 `5567f827` is unreviewed
 and depends on held #198; it grants no new authority or ownership.
-Eric's new #148 `62c2a0c3` is unreviewed; previous `1519c275` findings remain
-historical. #149 new `6e08ba9` also awaits review; its prior findings are historical.
-Scheduling-study #201 `557127b4` is separately claimed and unreviewed;
-reported offline calibration/replay is not independently checked formal evidence.
+Eric's #148 `62c2a0c3` and #149 `6e08ba9` remain held after new reviews. Prior
+findings clear, but exact-reference/scoring-context checks and request-cost/public-
+feedback labels still fail. The final inert UI stack has 133 pass, four fail and
+one skipped exporter case; typecheck passes. Scheduling-study #201 `557127b4` is
+held on source/seed binding and lifecycle ordering: six original tests and one
+new control pass, four new guards fail. This uses trusted local synthetic
+scheduler/static-policy tests; author pilot results were not reproduced.
 ACP's config-only #202 `6640fac8` → `038b8ce9` is merged after official-key review,
 without app tests; explicit bot commands and App installation remain separate.
 Proposal #195 corrected source `ec3bb5d8` was merged by a colleague at `c113cfc5`
