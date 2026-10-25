@@ -115,7 +115,9 @@ open, and neither original PR is on main. [The review snapshot](reviews/pr-queue
 records merged #211/#199/#203 corrections: 21 store, 78 inert Stage and 80 inert
 Stage cases pass in their respective reviewed compositions. Those counts overlap;
 no combined suite or browser validation is claimed. Deferred research and newer
-unreviewed heads remain source-specific.
+unreviewed heads remain source-specific. The later Linux report covers only older
+`31001949` / `6c468f5`; its same-host agent provenance and assertion/heartbeat
+limits are recorded in the snapshot. It supplies no current-head assurance.
 G0–G4 remain open; the native app Goal reports `paused`. No namespace, descriptor,
 evaluator, generated-method, provider or paid execution is claimed here.
 
