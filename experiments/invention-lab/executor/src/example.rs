@@ -76,9 +76,11 @@ pub fn acceptance_plan_for(
 }
 
 /// As [`acceptance_plan_for`], on seeds `first_seed..first_seed + instances`:
-/// a separate split (for example an assessment split never shown during
-/// development) is just another seed range. Seed 0 gives exactly the plan
-/// `acceptance_plan_for` builds. Panics if the range overflows `u64` or reaches
+/// this is another public development panel, visible to the method while it
+/// runs. A previously unused range can test a frozen method on a fresh task;
+/// it is not hidden design scoring or evidence of method non-access. Seed 0
+/// gives exactly the plan `acceptance_plan_for` builds. Panics if the range
+/// overflows `u64` or reaches
 /// the reserved hidden-seed domain (top bit set), so a public plan can never
 /// name an instance `refs::resolve_instance` refuses.
 pub fn acceptance_plan_from(
