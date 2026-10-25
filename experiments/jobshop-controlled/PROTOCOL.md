@@ -35,6 +35,9 @@ arms. Arm order alternates B/A, A/B, B/A, A/B, B/A across repetitions. A failed,
 invalid or refused request is counted and retained; it is never retried or
 replaced. No outcome-driven extension, seed replacement or stopping occurs.
 The `stall` shortcut is disabled. A complete run is 50 model requests.
+Each repetition has a public prompt label `repetition 1` through `repetition 5`
+shared by its A/B arms. It differentiates independent model samples but is
+unrelated to the hidden instance seeds, which are never placed in a prompt.
 
 Within each repetition, the existing fixed SPT, MWKR and LPT controls and one
 seeded random linear-rule search are frozen before model requests. The random

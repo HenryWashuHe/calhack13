@@ -168,7 +168,7 @@ function main() {
       for (const arm of order) {
         const state = createState({ lab: "judged_demo", seed });
         let context = null;
-        const makeInner = () => claudeMutator({ task: TASK, featureDoc, subject: "a dispatching rule for job-shop scheduling", model: MODEL,
+        const makeInner = () => claudeMutator({ task: `${TASK}\nThis is independent repetition ${repetition + 1}.`, featureDoc, subject: "a dispatching rule for job-shop scheduling", model: MODEL,
           effort: EFFORT, call: (req) => call(req, context), log: (record) => journal.append({ event: "mutator_observation", identity: context, record }) });
         const learned = makeInner();
         const independent = { usage: learned.usage, observe() {}, propose(args) {
