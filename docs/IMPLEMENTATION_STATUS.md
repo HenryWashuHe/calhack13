@@ -1,6 +1,50 @@
 # Implementation status
 
-## Current closeout checkpoint — main `7ec75563`
+## Manual closeout — October 25, 2026
+
+The recurring task is paused at the user's request; the native Goal is also
+paused. The user separately authorized this manual subagent review/fix pass.
+Main `efba3a87` includes #231's complete trial-slot/evaluator identity checks
+and #233's pre-write publisher expectation. Their tests are 15 inert UI
+regressions and 20 inert-source loopback cases, independently reproduced;
+TypeScript and strict server Clippy pass. Neither supplies execution evidence.
+
+#232's retained-result verifier correction is merged into #228 at `bb4c3ef3`,
+not main. Thirty inert VM cases pass, checking counts, paired statistics,
+request identities, frozen winners and lifecycle closure. #228's admission and
+source-manifest corrections are present. Claude merged #216 `c45d9235` at
+`c16beeca`; root reproduced four inert policy guards, clearing the three
+source-specific holds. Author-reported sandbox runs remain separate.
+#234 `cd733b32` merged at `7c28e5dd`, fixing the historical fixture loaders
+without changing original assertions; root passes all 181 invention-lab UI cases, including
+the ordinary HTML exporter/JSDOM case. Production evidence intake is unchanged.
+
+#230 is merged at `64de3e3e` with #236's restart correction; 179 retained
+hashes match, 180 historical files remain unchanged, and compilation passes.
+The stand-in/scripted rehearsal still supplies no independent return claim.
+
+#235 is merged at `343b0209` with #238's paused-clock and plot corrections;
+106 inert Stage tests pass. #237 is merged into #228 at `3890123b`; 46 inert
+verifier cases pass, including stopped attempts and independent user-message
+isolation. #228 remains open for Eric's HTTP-stop/protocol and readable-key
+admission corrections; the routing is assigned, not acknowledged. Draft #7 is
+preserved. #239 adds a source-reviewed ctypes namespace guard at `655b0559`;
+this review did not execute it on Linux. #240/#241 clarify the prospective
+random-search quality floor versus G3 mechanism evidence at `0368c95e`, with
+no freeze or experiment. #242 adds native TLS roots with workspace compilation
+passing; #244 retains partial historical Linux logs; #243/#245 retain a
+connection-failure rehearsal and correct the ignored driver's restart ordering.
+All 15 manifest entries match and all 16 historical archive files are unchanged.
+The final `efba3a87` composition passes all 321 web tests (including the 181
+invention-lab subset), TypeScript and workspace all-target compilation.
+New Stage #246 arrived after the final review batch and remains unreviewed.
+No broader completion or actual experiment is claimed.
+
+G0/G2 identity and G4 record checking advanced; G0–G4 remain open. No actual
+method, evaluator/scorer, sandbox or provider was run or dispatched here.
+Earlier checkpoints below retain their source-specific evidence and limitations.
+
+## Historical closeout checkpoint — main `7ec75563`
 
 The user authorized review, bounded fixes and merge of ready remaining PRs.
 #225/#226, #180/#181, #204, #215 and #219 are now merged; exact sources,

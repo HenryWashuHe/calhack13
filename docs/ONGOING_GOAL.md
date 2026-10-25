@@ -5,8 +5,8 @@
 Active repository: [genesis-history-experiment](https://github.com/HenryWashuHe/genesis-history-experiment). See the
 [migration map](REPOSITORY_MIGRATION.md) for old/new PR numbers and preserved work.
 
-Status: the user authorized current PR closeout; the native app Goal
-reports `paused`. No completion is claimed. This is the durable repository objective and completion contract,
+Status: the user authorized manual PR closeout with subagent fixes. The recurring
+automation is paused at the user's request; the native app Goal also reports `paused`. No completion is claimed. This is the durable repository objective and completion contract,
 read alongside current [ownership](AGENT_HANDOFF.md#current-ownership-and-next-work)
 and [coordination issue #1](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1).
 
@@ -75,9 +75,9 @@ At the start of every resumed cycle, and again before a merge or new assignment:
    limitations and next step. Check that the work advanced its chosen gate.
    If it did not, stop expanding that branch and select a better next step.
 
-Use the existing hourly heartbeat for continuation when idle; during active work,
-perform this check at milestone boundaries. Refresh assignments when ownership,
-progress or blockers change, not on every timer tick. Avoid duplicate tasks and
+The hourly heartbeat is disabled at the user's request. Continue only within
+explicitly authorized manual work, checking at milestone boundaries. Refresh
+assignments when ownership, progress or blockers change. Avoid duplicate tasks and
 repetitive no-change comments. Notify for completed milestones, significant
 failures or input that is actually required.
 
@@ -103,6 +103,46 @@ failures or input that is actually required.
   preserve state. Stop recurring work on user pause/cancellation or completion.
 
 ## Current milestone ledger
+
+**Manual closeout — main `efba3a87`:** #231 source `61e0f6a0` merged at
+`c04895df`; #233 source `aeeb955e` merged at `bc7802c8`. These correct full
+trial-slot/evaluator attribution and enforce the typed publisher's identity
+expectation before registry insertion. Root independently reproduced 15 inert UI
+regressions and 20 loopback source-transfer tests; TypeScript and strict server
+Clippy checks pass. #234 fixes the four historical fixture loaders without changing original
+assertions: root independently passes all 181 invention-lab UI cases, including the ordinary
+HTML exporter/JSDOM test; this is not generated-method execution.
+#232 source `3a665ce7` merged into #228 at `bb4c3ef3`, with 30 inert verifier
+regressions independently passing. It checks retained statistics and lifecycle
+consistency; it neither runs the evaluator nor establishes benefit. #228's own
+admission/source-manifest corrections are present. Claude independently merged
+#216 `c45d9235` at `c16beeca`; root reproduced all four inert policy guards,
+clearing their source-specific holds without claiming OS-level assurance. These increments
+advance G0/G2 evidence identity and G4 retained-result checks without closing a
+gate. #230 is now merged at `64de3e3e` after #236 corrected its restart
+ordering. All 179 manifest entries match; the 180 historical files remain
+unchanged. This is a scripted, stand-in rehearsal, not an independent return.
+Historical records and draft #7 are preserved; Ines stays unassigned.
+#235 merged at `343b0209` with #238's pause/reset and selection-panel plot
+corrections; 106 inert Stage tests pass. #237 merged into #228 at `3890123b`,
+with 46 inert verifier cases passing, including stopped pre-submission attempts
+and exact independent user-message isolation. #228 remains open for HTTP-stop
+reporting/protocol clarification and readable-key admission, assigned to Eric,
+not yet acknowledged. #239 source `bdcf82b8` merged at `655b0559` adds an
+interpreter-independent namespace guard; it was source-reviewed only here, not
+run on Linux. #240 merged at `0368c95e` after #241 separated the prospective
+random-search quality floor from G3 mechanism evidence; no freeze or experiment
+was added. The final incoming batch also merged: #242 adds native TLS roots
+(workspace compilation only here); #244 retains explicitly partial historical
+Linux logs; #243/#245 retain a failed live-planner run and correct its later
+restart ordering. The 15 manifest entries match and all 16 historical files
+are unchanged. These add no new live result or current-head OS assurance.
+The final main composition `efba3a87` passes the complete web suite (321/321,
+including the 181 invention-lab subset), TypeScript and workspace all-target
+compilation. New Stage #246 arrived after this batch and remains unreviewed.
+The recurring task and native Goal remain paused.
+
+### Previous closeout — main `7ec75563`
 
 **Closeout checkpoint — main `7ec75563`:** [the source-specific review summary](reviews/pr-queue-2026-10-25.md#current-closeout--main-7ec75563)
 records #225/#226, #180/#181, #204, #215 and #219 merged. UI attribution and
