@@ -199,3 +199,36 @@ for (const [name, mutate] of [
   mutate(data);
   assert.throws(() => verify(data));
 });
+
+function stoppedBeforeSubmission(completedRounds = 0) {
+  const data = fixture();
+  const next = data.events.find((event) => event.event === "provider_pending" && event.index === completedRounds).identity;
+  data.events = data.events.slice(0, 1 + completedRounds * 3);
+  data.events.push({ event: "run_stopped", reason: "provider or cost uncertainty",
+    detail: "request does not meet frozen model or size settings", calls_submitted: completedRounds, settled_micro_usd: completedRounds * 300 },
+  { event: "mutator_observation", identity: next, record: { generation: next.round, error: "request does not meet frozen model or size settings" } });
+  delete data.files["summary.json"];
+  return data;
+}
+test("pre-submission rejection preserves an incomplete run at its first or next position", () => {
+  for (const completed of [0, 1]) {
+    const result = verify(stoppedBeforeSubmission(completed));
+    assert.equal(result.status, "incomplete");
+    assert.equal(result.requests, completed);
+    assert.equal(result.settled, completed);
+  }
+});
+for (const [name, mutate] of [
+  ["without a stop", (f) => { f.events.splice(1, 1); }],
+  ["for another round", (f) => { f.events.at(-1).identity.round = 5; }],
+  ["for another arm", (f) => { f.events.at(-1).identity.arm = "independent"; }],
+  ["for another seed", (f) => { f.events.at(-1).identity.seed = SEEDS[1]; }],
+  ["with a successful observation", (f) => { f.events.at(-1).record = { generation: 1, candidates: 8 }; }],
+  ["with a different generation", (f) => { f.events.at(-1).record.generation = 2; }],
+  ["followed by settlement", (f) => { f.events.push(fixture().events.find((event) => event.event === "provider_settled")); }],
+  ["followed by completion", (f) => { f.events.push({ event: "run_completed", spent_micro_usd: 0 }); }],
+]) test(`pre-submission error observation is rejected ${name}`, () => {
+  const data = stoppedBeforeSubmission();
+  mutate(data);
+  assert.throws(() => verify(data));
+});
