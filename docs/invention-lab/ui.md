@@ -205,6 +205,33 @@ by `org_example_a`. Its ledger totals 3 calls, 12027 input / 18315 output
 tokens, 141119 ms and 1 package, as that README does. The checklist records
 A's first package and no record for any later beat.
 
+## Trials and retained receiving evidence
+
+A trial plan's reference is computed as the canonical SHA-256 under
+`genesis.development_trial_plan`, the value execution receipts name in
+`purpose.plan`. Runs are grouped by the exact plan they name, so trials that
+reuse run and attempt ids are separate; only an identical receipt is a
+duplicate. A standalone `verdict.json` names no plan, so intake pairs it with
+the single trial plan in the same folder and says so; with zero or several plans
+there, it stays unpaired. The panel lists each trial with its verdict verbatim
+and states that a trial verdict is scoring evidence under its frozen criterion,
+not an adoption decision.
+
+Identical records supplied as different files (for example a status saved as
+both `step-result.json` and `final-status.json`) are counted once and the copy is
+listed. Static inspections come in two retained shapes under one schema name;
+both are shown as verbatim `key: value` phrases (`python_ast_parse: passed` or
+`ast_parse: true`), and an inspection without an entrypoint is checked against
+its package's entrypoint.
+
+On the committed evidence through #113 the checklist reads: A has 3 generation
+attempts with 1 package and no runs of its own. B has no adoption decision on
+A's method; B ran it in two trials, `accepted: candidate 1/6 vs control 0/6`
+against the fixed-cart control and `rejected: candidate 1/6 does not exceed
+control 2/6 by 1` against random search. B revised the method (source changed),
+with no runs of the revision. A has no decision or runs on B's revision, so the
+chain is incomplete. No problems are reported.
+
 ## Attempt ledger
 
 Status records may carry the optional enum-only `diagnostic` from
