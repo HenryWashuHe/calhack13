@@ -1,13 +1,16 @@
 // Recheck retained local evidence. --recompute-final reruns every final score.
 import fs from "node:fs";
 import path from "node:path";
+import os from "node:os";
+import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { canon, sha256, verifyLedger } from "../../scripts/iteration/engine.mjs";
 import { jobshopFamily } from "../../scripts/iteration/families/jobshop.mjs";
-import { frozenPanels, usageCharge } from "./run.mjs";
+import { frozenPanels, usageCharge, SOURCE_FILES } from "./run.mjs";
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
+const REPO = path.resolve(ROOT, "../..");
 const arg = (name) => { const i = process.argv.indexOf(`--${name}`); return i < 0 ? null : process.argv[i + 1]; };
 const output = arg("output-dir");
 if (!output) throw new Error("--output-dir is required");
@@ -18,6 +21,12 @@ const manifest = read("manifest.json");
 const currentHead = execFileSync("git", ["rev-parse", "HEAD"], { cwd: ROOT, encoding: "utf8" }).trim();
 assert(manifest.source_head === currentHead, "source head differs from retained run");
 assert(manifest.protocol_sha256 === sha256(fs.readFileSync(path.join(ROOT, "PROTOCOL.md"), "utf8")), "protocol bytes differ");
+const hashFile = (file) => createHash("sha256").update(fs.readFileSync(file)).digest("hex");
+assert(canon(Object.keys(manifest.source_files).sort()) === canon([...SOURCE_FILES].sort()), "source file roster differs");
+for (const name of SOURCE_FILES) assert(manifest.source_files[name] === hashFile(path.join(REPO, name)), `source bytes differ: ${name}`);
+if (process.argv.includes("--recompute-final")) {
+  assert(manifest.runtime.node === process.version && manifest.runtime.platform === process.platform && manifest.runtime.arch === process.arch && manifest.runtime.os_release === os.release() && manifest.runtime.executable_sha256 === hashFile(process.execPath), "final replay runtime differs");
+}
 assert(manifest.schema === "jobshop-controlled/1" && manifest.model === "claude-sonnet-5-5" && manifest.calls === 50, "unexpected manifest design");
 for (const seed of manifest.seeds) assert(canon(manifest.panels[seed]) === canon(frozenPanels(seed)), `panel commitment differs: ${seed}`);
 

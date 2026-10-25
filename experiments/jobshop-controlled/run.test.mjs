@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { frozenPanels, usageCharge, independentSampler } from "./run.mjs";
+import { frozenPanels, usageCharge, independentSampler, admitSandbox } from "./run.mjs";
 import { sha256 } from "../../scripts/iteration/engine.mjs";
 import { claudeMutator } from "../../scripts/iteration/mutators/claude.mjs";
 
@@ -23,6 +23,12 @@ test("cost settlement accepts bounded actual usage and refuses unknown or unpric
   assert.throws(() => usageCharge({ input_tokens: 1, output_tokens: 1, cache_read_input_tokens: 1 }), /cache/);
   assert.throws(() => usageCharge({ input_tokens: 62049, output_tokens: 1 }), /reserved/);
   assert.throws(() => usageCharge({ input_tokens: 1, output_tokens: 8001 }), /reserved/);
+});
+
+test("execution admission rejects network-only and absent OS sandboxes before work", () => {
+  assert.throws(() => admitSandbox({ os: "unshare", network: "denied" }, "linux"), /requires/);
+  assert.throws(() => admitSandbox({ os: "none", network: "not confined" }, "darwin"), /requires/);
+  assert.deepEqual(admitSandbox({ os: "sandbox-exec", network: "denied" }, "darwin"), { os: "sandbox-exec", network: "denied" });
 });
 
 test("independent generation uses the frozen root as prompt and package parent after promotion", () => {
