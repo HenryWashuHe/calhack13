@@ -90,10 +90,18 @@ generation record:
 
 ## Readings
 
-- **G3-relevant outcome:** A's pinned trial Accepts, A's owner adopts, and
-  the invocation completes under A's grant. Even then this is one exploratory
-  chain. The reported-only random comparison is published beside it,
-  whatever it shows.
+- **G3-relevant outcome:** A's pinned trial Accepts, A's owner adopts, the
+  invocation completes under A's grant, **and `child2` does not lose to random
+  search on A's panel** (`a2-vs-random`: `child2`'s success count at least
+  random search's). Even then this is one exploratory chain.
+- **Adopted, not G3-relevant:** A's pinned trial Accepts and A adopts, but
+  random search beats `child2` on the same panel. The adoption stands as A's
+  own decision against its own method; it is reported as reuse of a method
+  better than A's, not as improved development. Rehearsal 5 ended this way
+  with the stand-in (3/12 vs parent 2/12, random 6/12).
+- The random comparison stays out of A's receiver pin: the receiver decides
+  against what A has, and this floor only governs how the result is read. It
+  is fixed here before freeze so it can't be chosen after seeing the numbers.
 - **Decline:** any pinned trial rejects. Everything is retained and
   published the same way.
 - Failed, interrupted or unknown executions are ineligible, as in
