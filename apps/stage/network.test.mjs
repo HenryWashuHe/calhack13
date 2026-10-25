@@ -27,7 +27,7 @@ test("the recorded numbers are the stage page's own extract, not retyped", () =>
   for (const seed of net.seeds) {
     const ref = main.seeds.find((s) => s.id === seed.id);
     assert.ok(ref, `${seed.id} exists on the stage page`);
-    assert.deepEqual(seed.gens, ref.gens, `${seed.id} generations match`);
+    assert.equal(JSON.stringify(seed.gens), JSON.stringify(ref.gens), `${seed.id} generations match`); // the two literals come from different VM realms, so compare by value
     assert.equal(seed.confirm, ref.confirm, `${seed.id} confirmation matches`);
     for (const k of ["random-search", "MWKR", "SPT"]) assert.equal(seed.panel[k], ref.panel[k][0], `${seed.id} ${k} matches`);
     assert.equal(seed.head, ref.ledger.head.slice(0, 10), `${seed.id} ledger head prefix matches`);
