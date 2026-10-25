@@ -1,0 +1,1415 @@
+{
+  "slot_id": "use",
+  "binding_sha256": "07815a7a2bf0f1ec34219f9acb0fd157d274d9dcedc8bc31dab34a5c1bfc0281",
+  "records": [
+    {
+      "call": {
+        "index": 0,
+        "binding_sha256": "07815a7a2bf0f1ec34219f9acb0fd157d274d9dcedc8bc31dab34a5c1bfc0281",
+        "instance": {
+          "domain": "genesis-lab",
+          "schema": "lab-instance/1",
+          "id": "rough-transport/1/45102",
+          "version": "1",
+          "sha256": "5d586099a4c19cad55aa1a139022685055c395fd556f242dff5963535314a0e3"
+        },
+        "design": {
+          "domain": "genesis-lab",
+          "schema": "lab-design/1",
+          "id": "submission",
+          "version": "1",
+          "sha256": "f96fadabcfbf5a1d2b5fef0eb61f9a50d9fea3c7de76233364b1994a49cb0eb1"
+        },
+        "step_limit": 2400
+      },
+      "settlement": {
+        "outcome": {
+          "kind": "returned",
+          "observed_evaluator": {
+            "domain": "genesis-lab",
+            "schema": "lab-evaluator/1",
+            "id": "genesis-lab-eval",
+            "version": "0.1.0",
+            "sha256": "1f03d1b6499721e6ddae6e600b688c123a8684e34c56f53cde8104d361246f42"
+          },
+          "result": {
+            "domain": "genesis-lab",
+            "schema": "lab-experiment-result/1",
+            "id": "result",
+            "version": "1",
+            "sha256": "f9b7c2b46f939c6a0eef84c4fff741068b0d469581a1e14f6f3b0adc2fd3733f"
+          }
+        },
+        "simulation_steps": {
+          "kind": "measured",
+          "value": 913
+        }
+      }
+    },
+    {
+      "call": {
+        "index": 1,
+        "binding_sha256": "07815a7a2bf0f1ec34219f9acb0fd157d274d9dcedc8bc31dab34a5c1bfc0281",
+        "instance": {
+          "domain": "genesis-lab",
+          "schema": "lab-instance/1",
+          "id": "rough-transport/1/45100",
+          "version": "1",
+          "sha256": "a30358ef02c25eeffeffac6a72bb0f581d80fb5e9da3e6855ece9725c0f48fa0"
+        },
+        "design": {
+          "domain": "genesis-lab",
+          "schema": "lab-design/1",
+          "id": "submission",
+          "version": "1",
+          "sha256": "8ca286b6f0e19c3e4ac551b29d6cc61a60cb1dd437ca4fb8dd72ac944b5f9c6a"
+        },
+        "step_limit": 2400
+      },
+      "settlement": {
+        "outcome": {
+          "kind": "returned",
+          "observed_evaluator": {
+            "domain": "genesis-lab",
+            "schema": "lab-evaluator/1",
+            "id": "genesis-lab-eval",
+            "version": "0.1.0",
+            "sha256": "1f03d1b6499721e6ddae6e600b688c123a8684e34c56f53cde8104d361246f42"
+          },
+          "result": {
+            "domain": "genesis-lab",
+            "schema": "lab-experiment-result/1",
+            "id": "result",
+            "version": "1",
+            "sha256": "3d34d93f422671a8617707269ac4378cf61fc2bc28972cae32eade07e7e48494"
+          }
+        },
+        "simulation_steps": {
+          "kind": "measured",
+          "value": 765
+        }
+      }
+    },
+    {
+      "call": {
+        "index": 2,
+        "binding_sha256": "07815a7a2bf0f1ec34219f9acb0fd157d274d9dcedc8bc31dab34a5c1bfc0281",
+        "instance": {
+          "domain": "genesis-lab",
+          "schema": "lab-instance/1",
+          "id": "rough-transport/1/45104",
+          "version": "1",
+          "sha256": "b3cc05d34341be3bdb69c7398bbfd44fe251be65b0b5cf16a61e8f07ade5395e"
+        },
+        "design": {
+          "domain": "genesis-lab",
+          "schema": "lab-design/1",
+          "id": "submission",
+          "version": "1",
+          "sha256": "20d7bb40b13d73505a7cc0e43c6c39e5449d9a43a7565b5b31eb753d88015337"
+        },
+        "step_limit": 2400
+      },
+      "settlement": {
+        "outcome": {
+          "kind": "returned",
+          "observed_evaluator": {
+            "domain": "genesis-lab",
+            "schema": "lab-evaluator/1",
+            "id": "genesis-lab-eval",
+            "version": "0.1.0",
+            "sha256": "1f03d1b6499721e6ddae6e600b688c123a8684e34c56f53cde8104d361246f42"
+          },
+          "result": {
+            "domain": "genesis-lab",
+            "schema": "lab-experiment-result/1",
+            "id": "result",
+            "version": "1",
+            "sha256": "951cc36324ada78f50c9c32c6ae7dea87433df1437097ef27c134b6698752415"
+          }
+        },
+        "simulation_steps": {
+          "kind": "measured",
+          "value": 699
+        }
+      }
+    },
+    {
+      "call": {
+        "index": 3,
+        "binding_sha256": "07815a7a2bf0f1ec34219f9acb0fd157d274d9dcedc8bc31dab34a5c1bfc0281",
+        "instance": {
+          "domain": "genesis-lab",
+          "schema": "lab-instance/1",
+          "id": "rough-transport/1/45103",
+          "version": "1",
+          "sha256": "52a3b30f09793caf48e520226a5e6984ce31deacebd6a63c0fef414c539fc3c3"
+        },
+        "design": {
+          "domain": "genesis-lab",
+          "schema": "lab-design/1",
+          "id": "submission",
+          "version": "1",
+          "sha256": "7416ab4f998c948043b9c85bd3f0983ef08110cfec8df15652d28fa490cba9b4"
+        },
+        "step_limit": 2400
+      },
+      "settlement": {
+        "outcome": {
+          "kind": "returned",
+          "observed_evaluator": {
+            "domain": "genesis-lab",
+            "schema": "lab-evaluator/1",
+            "id": "genesis-lab-eval",
+            "version": "0.1.0",
+            "sha256": "1f03d1b6499721e6ddae6e600b688c123a8684e34c56f53cde8104d361246f42"
+          },
+          "result": {
+            "domain": "genesis-lab",
+            "schema": "lab-experiment-result/1",
+            "id": "result",
+            "version": "1",
+            "sha256": "95e70e4880d711a9d755c256c83e0349005110dfd44d59de5e78dd454faae75f"
+          }
+        },
+        "simulation_steps": {
+          "kind": "measured",
+          "value": 933
+        }
+      }
+    },
+    {
+      "call": {
+        "index": 4,
+        "binding_sha256": "07815a7a2bf0f1ec34219f9acb0fd157d274d9dcedc8bc31dab34a5c1bfc0281",
+        "instance": {
+          "domain": "genesis-lab",
+          "schema": "lab-instance/1",
+          "id": "rough-transport/1/45101",
+          "version": "1",
+          "sha256": "0a83445faddc13899495376ede1d32165906c0c1a7b1036b2b43926174b50226"
+        },
+        "design": {
+          "domain": "genesis-lab",
+          "schema": "lab-design/1",
+          "id": "submission",
+          "version": "1",
+          "sha256": "afdfba242f7e1b16e57c871a620c2e8ab80ed66e30b1af76da0ab54c634ab3bb"
+        },
+        "step_limit": 2400
+      },
+      "settlement": {
+        "outcome": {
+          "kind": "returned",
+          "observed_evaluator": {
+            "domain": "genesis-lab",
+            "schema": "lab-evaluator/1",
+            "id": "genesis-lab-eval",
+            "version": "0.1.0",
+            "sha256": "1f03d1b6499721e6ddae6e600b688c123a8684e34c56f53cde8104d361246f42"
+          },
+          "result": {
+            "domain": "genesis-lab",
+            "schema": "lab-experiment-result/1",
+            "id": "result",
+            "version": "1",
+            "sha256": "4af69d99d2bea93e93990985e76ec357d0879c3d79c347dac86ab160fdbeccff"
+          }
+        },
+        "simulation_steps": {
+          "kind": "measured",
+          "value": 668
+        }
+      }
+    },
+    {
+      "call": {
+        "index": 5,
+        "binding_sha256": "07815a7a2bf0f1ec34219f9acb0fd157d274d9dcedc8bc31dab34a5c1bfc0281",
+        "instance": {
+          "domain": "genesis-lab",
+          "schema": "lab-instance/1",
+          "id": "rough-transport/1/45105",
+          "version": "1",
+          "sha256": "597b878b383933789ee54d5f8a50718d46dca4eb1aac094108261d5ae5be712c"
+        },
+        "design": {
+          "domain": "genesis-lab",
+          "schema": "lab-design/1",
+          "id": "submission",
+          "version": "1",
+          "sha256": "1cc0dd6e94d5111c4ce0d755872e961405dc479b2f09da2712978a7dd46200ce"
+        },
+        "step_limit": 2400
+      },
+      "settlement": {
+        "outcome": {
+          "kind": "returned",
+          "observed_evaluator": {
+            "domain": "genesis-lab",
+            "schema": "lab-evaluator/1",
+            "id": "genesis-lab-eval",
+            "version": "0.1.0",
+            "sha256": "1f03d1b6499721e6ddae6e600b688c123a8684e34c56f53cde8104d361246f42"
+          },
+          "result": {
+            "domain": "genesis-lab",
+            "schema": "lab-experiment-result/1",
+            "id": "result",
+            "version": "1",
+            "sha256": "abf361fdad728f84680dfac2d1830a8545ad9a2ffce8a020785b5bc147c3abd5"
+          }
+        },
+        "simulation_steps": {
+          "kind": "measured",
+          "value": 893
+        }
+      }
+    },
+    {
+      "call": {
+        "index": 6,
+        "binding_sha256": "07815a7a2bf0f1ec34219f9acb0fd157d274d9dcedc8bc31dab34a5c1bfc0281",
+        "instance": {
+          "domain": "genesis-lab",
+          "schema": "lab-instance/1",
+          "id": "rough-transport/1/45102",
+          "version": "1",
+          "sha256": "5d586099a4c19cad55aa1a139022685055c395fd556f242dff5963535314a0e3"
+        },
+        "design": {
+          "domain": "genesis-lab",
+          "schema": "lab-design/1",
+          "id": "submission",
+          "version": "1",
+          "sha256": "6b4dcd55b84ee63c40150bae674a307a6c67f46dfd4de183eb942debd480c179"
+        },
+        "step_limit": 2400
+      },
+      "settlement": {
+        "outcome": {
+          "kind": "returned",
+          "observed_evaluator": {
+            "domain": "genesis-lab",
+            "schema": "lab-evaluator/1",
+            "id": "genesis-lab-eval",
+            "version": "0.1.0",
+            "sha256": "1f03d1b6499721e6ddae6e600b688c123a8684e34c56f53cde8104d361246f42"
+          },
+          "result": {
+            "domain": "genesis-lab",
+            "schema": "lab-experiment-result/1",
+            "id": "result",
+            "version": "1",
+            "sha256": "51faaf13e6b225e88b490f64fcd647e0aaede15b65297889a9a18f0f40356076"
+          }
+        },
+        "simulation_steps": {
+          "kind": "measured",
+          "value": 771
+        }
+      }
+    },
+    {
+      "call": {
+        "index": 7,
+        "binding_sha256": "07815a7a2bf0f1ec34219f9acb0fd157d274d9dcedc8bc31dab34a5c1bfc0281",
+        "instance": {
+          "domain": "genesis-lab",
+          "schema": "lab-instance/1",
+          "id": "rough-transport/1/45100",
+          "version": "1",
+          "sha256": "a30358ef02c25eeffeffac6a72bb0f581d80fb5e9da3e6855ece9725c0f48fa0"
+        },
+        "design": {
+          "domain": "genesis-lab",
+          "schema": "lab-design/1",
+          "id": "submission",
+          "version": "1",
+          "sha256": "05aaf633028be742f06ec7283fc2c8c5df92b239904cef6bf96768db26127a46"
+        },
+        "step_limit": 2400
+      },
+      "settlement": {
+        "outcome": {
+          "kind": "returned",
+          "observed_evaluator": {
+            "domain": "genesis-lab",
+            "schema": "lab-evaluator/1",
+            "id": "genesis-lab-eval",
+            "version": "0.1.0",
+            "sha256": "1f03d1b6499721e6ddae6e600b688c123a8684e34c56f53cde8104d361246f42"
+          },
+          "result": {
+            "domain": "genesis-lab",
+            "schema": "lab-experiment-result/1",
+            "id": "result",
+            "version": "1",
+            "sha256": "e911132306962460ee2e78c0b741eabb1ac371f18b480ad7a9c0734dad34c885"
+          }
+        },
+        "simulation_steps": {
+          "kind": "measured",
+          "value": 0
+        }
+      }
+    },
+    {
+      "call": {
+        "index": 8,
+        "binding_sha256": "07815a7a2bf0f1ec34219f9acb0fd157d274d9dcedc8bc31dab34a5c1bfc0281",
+        "instance": {
+          "domain": "genesis-lab",
+          "schema": "lab-instance/1",
+          "id": "rough-transport/1/45104",
+          "version": "1",
+          "sha256": "b3cc05d34341be3bdb69c7398bbfd44fe251be65b0b5cf16a61e8f07ade5395e"
+        },
+        "design": {
+          "domain": "genesis-lab",
+          "schema": "lab-design/1",
+          "id": "submission",
+          "version": "1",
+          "sha256": "1122c225dd19298b1c5faad8a8f1f390fa3b1ad34576f2145d692a4435fb4d6a"
+        },
+        "step_limit": 2400
+      },
+      "settlement": {
+        "outcome": {
+          "kind": "returned",
+          "observed_evaluator": {
+            "domain": "genesis-lab",
+            "schema": "lab-evaluator/1",
+            "id": "genesis-lab-eval",
+            "version": "0.1.0",
+            "sha256": "1f03d1b6499721e6ddae6e600b688c123a8684e34c56f53cde8104d361246f42"
+          },
+          "result": {
+            "domain": "genesis-lab",
+            "schema": "lab-experiment-result/1",
+            "id": "result",
+            "version": "1",
+            "sha256": "60c80a137547fac6138fc4aa1ce173a78ac6e67047156d8cc7f2a4e43ffad16e"
+          }
+        },
+        "simulation_steps": {
+          "kind": "measured",
+          "value": 728
+        }
+      }
+    },
+    {
+      "call": {
+        "index": 9,
+        "binding_sha256": "07815a7a2bf0f1ec34219f9acb0fd157d274d9dcedc8bc31dab34a5c1bfc0281",
+        "instance": {
+          "domain": "genesis-lab",
+          "schema": "lab-instance/1",
+          "id": "rough-transport/1/45103",
+          "version": "1",
+          "sha256": "52a3b30f09793caf48e520226a5e6984ce31deacebd6a63c0fef414c539fc3c3"
+        },
+        "design": {
+          "domain": "genesis-lab",
+          "schema": "lab-design/1",
+          "id": "submission",
+          "version": "1",
+          "sha256": "1e610e69c6926fdcdac05da91495611df368881dda079a72730628208c73216a"
+        },
+        "step_limit": 2400
+      },
+      "settlement": {
+        "outcome": {
+          "kind": "returned",
+          "observed_evaluator": {
+            "domain": "genesis-lab",
+            "schema": "lab-evaluator/1",
+            "id": "genesis-lab-eval",
+            "version": "0.1.0",
+            "sha256": "1f03d1b6499721e6ddae6e600b688c123a8684e34c56f53cde8104d361246f42"
+          },
+          "result": {
+            "domain": "genesis-lab",
+            "schema": "lab-experiment-result/1",
+            "id": "result",
+            "version": "1",
+            "sha256": "28fc43ac0187d47b64b7b9d9aa1921ad188df79ddd168781594c6614b78abc9b"
+          }
+        },
+        "simulation_steps": {
+          "kind": "measured",
+          "value": 1535
+        }
+      }
+    },
+    {
+      "call": {
+        "index": 10,
+        "binding_sha256": "07815a7a2bf0f1ec34219f9acb0fd157d274d9dcedc8bc31dab34a5c1bfc0281",
+        "instance": {
+          "domain": "genesis-lab",
+          "schema": "lab-instance/1",
+          "id": "rough-transport/1/45100",
+          "version": "1",
+          "sha256": "a30358ef02c25eeffeffac6a72bb0f581d80fb5e9da3e6855ece9725c0f48fa0"
+        },
+        "design": {
+          "domain": "genesis-lab",
+          "schema": "lab-design/1",
+          "id": "submission",
+          "version": "1",
+          "sha256": "f96fadabcfbf5a1d2b5fef0eb61f9a50d9fea3c7de76233364b1994a49cb0eb1"
+        },
+        "step_limit": 2400
+      },
+      "settlement": {
+        "outcome": {
+          "kind": "returned",
+          "observed_evaluator": {
+            "domain": "genesis-lab",
+            "schema": "lab-evaluator/1",
+            "id": "genesis-lab-eval",
+            "version": "0.1.0",
+            "sha256": "1f03d1b6499721e6ddae6e600b688c123a8684e34c56f53cde8104d361246f42"
+          },
+          "result": {
+            "domain": "genesis-lab",
+            "schema": "lab-experiment-result/1",
+            "id": "result",
+            "version": "1",
+            "sha256": "ef5152c20dc6afa9c9d80cc8b50fba691b3da7fe1575676a51490e1c5f1c820f"
+          }
+        },
+        "simulation_steps": {
+          "kind": "measured",
+          "value": 874
+        }
+      }
+    },
+    {
+      "call": {
+        "index": 11,
+        "binding_sha256": "07815a7a2bf0f1ec34219f9acb0fd157d274d9dcedc8bc31dab34a5c1bfc0281",
+        "instance": {
+          "domain": "genesis-lab",
+          "schema": "lab-instance/1",
+          "id": "rough-transport/1/45104",
+          "version": "1",
+          "sha256": "b3cc05d34341be3bdb69c7398bbfd44fe251be65b0b5cf16a61e8f07ade5395e"
+        },
+        "design": {
+          "domain": "genesis-lab",
+          "schema": "lab-design/1",
+          "id": "submission",
+          "version": "1",
+          "sha256": "f96fadabcfbf5a1d2b5fef0eb61f9a50d9fea3c7de76233364b1994a49cb0eb1"
+        },
+        "step_limit": 2400
+      },
+      "settlement": {
+        "outcome": {
+          "kind": "returned",
+          "observed_evaluator": {
+            "domain": "genesis-lab",
+            "schema": "lab-evaluator/1",
+            "id": "genesis-lab-eval",
+            "version": "0.1.0",
+            "sha256": "1f03d1b6499721e6ddae6e600b688c123a8684e34c56f53cde8104d361246f42"
+          },
+          "result": {
+            "domain": "genesis-lab",
+            "schema": "lab-experiment-result/1",
+            "id": "result",
+            "version": "1",
+            "sha256": "c946ca5ca112dd68f0866368e0d6fb8476c921aea2dcf032f9424d8e7dccbe8b"
+          }
+        },
+        "simulation_steps": {
+          "kind": "measured",
+          "value": 807
+        }
+      }
+    },
+    {
+      "call": {
+        "index": 12,
+        "binding_sha256": "07815a7a2bf0f1ec34219f9acb0fd157d274d9dcedc8bc31dab34a5c1bfc0281",
+        "instance": {
+          "domain": "genesis-lab",
+          "schema": "lab-instance/1",
+          "id": "rough-transport/1/45103",
+          "version": "1",
+          "sha256": "52a3b30f09793caf48e520226a5e6984ce31deacebd6a63c0fef414c539fc3c3"
+        },
+        "design": {
+          "domain": "genesis-lab",
+          "schema": "lab-design/1",
+          "id": "submission",
+          "version": "1",
+          "sha256": "f96fadabcfbf5a1d2b5fef0eb61f9a50d9fea3c7de76233364b1994a49cb0eb1"
+        },
+        "step_limit": 2400
+      },
+      "settlement": {
+        "outcome": {
+          "kind": "returned",
+          "observed_evaluator": {
+            "domain": "genesis-lab",
+            "schema": "lab-evaluator/1",
+            "id": "genesis-lab-eval",
+            "version": "0.1.0",
+            "sha256": "1f03d1b6499721e6ddae6e600b688c123a8684e34c56f53cde8104d361246f42"
+          },
+          "result": {
+            "domain": "genesis-lab",
+            "schema": "lab-experiment-result/1",
+            "id": "result",
+            "version": "1",
+            "sha256": "a4757d3c7f468f2d8905838bb462221751c47e3349b3fbd0b39a46c9f0240838"
+          }
+        },
+        "simulation_steps": {
+          "kind": "measured",
+          "value": 2400
+        }
+      }
+    },
+    {
+      "call": {
+        "index": 13,
+        "binding_sha256": "07815a7a2bf0f1ec34219f9acb0fd157d274d9dcedc8bc31dab34a5c1bfc0281",
+        "instance": {
+          "domain": "genesis-lab",
+          "schema": "lab-instance/1",
+          "id": "rough-transport/1/45101",
+          "version": "1",
+          "sha256": "0a83445faddc13899495376ede1d32165906c0c1a7b1036b2b43926174b50226"
+        },
+        "design": {
+          "domain": "genesis-lab",
+          "schema": "lab-design/1",
+          "id": "submission",
+          "version": "1",
+          "sha256": "f96fadabcfbf5a1d2b5fef0eb61f9a50d9fea3c7de76233364b1994a49cb0eb1"
+        },
+        "step_limit": 2400
+      },
+      "settlement": {
+        "outcome": {
+          "kind": "returned",
+          "observed_evaluator": {
+            "domain": "genesis-lab",
+            "schema": "lab-evaluator/1",
+            "id": "genesis-lab-eval",
+            "version": "0.1.0",
+            "sha256": "1f03d1b6499721e6ddae6e600b688c123a8684e34c56f53cde8104d361246f42"
+          },
+          "result": {
+            "domain": "genesis-lab",
+            "schema": "lab-experiment-result/1",
+            "id": "result",
+            "version": "1",
+            "sha256": "8efc9860b7e2ae27ee697f5d0360b18d1427b66a55360328f1b3ea3acb913c77"
+          }
+        },
+        "simulation_steps": {
+          "kind": "measured",
+          "value": 772
+        }
+      }
+    },
+    {
+      "call": {
+        "index": 14,
+        "binding_sha256": "07815a7a2bf0f1ec34219f9acb0fd157d274d9dcedc8bc31dab34a5c1bfc0281",
+        "instance": {
+          "domain": "genesis-lab",
+          "schema": "lab-instance/1",
+          "id": "rough-transport/1/45105",
+          "version": "1",
+          "sha256": "597b878b383933789ee54d5f8a50718d46dca4eb1aac094108261d5ae5be712c"
+        },
+        "design": {
+          "domain": "genesis-lab",
+          "schema": "lab-design/1",
+          "id": "submission",
+          "version": "1",
+          "sha256": "f96fadabcfbf5a1d2b5fef0eb61f9a50d9fea3c7de76233364b1994a49cb0eb1"
+        },
+        "step_limit": 2400
+      },
+      "settlement": {
+        "outcome": {
+          "kind": "returned",
+          "observed_evaluator": {
+            "domain": "genesis-lab",
+            "schema": "lab-evaluator/1",
+            "id": "genesis-lab-eval",
+            "version": "0.1.0",
+            "sha256": "1f03d1b6499721e6ddae6e600b688c123a8684e34c56f53cde8104d361246f42"
+          },
+          "result": {
+            "domain": "genesis-lab",
+            "schema": "lab-experiment-result/1",
+            "id": "result",
+            "version": "1",
+            "sha256": "a64a14814882f8cc774b99037f37ad47e64b60057146514d9394a32ab77e7e24"
+          }
+        },
+        "simulation_steps": {
+          "kind": "measured",
+          "value": 1030
+        }
+      }
+    },
+    {
+      "call": {
+        "index": 15,
+        "binding_sha256": "07815a7a2bf0f1ec34219f9acb0fd157d274d9dcedc8bc31dab34a5c1bfc0281",
+        "instance": {
+          "domain": "genesis-lab",
+          "schema": "lab-instance/1",
+          "id": "rough-transport/1/45102",
+          "version": "1",
+          "sha256": "5d586099a4c19cad55aa1a139022685055c395fd556f242dff5963535314a0e3"
+        },
+        "design": {
+          "domain": "genesis-lab",
+          "schema": "lab-design/1",
+          "id": "submission",
+          "version": "1",
+          "sha256": "8ca286b6f0e19c3e4ac551b29d6cc61a60cb1dd437ca4fb8dd72ac944b5f9c6a"
+        },
+        "step_limit": 2400
+      },
+      "settlement": {
+        "outcome": {
+          "kind": "returned",
+          "observed_evaluator": {
+            "domain": "genesis-lab",
+            "schema": "lab-evaluator/1",
+            "id": "genesis-lab-eval",
+            "version": "0.1.0",
+            "sha256": "1f03d1b6499721e6ddae6e600b688c123a8684e34c56f53cde8104d361246f42"
+          },
+          "result": {
+            "domain": "genesis-lab",
+            "schema": "lab-experiment-result/1",
+            "id": "result",
+            "version": "1",
+            "sha256": "068dc65b6b976f560a491e35dd71fe566c0ba897ce07c5a8f0ccbf3e7324a048"
+          }
+        },
+        "simulation_steps": {
+          "kind": "measured",
+          "value": 853
+        }
+      }
+    },
+    {
+      "call": {
+        "index": 16,
+        "binding_sha256": "07815a7a2bf0f1ec34219f9acb0fd157d274d9dcedc8bc31dab34a5c1bfc0281",
+        "instance": {
+          "domain": "genesis-lab",
+          "schema": "lab-instance/1",
+          "id": "rough-transport/1/45104",
+          "version": "1",
+          "sha256": "b3cc05d34341be3bdb69c7398bbfd44fe251be65b0b5cf16a61e8f07ade5395e"
+        },
+        "design": {
+          "domain": "genesis-lab",
+          "schema": "lab-design/1",
+          "id": "submission",
+          "version": "1",
+          "sha256": "8ca286b6f0e19c3e4ac551b29d6cc61a60cb1dd437ca4fb8dd72ac944b5f9c6a"
+        },
+        "step_limit": 2400
+      },
+      "settlement": {
+        "outcome": {
+          "kind": "returned",
+          "observed_evaluator": {
+            "domain": "genesis-lab",
+            "schema": "lab-evaluator/1",
+            "id": "genesis-lab-eval",
+            "version": "0.1.0",
+            "sha256": "1f03d1b6499721e6ddae6e600b688c123a8684e34c56f53cde8104d361246f42"
+          },
+          "result": {
+            "domain": "genesis-lab",
+            "schema": "lab-experiment-result/1",
+            "id": "result",
+            "version": "1",
+            "sha256": "cadbcf6d63fd9db7aff0156e6ced108014ea679abb96ef7cbfed12d888c8bf54"
+          }
+        },
+        "simulation_steps": {
+          "kind": "measured",
+          "value": 790
+        }
+      }
+    },
+    {
+      "call": {
+        "index": 17,
+        "binding_sha256": "07815a7a2bf0f1ec34219f9acb0fd157d274d9dcedc8bc31dab34a5c1bfc0281",
+        "instance": {
+          "domain": "genesis-lab",
+          "schema": "lab-instance/1",
+          "id": "rough-transport/1/45103",
+          "version": "1",
+          "sha256": "52a3b30f09793caf48e520226a5e6984ce31deacebd6a63c0fef414c539fc3c3"
+        },
+        "design": {
+          "domain": "genesis-lab",
+          "schema": "lab-design/1",
+          "id": "submission",
+          "version": "1",
+          "sha256": "8ca286b6f0e19c3e4ac551b29d6cc61a60cb1dd437ca4fb8dd72ac944b5f9c6a"
+        },
+        "step_limit": 2400
+      },
+      "settlement": {
+        "outcome": {
+          "kind": "returned",
+          "observed_evaluator": {
+            "domain": "genesis-lab",
+            "schema": "lab-evaluator/1",
+            "id": "genesis-lab-eval",
+            "version": "0.1.0",
+            "sha256": "1f03d1b6499721e6ddae6e600b688c123a8684e34c56f53cde8104d361246f42"
+          },
+          "result": {
+            "domain": "genesis-lab",
+            "schema": "lab-experiment-result/1",
+            "id": "result",
+            "version": "1",
+            "sha256": "9c1ad8363d27e6e479d8717ee20abe74a4738febc2495695e51c928996969ecd"
+          }
+        },
+        "simulation_steps": {
+          "kind": "measured",
+          "value": 2400
+        }
+      }
+    },
+    {
+      "call": {
+        "index": 18,
+        "binding_sha256": "07815a7a2bf0f1ec34219f9acb0fd157d274d9dcedc8bc31dab34a5c1bfc0281",
+        "instance": {
+          "domain": "genesis-lab",
+          "schema": "lab-instance/1",
+          "id": "rough-transport/1/45101",
+          "version": "1",
+          "sha256": "0a83445faddc13899495376ede1d32165906c0c1a7b1036b2b43926174b50226"
+        },
+        "design": {
+          "domain": "genesis-lab",
+          "schema": "lab-design/1",
+          "id": "submission",
+          "version": "1",
+          "sha256": "8ca286b6f0e19c3e4ac551b29d6cc61a60cb1dd437ca4fb8dd72ac944b5f9c6a"
+        },
+        "step_limit": 2400
+      },
+      "settlement": {
+        "outcome": {
+          "kind": "returned",
+          "observed_evaluator": {
+            "domain": "genesis-lab",
+            "schema": "lab-evaluator/1",
+            "id": "genesis-lab-eval",
+            "version": "0.1.0",
+            "sha256": "1f03d1b6499721e6ddae6e600b688c123a8684e34c56f53cde8104d361246f42"
+          },
+          "result": {
+            "domain": "genesis-lab",
+            "schema": "lab-experiment-result/1",
+            "id": "result",
+            "version": "1",
+            "sha256": "ed0d08939b87a100e51ecca9548d79c7e94383894b5e3ca9abb11b86434b3999"
+          }
+        },
+        "simulation_steps": {
+          "kind": "measured",
+          "value": 747
+        }
+      }
+    },
+    {
+      "call": {
+        "index": 19,
+        "binding_sha256": "07815a7a2bf0f1ec34219f9acb0fd157d274d9dcedc8bc31dab34a5c1bfc0281",
+        "instance": {
+          "domain": "genesis-lab",
+          "schema": "lab-instance/1",
+          "id": "rough-transport/1/45105",
+          "version": "1",
+          "sha256": "597b878b383933789ee54d5f8a50718d46dca4eb1aac094108261d5ae5be712c"
+        },
+        "design": {
+          "domain": "genesis-lab",
+          "schema": "lab-design/1",
+          "id": "submission",
+          "version": "1",
+          "sha256": "8ca286b6f0e19c3e4ac551b29d6cc61a60cb1dd437ca4fb8dd72ac944b5f9c6a"
+        },
+        "step_limit": 2400
+      },
+      "settlement": {
+        "outcome": {
+          "kind": "returned",
+          "observed_evaluator": {
+            "domain": "genesis-lab",
+            "schema": "lab-evaluator/1",
+            "id": "genesis-lab-eval",
+            "version": "0.1.0",
+            "sha256": "1f03d1b6499721e6ddae6e600b688c123a8684e34c56f53cde8104d361246f42"
+          },
+          "result": {
+            "domain": "genesis-lab",
+            "schema": "lab-experiment-result/1",
+            "id": "result",
+            "version": "1",
+            "sha256": "8580c79131fa789983abac62713c329563eeac83daa1680a1d2756f09b0a97ad"
+          }
+        },
+        "simulation_steps": {
+          "kind": "measured",
+          "value": 980
+        }
+      }
+    },
+    {
+      "call": {
+        "index": 20,
+        "binding_sha256": "07815a7a2bf0f1ec34219f9acb0fd157d274d9dcedc8bc31dab34a5c1bfc0281",
+        "instance": {
+          "domain": "genesis-lab",
+          "schema": "lab-instance/1",
+          "id": "rough-transport/1/45102",
+          "version": "1",
+          "sha256": "5d586099a4c19cad55aa1a139022685055c395fd556f242dff5963535314a0e3"
+        },
+        "design": {
+          "domain": "genesis-lab",
+          "schema": "lab-design/1",
+          "id": "submission",
+          "version": "1",
+          "sha256": "20d7bb40b13d73505a7cc0e43c6c39e5449d9a43a7565b5b31eb753d88015337"
+        },
+        "step_limit": 2400
+      },
+      "settlement": {
+        "outcome": {
+          "kind": "returned",
+          "observed_evaluator": {
+            "domain": "genesis-lab",
+            "schema": "lab-evaluator/1",
+            "id": "genesis-lab-eval",
+            "version": "0.1.0",
+            "sha256": "1f03d1b6499721e6ddae6e600b688c123a8684e34c56f53cde8104d361246f42"
+          },
+          "result": {
+            "domain": "genesis-lab",
+            "schema": "lab-experiment-result/1",
+            "id": "result",
+            "version": "1",
+            "sha256": "c099a232287f612b1ab62e45b41a82a5601c9b91be4759d0be0627474899cb4f"
+          }
+        },
+        "simulation_steps": {
+          "kind": "measured",
+          "value": 776
+        }
+      }
+    },
+    {
+      "call": {
+        "index": 21,
+        "binding_sha256": "07815a7a2bf0f1ec34219f9acb0fd157d274d9dcedc8bc31dab34a5c1bfc0281",
+        "instance": {
+          "domain": "genesis-lab",
+          "schema": "lab-instance/1",
+          "id": "rough-transport/1/45100",
+          "version": "1",
+          "sha256": "a30358ef02c25eeffeffac6a72bb0f581d80fb5e9da3e6855ece9725c0f48fa0"
+        },
+        "design": {
+          "domain": "genesis-lab",
+          "schema": "lab-design/1",
+          "id": "submission",
+          "version": "1",
+          "sha256": "20d7bb40b13d73505a7cc0e43c6c39e5449d9a43a7565b5b31eb753d88015337"
+        },
+        "step_limit": 2400
+      },
+      "settlement": {
+        "outcome": {
+          "kind": "returned",
+          "observed_evaluator": {
+            "domain": "genesis-lab",
+            "schema": "lab-evaluator/1",
+            "id": "genesis-lab-eval",
+            "version": "0.1.0",
+            "sha256": "1f03d1b6499721e6ddae6e600b688c123a8684e34c56f53cde8104d361246f42"
+          },
+          "result": {
+            "domain": "genesis-lab",
+            "schema": "lab-experiment-result/1",
+            "id": "result",
+            "version": "1",
+            "sha256": "0299eff04b7b7f276432be3bc481230222206d61577b523e7e41ed84386012b2"
+          }
+        },
+        "simulation_steps": {
+          "kind": "measured",
+          "value": 728
+        }
+      }
+    },
+    {
+      "call": {
+        "index": 22,
+        "binding_sha256": "07815a7a2bf0f1ec34219f9acb0fd157d274d9dcedc8bc31dab34a5c1bfc0281",
+        "instance": {
+          "domain": "genesis-lab",
+          "schema": "lab-instance/1",
+          "id": "rough-transport/1/45103",
+          "version": "1",
+          "sha256": "52a3b30f09793caf48e520226a5e6984ce31deacebd6a63c0fef414c539fc3c3"
+        },
+        "design": {
+          "domain": "genesis-lab",
+          "schema": "lab-design/1",
+          "id": "submission",
+          "version": "1",
+          "sha256": "20d7bb40b13d73505a7cc0e43c6c39e5449d9a43a7565b5b31eb753d88015337"
+        },
+        "step_limit": 2400
+      },
+      "settlement": {
+        "outcome": {
+          "kind": "returned",
+          "observed_evaluator": {
+            "domain": "genesis-lab",
+            "schema": "lab-evaluator/1",
+            "id": "genesis-lab-eval",
+            "version": "0.1.0",
+            "sha256": "1f03d1b6499721e6ddae6e600b688c123a8684e34c56f53cde8104d361246f42"
+          },
+          "result": {
+            "domain": "genesis-lab",
+            "schema": "lab-experiment-result/1",
+            "id": "result",
+            "version": "1",
+            "sha256": "d98e882d4a6cd9d726499cef22f9dca94c2e8c196d8e09c4e0fce29654616139"
+          }
+        },
+        "simulation_steps": {
+          "kind": "measured",
+          "value": 2400
+        }
+      }
+    },
+    {
+      "call": {
+        "index": 23,
+        "binding_sha256": "07815a7a2bf0f1ec34219f9acb0fd157d274d9dcedc8bc31dab34a5c1bfc0281",
+        "instance": {
+          "domain": "genesis-lab",
+          "schema": "lab-instance/1",
+          "id": "rough-transport/1/45101",
+          "version": "1",
+          "sha256": "0a83445faddc13899495376ede1d32165906c0c1a7b1036b2b43926174b50226"
+        },
+        "design": {
+          "domain": "genesis-lab",
+          "schema": "lab-design/1",
+          "id": "submission",
+          "version": "1",
+          "sha256": "20d7bb40b13d73505a7cc0e43c6c39e5449d9a43a7565b5b31eb753d88015337"
+        },
+        "step_limit": 2400
+      },
+      "settlement": {
+        "outcome": {
+          "kind": "returned",
+          "observed_evaluator": {
+            "domain": "genesis-lab",
+            "schema": "lab-evaluator/1",
+            "id": "genesis-lab-eval",
+            "version": "0.1.0",
+            "sha256": "1f03d1b6499721e6ddae6e600b688c123a8684e34c56f53cde8104d361246f42"
+          },
+          "result": {
+            "domain": "genesis-lab",
+            "schema": "lab-experiment-result/1",
+            "id": "result",
+            "version": "1",
+            "sha256": "5b1ff97f1d81fc92059572f4800ef850e51ad28cfc51beb9791683a4cf93dc22"
+          }
+        },
+        "simulation_steps": {
+          "kind": "measured",
+          "value": 659
+        }
+      }
+    },
+    {
+      "call": {
+        "index": 24,
+        "binding_sha256": "07815a7a2bf0f1ec34219f9acb0fd157d274d9dcedc8bc31dab34a5c1bfc0281",
+        "instance": {
+          "domain": "genesis-lab",
+          "schema": "lab-instance/1",
+          "id": "rough-transport/1/45105",
+          "version": "1",
+          "sha256": "597b878b383933789ee54d5f8a50718d46dca4eb1aac094108261d5ae5be712c"
+        },
+        "design": {
+          "domain": "genesis-lab",
+          "schema": "lab-design/1",
+          "id": "submission",
+          "version": "1",
+          "sha256": "20d7bb40b13d73505a7cc0e43c6c39e5449d9a43a7565b5b31eb753d88015337"
+        },
+        "step_limit": 2400
+      },
+      "settlement": {
+        "outcome": {
+          "kind": "returned",
+          "observed_evaluator": {
+            "domain": "genesis-lab",
+            "schema": "lab-evaluator/1",
+            "id": "genesis-lab-eval",
+            "version": "0.1.0",
+            "sha256": "1f03d1b6499721e6ddae6e600b688c123a8684e34c56f53cde8104d361246f42"
+          },
+          "result": {
+            "domain": "genesis-lab",
+            "schema": "lab-experiment-result/1",
+            "id": "result",
+            "version": "1",
+            "sha256": "dd48ddf7ccea62c7edba54fc260e09dd94db336c99e4b1b524fc4b10ef4c6a87"
+          }
+        },
+        "simulation_steps": {
+          "kind": "measured",
+          "value": 914
+        }
+      }
+    },
+    {
+      "call": {
+        "index": 25,
+        "binding_sha256": "07815a7a2bf0f1ec34219f9acb0fd157d274d9dcedc8bc31dab34a5c1bfc0281",
+        "instance": {
+          "domain": "genesis-lab",
+          "schema": "lab-instance/1",
+          "id": "rough-transport/1/45102",
+          "version": "1",
+          "sha256": "5d586099a4c19cad55aa1a139022685055c395fd556f242dff5963535314a0e3"
+        },
+        "design": {
+          "domain": "genesis-lab",
+          "schema": "lab-design/1",
+          "id": "submission",
+          "version": "1",
+          "sha256": "7416ab4f998c948043b9c85bd3f0983ef08110cfec8df15652d28fa490cba9b4"
+        },
+        "step_limit": 2400
+      },
+      "settlement": {
+        "outcome": {
+          "kind": "returned",
+          "observed_evaluator": {
+            "domain": "genesis-lab",
+            "schema": "lab-evaluator/1",
+            "id": "genesis-lab-eval",
+            "version": "0.1.0",
+            "sha256": "1f03d1b6499721e6ddae6e600b688c123a8684e34c56f53cde8104d361246f42"
+          },
+          "result": {
+            "domain": "genesis-lab",
+            "schema": "lab-experiment-result/1",
+            "id": "result",
+            "version": "1",
+            "sha256": "242ba56fc63223a7bb98e5af505a25bd3b0fefe9d6b3bd059f87c24463a1a853"
+          }
+        },
+        "simulation_steps": {
+          "kind": "measured",
+          "value": 577
+        }
+      }
+    },
+    {
+      "call": {
+        "index": 26,
+        "binding_sha256": "07815a7a2bf0f1ec34219f9acb0fd157d274d9dcedc8bc31dab34a5c1bfc0281",
+        "instance": {
+          "domain": "genesis-lab",
+          "schema": "lab-instance/1",
+          "id": "rough-transport/1/45100",
+          "version": "1",
+          "sha256": "a30358ef02c25eeffeffac6a72bb0f581d80fb5e9da3e6855ece9725c0f48fa0"
+        },
+        "design": {
+          "domain": "genesis-lab",
+          "schema": "lab-design/1",
+          "id": "submission",
+          "version": "1",
+          "sha256": "7416ab4f998c948043b9c85bd3f0983ef08110cfec8df15652d28fa490cba9b4"
+        },
+        "step_limit": 2400
+      },
+      "settlement": {
+        "outcome": {
+          "kind": "returned",
+          "observed_evaluator": {
+            "domain": "genesis-lab",
+            "schema": "lab-evaluator/1",
+            "id": "genesis-lab-eval",
+            "version": "0.1.0",
+            "sha256": "1f03d1b6499721e6ddae6e600b688c123a8684e34c56f53cde8104d361246f42"
+          },
+          "result": {
+            "domain": "genesis-lab",
+            "schema": "lab-experiment-result/1",
+            "id": "result",
+            "version": "1",
+            "sha256": "2fa1db919ffea1583c2936819e9429f9a2375b113e840cca3777281538f131e3"
+          }
+        },
+        "simulation_steps": {
+          "kind": "measured",
+          "value": 616
+        }
+      }
+    },
+    {
+      "call": {
+        "index": 27,
+        "binding_sha256": "07815a7a2bf0f1ec34219f9acb0fd157d274d9dcedc8bc31dab34a5c1bfc0281",
+        "instance": {
+          "domain": "genesis-lab",
+          "schema": "lab-instance/1",
+          "id": "rough-transport/1/45104",
+          "version": "1",
+          "sha256": "b3cc05d34341be3bdb69c7398bbfd44fe251be65b0b5cf16a61e8f07ade5395e"
+        },
+        "design": {
+          "domain": "genesis-lab",
+          "schema": "lab-design/1",
+          "id": "submission",
+          "version": "1",
+          "sha256": "7416ab4f998c948043b9c85bd3f0983ef08110cfec8df15652d28fa490cba9b4"
+        },
+        "step_limit": 2400
+      },
+      "settlement": {
+        "outcome": {
+          "kind": "returned",
+          "observed_evaluator": {
+            "domain": "genesis-lab",
+            "schema": "lab-evaluator/1",
+            "id": "genesis-lab-eval",
+            "version": "0.1.0",
+            "sha256": "1f03d1b6499721e6ddae6e600b688c123a8684e34c56f53cde8104d361246f42"
+          },
+          "result": {
+            "domain": "genesis-lab",
+            "schema": "lab-experiment-result/1",
+            "id": "result",
+            "version": "1",
+            "sha256": "ea65336e6aaf124b8fa12d8272b2e653069fbf2e1e674b3eedd47effdbb566e8"
+          }
+        },
+        "simulation_steps": {
+          "kind": "measured",
+          "value": 530
+        }
+      }
+    },
+    {
+      "call": {
+        "index": 28,
+        "binding_sha256": "07815a7a2bf0f1ec34219f9acb0fd157d274d9dcedc8bc31dab34a5c1bfc0281",
+        "instance": {
+          "domain": "genesis-lab",
+          "schema": "lab-instance/1",
+          "id": "rough-transport/1/45101",
+          "version": "1",
+          "sha256": "0a83445faddc13899495376ede1d32165906c0c1a7b1036b2b43926174b50226"
+        },
+        "design": {
+          "domain": "genesis-lab",
+          "schema": "lab-design/1",
+          "id": "submission",
+          "version": "1",
+          "sha256": "7416ab4f998c948043b9c85bd3f0983ef08110cfec8df15652d28fa490cba9b4"
+        },
+        "step_limit": 2400
+      },
+      "settlement": {
+        "outcome": {
+          "kind": "returned",
+          "observed_evaluator": {
+            "domain": "genesis-lab",
+            "schema": "lab-evaluator/1",
+            "id": "genesis-lab-eval",
+            "version": "0.1.0",
+            "sha256": "1f03d1b6499721e6ddae6e600b688c123a8684e34c56f53cde8104d361246f42"
+          },
+          "result": {
+            "domain": "genesis-lab",
+            "schema": "lab-experiment-result/1",
+            "id": "result",
+            "version": "1",
+            "sha256": "41777b7218f5618b67da7deb599995e818a70fee64573a68d6067c3991edd90e"
+          }
+        },
+        "simulation_steps": {
+          "kind": "measured",
+          "value": 547
+        }
+      }
+    },
+    {
+      "call": {
+        "index": 29,
+        "binding_sha256": "07815a7a2bf0f1ec34219f9acb0fd157d274d9dcedc8bc31dab34a5c1bfc0281",
+        "instance": {
+          "domain": "genesis-lab",
+          "schema": "lab-instance/1",
+          "id": "rough-transport/1/45105",
+          "version": "1",
+          "sha256": "597b878b383933789ee54d5f8a50718d46dca4eb1aac094108261d5ae5be712c"
+        },
+        "design": {
+          "domain": "genesis-lab",
+          "schema": "lab-design/1",
+          "id": "submission",
+          "version": "1",
+          "sha256": "7416ab4f998c948043b9c85bd3f0983ef08110cfec8df15652d28fa490cba9b4"
+        },
+        "step_limit": 2400
+      },
+      "settlement": {
+        "outcome": {
+          "kind": "returned",
+          "observed_evaluator": {
+            "domain": "genesis-lab",
+            "schema": "lab-evaluator/1",
+            "id": "genesis-lab-eval",
+            "version": "0.1.0",
+            "sha256": "1f03d1b6499721e6ddae6e600b688c123a8684e34c56f53cde8104d361246f42"
+          },
+          "result": {
+            "domain": "genesis-lab",
+            "schema": "lab-experiment-result/1",
+            "id": "result",
+            "version": "1",
+            "sha256": "ce274d9431d2bb20dedd57aa17fc1114a8b44205ce6ad5926c35b746a9c6788e"
+          }
+        },
+        "simulation_steps": {
+          "kind": "measured",
+          "value": 719
+        }
+      }
+    },
+    {
+      "call": {
+        "index": 30,
+        "binding_sha256": "07815a7a2bf0f1ec34219f9acb0fd157d274d9dcedc8bc31dab34a5c1bfc0281",
+        "instance": {
+          "domain": "genesis-lab",
+          "schema": "lab-instance/1",
+          "id": "rough-transport/1/45102",
+          "version": "1",
+          "sha256": "5d586099a4c19cad55aa1a139022685055c395fd556f242dff5963535314a0e3"
+        },
+        "design": {
+          "domain": "genesis-lab",
+          "schema": "lab-design/1",
+          "id": "submission",
+          "version": "1",
+          "sha256": "afdfba242f7e1b16e57c871a620c2e8ab80ed66e30b1af76da0ab54c634ab3bb"
+        },
+        "step_limit": 2400
+      },
+      "settlement": {
+        "outcome": {
+          "kind": "returned",
+          "observed_evaluator": {
+            "domain": "genesis-lab",
+            "schema": "lab-evaluator/1",
+            "id": "genesis-lab-eval",
+            "version": "0.1.0",
+            "sha256": "1f03d1b6499721e6ddae6e600b688c123a8684e34c56f53cde8104d361246f42"
+          },
+          "result": {
+            "domain": "genesis-lab",
+            "schema": "lab-experiment-result/1",
+            "id": "result",
+            "version": "1",
+            "sha256": "c068e5e9659e57bd42d0cfdf7b160dd55969da948b524fa623fa118550e22207"
+          }
+        },
+        "simulation_steps": {
+          "kind": "measured",
+          "value": 755
+        }
+      }
+    },
+    {
+      "call": {
+        "index": 31,
+        "binding_sha256": "07815a7a2bf0f1ec34219f9acb0fd157d274d9dcedc8bc31dab34a5c1bfc0281",
+        "instance": {
+          "domain": "genesis-lab",
+          "schema": "lab-instance/1",
+          "id": "rough-transport/1/45100",
+          "version": "1",
+          "sha256": "a30358ef02c25eeffeffac6a72bb0f581d80fb5e9da3e6855ece9725c0f48fa0"
+        },
+        "design": {
+          "domain": "genesis-lab",
+          "schema": "lab-design/1",
+          "id": "submission",
+          "version": "1",
+          "sha256": "afdfba242f7e1b16e57c871a620c2e8ab80ed66e30b1af76da0ab54c634ab3bb"
+        },
+        "step_limit": 2400
+      },
+      "settlement": {
+        "outcome": {
+          "kind": "returned",
+          "observed_evaluator": {
+            "domain": "genesis-lab",
+            "schema": "lab-evaluator/1",
+            "id": "genesis-lab-eval",
+            "version": "0.1.0",
+            "sha256": "1f03d1b6499721e6ddae6e600b688c123a8684e34c56f53cde8104d361246f42"
+          },
+          "result": {
+            "domain": "genesis-lab",
+            "schema": "lab-experiment-result/1",
+            "id": "result",
+            "version": "1",
+            "sha256": "8ab658f80169a6aa6ff79f202982ecf27ae177fa2ca905c5dd8103f44c4147f3"
+          }
+        },
+        "simulation_steps": {
+          "kind": "measured",
+          "value": 753
+        }
+      }
+    }
+  ],
+  "sealed": true
+}
