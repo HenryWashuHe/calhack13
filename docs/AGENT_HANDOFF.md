@@ -55,9 +55,14 @@ Apify baseline do not close those gates. Event organizing remains superseded.
 | Henry's core Claude | #46/#48/#64/#70/#72 merged; #98 `cb29a95` receiving records merged after independent checks; #102 `c8bf7a0` checked public feedback merged at `7accefd3` | Own execution/scoring/adoption and receiving-side record plumbing. Retain B's explicit selection/local acceptance decision and intended responsibility, including the rejected random-search comparison. #116 retains checked rough-transport trials of frozen child `4f455dc6`, rejected against parent/random control. Local acceptance remains unestablished; #117 checked A-return records are Rejected in every comparison. Retain prior declarations and all negative results; do not edit forge. #57/#65 are separate unmerged assurance work. |
 | Eric / Eric's Claude | #93/#94/#99/#100/#101/#109 merged; real-evidence #123 integrated through #128 | `docs/invention-lab/ui.md` and `apps/web/src/invention-lab/**`, no shared routes. #123 `7196d5c` → parent merge `4515f728`; #128 `2f0b6734` → main `a3be74d0`, identical web bytes. Independent 81 tests/13 files and typecheck pass, original regressions unchanged. Preserve `78adef37`, `59c3e1c`, `f2ac45e5` and `0672dcbe`. The separate `apps/stage` queue does not transfer this lane. [MethodOffer/MethodSearchResults intake](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388858370) is requested next, awaiting acknowledgment/exact files: publisher-qualified identity and canonical bytes, no inferred authentication or adoption. |
 | ACP Claude session | #3/#5 and stage #20 merged; [Stage lane explicitly claimed](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388347592) | Own bridge and `apps/stage/**`; #125/#126 remain held as below. [New iteration files](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6389024893) remain proposed/exploratory pending existing-contract interface agreement, not a second default orchestrator. Reconcile held #4 routing/status/demo docs with merged #3/#5, local executor/scorer and issue #1. Preserve the superseded event-organizer boundary. Eric [withdrew only his separate Stage claim](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388539814), leaving his lab UI lane intact. |
-| Codex main chat | #120/#124/#127/#130 and method registry API/client/CLI #132/#133/#141 merged | The [existing-registry path](invention-lab/contracts/method-registry.md) now supports authenticated publication, bounded discovery and selected-candidate exact fetch into revision preparation, now exposed through the operator CLI. Maintain shared contracts/generation integration and review; source transport grants no acceptance/authority. Henry retains adoption/roles/grants. Corrected W/F protocol awaits freezing; no new request declared. |
+| Codex main chat | #120/#124/#127/#130 and method registry API/client/CLI #132/#133/#141/#150/#151 merged | The [existing-registry path](invention-lab/contracts/method-registry.md) now carries explicit selected metadata and exact parent source through the bounded revision-input CLI into the receiver's ordinary Prepared checkpoint. Maintain shared contracts/generation integration and review; source transport grants no acceptance/authority. Henry retains adoption/roles/grants. Corrected W/F protocol awaits freezing; no new request declared. |
 | EricZhu-31 / Codex provider session | #104 nullable-ticket correction merged; [separate CREAO Trigger smoke slice claimed](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388887582), #137 held at `08a68e3` | Own `scripts/live-gates/creao-trigger.mjs`, focused offline test, trigger guide and narrow live-gate docs link. Keep team `capi_`/app-ID Trigger separate from existing Developer API adapters/gate. Offline infrastructure only, no hosted run or G0–G4 result; ACP retains hosted-gate evidence. [Review](https://github.com/HenryWashuHe/genesis-history-experiment/pull/137#issuecomment-6389011299): 32 original offline cases pass; three new regressions fail for directory durability, stream bounds and stale concurrent polling. Preserve 102-line `f8f9ea3` unchanged. This provider claim does not acknowledge the lab UI request. |
 | Ines | Unassigned by explicit user instruction | Do not infer identity from another collaborator handle. |
+
+Eric's results UI [#148 `1519c275`](https://github.com/HenryWashuHe/genesis-history-experiment/pull/148)
+and stacked [#149 `f180a83a`](https://github.com/HenryWashuHe/genesis-history-experiment/pull/149)
+are under independent review, not merged. The 90 author/review-agent checks have
+not been rerun by root; the earlier 81-test main evidence above remains separate.
 
 Receiving wrapper [#118](https://github.com/HenryWashuHe/genesis-history-experiment/pull/118#issuecomment-6388306630)
 `68bc82d0061eb50e58acd45aa811b4895a9e4a17` merged at `ec23efb5`.
@@ -275,6 +280,21 @@ server Clippy/fmt pass on unchanged production. The fixture binds publication �
 discovery → exact source → B revision `Prepared`; no model/source execution,
 acceptance, role change or gate closure. The shared candidate validator rejects
 duplicate logical dependencies before any fetch, including conflicting hashes.
+
+Revision bundle #150 source `6376713a14500ebfca7286765ce3e1c4efa2acf8` merged
+at `a5f87bfe5deb9939e1ea11d40ebbfc71b84966aa`: root 18 focused tests and scoped
+strict Clippy/fmt pass; independent exact-source/guide review clear. Existing
+revision identities, preparation locking and read-only observation are unchanged.
+Selected-source bridge #151 source `54283b57d85f55fd1de7fceead675ef49d97668e`
+merged at `d18591ad6eb97f0eb59a3c70dea097878f8fb10b`, tree
+`e457ac0b472fe7531906e042ae2f1d9638e12810`. Behavior `7d0d30f`: root 25 scoped
+checks (five new including two independent, four legacy CLI, 16 binary) and strict
+Clippy/fmt pass; independent final-source/guide review clear. The 88-line review
+file is retained with its `usize` compile annotation, testing full receiver-input
+preservation and post-augmentation bounds. [The bridge](invention-lab/contracts/method-registry.md#selected-parent-to-revision-input)
+retains selected publisher metadata and exact source in the ordinary receiver
+plan; local HTTP/pure preparation stops at Prepared. No new generation, source
+execution, acceptance or organizational authority. Henry's authority lane remains active.
 
 Method exchange CLI #141 final `e938db0ab339653043188fc3f636baf8f782a04f`, tree
 `b427b635b55656e280764bd90be363ea4c31cb73`, merged at
