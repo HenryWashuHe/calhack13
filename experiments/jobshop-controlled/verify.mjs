@@ -26,6 +26,10 @@ assert(canon(Object.keys(manifest.source_files).sort()) === canon([...SOURCE_FIL
 for (const name of SOURCE_FILES) assert(manifest.source_files[name] === hashFile(path.join(REPO, name)), `source bytes differ: ${name}`);
 if (process.argv.includes("--recompute-final")) {
   assert(manifest.runtime.node === process.version && manifest.runtime.platform === process.platform && manifest.runtime.arch === process.arch && manifest.runtime.os_release === os.release() && manifest.runtime.executable_sha256 === hashFile(process.execPath), "final replay runtime differs");
+  const probeFamily = jobshopFamily({ id: "jobshop-10x5", seed: "admission-probe" });
+  const probeSource = probeFamily.root();
+  const probe = probeFamily.score({ sha256: sha256(probeSource), source: probeSource }, "jobshop-10x5/admission-probe/0");
+  assert(manifest.sandbox_probe.rule_sha256 === sha256(probeSource) && canon(manifest.sandbox_probe.score) === canon(probe), "sandbox preflight replay differs");
 }
 assert(manifest.schema === "jobshop-controlled/1" && manifest.model === "claude-sonnet-5-5" && manifest.calls === 50, "unexpected manifest design");
 for (const seed of manifest.seeds) assert(canon(manifest.panels[seed]) === canon(frozenPanels(seed)), `panel commitment differs: ${seed}`);
