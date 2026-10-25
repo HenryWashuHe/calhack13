@@ -8,13 +8,18 @@ Henry's Claude (evaluator lane).
 
 ## Why
 
-`analysis/family-robustness` (#184) found that only rough-transport separates
-a family-adaptive hand-written control from the trial's random-search control
-under margin-one scoring: 6 of 6 panels there, against 1 of 6 on ravine and
-return-mix. Ravine and return-mix are near-replicates (r = 0.994), and
-projectile is capped by one-design scoring. So most current tasks can't show
-a better development method even if one exists. That's limited observed
-headroom, not a proof that no method can win there.
+`analysis/family-robustness` (#184, author-run, finite samples) observed that
+under margin-one scoring the hand-written portfolio probe beat the trial's
+random-search control on 6 of 6 rough-transport panels, but on only 1 of 6
+ravine and 1 of 6 return-mix panels, losing two return-mix panels. Across
+the 15 retained designs, ravine and return-mix success counts correlated at
+r = 0.994, and a 12,000-evaluation random sample of launchers reached a best
+observed 2 of 6 per projectile panel. These are observations about those
+designs, controls and samples. They do not establish that two families are
+equivalent, that projectile has a hard ceiling, or that the current tasks
+cannot show a better development method. They do suggest that the observed
+headroom for the controls we have is small outside rough-transport, which is
+reason enough to add a prospective family and measure.
 
 The aim is a task whose right design depends on the instance and where no
 single cart kind we've seen wins outright. It's a new prospective experiment.
@@ -51,19 +56,36 @@ generated source runs on this family before confirmation is published.
 
 ## Calibration and confirmation
 
+- **Prerequisite: a corrected, reviewed measurement harness.** The #184
+  review found that `calibrate.py` coerces a failed or absent evaluator
+  receipt to zero steps and `ok: true`, mixes unavailable acceptance with
+  measured failure, has no end-to-end deadline on its blocking protocol
+  read, and does not guarantee child cleanup. Those findings must be fixed
+  and independently reviewed before any calibration or confirmation run on
+  this family. Until then the harness cannot substantiate the grants or
+  readings below. A failed, timed-out or unknown-usage panel is retained as
+  **unavailable**, never as zero successes or zero cost.
 - **Calibration:** seeds 50000..50035 (six panels of six). Generator ranges
   may be adjusted between calibration runs. Every calibration run is
-  retained, including discarded settings.
-- **Freeze:** generator source, version and digest are committed and announced
-  in issue #1 before confirmation.
+  retained, including discarded settings and unavailable panels.
+- **Freeze:** before confirmation, one commit pins and issue #1 announces the
+  whole comparison, not just the generator: generator source, version and
+  digest; each control's source bytes and, for fixed designs, the design
+  identity; the harness script identities; the evaluator and `lab-eval-mixed`
+  build identities; the scoring rule and margin; the panel-to-seed assignment;
+  and the step and wall grants. Anything not pinned at freeze is not part of
+  the confirmation.
 - **Confirmation:** seeds 51000..51071 (twelve panels), run once with the frozen
-  generator. **Predeclared reading:** the family is called *discriminating* if
-  `portfolio_search` beats `random_search` by margin one on at least 7 of 12
-  panels and loses by margin one on at most 2. Otherwise it's *not
-  discriminating*, and that result is published the same way.
+  comparison. **Predeclared reading:** the family is called *discriminating*
+  if `portfolio_search` beats `random_search` by margin one on at least 7 of
+  12 panels and loses by margin one on at most 2, with every one of the 12
+  panels available for both arms. If any panel is unavailable for either arm,
+  the reading is *incomplete* and is published as such with the unavailable
+  panels listed; it is not rerun. Otherwise the result is *not
+  discriminating*, published the same way.
 - Grant: 72,000 simulation steps and 60 s per slot, as in v1. Offline protocol
-  emulation (`calibrate.py`) is used for both phases and labeled as such.
-  Executor runs come only after confirmation.
+  emulation (the corrected `calibrate.py`) is used for both phases and
+  labeled as such. Executor runs come only after confirmation.
 
 ## Identity and version boundaries
 
