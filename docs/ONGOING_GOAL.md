@@ -5,8 +5,8 @@
 Active repository: [genesis-history-experiment](https://github.com/HenryWashuHe/genesis-history-experiment). See the
 [migration map](REPOSITORY_MIGRATION.md) for old/new PR numbers and preserved work.
 
-Status: ongoing work resumes under the latest heartbeat; the native app Goal
-currently reports `paused`. No completion is claimed. This is the durable repository objective and completion contract,
+Status: the user authorized current PR closeout; the native app Goal
+reports `paused`. No completion is claimed. This is the durable repository objective and completion contract,
 read alongside current [ownership](AGENT_HANDOFF.md#current-ownership-and-next-work)
 and [coordination issue #1](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1).
 
@@ -40,7 +40,7 @@ Event organization is not the product, demo requirement or completion gate.
 | --- | --- | --- | --- |
 | G0: shared contracts | A versioned method interface, exact artifact/dependency identity, evaluator/task contract, resource accounting and separate execution/evaluation/adoption records | Reviewed contracts and compatibility/unknown-outcome cases agreed by affected owners; selected runtime/evaluator documented | Open: records, source loader, corrected #13/#14 proposals, simulator and #42/#43 executor foundations/session merged; runtime/acceptance scoring merged; receiver-bound adoption #64 merged; #57/#65 namespace lifecycle validation remains incomplete; complete enforcement/compatibility remain open |
 | G1: executable development | A develops or improves an executable method through the governed process and uses it to develop a capability/design | Generated/changed method source and derivation, runnable executor, independently scored outputs, enforced limits, receipts and meaningful failure/restart tests; a supplied seed alone is a control | Open: simulator, source-generation plumbing and #42–#46/#48 executor/acceptance stack merged. A live model-generated package is retained; #98 receiving execution/scoring records are merged after independent consistency checks. Local adoption, enforced limits and G1 closure remain open |
-| G2: independent inheritance | B discovers, locally checks and uses A's exact method on a distinct task, with justified organizational responsibility | Separate state/grants, exact invocation/acceptance evidence, a justified role change and an existing-owner control, appropriate non-reuse with scored task outcome | Open: #116 retains checked exact-parent/child trials on distinct rough-transport; child loses to parent/random control. Authenticated registry source API/client/CLI #132/#133/#141 and intake/planner integration #157/#158 are merged; scripted new-specialist/existing-owner/no-change controls exercise the organizational path. Receiver-bound adoption/current-grant authorization #155/#159, compatibility #179 and operator run lifecycle #186 are merged. Receipts remain operator-reported; scored responsibility attachment and selective inheritance with independent organizational evidence remain unproved |
+| G2: independent inheritance | B discovers, locally checks and uses A's exact method on a distinct task, with justified organizational responsibility | Separate state/grants, exact invocation/acceptance evidence, a justified role change and an existing-owner control, appropriate non-reuse with scored task outcome | Open: #116 retains checked exact-parent/child trials on distinct rough-transport; child loses to parent/random control. Authenticated registry source API/client/CLI #132/#133/#141 and intake/planner integration #157/#158 are merged; scripted new-specialist/existing-owner/no-change controls exercise the organizational path. Receiver-bound adoption/current-grant authorization #155/#159, compatibility #179 and operator run lifecycle #186 are merged. #211 implements scored-output/responsibility binding; #215 retains historical scripted records with incomplete artifact coverage. Receipts remain operator-reported; selective inheritance with independent organizational evidence remains unproved |
 | G3: recursive return | B develops an executable revision; in at least one chain A independently accepts and executes that frozen revision to develop a later capability on a fresh return task | Genuine method changes/derivation, pinned versions, local acceptance and execution evidence closing A → B → A; declines remain valid controls but do not close this gate; positive improvement is not required | Open: #113 retains actual model-generated B revision source from exact parent and checked public feedback, with changed bytes and AST parsing only. #116 B execution/scoring records are checked, without adoption; #117 A-return records are checked and retain rejection in every comparison. An accepted return remains unestablished; #72 is still a handwritten fixture |
 | G4: controlled evaluation | Reproducible comparison of no accumulation, task-capability accumulation and development-method accumulation, plus a fair local-history control for network benefit | Fixed model/settings and trusted evaluators, isolated state/holdouts, predeclared criteria, repeated task orders, costs/latency/interventions/failures and uncertainty reported | Open: accounting, pre-result rosters, optional generation reservations, admission-aware trial/cost join and structural stage allocation/retained binding #85/#86 and finite-chain ceilings/retained CLI #103/#107 are merged, as are post-run catalogue #124, whole-chain cost library/CLI #127/#130 and explicit generation-only stages #153. Runtime entry consumption, prior host retention of one authoritative chain, provider-default sampling, exhaustive history, broader enforcement and controlled comparison remain open. No positive recursive-benefit result exists |
 | Delivery | Reviewable, runnable work and an honest demonstration | Focused merged PRs, reproducible commands, source revisions, updated implementation inventory and explicitly labeled fixture/native/cloud evidence | Open |
@@ -103,6 +103,44 @@ failures or input that is actually required.
   preserve state. Stop recurring work on user pause/cancellation or completion.
 
 ## Current milestone ledger
+
+**Closeout checkpoint — main `7ec75563`:** [the source-specific review summary](reviews/pr-queue-2026-10-25.md#current-closeout--main-7ec75563)
+records #225/#226, #180/#181, #204, #215 and #219 merged. UI attribution and
+research harness findings were corrected and checked with inert/static/mocked
+tests. #215's first two bundles each lack 89 manifest artifacts; the third has
+85/85 matches within a manifest that excludes exploration artifacts/databases.
+#219's 15 frozen file hashes match and four pure confirmation tests pass; its
+reported experiments were not rerun. Counts belong to their named source scopes,
+not one aggregate main suite. #216 `e16277ad` remains held on confinement and
+reused writable policy, with one inert control passing and three guards failing;
+#7 remains a preservation draft; source review holds new #228 `3250e301` on
+sandbox admission/recording and source identity, plus its held #216 dependency.
+G0–G4 remain open, native Goal `paused`.
+No namespace, evaluator/scorer, method or provider execution was run or dispatched.
+
+### Historical runtime milestone — main `de453090`
+
+**Priority checkpoint, October 25, 2026 — main `de453090`:** #220 source
+`96eecb8a` merged into #65 at `d57efc82`; #221 source `6f55d399` merged into
+#57 at `f9c3dc6f`. Both refuse namespace startup without Linux
+`close_range(CLOEXEC)` success, remove the RLIMIT-bounded fallback and change
+the environment-policy identity; Mode None is unchanged. On current-main
+composition `b347f457` root passes scorer all-target compilation, strict all-target
+Clippy for both crates, formatting and seven pure termination tests. The 28 prior
+test files are unchanged. The owner directed merge without waiting for the
+remaining external Linux report: #65 merged at `4a37ffb7` (checked tree `c50d5f87`),
+then #57 at `de453090` (checked composition tree `b28208ed`). Independent Linux
+assurance remains open; the merge decision does not close G0–G4. [The review snapshot](reviews/pr-queue-2026-10-25.md)
+records merged #211/#199/#203 corrections: 21 store, 78 inert Stage and 80 inert
+Stage cases pass in their respective reviewed compositions. Those counts overlap;
+no combined suite or browser validation is claimed. Deferred research and newer
+unreviewed heads remain source-specific. The later Linux report covers only older
+`31001949` / `6c468f5`; its same-host agent provenance and assertion/heartbeat
+limits are recorded in the snapshot. It supplies no current-head assurance.
+G0–G4 remain open; the native app Goal reports `paused`. No namespace, descriptor,
+evaluator, generated-method, provider or paid execution is claimed here.
+
+### Historical milestone snapshot — main `0cc38e6`
 
 **Frozen snapshot: main `0cc38e6`, nine open PRs before this checkpoint:**
 #204, #203, #199, #181, #180, #144, #65, #57 and draft #7.

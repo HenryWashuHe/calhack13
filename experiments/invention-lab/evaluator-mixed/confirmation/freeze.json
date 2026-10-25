@@ -1,0 +1,119 @@
+{
+ "controls": {
+  "portfolio_search": {
+   "docs/invention-lab/analysis/family-robustness/portfolio_search.py": "5c8426da7f60553652c86144d00861e43d81a5e9fb5a51bd7efa135f09b50124"
+  },
+  "random_search": {
+   "experiments/invention-lab/executor/methods/random-search/random_search.py": "73eac79d4ce78dfb9b07e4b4dc21b9d6f351bbd93103925b2cfc641fa389a236"
+  }
+ },
+ "evaluator": {
+  "binary": {
+   "path": "lab-eval-mixed (release build of the files above)",
+   "sha256": "22129796743270456585f35b8397fe0a9eb31583c3a62d9e36eb38e61b33c519"
+  },
+  "files": {
+   "experiments/invention-lab/evaluator-mixed/Cargo.lock": "74b651e4915d726e2d836ccdc034d451a38517402bed398c1070146c5de9815f",
+   "experiments/invention-lab/evaluator-mixed/Cargo.toml": "75b0b9b4c74d12a9e8231e67a9a7ca89cb3075b87010ebcc562552716756b972",
+   "experiments/invention-lab/evaluator-mixed/src/family.rs": "80f028b5b8c9c03933edc457761997ca97e7efff3f54cfecd170445874ca46f2",
+   "experiments/invention-lab/evaluator-mixed/src/lib.rs": "6d72e5e947f4463d2efc143ad837b413c266e15bdfb7aca5e5b5c822c0818058",
+   "experiments/invention-lab/evaluator-mixed/src/score.rs": "b57b3882b869f81d76df7b890b7ab45f8787ab4548e89f25ec6bb2362bc8b1fd",
+   "experiments/invention-lab/evaluator-mixed/src/sim.rs": "fe2af2be23ba5f3fbbfb7af0a518ed65c74dfa8bdc7a2f6fd46ab3b2977bd8fc"
+  },
+  "id": "genesis-lab-eval-mixed@0.1.0",
+  "sha256": "316908f707b071bbb0bc51cc8fb90e1d51393fe0a1b53528b76e0822f17c4ed9",
+  "v1_sha256": "1f03d1b6499721e6ddae6e600b688c123a8684e34c56f53cde8104d361246f42"
+ },
+ "family": {
+  "generator": {
+   "experiments/invention-lab/evaluator-mixed/src/family.rs": "80f028b5b8c9c03933edc457761997ca97e7efff3f54cfecd170445874ca46f2"
+  },
+  "name": "mixed-terrain",
+  "version": 1
+ },
+ "fixed_designs": {
+  "parent_2483f08f": {
+   "docs/invention-lab/evidence/live-method-20261024-b-revision-receiver/vs-parent/control/artifacts/2483f08f8ec33f4144a4a6105842bd9e2da7702275592140c3aca35c2ac61cec": "2483f08f8ec33f4144a4a6105842bd9e2da7702275592140c3aca35c2ac61cec"
+  },
+  "reference_five_wheel": {
+   "experiments/invention-lab/evaluator/designs/reference-five-wheel.json": "244fa07e901757ecefc8f3d7870adc2159312180e8921f9e3711135190fcc937"
+  }
+ },
+ "grant": {
+  "episode_steps": 2400,
+  "simulation_steps": 72000,
+  "wall": "60 s per slot in v1 terms; the offline emulation enforces 120 s per evaluator call and 900 s per panel instead"
+ },
+ "harness": {
+  "docs/invention-lab/analysis/family-robustness/calibrate.py": "799c53ce9a84e8089c671a1b1715aa212c2b2a5ccf00d04d5563d0f8cc1965a2",
+  "docs/invention-lab/analysis/family-robustness/headroom.py": "735c3774666cffcfb89334df6b9424b333018cc2d467f69d4db41348dc0797a4",
+  "experiments/invention-lab/evaluator-mixed/calibration/confirm.py": "48570110022dba1b384506c923a59e9a05c9de0eef917c380f5ba672e567fd81",
+  "experiments/invention-lab/evaluator-mixed/calibration/freeze.py": "f133b819238d6f980033ed9d69c39f28caceee222b7bfc87f2cf665e1d6237c6",
+  "experiments/invention-lab/evaluator-mixed/calibration/run.py": "51ac3602de043117fc18fedab0261f94008d9bc1eb9ae552638a6b774536577b"
+ },
+ "interpreter_for_controls": "3.13.16",
+ "panels": [
+  [
+   51000,
+   51005
+  ],
+  [
+   51006,
+   51011
+  ],
+  [
+   51012,
+   51017
+  ],
+  [
+   51018,
+   51023
+  ],
+  [
+   51024,
+   51029
+  ],
+  [
+   51030,
+   51035
+  ],
+  [
+   51036,
+   51041
+  ],
+  [
+   51042,
+   51047
+  ],
+  [
+   51048,
+   51053
+  ],
+  [
+   51054,
+   51059
+  ],
+  [
+   51060,
+   51065
+  ],
+  [
+   51066,
+   51071
+  ]
+ ],
+ "reading": {
+  "discriminating": "portfolio_search beats random_search by margin one on >= 7 of 12 panels and loses on <= 2, all panels available",
+  "incomplete": "any panel unavailable for either arm; published, not rerun",
+  "otherwise": "not discriminating"
+ },
+ "schema": "mixed-terrain-freeze/1",
+ "scoring": {
+  "margin": 1,
+  "measured_outcomes": [
+   "invalid",
+   "scored"
+  ],
+  "rule": "lab-eval-mixed accept success count per panel of 6"
+ }
+}

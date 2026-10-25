@@ -5,7 +5,9 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 from pathlib import Path
+import re
 import statistics
 from typing import Any
 
@@ -14,10 +16,33 @@ from benchmark import (DeterministicDraw, STRATA, canonical_bytes, digest,
 from independent_checker import check_schedule
 
 
+def reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f"duplicate JSON key: {key}")
+        result[key] = value
+    return result
+
+
+def finite_float(value: str) -> float:
+    number = float(value)
+    if not math.isfinite(number):
+        raise ValueError(f"non-finite JSON number: {value}")
+    return number
+
+
+def strict_json(raw: bytes) -> Any:
+    value = json.loads(raw.decode("ascii"), object_pairs_hook=reject_duplicate_keys,
+                       parse_float=finite_float,
+                       parse_constant=lambda value: (_ for _ in ()).throw(
+                           ValueError(f"non-finite JSON constant: {value}")))
+    require(raw == canonical_bytes(value) + b"\n", "non-canonical JSON bytes")
+    return value
+
+
 def read_json(path: Path) -> Any:
-    return json.loads(path.read_text(encoding="ascii"),
-                      parse_constant=lambda value: (_ for _ in ()).throw(
-                          ValueError(f"non-finite JSON constant: {value}")))
+    return strict_json(path.read_bytes())
 
 
 def require(condition: bool, message: str) -> None:
@@ -77,7 +102,10 @@ def verify_event_order(records: list[dict[str, Any]], candidates: list[str],
     require(cursor == len(records), "extra event after completion")
 
 
-def verify(output_dir: Path) -> dict[str, Any]:
+def verify(output_dir: Path, expected_head: str | None = None) -> dict[str, Any]:
+    if expected_head is not None:
+        require(re.fullmatch(r"[0-9a-f]{64}", expected_head) is not None,
+                "expected head must be a lowercase SHA-256 hex digest")
     manifest = read_json(output_dir / "manifest.json")
     instances = read_json(output_dir / "instances.json")
     summary = read_json(output_dir / "summary.json")
@@ -132,8 +160,7 @@ def verify(output_dir: Path) -> dict[str, Any]:
     with (output_dir / "events.jsonl").open("rb") as journal:
         for index, raw_line in enumerate(journal):
             require(raw_line.endswith(b"\n"), "truncated event line")
-            entry = json.loads(raw_line, parse_constant=lambda _: (_ for _ in ()).throw(
-                ValueError("non-finite event number")))
+            entry = strict_json(raw_line)
             require(set(entry) == {"sequence", "previous_sha256", "record", "sha256"},
                     "invalid event envelope")
             require(entry["sequence"] == index and entry["previous_sha256"] == previous,
@@ -245,6 +272,8 @@ def verify(output_dir: Path) -> dict[str, Any]:
                     "calibration stratum mean mismatch")
     require(summary["model_requests"] == 0 and summary["provider_requests"] == 0,
             "external request count mismatch")
+    if expected_head is not None:
+        require(previous == expected_head, "published event head mismatch")
     return {"status": "verified", "stage": "offline_calibration", "formal_test": False,
             "event_count": len(events), "evaluation_count": len(observed),
             "last_event_sha256": previous, "summary_sha256": digest(summary),
@@ -254,8 +283,10 @@ def verify(output_dir: Path) -> dict[str, Any]:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", required=True, type=Path)
+    parser.add_argument("--expected-head", help="externally published final event SHA-256")
     arguments = parser.parse_args()
-    print(json.dumps(verify(arguments.output_dir), sort_keys=True, ensure_ascii=True))
+    print(json.dumps(verify(arguments.output_dir, arguments.expected_head),
+                     sort_keys=True, ensure_ascii=True))
 
 
 if __name__ == "__main__":

@@ -1,0 +1,620 @@
+{
+ "config": {
+  "family": "binpack-100",
+  "generations": 5,
+  "k": 4,
+  "heldout": 20,
+  "screen": 3,
+  "factor": 2,
+  "target": 1.08,
+  "seed": "smoke-3",
+  "stall": 5,
+  "mock": false,
+  "effort": "medium",
+  "gate": "incumbent",
+  "model": "claude-sonnet-5-5",
+  "sizes": [
+   20,
+   70
+  ]
+ },
+ "controls": [
+  {
+   "id": "fixed-first-fit",
+   "package": "c7a74f8591b20f21512ceb3554d4dd804266f2554e56f63edda09fadcb00384e",
+   "source": "(item, bin) => -bin.index",
+   "evidence": null
+  },
+  {
+   "id": "fixed-best-fit",
+   "package": "f036e7b0f1022a0f24c81a2816187bdf3ed8183ff19363a98556ea032993b1f5",
+   "source": "(item, bin) => -bin.fits",
+   "evidence": null
+  },
+  {
+   "id": "fixed-worst-fit",
+   "package": "79be5c21498cfc8d4aa6e5abb5b7f3e62c642d2235106785c3c1fb962d7a55eb",
+   "source": "(item, bin) => bin.fits",
+   "evidence": null
+  },
+  {
+   "id": "random-search",
+   "package": "2054351da76553f59abd6c2254a16be6d8efcc1785c19b1b345921d76d9a479c",
+   "source": "(item, bin) => (-0.68 * bin.remaining) + (-0.20 * bin.fits) + (0.42 * bin.fill) + (0.02 * bin.index) + (0.45 * item.size)",
+   "evidence": {
+    "samples": 67,
+    "panel_instances": 6,
+    "training_success_count": 2,
+    "training_mean_progress": 0.9210278260240267,
+    "evaluations": 402
+   }
+  }
+ ],
+ "generations": [
+  {
+   "generation": 1,
+   "plan": "31ceb9eefe6f7a149697e71857ecf147909d2ce13920b2d1268044c48b239437",
+   "incumbent": 6,
+   "controls": [],
+   "candidates": [
+    {
+     "slot": "candidate:0",
+     "success_count": 5,
+     "verdict": "rejected"
+    },
+    {
+     "slot": "candidate:1",
+     "success_count": 5,
+     "verdict": "rejected"
+    },
+    {
+     "slot": "candidate:2",
+     "success_count": 6,
+     "verdict": "rejected"
+    },
+    {
+     "slot": "candidate:3",
+     "success_count": 6,
+     "verdict": "rejected"
+    }
+   ],
+   "of": 20,
+   "promoted": null,
+   "dropped": []
+  },
+  {
+   "generation": 2,
+   "plan": "4a359d1beec77da5804d1d668276063b0c38b31a0012000fbdebba920debf77e",
+   "incumbent": 8,
+   "controls": [],
+   "candidates": [
+    {
+     "slot": "candidate:0",
+     "success_count": 11,
+     "verdict": "rejected"
+    },
+    {
+     "slot": "candidate:1",
+     "success_count": 12,
+     "verdict": "promoted"
+    },
+    {
+     "slot": "candidate:2",
+     "success_count": 12,
+     "verdict": "rejected"
+    },
+    {
+     "slot": "candidate:3",
+     "success_count": 12,
+     "verdict": "rejected"
+    }
+   ],
+   "of": 20,
+   "promoted": "1b6db928023d156047f786115834aa11c9889f47d3ad1c144d442134ec27c3ff",
+   "dropped": []
+  },
+  {
+   "generation": 3,
+   "plan": "be30c2b51673389d4e931a95813da00fa730974ca9ea108c0595194aadf758d6",
+   "incumbent": 5,
+   "controls": [],
+   "candidates": [
+    {
+     "slot": "candidate:0",
+     "success_count": 4,
+     "verdict": "rejected"
+    },
+    {
+     "slot": "candidate:1",
+     "success_count": 4,
+     "verdict": "rejected"
+    },
+    {
+     "slot": "candidate:2",
+     "success_count": 5,
+     "verdict": "rejected"
+    },
+    {
+     "slot": "candidate:3",
+     "success_count": 4,
+     "verdict": "rejected"
+    }
+   ],
+   "of": 20,
+   "promoted": null,
+   "dropped": []
+  },
+  {
+   "generation": 4,
+   "plan": "92c2bff1376d8c7dd2cffdf03113e743c6de582e6d2907f93d172af44c24d39f",
+   "incumbent": 9,
+   "controls": [],
+   "candidates": [
+    {
+     "slot": "candidate:0",
+     "success_count": 7,
+     "verdict": "rejected"
+    },
+    {
+     "slot": "candidate:1",
+     "success_count": 7,
+     "verdict": "rejected"
+    },
+    {
+     "slot": "candidate:2",
+     "success_count": 6,
+     "verdict": "rejected"
+    },
+    {
+     "slot": "candidate:3",
+     "success_count": 4,
+     "verdict": "rejected"
+    }
+   ],
+   "of": 20,
+   "promoted": null,
+   "dropped": []
+  },
+  {
+   "generation": 5,
+   "plan": "c9a3605d2faf71771040c4c9895cd88f585737879e11c30b9570f88313a706e6",
+   "incumbent": 6,
+   "controls": [],
+   "candidates": [
+    {
+     "slot": "candidate:0",
+     "success_count": 4,
+     "verdict": "rejected"
+    },
+    {
+     "slot": "candidate:1",
+     "success_count": 4,
+     "verdict": "rejected"
+    },
+    {
+     "slot": "candidate:2",
+     "success_count": 4,
+     "verdict": "rejected"
+    },
+    {
+     "slot": "candidate:3",
+     "success_count": 4,
+     "verdict": "rejected"
+    }
+   ],
+   "of": 20,
+   "promoted": null,
+   "dropped": []
+  }
+ ],
+ "calls": [
+  {
+   "generation": 1,
+   "stop_reason": "end_turn",
+   "model": "claude-sonnet-5-5",
+   "candidates": 8,
+   "usage": {
+    "input_tokens": 884,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 0
+    },
+    "iterations": [
+     {
+      "input_tokens": 884,
+      "output_tokens": 541,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0,
+      "cache_creation": {
+       "ephemeral_5m_input_tokens": 0,
+       "ephemeral_1h_input_tokens": 0
+      },
+      "type": "message",
+      "model": null
+     }
+    ],
+    "output_tokens": 541,
+    "output_tokens_details": {
+     "thinking_tokens": 0
+    },
+    "service_tier": "standard",
+    "inference_geo": "global",
+    "speed": "standard"
+   }
+  },
+  {
+   "generation": 2,
+   "stop_reason": "end_turn",
+   "model": "claude-sonnet-5-5",
+   "candidates": 8,
+   "usage": {
+    "input_tokens": 4922,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 0
+    },
+    "iterations": [
+     {
+      "input_tokens": 4922,
+      "output_tokens": 1224,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0,
+      "cache_creation": {
+       "ephemeral_5m_input_tokens": 0,
+       "ephemeral_1h_input_tokens": 0
+      },
+      "type": "message",
+      "model": null
+     }
+    ],
+    "output_tokens": 1224,
+    "output_tokens_details": {
+     "thinking_tokens": 0
+    },
+    "service_tier": "standard",
+    "inference_geo": "global",
+    "speed": "standard"
+   }
+  },
+  {
+   "generation": 3,
+   "stop_reason": "end_turn",
+   "model": "claude-sonnet-5-5",
+   "candidates": 8,
+   "usage": {
+    "input_tokens": 5134,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 0
+    },
+    "iterations": [
+     {
+      "input_tokens": 5134,
+      "output_tokens": 802,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0,
+      "cache_creation": {
+       "ephemeral_5m_input_tokens": 0,
+       "ephemeral_1h_input_tokens": 0
+      },
+      "type": "message",
+      "model": null
+     }
+    ],
+    "output_tokens": 802,
+    "output_tokens_details": {
+     "thinking_tokens": 0
+    },
+    "service_tier": "standard",
+    "inference_geo": "global",
+    "speed": "standard"
+   }
+  },
+  {
+   "generation": 4,
+   "stop_reason": "end_turn",
+   "model": "claude-sonnet-5-5",
+   "candidates": 8,
+   "usage": {
+    "input_tokens": 5164,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 0
+    },
+    "iterations": [
+     {
+      "input_tokens": 5164,
+      "output_tokens": 705,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0,
+      "cache_creation": {
+       "ephemeral_5m_input_tokens": 0,
+       "ephemeral_1h_input_tokens": 0
+      },
+      "type": "message",
+      "model": null
+     }
+    ],
+    "output_tokens": 705,
+    "output_tokens_details": {
+     "thinking_tokens": 0
+    },
+    "service_tier": "standard",
+    "inference_geo": "global",
+    "speed": "standard"
+   }
+  },
+  {
+   "generation": 5,
+   "stop_reason": "end_turn",
+   "model": "claude-sonnet-5-5",
+   "candidates": 8,
+   "usage": {
+    "input_tokens": 5122,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 0
+    },
+    "iterations": [
+     {
+      "input_tokens": 5122,
+      "output_tokens": 810,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0,
+      "cache_creation": {
+       "ephemeral_5m_input_tokens": 0,
+       "ephemeral_1h_input_tokens": 0
+      },
+      "type": "message",
+      "model": null
+     }
+    ],
+    "output_tokens": 810,
+    "output_tokens_details": {
+     "thinking_tokens": 0
+    },
+    "service_tier": "standard",
+    "inference_geo": "global",
+    "speed": "standard"
+   }
+  }
+ ],
+ "usage": {
+  "input_tokens": 21226,
+  "output_tokens": 4082,
+  "calls": 5,
+  "failures": 0
+ },
+ "screening": {
+  "evaluations": 120,
+  "rounds": [
+   {
+    "generation": 1,
+    "proposed": 8,
+    "kept": 4,
+    "panel": 3,
+    "dropped": [
+     {
+      "source": "(item, bin) => bin.fits === 0 ? 1000 : -bin.fits",
+      "success_count": 1,
+      "mean_progress": 0.9188327813394861
+     },
+     {
+      "source": "(item, bin) => {\n  const f = bin.fits;\n  if (f === 0) return 1000;\n  if (f >= 20 && f <= 30) return 100 - f;\n  return -f * 2;\n}",
+      "success_count": 1,
+      "mean_progress": 0.9188327813394861
+     },
+     {
+      "source": "(item, bin) => -(bin.fits * bin.fits) - bin.index * 0.001",
+      "success_count": 1,
+      "mean_progress": 0.9188327813394861
+     },
+     {
+      "source": "(item, bin) => {\n  const f = bin.fits;\n  if (f === 0) return 1000;\n  if (f < 20) return -300 + f;\n  return 50 - f;\n}",
+      "success_count": 0,
+      "mean_progress": 0.8781076066790353
+     }
+    ]
+   },
+   {
+    "generation": 2,
+    "proposed": 8,
+    "kept": 4,
+    "panel": 3,
+    "dropped": [
+     {
+      "source": "(item, bin, ctx) => ctx.itemsLeft < 8 ? -bin.fits * 10 - bin.index * 0.01 : (bin.fits === 0 ? 1000 : bin.fits < 20 ? -150 - bin.fits : -bin.fits)",
+      "success_count": 1,
+      "mean_progress": 0.9324609276334647
+     },
+     {
+      "source": "(item, bin) => bin.fits === 0 ? 1000 : (bin.count === 1 ? -bin.fits * 0.3 : -bin.fits) - (bin.fits < 20 ? 80 : 0) - bin.index * 0.001",
+      "success_count": 1,
+      "mean_progress": 0.9324609276334647
+     },
+     {
+      "source": "(item, bin) => bin.fits === 0 ? 1000 : -Math.min(bin.fits % 20, 20 - (bin.fits % 20)) * 2 - bin.fits * 0.5 - (bin.fits < 20 ? 50 : 0) - bin.index * 0.001",
+      "success_count": 1,
+      "mean_progress": 0.9258119914632519
+     },
+     {
+      "source": "(item, bin) => bin.fits === 0 ? 1000 : (bin.fits < 20 ? -40 + bin.fits * 0.5 : -bin.fits * 0.5) - bin.index * 0.001",
+      "success_count": 1,
+      "mean_progress": 0.896559022738268
+     }
+    ]
+   },
+   {
+    "generation": 3,
+    "proposed": 8,
+    "kept": 4,
+    "panel": 3,
+    "dropped": [
+     {
+      "source": "(item, bin) => bin.fits === 0 ? 1000 : bin.fits >= 20 && bin.fits <= 50 ? 100 - Math.abs(bin.fits - 20) : -bin.fits - bin.index * 0.001",
+      "success_count": 1,
+      "mean_progress": 0.9133639271311361
+     },
+     {
+      "source": "(item, bin) => bin.fits === 0 ? 1000 : bin.fits < 20 ? -bin.fits * 2 - 30 : 20 - bin.fits * 0.5 - bin.index * 0.001",
+      "success_count": 1,
+      "mean_progress": 0.9133639271311361
+     },
+     {
+      "source": "(item, bin) => bin.fits === 0 ? 1000 : (bin.fits >= 20 && bin.fits <= 30 ? 50 - bin.fits : -bin.fits - 40) - bin.index * 0.001",
+      "success_count": 0,
+      "mean_progress": 0.9068627450980392
+     },
+     {
+      "source": "(item, bin) => bin.fits === 0 ? 1000 : -Math.abs(bin.fits - 22) - (bin.fits < 20 ? 8 : 0) - bin.index * 0.001",
+      "success_count": 0,
+      "mean_progress": 0.8833787506294245
+     }
+    ]
+   },
+   {
+    "generation": 4,
+    "proposed": 8,
+    "kept": 4,
+    "panel": 3,
+    "dropped": [
+     {
+      "source": "(item, bin) => bin.fits === 0 ? 1000 : bin.fits === 20 ? 500 : bin.fits === 21 ? 490 : bin.fits === 22 ? 480 : -bin.fits - (bin.fits < 20 ? 50 : 0) - bin.index * 0.001",
+      "success_count": 0,
+      "mean_progress": 0.8955708069391278
+     },
+     {
+      "source": "(item, bin, ctx) => bin.fits === 0 ? 1000 : (bin.fits < 20 ? -bin.fits - 20 : -bin.fits * 0.3) - bin.index * 0.001",
+      "success_count": 0,
+      "mean_progress": 0.8955708069391278
+     },
+     {
+      "source": "(item, bin) => bin.fits === 0 ? 1000 : -Math.abs(bin.fits - 22) - bin.index * 0.001",
+      "success_count": 0,
+      "mean_progress": 0.8725769510083236
+     },
+     {
+      "source": "(item, bin) => bin.fits === 0 ? 1000 : -Math.abs(bin.fits - 25) * 2 - (bin.fits < 20 ? 25 : 0) - bin.index * 0.01",
+      "success_count": 0,
+      "mean_progress": 0.861738360295519
+     }
+    ]
+   },
+   {
+    "generation": 5,
+    "proposed": 8,
+    "kept": 4,
+    "panel": 3,
+    "dropped": [
+     {
+      "source": "(item, bin) => bin.fits === 0 ? 1000 : (bin.fits < 20 ? -200 - bin.fits * 0.1 : -Math.abs(bin.fits - 20)) - bin.index * 0.001",
+      "success_count": 2,
+      "mean_progress": 0.9249819076566798
+     },
+     {
+      "source": "(item, bin, ctx) => bin.fits === 0 ? 1000 : (bin.fits < 20 ? -200 - bin.fits * 0.1 : -bin.fits * (ctx.itemsLeft > 10 ? 1 : 0.2)) - bin.index * 0.001",
+      "success_count": 2,
+      "mean_progress": 0.9249819076566798
+     },
+     {
+      "source": "(item, bin) => bin.fits === 0 ? 1000 : (bin.fits < 20 ? -200 - bin.fits * 0.1 : -Math.abs(bin.fits - 25)) - bin.index * 0.001",
+      "success_count": 2,
+      "mean_progress": 0.9190995547155033
+     },
+     {
+      "source": "(item, bin) => bin.fits === 0 ? 1000 : (bin.fits < 20 ? -200 + bin.fits : -bin.fits) - bin.index * 0.001",
+      "success_count": 0,
+      "mean_progress": 0.8888888888888888
+     }
+    ]
+   }
+  ]
+ },
+ "evaluations": 500,
+ "model_calls": 5,
+ "confirmation": {
+  "package": "1b6db928023d156047f786115834aa11c9889f47d3ad1c144d442134ec27c3ff",
+  "success_count": 10,
+  "of": 20,
+  "selection_count": 12,
+  "outcome": "scored"
+ },
+ "final_panel_comparison": {
+  "note": "report-only: controls and the root scored on the frontier's confirmation panel, outside the engine's selection",
+  "rows": [
+   {
+    "id": "frontier",
+    "package": "1b6db928023d156047f786115834aa11c9889f47d3ad1c144d442134ec27c3ff",
+    "success_count": 10,
+    "of": 20,
+    "mean_ratio": 1.0832687219759374
+   },
+   {
+    "id": "root (first-fit)",
+    "package": "c7a74f8591b20f21512ceb3554d4dd804266f2554e56f63edda09fadcb00384e",
+    "success_count": 6,
+    "of": 20,
+    "mean_ratio": 1.095471111271296
+   },
+   {
+    "id": "fixed-first-fit",
+    "package": "c7a74f8591b20f21512ceb3554d4dd804266f2554e56f63edda09fadcb00384e",
+    "success_count": 6,
+    "of": 20,
+    "mean_ratio": 1.095471111271296
+   },
+   {
+    "id": "fixed-best-fit",
+    "package": "f036e7b0f1022a0f24c81a2816187bdf3ed8183ff19363a98556ea032993b1f5",
+    "success_count": 11,
+    "of": 20,
+    "mean_ratio": 1.0823208476618016
+   },
+   {
+    "id": "fixed-worst-fit",
+    "package": "79be5c21498cfc8d4aa6e5abb5b7f3e62c642d2235106785c3c1fb962d7a55eb",
+    "success_count": 0,
+    "of": 20,
+    "mean_ratio": 1.183130176340993
+   },
+   {
+    "id": "random-search",
+    "package": "2054351da76553f59abd6c2254a16be6d8efcc1785c19b1b345921d76d9a479c",
+    "success_count": 11,
+    "of": 20,
+    "mean_ratio": 1.0823208476618016
+   }
+  ]
+ },
+ "frontier": {
+  "package": "1b6db928023d156047f786115834aa11c9889f47d3ad1c144d442134ec27c3ff",
+  "source": "(item, bin) => -bin.fits + (bin.fits >= 20 ? 15 : 0) + (bin.fits === 0 ? 500 : 0) - bin.index * 0.001",
+  "generation": 2,
+  "selection_success_count": 12
+ },
+ "ledger_verify": {
+  "ok": true,
+  "head": "552df4f130950f8af83b8db1f28d7916e59358d6edde32359ceee22cb0074a8b"
+ },
+ "elastic": {
+  "sent": true,
+  "status": 200,
+  "indexed": 0,
+  "failed": 60,
+  "errors": true,
+  "first_error": {
+   "type": "security_exception",
+   "reason": "action [indices:admin/auto_create] is unauthorized for API key id [59zwa6EBbxBEehIF6QiF] of user [2108621152] on indices [genesis-iteration-ledger], this action is granted by the index privileges [aut"
+  }
+ }
+}

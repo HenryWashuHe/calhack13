@@ -6,6 +6,16 @@ fixed model weights**. The [implementation inventory](IMPLEMENTATION_STATUS.md)
 and [ongoing goal](ONGOING_GOAL.md#completion-gates-and-evidence) distinguish
 implemented mechanisms from the proposed demonstration below. G0–G4 remain open.
 
+At [closeout main `7ec75563`](reviews/pr-queue-2026-10-25.md#current-closeout--main-7ec75563),
+#211 implements scored-output/responsibility binding and #215 adds historical
+scripted rehearsal records. Two bundles each lack 89 manifest artifacts; the
+third's 85/85 matches exclude unmanifested exploration artifacts/databases.
+#225/#204 improve evidence attribution, while #226 presents a recorded,
+author-reported single-lab extract rather than a live or cross-organization run.
+Merged #219 supplies a separate mixed-terrain evaluator and retained experiment
+archive, checked statically and with pure tests; its experiment outcomes were
+not independently reproduced. None closes the networked return or benefit gates.
+
 The simulator's four seeded task families, method-source generation, local
 execution/scoring, selective-adoption contracts and exact-parent revision
 preparation are implemented. [#95's retained generation evidence](invention-lab/evidence/live-method-20261024-generated/README.md)
@@ -14,8 +24,8 @@ show that exact package executed and scored on the receiving host: **Accepted
 at 1/6 versus fixed-cart 0/6**, but **Rejected at 1/6 versus random-search 2/6**
 in a separate trial. Independent review checked retained hashes, bindings and
 cost records; it did not rerun the source or independently establish Linux
-isolation. The receiving run used unmerged #65; #65/#57 remain unmerged without
-independent namespace-lifecycle assurance. The first trial's cost report excludes
+isolation. That historical receiving run used then-unmerged #65. #65/#57 are now
+merged; independent current-head Linux assurance remains open. The first trial's cost report excludes
 the two failed generations, reference run and second comparison.
 
 [B's feedback-driven revision source (#112/#113)](invention-lab/evidence/live-method-20261024-b-revision/README.md)
