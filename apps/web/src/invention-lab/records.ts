@@ -4,6 +4,8 @@
 // unexpected value is shown as unrecognized rather than guessed. Decoders never
 // read generated text, prompts or request bodies.
 
+import { canonicalSha256 } from "./digest";
+
 export class DecodeError extends Error {}
 
 type Obj = Record<string, unknown>;
@@ -224,4 +226,100 @@ export function decodeAdoptionOutcome(v: unknown): AdoptionOutcome {
     };
   }
   return { outcome, reason: optStr(o, "reason", at), installed: null };
+}
+
+/** `ExecutionPurpose` (tag `kind`); an unexpected kind is kept verbatim. */
+export type Purpose =
+  | { kind: "ordinary" }
+  | { kind: "acceptance"; plan: ExactRef; role: string }
+  | { kind: "comparison"; plan: ExactRef; trial_id: string; arm_id: string }
+  | { kind: "unrecognized"; raw: string };
+
+function decodePurpose(v: unknown, at: string): Purpose {
+  const o = obj(v, at);
+  const kind = str(o, "kind", at);
+  if (kind === "ordinary") return { kind };
+  if (kind === "acceptance") return { kind, plan: decodeRef(o.plan, `${at}.plan`), role: str(o, "role", at) };
+  if (kind === "comparison")
+    return { kind, plan: decodeRef(o.plan, `${at}.plan`), trial_id: str(o, "trial_id", at), arm_id: str(o, "arm_id", at) };
+  return { kind: "unrecognized", raw: kind };
+}
+export function samePurpose(a: Purpose, b: Purpose): boolean {
+  if (a.kind !== b.kind) return false;
+  if (a.kind === "acceptance" && b.kind === "acceptance") return a.role === b.role && refKey(a.plan) === refKey(b.plan);
+  if (a.kind === "comparison" && b.kind === "comparison")
+    return a.trial_id === b.trial_id && a.arm_id === b.arm_id && refKey(a.plan) === refKey(b.plan);
+  return a.kind === "ordinary";
+}
+
+function refs(v: unknown, at: string): ExactRef[] {
+  if (!Array.isArray(v)) throw new DecodeError(`${at}: expected array`);
+  return v.map((r, i) => decodeRef(r, `${at}[${i}]`));
+}
+
+/** `ExecutionReceipt` written by the lab executor (genesis-core development_method). */
+export interface ExecutionReceipt {
+  org_id: string;
+  run_id: string;
+  attempt_id: string;
+  /** The method the frozen binding named. */
+  bound_method: ExactRef;
+  /** The method the executor reports it actually ran. */
+  actual_method: ExactRef;
+  actual_environment: ExactRef;
+  purpose: Purpose;
+  outcome: string;
+  outputs: ExactRef[];
+  usage: Record<UsageDimension, Usage>;
+  /** genesis-core `execution_receipt_identity_hash`: canonical SHA-256 of the
+   * whole retained receipt under its domain. Evaluations name this value. */
+  receipt_sha256: string;
+}
+export const EXECUTION_RECEIPT_DOMAIN = "genesis.development_execution_receipt";
+export function decodeExecutionReceipt(v: unknown): ExecutionReceipt {
+  const at = "execution";
+  const o = obj(v, at);
+  const b = obj(o.binding, `${at}.binding`);
+  return {
+    receipt_sha256: canonicalSha256({ domain: EXECUTION_RECEIPT_DOMAIN, version: 1, record: o }),
+    org_id: str(b, "org_id", `${at}.binding`),
+    run_id: str(b, "run_id", `${at}.binding`),
+    attempt_id: str(b, "attempt_id", `${at}.binding`),
+    bound_method: decodeRef(b.method, `${at}.binding.method`),
+    actual_method: decodeRef(o.actual_method, `${at}.actual_method`),
+    actual_environment: decodeRef(o.actual_environment, `${at}.actual_environment`),
+    purpose: decodePurpose(b.purpose, `${at}.binding.purpose`),
+    outcome: str(o, "outcome", at),
+    outputs: refs(o.outputs, `${at}.outputs`),
+    usage: decodeUsageRecord(o.usage, `${at}.usage`),
+  };
+}
+
+/** `EvaluationReceipt` written by the trusted scorer (genesis-core development_evaluation). */
+export interface EvaluationReceipt {
+  request_id: string;
+  execution_sha256: string;
+  output: ExactRef;
+  purpose: Purpose;
+  outcome: string;
+  metrics: ExactRef | null;
+  reason: string | null;
+  usage: Record<UsageDimension, Usage>;
+}
+export function decodeEvaluationReceipt(v: unknown): EvaluationReceipt {
+  const at = "evaluation";
+  const o = obj(v, at);
+  const r = obj(o.request, `${at}.request`);
+  const out = obj(o.outcome, `${at}.outcome`);
+  const kind = str(out, "kind", `${at}.outcome`);
+  return {
+    request_id: str(r, "request_id", `${at}.request`),
+    execution_sha256: str(r, "execution_sha256", `${at}.request`),
+    output: decodeRef(r.output, `${at}.request.output`),
+    purpose: decodePurpose(r.purpose, `${at}.request.purpose`),
+    outcome: kind,
+    metrics: kind === "scored" ? decodeRef(out.metrics, `${at}.outcome.metrics`) : null,
+    reason: kind === "scored" ? null : optStr(out, "reason", `${at}.outcome`),
+    usage: decodeUsageRecord(o.usage, `${at}.usage`),
+  };
 }

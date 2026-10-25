@@ -5,9 +5,12 @@
 import { tierOf, type Tier } from "./claims";
 import {
   refKey,
+  samePurpose,
   type AdoptionOutcome,
   type CheckpointOutcome,
+  type EvaluationReceipt,
   type ExactRef,
+  type ExecutionReceipt,
   type GenerationStatus,
   type RevisionObservation,
 } from "./records";
@@ -24,6 +27,17 @@ export interface LabRecords {
   generations: { status: GenerationStatus; checkpoint?: CheckpointOutcome }[];
   revisions?: RevisionObservation[];
   adoptions?: AdoptionInput[];
+  executions?: ExecutionReceipt[];
+  evaluations?: EvaluationReceipt[];
+}
+
+export interface Execution {
+  receipt: ExecutionReceipt;
+  /** Node key of the method the executor reports it ran. */
+  method: string;
+  /** Evaluations whose request names this run's receipt hash (`execution_sha256`),
+   * with an output among this run's outputs and the same purpose. */
+  evaluations: EvaluationReceipt[];
 }
 
 export interface Attempt {
@@ -57,6 +71,7 @@ export interface Lineage {
   attempts: Attempt[];
   nodes: MethodNode[];
   edges: Edge[];
+  executions: Execution[];
   problems: string[];
 }
 
@@ -131,5 +146,31 @@ export function buildLineage(records: LabRecords): Lineage {
     }
   }
 
-  return { attempts, nodes: [...nodes.values()], edges, problems };
+  const executions: Execution[] = [];
+  const runs = new Set<string>();
+  for (const receipt of records.executions ?? []) {
+    const run = `${receipt.org_id}/${receipt.run_id}/${receipt.attempt_id}`;
+    if (runs.has(run)) problems.push(`execution ${run} appears more than once`);
+    runs.add(run);
+    if (refKey(receipt.bound_method) !== refKey(receipt.actual_method))
+      problems.push(`execution ${run} ran a different method than its binding named; shown under the method it ran`);
+    executions.push({ receipt, method: node(receipt.actual_method), evaluations: [] });
+  }
+  // An evaluation attaches only to the execution its request names by receipt
+  // hash; matching output and purpose alone could be another organization's run.
+  for (const ev of records.evaluations ?? []) {
+    const named = executions.filter((e) => e.receipt.receipt_sha256 === ev.execution_sha256);
+    const run = named[0];
+    if (!run) {
+      problems.push(`evaluation ${ev.request_id} names execution ${ev.execution_sha256.slice(0, 12)}, which no supplied receipt has; not attached`);
+    } else if (!run.receipt.outputs.some((o) => refKey(o) === refKey(ev.output))) {
+      problems.push(`evaluation ${ev.request_id} scores an output its named execution did not produce; not attached`);
+    } else if (!samePurpose(run.receipt.purpose, ev.purpose)) {
+      problems.push(`evaluation ${ev.request_id} has a different purpose than its named execution; not attached`);
+    } else {
+      run.evaluations.push(ev);
+    }
+  }
+
+  return { attempts, nodes: [...nodes.values()], edges, executions, problems };
 }
