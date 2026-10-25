@@ -60,3 +60,35 @@ test('unknown report outcome preserves the draft and blocks automatic duplicate 
 test('leaving with an observation in flight retains unknown-outcome protection',async()=>{let resolve;const h=harness(async()=>new Promise(r=>resolve=r));h.run('live.on=true;live.mission="m"');const pending=h.run('postEvidence("factory outage")');h.run('stopLive()');assert.equal(h.run('live.reportUnknown'),true);resolve(resp({observation_id:'obs-late'}));await pending;assert.match(h.get('chip').textContent,/scripted/);assert.equal(h.run('live.reportUnknown'),true)});
 
 test('a retired session response cannot overwrite the replacement session',async()=>{let pendingResolve,old=false;const h=harness(async u=>u.includes('/organization')?(old?new Promise(r=>{pendingResolve=r;old=false}):resp(org)):resp([]));await h.run('startLive()');old=true;const pending=h.run('pollLive()');h.run('stopLive()');await h.run('startLive()');pendingResolve(resp({...org,name:'old stale session',revision:99}));await pending;flush(h);assert.doesNotMatch(h.get('chip').textContent,/old stale/);assert.equal(h.run('live.state.revision'),10)});
+
+test('the raw DomainEvent API shape updates the revision on its event',async()=>{
+  let events=[];
+  const h=harness(async u=>u.includes('/organization')?resp(org):resp(events.splice(0)));
+  await h.run('startLive()');flush(h);
+  // routes/events.rs returns DomainEvent directly. Unlike the abbreviated recording, it includes revision.
+  events=[{schema_version:1,seq:1,event_id:'evt-1',org_id:'A',mission_id:'m',correlation_id:null,causation_id:null,revision:12,timestamp:'2026-10-25T10:00:00Z',type:'observation_recorded',payload:{observation_id:'obs-1',source:'test',summary:'test report'}}];
+  await h.run('pollLive()');flush(h);
+  assert.equal(h.nodes(h.get('svg-kernel')).find(n=>n.attrs.class==='big').textContent,'r12');
+});
+
+test('a previous change status cannot overwrite the selected proposal pipeline',()=>{
+  const h=harness();
+  h.run('live.on=true;timeline.steps=[];live.state='+JSON.stringify(org)+';buildKernelLive($("svg-kernel"));applyLiveEvent({type:"change_proposed",payload:{change_id:"c1",operations:["CreateRole"]}})');flush(h);
+  h.run('applyLiveEvent({type:"change_proposed",payload:{change_id:"c2",operations:["AssignResponsibility"]}})');flush(h);
+  h.run('applyLiveEvent({type:"change_status_changed",payload:{change_id:"c1",from:"READY",to:"COMMITTED"}})');flush(h);
+  const token=h.nodes(h.get('svg-kernel')).find(n=>n.attrs.class==='token');
+  assert.equal(token.attrs.cx,'560','c2 must remain PROPOSED, not inherit c1 COMMITTED');
+  h.run('applyLiveEvent({type:"change_status_changed",payload:{change_id:"c2",from:"PROPOSED",to:"VALIDATED"}})');flush(h);
+  assert.equal(token.attrs.cx,'690','a matching status still advances the selected change');
+});
+
+test('role identity remains distinct when names are equal after case folding',()=>{
+  const h=harness();
+  h.run('live.on=true;timeline.steps=[];live.state='+JSON.stringify({...org,roles:{'role-1':{role_id:'role-1',name:'Lead'},'role-2':{role_id:'role-2',name:'LEAD'}}})+';buildKernelLive($("svg-kernel"))');
+  const roles=()=>h.nodes(h.get('svg-kernel')).filter(n=>(n.attrs.class||'').split(' ').includes('node'));
+  assert.equal(roles().length,2);
+  h.run('applyLiveEvent({type:"role_created",payload:{role_id:"role-3",name:"Lead"}})');
+  assert.equal(roles().length,3);
+  h.run('applyLiveEvent({type:"role_created",payload:{role_id:"role-3",name:"Lead"}})');
+  assert.equal(roles().length,3,'repeated same-ID event must not duplicate the role');
+});
