@@ -287,6 +287,12 @@ details.live summary { cursor: pointer; color: var(--paper-dim); font-size: 14px
 
 /* Presenter mode: the same page at projector scale */
 .caption { display: none; }
+/* Silent mode (key S): the presenter speaks, the page shows. Sentences fold away; the ring, the channel, the ladder,
+   the pipeline, the decision verdict, the lab grid and the one-word honesty chips stay. */
+body.silent .sub, body.silent .cap, body.silent .why, body.silent .mission, body.silent .note, body.silent .tracks, body.silent .audit,
+body.silent #explainbtn, body.silent .d-why, body.silent .d-src, body.silent .beat { display: none !important; }
+body.silent .band { align-items: center; }
+body.silent .decision { padding: 10px 14px; }
 body.present { font-size: 18px; padding-block: 12px 60px; }
 body.present .brand, body.present details.live, body.present #idle, body.present #backreplay, body.present #explainbtn, body.present .disrupt > span { display: none; }
 body.present .beat { font-size: clamp(36px, 5vw, 70px); max-width: 22ch; }
@@ -337,6 +343,7 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
       <button class="btn" id="backreplay" type="button">Back to replay</button>
       <button class="btn" id="idle" type="button">Clear</button>
       <button class="btn" id="present" type="button" aria-pressed="false">Present</button>
+      <button class="btn" id="silent" type="button" aria-pressed="false" title="Press S at any time">Silent</button>
       <button class="btn" id="explainbtn" type="button" aria-pressed="false" title="Press ? at any time">What am I looking at?</button>
     </div>
   </header>
@@ -846,6 +853,10 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
       chip("line", "Append-only and chain-hashed in the report; not checked by this page. With retained hashes, a changed or reordered record is detectable; this is not authenticated execution evidence."), ...artifacts);
   }
   function resetDisruptions() { app.thrown = []; for (const id of Object.keys(DISRUPTIONS)) $(id).disabled = false; }
+  function setSilent(on) {
+    app.silent = on; if (body) body.classList.toggle("silent", on);
+    $("silent").textContent = on ? "Words" : "Silent"; $("silent").setAttribute("aria-pressed", String(on));
+  }
   function setPresent(on) {
     app.present = on; if (body) body.classList.toggle("present", on);
     $("present").textContent = on ? "Exit presenter" : "Present"; $("present").setAttribute("aria-pressed", String(on));
@@ -891,6 +902,7 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
   $("play").addEventListener("click", play);
   for (const id of Object.keys(DISRUPTIONS)) $(id).addEventListener("click", () => throwDisruption(id));
   $("present").addEventListener("click", () => setPresent(!app.present));
+  $("silent").addEventListener("click", () => setSilent(!app.silent));
   $("explainbtn").addEventListener("click", () => setExplain(!app.explain));
   document.addEventListener("keydown", (e) => {
     if (e.target && e.target.closest && e.target.closest("input")) return;
@@ -898,6 +910,7 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
     if (e.key === "Escape" && app.explain) return setExplain(false);
     if (e.key === "Escape" && app.present) return setPresent(false);
     if (e.key === "p" || e.key === "P") return setPresent(!app.present);
+    if (e.key === "s" || e.key === "S") return setSilent(!app.silent);
     if (app.mode !== "replay") return;
     if (e.key === "ArrowRight") { stopReplay(); step(1); } if (e.key === "ArrowLeft") { stopReplay(); step(-1); } if (e.key === " ") { e.preventDefault(); play(); }
     const hit = Object.entries(DISRUPTIONS).find(([, d]) => d.key === e.key); if (hit) throwDisruption(hit[0]);

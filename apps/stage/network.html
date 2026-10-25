@@ -25,6 +25,9 @@ body { margin: 0; background: var(--ink); color: var(--paper); font-family: var(
 .chip.fixture { color: var(--fixture); border-color: color-mix(in srgb, var(--fixture) 55%, transparent); }
 .chip.recorded { color: var(--fixture); border-color: color-mix(in srgb, var(--fixture) 55%, transparent); }
 .chip.concept { color: var(--paper-dim); border-style: dashed; }
+.chip.live { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 60%, transparent); }
+#evidence { position: fixed; left: 50%; bottom: calc(44px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 3; width: min(560px, 90vw); padding: 12px 16px; border-radius: 10px; border: 1px solid var(--accent); background: var(--ink-2); color: var(--paper); font: 500 16px var(--mono); outline: none; }
+#evidence[hidden] { display: none; }
 main { position: fixed; inset: 0; display: grid; place-items: center; padding: 48px max(16px, env(safe-area-inset-right, 0px)) 56px max(16px, env(safe-area-inset-left, 0px)); }
 .act { width: 100%; height: 100%; display: grid; place-items: center; }
 .act[hidden] { display: none; }
@@ -148,6 +151,7 @@ text.big { font-family: var(--display); font-weight: 700; font-size: 22px; fill:
   ];
   let current = -1;
   function show(i) {
+    if (live.on) return; // live owns the screen until L is pressed again
     current = (i + ACTS.length) % ACTS.length;
     for (const [k, a] of ACTS.entries()) $(a.id).hidden = k !== current;
     document.querySelectorAll(".dots button").forEach((b, k) => b.classList.toggle("on", k === current));
@@ -171,16 +175,19 @@ text.big { font-family: var(--display); font-weight: 700; font-size: 22px; fill:
   // ---------------------------------------------------------------- act 1: the kernel at work
   const RUNGS = ["no change", "reuse a role", "attach a capability", "recruit a specialist", "create a role"];
   const STAGES = ["PROPOSED", "VALIDATED", "PROVISIONING", "READY", "COMMITTED"];
-  function buildKernel(svg) {
+  const rungFor = (ops) => { const o = (ops || []).map(String); return o.some((x) => /CreateRole/i.test(x)) ? 4 : o.some((x) => /Recruit/i.test(x)) ? 3 : o.some((x) => /Capability|Install/i.test(x)) ? 2 : o.length ? 1 : 0; };
+
+  /** The drawing shared by the scripted act and the live act: a ring of roles, the ladder, the rail, one token. */
+  function kernelScene(svg, roleNames, orgLabel, revision) {
     const g = el("g", {}, svg);
-    // the organization: a ring of roles
     const cx = 290, cy = 330, R = 150;
     el("circle", { cx, cy, r: R, class: "link", "stroke-dasharray": "3 7" }, g);
-    const rev = el("text", { x: cx, y: cy + 6, class: "big", "text-anchor": "middle" }, g, "r1");
-    el("text", { x: cx, y: cy + 26, "text-anchor": "middle" }, g, "organization A");
-    const roles = ["coordinator", "program", "attendees"];
-    const nodes = roles.map((name, i) => placeRole(g, cx, cy, R, -90 + i * 72, name));
-    // the ladder
+    const rev = el("text", { x: cx, y: cy + 6, class: "big", "text-anchor": "middle" }, g, revision);
+    el("text", { x: cx, y: cy + 26, "text-anchor": "middle" }, g, orgLabel);
+    const nodes = new Map();
+    const stepDeg = Math.max(36, 360 / Math.max(5, roleNames.length + 2));
+    const addRole = (name, isNew = false) => { if (nodes.has(name)) return nodes.get(name); const n = placeRole(g, cx, cy, R, -90 + nodes.size * stepDeg, name, isNew); nodes.set(name, n); return n; };
+    roleNames.forEach((n) => addRole(n));
     const lx = 560, ly = 110;
     const rungs = RUNGS.map((label, i) => {
       const y = ly + i * 62;
@@ -189,40 +196,117 @@ text.big { font-family: var(--display); font-weight: 700; font-size: 22px; fill:
       el("text", { x: lx - 18, y: y + 28, "text-anchor": "end" }, g, String(i + 1));
       return { r, t };
     });
-    // the pipeline rail
-    const px = 560, py = 520, step = 130;
+    const px = 560, py = 520, step = 130, ty = py - 30;
     el("line", { x1: px, y1: py, x2: px + 4 * step, y2: py, class: "rail" }, g);
     el("path", { d: `M ${px + step} ${py} Q ${px + step + 40} ${py + 60} ${px + step + 90} ${py + 70}`, class: "rail" }, g);
     const stops = STAGES.map((s, i) => stop(g, px + i * step, py, s));
     const rejected = stop(g, px + step + 90, py + 70, "REJECTED");
-    const ty = py - 30; // the token rides just above the rail so the state names stay readable under it
     const token = el("circle", { cx: px, cy: ty, r: 0, class: "token" }, g);
-
     const light = (i, refused = false) => rungs.forEach((x, k) => { x.r.setAttribute("class", "rung" + (k === i ? " lit" + (refused ? " refused" : "") : k < i ? " passed" : "")); x.t.setAttribute("class", "rungtext" + (k === i ? " lit" : "")); });
     const clearLadder = () => rungs.forEach((x) => { x.r.setAttribute("class", "rung"); x.t.setAttribute("class", "rungtext"); });
-    const setStops = (upto, state) => { stops.forEach((s, i) => s.set(i < upto ? "done" : i === upto ? state : "")); rejected.set(state === "rejected" && upto < 0 ? "rejected" : ""); };
+    const setStops = (upto, state) => { stops.forEach((s, i) => s.set(i < upto ? "done" : i === upto ? state : "")); rejected.set(""); };
+    const refuse = (at) => { stops.forEach((s, i) => s.set(i < at ? "done" : "")); rejected.set("rejected"); };
     const move = (x, y, ms) => { const x0 = +token.getAttribute("cx"), y0 = +token.getAttribute("cy"); tween(ms, (p) => { token.setAttribute("cx", x0 + (x - x0) * p); token.setAttribute("cy", y0 + (y - y0) * p); }); };
+    const resetToken = () => { token.setAttribute("r", 0); token.setAttribute("class", "token"); token.setAttribute("cx", px); token.setAttribute("cy", ty); };
+    const climb = (to, refused = false) => { for (let i = 0; i <= to; i++) setTimeout(() => light(i, refused && i === to), i * 180); };
+    const stage = (i, refused = false) => { if (refused) { token.setAttribute("class", "token refused"); move(px + step + 90, py + 40, 700); setTimeout(() => refuse(Math.max(1, i)), 650); return; } token.setAttribute("r", 9); token.setAttribute("class", "token"); if (i === 0) { token.setAttribute("cx", px); setStops(0, "current"); } else { move(px + i * step, ty, 500); setTimeout(() => setStops(i, "current"), 480); } };
+    const pulse = (hostile = false) => evidence(g, cx - R - 300, cy, cx - R - 20, cy, hostile);
+    return { g, cx, cy, R, rev, addRole, light, clearLadder, setStops, move, resetToken, climb, stage, pulse, px, py, ty, step };
+  }
 
+  function buildKernel(svg) {
+    const k = kernelScene(svg, ["coordinator", "program", "attendees"], "organization A", "r1");
     let t = 400;
     // cycle 1: evidence arrives, the planner climbs to "create a role", the kernel commits, the ring grows
-    at(t, () => evidence(g, cx - R - 300, cy, cx - R - 20, cy, false)); t += 1400;
-    at(t, () => { for (let i = 0; i < 5; i++) setTimeout(() => light(i), i * 180); }); t += 1500;
-    at(t, () => { token.setAttribute("r", 9); token.setAttribute("class", "token"); setStops(0, "current"); }); t += 700;
-    STAGES.slice(1).forEach((s, i) => { at(t, () => { move(px + (i + 1) * step, ty, 500); setTimeout(() => setStops(i + 1, "current"), 480); }); t += 1000; });
-    at(t, () => { const n = placeRole(g, cx, cy, R, -90 + 3 * 72, "relocation", true); nodes.push(n); rev.textContent = "r2"; }); t += 2200;
+    at(t, () => k.pulse(false)); t += 1400;
+    at(t, () => k.climb(4)); t += 1500;
+    at(t, () => k.stage(0)); t += 700;
+    for (let i = 1; i < STAGES.length; i++) { at(t, () => k.stage(i)); t += 1000; }
+    at(t, () => { k.addRole("relocation", true); k.rev.textContent = "r2"; }); t += 2200;
     // cycle 2: a hostile instruction; the planner would create a role; the kernel refuses at validation
-    at(t, () => { clearLadder(); setStops(-1, ""); token.setAttribute("r", 0); token.setAttribute("cx", px); token.setAttribute("cy", ty); }); t += 300;
-    at(t, () => evidence(g, cx - R - 300, cy, cx - R - 20, cy, true)); t += 1400;
-    at(t, () => { for (let i = 0; i < 5; i++) setTimeout(() => light(i, i === 4), i * 180); }); t += 1500;
-    at(t, () => { token.setAttribute("r", 9); setStops(0, "current"); }); t += 700;
-    at(t, () => { move(px + step, ty, 500); setTimeout(() => setStops(1, "current"), 480); }); t += 1000;
-    at(t, () => { token.setAttribute("class", "token refused"); move(px + step + 90, py + 40, 700); setTimeout(() => { stops.forEach((s, i) => s.set(i < 1 ? "done" : "")); rejected.set("rejected"); }, 650); }); t += 2200;
+    at(t, () => { k.clearLadder(); k.setStops(-1, ""); k.resetToken(); }); t += 300;
+    at(t, () => k.pulse(true)); t += 1400;
+    at(t, () => k.climb(4, true)); t += 1500;
+    at(t, () => k.stage(0)); t += 700;
+    at(t, () => k.stage(1)); t += 1000;
+    at(t, () => k.stage(1, true)); t += 2200;
     // cycle 3: a routine report; the planner stays on rung one; nothing moves on the rail
-    at(t, () => { clearLadder(); setStops(-1, ""); token.setAttribute("r", 0); token.setAttribute("cx", px); token.setAttribute("cy", ty); }); t += 300;
-    at(t, () => evidence(g, cx - R - 300, cy, cx - R - 20, cy, false)); t += 1400;
-    at(t, () => light(0)); t += 2000;
+    at(t, () => { k.clearLadder(); k.setStops(-1, ""); k.resetToken(); }); t += 300;
+    at(t, () => k.pulse(false)); t += 1400;
+    at(t, () => k.light(0)); t += 2000;
     at(t, () => {});
   }
+
+  // ---------------------------------------------------------------- act 1, live: the same drawing driven by a running kernel
+  // Press L (or open with ?live=1&a=<org A api>&tok=<agent token>). The page polls the kernel's event log and animates
+  // what it wrote: observation_recorded is a pulse, planner_decision lights a rung from the proposed operations,
+  // change_status_changed moves the token, role_created grows the ring. Press I to type one line of evidence; it is
+  // posted as an observation with the agent token, which can record evidence and cannot commit anything.
+  const params = new URLSearchParams(location.search);
+  const live = { on: false, url: (params.get("a") || "http://127.0.0.1:7101/api/v1").replace(/\/$/, ""), tok: params.get("tok") || "org_a-agent", cursor: 0, timer: null, k: null, changes: new Map(), mission: null, org: null };
+  const getJson = async (u) => { const r = await fetch(u, { headers: { Authorization: "Bearer " + live.tok, Accept: "application/json" } }); if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); };
+  function buildKernelLive(svg) {
+    svg.replaceChildren();
+    const st = live.state || { roles: {}, revision: 0, org_id: "org_a", missions: {} };
+    const names = Object.values(st.roles || {}).map((r) => String(r.name || r.role_id || "role").toLowerCase());
+    live.k = kernelScene(svg, names, String(st.name || st.org_id || "organization A"), "r" + (st.revision ?? 0));
+    live.k.setStops(-1, "");
+  }
+  function applyLiveEvent(e) {
+    const k = live.k; if (!k) return; const p = e.payload || {};
+    if (e.type === "observation_recorded") k.pulse(false);
+    if (e.type === "change_proposed" && p.change_id) live.changes.set(p.change_id, { ops: p.operations || [], stage: 0 });
+    if (e.type === "planner_decision") {
+      const verdict = String(p.verdict || "").replace(/_/g, " ");
+      const c = p.change_id ? live.changes.get(p.change_id) : null;
+      k.clearLadder(); k.setStops(-1, ""); k.resetToken();
+      if (verdict === "no change") k.light(0); else if (c) k.climb(rungFor(c.ops)); else k.climb(RUNGS.length - 1, true);
+    }
+    if (e.type === "change_status_changed" && p.change_id) {
+      const i = STAGES.indexOf(String(p.to));
+      if (i >= 0) k.stage(i); else if (String(p.to) === "REJECTED" || String(p.to) === "FAILED") k.stage(Math.max(1, STAGES.indexOf(String(p.from))), true);
+    }
+    if (e.type === "role_created") { k.addRole(String(p.name || "new role").toLowerCase(), true); }
+  }
+  async function pollLive() {
+    try {
+      const st = await getJson(live.url + "/organization");
+      live.state = st; live.mission = Object.keys(st.missions || {})[0] || null;
+      if (live.k) live.k.rev.textContent = "r" + (st.revision ?? 0);
+      const events = await getJson(`${live.url}/events/log?after=${live.cursor}&limit=200`);
+      const list = Array.isArray(events) ? events : events.events || [];
+      for (const e of list) { live.cursor = Math.max(live.cursor, e.seq || 0); if (live.started) applyLiveEvent(e); }
+      live.started = true;
+      $("chip").className = "chip live"; $("chip").textContent = "live kernel · " + (st.name || st.org_id || "org A");
+    } catch (err) { $("chip").className = "chip"; $("chip").textContent = "live kernel unreachable"; }
+  }
+  async function startLive() {
+    if (live.on) return; live.on = true;
+    timeline.steps = []; timeline.i = 0; tweens.clear();
+    for (const [k, a] of ACTS.entries()) $(a.id).hidden = k !== 0;
+    document.querySelectorAll(".dots button").forEach((b, k) => b.classList.toggle("on", k === 0));
+    $("act-name").textContent = "kernel · live";
+    await pollLive(); // the first poll only positions the cursor; history is not replayed as motion
+    buildKernelLive($("svg-kernel"));
+    live.timer = setInterval(pollLive, 1500);
+  }
+  function stopLive() { if (!live.on) return; live.on = false; clearInterval(live.timer); live.started = false; live.cursor = 0; live.changes = new Map(); show(0); }
+  async function postEvidence(text) {
+    if (!live.on || !live.mission || !text.trim()) return;
+    try { await fetch(`${live.url}/missions/${encodeURIComponent(live.mission)}/observations`, { method: "POST", headers: { Authorization: "Bearer " + live.tok, "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ source: "silent-stage", summary: text.trim().slice(0, 200), evidence_ref: "stage://silent/" + Date.now() }) }); }
+    catch { $("chip").textContent = "live kernel · report failed"; }
+  }
+  const input = document.createElement("input");
+  input.type = "text"; input.id = "evidence"; input.autocomplete = "off"; input.hidden = true; input.setAttribute("aria-label", "One line of evidence for the live organization"); input.placeholder = "what happened?";
+  document.body.appendChild(input);
+  input.addEventListener("keydown", (e) => { e.stopPropagation(); if (e.key === "Enter") { postEvidence(input.value); input.value = ""; input.hidden = true; } if (e.key === "Escape") { input.value = ""; input.hidden = true; } });
+  document.addEventListener("keydown", (e) => {
+    if (e.target === input) return;
+    if (e.key === "l" || e.key === "L") { if (live.on) stopLive(); else startLive(); }
+    if ((e.key === "i" || e.key === "I") && live.on) { input.hidden = false; input.focus(); }
+  });
+  if (params.get("live") === "1") startLive();
+
   function placeRole(g, cx, cy, R, deg, name, isNew = false) {
     const a = deg * Math.PI / 180, x = cx + R * Math.cos(a), y = cy + R * Math.sin(a);
     const n = el("g", { class: "fade", style: "opacity:0" }, g);
