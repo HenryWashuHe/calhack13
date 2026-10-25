@@ -229,10 +229,11 @@ text.say.ok { fill: var(--accent); } text.say.bad { fill: var(--refuse); } text.
     const clearLadder = () => rungs.forEach((x) => { x.r.setAttribute("class", "rung"); x.t.setAttribute("class", "rungtext"); });
     const setStops = (upto, state) => { stops.forEach((s, i) => s.set(i < upto ? "done" : i === upto ? state : "")); rejected.set(""); };
     const refuse = (at) => { stops.forEach((s, i) => s.set(i < at ? "done" : "")); rejected.set("rejected"); };
-    const move = (x, y, ms) => { const x0 = +token.getAttribute("cx"), y0 = +token.getAttribute("cy"); tween(ms, (p) => { token.setAttribute("cx", x0 + (x - x0) * p); token.setAttribute("cy", y0 + (y - y0) * p); }); };
-    const resetToken = () => { token.setAttribute("r", 0); token.setAttribute("class", "token"); token.setAttribute("cx", px); token.setAttribute("cy", ty); };
-    const climb = (to, refused = false) => { for (let i = 0; i <= to; i++) delay(() => light(i, refused && i === to), i * 180); };
-    const stage = (i, refused = false) => { if (refused) { token.setAttribute("class", "token refused"); move(px + step + 90, py + 40, 700); delay(() => refuse(Math.max(1, i)), 650); return; } token.setAttribute("r", 9); token.setAttribute("class", "token"); if (i === 0) { token.setAttribute("cx", px); setStops(0, "current"); } else { move(px + i * step, ty, 500); delay(() => setStops(i, "current"), 480); } };
+    let visualGeneration = 0;
+    const move = (x, y, ms) => { const generation = visualGeneration, x0 = +token.getAttribute("cx"), y0 = +token.getAttribute("cy"); tween(ms, (p) => { if (generation !== visualGeneration) return; token.setAttribute("cx", x0 + (x - x0) * p); token.setAttribute("cy", y0 + (y - y0) * p); }); };
+    const resetToken = () => { visualGeneration++; token.setAttribute("r", 0); token.setAttribute("class", "token"); token.setAttribute("cx", px); token.setAttribute("cy", ty); };
+    const climb = (to, refused = false) => { const generation = visualGeneration; for (let i = 0; i <= to; i++) delay(() => { if (generation === visualGeneration) light(i, refused && i === to); }, i * 180); };
+    const stage = (i, refused = false) => { const generation = visualGeneration; if (refused) { token.setAttribute("class", "token refused"); move(px + step + 90, py + 40, 700); delay(() => { if (generation === visualGeneration) refuse(Math.max(1, i)); }, 650); return; } token.setAttribute("r", 9); token.setAttribute("class", "token"); if (i === 0) { token.setAttribute("cx", px); setStops(0, "current"); } else { move(px + i * step, ty, 500); delay(() => { if (generation === visualGeneration) setStops(i, "current"); }, 480); } };
     const pulse = (hostile = false) => evidence(g, cx - R - 300, cy, cx - R - 20, cy, hostile);
     return { g, rev, addRole, light, clearLadder, setStops, resetToken, climb, stage, pulse, say: (x, y, text, o) => say(g, x, y, text, o) };
   }
