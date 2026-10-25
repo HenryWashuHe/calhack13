@@ -133,6 +133,10 @@ pub fn router(state: AppState) -> Router {
         .route("/method-runs/{id}", get(method_adoptions::run_status))
         .route("/method-runs/{id}/start", post(method_adoptions::start_run))
         .route(
+            "/method-runs/{id}/result",
+            post(method_adoptions::record_run_result),
+        )
+        .route(
             "/method-runs/{id}/receipt",
             post(method_adoptions::complete_run),
         )
