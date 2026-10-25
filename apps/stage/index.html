@@ -478,7 +478,7 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
   function setBadge(text, live) { const m = $("mode"); m.textContent = text; m.classList.toggle("live", !!live); }
 
   // ---- mode ownership ----
-  const app = { mode: "idle", gen: 0, scene: 0, timer: null, liveTimer: null, cursors: { A: 0, B: 0 }, tail: [], seen: 0, seenIds: new Set(), tick: 0, applied: 0, thrown: [], present: false, prevRoles: {}, obsAt: new Map(), live: null, liveChat: [], lastJudge: 0, lastJudgeObs: null, answers: new Map() };
+  const app = { mode: "idle", gen: 0, scene: 0, timer: null, liveTimer: null, cursors: { A: 0, B: 0 }, tail: [], seen: 0, seenIds: new Set(), tick: 0, applied: 0, thrown: [], present: false, prevRoles: {}, obsAt: new Map(), live: null, liveChat: [], lastJudge: 0, lastJudgeObs: null, answers: new Map(), ackKey: null };
   const TAIL = 200;
   const body = document.body || null;
 
@@ -722,7 +722,8 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
           }
         }
       }
-      if (ack) { showDecision(app.answers.get(ack)); judgeStatus(`The planner answered: ${app.answers.get(ack).verdict}. See the decision card.`); } // the card the status points to is the judge's own answer
+      if (ack) { app.ackKey = ack; judgeStatus(`The planner answered: ${app.answers.get(ack).verdict}. See the decision card.`); }
+      if (app.ackKey && app.answers.has(app.ackKey)) showDecision(app.answers.get(app.ackKey)); // while the status points at it, the card stays the judge's own answer, whatever later polls bring
       app.tail.sort((x, y) => String(x[3]).localeCompare(String(y[3])));
       if (app.tail.length > TAIL) app.tail.splice(0, app.tail.length - TAIL);
       renderEvents(app.tail.map((r) => r.slice(0, 3)), Math.min(fresh, TAIL), app.seen > TAIL ? `last ${TAIL} of ${app.seen} events` : `${app.seen} events`);
@@ -749,7 +750,7 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
     renderLineage([], "Waiting for the kernel…"); renderEvents([], 0, "0 events"); renderChat(app.liveChat);
     app.live = null; app.lastJudgeObs = null; $("judgeform").hidden = true; $("judgestatus").textContent = "Live: posts one observation to Org A with the agent token; the planner model decides."; $("judgestatus").classList.remove("bad");
     renderAudit(null, 12, "not checked by this page"); $("beat").textContent = "Connecting to the kernel…"; $("sub").textContent = "Nothing is shown until the first response arrives.";
-    renderProof([]); hideDecision(); app.prevRoles = {}; app.obsAt = new Map(); app.answers = new Map(); $("progress").classList.remove("running");
+    renderProof([]); hideDecision(); app.prevRoles = {}; app.obsAt = new Map(); app.answers = new Map(); app.ackKey = null; $("progress").classList.remove("running");
     caption("Connecting to the kernel");
   }
   $("liveform").addEventListener("submit", (e) => {
@@ -788,6 +789,7 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
       app.liveChat = [...app.liveChat, { you: "report " + summary }, { org: `Recorded as evidence ${id} for Org A's mission (live). The planner is reading it now; its verdict appears in the decision card.` }];
       renderChat(app.liveChat); $("judgetext").value = "";
       const early = app.answers.get("A:" + id); // the planner may have answered before this receipt arrived
+      app.ackKey = early ? "A:" + id : null; // a new report withdraws the previous link
       if (early) showDecision(early);
       judgeStatus(early ? `The planner answered: ${early.verdict}. See the decision card.` : `Recorded ${id} · waiting for the planner`);
     } catch (err) {
