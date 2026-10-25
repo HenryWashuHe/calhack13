@@ -86,12 +86,14 @@ struct Seen {
 
 #[derive(Clone)]
 struct ProviderState {
+    expected_token: &'static str,
     replies: Arc<Mutex<VecDeque<Reply>>>,
     seen: Arc<Mutex<Vec<Seen>>>,
     entered: Arc<Semaphore>,
 }
 
 struct ProviderFixture {
+    endpoint: String,
     state: ProviderState,
     client: CreaoClient,
     server: JoinHandle<()>,
@@ -99,7 +101,12 @@ struct ProviderFixture {
 
 impl ProviderFixture {
     async fn new(replies: Vec<Reply>) -> Self {
+        Self::with_token(replies, TOKEN).await
+    }
+
+    async fn with_token(replies: Vec<Reply>, expected_token: &'static str) -> Self {
         let state = ProviderState {
+            expected_token,
             replies: Arc::new(Mutex::new(replies.into())),
             seen: Arc::new(Mutex::new(vec![])),
             entered: Arc::new(Semaphore::new(0)),
@@ -121,6 +128,7 @@ impl ProviderFixture {
         )
         .unwrap();
         Self {
+            endpoint,
             state,
             client,
             server,
@@ -155,7 +163,7 @@ impl Drop for ProviderFixture {
 async fn provider_response(State(state): State<ProviderState>, request: Request) -> Response<Body> {
     assert_eq!(
         request.headers()["authorization"],
-        format!("Bearer {TOKEN}")
+        format!("Bearer {}", state.expected_token)
     );
     let method = request.method().to_string();
     let path = request.uri().path().to_owned();
@@ -733,3 +741,6 @@ async fn valid_receipt_arriving_before_an_ambiguous_post_response_is_not_lost() 
     );
     assert_eq!(provider.seen().len(), 1);
 }
+
+#[path = "support/creao_trigger_readiness.rs"]
+mod trigger;
