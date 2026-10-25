@@ -1,0 +1,15 @@
+# CodeRabbit is switched off for this repository (owner request, 2026-10-25).
+# Human review runs on issue #1 and the PR threads; the bot's summaries and
+# rate-limit notices only added noise. Remove this file to turn it back on.
+language: en-US
+reviews:
+  auto_review:
+    enabled: false
+    drafts: false
+  high_level_summary: false
+  review_status: false
+  poem: false
+  sequence_diagrams: false
+  changed_files_summary: false
+chat:
+  auto_reply: false
