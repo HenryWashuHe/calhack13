@@ -69,7 +69,7 @@ export function describeSandbox() {
   const confined = os_ === "sandbox-exec";
   return { process: "child, empty environment, fresh empty cwd per score, wall timeout, SIGKILL", code_generation: "disallowed from strings", os: os_,
     filesystem: confined ? "default-deny reads; allowed: OS and Node runtime roots, iteration scripts, own work dir only; write: own work dir only" : "not confined",
-    network: os_ === "none" ? "not confined" : "denied", admissible: confined };
+    network: os_ === "none" ? "not confined" : "denied", admissible: confined, confined }; // `confined` is the same flag under the name the parallel commit used
 }
 
 /** The command for one child. The policy file is written fresh from trusted bytes, outside the child's writable directory, on every call. */
