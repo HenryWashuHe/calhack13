@@ -480,24 +480,35 @@ async fn rehearse_two_organizations_with_a_live_planner() {
             &intent("a-adopts-in-b", &owner, adopt.clone()),
         )
         .await;
-    let (status, body) = b_api
-        .post(
-            "/method-adoptions",
-            &intent("lead-adopts", &lead, adopt.clone()),
+    // The lead control applies only when the planner gave the work to someone
+    // else. When the lead owns it, its request would be the adoption itself
+    // (rehearsal 6 hit exactly that), so it isn't sent.
+    let (lead_status, lead_attempt) = if owner_is_lead {
+        (
+            None,
+            json!({"who":"B's lead","skipped":"the lead owns this work"}),
         )
-        .await;
+    } else {
+        let (status, body) = b_api
+            .post(
+                "/method-adoptions",
+                &intent("lead-adopts", &lead, adopt.clone()),
+            )
+            .await;
+        (
+            Some(status),
+            json!({"who":"B's lead","status":status,"body":body}),
+        )
+    };
     write(
         &out.join("refused-attempts.json"),
-        &json!([
-        {"who":"A's operator token on B","status":status_a,"body":body_a},
-        {"who":"B's lead","status":status,"body":body}]),
+        &json!([{"who":"A's operator token on B","status":status_a,"body":body_a}, lead_attempt]),
     );
     assert!(
         status_a == 401 || status_a == 403,
         "A's token must not act in B: {status_a}"
     );
-    // The lead control applies only when the planner gave the work to someone else.
-    if !owner_is_lead {
+    if let Some(status) = lead_status {
         assert!(status >= 400, "the lead must not adopt: {status}");
     }
     let accepted = verdict["verdict"] == "accepted";
