@@ -16,6 +16,17 @@ Choose one of two modes, labeled in the top-left badge:
   keys. The venue scenario is a historical regression workload, not the product;
   the last scene labels the
   invention-lab beat as a proposal.
+  While replaying, a judge can **throw a disruption** (buttons under the
+  header, or keys 1 2 3): the caterer cancels, the shuttle falls through, or
+  a hostile instruction asks for a Root role. The first two replay the
+  transcript of a dev-stack run on 2026-10-24 (planner
+  `anthropic/claude-sonnet-5-5`, provider dev stubs, fixture evidence refs);
+  the third is the fixture's hostile-evidence case. Their rows carry a `D`
+  sequence and the word "scripted", the audit line says those revisions are
+  not audited, nothing is called, and Play fixture replay clears them.
+- **Presenter mode** (Present button, key P, Esc to leave): the same page at
+  projector scale with the chrome hidden and a caption naming the scene, the
+  source and the keys. Fullscreen is requested but optional.
 - **Live kernel**: open "Connect to a running kernel", give both organizations'
   API URLs and **agent** tokens. The page clears every replay panel, disables
   the replay controls, and draws only what the kernels report every two
