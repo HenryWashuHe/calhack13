@@ -2,16 +2,18 @@
 
 ## Current review handoff — October 25, 2026
 
-Use [the main `f465ed0` priority snapshot](reviews/pr-queue-2026-10-25.md).
-#220/#221 are merged into the #65/#57 branches, respectively, not main;
-current-head external Linux results remain pending. Composition `b347f457`
-passes root's compile/strict Clippy/format checks and seven pure termination tests,
-with 28 prior test files unchanged. The user's sole current priority is #57/#65;
+Use [the main `de453090` priority snapshot](reviews/pr-queue-2026-10-25.md).
+The owner directed merge without waiting for the external Linux report: #65 is
+on main at `4a37ffb7`, #57 at `de453090`; their trees match the checked standalone
+candidate and composition `b347f457`. Root's compile/strict Clippy/format checks and
+seven pure termination tests pass, with 28 prior test files unchanged. Independent
+Linux assurance remains open after merge. The user's sole current priority is #57/#65;
 #144 is merged. The external Linux report is limited to older `31001949` /
 `6c468f5`, with no current-head assurance or root reproduction; retain the
 snapshot's source-only assertion/heartbeat limits and do not treat it as a gate pass.
-Henry's audit acknowledgment and Eric's testing announcement are not results;
-await review of the external current-head report before publication/merge readiness.
+Eric withdrew his Linux claim. Henry's separate validation effort and the Colima
+announcement are not reviewed current-head results; retain that distinction after
+merge and do not infer goal closure or new execution authority.
 Codex owns the scoped corrective work and review under the user's fix/test/merge
 request. #211/#199/#203 corrections are now merged; their respective reviewed
 compositions pass 21 store, 78 inert Stage and 80 inert Stage cases. Henry retains

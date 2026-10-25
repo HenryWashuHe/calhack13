@@ -2,15 +2,18 @@
 
 ## Current review checkpoint — October 25, 2026
 
-At main `f465ed0`, [the priority review snapshot](reviews/pr-queue-2026-10-25.md)
-records #220 merged into #65 and #221 into #57. Both now require successful
+At main `de453090`, [the priority review snapshot](reviews/pr-queue-2026-10-25.md)
+records #220/#221 fixes and both original runtime PRs merged on the owner's
+instruction without waiting for the external Linux report. Both now require successful
 Linux `close_range(CLOEXEC)` or refuse startup; the bounded descriptor fallback
 is removed and the environment-policy identity changes. Mode None is unchanged.
 Current-main composition `b347f457` passes root's scorer all-target compilation,
 strict all-target Clippy for executor/scorer, formatting and seven pure termination
-tests; 28 prior test files remain unchanged. Standalone #65 candidate `69b0ea63`
-preserves the exact current branch source/tests. Neither original PR is on main;
-current-head external Linux results are pending. Announced testing is not a result.
+tests; 28 prior test files remain unchanged. #65 merged at `4a37ffb7`, matching
+standalone candidate `69b0ea63`/tree `c50d5f87`. #57 merged at `de453090`, matching
+checked composition `b347f457`/tree `b28208ed`. Independent Linux assurance remains
+open. Eric withdrew his claim; Henry's separate effort and the Colima announcement
+supply no current result reviewed here. Announced testing and merge are not results.
 The later Linux report covers older `31001949` / `6c468f5` only. It is a same-host
 separate-agent report relayed by Henry, with no raw logs/binary digest and limited
 assertion/heartbeat evidence; it does not validate current heads or independent
