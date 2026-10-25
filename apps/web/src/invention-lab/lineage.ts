@@ -12,7 +12,11 @@ import {
   type ExactRef,
   type ExecutionReceipt,
   type GenerationStatus,
+  type PackageFile,
   type RevisionObservation,
+  type StaticInspection,
+  type TrialPlan,
+  type Verdict,
 } from "./records";
 
 export interface AdoptionInput {
@@ -29,6 +33,21 @@ export interface LabRecords {
   adoptions?: AdoptionInput[];
   executions?: ExecutionReceipt[];
   evaluations?: EvaluationReceipt[];
+  /** Exported package files; identity computed from their exact bytes. */
+  packages?: PackageFile[];
+  inspections?: StaticInspection[];
+  trials?: TrialInput[];
+}
+
+export interface TrialInput {
+  plan: TrialPlan;
+  /** A standalone verdict names no plan; the host pairs it (e.g. same folder). */
+  verdict: Verdict | null;
+}
+
+export interface Trial extends TrialInput {
+  /** Runs whose purpose names this exact plan. */
+  executions: Execution[];
 }
 
 export interface Execution {
@@ -52,11 +71,14 @@ export interface Attempt {
 export interface MethodNode {
   key: string;
   ref: ExactRef;
+  /** A supplied package file whose computed hash is exactly this ref. */
+  package?: PackageFile;
+  inspections: StaticInspection[];
 }
 
 export type Edge =
   | { kind: "generated"; org_id: string; operation_id: string; to: string }
-  | { kind: "revised_from"; operation_id: string; from: string; to: string; source_changed: boolean }
+  | { kind: "revised_from"; org_id: string; operation_id: string; from: string; to: string; source_changed: boolean }
   | {
       kind: "adoption";
       org_id: string;
@@ -72,6 +94,7 @@ export interface Lineage {
   nodes: MethodNode[];
   edges: Edge[];
   executions: Execution[];
+  trials: Trial[];
   problems: string[];
 }
 
@@ -81,7 +104,7 @@ export function buildLineage(records: LabRecords): Lineage {
   const problems: string[] = [];
   const node = (ref: ExactRef): string => {
     const key = refKey(ref);
-    if (!nodes.has(key)) nodes.set(key, { key, ref });
+    if (!nodes.has(key)) nodes.set(key, { key, ref, inspections: [] });
     return key;
   };
 
@@ -128,6 +151,7 @@ export function buildLineage(records: LabRecords): Lineage {
       problems.push(`revision child differs from the package of operation ${r.operation_id} of ${r.org_id}`);
     edges.push({
       kind: "revised_from",
+      org_id: r.org_id,
       operation_id: r.operation_id,
       from: node(r.parent),
       to: node(r.child),
@@ -146,12 +170,14 @@ export function buildLineage(records: LabRecords): Lineage {
     }
   }
 
+  // A run's identity is its whole receipt: trials may reuse run and attempt ids
+  // under different plans, so only an identical receipt is a duplicate.
   const executions: Execution[] = [];
   const runs = new Set<string>();
   for (const receipt of records.executions ?? []) {
     const run = `${receipt.org_id}/${receipt.run_id}/${receipt.attempt_id}`;
-    if (runs.has(run)) problems.push(`execution ${run} appears more than once`);
-    runs.add(run);
+    if (runs.has(receipt.receipt_sha256)) problems.push(`execution ${run} appears more than once`);
+    runs.add(receipt.receipt_sha256);
     if (refKey(receipt.bound_method) !== refKey(receipt.actual_method))
       problems.push(`execution ${run} ran a different method than its binding named; shown under the method it ran`);
     executions.push({ receipt, method: node(receipt.actual_method), evaluations: [] });
@@ -172,5 +198,68 @@ export function buildLineage(records: LabRecords): Lineage {
     }
   }
 
-  return { attempts, nodes: [...nodes.values()], edges, executions, problems };
+  for (const p of records.packages ?? []) {
+    const n = nodes.get(refKey(p.ref));
+    if (n) {
+      n.package = p;
+      continue;
+    }
+    const same = [...nodes.values()].find((x) => x.ref.id === p.ref.id && x.ref.version === p.ref.version);
+    if (same)
+      problems.push(
+        `package file for ${p.ref.id}@${p.ref.version} hashes to ${p.ref.sha256.slice(0, 12)}, not the recorded ${same.ref.sha256.slice(0, 12)}`,
+      );
+    // A record may copy a real hash under another identity; the bytes decide.
+    for (const other of nodes.values())
+      if (other.ref.sha256 === p.ref.sha256)
+        problems.push(
+          `a record names package ${p.ref.sha256.slice(0, 12)} as ${other.ref.id}@${other.ref.version}; its bytes identify ${p.ref.id}@${p.ref.version}`,
+        );
+    nodes.get(node(p.ref))!.package = p;
+  }
+  for (const i of records.inspections ?? []) {
+    // Prefer the version whose supplied bytes have this hash; a hash alone may
+    // be shared by a contradictory reference.
+    const sharing = [...nodes.values()].filter((x) => x.ref.sha256 === i.method_package_sha256);
+    if (i.package_ref) {
+      // An explicit full reference must match exactly; a shared digest under
+      // another identity is reported, never silently attributed.
+      const exact = nodes.get(refKey(i.package_ref));
+      if (!exact) {
+        problems.push(
+          sharing.length === 0
+            ? `static inspection names package ${i.method_package_sha256.slice(0, 12)}, which no supplied record contains`
+            : `static inspection names ${i.package_ref.id}@${i.package_ref.version} ${i.method_package_sha256.slice(0, 12)}, but the supplied records with that hash are ${sharing.map((x) => `${x.ref.id}@${x.ref.version}`).join(", ")}; not attached`,
+        );
+        continue;
+      }
+      sharing.splice(0, sharing.length, exact);
+    }
+    const byBytes = sharing.filter((x) => x.package?.ref.sha256 === i.method_package_sha256);
+    const n = byBytes.length === 1 ? byBytes[0] : sharing.length === 1 ? sharing[0] : undefined;
+    if (!n) {
+      problems.push(
+        sharing.length === 0
+          ? `static inspection names package ${i.method_package_sha256.slice(0, 12)}, which no supplied record contains`
+          : `static inspection names package ${i.method_package_sha256.slice(0, 12)}, which ${sharing.length} different references share; not attached`,
+      );
+      continue;
+    }
+    n.inspections.push(i);
+    const path = i.entrypoint ?? n.package?.entrypoint;
+    const entry = n.package?.files.find((f) => f.path === path);
+    if (n.package && (!entry || entry.sha256 !== i.source_sha256))
+      problems.push(`static inspection of ${path} names different source bytes than the supplied package`);
+  }
+
+  const trials: Trial[] = (records.trials ?? []).map((t) => ({
+    ...t,
+    executions: executions.filter(
+      (e) =>
+        (e.receipt.purpose.kind === "acceptance" || e.receipt.purpose.kind === "comparison") &&
+        refKey(e.receipt.purpose.plan) === refKey(t.plan.ref),
+    ),
+  }));
+
+  return { attempts, nodes: [...nodes.values()], edges, executions, trials, problems };
 }

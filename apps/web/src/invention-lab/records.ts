@@ -4,7 +4,7 @@
 // unexpected value is shown as unrecognized rather than guessed. Decoders never
 // read generated text, prompts or request bodies.
 
-import { canonicalSha256 } from "./digest";
+import { canonicalSha256, sha256Hex } from "./digest";
 
 export class DecodeError extends Error {}
 
@@ -194,7 +194,7 @@ export type Verdict =
   | { verdict: "accepted"; candidate: number; control: number; of: number }
   | { verdict: string; reason: string | null };
 
-function decodeVerdict(v: unknown, at: string): Verdict {
+export function decodeVerdict(v: unknown, at = "verdict"): Verdict {
   const o = obj(v, at);
   const verdict = str(o, "verdict", at);
   if (verdict === "accepted")
@@ -321,5 +321,133 @@ export function decodeEvaluationReceipt(v: unknown): EvaluationReceipt {
     metrics: kind === "scored" ? decodeRef(out.metrics, `${at}.outcome.metrics`) : null,
     reason: kind === "scored" ? null : optStr(out, "reason", `${at}.outcome`),
     usage: decodeUsageRecord(o.usage, `${at}.usage`),
+  };
+}
+
+/** An exported canonical method package file (`genesis.development_method_source`).
+ * Its identity is the SHA-256 of the exact file bytes, computed here; source text
+ * is measured, never retained in the view. */
+export interface PackageFile {
+  ref: ExactRef;
+  entrypoint: string;
+  runtime: ExactRef;
+  protocol: ExactRef;
+  dependencies: ExactRef[];
+  files: { path: string; bytes: number; lines: number; sha256: string }[];
+}
+export const PACKAGE_DOMAIN = "genesis.development_method_source";
+export function decodePackageFile(bytes: Uint8Array): PackageFile {
+  const at = "package";
+  const o = obj(JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes)), at);
+  if (o.domain !== PACKAGE_DOMAIN) throw new DecodeError(`${at}.domain: expected ${PACKAGE_DOMAIN}`);
+  // Only the envelope version this view understands; anything else is not
+  // labelled as a checked package.
+  if (o.version !== 1) throw new DecodeError(`${at}.version: expected 1`);
+  const p = obj(o.package, `${at}.package`);
+  if (!Array.isArray(p.files)) throw new DecodeError(`${at}.package.files: expected array`);
+  const enc = new TextEncoder();
+  const files = p.files.map((f, i) => {
+    const fo = obj(f, `${at}.package.files[${i}]`);
+    const text = str(fo, "content", `${at}.package.files[${i}]`);
+    const content = enc.encode(text);
+    return {
+      path: str(fo, "path", `${at}.package.files[${i}]`),
+      bytes: content.length,
+      lines: text === "" ? 0 : text.split("\n").length - (text.endsWith("\n") ? 1 : 0),
+      sha256: sha256Hex(content),
+    };
+  });
+  return {
+    ref: {
+      domain: "genesis",
+      schema: "development-method-source/1",
+      id: str(p, "id", `${at}.package`),
+      version: str(p, "version", `${at}.package`),
+      sha256: sha256Hex(bytes),
+    },
+    entrypoint: str(p, "entrypoint", `${at}.package`),
+    runtime: decodeRef(p.runtime, `${at}.package.runtime`),
+    protocol: decodeRef(p.protocol, `${at}.package.protocol`),
+    dependencies: refs(p.dependencies, `${at}.package.dependencies`),
+    files,
+  };
+}
+
+/** `genesis-static-source-inspection/1`: syntax and observed imports only.
+ * Two retained shapes use this schema name: one names `method_package_sha256`,
+ * `entrypoint`, `python_ast_parse`, `execution` and `claim`; the other names a
+ * `package` ref, `ast_parse`, `source_executed` and `authority`. Both are kept
+ * verbatim as "key value" phrases rather than translated into one vocabulary. */
+export interface StaticInspection {
+  method_package_sha256: string;
+  /** The full package reference when the record names one; it must match exactly. */
+  package_ref: ExactRef | null;
+  /** Null when the record does not name its entrypoint. */
+  entrypoint: string | null;
+  source_sha256: string;
+  parse: string;
+  imports: string[];
+  execution: string;
+  claim: string;
+}
+export const INSPECTION_SCHEMA = "genesis-static-source-inspection/1";
+function flag(o: Obj, k: string, at: string): string {
+  if (typeof o[k] !== "boolean") throw new DecodeError(`${at}.${k}: expected boolean`);
+  return `${k} ${String(o[k])}`;
+}
+export function decodeStaticInspection(v: unknown): StaticInspection {
+  const at = "inspection";
+  const o = obj(v, at);
+  if (o.schema !== INSPECTION_SCHEMA) throw new DecodeError(`${at}.schema: expected ${INSPECTION_SCHEMA}`);
+  if (!Array.isArray(o.imports) || !o.imports.every((x) => typeof x === "string"))
+    throw new DecodeError(`${at}.imports: expected strings`);
+  const imports = o.imports as string[];
+  if ("method_package_sha256" in o)
+    return {
+      method_package_sha256: str(o, "method_package_sha256", at),
+      package_ref: null,
+      entrypoint: str(o, "entrypoint", at),
+      source_sha256: str(o, "source_sha256", at),
+      parse: `python_ast_parse ${str(o, "python_ast_parse", at)}`,
+      imports,
+      execution: `execution ${str(o, "execution", at)}`,
+      claim: str(o, "claim", at),
+    };
+  const package_ref = decodeRef(o.package, `${at}.package`);
+  return {
+    method_package_sha256: package_ref.sha256,
+    package_ref,
+    entrypoint: null,
+    source_sha256: str(o, "source_sha256", at),
+    parse: flag(o, "ast_parse", at),
+    imports,
+    execution: flag(o, "source_executed", at),
+    claim: str(o, "authority", at),
+  };
+}
+
+/** A trial plan (genesis-core development_trial). Its reference is computed as
+ * the canonical SHA-256 under `genesis.development_trial_plan`, the value that
+ * execution receipts name in `purpose.plan`. */
+export interface TrialPlan {
+  ref: ExactRef;
+  criterion: ExactRef;
+}
+export const TRIAL_PLAN_FIELDS = [
+  "id", "version", "criterion", "development_instances", "scoring_instances",
+  "context", "model_settings", "development_environment", "slots",
+] as const;
+export function decodeTrialPlan(v: unknown): TrialPlan {
+  const at = "plan";
+  const o = obj(v, at);
+  return {
+    ref: {
+      domain: "genesis",
+      schema: "development-trial-plan/1",
+      id: str(o, "id", at),
+      version: str(o, "version", at),
+      sha256: canonicalSha256({ domain: "genesis.development_trial_plan", version: 1, plan: o }),
+    },
+    criterion: decodeRef(o.criterion, `${at}.criterion`),
   };
 }
