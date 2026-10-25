@@ -22,65 +22,58 @@ also a product fit; that is positioning, not confirmation that multiple entries
 are allowed. The starter pack directs hackers to the booth for account credits;
 no account upgrade or credit redemption has been performed here.
 
-## Core work in the existing mission
+## Current GENESIS role
 
-Keep CREAO as the persistent venue operations owner after the relocation team
-hands off its work. Give the same agent two distinct later venue updates. It
-uses the approved capability's observations and mission constraints to assess
-whether the event remains feasible or relocation must reopen, with cited facts
-and a structured reason. Show its assessment affecting the mission only after
-domain verification. The [persistent assessment API](VENUE_ASSESSMENTS.md) implements
-this work using the existing specialist runtime. It complements the planner and
-dynamic role creation; it does not replace either.
+The product is networked recursive capability improvement with fixed model
+weights. Event organization is a historical fixture, not the product/demo.
+CREAO's intended core responsibility is a persistent method-review or development
+workflow: receive a frozen task, compare candidate evidence with the declared
+control and return a structured recommendation, including appropriate non-reuse.
+Kernel authorization and independent evaluation decide whether that result may
+change the organization or its capability library.
 
-Responsibilities remain separate:
+The current backend uses a published app's API Trigger. GENESIS creates local
+roles and binds them through real bootstrap runs; this does not create a new
+CREAO app or install skills. Each job must carry its own role/task context.
+The role remains subject to gateway readiness, current grants and domain checks.
+See [runtime semantics](CREAO_RUNTIME.md) and [readiness](CREAO_READINESS.md).
 
 | Component | Necessary work |
 | --- | --- |
-| CREAO | Continuing operational assessment and reusable execution procedure |
-| Apify | Obtain missing web facts through a built, pinned and checked Actor |
-| Fetch.ai | Discover/recruit an independent logistics specialist |
-| Elastic Agent Builder | Organizational proposals, internal specialists and evidence/capability retrieval |
-| GENESIS Rust kernel | Authority, assignments, verification, handoff and retirement |
+| CREAO | App-backed specialized review/development workflow |
+| Apify | Execute missing web/data capabilities with retained Actor receipts |
+| Fetch.ai | Discover and communicate with independent specialists |
+| Elastic Agent Builder | Organizational proposals and evidence/capability retrieval |
+| GENESIS Rust kernel | Authority, selective adoption, verification and lifecycle |
 
-## What is still missing
+## Evidence still required
 
-The specialist, gateway readiness and probe stack (#20/#26/#29) is merged.
-Obsolete combined draft #25 was closed after its unique scenario regression was
-preserved in #68. See the current [review queue](PR_REVIEW_QUEUE.md).
+- The live gate runs one synthetic selective-adoption check through API Trigger;
+  it distinguishes native completion from checked output and readiness. Its
+  loopback tests are not live provider evidence or a recursive-benefit claim.
+- A prior standalone Trigger smoke is documented separately in
+  [CREAO_TRIGGER_SMOKE.md](CREAO_TRIGGER_SMOKE.md). That run does not establish
+  production readiness, governed core work or A → B → A improvement.
+- Capture the actual app's build/save provenance on `agent.creao.ai`, meaningful
+  frozen task inputs, native run IDs, independent verification and resulting
+  kernel effects. Obtain a genuine share link from CREAO; a private API URL or
+  run UUID is not a share link.
+- Put the actual agent ID and selected share link in the Devpost README and
+  choose the CREAO track. These submission actions are separate from migration.
 
-- The optional scenario `venue_monitoring` path now invokes two persistent
-  CREAO assessments after inheritance and handoff. The earlier mode without
-  that field only invokes `/capability-runs`, which selects Apify and cannot
-  demonstrate CREAO mission execution. See [INHERITED_MISSION.md](INHERITED_MISSION.md).
-- CREAO creation and the gateway probe establish neither core work nor a
-  verified mission result. The assessment path now separately verifies native
-  result text against frozen venue facts and applies accepted mission effects.
-  Its automated tests use loopback providers. The two-organization scenario
-  still needs execution with actual providers and qualifying share evidence.
-- Capture the qualifying agent's build/save provenance on `agent.creao.ai`.
-  If relying solely on API-created agents for eligibility, confirm that reading
-  of the sponsor's wording at the booth instead of assuming it.
-- Record actual agent and run IDs, two distinct event inputs, the handoff,
-  structured assessments, and the kernel's outcome checks. Obtain the share
-  link from CREAO; a run ID, private API URL or invented URL is not a share link.
-- Add the real agent ID and selected share link to the Devpost README and confirm
-  the track selection during submission. Both evidence values are still pending.
+Coordination and ownership are recorded in
+[issue #1](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1).
+No infrastructure or smoke result alone establishes qualifying core work.
 
-Claude/Eric retains kernel/planner/readiness/UI ownership; Codex retains
-provider/capability work and narrow assessment integration. Current claims and
-handoffs are coordinated in [issue #4](https://github.com/HenryWashuHe/genesis/issues/4).
-This note does not declare the full mission or native sponsor evidence complete.
+## API and credit separation
 
-## Avoid mixing the two CREAO API contracts
-
-The starter pack demonstrates API Trigger (`agent.creao.ai`, `capi_`, `appId` /
-`inputs`). GENESIS currently implements the separately supported Developer API
-(`developer.creao.ai/v1`, `cr_sk_`, `agent_id` / `input`). Official
-[API Trigger documentation](https://docs.creao.ai/pro/api-trigger) explicitly
-distinguishes both supported paths; the current [async run reference](https://docs.creao.ai/developer-api/runs/create-async-run)
-matches our adapter. Do not copy keys, payload fields or idempotency guarantees
-between these contracts. This check does not substitute for a live-account run.
+Use `agent.creao.ai/api/v1/apps/{appId}/runs`, app-scoped `capi_` credentials and
+an `inputs` object. Production backend/CLI/gate execution refuses Developer v1/v2
+selection and does not use `cr_sk_` account/project keys. Historical Developer
+checkpoints/tests remain separately identifiable. See the
+[official API Trigger documentation](https://docs.creao.ai/pro/api-trigger) and
+[API comparison](https://docs.creao.ai/developer-api/api-paths). Verify actual
+credit consumption in the team billing view; syntax checks do not prove balance.
 
 The earlier [Apify announcement notes](APIFY_SPONSOR_NOTES.md) remain applicable:
 meaningful Actor work, actual build/run/dataset receipts and independent checks.

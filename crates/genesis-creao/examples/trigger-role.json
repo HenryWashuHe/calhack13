@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "api_version": "trigger",
+  "operation_id": "demo-trigger-role-1",
+  "org_id": "org_a",
+  "role_id": "role_method_assessor",
+  "account_namespace": "creao-trigger-team",
+  "purpose": {
+    "kind": "provision",
+    "change_id": "demo-change-1",
+    "config_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "request": {
+    "operation": "create_run",
+    "request": {
+      "agent_id": "00000000-0000-4000-8000-000000000001",
+      "input": {
+        "task": "genesis_role_bootstrap",
+        "role_contract": {
+          "name": "Method assessor",
+          "charter": "Assess declared method evidence; do not claim improvement without an independent comparison."
+        },
+        "context": {
+          "org_id": "org_a",
+          "role_id": "role_method_assessor"
+        },
+        "instructions": "This is a bootstrap run of an existing app. Do not create or modify an app, persist shared role state, or perform mission work. Completion is not gateway readiness."
+      }
+    }
+  }
+}

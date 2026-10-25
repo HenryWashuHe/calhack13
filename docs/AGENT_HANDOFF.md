@@ -1,5 +1,30 @@
 # GENESIS implementation handoff
 
+## Current CREAO migration handoff — October 25, 2026
+
+The user explicitly requested replacement of backend Developer v2 calls with
+API Trigger using the Desktop configuration. Codex completed that isolated lane
+at `951cbfc1`; [validation and limitations](IMPLEMENTATION_STATUS.md#creao-api-trigger-migration--october-25-2026)
+record 119 Rust and 47 Node cases, workspace compilation and separate read-only
+HTTP 200 evidence. Private credentials are configured only in the ignored local
+`.env`; no keys or real app identifiers are committed.
+
+- Use `CREAO_TRIGGER_API_KEY`, `CREAO_TRIGGER_APP_ID`, optional exact
+  `CREAO_TRIGGER_RUNS_URL`, and fresh per-org Trigger journals. Old v1/v2 records
+  are preserved for offline status; never rewrite or resume them as Trigger.
+- Published app bootstrap is not cloud agent creation. Jobs resend the pinned
+  role contract; gateway callbacks and independently checked output are still
+  necessary. No live readiness/mission or paid POST was run by this migration.
+- ACP retains the running demo stack; no process was restarted here. Coordinate
+  a controlled restart with the new environment and per-org journal paths before
+  claiming the running stack uses this code. Existing v2 bindings cannot be
+  silently reinterpreted as Trigger bindings.
+- Henry retains adoption/evaluator/executor; Eric retains UI/research evidence;
+  Ines remains unassigned. No new experiment or ownership transfer is implied.
+  Automation and the native Goal remain paused. Current coordination is issue #1.
+
+The earlier review snapshots below remain historical.
+
 ## Current manual review batch — October 25, 2026
 
 The user authorized this manual review/fix/merge pass; keep automation and the
