@@ -262,6 +262,8 @@ impl TrialPlan {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct TrialEvidence {
     pub slot_id: String,
     pub execution: ExecutionReceipt,
