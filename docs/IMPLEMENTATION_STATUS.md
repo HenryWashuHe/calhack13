@@ -300,8 +300,8 @@ forge cases and strict Clippy/fmt. Its declaration binds all
 family-specific policy with exact numeric grants. It is not the earlier six-call
 generation admission or a chain-cost/history proof. Generation-settings/feedback
 provenance, externally pinned chronology, fresh-panel consumption and governance
-remain open; no source execution or gate closure is established. Codex's next
-bounded slice is operator cohort capture/chain links, not implemented here.
+remain open; no source execution or gate closure is established. Codex is developing
+the bounded operator cohort capture/check CLI; it is not implemented here.
 Receiver ID mechanics are merged, but runtime assurance remains a prerequisite.
 Preparation #164 `55e14cc4` clears stale/partial publication and selected-byte
 pinning with eight pure tests and is merged at `a056ec65`; its description is
