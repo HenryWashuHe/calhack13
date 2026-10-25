@@ -192,12 +192,26 @@ export function buildLineage(records: LabRecords): Lineage {
       problems.push(
         `package file for ${p.ref.id}@${p.ref.version} hashes to ${p.ref.sha256.slice(0, 12)}, not the recorded ${same.ref.sha256.slice(0, 12)}`,
       );
+    // A record may copy a real hash under another identity; the bytes decide.
+    for (const other of nodes.values())
+      if (other.ref.sha256 === p.ref.sha256)
+        problems.push(
+          `a record names package ${p.ref.sha256.slice(0, 12)} as ${other.ref.id}@${other.ref.version}; its bytes identify ${p.ref.id}@${p.ref.version}`,
+        );
     nodes.get(node(p.ref))!.package = p;
   }
   for (const i of records.inspections ?? []) {
-    const n = [...nodes.values()].find((x) => x.ref.sha256 === i.method_package_sha256);
+    // Prefer the version whose supplied bytes have this hash; a hash alone may
+    // be shared by a contradictory reference.
+    const sharing = [...nodes.values()].filter((x) => x.ref.sha256 === i.method_package_sha256);
+    const byBytes = sharing.filter((x) => x.package?.ref.sha256 === i.method_package_sha256);
+    const n = byBytes.length === 1 ? byBytes[0] : sharing.length === 1 ? sharing[0] : undefined;
     if (!n) {
-      problems.push(`static inspection names package ${i.method_package_sha256.slice(0, 12)}, which no supplied record contains`);
+      problems.push(
+        sharing.length === 0
+          ? `static inspection names package ${i.method_package_sha256.slice(0, 12)}, which no supplied record contains`
+          : `static inspection names package ${i.method_package_sha256.slice(0, 12)}, which ${sharing.length} different references share; not attached`,
+      );
       continue;
     }
     n.inspections.push(i);

@@ -106,3 +106,19 @@ describe("package and inspection mismatches", () => {
     expect(orphan.problems).toEqual(["static inspection names package 8215c3679a06, which no supplied record contains"]);
   });
 });
+
+describe("package identity shared by contradictory references", () => {
+  const foreign = { ...structuredClone(s3), operation_id: "copied-hash", package: { ...s3.package, id: "not-the-package-id" } };
+
+  it("reports a record that copies a real package hash under another name; the bytes decide", () => {
+    const l = buildLineage(intake([file("f.json", foreign), file("m.json", pkg), file("i.json", inspection)]).records);
+    expect(l.problems).toEqual(["a record names package 8215c3679a06 as not-the-package-id@0.1.0; its bytes identify generated-method@0.1.0"]);
+    expect(l.nodes.find((n) => n.package)!.inspections).toHaveLength(1);
+  });
+
+  it("does not attach an inspection when only contradictory references share its hash", () => {
+    const l = buildLineage(intake([file("a.json", s3), file("f.json", foreign), file("i.json", inspection)]).records);
+    expect(l.nodes.every((n) => n.inspections.length === 0)).toBe(true);
+    expect(l.problems).toEqual(["static inspection names package 8215c3679a06, which 2 different references share; not attached"]);
+  });
+});
