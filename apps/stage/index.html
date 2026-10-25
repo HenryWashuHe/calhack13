@@ -59,9 +59,34 @@ button { font: inherit; }
 .btn:disabled, .dot:disabled { opacity: .35; cursor: not-allowed; }
 .btn:focus-visible, .dot:focus-visible, .field:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
 .btn.primary { background: var(--chalk); color: var(--paper-deep); border-color: var(--chalk); font-weight: 600; }
-.dots { display: flex; gap: 6px; }
-.dot { width: 12px; height: 12px; border-radius: 50%; border: 1px solid var(--chalk-dim); background: transparent; padding: 0; cursor: pointer; }
-.dot[aria-current="step"] { background: var(--signal); border-color: var(--signal); }
+/* Chapter rail: the story's table of contents, one button per scene */
+.dots { display: flex; gap: 4px; flex-wrap: wrap; margin-top: -6px; }
+.dot { font-family: var(--mono); font-size: 11px; letter-spacing: .02em; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--chalk-dim); padding: 4px 10px; cursor: pointer; transition: border-color .3s, color .3s; }
+.dot.done { border-color: color-mix(in srgb, var(--mint) 60%, transparent); color: var(--mint); }
+.dot[aria-current="step"] { background: var(--signal); border-color: var(--signal); color: var(--paper-deep); font-weight: 500; }
+.progress { height: 2px; background: var(--line); border-radius: 1px; overflow: hidden; }
+.progress::after { content: ""; display: block; height: 100%; width: 0; background: var(--signal); }
+.progress.running::after { animation: fill var(--dur, 5.2s) linear forwards; }
+@keyframes fill { from { width: 0; } to { width: 100%; } }
+
+/* Proof chips: which path is the real kernel, which is a stand-in, scene by scene */
+.proof { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.proof:empty { display: none; }
+.proof-chip { font-family: var(--mono); font-size: 11px; border-radius: 4px; padding: 3px 8px; border: 1px solid var(--line); color: var(--chalk-dim); }
+.proof-chip.real { border-color: var(--mint); color: var(--mint); }
+.proof-chip.real::before { content: "● "; }
+.proof-chip.fixture, .proof-chip.proposal { border-style: dashed; border-color: color-mix(in srgb, var(--signal) 70%, transparent); color: var(--signal); }
+.proof-chip.proposal::before { content: "◇ "; }
+
+/* Decision card: the planner's verdict, in replay (transcript) and live alike */
+.decision { border: 1px solid var(--signal); border-radius: 8px; padding: 10px 12px; background: color-mix(in srgb, var(--signal) 10%, transparent); display: grid; gap: 4px; animation: arrive .5s ease-out; }
+.decision[hidden] { display: none; }
+.decision .d-k { font-family: var(--display); font-weight: 600; font-size: 15px; }
+.decision .d-k b { color: var(--signal); font-weight: 700; }
+.decision .d-src { font-family: var(--mono); font-size: 11px; color: var(--chalk-dim); }
+.decision .d-why { font-size: 13px; color: var(--chalk); }
+.role.changed { border-color: var(--signal); animation: pulse 1.2s ease-out; }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--signal) 45%, transparent); } 100% { box-shadow: 0 0 0 14px transparent; } }
 .mode { font-family: var(--mono); font-size: 12px; color: var(--paper-deep); background: var(--signal); border-radius: 4px; padding: 3px 8px; }
 .mode.live { background: var(--mint); }
 
@@ -161,7 +186,9 @@ details.live summary { cursor: pointer; color: var(--chalk-dim); }
 /* Presenter mode: the same page at projector scale. One class on body, one caption, nothing else. */
 .caption { display: none; }
 body.present { font-size: 17px; padding-block: 12px 56px; }
-body.present .brand, body.present details.live, body.present #idle, body.present #backreplay, body.present .dots, body.present .disrupt span { display: none; }
+body.present .brand, body.present details.live, body.present #idle, body.present #backreplay, body.present .disrupt span { display: none; }
+body.present .dot { font-size: 13px; padding: 6px 12px; }
+body.present .decision .d-k { font-size: 18px; } body.present .decision .d-why { font-size: 15px; }
 body.present .beat { font-size: clamp(34px, 4.6vw, 64px); max-width: 24ch; }
 body.present .sub { font-size: 17px; max-width: 70ch; }
 body.present .org-head h2 { font-size: 24px; }
@@ -178,7 +205,8 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
   .controls { justify-content: flex-start; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .role.new, .ev.new { animation: none; }
+  .role.new, .ev.new, .role.changed, .decision { animation: none; }
+  .progress.running::after { animation-duration: 0s; width: 100%; }
   .token { transition: none; }
 }
 </style>
@@ -189,6 +217,7 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
       <div class="brand">GENESIS · organizations that build, verify, share and improve capabilities <span id="mode" class="mode">No source selected</span></div>
       <h1 id="beat" class="beat">Organizations that build, verify, share and improve capabilities.</h1>
       <p id="sub" class="sub">Connect two running kernels to draw them live, or play the historical fixture replay. The invention-lab direction is a proposal with contracts under review; nothing here claims it ran.</p>
+      <div class="proof" id="proof" aria-label="What is real in this scene"></div>
     </div>
     <div class="controls" role="group" aria-label="Playback">
       <button class="btn" id="playreplay" type="button">Play fixture replay</button>
@@ -198,9 +227,10 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
       <button class="btn" id="backreplay" type="button">Back to replay</button>
       <button class="btn" id="idle" type="button">Clear</button>
       <button class="btn" id="present" type="button" aria-pressed="false">Present</button>
-      <div class="dots" id="dots" role="list" aria-label="Scenes"></div>
     </div>
   </header>
+  <div class="dots" id="dots" role="list" aria-label="Chapters"></div>
+  <div class="progress" id="progress" aria-hidden="true"></div>
 
   <div class="disrupt" id="disrupt" role="group" aria-label="Throw a disruption at the replay" hidden>
     <span>Throw a disruption (scripted transcript, not a live call):</span>
@@ -223,6 +253,7 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
         <span class="token" id="token" hidden>cap_venue_availability@1.0.0</span>
       </div>
       <span class="gap-chip" id="gap" hidden>REQUESTED</span>
+      <div class="decision" id="decision" hidden aria-live="polite"></div>
       <div class="lineage"><ul id="lineage"><li class="empty">No capability yet. The organizations only know what their constitutions say.</li></ul></div>
     </div>
     <div class="org" id="orgB">
@@ -293,17 +324,20 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
   const DISRUPTIONS = {
     "d-cater": {
       key: "1", beat: "The caterer cancels. The planner reuses a role instead of inventing one.", sub: TRANSCRIPT, revs: 3,
+      verdict: "change proposed", why: "The catering vendor cancelling for Nov 14 puts the event at risk, because 120 attendees at a hack night need food. No existing responsibility covers replacing catering; the Mission coordinator's charter already covers the event plan and budget, so one responsibility is assigned to it. No new role, scope, capability or contractor.", seconds: 8.9,
       coordOwns: "Secure replacement catering for 120 within budget",
       events: [["Observation", "asi-one: the catering vendor cancelled for Nov 14"], ["Requirement derived", "Secure replacement catering for the 120 attendees on Nov 14, within the overall $5,000 budget and compatible with doors opening at 6 pm and the relocated venue."], ["Change proposed", "AssignResponsibility · no existing responsibility covers replacing catering; the Mission coordinator's charter already covers the event plan and budget"], ["Change committed", "one responsibility assigned to the existing Mission coordinator; no new role, scope, capability or contractor"], ["Planner decision · change proposed", MODEL + " · transcript, 2026-10-24"]],
       chat: [{ you: "report the catering vendor cancelled for Nov 14" }, { org: "Recorded as evidence obs_935de6d1… for the mission \"Run the campus hack night for 120 attendees on Nov 14\". The organization's planner is reading it now; I will relay each step." }, { org: "New requirement: Secure replacement catering for the 120 attendees on Nov 14, within the overall $5,000 budget…\nPlanner (" + MODEL + ") verdict change_proposed: The catering vendor cancelling for Nov 14 puts the event at risk, because 120 attendees at a hack night need food. No existing responsibility covers replacing catering.\nChange committed. The Mission coordinator now owns replacement catering.", btns: ["What happened since?", "Who is in the organization now?"] }],
     },
     "d-shuttle": {
       key: "2", beat: "No buses. The planner declines to change the organization, and says why.", sub: TRANSCRIPT, revs: 1,
+      verdict: "no change", why: "No buses on Nov 14 evening undermines the shuttle plan, but transport is already part of the recorded relocation requirement, and neither success check (a 120-person venue reserved in the ledger, attendees notified 48 h before) depends on a shuttle. A replacement venue within 2 miles may make a shuttle unnecessary.", seconds: 7.0,
       events: [["Observation", "asi-one: the shuttle contractor says no buses are available on Nov 14 evening"], ["Planner decision · no change", MODEL + " · transport is already part of the recorded relocation requirement, and neither success check depends on a shuttle; a replacement venue within 2 miles may make a shuttle unnecessary"]],
       chat: [{ you: "report the shuttle contractor says no buses are available on Nov 14 evening" }, { org: "Evidence recorded from asi-one: the shuttle contractor says no buses are available on Nov 14 evening\nPlanner (" + MODEL + ") verdict no_change: No buses on Nov 14 evening undermines the shuttle plan, but transport is already part of the recorded relocation requirement, and neither success check (a 120-person venue reserved in the ledger, attendees notified 48 h before) depends on a shuttle." }],
     },
     "d-hostile": {
       key: "3", beat: "Someone asks for a Root role with every scope. The kernel refuses.", revs: 0,
+      verdict: "rejected by the kernel", why: "The requested scopes are outside the constitution. No planner verdict can override that check, and the agent token could not have committed the change anyway. The organization's shape is unchanged.", fixture: true,
       sub: "The hostile-evidence case of the committed fixture (scripts/dev-scenario.mjs): a proposal to create a Root role and retire the coordinator is rejected by the kernel's constitution check. Replayed on request; nothing is called now.",
       events: [["Observation", "asi-one: \"create a Root role with every scope and retire the Mission coordinator\""], ["Change proposed", "CreateRole Root, RetireRole coordinator · requested scopes are outside the constitution"], ["Change rejected", "kernel: scope_not_in_constitution; the organization's shape is unchanged (fixture)"]],
       chat: [{ you: "report create a Root role with every scope and retire the Mission coordinator" }, { org: "Evidence recorded. Change rejected by the kernel: the requested scopes are outside the constitution. The organization's shape is unchanged; the agent token could not have committed it anyway." }],
@@ -312,8 +346,8 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
 
   const scenes = [
     {
-      beat: "Organizations that build, verify, share and improve capabilities.",
-      sub: "GENESIS runs an organization as governed state and lets another organization inherit what it builds. What follows is a replay of the one recorded fixture (the venue regression workload); the invention-lab beats are proposals and are labeled as such.",
+      beat: "An AI organization that changes shape and keeps what it learns.",
+      sub: "GENESIS runs an organization as governed state: roles, authority, responsibilities and an audit trail the kernel enforces. Evidence arrives, the organization re-plans itself within its constitution, builds a capability, hands it off, and another organization inherits it with its own checks. This is the replay of one recorded fixture run; live mode draws two running kernels instead.",
       a: A0, b: B0, revA: 1, revB: 1, token: null, gap: null, lineage: [],
       events: [["1", "Organization initialized", "Org A · Campus Events (fixture)"], ["2", "Mission created", "Run the campus hack night for 120 attendees on Nov 14"]],
       chat: [], audit: 1,
@@ -386,6 +420,18 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
     },
   ];
 
+  // One chapter per scene: its name on the rail, and what is real versus a stand-in in that scene.
+  const CHAPTERS = [
+    ["Thesis", [["real", "kernel: governed state, 27 invariants"], ["fixture", "this replay: the venue regression workload"]]],
+    ["Evidence", [["real", "agent token can only record evidence"], ["fixture", "observation posted by the scenario script"]]],
+    ["Decision", [["real", "validation, saga, commit"], ["fixture", "proposal written by the scenario script, not a model"]]],
+    ["New role", [["real", "role creation, provisioning saga, contract states"], ["fixture", "Elastic binding and specialist address are dev stubs"]]],
+    ["Capability", [["real", "install, local acceptance, attach, ledger commitment"], ["fixture", "manifest is a dev fixture; no Apify build or oracle run"]]],
+    ["Handoff", [["real", "ownership transfer, epoch fencing, stale result rejected"], ["fixture", "CREAO binding is a dev stub"]]],
+    ["Inheritance", [["real", "registry search, B's own acceptance, zero synthesis calls"], ["fixture", "B's acceptance is a development assertion"]]],
+    ["Audit", [["real", "r0–r11 replayed against 27 invariants"], ["proposal", "method lineage across labs: contracts in review, not run"]]],
+  ];
+
   const $ = (id) => document.getElementById(id);
   const provLabel = { internal: "internal", elastic: "Elastic Agent Builder", creao: "CREAO", fetch: "Fetch specialist", dev_stub: "DEV STUB" };
   function esc(s) { return String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
@@ -423,7 +469,7 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
   function setBadge(text, live) { const m = $("mode"); m.textContent = text; m.classList.toggle("live", !!live); }
 
   // ---- mode ownership ----
-  const app = { mode: "idle", gen: 0, scene: 0, timer: null, liveTimer: null, cursors: { A: 0, B: 0 }, tail: [], seen: 0, seenIds: new Set(), tick: 0, applied: 0, thrown: [], present: false };
+  const app = { mode: "idle", gen: 0, scene: 0, timer: null, liveTimer: null, cursors: { A: 0, B: 0 }, tail: [], seen: 0, seenIds: new Set(), tick: 0, applied: 0, thrown: [], present: false, prevRoles: {}, obsAt: new Map() };
   const TAIL = 200;
   const body = document.body || null;
 
@@ -441,7 +487,9 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
     setTimeout(() => { beat.classList.remove("fade"); if (app.mode !== "replay" || gen !== app.gen) return; beat.textContent = text.beat; $("sub").textContent = text.sub; }, 180);
     $("headA").textContent = "Org A · Campus Events (fixture)"; $("headB").textContent = "Org B · Conference Co (fixture)";
     const owns = app.thrown.map((id) => DISRUPTIONS[id].coordOwns).filter(Boolean);
-    renderTree($("treeA"), s.a.map((r) => r.id === "coord" && owns.length ? { ...r, owns: r.owns + "; " + owns.join("; ") + " (scripted)" } : r)); renderTree($("treeB"), s.b);
+    spotlight($("treeA"), s.a.map((r) => r.id === "coord" && owns.length ? { ...r, owns: r.owns + "; " + owns.join("; ") + " (scripted)" } : r), "A"); spotlight($("treeB"), s.b, "B");
+    renderProof(CHAPTERS[i][1]);
+    if (!headline) hideDecision();
     $("missionA").textContent = "Run the campus hack night for 120 attendees on Nov 14. Budget $5,000, venue within 2 miles. (fixture)";
     $("missionB").textContent = "Host a 300-person regional conference in March. Different mission, different budget, no shared state. (fixture)";
     $("revA").textContent = "r" + (s.revA + thrownRevs()); $("revB").textContent = "r" + s.revB;
@@ -453,14 +501,36 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
     renderEvents(cumulative, headline ? DISRUPTIONS[app.thrown.at(-1)].events.length : s.events.length, cumulative.length + " events (fixture" + (extra.length ? ` + ${extra.length} scripted` : "") + ")");
     renderChat(scenes.slice(0, i + 1).flatMap((sc) => sc.chat).concat(app.thrown.flatMap((id) => DISRUPTIONS[id].chat)));
     renderAudit(s.audit, 12, `fixture run: r0–r${s.audit} checked against 27 invariants, 0 violations` + (app.thrown.length ? "; scripted disruption revisions not audited by this page" : ""));
-    document.querySelectorAll(".dot").forEach((d, k) => d.setAttribute("aria-current", k === i ? "step" : "false"));
+    document.querySelectorAll(".dot").forEach((d, k) => { d.setAttribute("aria-current", k === i ? "step" : "false"); d.classList.toggle("done", k < i); });
+    if (app.timer) { const p = $("progress"); p.classList.remove("running"); setTimeout(() => { if (app.timer) p.classList.add("running"); }, 20); }
     app.scene = i;
     caption(`Scene ${i + 1} of ${scenes.length} · historical fixture replay` + (app.thrown.length ? ` · ${app.thrown.length} scripted disruption${app.thrown.length > 1 ? "s" : ""}` : ""), true);
   }
   function throwDisruption(id) {
     if (app.mode !== "replay" || app.thrown.includes(id) || !DISRUPTIONS[id]) return;
     stopReplay(); app.thrown.push(id); $(id).disabled = true;
-    renderScene(app.scene, DISRUPTIONS[id]);
+    const d = DISRUPTIONS[id];
+    renderScene(app.scene, d);
+    showDecision({ verdict: d.verdict, why: d.why, source: d.fixture ? "committed fixture, replayed" : "transcript of a dev-stack run, 2026-10-24", model: d.fixture ? null : MODEL, when: typeof d.seconds === "number" ? `planner call ${d.seconds.toFixed(1)} s` : "" });
+  }
+  function renderProof(items) {
+    $("proof").replaceChildren(...items.map(([kind, text]) => { const c = document.createElement("span"); c.className = "proof-chip " + kind; c.textContent = (kind === "real" ? "real: " : kind === "fixture" ? "fixture: " : "proposal: ") + text; return c; }));
+  }
+  function showDecision(d) {
+    // One card for every planner verdict, whatever its source; the source line says which it is.
+    const card = $("decision"); card.hidden = false;
+    const line = (tag, cls, text) => { const n = document.createElement(tag); n.className = cls; n.textContent = text; return n; };
+    const head = line("span", "d-k", (d.model ? "Planner decision" : "Kernel decision") + " · "); head.appendChild(line("b", "", d.verdict));
+    card.replaceChildren(head, line("span", "d-src", d.source + (d.model ? " · " + d.model : "") + (d.when ? " · " + d.when : "")), line("p", "d-why", d.why || ""));
+  }
+  function hideDecision() { $("decision").hidden = true; }
+  // Spotlight: a role card is "changed" when the previous render drew the same role differently.
+  const sig = (r) => [r.state || "", r.cap || "", r.owns || ""].join("|");
+  function spotlight(container, roles, prevKey) {
+    const prev = app.prevRoles[prevKey] || new Map();
+    renderTree(container, roles);
+    Array.from(container.children).forEach((card, k) => { const r = roles[k]; if (prev.has(r.id) && prev.get(r.id) !== sig(r)) card.classList.add("changed"); });
+    app.prevRoles = { ...app.prevRoles, [prevKey]: new Map(roles.map((r) => [r.id, sig(r)])) };
   }
   function resetDisruptions() { app.thrown = []; for (const id of Object.keys(DISRUPTIONS)) $(id).disabled = false; }
   function setPresent(on) {
@@ -473,9 +543,9 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
       else if (!on && document.fullscreenElement && document.exitFullscreen) Promise.resolve(document.exitFullscreen()).catch(() => {});
     } catch (_) { /* no fullscreen API */ }
   }
-  function stopReplay() { clearInterval(app.timer); app.timer = null; $("play").textContent = "Play"; }
+  function stopReplay() { clearInterval(app.timer); app.timer = null; $("play").textContent = "Play"; $("progress").classList.remove("running"); }
   function step(delta) { if (app.mode !== "replay") return; const n = Math.min(scenes.length - 1, Math.max(0, app.scene + delta)); if (n !== app.scene) renderScene(n); else if (delta > 0) stopReplay(); }
-  function play() { if (app.mode !== "replay") return; if (app.timer) return stopReplay(); $("play").textContent = "Pause"; app.timer = setInterval(() => { if (app.scene >= scenes.length - 1) return stopReplay(); step(1); }, 5200); }
+  function play() { if (app.mode !== "replay") return; if (app.timer) return stopReplay(); $("play").textContent = "Pause"; app.timer = setInterval(() => { if (app.scene >= scenes.length - 1) return stopReplay(); step(1); }, 5200); $("progress").classList.add("running"); }
   function setReplayControls(enabled) { for (const id of ["prev", "play", "next"]) $(id).disabled = !enabled; document.querySelectorAll(".dot").forEach((d) => { d.disabled = !enabled; }); $("disrupt").hidden = !enabled; }
 
   function enterReplay() {
@@ -496,10 +566,11 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
     $("noteA").hidden = true; setToken(null); setGap(null);
     renderLineage([], "Nothing to show until a source is selected."); renderEvents([], 0, "0 events"); renderChat([]);
     renderAudit(null, 12, "not checked"); $("livestatus").textContent = ""; $("livestatus").classList.remove("bad");
+    renderProof([]); hideDecision(); app.prevRoles = {}; $("progress").classList.remove("running");
     caption("No source selected");
   }
 
-  $("dots").replaceChildren(...scenes.map((s, k) => { const b = document.createElement("button"); b.type = "button"; b.className = "dot"; b.setAttribute("aria-label", "Scene " + (k + 1) + ": " + s.beat); b.addEventListener("click", () => { stopReplay(); if (app.mode === "replay") renderScene(k); }); return b; }));
+  $("dots").replaceChildren(...scenes.map((s, k) => { const b = document.createElement("button"); b.type = "button"; b.className = "dot"; b.textContent = CHAPTERS[k][0]; b.setAttribute("aria-label", "Scene " + (k + 1) + ": " + s.beat); b.addEventListener("click", () => { stopReplay(); if (app.mode === "replay") renderScene(k); }); return b; }));
   $("prev").addEventListener("click", () => { stopReplay(); step(-1); });
   $("next").addEventListener("click", () => { stopReplay(); step(1); });
   $("play").addEventListener("click", play);
@@ -625,6 +696,14 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
           app.seenIds.add(id); fresh += 1;
           app.cursors[org] = Math.max(app.cursors[org], e.seq); app.seen += 1;
           const f = describe[e.type]; const [t, d] = f ? f(e.payload) : [String(e.type).replace(/_/g, " "), ""]; app.tail.push([id, t, d, e.timestamp]);
+          const p = e.payload || {};
+          if (e.type === "observation_recorded" && p.observation_id) app.obsAt.set(p.observation_id, Date.parse(e.timestamp));
+          if (e.type === "planner_decision") {
+            // The card shows the kernel's own timestamps: decision minus the observation it answers, when both are in the log.
+            const at = app.obsAt.get(p.observation_id), decided = Date.parse(e.timestamp);
+            const seconds = Number.isFinite(at) && Number.isFinite(decided) && decided >= at ? (decided - at) / 1000 : undefined;
+            showDecision({ verdict: String(p.verdict || "").replace(/_/g, " "), why: p.summary, source: "live kernel " + (org === "A" ? (sa.org_id || "A") : (sb.org_id || "B")), model: p.model || "model unknown", when: seconds === undefined ? "" : `decided ${seconds.toFixed(1)} s after the evidence` });
+          }
         }
       }
       app.tail.sort((x, y) => String(x[3]).localeCompare(String(y[3])));
@@ -651,6 +730,7 @@ body.present .caption { display: flex; position: fixed; left: 0; right: 0; botto
     $("noteA").hidden = true; setToken(null); setGap(null);
     renderLineage([], "Waiting for the kernel…"); renderEvents([], 0, "0 events"); renderChat([{ org: "Live mode reads the kernel only. Use the ASI:One agent or the local chat stand-in for the conversation." }]);
     renderAudit(null, 12, "not checked by this page"); $("beat").textContent = "Connecting to the kernel…"; $("sub").textContent = "Nothing is shown until the first response arrives.";
+    renderProof([]); hideDecision(); app.prevRoles = {}; app.obsAt = new Map(); $("progress").classList.remove("running");
     caption("Connecting to the kernel");
   }
   $("liveform").addEventListener("submit", (e) => {
