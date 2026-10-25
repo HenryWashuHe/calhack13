@@ -1,6 +1,31 @@
 # Implementation status
 
-## Current review checkpoint — October 25, 2026
+## Current closeout checkpoint — main `7ec75563`
+
+The user authorized review, bounded fixes and merge of ready remaining PRs.
+#225/#226, #180/#181, #204, #215 and #219 are now merged; exact sources,
+merge commits and scoped checks are in the [review summary](reviews/pr-queue-2026-10-25.md#current-closeout--main-7ec75563).
+The lab UI now refuses unsupported cost attribution, separates discovery from
+fetched evidence, and labels the Stage Lab extract as author-reported. The
+research harness corrections passed pure/mocked checks; experimental runs were
+not reproduced. These changes clear the reviewed source-specific findings.
+
+#211 implements scored-output/responsibility binding. #215 adds historical
+scripted rehearsal records, with limited retained coverage: 56/145 and 63/152
+manifest files are present in the first two bundles (89 missing each); all 85
+files in the third manifest match, but that manifest excludes exploration
+artifacts and databases. Present hashes and selected bindings are consistent;
+this does not establish independent organizational operation or G2 closure.
+
+#216 and preservation draft #7 remain open. Newly arrived #228 `3250e301`
+is unreviewed and stacked on #216; it is not a cleared experiment. #216
+`e16277ad` retains three confinement/admission findings, reproduced by inert
+policy guards (one control passes, three fail); its author actively owns the fix.
+Current-head Linux assurance for merged #57/#65 remains open. This closeout ran
+or dispatched no namespace, evaluator/scorer, generated-method or provider work.
+G0–G4 remain open; the native app Goal reports `paused`.
+
+## Historical runtime review checkpoint — October 25, 2026
 
 At main `de453090`, [the priority review snapshot](reviews/pr-queue-2026-10-25.md)
 records #220/#221 fixes and both original runtime PRs merged on the owner's
