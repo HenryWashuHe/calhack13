@@ -135,6 +135,10 @@ historical fixture does not establish authenticated cloud execution or sponsor
 qualification. Use the sponsor notes and `docs/IMPLEMENTATION_STATUS.md` for
 specific remaining evidence instead of presenting every integration as live.
 
+`architecture.html` on the same port draws sponsor interfaces and separately labels dated live checkpoints,
+reported records and pending readiness. Its table uses the current CREAO API Trigger contract and lists
+submission evidence still needed; arrows do not certify a complete A→B→A development-method loop.
+
 ## Two-tab operating plan (what to press, when to switch)
 
 Both tabs use port 7778. Tab 1 is the visual presentation; Tab 2 is the case file.
