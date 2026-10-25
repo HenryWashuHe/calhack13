@@ -1,12 +1,45 @@
 # GENESIS implementation handoff
 
-## Manual closeout handoff — October 25, 2026
+## Current manual review batch — October 25, 2026
+
+The user authorized this manual review/fix/merge pass; keep automation and the
+native Goal paused. #228, #246/#254, #248/#253 and #250/#255 are merged with
+scoped inert/pure/compile checks. #249/#256 is merged at `85526ea1` after
+independent static archive/binding audit; its author-run outcomes remain separate
+from those checks and expose the method.develop authority gap.
+Use the [current review table](reviews/pr-queue-2026-10-25.md#current-manual-review-batch--october-25-2026)
+for exact sources, counts and limitations. No experiment was run or assigned by
+this closeout, and G0–G4 remain open.
+
+### Current ownership and next work
+
+- Henry retains runtime/evaluator/scoring/adoption. His
+  [adoption-scope claim](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6395990305)
+  addresses method.develop authority after his G2 run. Source `f52210ab` is
+  reviewed but unmerged; main still lacks that policy. Implementation and the
+  legacy-adoption/fresh-invocation coverage follow-up remain Henry's lane. Do not duplicate that lane or treat the
+  historical run as governed by the later correction.
+- ACP retains `apps/stage/**`; #246's session/event/report corrections are now
+  merged, with 134 inert tests and no real kernel/API or browser validation.
+- Eric retains the web lab UI and research runner/protocol. #228's scoped holds
+  are cleared; changed source/protocol registration must precede any separately
+  authorized launch. This review creates no new execution assignment.
+- Codex completes this scoped correction/audit ledger. Test-contract-only #257
+  `c7c13ff0` is merged at `ff10865f`, with four independently reproduced
+  inert-source CLI loopback cases for the #233 pre-write refusal.
+  Draft #7 and all historical
+  evidence stay preserved. Ines remains unassigned.
+
+The older handoffs below are historical; their open-queue or priority statements
+must not override this snapshot or newer explicit issue #1 claims.
+
+## Historical manual closeout handoff — October 25, 2026
 
 The user disabled the recurring task, then authorized manual review and subagent
 fixes. Keep the automation and native Goal paused. Coordinate in issue #1;
 Ines remains unassigned and draft #7 remains preserved.
 
-### Current ownership and next work
+### Previous ownership and next work
 
 - Claude retains `scripts/iteration/**`. Its #216 `c45d9235` is now merged at
   `c16beeca`; root reproduced four inert policy guards, clearing the three
