@@ -46,13 +46,14 @@ model generation or recursive benefit.
 lifecycle validation is incomplete; an automated safety filter interrupted that
 review. No independent Linux validation or failure reproduction is claimed here. ACP #3/#5's
 migration atomicity and intermediate-schema index-name holds are cleared;
-#4's stale routing/status/demo documentation remains held. Best-effort namespace
-mounts and trusted-directory storage remain experimental boundaries.
+#4's corrected ACP documentation is merged at `9da2fc12`; it grants no new
+command authority or public routing evidence. Best-effort namespace mounts and
+trusted-directory storage remain experimental boundaries.
 
 **Ongoing work is resumed under [the repository goal](docs/ONGOING_GOAL.md).**
-The user resumed work with a retry; the native app Goal last returned `blocked`,
-not complete. The existing hourly continuation remains active. The October 24
-replacement Goal and this repository contract retain the full moonshot. Preserve the G0–G4 completion contract,
+The native app Goal and the existing hourly continuation are active; no
+completion is claimed. The October 24 replacement Goal and this repository
+contract retain the full moonshot. Preserve the G0–G4 completion contract,
 including selective transfer and honest null results. Preserve local repair WIP.
 
 
@@ -126,10 +127,10 @@ every milestone. All lower checkpoints are historical.
   no duplicate create or name/time-window matching. The old lost run ID cannot
   be recovered retroactively. Its implementation #104 `5023a48` merged as `62a2f009`; independent
   guards are retained in #106. No hosted recovery or readiness is established.
-- ACP Claude owns the bridge and held #4 documentation proposal. #3 `f64e131`
-  and #5 `e95a286` are merged; all eight `bb5a841`/`0705ecd`/`b60a755` cases
-  remain unchanged and pass. Reconcile #4 with those merges, the local
-  executor/scorer and issue #1 without reviving the event-organizer example.
+- ACP Claude owns the bridge. #3 `f64e131` and #5 `e95a286` are merged; all
+  eight `bb5a841`/`0705ecd`/`b60a755` cases remain unchanged and pass. Corrected
+  #4 `be7056c6` merged at `9da2fc12` with current routing and a product-neutral
+  example; proposed commands remain proposed. #126 is merged; prioritize held #144.
 - Codex owns shared contracts, the merged forge method-generation path and
   independent integration review. Core identity checks and declared combined-cost
   accounting (#56/#58/#59), plus the offline read-only cost-assessment CLI (#60),
@@ -272,8 +273,10 @@ every milestone. All lower checkpoints are historical.
   It delegates to merged typed `assess_process_slot`; no scorer ran. Endpoint
   #168 `99b2c8b0` remains held on family-specific policy, full method identity
   and ordered/not-run roster binding (one control passes, seven subcases fail).
-  #165 `15febb1e` fixes its reproduction-build provenance, but new first-grid-point
-  wording contradicts the retained hidden-2 trace. Static checks pass; no rerun.
+  Selective-transfer #165 `cb5f28f0` merged at `b99839df` after corrected claims
+  and static checks of 713 manifest entries, 523 artifact hashes, 12 slot joins
+  and nine declaration comparisons. Original records are unchanged; the parent
+  wins on rough-transport but not ravine. No runtime/namespace or G3/G4 clearance.
   Selection CLI #173/#175 and whole development roster #187 `da669296` →
   `bb9f7c28` are merged; #189 preserves independent `d2304309` guards at
   `899de43d`. The final composition passes 30 scoped forge tests and strict
@@ -305,23 +308,36 @@ every milestone. All lower checkpoints are historical.
   `experiments/strategy-adapter/**` and proposals `strategy-adapter.md` /
   `iteration-algorithms.md` under `docs/invention-lab/proposals/`, on
   `eric/strategy-adapter-split`. No forge/executor/core/kernel/UI edits are claimed.
-  Replay is author-reported only, not run or accepted here. His prior UI
-  ownership and pending UI request remain unchanged.
+  Proposals #182 `28e398e5` / #183 `813e05f1` merged at `c2b748cf` / `d28e898c`
+  after bounded editorial corrections. They add no implementation or gate result.
+  Research #180/#181 remains held on source-only lifecycle/host-execution findings;
+  replay stays author-reported. Prioritize Eric's #148/#149 and #180/#181 fixes;
+  his prior UI ownership and pending request remain unchanged.
 - Ines remains unassigned by explicit user instruction.
 
 Separate `apps/stage` queue: #125 `811d0df2` → `c0c2cae1` is merged after
-33 offline VM tests, with the original timing guard unchanged. #126 `67071fc7`
-remains held after fixing the same-poll cases: a later unrelated B poll replaces
-A's card while the acknowledged A status still links to it. All 47 existing
-VM tests pass; two later-poll guards fail in preserved `75c67a6`.
+33 offline VM tests. #126 `702ee560` → `eb08a232` is now merged: root, independent
+reviewer and final composition each pass 52 offline VM checks (overlapping).
+All 49 prior test bytes stay unchanged; three new ambiguity guards cover
+unconfirmed delivery and checking the log before another report. No live POST,
+browser/provider walkthrough or adoption/authority evidence is claimed.
 Dated direction/sponsor note #161 `c936bcf6` merged at `a9caea11` after
 source/delta and independent review; the current checkpoint remains authoritative.
-ACP #144 `51b342ea` remains held after substantive earlier fixes: 54 existing
-synthetic Node tests pass, but three new guards fail at `db25f0b8`. Resumption
-loses invalid observation positions, primitive/frozen callback errors erase
-partial work, and ancestor metadata displaces later verified source bytes.
-These are finite inert-callback checks, not runtime or improvement evidence. These changes
-transfer no ownership or adoption authority.
+ACP #144 `407ca24f` fixes the previous three cases: all 57 existing synthetic
+Node checks pass. A new 42-line guard `a8887ec7` fails: an imported ancestor's
+metadata becomes another family's root, drops verified source and falsely
+promotes 1/2 over the actual 2/2 control. Root independently reran that failure.
+Inert callbacks only, not runtime, improvement or adoption authority.
+
+Queue cleanup preserved branches: #176/#177/#178 closed as superseded by
+#180/#181 and revised proposals #182/#183 after exact code/test comparisons.
+#143 closed as deferred, outside the active goal. #167 `d2b76522` merged at `0643c9ef`
+after root source review, locked executor check and strict all-target Clippy.
+The five-line staging-collision fix is not runtime or namespace assurance.
+Henry's priority remains #179/#186 and #168; #184 `68e05610` remains held on
+calibration unknown-to-zero and timeout/failure handling before new research runs.
+The `b5a35bf` invocation rehearsal is author-reported and unreviewed here,
+not independent organizational evidence or gate closure.
 
 Legacy task numbers are historical references in the migration map. Current
 assignments and exact file scopes are recorded in issue #1 and the handoff.
