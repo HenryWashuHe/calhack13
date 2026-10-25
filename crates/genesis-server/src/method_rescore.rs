@@ -13,6 +13,7 @@
 //! method, so a substituted output is still scored as given.
 use crate::method_adoption::{read_retained, AcceptanceEvidence, MethodAcceptanceError};
 use genesis_core::development_method::ExecutionReceipt;
+use genesis_core::development_trial::TrialPlan;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
@@ -56,18 +57,29 @@ fn fail(message: impl Into<String>) -> MethodAcceptanceError {
 
 fn bounded(path: &Path, limit: u64) -> Result<Vec<u8>, MethodAcceptanceError> {
     use std::io::Read;
-    let file = std::fs::File::open(path).map_err(|_| fail("the rescorer is unreadable"))?;
+    let name = path.file_name().map(|n| n.to_string_lossy().into_owned());
+    let unreadable = || {
+        fail(format!(
+            "{} is unreadable",
+            name.as_deref().unwrap_or("a file")
+        ))
+    };
+    let file = std::fs::File::open(path).map_err(|_| unreadable())?;
     let mut bytes = Vec::new();
     file.take(limit + 1)
         .read_to_end(&mut bytes)
-        .map_err(|_| fail("the rescorer is unreadable"))?;
+        .map_err(|_| unreadable())?;
     if bytes.len() as u64 > limit {
-        return Err(fail("the rescorer is too large"));
+        return Err(fail(format!(
+            "{} is too large",
+            name.as_deref().unwrap_or("a file")
+        )));
     }
     Ok(bytes)
 }
 
-/// Comparable form of an evaluation receipt: everything but measured wall time.
+/// Comparable form of an evaluation or execution receipt: everything but
+/// measured wall time, which is checked against its grant separately.
 fn comparable(bytes: &[u8]) -> Option<Value> {
     let mut v: Value = serde_json::from_slice(bytes).ok()?;
     v.get_mut("usage")?
@@ -99,82 +111,157 @@ impl Drop for Scratch {
     }
 }
 
+/// Copies a pinned tool into `work`, checking the copy's digest, so a later
+/// change to the configured path can't run unpinned code.
+fn install(
+    path: &Path,
+    pin: &str,
+    work: &Path,
+    name: &str,
+) -> Result<PathBuf, MethodAcceptanceError> {
+    let bytes = bounded(path, MAX_SCORER_BYTES)?;
+    if sha(&bytes) != pin {
+        return Err(fail(format!(
+            "the configured {name} does not match its pin"
+        )));
+    }
+    let copy = work.join(name);
+    {
+        use std::io::Write;
+        use std::os::unix::fs::OpenOptionsExt;
+        let mut file = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .mode(0o700)
+            .open(&copy)
+            .map_err(|_| fail(format!("could not stage the {name}")))?;
+        file.write_all(&bytes)
+            .and_then(|_| file.sync_all())
+            .map_err(|_| fail(format!("could not stage the {name}")))?;
+    }
+    Ok(copy)
+}
+
+/// Runs a staged tool with a cleared environment (plus `path_env`, if any) in
+/// its own process group, until it exits or `timeout_ms` passes; on timeout the
+/// whole group is killed. Returns whether it exited successfully. The staged
+/// copy is re-hashed just before it starts.
+fn run_tool(
+    (tool, pin): (&Path, &str),
+    args: &[&std::ffi::OsStr],
+    path_env: Option<&str>,
+    timeout_ms: u64,
+    (what, context): (&str, &str),
+    cwd: &Path,
+) -> Result<bool, MethodAcceptanceError> {
+    use std::os::unix::process::CommandExt;
+    if bounded(tool, MAX_SCORER_BYTES)
+        .map(|b| sha(&b))
+        .ok()
+        .as_deref()
+        != Some(pin)
+    {
+        return Err(fail(format!("the staged {what} changed before it ran")));
+    }
+    let deadline = Duration::from_millis(timeout_ms);
+    let mut attempts = 0;
+    let mut child = loop {
+        let mut command = Command::new(tool);
+        command
+            .args(args)
+            .env_clear()
+            .current_dir(cwd)
+            .process_group(0)
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null());
+        if let Some(path) = path_env {
+            command.env("PATH", path);
+        }
+        match command.spawn() {
+            Ok(child) => break child,
+            Err(e) if e.raw_os_error() == Some(TEXT_BUSY) && attempts < 5 => {
+                attempts += 1;
+                std::thread::sleep(Duration::from_millis(20));
+            }
+            Err(_) => return Err(fail(format!("the {what} could not start"))),
+        }
+    };
+    let kill_group = |child: &mut std::process::Child| {
+        let _ = Command::new("kill")
+            .arg("-KILL")
+            .arg(format!("-{}", child.id()))
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status();
+        let _ = child.kill();
+        let _ = child.wait();
+    };
+    let started = Instant::now();
+    loop {
+        match child.try_wait() {
+            Ok(Some(status)) => return Ok(status.success()),
+            Ok(None) if started.elapsed() < deadline => {
+                std::thread::sleep(Duration::from_millis(20))
+            }
+            Ok(None) => {
+                kill_group(&mut child);
+                return Err(fail(format!("the {what} timed out{context}")));
+            }
+            Err(_) => {
+                kill_group(&mut child);
+                return Err(fail(format!("the {what} could not be awaited")));
+            }
+        }
+    }
+}
+
+/// Measured wall time of a receipt, if it was measured.
+fn wall_ms(bytes: &[u8]) -> Option<u64> {
+    let v: Value = serde_json::from_slice(bytes).ok()?;
+    match v["usage"]["wall_time_ms"]["kind"].as_str()? {
+        "measured" => v["usage"]["wall_time_ms"]["value"].as_u64(),
+        _ => None,
+    }
+}
+
 impl MethodRescorer {
-    /// Copies the pinned scorer into `work`, checking the copy's digest, so a
-    /// later change to the configured path can't run unpinned code.
     fn install(&self, work: &Path) -> Result<PathBuf, MethodAcceptanceError> {
-        let bytes = bounded(&self.path, MAX_SCORER_BYTES)?;
-        if sha(&bytes) != self.sha256 {
-            return Err(fail("the configured rescorer does not match its pin"));
-        }
-        let copy = work.join("rescorer");
-        {
-            use std::io::Write;
-            use std::os::unix::fs::OpenOptionsExt;
-            let mut file = std::fs::OpenOptions::new()
-                .write(true)
-                .create_new(true)
-                .mode(0o700)
-                .open(&copy)
-                .map_err(|_| fail("could not stage the rescorer"))?;
-            file.write_all(&bytes)
-                .and_then(|_| file.sync_all())
-                .map_err(|_| fail("could not stage the rescorer"))?;
-        }
-        Ok(copy)
+        install(&self.path, &self.sha256, work, "rescorer")
     }
 
-    fn run(
+    /// Scores one staged slot into `out` and returns the fresh evaluation. A
+    /// scorer that wrote an evaluation and then exited non-zero (for example on
+    /// a scoring overrun) still counts: the evaluation is what gets compared.
+    fn score(
         &self,
         scorer: &Path,
-        args: &[&Path],
+        (plan, state, out): (&Path, &Path, &Path),
         slot: &str,
         cwd: &Path,
-    ) -> Result<(), MethodAcceptanceError> {
-        let deadline = Duration::from_millis(self.timeout_ms.unwrap_or(DEFAULT_TIMEOUT_MS));
-        let mut attempts = 0;
-        let mut child = loop {
-            let spawned = Command::new(scorer)
-                .arg("score")
-                .arg(args[0])
-                .arg(slot)
-                .arg(args[1])
-                .arg(args[2])
-                .env_clear()
-                .current_dir(cwd)
-                .stdin(Stdio::null())
-                .stdout(Stdio::null())
-                .stderr(Stdio::null())
-                .spawn();
-            match spawned {
-                Ok(child) => break child,
-                Err(e) if e.raw_os_error() == Some(TEXT_BUSY) && attempts < 5 => {
-                    attempts += 1;
-                    std::thread::sleep(Duration::from_millis(20));
-                }
-                Err(_) => return Err(fail("the rescorer could not start")),
-            }
-        };
-        let started = Instant::now();
-        loop {
-            match child.try_wait() {
-                Ok(Some(status)) if status.success() => return Ok(()),
-                Ok(Some(_)) => return Err(fail(format!("the rescorer failed on the {slot} slot"))),
-                Ok(None) if started.elapsed() < deadline => {
-                    std::thread::sleep(Duration::from_millis(20))
-                }
-                Ok(None) => {
-                    let _ = child.kill();
-                    let _ = child.wait();
-                    return Err(fail(format!("the rescorer timed out on the {slot} slot")));
-                }
-                Err(_) => {
-                    let _ = child.kill();
-                    let _ = child.wait();
-                    return Err(fail("the rescorer could not be awaited"));
-                }
-            }
+    ) -> Result<Vec<u8>, MethodAcceptanceError> {
+        let args = [
+            "score".as_ref(),
+            plan.as_os_str(),
+            slot.as_ref(),
+            state.as_os_str(),
+            out.as_os_str(),
+        ];
+        let timeout = self.timeout_ms.unwrap_or(DEFAULT_TIMEOUT_MS);
+        let context = format!(" on the {slot} slot");
+        let ok = run_tool(
+            (scorer, &self.sha256),
+            &args,
+            None,
+            timeout,
+            ("rescorer", &context),
+            cwd,
+        )?;
+        let evaluation = out.join("evaluation.json");
+        if !ok && !evaluation.exists() {
+            return Err(fail(format!("the rescorer failed{context}")));
         }
+        bounded(&evaluation, MAX_OUTPUT_BYTES)
     }
 
     /// Rescores every slot that has a retained evaluation. Blocking: call it
@@ -190,6 +277,10 @@ impl MethodRescorer {
         let need = |rel: &str| read(rel)?.ok_or_else(|| MethodAcceptanceError::Record(rel.into()));
         let mut files = BTreeMap::new();
         let plan = need("plan.json")?;
+        let scoring_grant = serde_json::from_slice::<TrialPlan>(&plan)
+            .map_err(|_| MethodAcceptanceError::Record("plan.json".into()))?
+            .scoring_grant
+            .wall_time_ms;
         files.insert("plan.json".to_string(), sha(&plan));
         let plan_path = work.path().join("plan.json");
         std::fs::write(&plan_path, &plan).map_err(|_| fail("could not stage the plan"))?;
@@ -225,8 +316,7 @@ impl MethodRescorer {
                     .map_err(|_| fail("could not stage the slot"))?;
             }
             let out = work.path().join(format!("{slot}-score"));
-            self.run(&scorer, &[&plan_path, &state, &out], slot, work.path())?;
-            let fresh = bounded(&out.join("evaluation.json"), MAX_OUTPUT_BYTES)?;
+            let fresh = self.score(&scorer, (&plan_path, &state, &out), slot, work.path())?;
             match (comparable(&fresh), comparable(&retained)) {
                 (Some(a), Some(b)) if a == b => {}
                 _ => {
@@ -234,6 +324,14 @@ impl MethodRescorer {
                         "the retained {slot} scoring does not reproduce"
                     )))
                 }
+            }
+            // Wall time is the one measurement left out of the comparison, so
+            // it is re-derived here: the retained claim that scoring fit its
+            // grant only counts if it fits on this host too.
+            if wall_ms(&fresh).is_none_or(|ms| ms > scoring_grant) {
+                return Err(fail(format!(
+                    "rescoring the {slot} slot here did not fit its scoring grant"
+                )));
             }
             let metrics = serde_json::from_slice::<Value>(&fresh)
                 .ok()
