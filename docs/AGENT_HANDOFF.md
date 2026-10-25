@@ -13,8 +13,8 @@ Work on [the ongoing goal](ONGOING_GOAL.md) resumed with the user's retry.
 The latest heartbeat resumes ongoing work; the native app Goal currently reports
 `paused`, and no completion is claimed.
 The October 24 replacement and repository gates are unchanged.
-Main through `eb08a23237230a983796062212529cc31053294e`, tree
-`90c52423e68c7f71aad31bb571679a35142a885a` (reviewed composition `33cea78f`),
+Main through `fa9516cbf803bdde75bd24503fae8a01aa003af0`, tree
+`7c1073684842cd71eb3737649bb1fef8546e27f3` (including unresolved merges below),
 includes the experimental core contracts, source loader, corrected adoption proposal/UI, simulator primitives,
 #50–#52 method-source generation, #42/#43 executor foundations/session and #56
 accounting identity checks plus #58/#59 declared combined-cost assessment and
@@ -63,33 +63,47 @@ source/delta and independent review; the current checkpoint remains authoritativ
 
 ### Current ownership and next work
 
-The remaining 14 PRs are #201, #199, #198, #186, #184, #181, #180, #168,
-#149, #148, #144, #65, #57 and draft #7. #196/#197/#200, #179, corrected proposal
-#195 and config-only #202 are merged. #201 `557127b4` is held on source/seed binding and lifecycle ordering; its
-calibration/replay counts remain author-reported only.
-#198 is held; #199 is unreviewed and inherits its base hold. #168 `8e132a96` is
-held after the new scoped review below. #148 `62c2a0c3` and #149 `6e08ba9` have
-new holds after prior findings clear; exact review evidence follows.
-Current #57 `135a89d1` / #65 `3e101e91` retain
-the unreviewed namespace-assurance boundary; closing duplicate/deferred work or
-merging documentation does not clear implementation findings.
+**Final snapshot: main `fa9516cb`, ten open PRs before this checkpoint:**
+#204, #203, #199, #181, #180, #149, #144, #65, #57 and draft #7.
+#201 `f41e99e9` merged at `05f84f2d`; code/tests match independently cleared
+`f91952b7`, with the final documentation delta checked separately. Its earlier
+source/seed/lifecycle failures are resolved; author pilot results remain unverified.
+#180 `c5e916b8` remains held on lifecycle/buffered-deadline/staging-cleanup findings;
+#181 `f1df31b5` clears its own finding but inherits #180. Exchange UI #204
+`d5d6f7fe` is under independent review; Stage visual stack #203 `abc55ce4` is
+unreviewed. Later source changes require review; no goal gate closes.
+
+**Merged with unresolved findings:** #148 `62c2a0c3` → `fa9516cb`, #168
+`8e132a96` → `e89a47a9`, #184 `2a4a1ccd` → `61125e72` and #198 `adf43e07` →
+`8186fb84`. Their recorded domain/context, resource-limit/criterion, calibration
+unknown/timeout/failure and Stage-evidence/CSS findings are not cleared by merge.
+[Corrective scopes](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6393885331)
+assign #168 to Codex and #198 to the protocol-review agent; #184 is assigned to
+Henry, not yet acknowledged. These corrections are in progress, not completed.
+
+#196/#197/#200, #179/#186, corrected proposal #195, config-only #202 and
+corrected scheduling-study #201 are merged. #148/#168/#184/#198 also merged,
+but their independent findings remain unresolved; the snapshot above routes the
+corrections. #199/#149/#144 remain held, #180 has fresh lifecycle/deadline/cleanup
+findings and #181 inherits that hold after clearing its own finding. #204 is under
+review and #203 is unreviewed. #57/#65 retain their namespace-assurance boundary.
 
 | Owner/session | Active lane and acknowledgment | Scope / next deliverable |
 | --- | --- | --- |
-| Henry's core Claude | [Method-adoption/authority milestone acknowledged](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388913830) | Assessor #154 and corrected adoption-store #155 `cba4bf00` / authorization routes #159 `db0deeca` are merged. Receiver-owned expected policy, consistent stored records, disabled configuration and durable replay clear the prior holds. Pure invocation purpose #185/#188 is merged. Merged #179 `4ddca616` clears migration/reacceptance/compatibility holds. Prioritize review of #186 `95bd7641` actual invocation and held #168 `8e132a96` endpoint corrections; fix #184 calibration handling before new research runs. Identity alone confers no authority. Intake/planner fixtures and authorization alone do not establish the governed loop. |
+| Henry's core Claude | [Method-adoption/authority milestone acknowledged](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388913830) | Assessor #154 and corrected adoption-store #155 `cba4bf00` / authorization routes #159 `db0deeca` are merged. Receiver-owned expected policy, consistent stored records, disabled configuration and durable replay clear the prior holds. Pure invocation purpose #185/#188 is merged. Merged #179 `4ddca616` clears migration/reacceptance/compatibility holds. Merged #186 `95bd7641` adds operator prepare/start/receipt lifecycle. Codex owns the scoped #168 `8e132a96` correction; scored-output/responsibility attachment is the proposed next slice, not yet acknowledged; fix #184 calibration handling before new research runs. Identity alone confers no authority. Intake/planner fixtures and authorization alone do not establish the governed loop. |
 | Henry's core Claude | Evaluator/executor active; simulator and #42–#45 executor stack merged | Own evaluator/executor. #57/#65 portable fixes clear their prior findings; namespace lifecycle assurance remains unverified after interrupted review. Preserve exact evidence limits and avoid claiming Linux enforcement. |
 | Henry's core Claude | #46/#48/#64/#70/#72 merged; #98 `cb29a95` receiving records merged after independent checks; #102 `c8bf7a0` checked public feedback merged at `7accefd3` | Own execution/scoring/adoption and receiving-side record plumbing. Retain B's explicit selection/local acceptance decision and intended responsibility, including the rejected random-search comparison. #116 retains checked rough-transport trials of frozen child `4f455dc6`, rejected against parent/random control. Local acceptance remains unestablished; #117 checked A-return records are Rejected in every comparison. Retain prior declarations and all negative results; do not edit forge. #57/#65 are separate unmerged assurance work. |
-| Eric / Eric's Claude | #93/#94/#99/#100/#101/#109 merged; real-evidence #123 integrated through #128 | `docs/invention-lab/ui.md` and `apps/web/src/invention-lab/**`, no shared routes. #123 `7196d5c` → parent merge `4515f728`; #128 `2f0b6734` → main `a3be74d0`, identical web bytes. Independent 81 tests/13 files and typecheck pass, original regressions unchanged. Preserve `78adef37`, `59c3e1c`, `f2ac45e5` and `0672dcbe`. The separate `apps/stage` queue does not transfer this lane. [MethodOffer/MethodSearchResults intake](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388858370) is requested next, awaiting acknowledgment/exact files: publisher-qualified identity and canonical bytes, no inferred authentication or adoption. |
-| Eric / research lane | [Explicit research claim](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6391308515), branch `eric/strategy-adapter-split` | Own only `experiments/strategy-adapter/**`, `docs/invention-lab/proposals/strategy-adapter.md` and `docs/invention-lab/proposals/iteration-algorithms.md`. No forge/executor/core/kernel/UI edits; prior UI ownership/request stays intact. #182/#183 proposals are merged; #180/#181 remain held on source-only lifecycle/host-execution findings. Prioritize those harness corrections alongside #148/#149 UI fixes. Replay is author-reported, not independently run or accepted here; no implementation or gate is declared complete. |
-| ACP Claude session | #3/#5 and stage #20 merged; [Stage lane explicitly claimed](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388347592) | Own bridge and `apps/stage/**`; #125 is merged after 33 offline VM checks; #126 `702ee560` → `eb08a232` is merged after 52 offline VM checks. [New iteration files](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6389024893) remain proposed/exploratory pending existing-contract interface agreement, not a second default orchestrator. Corrected #4 `be7056c6` → `9da2fc12` is merged; prioritize held #144. [Stage clarity is acknowledged](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6393603972), with #198 `adf43e07` held and [decision-strip #199](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6393637750) `5567f827` unreviewed/inheriting that base hold; no authority change is implied. Preserve the superseded event-organizer boundary. Eric [withdrew only his separate Stage claim](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388539814), leaving his lab UI lane intact. |
+| Eric / Eric's Claude | #93/#94/#99/#100/#101/#109 merged; real-evidence #123 integrated through #128 | `docs/invention-lab/ui.md` and `apps/web/src/invention-lab/**`, no shared routes. #123 `7196d5c` → parent merge `4515f728`; #128 `2f0b6734` → main `a3be74d0`, identical web bytes. Independent 81 tests/13 files and typecheck pass, original regressions unchanged. Preserve `78adef37`, `59c3e1c`, `f2ac45e5` and `0672dcbe`. The separate `apps/stage` queue does not transfer this lane. [MethodOffer/MethodSearchResults intake is acknowledged](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6393807882): `records.ts`, `intake.ts`, new `exchange.ts`/`ExchangePanel.tsx`, mount in `LineagePanel.tsx`, tests/static retained A-package fixtures and `ui.md`. Discovery metadata, fetched bytes and local acceptance remain separate; imported JSON is not authenticated origin. Server `MethodAdoptionRecord` intake is excluded and needs a separate claim. |
+| Eric / research lane | [Explicit research claim](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6391308515), branch `eric/strategy-adapter-split` | Own only `experiments/strategy-adapter/**`, `docs/invention-lab/proposals/strategy-adapter.md` and `docs/invention-lab/proposals/iteration-algorithms.md`. No forge/executor/core/kernel/UI edits; prior UI ownership/request stays intact. #182/#183 proposals are merged; #180 `c5e916b8` has current lifecycle/deadline/cleanup holds. #181 `f1df31b5` clears its own finding but inherits that hold. Prioritize those harness corrections alongside #148/#149 UI fixes. Replay is author-reported, not independently run or accepted here; no implementation or gate is declared complete. |
+| ACP Claude session | #3/#5 and stage #20 merged; [Stage lane explicitly claimed](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388347592) | Own bridge and `apps/stage/**`; #125 is merged after 33 offline VM checks; #126 `702ee560` → `eb08a232` is merged after 52 offline VM checks. [New iteration files](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6389024893) remain proposed/exploratory pending existing-contract interface agreement, not a second default orchestrator. Corrected #4 `be7056c6` → `9da2fc12` is merged; prioritize held #144. [Stage clarity is acknowledged](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6393603972), with #198 `adf43e07` merged with unresolved findings and [decision-strip #199](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6393637750) `5567f827` now held on its own outcome/identity/CSS findings; no authority change is implied. Preserve the superseded event-organizer boundary. Eric [withdrew only his separate Stage claim](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388539814), leaving his lab UI lane intact. |
 | Codex main chat | Contracts/generation/accounting, registry/revision bridge, intake and selection #169/#170/#171/#173 merged | Own selection/roster integration through existing contracts. Self-contained create-only selection capture/read-only recheck now exists. #187/#189 eight-selection development roster is merged. [Bounded operator cohort capture/check CLI #191/#192 is merged](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6393270709). #196/#197/#200 now provide merged source-origin/base-policy and immediate-parent binding; feedback origin/completeness, chain admission/cost links, fresh-panel consumption, chronology and governance remain open. Use merged #171, not duplicate eligibility. Henry retains evaluator/runtime/adoption/endpoint authority, Eric retains UI. No provider request is declared. |
 | EricZhu-31 / Codex provider session | #104 nullable-ticket correction and #137 Trigger smoke are merged; [separate provider slice](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388887582) | #137 source `23316324cd0879f861ea8fdf0bf4bed3e20bf935` → `1cb8135420e1c8a5522b39fbf7f330814ae27136`: independent 35 offline Node tests pass; three original guards unchanged, prior durability/bounds/polling holds cleared. Keep team `capi_`/app-ID Trigger separate from Developer API adapters. Live CREAO is author-reported private evidence, not independently inspected or goal closure. This provider claim does not acknowledge the lab UI request; ACP retains bridge/hosted-gate evidence. |
-| EricZhu-31 / scheduling-study session | [Separate prospective claim](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6393661911), #201 `557127b4` held | Only `experiments/scheduling-study/**` and `docs/invention-lab/scheduling-study-protocol.md`; no physics evaluator, forge, adoption/runtime, existing UI/research or ACP overlap. Calibration/replay counts in [the author report](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6393732739) remain author-reported, not independently reproduced or formal comparison evidence. Six original offline tests and one control pass; four new source/seed/lifecycle guards fail. No model/generated-method run or goal replacement is approved by this checkpoint. |
+| EricZhu-31 / scheduling-study session | [Separate prospective claim](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6393661911), #201 `f41e99e9` merged at `05f84f2d` | Only `experiments/scheduling-study/**` and `docs/invention-lab/scheduling-study-protocol.md`; no physics evaluator, forge, adoption/runtime, existing UI/research or ACP overlap. Calibration/replay counts in [the author report](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6393732739) remain author-reported, not independently reproduced or formal comparison evidence. The earlier six-original/one-control/four-failure review is historical; the merged correction clears its findings. No pilot result was rerun here. No model/generated-method run or goal replacement is approved by this checkpoint. |
 | Ines | Unassigned by explicit user instruction | Do not infer identity from another collaborator handle. |
 
 [Latest testbed direction](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6393241621)
-proposes v2 research after the remaining #186 fixes; #179 is now merged. This
-is not an implemented replacement.
+proposes separate v2 research; #179/#186 are now merged. This is not an
+implemented replacement or authorization to skip #184 calibration corrections.
 For Eric's #182 proposal, [the bounded contracts recommendation](https://github.com/HenryWashuHe/genesis-history-experiment/pull/182#issuecomment-6393229249)
 is an advisory role-hash sidecar: the whole package identity stays authoritative,
 and splitting files requires a new digest/plan. This creates no agreed schema,
@@ -100,7 +114,7 @@ identities now determine run/attempt/scoring IDs before intent, with stable
 repeated preparation. Old receipts remain unchanged; distinct trials across
 specs still need distinct names. The review only ran mocked Python tests.
 
-Eric's results UI [#148 `62c2a0c31c7dd36a0487647bfbb1e7e816cc3524` is held](https://github.com/HenryWashuHe/genesis-history-experiment/pull/148#pullrequestreview-5641667012).
+Eric's results UI [#148 `62c2a0c31c7dd36a0487647bfbb1e7e816cc3524` is merged with unresolved findings](https://github.com/HenryWashuHe/genesis-history-experiment/pull/148#pullrequestreview-5641667012).
 The prior three defects clear with 27 focused tests/typecheck; new
 `76f56164038479a68d5cfe615ec1eacd1c69727e` guards expose exact-reference domain
 collisions and missing scoring-context/plan binding. Stacked [#149
@@ -224,8 +238,9 @@ are merged. Original retained records produce cost bounds, not execution authori
 or proof of complete history; missing stages remain unknown.
 Organizational authority, local selection and adoption remain separate G2/G3 work.
 Henry's acknowledged vertical slice now includes merged #155/#159 adoption and
-current-grant authorization. Actual execution under that grant and reacceptance
-after policy changes are separate unfinished work.
+current-grant authorization, #179 compatibility/reacceptance and #186 operator
+run lifecycle. Receipt validation does not independently prove execution. Scored
+output/responsibility attachment and independent-organization evidence remain open.
 Merged #157/#158 exercises organizational intake with scripted planner controls,
 not real model judgment or method adoption. The W/F pilot alone cannot close
 organizational evolution.
@@ -303,18 +318,21 @@ independently reviewed. Both prior document findings clear: finite observations
 are not equivalence/cap proof; corrected/pinned calibration comes first, with
 unavailable panels explicit and full controls/builds/scoring/panels/grants frozen.
 This is proposal-only review, not runs, implementation or gate closure.
-ACP #198 `adf43e07d9d9903f81790a185075eb269fcf74e0` is held after
+ACP #198 `adf43e07d9d9903f81790a185075eb269fcf74e0` is merged with unresolved findings after
 [review 5641631281](https://github.com/HenryWashuHe/genesis-history-experiment/pull/198#pullrequestreview-5641631281).
 All 56 original VM cases pass; three guards `b8da38d593ed91d0ccc9e0a3b9ae4fed5930a3b0`
 fail on receipt-inferred planner activity, an unrelated decision replacing the
 pending report card, and Explain CSS matching `body`. No browser or live POST ran.
-Decision-strip #199 `5567f8279557c150ea6a13b0c2c90b9f36313b33` is unreviewed and
-inherits held #198; these presentation changes confer no authority.
+Decision-strip [#199 `5567f8279557c150ea6a13b0c2c90b9f36313b33` is held](https://github.com/HenryWashuHe/genesis-history-experiment/pull/199#pullrequestreview-5641682200).
+58 original VM cases and one new control pass; five new cases in
+`3d768026648c8914f05473b9e11ec1f40a8bcd1c` fail on escalated/rejected outcomes
+shown as NoChange, failed shown as Rejected, cross-change ladder/pipeline binding,
+and CSS collision. Inert VM/source checks only; no browser/provider/runtime.
 Config-only #202 `6640fac8930d49e493d2c155791f1b7bb7abe50b` merged at
 `038b8ce9706def7a36b36e7fc953d223e0b6b738` after official configuration-key
 review. No app tests ran; explicit bot commands and GitHub App installation are
 separate from disabling automatic reviews.
-Scheduling-study [#201 `557127b4a80756d355d1cbfbe37dca94f902c342` is held](https://github.com/HenryWashuHe/genesis-history-experiment/pull/201#pullrequestreview-5641669702).
+Prior scheduling-study [#201 source `557127b4a80756d355d1cbfbe37dca94f902c342` was held](https://github.com/HenryWashuHe/genesis-history-experiment/pull/201#pullrequestreview-5641669702).
 Six original tests and one new control pass; four guards in
 `a99279011f19c83d2f3b03279abc0d03fc8b6064` fail source/seed binding and lifecycle
 ordering. These are trusted local synthetic scheduler/static-policy tests,
@@ -338,12 +356,14 @@ and #183 `813e05f174db2724e450513fe83ff8713cdab316` → `d28e898c9c0de0bf6766e1f
 are merged after root/independent document review and local reference checks.
 New package bytes need a new exact reference/plan; all actual pairwise runs and
 rungs must be priced, and confirmation is terminal. No schema, engine, runtime,
-model or goal gate changes. [#180 `56042743` remains held](https://github.com/HenryWashuHe/genesis-history-experiment/pull/180#pullrequestreview-5641485478)
-on ineffective read/time bounds and missing cleanup; [#181 `31199a07` remains held](https://github.com/HenryWashuHe/genesis-history-experiment/pull/181#pullrequestreview-5641485527)
-on generated-source host execution in default tests, plus its parent holds.
-Those are static findings; author replay/live claims were not rerun.
+model or goal gate changes. [#180 `c5e916b8` remains held](https://github.com/HenryWashuHe/genesis-history-experiment/pull/180#pullrequestreview-5641697279)
+on namespace-lifecycle assurance and buffered-deadline/staging-cleanup defects.
+Three fully mocked `ae7bffed` guards fail; no namespace or method run was made.
+[#181 `f1df31b5` clears its own default-execution finding](https://github.com/HenryWashuHe/genesis-history-experiment/pull/181#pullrequestreview-5641697308)
+with four static cases passing and all eight assertions retained, but inherits
+#180's hold. Author replay/live claims were not rerun.
 
-[#184 `68e056103d1e82241ff31123a0cb43081410a2bf` remains held](https://github.com/HenryWashuHe/genesis-history-experiment/pull/184#pullrequestreview-5641505853):
+[#184 has unresolved findings at reviewed `68e056103d1e82241ff31123a0cb43081410a2bf`](https://github.com/HenryWashuHe/genesis-history-experiment/pull/184#pullrequestreview-5641505853):
 calibration coerces unknown receipt steps/scoring outcomes to zero, blocking
 reads lack cleanup and failures are omitted. Its scripts are unchanged by the
 editorial correction; static review only. Henry must fix these before new runs.
@@ -484,8 +504,9 @@ registry dependency clear the earlier holds. Preserve independent `8fee7787`
 (policy/record invariants) and `691b9681` (two HTTP guards) with original tests.
 The former public-record mutation finding was a Rust API invariant, not a
 claimed hostile HTTP mutation path. Authorization checks current authority;
-executing the exact method under that grant is not implemented. Reacceptance
-after policy changes remains proposed; G0–G4 remain open.
+compatibility/reacceptance #179 and operator run lifecycle #186 are now merged.
+Receipt validation remains distinct from independent execution evidence; scored
+output/responsibility attachment is proposed, not yet acknowledged. G0–G4 stay open.
 
 Receiver IDs #163 source `66118d2b2ca53848731e312d50e7cf516981c9f7` →
 `0df3e227348dbaa0da14ded60fb1cdb768993c55`; test-only #166 source
@@ -573,15 +594,18 @@ merged at `68604b929ccfb66920bfc65fb4f0e05530dc6d5a`. [Independent review](https
 passes 23 pure core cases and scoped strict Clippy, including three new guards.
 A one-slot public Development plan binds all claimed grant identity fields;
 acceptance/comparison stays separate. No grant is authenticated or executed by
-these types. New #186 `95bd7641c43fa1786002da1a9b7a8da7dec01b60` is unreviewed.
-The [prior `b069b1294cfbeeb563b3c70ddf96914b4690c3bc` hold](https://github.com/HenryWashuHe/genesis-history-experiment/pull/186#pullrequestreview-5641441324):
-disabling the receiver blocks a matching final receipt, and preparation admits a
-binding that cannot fit the terminal receipt cap. Guard commit
-`d771f69fff79341c07c17b69fa88278b08c15477` preserves two failures; 12 existing
-library and four HTTP controls pass. SQLite/JSON and loopback HTTP only, with
-no operator runner, method, provider or runtime execution. Server validation
-checks an operator-reported receipt against frozen authority; it is not
-independent evidence that execution happened.
+these types. #186 source `95bd7641c43fa1786002da1a9b7a8da7dec01b60` merged at
+`d704b09740c81c6d90845276e1dee7665964d122`. Root 13 store/library, five HTTP and
+five mocked Python helper cases pass; the two original `d771f69f` guards remain
+unchanged. Strict scoped Clippy passes on reviewed composition
+`cc08b231ee37a289bc1ec0521179f99634a174ab`, tree
+`a3fddacebb7c0e3c61a84b5c4eb52468d751d738`, identical to merged main;
+independent static review is clear. The [run lifecycle](invention-lab/contracts/method-runs.md)
+freezes authority/binding and retains operator-reported receipts, including
+post-fence outcomes. It is not independent evidence that execution occurred.
+No method, scorer, provider or namespace ran. [The proposed next integration](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6393814088)
+is scoring invocation output and attaching it to its intended responsibility,
+plus independent-organization state/acceptance; exact scope is not yet acknowledged.
 #179 source `4ddca6163b03e42afb3294136a5d7cb74f337e55` merged at
 `2a12e237085da516082071cb2bb07bea6ed6b8f0`. Migration/reacceptance/compatibility
 findings clear: root 21 scoped cases (17 store and four API) and strict scoped
@@ -592,7 +616,8 @@ All four original `39a979a95b089a8226585f4b028999ee2f68d1cc` cases stay unchange
 Schema-1 read/replay remains supported; method invocation requires a new
 compatibility decision. The old authorization helper checks ownership only,
 not method compatibility. These are pure record/SQLite and loopback checks,
-not provider, generated-source or runtime evidence. New #186 `95bd7641` awaits review; its prior-source hold is not a fresh finding.
+not provider, generated-source or runtime evidence. #186 is merged with the
+separate passing checks recorded above; no execution proof follows from either.
 
 Preparation #164 corrected source `55e14cc41a4f2d1d7d0a5de3f566c571b7ba1f1b`
 clears the narrow stale/partial publication and selected-byte pinning findings:
@@ -603,7 +628,7 @@ It stages the complete preparation bundle and
 requires selected package/digest pairs; it does not establish trusted selection
 lineage or an atomic cross-process no-replace guarantee. Complete selection
 records and authoritative random/parent identities remain upstream responsibilities.
-Endpoint #168 `8e132a96a7a05fb69be0c16ab8abf26c9942b098` remains held after
+Endpoint #168 `8e132a96a7a05fb69be0c16ab8abf26c9942b098` is merged with unresolved findings after
 [review 5641653972](https://github.com/HenryWashuHe/genesis-history-experiment/pull/168#pullrequestreview-5641653972).
 Five prior guards and a valid-policy control pass. Eight new failing subcases in
 `daf04dd5700aa9676eefe07b247ec12ace1fb4fc` expose consistently wrong resource

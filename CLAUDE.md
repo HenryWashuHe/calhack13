@@ -10,6 +10,24 @@
 
 ## Current direction and coordination
 
+**Final snapshot: main `fa9516cb`, ten open PRs before this checkpoint:**
+#204, #203, #199, #181, #180, #149, #144, #65, #57 and draft #7.
+#201 `f41e99e9` merged at `05f84f2d`; code/tests match independently cleared
+`f91952b7`, with the final documentation delta checked separately. Its earlier
+source/seed/lifecycle failures are resolved; author pilot results remain unverified.
+#180 `c5e916b8` remains held on lifecycle/buffered-deadline/staging-cleanup findings;
+#181 `f1df31b5` clears its own finding but inherits #180. Exchange UI #204
+`d5d6f7fe` is under independent review; Stage visual stack #203 `abc55ce4` is
+unreviewed. Later source changes require review; no goal gate closes.
+
+**Merged with unresolved findings:** #148 `62c2a0c3` → `fa9516cb`, #168
+`8e132a96` → `e89a47a9`, #184 `2a4a1ccd` → `61125e72` and #198 `adf43e07` →
+`8186fb84`. Their recorded domain/context, resource-limit/criterion, calibration
+unknown/timeout/failure and Stage-evidence/CSS findings are not cleared by merge.
+[Corrective scopes](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6393885331)
+assign #168 to Codex and #198 to the protocol-review agent; #184 is assigned to
+Henry, not yet acknowledged. These corrections are in progress, not completed.
+
 **Networked recursive capability improvement with fixed model weights** is the
 user-selected product framing. It supersedes the previous decision to relegate
 recursive improvement to “What's next.” Distinguish implemented features from
@@ -88,8 +106,8 @@ every milestone. All lower checkpoints are historical.
   `24183518`, exactly matched main: 23 scoped checks and strict Clippy/fmt pass.
   Receiver-owned expected-plan pins, immutable record consistency, disabled
   receiver refusal and durable replay clear the earlier #155/#159 holds.
-  Invocation authorization is implemented; executing the method under that grant
-  is not. Pure invocation purpose #185 `811c6f5c` → `b1b2c8f2` and independent
+  Invocation authorization and the operator prepare/start/receipt lifecycle are
+  implemented; independently verified execution remains unestablished. Pure invocation purpose #185 `811c6f5c` → `b1b2c8f2` and independent
   guards #188 `e4824046` → `68604b92` are merged: 23 pure core cases and scoped
   strict Clippy pass. Claimed grant identity is bound, not authenticated authority.
   #179 `4ddca616` merged at `2a12e237`, clearing the migration/reacceptance/
@@ -97,10 +115,13 @@ every milestone. All lower checkpoints are historical.
   pass again on the exact final composition. Four old guard cases remain unchanged.
   Schema-1 read/replay stays compatible, but method invocation requires a new
   compatibility decision; the old authorization helper is only an ownership check.
-  New #186 `95bd7641` is unreviewed. The prior `b069b129` hold concerned
-  disabled-receiver receipt retention and a frozen binding
-  that can exceed the receipt cap (12 library + four HTTP controls pass, two
-  new guards fail). These are record/loopback checks, not execution proof.
+  #186 `95bd7641` merged at `d704b097`: root 13 store, five HTTP and five mocked
+  helper cases pass; original `d771f69f` guards stay unchanged. Final composition
+  passes scoped strict Clippy; independent static review is clear. Receipts are
+  operator-reported, checked against frozen binding/authority, not independent
+  execution proof. No method/scorer/provider/namespace ran. Scored output attached
+  to responsibility and independent-organization evidence remain open; the next
+  proposed lane is not yet acknowledged.
   Henry retains this lane.
   #116 B-task records are now checked; local adoption and an accepted fresh
   A return remain unestablished. Receiving wrapper #118 `68bc82d0` merged at
@@ -246,8 +267,11 @@ every milestone. All lower checkpoints are historical.
   generation, execution, adoption or G2/G3 closure.
   Henry's #155/#159 adoption and authorization mechanism is merged; the
   governed method invocation and independent A → B → A loop remain open.
-  Eric's [MethodOffer UI intake increment](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388858370)
-  is requested, not acknowledged. CREAO Trigger #137 `23316324` → `1cb81354`
+  Eric [acknowledged MethodOffer/SearchResults UI intake](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6393807882)
+  in lab `records.ts`/`intake.ts`, new exchange module/panel, its LineagePanel mount,
+  tests and `ui.md`. Discovery, fetched bytes and acceptance stay separate; server
+  MethodAdoptionRecord intake requires another claim. Static retained-package
+  fixtures are planned, with no live/authority result. CREAO Trigger #137 `23316324` → `1cb81354`
   is merged after 35 independent offline Node checks; all three original guards
   are unchanged. Earlier durability/bounds/polling holds are cleared. The live
   CREAO claim remains author-reported private evidence, not independently checked.
@@ -275,7 +299,7 @@ every milestone. All lower checkpoints are historical.
   #174 `f67ae448` → `73d039b5` clears its bounded-read/path hold: five focused
   tests, three temporary inert-file checks and scoped strict Clippy/fmt pass.
   It delegates to merged typed `assess_process_slot`; no scorer ran. Endpoint
-  #168 `8e132a96` remains held after exact review: five prior guards and a valid
+  #168 `8e132a96` is merged with unresolved findings after exact review: five prior guards and a valid
   policy control pass, but eight new `daf04dd5` subcases fail on consistently
   wrong resource limits and skipped missing criterion. These are pure/mocked
   checks, not runtime evidence.
@@ -325,7 +349,7 @@ every milestone. All lower checkpoints are historical.
   `eric/strategy-adapter-split`. No forge/executor/core/kernel/UI edits are claimed.
   Proposals #182 `28e398e5` / #183 `813e05f1` merged at `c2b748cf` / `d28e898c`
   after bounded editorial corrections. They add no implementation or gate result.
-  Research #180/#181 remains held on source-only lifecycle/host-execution findings;
+  Prior reviewed #180/#181 heads had source-only lifecycle/host-execution findings;
   replay stays author-reported. Prioritize Eric's #148/#149 and #180/#181 fixes;
   his prior UI ownership and pending request remain unchanged.
 - Ines remains unassigned by explicit user instruction.
@@ -344,15 +368,16 @@ metadata becomes another family's root, drops verified source and falsely
 promotes 1/2 over the actual 2/2 control. Root independently reran that failure.
 Inert callbacks only, not runtime, improvement or adoption authority.
 ACP's [stage-clarity claim](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6393603972)
-is active, but [#198 `adf43e07` is held](https://github.com/HenryWashuHe/genesis-history-experiment/pull/198#pullrequestreview-5641631281):
+is active, but [#198 `adf43e07` is merged with unresolved findings](https://github.com/HenryWashuHe/genesis-history-experiment/pull/198#pullrequestreview-5641631281):
 56 existing VM tests pass; three new `b8da38d5` guards fail on inferred planner
 activity, a foreign decision replacing a pending card, and Explain CSS matching
-`body`. No browser/live POST ran. Decision-strip #199 `5567f827` is unreviewed
-and depends on held #198; it grants no new authority or ownership.
-Eric's #148 `62c2a0c3` and #149 `6e08ba9` remain held after new reviews. Prior
+`body`. No browser/live POST ran. Decision-strip #199 `5567f827` is also held:
+58 originals and one new control pass; five guards fail on outcome labels,
+mismatched change IDs and CSS collision. It grants no authority or ownership.
+Eric's #148 `62c2a0c3` is merged with unresolved findings; #149 `6e08ba9` remains held. Prior
 findings clear, but exact-reference/scoring-context checks and request-cost/public-
 feedback labels still fail. The final inert UI stack has 133 pass, four fail and
-one skipped exporter case; typecheck passes. Scheduling-study #201 `557127b4` is
+one skipped exporter case; typecheck passes. Prior scheduling-study #201 source `557127b4` was
 held on source/seed binding and lifecycle ordering: six original tests and one
 new control pass, four new guards fail. This uses trusted local synthetic
 scheduler/static-policy tests; author pilot results were not reproduced.
@@ -368,7 +393,7 @@ Queue cleanup preserved branches: #176/#177/#178 closed as superseded by
 #143 closed as deferred, outside the active goal. #167 `d2b76522` merged at `0643c9ef`
 after root source review, locked executor check and strict all-target Clippy.
 The five-line staging-collision fix is not runtime or namespace assurance.
-Henry's priority remains review of #186 and held #168; #184 `68e05610` remains held on
+Codex owns the scoped #168 correction; Henry's next scored-output/attachment slice remains unacknowledged; #184 has unresolved findings at reviewed `68e05610` on
 calibration unknown-to-zero and timeout/failure handling before new research runs.
 The `b5a35bf` invocation rehearsal is author-reported and unreviewed here,
 not independent organizational evidence or gate closure.
