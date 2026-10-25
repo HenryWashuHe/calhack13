@@ -64,3 +64,33 @@ The loopback client fixture publishes A's inert source, lets B discover/fetch it
 then passes the unchanged bytes to `MethodRevisionSpec::prepare` under B's new
 task and operation. It stops at `Prepared`: no model request, source execution,
 acceptance, role creation or recursive benefit is demonstrated.
+
+## Operator CLI
+
+The existing `genesis` binary exposes `method publish`, `method search` and
+`method fetch`. Set `GENESIS_REGISTRY_URL` to the registry origin and
+`GENESIS_REGISTRY_TOKEN` locally; there is no token command-line argument or
+automatic `.env` loading. `--registry-url` before the subcommand overrides the
+URL. The input file is strict JSON, limited to 1 MiB, and is never modified.
+
+```sh
+genesis method publish --expected-publisher org-a --input publication.json
+genesis method search --input query.json
+genesis method fetch --input selected-candidate.json
+```
+
+Inputs are the existing `MethodPublication`, `MethodSearch` and `MethodCandidate`
+records, respectively. A query can be `{"query":"transport","exclude_publisher":"org-b"}`.
+Select one complete candidate from the search result under the receiver's own
+policy and save it as `selected-candidate.json`; fetch never chooses for you.
+Successful stdout contains only the corresponding `MethodOffer` or
+`MethodSearchResults` JSON. Retain it locally without overwriting earlier
+evidence. A redirected file by itself does not authenticate origin, execution
+or acceptance; the command provides no durable receipt journal.
+
+Each command invokes the existing bounded client once. Failure prints sanitized
+diagnostics and exits nonzero, with no successful record. Publication may already
+have committed when any error occurs, including a response-identity or stdout
+write error. Reconcile before another attempt; do not automatically retry or
+interpret missing output as no publication. These commands transfer public source;
+they never execute it, prepare a revision, grant authority or adopt a method.
