@@ -95,7 +95,7 @@ cargo run -p genesis-planner -- run                   # watches Org A
 
 Each `genesis org` also needs `GENESIS_OPERATOR_TOKEN`, `GENESIS_AGENT_TOKEN`
 and `GENESIS_ADAPTER_TOKEN`; provider keys stay in each server's environment
-(`ANTHROPIC_API_KEY`, `APIFY_TOKEN`, `ELASTIC_*`, `CREAO_ACCOUNT_API_KEY`).
+(`ANTHROPIC_API_KEY`, `APIFY_TOKEN`, `ELASTIC_*`, `CREAO_TRIGGER_API_KEY` plus `CREAO_TRIGGER_APP_ID`).
 Prepare the policy files before starting Org A. Acquisition template:
 `crates/genesis-server/examples/acquisition/policy.json`
 ([SERVER_ACQUISITION.md](SERVER_ACQUISITION.md)). Define `runtime/gap-policy.json`

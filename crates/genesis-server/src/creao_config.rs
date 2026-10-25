@@ -3,29 +3,29 @@
 //! When all of `GENESIS_CREAO_DB` (this organization's operation journal),
 //! `GENESIS_CREAO_ACCOUNT` (account namespace shared by every organization on
 //! the same CREAO account), `GENESIS_CREAO_QUOTA_DB` (the shared quota
-//! database) and `CREAO_ACCOUNT_API_KEY` are set, `provider: creao` roles and
+//! database), `CREAO_TRIGGER_API_KEY` and `CREAO_TRIGGER_APP_ID` are set, roles and
 //! jobs go through the durable `CreaoSpecialist` (see ASYNC_PROVISIONING.md).
 //! Startup recovery runs first and makes no provider requests.
 //!
 //! `GENESIS_PUBLIC_URL` additionally enables challenge-bound readiness runs and
-//! the gateway verifier. Without it, created agents keep awaiting readiness.
+//! the gateway verifier. Without it, app-bound roles keep awaiting readiness.
+//! Developer API keys are never used as a fallback.
 
 use crate::app::AppState;
 use crate::creao_readiness::CreaoReadinessProbe;
 use crate::gateway_readiness::{self, GatewayConfig};
 use genesis_core::model::Provider;
-use genesis_creao::{
-    AccountLimiter, ApiVersion, CreaoClient, Limits, QuotaLimits, Runtime, RuntimeStore,
-};
+use genesis_creao::{AccountLimiter, CreaoClient, Limits, QuotaLimits, Runtime, RuntimeStore};
 use genesis_providers::CreaoSpecialist;
 use std::sync::Arc;
 use std::time::Duration;
 
-const VARS: [&str; 4] = [
+const VARS: [&str; 5] = [
     "GENESIS_CREAO_DB",
     "GENESIS_CREAO_ACCOUNT",
     "GENESIS_CREAO_QUOTA_DB",
-    "CREAO_ACCOUNT_API_KEY",
+    "CREAO_TRIGGER_API_KEY",
+    "CREAO_TRIGGER_APP_ID",
 ];
 
 struct Configuration {
@@ -33,7 +33,8 @@ struct Configuration {
     account: String,
     quota_db: String,
     token: String,
-    api_version: ApiVersion,
+    app_id: String,
+    runs_url: Option<String>,
     gateway: Option<GatewayConfig>,
 }
 
@@ -47,18 +48,24 @@ fn env_value(name: &str) -> anyhow::Result<Option<String>> {
 }
 
 fn configuration(
-    values: [Option<String>; 4],
+    values: [Option<String>; 5],
     public_url: Option<String>,
     version: Option<String>,
+    runs_url: Option<String>,
 ) -> anyhow::Result<Option<Configuration>> {
-    if values.iter().all(Option::is_none) && public_url.is_none() && version.is_none() {
+    if values.iter().all(Option::is_none)
+        && public_url.is_none()
+        && version.is_none()
+        && runs_url.is_none()
+    {
         return Ok(None);
     }
-    let api_version = match version.as_deref() {
-        None | Some("v1") => ApiVersion::V1,
-        Some("v2") => ApiVersion::V2,
-        Some(_) => anyhow::bail!("CREAO_API_VERSION must be v1 or v2"),
-    };
+    anyhow::ensure!(
+        version
+            .as_deref()
+            .is_none_or(|v| v.trim().is_empty() || v == "trigger"),
+        "CREAO_API_VERSION must be trigger; Developer API execution is disabled"
+    );
     let missing: Vec<&str> = VARS
         .iter()
         .zip(&values)
@@ -74,13 +81,14 @@ fn configuration(
         .as_deref()
         .map(GatewayConfig::from_public_url)
         .transpose()?;
-    let [db, account, quota_db, token] = values.map(Option::unwrap_or_default);
+    let [db, account, quota_db, token, app_id] = values.map(Option::unwrap_or_default);
     Ok(Some(Configuration {
         db,
         account,
         quota_db,
         token,
-        api_version,
+        app_id,
+        runs_url,
         gateway,
     }))
 }
@@ -93,18 +101,25 @@ pub async fn attach_creao_from_env(app: AppState) -> anyhow::Result<AppState> {
         env_value(VARS[1])?,
         env_value(VARS[2])?,
         env_value(VARS[3])?,
+        env_value(VARS[4])?,
     ];
     let Some(cfg) = configuration(
         values,
         env_value("GENESIS_PUBLIC_URL")?,
         env_value("CREAO_API_VERSION")?,
+        env_value("CREAO_TRIGGER_RUNS_URL")?,
     )?
     else {
         return Ok(app);
     };
     let limiter = AccountLimiter::open(&cfg.quota_db, &cfg.account, QuotaLimits::default())?;
-    let client =
-        CreaoClient::new_for_version(&cfg.token, Limits::default(), limiter, cfg.api_version)?;
+    let client = CreaoClient::new_trigger(
+        &cfg.token,
+        &cfg.app_id,
+        cfg.runs_url.as_deref(),
+        Limits::default(),
+        limiter,
+    )?;
     let runtime = Runtime::new(
         client,
         RuntimeStore::open(&cfg.db, app.org_id.as_str())?,
@@ -145,47 +160,53 @@ mod tests {
     use super::*;
     use crate::{build_org, OrgConfig};
 
-    fn values() -> [Option<String>; 4] {
+    const APP: &str = "00000000-0000-4000-8000-000000000001";
+    fn values() -> [Option<String>; 5] {
         [
             "private-runtime.db",
             "account",
             "private-quota.db",
-            "cr_sk_local_test",
+            "capi_local_test",
+            APP,
         ]
         .map(|value| Some(value.to_owned()))
     }
 
     #[test]
     fn gateway_configuration_is_explicit_complete_and_errors_hide_values() {
-        assert!(configuration([None, None, None, None], None, None)
-            .unwrap()
-            .is_none());
-        assert!(configuration(values(), None, None)
+        assert!(
+            configuration([None, None, None, None, None], None, None, None)
+                .unwrap()
+                .is_none()
+        );
+        assert!(configuration(values(), None, None, None)
             .unwrap()
             .unwrap()
             .gateway
             .is_none());
-        let cfg = configuration(values(), Some("https://genesis.example".into()), None)
+        let cfg = configuration(values(), Some("https://genesis.example".into()), None, None)
             .unwrap()
             .unwrap();
         assert_eq!(
             cfg.gateway.unwrap().receipt_url,
             "https://genesis.example/api/v1/gateway/readiness-receipts"
         );
-        for missing in 0..4 {
+        assert_eq!(cfg.app_id, APP);
+        for missing in 0..5 {
             let mut partial = values();
             partial[missing] = None;
-            let error = configuration(partial, Some("https://genesis.example".into()), None)
+            let error = configuration(partial, Some("https://genesis.example".into()), None, None)
                 .err()
                 .unwrap()
                 .to_string();
             assert!(error.contains(VARS[missing]));
-            assert!(!error.contains("cr_sk_local_test"));
+            assert!(!error.contains("capi_local_test"));
         }
         assert!(configuration(
-            [None, None, None, None],
+            [None, None, None, None, None],
             Some("https://genesis.example".into()),
             None,
+            None
         )
         .is_err());
         for url in [
@@ -193,21 +214,27 @@ mod tests {
             "https://user:PRIVATE_SECRET@genesis.example",
             "https://genesis.example/?PRIVATE_SECRET",
         ] {
-            let error = configuration(values(), Some(url.into()), None)
+            let error = configuration(values(), Some(url.into()), None, None)
                 .err()
                 .unwrap()
                 .to_string();
             assert!(!error.contains("PRIVATE_SECRET"));
         }
-        assert_eq!(
-            configuration(values(), None, Some("v2".into()))
+        assert!(configuration(values(), None, Some("trigger".into()), None).is_ok());
+        for version in ["v1", "v2", "v3", "SECRET_CANARY"] {
+            let err = configuration(values(), None, Some(version.into()), None)
+                .err()
                 .unwrap()
-                .unwrap()
-                .api_version,
-            ApiVersion::V2
-        );
-        assert!(configuration(values(), None, Some("v3".into())).is_err());
-        assert!(configuration([None, None, None, None], None, Some("v2".into())).is_err());
+                .to_string();
+            assert!(!err.contains("SECRET_CANARY"));
+        }
+        assert!(configuration(
+            [None, None, None, None, None],
+            None,
+            Some("trigger".into()),
+            None
+        )
+        .is_err());
     }
 
     #[test]
@@ -215,11 +242,12 @@ mod tests {
         for enabled in [false, true] {
             let app = build_org(&OrgConfig::dev("org-a", "Org A"), None).unwrap();
             let runtime = Runtime::new(
-                CreaoClient::for_local_testing(
-                    "cr_sk_local_test",
+                CreaoClient::for_local_testing_trigger(
+                    "capi_local_test",
+                    APP,
                     Limits::default(),
                     AccountLimiter::in_memory("test-account", QuotaLimits::default()).unwrap(),
-                    "http://127.0.0.1:9/v1",
+                    "http://127.0.0.1:9/api/v1/apps/00000000-0000-4000-8000-000000000001/runs",
                 )
                 .unwrap(),
                 RuntimeStore::in_memory("org-a").unwrap(),

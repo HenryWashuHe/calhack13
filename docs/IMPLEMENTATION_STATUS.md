@@ -1,5 +1,34 @@
 # Implementation status
 
+## CREAO API Trigger migration — October 25, 2026
+
+Source `951cbfc1` changes production server, CLI and live gate to app-scoped
+API Trigger. Developer v1/v2 execution is refused at those entry points; the
+explicit historical library contracts and tests remain available for old records.
+Role bootstrap runs bind a published app. Every job carries its exact locally
+retained bootstrap contract and provenance; restart cannot substitute a newer
+contract. Kernel authority, independent readiness and domain verification remain
+required. See [CREAO runtime](CREAO_RUNTIME.md).
+
+Validation: 84 CREAO crate tests, 22 provider tests, 10 readiness tests and three
+server configuration tests pass (119 Rust cases), plus 47 mocked/loopback Node
+cases. Scoped strict Clippy, changed-source formatting and workspace all-target
+compilation pass. Independent source review cleared app identity, replay,
+credential routing and role-contract findings. One existing cooldown test failed
+in the initial parallel build load; the original bytes were preserved and the
+complete final CREAO suite passes serially. No generated method, evaluator or
+namespace was run.
+
+The owner's Desktop configuration was copied into the ignored primary `.env`
+with a private backup and new Trigger journals; unrelated provider/model settings
+were preserved. One authenticated read-only Trigger run-list request returned
+HTTP 200. Offline recovery of the actual local configuration reports zero
+provider requests. No paid Trigger POST, live role readiness or end-to-end
+mission execution was performed in this migration. Existing demo processes were
+not restarted; they need the new code/environment on their next controlled start.
+G0–G4 and recursive-benefit claims remain open. Automation and native Goal stay
+paused.
+
 ## Current manual review batch — October 25, 2026
 
 #228 (`ddd17dbf`), #246/#254 (`96ff87be`), #248/#253 (`397788d4`) and

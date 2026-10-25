@@ -7,6 +7,7 @@
 //! bound to are unchanged. Records pin the exact reference; a newer
 //! publication never upgrades one. Nothing here executes a method.
 use crate::capability_adoption_store::{authority_snapshot, state, AdoptionError, AdoptionFence};
+use crate::capability_authority::authorize_current;
 use crate::method_adoption::{
     assess_selected, Acceptance, AcceptanceEvidence, MethodAcceptanceError, MethodReceiver,
     SelectedMethod,
@@ -112,11 +113,33 @@ pub enum MethodAdoptionError {
     Acceptance(#[from] MethodAcceptanceError),
     #[error("the method was not adopted")]
     NotAdopted,
+    #[error("the deciding role does not hold `{METHOD_SCOPE}`, which this organization's constitution reserves for method work")]
+    ScopeMissing,
     #[error("method adoption storage failed")]
     Db(#[from] rusqlite::Error),
 }
 type Result<T> = std::result::Result<T, MethodAdoptionError>;
 use MethodAdoptionError as E;
+
+/// The scope that method adoption and invocation require of the grant's role,
+/// wherever the organization's constitution grants it at all. An organization
+/// whose constitution never mentions it keeps the earlier behavior.
+pub const METHOD_SCOPE: &str = "method.develop";
+
+/// Refuses a role without [`METHOD_SCOPE`] when the constitution reserves it.
+fn require_method_scope(
+    state: &OrgState,
+    role: &RoleId,
+    responsibility: &ResponsibilityId,
+    now: DateTime<Utc>,
+) -> Result<()> {
+    if !state.constitution.scopes.contains(METHOD_SCOPE) {
+        return Ok(());
+    }
+    authorize_current(state, role, responsibility, Some(METHOD_SCOPE), now)
+        .map(|_| ())
+        .map_err(|_| E::ScopeMissing)
+}
 
 fn adoption_error(error: AdoptionError) -> E {
     match error {
@@ -248,6 +271,7 @@ impl MethodAdoptionRecord {
         {
             return Err(E::Authority(AdoptionFence::AuthorityChanged));
         }
+        require_method_scope(state, &self.role_id, &self.responsibility_id, now)?;
         Ok(current.grant)
     }
 }
@@ -436,6 +460,7 @@ impl Store {
         if owner != Some(Owner::Role(intent.role_id.clone())) {
             return Err(E::Authority(AdoptionFence::AuthorityChanged));
         }
+        require_method_scope(&state, &intent.role_id, &intent.responsibility_id, now)?;
         let outcome = match &intent.decision {
             MethodDecision::Decline { reason } => MethodAdoptionOutcome::Declined {
                 reason: reason.clone(),
