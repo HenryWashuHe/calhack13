@@ -1,7 +1,7 @@
 //! Runs one frozen trial slot as a process: identity checks, spawn, request
 //! loop, wall-time kill, receipt. Ledger transitions live in `session`.
 use crate::refs;
-use crate::sandbox::Mode;
+use crate::sandbox::{Mode, StopOutcome};
 use crate::session::{finish, Finished, RunError, RunState, Session};
 use crate::store::{SlotClaim, Store};
 use genesis_core::development_evaluation::EvaluationError;
@@ -28,6 +28,101 @@ pub const MAX_QUEUED_REPLIES: usize = 64;
 /// stops reading, so the method blocks on its own output instead of the host
 /// buffering it (at most this many lines of up to `MAX_LINE` bytes).
 pub const MAX_QUEUED_REQUESTS: usize = 64;
+
+/// Observations used only after the launcher has actually been reaped.
+/// An uncertain stop stays uncertain, including across a second stop call.
+struct TerminationEvidence {
+    mode: Mode,
+    stopped: Option<bool>,
+}
+
+impl TerminationEvidence {
+    fn new(mode: Mode) -> Self {
+        Self {
+            mode,
+            stopped: None,
+        }
+    }
+
+    fn observe_stop(&mut self, outcome: StopOutcome) {
+        self.stopped = Some(self.stopped.unwrap_or(true) && outcome.confirms_namespace_end());
+    }
+
+    fn whole_tree(&self, launcher_success: bool) -> bool {
+        // Trusted util-linux unshare --fork returns zero only after its child
+        // exits successfully. A signalled/nonzero launcher is not that evidence.
+        self.mode == Mode::Namespaces && self.stopped.unwrap_or(launcher_success)
+    }
+}
+
+#[cfg(test)]
+mod termination_evidence_tests {
+    use super::*;
+
+    #[test]
+    fn successful_unshare_child_wait_retains_the_normal_completion_path() {
+        assert!(TerminationEvidence::new(Mode::Namespaces).whole_tree(true));
+        let mut evidence = TerminationEvidence::new(Mode::Namespaces);
+        evidence.observe_stop(StopOutcome::LauncherExitedSuccessfully);
+        assert!(evidence.whole_tree(true));
+    }
+
+    #[test]
+    fn a_signalled_or_failed_launcher_alone_does_not_prove_closure() {
+        assert!(!TerminationEvidence::new(Mode::Namespaces).whole_tree(false));
+    }
+
+    #[test]
+    fn confirmed_init_stop_survives_the_launchers_mirrored_signal_status() {
+        let mut evidence = TerminationEvidence::new(Mode::Namespaces);
+        evidence.observe_stop(StopOutcome::NamespaceInitStopped);
+        assert!(evidence.whole_tree(false));
+    }
+
+    #[test]
+    fn launcher_only_fallback_or_inspection_error_cannot_authorize_scoring() {
+        let mut evidence = TerminationEvidence::new(Mode::Namespaces);
+        evidence.observe_stop(StopOutcome::Unconfirmed);
+        assert!(!evidence.whole_tree(false));
+        assert!(!evidence.whole_tree(true));
+    }
+
+    #[test]
+    fn a_later_success_cannot_erase_an_uncertain_stop() {
+        for later in [
+            StopOutcome::NamespaceInitStopped,
+            StopOutcome::LauncherExitedSuccessfully,
+        ] {
+            let mut evidence = TerminationEvidence::new(Mode::Namespaces);
+            evidence.observe_stop(StopOutcome::Unconfirmed);
+            evidence.observe_stop(later);
+            assert!(!evidence.whole_tree(true));
+        }
+    }
+
+    #[test]
+    fn later_uncertainty_is_retained_after_an_earlier_confirmation() {
+        let mut evidence = TerminationEvidence::new(Mode::Namespaces);
+        evidence.observe_stop(StopOutcome::NamespaceInitStopped);
+        evidence.observe_stop(StopOutcome::Unconfirmed);
+        assert!(!evidence.whole_tree(true));
+    }
+
+    #[test]
+    fn unsandboxed_reaping_never_certifies_descendants() {
+        for outcome in [
+            StopOutcome::NamespaceInitStopped,
+            StopOutcome::LauncherExitedSuccessfully,
+            StopOutcome::Unconfirmed,
+        ] {
+            let mut evidence = TerminationEvidence::new(Mode::None);
+            evidence.observe_stop(outcome);
+            assert!(!evidence.whole_tree(true));
+            assert!(!evidence.whole_tree(false));
+        }
+        assert!(!TerminationEvidence::new(Mode::None).whole_tree(true));
+    }
+}
 
 /// `<interpreter> --version`, pinned in the environment reference.
 pub fn interpreter_version(interpreter: &str) -> String {
@@ -374,8 +469,9 @@ pub fn execute(
     drop(reply_tx);
     // Unconditional cleanup: the child is stopped before any evidence is
     // finalized, on every path out of the loop.
+    let mut termination = TerminationEvidence::new(cfg.sandbox);
     if outcome.is_some() || fatal.is_some() {
-        cfg.sandbox.stop(&mut child);
+        termination.observe_stop(cfg.sandbox.stop(&mut child));
     }
     let status = loop {
         if let Some(status) = child.try_wait()? {
@@ -383,7 +479,7 @@ pub fn execute(
         }
         if started.elapsed() >= deadline {
             outcome = Some(ExecutionOutcome::Interrupted);
-            cfg.sandbox.stop(&mut child);
+            termination.observe_stop(cfg.sandbox.stop(&mut child));
             break child.wait()?;
         }
         std::thread::sleep(Duration::from_millis(5));
@@ -398,14 +494,16 @@ pub fn execute(
     let _ = std::fs::remove_dir_all(&stage);
     // The child has been reaped: record how its end was observed, as the
     // termination evidence hidden scoring requires.
+    let whole_tree = termination.whole_tree(status.success());
     slot.state.terminated = Some(
-        match cfg.sandbox {
-            Mode::Namespaces => "the executor reaped the sandbox's first process; the kernel ends every process in its PID namespace with it",
-            Mode::None => "the executor reaped the method process; mode none does not cover processes the method started itself",
+        match (cfg.sandbox, whole_tree) {
+            (Mode::Namespaces, true) => "the executor reaped unshare after confirmed namespace-init stopping or its successful child-wait exit",
+            (Mode::Namespaces, false) => "the executor reaped unshare, but whole-namespace termination was not confirmed; hidden scoring must refuse",
+            (Mode::None, _) => "the executor reaped the method process; mode none does not cover processes the method started itself",
         }
         .into(),
     );
-    slot.state.terminated_tree = cfg.sandbox == Mode::Namespaces;
+    slot.state.terminated_tree = whole_tree;
     let outcome = outcome.unwrap_or(if status.success() && slot.state.submission.is_some() {
         ExecutionOutcome::OutputGenerated
     } else {
