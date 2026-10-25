@@ -170,6 +170,9 @@ export interface RevisionObservation {
   child: ExactRef;
   org_id: string;
   operation_id: string;
+  /** The exact generation request that produced the child; binds the
+   * observation to one status record, not just to its operation. */
+  request_sha256: string | null;
   transport: string;
   source_changed: boolean;
 }
@@ -184,6 +187,7 @@ export function decodeRevisionObservation(v: unknown): RevisionObservation {
     child: decodeRef(o.child, `${at}.child`),
     org_id: str(o, "org_id", at),
     operation_id: str(o, "operation_id", at),
+    request_sha256: optStr(o, "request_sha256", at),
     transport: str(o, "transport", at),
     source_changed: o.source_changed,
   };
@@ -209,10 +213,14 @@ export interface AdoptionOutcome {
   /** Present only for `adopted`: the installation's own org and method. */
   installed: { org_id: string; method: ExactRef; verdict: Verdict } | null;
 }
+/** The lab-adopt outcome tags (`experiments/invention-lab/adoption` `Outcome`).
+ * Any other `outcome` string is some other record, such as a `lab-exec run` result. */
+export const ADOPTION_OUTCOMES: readonly string[] = ["adopted", "not_applicable", "insufficient_evidence", "unknown"];
 export function decodeAdoptionOutcome(v: unknown): AdoptionOutcome {
   const at = "adoption";
   const o = obj(v, at);
   const outcome = str(o, "outcome", at);
+  if (!ADOPTION_OUTCOMES.includes(outcome)) throw new DecodeError(`${at}.outcome: ${outcome} is not a lab-adopt outcome`);
   if (outcome === "adopted") {
     const i = obj(o.installation, `${at}.installation`);
     return {
@@ -225,7 +233,7 @@ export function decodeAdoptionOutcome(v: unknown): AdoptionOutcome {
       },
     };
   }
-  return { outcome, reason: optStr(o, "reason", at), installed: null };
+  return { outcome, reason: str(o, "reason", at), installed: null };
 }
 
 /** `ExecutionPurpose` (tag `kind`); an unexpected kind is kept verbatim. */
@@ -461,6 +469,8 @@ export interface TrialPlan {
   scoring_kind: string;
   /** Ordered public development instance ids, as the plan lists them. */
   development_instances: string[];
+  /** The scoring context the plan froze; a score of one of its runs must name exactly this. */
+  context: ScoringContext;
 }
 export const TRIAL_PLAN_FIELDS = [
   "id", "version", "criterion", "development_instances", "scoring_instances",
@@ -483,6 +493,7 @@ export function decodeTrialPlan(v: unknown): TrialPlan {
       if (!Array.isArray(o.development_instances)) throw new DecodeError(`${at}.development_instances: expected array`);
       return o.development_instances.map((d, i) => str(obj(d, `${at}.development_instances[${i}]`), "id", `${at}.development_instances[${i}]`));
     })(),
+    context: decodeContext(o.context, `${at}.context`),
   };
 }
 
@@ -535,5 +546,104 @@ export function decodeMetricsArtifact(bytes: Uint8Array): MetricsArtifact {
     }),
     of: o.of === undefined ? null : nat(o, "of", at),
     success_count: o.success_count === undefined ? null : nat(o, "success_count", at),
+  };
+}
+
+// Method exchange records: what the registry returned to an organization
+// (crates/genesis-server/src/registry/methods.rs, all `deny_unknown_fields`).
+// A retained copy is a record of a response, not proof of its origin; the
+// publisher is the registry's token-derived account, not the author.
+
+function exactFields(o: Obj, fields: readonly string[], at: string): void {
+  const extra = Object.keys(o).filter((k) => !fields.includes(k));
+  if (extra.length > 0) throw new DecodeError(`${at}: unknown field ${extra.join(", ")}`);
+  for (const f of fields) if (!(f in o)) throw new DecodeError(`${at}.${f}: missing`);
+}
+/** An `ExactContentRef` at the exchange boundary: Rust's type refuses unknown
+ * fields, so an extra field here is a record the registry would not produce. */
+const REF_FIELDS = ["domain", "schema", "id", "version", "sha256"] as const;
+function exactRef(v: unknown, at: string): ExactRef {
+  exactFields(obj(v, at), REF_FIELDS, at);
+  return decodeRef(v, at);
+}
+function exactRefs(v: unknown, at: string): ExactRef[] {
+  if (!Array.isArray(v)) throw new DecodeError(`${at}: expected array`);
+  return v.map((r, i) => exactRef(r, `${at}[${i}]`));
+}
+function strings(v: unknown, at: string): string[] {
+  if (!Array.isArray(v) || v.some((x) => typeof x !== "string")) throw new DecodeError(`${at}: expected array of strings`);
+  return v as string[];
+}
+
+export interface MethodPublication {
+  reference: ExactRef;
+  /** The exact canonical package JSON text the publisher submitted. */
+  package_json: string;
+  intent: string;
+  applicability: string[];
+}
+/** A fetched (or just published) method: publisher plus the full publication, source included. */
+export interface MethodOffer {
+  publisher: string;
+  publication: MethodPublication;
+}
+/** A search hit: public metadata only, no source. */
+export interface MethodCandidate {
+  publisher: string;
+  reference: ExactRef;
+  intent: string;
+  applicability: string[];
+  runtime: ExactRef;
+  protocol: ExactRef;
+  dependencies: ExactRef[];
+}
+export interface MethodSearchResults {
+  candidates: MethodCandidate[];
+  /** More matches exist; an untruncated result is still not proof of absence. */
+  truncated: boolean;
+}
+
+export const OFFER_FIELDS = ["publisher", "publication"] as const;
+export function decodeMethodOffer(v: unknown): MethodOffer {
+  const at = "offer";
+  const o = obj(v, at);
+  exactFields(o, OFFER_FIELDS, at);
+  const p = obj(o.publication, `${at}.publication`);
+  exactFields(p, ["reference", "package_json", "intent", "applicability"], `${at}.publication`);
+  return {
+    publisher: str(o, "publisher", at),
+    publication: {
+      reference: exactRef(p.reference, `${at}.publication.reference`),
+      package_json: str(p, "package_json", `${at}.publication`),
+      intent: str(p, "intent", `${at}.publication`),
+      applicability: strings(p.applicability, `${at}.publication.applicability`),
+    },
+  };
+}
+
+const CANDIDATE_FIELDS = ["publisher", "reference", "intent", "applicability", "runtime", "protocol", "dependencies"] as const;
+export const SEARCH_FIELDS = ["candidates", "truncated"] as const;
+export function decodeMethodSearchResults(v: unknown): MethodSearchResults {
+  const at = "search";
+  const o = obj(v, at);
+  exactFields(o, SEARCH_FIELDS, at);
+  if (!Array.isArray(o.candidates)) throw new DecodeError(`${at}.candidates: expected array`);
+  if (typeof o.truncated !== "boolean") throw new DecodeError(`${at}.truncated: expected boolean`);
+  return {
+    truncated: o.truncated,
+    candidates: o.candidates.map((c, i) => {
+      const ca = `${at}.candidates[${i}]`;
+      const co = obj(c, ca);
+      exactFields(co, CANDIDATE_FIELDS, ca);
+      return {
+        publisher: str(co, "publisher", ca),
+        reference: exactRef(co.reference, `${ca}.reference`),
+        intent: str(co, "intent", ca),
+        applicability: strings(co.applicability, `${ca}.applicability`),
+        runtime: exactRef(co.runtime, `${ca}.runtime`),
+        protocol: exactRef(co.protocol, `${ca}.protocol`),
+        dependencies: exactRefs(co.dependencies, `${ca}.dependencies`),
+      };
+    }),
   };
 }

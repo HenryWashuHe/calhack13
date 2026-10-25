@@ -266,8 +266,11 @@ Each sentence says only what its records establish:
   fixture, not a model". Anything else has "no recorded transport". Model cost
   totals only the attempts sent to the model.
 - **Revision.** Its cost is that of the one generation record with the revision
-  observation's organization and operation (and, when it names a package,
-  exactly the child). Without that record the cost is unknown, not zero. No
+  observation's organization, operation and exact request (and, when it names a
+  package, exactly the child). A status for the same operation under another
+  request is a problem, not this revision's cost. A missing observation request
+  cannot identify the cost, even if the operation matches.
+  Without that record the cost is unknown, not zero. No
   feedback is claimed as the cause, because the records bind none.
 - **Trials.** A trial whose runs are all ineligible counts as "ineligible", not
   by its verdict. Trials scored on hidden committed panels are counted as such.
@@ -277,7 +280,10 @@ Rows name methods by their recorded origin: "*org*'s generated method" or
 every one of its runs filled a control slot or arm. Otherwise it is "origin not
 in these files: *id*", because one method can be a candidate in one trial and a
 control in another. A run's tooltip names its trial, role, organization and
-panel, and the trial verdict "on its candidate".
+panel, and the trial verdict "on its candidate". A run whose panel the records
+do not establish (no supplied plan, and an instance set other than
+`development`) reads "panel not established", and the footnote then says so
+instead of calling the remaining runs public.
 
 On the committed evidence the steps read:
 1. A recorded 3 generation attempts, all sent to the model; 1 produced a package
@@ -303,8 +309,9 @@ shows the board.
 
 Rows are exact method versions; columns are the task families named by each
 run's binding (`public_task`). A family is its full exact reference: one id
-under two references becomes two columns (`id@version hash`) and a reported
-problem. A cell lists that method's runs in that family. Each run is named by
+under two references becomes two columns, keyed by the whole reference and
+labelled `id@version domain/schema hash`, and a problem is reported. Two
+references never share a column because their labels look alike. A cell lists that method's runs in that family. Each run is named by
 its own plan id and hash prefix (`example-ravine-crossing-acceptance @ 5e111f9a`),
 so two trials that share an id are never confused.
 
@@ -316,14 +323,18 @@ with the problems:
 - the metrics reference is exactly `genesis-lab` / `lab-scoring-metrics/1` /
   `lab-scoring-metrics/1` / `1`; another identity is not counted even if its
   hash names readable bytes;
-- the evaluation's requested `public_task` is the run's own, and the scorer's
-  observed context equals the requested one;
+- the evaluation's requested `public_task` is the run's own, the scorer's
+  observed context equals the requested one, and, when the run's trial plan is
+  supplied, the requested context is exactly the one that plan froze (matching
+  only the scorer's own request is not enough);
 - the rows are one per instance: no repeats, `of` and `success_count` agree with
   them, and for a development-panel plan they are the plan's development
   instances in order.
 
 Two scorings of one run that disagree read "conflicting scores", whatever order
-the files arrive in. Without a count a run says why: "not scored" (no
+the files arrive in. When a run is counted from one scoring while another names
+metrics that were not supplied, the count stands and a problem says the other
+could not be compared. Without a count a run says why: "not scored" (no
 evaluation), "scoring unknown", "scoring failed", "output invalid", or "metrics
 not supplied". It never reads zero.
 
@@ -341,6 +352,43 @@ reads 3/6 and 0/6, random search 2/6, 4/6 and 3/6, and the fixed cart 0/6 and
 Attempt 1 is ineligible, because its model usage was not measured. Attempt 2
 reads 1/12 and 12/12 against 10/12 and 9/12. These are exploratory runs, not a
 ranking, a G4 comparison or a benefit claim.
+
+## Method exchange records
+
+The registry's `MethodOffer` and `MethodSearchResults` responses
+(`crates/genesis-server/src/registry/methods.rs`, see
+[the exchange contract](contracts/method-registry.md)) are read when an
+organization kept them as files, for example the stdout of `genesis method fetch`
+or `genesis method search`. The decoders refuse unknown fields, including inside
+every exact reference, as the registry's own records and `ExactContentRef` do. Nothing here calls a registry, holds a token or offers a
+control that publishes, fetches or adopts.
+
+Each publisher-qualified exact method is one row, in three separate states. None
+implies the next:
+
+- **Discovered**: a search hit. It carries public metadata only (intent,
+  applicability, runtime, protocol, dependencies) and no source. A truncated
+  search says more matches existed, and an untruncated one is still not proof
+  that nothing else matches.
+- **Fetched**: an offer. Its source is linked to a method only when the SHA-256
+  of the UTF-8 `package_json` equals the reference's hash *and* that package
+  decodes to the same full five-field reference. Otherwise the row says why and
+  a problem is listed. An offer that disagrees with its search hit on intent,
+  applicability, runtime, protocol or dependencies is a problem. So is any
+  second reference under one publisher, method id and version, which is the
+  registry's immutable key. Both rows stay so that either can be inspected.
+- **Local decision**: only a lab-adopt outcome that names this exact method. No
+  exchange record creates an adoption, selection or improvement edge.
+
+The publisher is the registry account that submitted the bytes, not their
+author, and a kept response is a record of what was returned, not proof of who
+sent it. The same reference from two publishers is two rows.
+
+Only the four lab-adopt tags (`adopted`, `not_applicable`,
+`insufficient_evidence`, `unknown`, the last three with a `reason`) are read as
+adoption outcomes. Any other `outcome` string is some other record, such as a
+`lab-exec run` result kept as `<slot>.run.json`, and is listed as not read. The
+server's `MethodAdoptionRecord` (#155) is not read yet.
 
 ## Attempt ledger
 
