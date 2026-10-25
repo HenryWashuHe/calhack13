@@ -17,7 +17,10 @@ retained one. Trials with a `descriptor.json` were scored on a hidden draw:
 `hidden:PREFIX=LAB_SCORE` rescores those under PREFIX with `score-hidden`, the
 salt revealed at `salt-revealed.txt` two levels above the run directory.
 
-Every methods run happens inside the executor's own sandbox; this script
+Invocation runs kept in `invoke.py`'s layout (one slot, `state/` and
+`score/` beside `plan.json`) are audited the same way.
+
+Every method run happens inside the executor's own sandbox; this script
 needs whatever that sandbox needs (root, namespaces, the pinned python3).
 Prints one JSON line per slot and writes WORK_DIR/audit.json.
 """
@@ -55,7 +58,14 @@ def run(args):
     return (r.stdout + r.stderr).strip()[:160]
 
 
-def rescore(lab_score, trial, sid, state, out, hidden_root, hidden_score):
+def layout(trial, sid, slots):
+    """The retained state and score directories of one slot."""
+    if len(slots) == 1 and os.path.exists(os.path.join(trial, "state", "receipt.json")):
+        return os.path.join(trial, "state"), os.path.join(trial, "score")
+    return os.path.join(trial, sid), os.path.join(trial, sid + "-score")
+
+
+def rescore(lab_score, trial, sid, state, out, hidden_root, hidden_score, retained):
     plan = os.path.join(trial, "plan.json")
     if hidden_root:
         salt = os.path.join(hidden_root, "salt-revealed.txt")
@@ -68,7 +78,6 @@ def rescore(lab_score, trial, sid, state, out, hidden_root, hidden_score):
     fresh = os.path.join(out, "evaluation.json")
     if not os.path.exists(fresh):
         return "failed: " + msg
-    retained = os.path.join(trial, sid + "-score", "evaluation.json")
     return "same" if comparable(fresh) == comparable(retained) else "DIFFERENT"
 
 
@@ -90,7 +99,8 @@ def main(argv):
         hidden_score = next((v for k, v in hidden.items() if rel.startswith(k)), None)
         for slot in plan.get("slots", []):
             sid = slot["slot_id"]
-            retained = os.path.join(trial, sid, "receipt.json")
+            slot_state, score_dir = layout(trial, sid, plan["slots"])
+            retained = os.path.join(slot_state, "receipt.json")
             if not os.path.exists(retained):
                 continue
             row = {"trial": rel, "slot": sid, "env": env}
@@ -109,12 +119,13 @@ def main(argv):
                 row["exec"] = "DIFFERENT"
             else:
                 row["exec"] = "same"
-                if not os.path.exists(os.path.join(trial, sid + "-score", "evaluation.json")):
+                evaluation = os.path.join(score_dir, "evaluation.json")
+                if not os.path.exists(evaluation):
                     row["score"] = "none retained"
                 elif is_hidden and not hidden_score:
                     row["score"] = "hidden, no scorer given"
                 else:
-                    scored_state = os.path.join(trial, sid)
+                    scored_state = slot_state
                     outputs = json.load(open(retained)).get("outputs") or []
                     missing = [o["sha256"] for o in outputs
                                if not os.path.exists(os.path.join(scored_state, "artifacts", o["sha256"]))]
@@ -126,7 +137,7 @@ def main(argv):
                         row["output"] = "re-executed (not retained)"
                     hidden_root = os.path.dirname(os.path.dirname(trial)) if is_hidden else None
                     row["score"] = rescore(lab_score, trial, sid, scored_state, state + "-score",
-                                           hidden_root, hidden_score)
+                                           hidden_root, hidden_score, evaluation)
             print(json.dumps(row), flush=True)
     with open(os.path.join(work, "audit.json"), "w") as fh:
         json.dump(rows, fh, indent=1)
