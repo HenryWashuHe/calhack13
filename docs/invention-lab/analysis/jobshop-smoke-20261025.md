@@ -14,9 +14,13 @@ rules were evaluated with `node:vm` inside the runner's own process, which had l
 held the model API key; `node:vm` is not a security boundary, and a rule's top-level `this` reaches the host
 realm. Henry's Claude demonstrated the escape with a hand-written probe. There is no indication that any
 generated rule did anything of the kind; the point is that the boundary did not exist while these results were
-produced. Since `families/sandbox.mjs` every rule is scored in a child process with an empty environment,
-an empty working directory and a wall-clock kill, and the key never enters that process. The recorded
-results are unchanged by this; they were produced without that boundary.
+produced. A second review showed that an empty-environment child alone is not a filesystem or network
+boundary either: the child ran as the same user and could read the repository's `.env`. Since
+`families/sandbox.mjs` (second revision) every rule is scored in a child with an empty environment, code
+generation from strings disabled, and, on this macOS host, a `sandbox-exec` profile that denies all network
+and all reads outside the iteration scripts and the child's own work directory; the runner no longer loads
+the key into its own environment and refuses live runs on hosts without an OS sandbox. The recorded results
+are unchanged by this; they were produced without those boundaries.
 
 
 - Family `jobshop-10x5` (`scripts/iteration/families/jobshop.mjs`): 10 jobs × 5 machines, processing times
