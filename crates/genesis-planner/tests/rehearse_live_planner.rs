@@ -544,18 +544,14 @@ async fn rehearse_two_organizations_with_a_live_planner() {
         serde_json::from_slice(&std::fs::read(dir.join("invocation-template.json")).unwrap())
             .unwrap();
     let mut invocation = plan.clone();
-    invocation["id"] = json!("invoke-rehearsal4-20261025");
+    invocation["id"] = json!(format!("invoke-{label}"));
     invocation["development_instances"] = template["development_instances"].clone();
     invocation["context"]["instance_set"] = template["context"]["instance_set"].clone();
     let mut slot = invocation["slots"][0].clone();
-    for (k, v) in [
-        ("slot_id", "use"),
-        ("run_id", "run-invoke-rehearsal4-20261025"),
-        ("attempt_id", "att_invoke_rehearsal4_20261025"),
-        ("scoring_request_id", "score-invoke-rehearsal4-20261025"),
-    ] {
-        slot[k] = json!(v);
-    }
+    slot["slot_id"] = json!("use");
+    slot["run_id"] = json!(format!("run-invoke-{label}"));
+    slot["attempt_id"] = json!(format!("att_invoke_{}", label.replace('-', "_")));
+    slot["scoring_request_id"] = json!(format!("score-invoke-{label}"));
     let g = &current["grant"];
     slot["purpose"] = json!({"kind":"invocation","grant":{"adoption_id":current["adoption_id"],
         "requirement_id":current["requirement_id"],"role_id":g["role_id"],
