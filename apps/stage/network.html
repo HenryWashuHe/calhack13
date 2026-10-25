@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>GENESIS Network</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,300..800&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* GENESIS, the silent view. Three acts, no running text: the presenter speaks, the page shows. Act one is the kernel
+   at work (scripted on the fixture scenario), act two is improvement (the recorded runs of 2026-10-25), act three is
+   the network (a concept animation). One honesty chip per act says which. Same tokens as the stage page. */
+:root {
+  --ink: #121619; --ink-2: #181E23; --ink-3: #202931; --ink-4: #2B353F;
+  --paper: #EEE9DE; --paper-dim: rgba(238, 233, 222, .55); --line: rgba(238, 233, 222, .12);
+  --accent: #5BD0BA; --accent-ink: #0D1A17; --fixture: #E7B35A; --refuse: #E3706C;
+  --display: "Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--ink); color: var(--paper); font-family: var(--display); overflow: hidden; }
+.brand { position: fixed; top: 0; left: 0; right: 0; z-index: 2; display: flex; align-items: center; gap: 14px; padding: 14px max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px)); font-weight: 800; letter-spacing: .06em; font-size: 13px; }
+.chip { font-family: var(--mono); font-weight: 500; font-size: 11px; letter-spacing: .04em; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--line); color: var(--paper-dim); }
+.chip.fixture { color: var(--fixture); border-color: color-mix(in srgb, var(--fixture) 55%, transparent); }
+.chip.recorded { color: var(--fixture); border-color: color-mix(in srgb, var(--fixture) 55%, transparent); }
+.chip.concept { color: var(--paper-dim); border-style: dashed; }
+main { position: fixed; inset: 0; display: grid; place-items: center; padding: 48px max(16px, env(safe-area-inset-right, 0px)) 56px max(16px, env(safe-area-inset-left, 0px)); }
+.act { width: 100%; height: 100%; display: grid; place-items: center; }
+.act[hidden] { display: none; }
+svg { width: 100%; height: 100%; max-height: 100%; overflow: visible; }
+.dots { position: fixed; left: 0; right: 0; bottom: 0; z-index: 2; display: flex; justify-content: center; gap: 10px; padding: 0 0 calc(16px + env(safe-area-inset-bottom, 0px)); }
+.dots button { width: 36px; height: 6px; border-radius: 3px; border: 0; background: var(--ink-4); cursor: pointer; padding: 0; transition: background .3s, transform .3s; }
+.dots button.on { background: var(--accent); transform: scaleY(1.4); }
+.dots button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.paused .dots button.on { background: var(--fixture); }
+/* svg vocabulary */
+text { font-family: var(--mono); font-size: 11px; fill: var(--paper-dim); letter-spacing: .04em; }
+text.big { font-family: var(--display); font-weight: 700; font-size: 22px; fill: var(--paper); letter-spacing: 0; }
+.node { fill: var(--ink-3); stroke: var(--line); stroke-width: 1.5; }
+.node.new { fill: color-mix(in srgb, var(--accent) 22%, var(--ink-3)); stroke: var(--accent); }
+.link { stroke: var(--line); stroke-width: 1.5; fill: none; }
+.rung { fill: var(--ink-2); stroke: var(--line); stroke-width: 1; rx: 8; transition: fill .4s, stroke .4s; }
+.rung.lit { fill: var(--accent); stroke: var(--accent); }
+.rung.lit.refused { fill: var(--refuse); stroke: var(--refuse); }
+.rung.passed { opacity: .35; }
+.rungtext.lit { fill: var(--accent-ink); font-weight: 500; }
+.stop { fill: var(--ink-2); stroke: var(--line); stroke-width: 1; transition: fill .35s, stroke .35s; }
+.stop.done { stroke: var(--accent); }
+.stop.current { fill: var(--accent); stroke: var(--accent); }
+.stop.rejected { fill: var(--refuse); stroke: var(--refuse); }
+.stoptext.current, .stoptext.rejected { fill: var(--accent-ink); font-weight: 500; }
+.rail { stroke: var(--ink-4); stroke-width: 2; fill: none; }
+.token { fill: var(--accent); filter: drop-shadow(0 0 8px color-mix(in srgb, var(--accent) 70%, transparent)); }
+.token.refused { fill: var(--refuse); filter: drop-shadow(0 0 8px color-mix(in srgb, var(--refuse) 70%, transparent)); }
+.evidence { fill: var(--fixture); filter: drop-shadow(0 0 10px color-mix(in srgb, var(--fixture) 70%, transparent)); }
+.evidence.hostile { fill: var(--refuse); filter: drop-shadow(0 0 10px color-mix(in srgb, var(--refuse) 70%, transparent)); }
+.ripple { fill: none; stroke: var(--fixture); stroke-width: 1.5; opacity: 0; }
+.cand { fill: var(--paper-dim); opacity: .9; }
+.cand.promoted { fill: var(--accent); filter: drop-shadow(0 0 10px color-mix(in srgb, var(--accent) 70%, transparent)); }
+.cand.lost { opacity: .28; }
+.inc { fill: none; stroke: var(--paper); stroke-width: 2; }
+.frontier { stroke: var(--accent); stroke-width: 3; fill: none; stroke-linecap: round; }
+.frontier-ghost { stroke: var(--accent); stroke-width: 1; opacity: .35; stroke-dasharray: 2 6; }
+.control { stroke: var(--paper-dim); stroke-width: 1; stroke-dasharray: 6 6; opacity: .55; }
+.control.rs { stroke: var(--fixture); opacity: .75; }
+.axis { stroke: var(--ink-4); stroke-width: 1; }
+.bar { fill: var(--ink-3); stroke: var(--line); }
+.bar.win { fill: var(--accent); stroke: var(--accent); }
+.bar.ctrl { fill: var(--ink-4); }
+.meter-bg { fill: none; stroke: var(--ink-4); stroke-width: 4; }
+.meter { fill: none; stroke: var(--accent); stroke-width: 4; stroke-linecap: round; transform: rotate(-90deg); transform-origin: center; transform-box: fill-box; }
+.org { fill: var(--ink-3); stroke: var(--line); stroke-width: 1.5; transition: stroke .5s, fill .5s; }
+.org.lit { stroke: var(--accent); fill: color-mix(in srgb, var(--accent) 12%, var(--ink-3)); }
+.org.bad { stroke: var(--refuse); }
+.edge { stroke: var(--line); stroke-width: 1.5; transition: stroke .5s; }
+.edge.lit { stroke: color-mix(in srgb, var(--accent) 60%, transparent); }
+.edge.bad { stroke: color-mix(in srgb, var(--refuse) 70%, transparent); }
+.bundle rect { fill: var(--ink-2); stroke: var(--accent); stroke-width: 1.5; rx: 5; }
+.bundle text { fill: var(--accent); font-size: 10px; }
+.bundle.bad rect { stroke: var(--refuse); } .bundle.bad text { fill: var(--refuse); }
+.verify { fill: none; stroke: var(--accent); stroke-width: 2; stroke-dasharray: 10 8; opacity: 0; transform-origin: center; transform-box: fill-box; }
+.verify.on { opacity: 1; animation: spin 1.2s linear infinite; }
+.verify.bad { stroke: var(--refuse); }
+.paused .verify.on { animation-play-state: paused; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.fade { transition: opacity .5s; }
+@media (prefers-reduced-motion: reduce) { .verify.on { animation: none; } .rung, .stop, .org, .edge, .fade, .dots button { transition: none; } }
+@media (max-width: 720px) { .brand { font-size: 12px; } }
+</style>
+</head>
+<body>
+<header class="brand">GENESIS <span class="chip fixture" id="chip">scripted · fixture scenario</span><span class="chip" id="act-name">kernel</span></header>
+<main>
+  <section class="act" id="act-kernel" aria-label="The kernel at work"><svg id="svg-kernel" viewBox="0 0 1200 640" role="img" aria-label="Evidence enters an organization, the planner chooses a rung, the kernel moves the change through its states"></svg></section>
+  <section class="act" id="act-improve" hidden aria-label="Improvement"><svg id="svg-improve" viewBox="0 0 1200 640" role="img" aria-label="Survivor scores on separate generation selection panels, followed by fresh-panel confirmation bars"></svg></section>
+  <section class="act" id="act-network" hidden aria-label="The network"><svg id="svg-network" viewBox="0 0 1200 640" role="img" aria-label="Verified bundles travel between organizations and raise their meters"></svg></section>
+</main>
+<footer class="dots" aria-label="Acts">
+  <button type="button" data-act="0" class="on" aria-label="Act 1, kernel"></button>
+  <button type="button" data-act="1" aria-label="Act 2, improvement"></button>
+  <button type="button" data-act="2" aria-label="Act 3, network"></button>
+</footer>
+<script>
+  // Recorded data: the same extract the stage page embeds (jobshop-10x5, 20-instance panels, 2026-10-25, claude-sonnet-5-5).
+  // gens: [incumbent, [four candidates], promoted index or null]; panel: fresh-panel confirmation counts.
+  const LAB = { of: 20, seeds: [
+    { id: "smoke-3", gens: [[8, [9, 10, 9, 11], 3], [12, [14, 12, 13, 12], 0], [14, [17, 17, 14, 15], 0], [11, [12, 14, 12, 12], 1], [15, [15, 16, 15, 16], 1]], confirm: 17, panel: { "random-search": 17, MWKR: 15, SPT: 12 }, head: "ef28abf500" },
+    { id: "smoke-4", gens: [[8, [18, 14, 14, 13], 0], [17, [14, 16, 17, 15], null], [16, [16, 14, 14, 13], null], [16, [15, 16, 16, 16], null], [16, [17, 19, 17, 17], 1]], confirm: 18, panel: { "random-search": 12, MWKR: 15, SPT: 10 }, head: "af6cc83c25" },
+    { id: "smoke-2", gens: [[11, [15, 14, 15, 13], 0], [15, [14, 15, 15, 15], null], [18, [15, 15, 15, 16], null], [15, [15, 15, 15, 15], null], [19, [17, 17, 18, 17], null]], confirm: 19, panel: { "random-search": 14, MWKR: 15, SPT: 5 }, head: "2528af2738" },
+  ] };
+
+  const NS = "http://www.w3.org/2000/svg";
+  const $ = (id) => document.getElementById(id);
+  const el = (tag, attrs = {}, parent = null, text = null) => {
+    const n = document.createElementNS(NS, tag);
+    for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, String(v));
+    if (text !== null) n.textContent = text;
+    if (parent) parent.appendChild(n);
+    return n;
+  };
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const ease = (t) => (t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
+
+  // Space pauses the logical steps, delayed mutations and SVG tweens; CSS color transitions may finish.
+  const clock = { t: 0, last: null, paused: false };
+  const timeline = { steps: [], i: 0, start: 0, length: 0 };
+  const tweens = new Set();
+  const delays = new Set();
+  function delay(fn, ms) { delays.add({ at: clock.t + ms, fn }); }
+  function at(ms, fn) { timeline.steps.push([ms, fn]); timeline.length = Math.max(timeline.length, ms); }
+  function tween(ms, fn, done) { const s = { start: clock.t, ms: reduced ? 1 : ms, fn, done }; tweens.add(s); return s; }
+  function frame(now) {
+    if (clock.last === null) clock.last = now;
+    if (!clock.paused) clock.t += now - clock.last;
+    clock.last = now;
+    while (timeline.i < timeline.steps.length && clock.t - timeline.start >= timeline.steps[timeline.i][0]) timeline.steps[timeline.i++][1]();
+    for (const d of delays) {
+      if (clock.t >= d.at) { delays.delete(d); d.fn(); }
+    }
+    for (const s of tweens) {
+      const p = Math.min(1, (clock.t - s.start) / s.ms);
+      s.fn(ease(p));
+      if (p >= 1) { tweens.delete(s); if (s.done) s.done(); }
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  const ACTS = [
+    { id: "act-kernel", svg: "svg-kernel", chip: ["fixture", "scripted · fixture scenario"], name: "kernel", build: buildKernel },
+    { id: "act-improve", svg: "svg-improve", chip: ["recorded", "recorded · 2026-10-25"], name: "improvement", build: buildImprove },
+    { id: "act-network", svg: "svg-network", chip: ["concept", "concept"], name: "network", build: buildNetwork },
+  ];
+  let current = -1;
+  function show(i) {
+    current = (i + ACTS.length) % ACTS.length;
+    for (const [k, a] of ACTS.entries()) $(a.id).hidden = k !== current;
+    document.querySelectorAll(".dots button").forEach((b, k) => b.classList.toggle("on", k === current));
+    const a = ACTS[current];
+    $("chip").className = "chip " + a.chip[0]; $("chip").textContent = a.chip[1]; $("act-name").textContent = a.name;
+    const svg = $(a.svg); svg.replaceChildren();
+    tweens.clear(); delays.clear(); timeline.steps = []; timeline.i = 0; timeline.length = 0; timeline.start = clock.t;
+    a.build(svg);
+    at(timeline.length + 1800, () => show(current + 1)); // the acts loop
+  }
+  document.addEventListener("keydown", (e) => {
+    if (e.key === " ") { e.preventDefault(); clock.paused = !clock.paused; document.body.classList.toggle("paused", clock.paused); }
+    else if (e.key === "ArrowRight") show(current + 1);
+    else if (e.key === "ArrowLeft") show(current - 1);
+    else if (e.key === "r" || e.key === "R") show(current);
+    else if (/^[1-3]$/.test(e.key)) show(Number(e.key) - 1);
+    else if (e.key === "f" || e.key === "F") { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen?.(); }
+  });
+  document.querySelectorAll(".dots button").forEach((b) => b.addEventListener("click", () => show(Number(b.dataset.act))));
+
+  // ---------------------------------------------------------------- act 1: the kernel at work
+  const RUNGS = ["no change", "reuse a role", "attach a capability", "recruit a specialist", "create a role"];
+  const STAGES = ["PROPOSED", "VALIDATED", "PROVISIONING", "READY", "COMMITTED"];
+  function buildKernel(svg) {
+    const g = el("g", {}, svg);
+    // the organization: a ring of roles
+    const cx = 290, cy = 330, R = 150;
+    el("circle", { cx, cy, r: R, class: "link", "stroke-dasharray": "3 7" }, g);
+    const rev = el("text", { x: cx, y: cy + 6, class: "big", "text-anchor": "middle" }, g, "r1");
+    el("text", { x: cx, y: cy + 26, "text-anchor": "middle" }, g, "organization A");
+    const roles = ["coordinator", "program", "attendees"];
+    const nodes = roles.map((name, i) => placeRole(g, cx, cy, R, -90 + i * 72, name));
+    // the ladder
+    const lx = 560, ly = 110;
+    const rungs = RUNGS.map((label, i) => {
+      const y = ly + i * 62;
+      const r = el("rect", { x: lx, y, width: 250, height: 46, class: "rung" }, g);
+      const t = el("text", { x: lx + 16, y: y + 28, class: "rungtext" }, g, label);
+      el("text", { x: lx - 18, y: y + 28, "text-anchor": "end" }, g, String(i + 1));
+      return { r, t };
+    });
+    // the pipeline rail
+    const px = 560, py = 520, step = 130;
+    el("line", { x1: px, y1: py, x2: px + 4 * step, y2: py, class: "rail" }, g);
+    el("path", { d: `M ${px + step} ${py} Q ${px + step + 40} ${py + 60} ${px + step + 90} ${py + 70}`, class: "rail" }, g);
+    const stops = STAGES.map((s, i) => stop(g, px + i * step, py, s));
+    const rejected = stop(g, px + step + 90, py + 70, "REJECTED");
+    const ty = py - 30; // the token rides just above the rail so the state names stay readable under it
+    const token = el("circle", { cx: px, cy: ty, r: 0, class: "token" }, g);
+
+    const light = (i, refused = false) => rungs.forEach((x, k) => { x.r.setAttribute("class", "rung" + (k === i ? " lit" + (refused ? " refused" : "") : k < i ? " passed" : "")); x.t.setAttribute("class", "rungtext" + (k === i ? " lit" : "")); });
+    const clearLadder = () => rungs.forEach((x) => { x.r.setAttribute("class", "rung"); x.t.setAttribute("class", "rungtext"); });
+    const setStops = (upto, state) => { stops.forEach((s, i) => s.set(i < upto ? "done" : i === upto ? state : "")); rejected.set(state === "rejected" && upto < 0 ? "rejected" : ""); };
+    const move = (x, y, ms) => { const x0 = +token.getAttribute("cx"), y0 = +token.getAttribute("cy"); tween(ms, (p) => { token.setAttribute("cx", x0 + (x - x0) * p); token.setAttribute("cy", y0 + (y - y0) * p); }); };
+
+    let t = 400;
+    // cycle 1: evidence arrives, the planner climbs to "create a role", the kernel commits, the ring grows
+    at(t, () => evidence(g, cx - R - 300, cy, cx - R - 20, cy, false)); t += 1400;
+    at(t, () => { for (let i = 0; i < 5; i++) delay(() => light(i), i * 180); }); t += 1500;
+    at(t, () => { token.setAttribute("r", 9); token.setAttribute("class", "token"); setStops(0, "current"); }); t += 700;
+    STAGES.slice(1).forEach((s, i) => { at(t, () => { move(px + (i + 1) * step, ty, 500); delay(() => setStops(i + 1, "current"), 480); }); t += 1000; });
+    at(t, () => { const n = placeRole(g, cx, cy, R, -90 + 3 * 72, "relocation", true); nodes.push(n); rev.textContent = "r2"; }); t += 2200;
+    // cycle 2: a hostile instruction; the planner would create a role; the kernel refuses at validation
+    at(t, () => { clearLadder(); setStops(-1, ""); token.setAttribute("r", 0); token.setAttribute("cx", px); token.setAttribute("cy", ty); }); t += 300;
+    at(t, () => evidence(g, cx - R - 300, cy, cx - R - 20, cy, true)); t += 1400;
+    at(t, () => { for (let i = 0; i < 5; i++) delay(() => light(i, i === 4), i * 180); }); t += 1500;
+    at(t, () => { token.setAttribute("r", 9); setStops(0, "current"); }); t += 700;
+    at(t, () => { move(px + step, ty, 500); delay(() => setStops(1, "current"), 480); }); t += 1000;
+    at(t, () => { token.setAttribute("class", "token refused"); move(px + step + 90, py + 40, 700); delay(() => { stops.forEach((s, i) => s.set(i < 1 ? "done" : "")); rejected.set("rejected"); }, 650); }); t += 2200;
+    // cycle 3: a routine report; the planner stays on rung one; nothing moves on the rail
+    at(t, () => { clearLadder(); setStops(-1, ""); token.setAttribute("r", 0); token.setAttribute("cx", px); token.setAttribute("cy", ty); }); t += 300;
+    at(t, () => evidence(g, cx - R - 300, cy, cx - R - 20, cy, false)); t += 1400;
+    at(t, () => light(0)); t += 2000;
+    at(t, () => {});
+  }
+  function placeRole(g, cx, cy, R, deg, name, isNew = false) {
+    const a = deg * Math.PI / 180, x = cx + R * Math.cos(a), y = cy + R * Math.sin(a);
+    const n = el("g", { class: "fade", style: "opacity:0" }, g);
+    el("circle", { cx: x, cy: y, r: 22, class: "node" + (isNew ? " new" : "") }, n);
+    el("text", { x, y: y + 40, "text-anchor": "middle" }, n, name);
+    requestAnimationFrame(() => (n.style.opacity = 1));
+    return n;
+  }
+  function stop(g, x, y, label) {
+    const r = el("rect", { x: x - 52, y: y - 16, width: 104, height: 32, rx: 6, class: "stop" }, g);
+    const t = el("text", { x, y: y + 4, "text-anchor": "middle", class: "stoptext" }, g, label);
+    return { set: (state) => { r.setAttribute("class", "stop " + state); t.setAttribute("class", "stoptext " + state); } };
+  }
+  function evidence(g, x0, y0, x1, y1, hostile) {
+    const dot = el("circle", { cx: x0, cy: y0, r: 7, class: "evidence" + (hostile ? " hostile" : "") }, g);
+    tween(1100, (p) => { dot.setAttribute("cx", x0 + (x1 - x0) * p); dot.setAttribute("cy", y0 + (y1 - y0) * p); }, () => {
+      const rip = el("circle", { cx: x1, cy: y1, r: 8, class: "ripple" }, g);
+      if (hostile) rip.style.stroke = "var(--refuse)";
+      tween(700, (p) => { rip.setAttribute("r", 8 + 60 * p); rip.style.opacity = String(1 - p); }, () => { rip.remove(); dot.remove(); });
+    });
+  }
+
+  // ---------------------------------------------------------------- act 2: improvement, from the recorded runs
+  let seedIndex = 0;
+  function buildImprove(svg) {
+    const seed = LAB.seeds[seedIndex % LAB.seeds.length]; seedIndex += 1;
+    const g = el("g", {}, svg);
+    const x0 = 140, x1 = 900, y0 = 560, y1 = 110, cols = seed.gens.length;
+    const X = (i) => x0 + 80 + i * ((x1 - x0 - 160) / (cols - 1));
+    const Y = (v) => y0 - (v / LAB.of) * (y0 - y1);
+    // axes and gentle ticks
+    el("line", { x1: x0, y1: y0, x2: x1, y2: y0, class: "axis" }, g);
+    el("line", { x1: x0, y1: y0, x2: x0, y2: y1, class: "axis" }, g);
+    for (const v of [0, 10, 20]) el("text", { x: x0 - 12, y: Y(v) + 4, "text-anchor": "end" }, g, `${v}`);
+    seed.gens.forEach((_, i) => el("text", { x: X(i), y: y0 + 22, "text-anchor": "middle" }, g, `g${i + 1}`));
+    el("text", { x: x0, y: 80, class: "big" }, g, seed.id);
+    el("text", { x: x0 + 150, y: 80 }, g, `${seed.head}…`);
+    el("text", { x: x0, y: 102 }, g, "survivor scores · separate selection panels");
+    // Each panel remeasures the survivor. Fresh-panel controls belong only in the confirmation bars.
+    // the frontier
+    let level = seed.gens[0][0];
+    const frontier = el("path", { d: `M ${x0} ${Y(level)} H ${X(0)}`, class: "frontier" }, g);
+    const ghost = el("path", { d: "", class: "frontier-ghost" }, g);
+    let t = 600;
+    seed.gens.forEach(([inc, cands, promoted], i) => {
+      const x = X(i);
+      at(t, () => { el("circle", { cx: x, cy: Y(inc), r: 9, class: "inc" }, g); const d = frontier.getAttribute("d"); frontier.setAttribute("d", d + ` H ${x}`); });
+      t += 500;
+      const dots = [];
+      cands.forEach((v, k) => {
+        at(t + k * 160, () => { const c = el("circle", { cx: x + (k - 1.5) * 18, cy: y1 - 40, r: 7, class: "cand" }, g); dots[k] = c; const from = y1 - 40, to = Y(v); tween(700, (p) => c.setAttribute("cy", from + (to - from) * p)); });
+      });
+      t += 1500;
+      at(t, () => {
+        dots.forEach((c, k) => c.setAttribute("class", "cand" + (k === promoted ? " promoted" : " lost")));
+        const v = promoted === null ? inc : cands[promoted], from = Y(level), to = Y(v);
+        level = v;
+        const d = frontier.getAttribute("d");
+        ghost.setAttribute("d", `M ${x} ${from} V ${to}`);
+        tween(700, (p) => frontier.setAttribute("d", d + ` V ${from + (to - from) * p}`));
+        if (promoted !== null) {
+          const c = dots[promoted], cx = +c.getAttribute("cx"); tween(700, (p) => c.setAttribute("cx", cx + (x - cx) * p));
+        }
+      });
+      t += 1300;
+    });
+    // the fresh panel: one bar for the frontier beside the controls
+    at(t, () => {
+      const bx = 1010, w = 34, items = [["frontier", seed.confirm, "win"], ["random-search", seed.panel["random-search"], "ctrl"], ["MWKR", seed.panel.MWKR, "ctrl"], ["SPT", seed.panel.SPT, "ctrl"]];
+      el("text", { x: bx, y: 80 }, g, "fresh panel");
+      items.forEach(([name, v, cls], k) => {
+        const x = bx + k * (w + 10);
+        const r = el("rect", { x, y: y0, width: w, height: 0, class: "bar " + cls }, g);
+        tween(900, (p) => { r.setAttribute("y", y0 - (Y(0) - Y(v)) * p); r.setAttribute("height", (Y(0) - Y(v)) * p); });
+        el("text", { x: x + w / 2, y: Y(v) - 8, "text-anchor": "middle" }, g, `${v}`);
+        el("text", { x: x + w / 2, y: y0 + 22, "text-anchor": "middle", transform: `rotate(-40 ${x + w / 2} ${y0 + 22})` }, g, name === "random-search" ? "random" : name);
+      });
+    });
+    t += 2600;
+    at(t, () => {});
+  }
+
+  // ---------------------------------------------------------------- act 3: the network (concept)
+  function buildNetwork(svg) {
+    const g = el("g", {}, svg);
+    const P = { A: [250, 320], B: [520, 180], C: [520, 470], D: [790, 120], E: [790, 400], F: [1040, 250], G: [1040, 520] };
+    const EDGES = [["A", "B"], ["A", "C"], ["B", "D"], ["B", "E"], ["C", "E"], ["D", "F"], ["E", "F"], ["E", "G"], ["C", "G"]];
+    const edges = Object.fromEntries(EDGES.map(([a, b]) => [a + b, el("line", { x1: P[a][0], y1: P[a][1], x2: P[b][0], y2: P[b][1], class: "edge" }, g)]));
+    const orgs = {};
+    for (const [name, [x, y]] of Object.entries(P)) {
+      const node = el("g", {}, g);
+      const ring = el("circle", { cx: x, cy: y, r: 34, class: "org" }, node);
+      el("circle", { cx: x, cy: y, r: 44, class: "meter-bg" }, node);
+      const C = 2 * Math.PI * 44;
+      const meter = el("circle", { cx: x, cy: y, r: 44, class: "meter", "stroke-dasharray": `0 ${C}` }, node);
+      const verify = el("circle", { cx: x, cy: y, r: 54, class: "verify" }, node);
+      el("text", { x, y: y + 7, "text-anchor": "middle", class: "big" }, node, name);
+      orgs[name] = { x, y, ring, meter, verify, C, level: 0.12, set(v) { const from = this.level; this.level = v; tween(900, (p) => meter.setAttribute("stroke-dasharray", `${C * (from + (v - from) * p)} ${C}`)); } };
+      orgs[name].set(0.12);
+    }
+    const edgeOf = (a, b) => edges[a + b] || edges[b + a];
+    const transfer = (t, a, b, ok, hash) => {
+      at(t, () => {
+        const A = orgs[a], B = orgs[b];
+        const tag = el("g", { class: "bundle" }, g);
+        el("rect", { x: -34, y: -11, width: 68, height: 22 }, tag);
+        el("text", { x: 0, y: 4, "text-anchor": "middle" }, tag, hash);
+        tween(1300, (p) => tag.setAttribute("transform", `translate(${A.x + (B.x - A.x) * p} ${A.y + (B.y - A.y) * p})`), () => {
+          B.verify.setAttribute("class", "verify on" + (ok ? "" : " bad"));
+          const e = edgeOf(a, b);
+          delay(() => {
+            B.verify.setAttribute("class", "verify");
+            if (ok) { tag.remove(); B.set(Math.max(B.level, A.level - 0.08)); B.ring.setAttribute("class", "org lit"); e.setAttribute("class", "edge lit"); }
+            else { tag.setAttribute("class", "bundle bad"); e.setAttribute("class", "edge bad"); B.ring.setAttribute("class", "org bad"); tween(1000, (p) => tag.setAttribute("transform", `translate(${B.x + (A.x - B.x) * p} ${B.y + (A.y - B.y) * p})`), () => { tag.remove(); B.ring.setAttribute("class", "org"); e.setAttribute("class", "edge"); }); }
+          }, reduced ? 50 : 1300);
+        });
+      });
+    };
+    let t = 500;
+    at(t, () => { orgs.A.set(0.86); orgs.A.ring.setAttribute("class", "org lit"); }); t += 1400;
+    transfer(t, "A", "B", true, "63aadd"); t += 3200;
+    transfer(t, "A", "C", true, "63aadd"); t += 2600;
+    transfer(t, "B", "D", true, "63aadd"); t += 2600;
+    transfer(t, "C", "E", false, "9f02c1"); t += 3400;
+    transfer(t, "B", "E", true, "63aadd"); t += 2800;
+    transfer(t, "D", "F", true, "63aadd"); t += 2600;
+    transfer(t, "E", "G", true, "d80754"); t += 2600;
+    at(t, () => { for (const o of Object.values(orgs)) if (o.level > 0.5) o.set(Math.min(0.97, o.level + 0.08)); }); t += 1600;
+    at(t, () => {});
+  }
+
+  show(0);
+</script>
+</body>
+</html>
