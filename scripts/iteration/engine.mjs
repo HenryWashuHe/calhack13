@@ -317,7 +317,7 @@ function provenanceInLedger(bundle) {
   if (!last || last.type !== "bundle_sealed" || last.package !== pkg.sha256 || last.records_before !== records.length - 1 || last.lab !== bundle.exported_by) return "bundle is not sealed for this package by its sender";
   const known = new Map();
   for (const r of records) {
-    if (r.type === "root_registered") known.set(r.package, { parent: null, origin: null });
+    if (r.type === "root_registered" && !known.has(r.package)) known.set(r.package, { parent: null, origin: null });
     if (r.type === "lineage_imported") for (const l of r.lineage) if (!known.has(l.sha256)) known.set(l.sha256, { parent: l.parent ?? null, origin: l.origin });
     if (r.type === "candidates_proposed" && !r.imported) for (const c of r.candidates) if (!known.has(c)) known.set(c, { parent: r.parent, origin: r.lab });
   }
