@@ -46,13 +46,14 @@ model generation or recursive benefit.
 lifecycle validation is incomplete; an automated safety filter interrupted that
 review. No independent Linux validation or failure reproduction is claimed here. ACP #3/#5's
 migration atomicity and intermediate-schema index-name holds are cleared;
-#4's stale routing/status/demo documentation remains held. Best-effort namespace
-mounts and trusted-directory storage remain experimental boundaries.
+#4's corrected ACP documentation is merged at `9da2fc12`; it grants no new
+command authority or public routing evidence. Best-effort namespace mounts and
+trusted-directory storage remain experimental boundaries.
 
 **Ongoing work is resumed under [the repository goal](docs/ONGOING_GOAL.md).**
-The revised app Goal and existing hourly continuation are active. The stale Goal
-was cleared and replaced on October 24, 2026. The owner delegated direction while
-sleeping and reaffirmed the full moonshot. Preserve the G0–G4 completion contract,
+The native app Goal and the existing hourly continuation are active; no
+completion is claimed. The October 24 replacement Goal and this repository
+contract retain the full moonshot. Preserve the G0–G4 completion contract,
 including selective transfer and honest null results. Preserve local repair WIP.
 
 
@@ -81,13 +82,22 @@ every milestone. All lower checkpoints are historical.
   [Pure core verdict #146](https://github.com/HenryWashuHe/genesis-history-experiment/pull/146)
   is merged at `c6870504`. Acceptance #154 `cc099833` merged at
   `a7c56b1c`: root four assessor, six intake and three planner cases pass with
-  scoped strict Clippy/fmt. This is a retained-record consistency primitive. Adoption-store
-  [#155 `df286ad4` is held](https://github.com/HenryWashuHe/genesis-history-experiment/pull/155#pullrequestreview-5640018669):
-  requirement-scoped adoption lacks a receiver-controlled exact acceptance plan,
-  and mutable public records can authorize a changed method/rejected verdict.
-  Pure probes `8fee7787` retain one passing characterization and two failing
-  invariants. Henry owns both corrections; no hostile HTTP exploit is claimed.
-  Execution under the grant and a governed method loop remain future work.
+  scoped strict Clippy/fmt. This is a retained-record consistency primitive.
+  Adoption-store #155 `cba4bf00` → `0bf7a8e2` and authorization routes #159
+  `db0deeca` → `e7c6baf7` are now merged. Root composition `0b671510`, tree
+  `24183518`, exactly matched main: 23 scoped checks and strict Clippy/fmt pass.
+  Receiver-owned expected-plan pins, immutable record consistency, disabled
+  receiver refusal and durable replay clear the earlier #155/#159 holds.
+  Invocation authorization is implemented; executing the method under that grant
+  is not. Pure invocation purpose #185 `811c6f5c` → `b1b2c8f2` and independent
+  guards #188 `e4824046` → `68604b92` are merged: 23 pure core cases and scoped
+  strict Clippy pass. Claimed grant identity is bound, not authenticated authority.
+  #179 `0946e6bc` is held on legacy-store migration, policy reacceptance and
+  runtime/protocol fences (11 old tests pass, four new guards fail). #186
+  `b069b129` is held on disabled-receiver receipt retention and a frozen binding
+  that can exceed the receipt cap (12 library + four HTTP controls pass, two
+  new guards fail). These are record/loopback checks, not execution proof.
+  Henry retains this lane.
   #116 B-task records are now checked; local adoption and an accepted fresh
   A return remain unestablished. Receiving wrapper #118 `68bc82d0` merged at
   `ec23efb5`: frozen package/spec bytes and atomic failure summaries clear all
@@ -117,10 +127,10 @@ every milestone. All lower checkpoints are historical.
   no duplicate create or name/time-window matching. The old lost run ID cannot
   be recovered retroactively. Its implementation #104 `5023a48` merged as `62a2f009`; independent
   guards are retained in #106. No hosted recovery or readiness is established.
-- ACP Claude owns the bridge and held #4 documentation proposal. #3 `f64e131`
-  and #5 `e95a286` are merged; all eight `bb5a841`/`0705ecd`/`b60a755` cases
-  remain unchanged and pass. Reconcile #4 with those merges, the local
-  executor/scorer and issue #1 without reviving the event-organizer example.
+- ACP Claude owns the bridge. #3 `f64e131` and #5 `e95a286` are merged; all
+  eight `bb5a841`/`0705ecd`/`b60a755` cases remain unchanged and pass. Corrected
+  #4 `be7056c6` merged at `9da2fc12` with current routing and a product-neutral
+  example; proposed commands remain proposed. #126 is merged; prioritize held #144.
 - Codex owns shared contracts, the merged forge method-generation path and
   independent integration review. Core identity checks and declared combined-cost
   accounting (#56/#58/#59), plus the offline read-only cost-assessment CLI (#60),
@@ -195,9 +205,12 @@ every milestone. All lower checkpoints are historical.
   generation stays unknown, as do historical nonzero-slot stages without trial
   evidence; #113 records and hashes are unchanged. This is local accounting,
   not new execution or G4.
-  Henry's [receiver-ID follow-up](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6389372825)
-  is requested within his lane: derive unique run/attempt/scoring IDs from the
-  predeclared trial before execution, with same-trial preparation stable.
+  Receiver trial IDs #163 `66118d2b` → `0df3e227` and guard tests #166
+  `00499186` → `c2fd8d12` are merged: 22 mocked Python tests pass with real
+  subprocess launching forbidden. Namespaced run/attempt/scoring IDs are
+  deterministic before intent; repeated preparation is stable. Original
+  `e3f3779` and first-seed tests remain unchanged. Cross-spec trial names still
+  need to be unique in the declared chain; historical receipts are unchanged.
   Do not relabel old receipts. [Method-development intake #157/#158](docs/invention-lab/contracts/method-development-intake.md)
   is merged at `6dc77233` / `e513cc9c`: selected method plus receiver-owned need
   enters one atomic ordinary observation, then the existing planner/Runner and
@@ -227,15 +240,13 @@ every milestone. All lower checkpoints are historical.
   bounded revision bundle and ordinary Prepared checkpoint. Receiver inputs and
   legacy identities are preserved; local HTTP/pure preparation only, no new
   generation, execution, adoption or G2/G3 closure.
-  Henry's authority slice has pure verdict #146 and assessor #154 merged;
-  adoption-store #155 is held on the exact receiver-policy and record-authorization
-  invariants above. New route/invocation PR #159 `00413c66`, stacked on #155,
-  is held on disabled-receiver authorization and stored-replay registry refetch;
-  its #155 dependency is also held. The governed invocation
-  connection remains open.
+  Henry's #155/#159 adoption and authorization mechanism is merged; the
+  governed method invocation and independent A → B → A loop remain open.
   Eric's [MethodOffer UI intake increment](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6388858370)
-  is requested, not acknowledged. CREAO Trigger #137 is separately held on
-  durability, bounded response reads and concurrent reconciliation; no live run.
+  is requested, not acknowledged. CREAO Trigger #137 `23316324` → `1cb81354`
+  is merged after 35 independent offline Node checks; all three original guards
+  are unchanged. Earlier durability/bounds/polling holds are cleared. The live
+  CREAO claim remains author-reported private evidence, not independently checked.
   ACP's [iteration proposal](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6389024893)
   awaits existing-contract interface agreement, not an alternate orchestrator.
   The fixed-pool
@@ -246,10 +257,38 @@ every milestone. All lower checkpoints are historical.
   Selection and the positive endpoint use one eligible-slot rule: Failed,
   Interrupted and Unknown executions remain ineligible even if scored, while
   their observed costs/results stay retained. This clears the prior wording
-  hold; it is a protocol, not an executed comparison or G4 result. Codex's next
-  offline work is protocol preparation/selection: numeric six-slot/whole-chain
-  ceilings, four-family input parity and correct adaptive Prepared chronology.
-  Henry's unique receiver IDs and runtime assurance remain prerequisites.
+  hold; it is a protocol, not an executed comparison or G4 result. Pure
+  [development selection #169/#170](docs/invention-lab/contracts/process-selection.md)
+  is now merged: eight root selector cases, four independent retained-record
+  guards and 16 core verdict checks pass. The scope is one arm/family and three
+  rounds, retaining missing/failed/unknown evidence and deterministic tie-breaks.
+  Complete six-operation/four-family roster, numeric ceilings, adaptive Prepared
+  chronology and runtime assurance remain open.
+  Preparation #164 `55e14cc4` clears its prior publication/byte-pin defects
+  with eight pure file tests and is merged at `a056ec65`; its PR description
+  is corrected.
+  This is preparation only, without trusted selection lineage. Eligibility CLI
+  #174 `f67ae448` → `73d039b5` clears its bounded-read/path hold: five focused
+  tests, three temporary inert-file checks and scoped strict Clippy/fmt pass.
+  It delegates to merged typed `assess_process_slot`; no scorer ran. Endpoint
+  #168 `99b2c8b0` remains held on family-specific policy, full method identity
+  and ordered/not-run roster binding (one control passes, seven subcases fail).
+  Selective-transfer #165 `cb5f28f0` merged at `b99839df` after corrected claims
+  and static checks of 713 manifest entries, 523 artifact hashes, 12 slot joins
+  and nine declaration comparisons. Original records are unchanged; the parent
+  wins on rough-transport but not ravine. No runtime/namespace or G3/G4 clearance.
+  Selection CLI #173/#175 and whole development roster #187 `da669296` →
+  `bb9f7c28` are merged; #189 preserves independent `d2304309` guards at
+  `899de43d`. The final composition passes 30 scoped forge tests and strict
+  Clippy/fmt. Eight selections bind round methods, controls, runtime settings,
+  family policy and numeric trial grants. Bounded cohort capture/check CLI #191
+  `b6750eec` → `b16f8eb7` and independent #192 guards at `8493a8ce` are merged.
+  Root 21 initial scoped checks, 20 overlapping independent checks and 12 final
+  composition checks pass, with scoped strict Clippy/fmt. Generation provenance,
+  chain costs, fresh-panel consumption, chronology and governance remain open;
+  no new runtime result is claimed.
+  #160's regression analysis is merged as retrospective explanation, not a new
+  trial, mechanism fix or proof the proposed #144 iteration engine works.
   No new model request is declared.
   Public-range #121/#136 is merged, clearing the
   reserved-seed finding with metadata/preflight and mocked checks only. A new range
@@ -265,12 +304,40 @@ every milestone. All lower checkpoints are historical.
   The provider session retains live reruns and reports; its Apify baseline pass
   is operator-reported and uses a handwritten parser; it is not model-generation
   evidence.
+- Eric's [separate research claim](https://github.com/HenryWashuHe/genesis-history-experiment/issues/1#issuecomment-6391308515) owns
+  `experiments/strategy-adapter/**` and proposals `strategy-adapter.md` /
+  `iteration-algorithms.md` under `docs/invention-lab/proposals/`, on
+  `eric/strategy-adapter-split`. No forge/executor/core/kernel/UI edits are claimed.
+  Proposals #182 `28e398e5` / #183 `813e05f1` merged at `c2b748cf` / `d28e898c`
+  after bounded editorial corrections. They add no implementation or gate result.
+  Research #180/#181 remains held on source-only lifecycle/host-execution findings;
+  replay stays author-reported. Prioritize Eric's #148/#149 and #180/#181 fixes;
+  his prior UI ownership and pending request remain unchanged.
 - Ines remains unassigned by explicit user instruction.
 
-Separate `apps/stage` review queue: story #125 `973aa9c` remains held on
-organization-timing attribution. Stacked #126 `b7bdb18` is held on acknowledgment
-races, poll-failure evidence loss, cross-organization binding and malformed success.
-These changes do not transfer Eric's lab UI lane or establish adoption authority.
+Separate `apps/stage` queue: #125 `811d0df2` → `c0c2cae1` is merged after
+33 offline VM tests. #126 `702ee560` → `eb08a232` is now merged: root, independent
+reviewer and final composition each pass 52 offline VM checks (overlapping).
+All 49 prior test bytes stay unchanged; three new ambiguity guards cover
+unconfirmed delivery and checking the log before another report. No live POST,
+browser/provider walkthrough or adoption/authority evidence is claimed.
+Dated direction/sponsor note #161 `c936bcf6` merged at `a9caea11` after
+source/delta and independent review; the current checkpoint remains authoritative.
+ACP #144 `407ca24f` fixes the previous three cases: all 57 existing synthetic
+Node checks pass. A new 42-line guard `a8887ec7` fails: an imported ancestor's
+metadata becomes another family's root, drops verified source and falsely
+promotes 1/2 over the actual 2/2 control. Root independently reran that failure.
+Inert callbacks only, not runtime, improvement or adoption authority.
+
+Queue cleanup preserved branches: #176/#177/#178 closed as superseded by
+#180/#181 and revised proposals #182/#183 after exact code/test comparisons.
+#143 closed as deferred, outside the active goal. #167 `d2b76522` merged at `0643c9ef`
+after root source review, locked executor check and strict all-target Clippy.
+The five-line staging-collision fix is not runtime or namespace assurance.
+Henry's priority remains #179/#186 and #168; #184 `68e05610` remains held on
+calibration unknown-to-zero and timeout/failure handling before new research runs.
+The `b5a35bf` invocation rehearsal is author-reported and unreviewed here,
+not independent organizational evidence or gate closure.
 
 Legacy task numbers are historical references in the migration map. Current
 assignments and exact file scopes are recorded in issue #1 and the handoff.

@@ -48,6 +48,15 @@ Choose one of two modes, labeled in the top-left badge:
   IDs, versions and nonempty source digests, and a returned manifest matching
   that exact identity with Org A as publisher. Any other B installation is shown
   with its own status. Nothing here can commit, provision or publish. The organization servers allow any origin.
+  **Report live** (the box under the conversation, live mode only) posts one
+  observation to Org A's first mission with the agent token
+  (`POST /missions/{id}/observations`, source `stage-judge`, 200 characters,
+  one every 10 s). A judge can type what happened and watch the running
+  planner answer on the same screen: the chat shows the recorded evidence id,
+  the decision card shows the verdict with the model name and the kernel's
+  observation-to-decision interval, and the status line acknowledges the
+  answer. A kernel refusal is shown as its HTTP status. The box is hidden and
+  inert in idle and replay.
 
 ```sh
 cargo run -p genesis-server -- dev            # kernel stack with stubs
