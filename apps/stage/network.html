@@ -209,8 +209,8 @@ text.say.ok { fill: var(--accent); } text.say.bad { fill: var(--refuse); } text.
     el("text", { x: cx, y: cy + 26, "text-anchor": "middle" }, g, orgLabel);
     const nodes = new Map();
     const stepDeg = Math.max(36, 360 / Math.max(5, roleNames.length + 2));
-    const addRole = (name, isNew = false) => { if (nodes.has(name)) return nodes.get(name); const n = placeRole(g, cx, cy, R, -90 + nodes.size * stepDeg, name, isNew); nodes.set(name, n); return n; };
-    roleNames.forEach((n) => addRole(n));
+    const addRole = (name, isNew = false, id = name) => { if (nodes.has(id)) return nodes.get(id); const n = placeRole(g, cx, cy, R, -90 + nodes.size * stepDeg, name, isNew); nodes.set(id, n); return n; };
+    roleNames.forEach((role) => typeof role === "string" ? addRole(role) : addRole(role.name, false, role.id));
     const lx = 560, ly = 110;
     const rungs = RUNGS.map((label, i) => {
       const y = ly + i * 62;
@@ -287,7 +287,7 @@ text.say.ok { fill: var(--accent); } text.say.bad { fill: var(--refuse); } text.
     const keep = parts.filter((p) => { try { return decodeURIComponent(p.split("=")[0]).toLowerCase() !== "tok"; } catch { return true; } });
     if (parts.length !== keep.length) history.replaceState(null, "", location.pathname + (keep.length ? "?" + keep.join("&") : "") + (location.hash || ""));
   }
-  const live = { on: false, url: (query("a") || "http://127.0.0.1:7101/api/v1").replace(/\/$/, ""), tok: null, requestedMission: query("mission"), cursor: 0, timer: null, k: null, changes: new Map(), mission: null, state: null, started: false, generation: 0, polling: null, visualAt: 0, drawingQueued: false, reportStatus: "", posting: false, reportUnknown: false };
+  const live = { on: false, url: (query("a") || "http://127.0.0.1:7101/api/v1").replace(/\/$/, ""), tok: null, requestedMission: query("mission"), cursor: 0, timer: null, k: null, changes: new Map(), selectedChange: null, mission: null, state: null, started: false, generation: 0, polling: null, visualAt: 0, drawingQueued: false, reportStatus: "", posting: false, reportUnknown: false };
   const activeLive = (session) => live.on && live.generation === session;
   const getJson = async (u, tok) => { const r = await fetch(u, { headers: { Authorization: "Bearer " + tok, Accept: "application/json" } }); if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); };
   function queueLive(fn, session, gap = 0) {
@@ -296,7 +296,7 @@ text.say.ok { fill: var(--accent); } text.say.bad { fill: var(--refuse); } text.
   }
   function buildKernelLive(svg, st = live.state) {
     svg.replaceChildren();
-    const names = Object.values(st.roles || {}).map((r) => String(r.name || r.role_id || "role").toLowerCase());
+    const names = Object.entries(st.roles || {}).map(([id, r]) => ({ id: String(r.role_id || id), name: String(r.name || r.role_id || id).toLowerCase() }));
     live.k = kernelScene(svg, names, String(st.name || st.org_id || "organization"), "r" + (st.revision ?? 0));
     live.k.setStops(-1, "");
   }
@@ -306,21 +306,26 @@ text.say.ok { fill: var(--accent); } text.say.bad { fill: var(--refuse); } text.
     if (e.type === "observation_recorded") { k.pulse(false); k.say(160, 300, "evidence recorded", { cls: "warm" }); }
     if (e.type === "change_proposed" && p.change_id) {
       live.changes.set(p.change_id, { ops: p.operations || [] });
+      live.selectedChange = p.change_id;
       k.clearLadder(); k.setStops(-1, ""); k.resetToken();
       k.climb(rungFor(p.operations)); k.stage(0); k.say(685, 80, "planner picks a rung", { cls: "soft", hold: 1800 });
     }
     // The real planner writes this summary AFTER the change lifecycle. Never erase an already committed token.
     if (e.type === "planner_decision") {
       const verdict = String(p.verdict || "").replace(/_/g, " ");
-      if (verdict === "no change") { k.clearLadder(); k.setStops(-1, ""); k.resetToken(); k.light(0); k.say(685, 80, "nothing to change", { cls: "soft", hold: 1800 }); }
+      if (verdict === "no change") { live.selectedChange = null; k.clearLadder(); k.setStops(-1, ""); k.resetToken(); k.light(0); k.say(685, 80, "nothing to change", { cls: "soft", hold: 1800 }); }
       else if (!p.change_id || !live.changes.has(p.change_id)) k.say(685, 80, "planner result: " + (verdict || "unknown"), { cls: "soft", hold: 1800 });
     }
     if (e.type === "change_status_changed" && p.change_id) {
+      // One rail describes one selected proposal. An interleaved older change must not borrow its ladder.
+      // On a newly attached tail the proposal may predate this session, so show its statuses without a rung.
+      if (live.selectedChange === null && live.changes.size === 0) { live.selectedChange = p.change_id; k.clearLadder(); k.setStops(-1, ""); k.resetToken(); }
+      if (p.change_id !== live.selectedChange) return;
       const i = STAGES.indexOf(String(p.to));
       if (i >= 0) { k.stage(i); if (i === STAGES.length - 1) k.say(820, 460, "committed", { cls: "ok" }); }
       else if (String(p.to) === "REJECTED" || String(p.to) === "FAILED") { k.stage(Math.max(1, STAGES.indexOf(String(p.from))), true); k.say(820, 620, p.to === "FAILED" ? "change failed" : "refused by the kernel", { cls: "bad", hold: 2000 }); }
     }
-    if (e.type === "role_created") { k.addRole(String(p.name || "new role").toLowerCase(), true); k.say(290, 120, "new role", { cls: "ok", hold: 2000 }); }
+    if (e.type === "role_created") { k.addRole(String(p.name || "new role").toLowerCase(), true, String(p.role_id || p.name || "new role")); k.say(290, 120, "new role", { cls: "ok", hold: 2000 }); }
   }
   async function pollLive(session = live.generation) {
     if (!activeLive(session)) return;
@@ -378,7 +383,7 @@ text.say.ok { fill: var(--accent); } text.say.bad { fill: var(--refuse); } text.
       live.tok = token.trim();
     }
     live.on = true; const session = ++live.generation;
-    live.started = false; live.cursor = 0; live.k = null; live.state = null; live.mission = null; live.changes = new Map(); live.drawingQueued = false; live.visualAt = clock.t;
+    live.started = false; live.cursor = 0; live.k = null; live.state = null; live.mission = null; live.changes = new Map(); live.selectedChange = null; live.drawingQueued = false; live.visualAt = clock.t;
     timeline.steps = []; timeline.i = 0; tweens.clear(); delays.clear();
     for (const [k, a] of ACTS.entries()) $(a.id).hidden = k !== 0;
     $("svg-kernel").replaceChildren();
@@ -390,7 +395,7 @@ text.say.ok { fill: var(--accent); } text.say.bad { fill: var(--refuse); } text.
   function stopLive() {
     if (!live.on) return;
     if (live.posting) { live.reportUnknown = true; live.reportStatus = "report outcome unknown: check the event log before resubmitting"; }
-    live.on = false; live.generation++; clearTimeout(live.timer); live.timer = null; live.started = false; live.cursor = 0; live.changes = new Map();
+    live.on = false; live.generation++; clearTimeout(live.timer); live.timer = null; live.started = false; live.cursor = 0; live.changes = new Map(); live.selectedChange = null;
     evidenceInput.hidden = true;
     show(0);
   }
