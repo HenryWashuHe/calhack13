@@ -9,6 +9,16 @@ organizations, or anything about other families.
 
 ## Setup
 
+**Where the generated rules ran (correction, 2026-10-25 07:00Z).** In every run recorded here the model-written
+rules were evaluated with `node:vm` inside the runner's own process, which had loaded `.env` and therefore
+held the model API key; `node:vm` is not a security boundary, and a rule's top-level `this` reaches the host
+realm. Henry's Claude demonstrated the escape with a hand-written probe. There is no indication that any
+generated rule did anything of the kind; the point is that the boundary did not exist while these results were
+produced. Since `families/sandbox.mjs` every rule is scored in a child process with an empty environment,
+an empty working directory and a wall-clock kill, and the key never enters that process. The recorded
+results are unchanged by this; they were produced without that boundary.
+
+
 - Family `jobshop-10x5` (`scripts/iteration/families/jobshop.mjs`): 10 jobs × 5 machines, processing times
   1–99, instances derived from seeded ids and drawn fresh for every plan. A package is a JavaScript
   dispatching rule; success on an instance is makespan ≤ 1.20 × lower bound.

@@ -5,6 +5,7 @@
 // when the number of bins used is within `target` of the volume lower bound ceil(sum / capacity).
 // Deterministic, synchronous, never throws, Node built-ins only, no provider.
 import vm from "node:vm";
+import { scoreInChild, safeMessage } from "./sandbox.mjs";
 import { sha256 } from "../engine.mjs";
 
 export const FEATURES = Object.freeze(["bin.remaining", "bin.fits", "bin.fill", "bin.index", "item.size"]);
@@ -96,18 +97,21 @@ function compileRule(source, timeout) {
 // rule that loops forever is terminated and the rule's realm never holds a host function to climb out of.
 const packUnderTimeout = (p, priority, timeout) => vm.runInNewContext("run()", { run: () => simulate(p, priority) }, { timeout });
 
-function shortMessage(err) {
-  try {
-    const m = err && typeof err.message === "string" ? err.message : String(err);
-    return m.split("\n")[0].slice(0, 160);
-  } catch { return "unknown error"; }
-}
-
-const failure = (err) => ({ success: false, progress: 0, cost: 1, detail: { error: shortMessage(err) } });
+const failure = (err) => ({ success: false, progress: 0, cost: 1, detail: { error: safeMessage(err) } });
 
 function outcome(p, bins, target) {
   const ratio = bins / p.lower_bound;
   return { success: bins <= target * p.lower_bound, progress: Math.min(1, p.lower_bound / bins), cost: 1, detail: { bins, lower_bound: p.lower_bound, ratio } };
+}
+
+/** In-process scoring: runs ONLY inside families/rule-child.mjs (empty environment). Never call it from a process that holds secrets. */
+export function scoreInProcess(source, instance, { items = 100, capacity = 100, target = 1.02, timeoutMs = 200, sizes = DEFAULT_SIZES } = {}) {
+  const timeout = Math.max(1, Math.floor(timeoutMs));
+  try {
+    const p = problemOf(instance, items, capacity, sizes);
+    const priority = compileRule(source, timeout);
+    return outcome(p, packUnderTimeout(p, priority, timeout), target);
+  } catch (err) { return failure(err); }
 }
 
 export function binpackFamily({ id, seed, items = 100, capacity = 100, target = 1.02, timeoutMs = 200, sizes = DEFAULT_SIZES }) {
@@ -118,13 +122,8 @@ export function binpackFamily({ id, seed, items = 100, capacity = 100, target = 
     seed,
     root: () => "(item, bin) => -bin.index",
     instances: (instanceSeed, n) => Array.from({ length: n }, (_, i) => `${id}/${String(instanceSeed).slice(0, 8)}/${i}`),
-    score: (pkg, instance) => {
-      try {
-        const p = problemOf(instance, items, capacity, sizes);
-        const priority = compileRule(pkg && pkg.source, timeout);
-        return outcome(p, packUnderTimeout(p, priority, timeout), target);
-      } catch (err) { return failure(err); }
-    },
+    // Every rule, including the fixed controls, is scored in a child process with an empty environment (see sandbox.mjs).
+    score: (pkg, instance) => scoreInChild({ family: "binpack", source: pkg && pkg.source, instance, options: { items, capacity, target, sizes }, timeoutMs: timeout }),
   };
 }
 
