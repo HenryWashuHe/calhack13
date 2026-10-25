@@ -4,6 +4,7 @@ Run with: python3 -m unittest discover -s experiments/invention-lab/scoring/tool
 Only spec files are written and validated; nothing is executed.
 """
 import contextlib
+import hashlib
 import importlib.util
 import io
 import json
@@ -32,6 +33,10 @@ class Pc1SpecTests(unittest.TestCase):
         for name in ("w1", "w2", "f1", "random", "parent"):
             (self.root / f"{name}.json").write_text(json.dumps({"package": {"id": name}}))
 
+    def pinned(self, name):
+        path = self.root / f"{name}.json"
+        return {"package": str(path), "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
+
     def build(self, *argv):
         out = io.StringIO()
         with contextlib.redirect_stdout(out):
@@ -59,8 +64,7 @@ class Pc1SpecTests(unittest.TestCase):
                        "--control", "b", "--out", str(self.root / "bad"))
 
     def test_fresh_stage_orders_plans_and_records_not_run_sides(self):
-        sel = {fam: {"W": str(self.root / "w1.json"), "F": str(self.root / "f1.json")}
-               for fam in FAMILIES}
+        sel = {fam: {"W": self.pinned("w1"), "F": self.pinned("f1")} for fam in FAMILIES}
         sel["return-mix"]["F"] = None
         (self.root / "sel.json").write_text(json.dumps(sel))
         out = self.root / "fresh"
@@ -88,8 +92,39 @@ class Pc1SpecTests(unittest.TestCase):
         args = ("dev", "--arm", "F", "--round", "1", "--candidate", str(self.root / "f1.json"),
                 "--control", str(self.root / "random.json"), "--out", str(self.root / "d"))
         self.build(*args)
-        with self.assertRaises(FileExistsError):
+        with self.assertRaises(SystemExit):
             self.build(*args)
+
+    def test_a_selection_must_pin_the_bytes_it_selected(self):
+        sel = {fam: {"W": self.pinned("w1"), "F": None} for fam in FAMILIES}
+        args = ("fresh", "--selections", str(self.root / "sel.json"), "--random",
+                str(self.root / "random.json"), "--parent", str(self.root / "parent.json"))
+        for name, change in (
+            ("path only", lambda s: s["ravine-crossing"].update(W=str(self.root / "w1.json"))),
+            ("extra key", lambda s: s["ravine-crossing"]["W"].update(round=1)),
+            ("short digest", lambda s: s["ravine-crossing"]["W"].update(sha256="ab")),
+            ("swapped bytes", lambda s: s["ravine-crossing"]["W"].update(
+                package=str(self.root / "w2.json"))),
+        ):
+            with self.subTest(name):
+                changed = json.loads(json.dumps(sel))
+                change(changed)
+                (self.root / "sel.json").write_text(json.dumps(changed))
+                out = self.root / f"fresh-{name.replace(' ', '-')}"
+                with self.assertRaises(SystemExit):
+                    self.build(*args, "--out", str(out))
+                self.assertFalse(out.exists())
+        # A pinned random or parent package must match too.
+        (self.root / "sel.json").write_text(json.dumps(sel))
+        with self.assertRaises(SystemExit):
+            self.build(*args, "--parent-sha256", "0" * 64, "--out", str(self.root / "p"))
+        self.assertFalse((self.root / "p").exists())
+        digest = hashlib.sha256((self.root / "parent.json").read_bytes()).hexdigest()
+        self.build(*args, "--parent-sha256", digest, "--out", str(self.root / "ok"))
+        self.assertTrue((self.root / "ok" / "spec.json").exists())
+        self.assertEqual(
+            sorted(p.name for p in self.root.iterdir() if p.name.startswith(".pc1-specs-")), [],
+            "no staging directory is left behind")
 
 
 if __name__ == "__main__":
