@@ -1,0 +1,4 @@
+{
+  "error": "ApiError { status: 502, error: \"registry_invalid_response\", message: \"registry method response is invalid or inconsistent\", details: Null }",
+  "refused": true
+}

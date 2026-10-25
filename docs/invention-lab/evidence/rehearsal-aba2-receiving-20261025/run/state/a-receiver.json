@@ -1,0 +1,49 @@
+{
+  "acceptance_plans": [
+    {
+      "plan": {
+        "domain": "genesis",
+        "id": "receive-rehearse5-a-pinned",
+        "schema": "development-trial-plan/1",
+        "sha256": "e527021310d4215c16b016097de1f28a57e531aca7865156f9ffa233ccdd487b",
+        "version": "1"
+      },
+      "publisher": "org_example_b",
+      "requirement_id": "req_8c62dd83ee8c490bb0429b615cdbc5e0"
+    }
+  ],
+  "allowed_dependencies": [],
+  "environments": [
+    {
+      "domain": "genesis-lab",
+      "id": "genesis-lab-exec/namespaces",
+      "schema": "lab-environment/1",
+      "sha256": "eea594d411dd74e146bf8e2a99e4c7b6f6c0249eb67a640d090df0a2554ec74f",
+      "version": "0.1.0"
+    }
+  ],
+  "evaluators": [
+    {
+      "domain": "genesis-lab",
+      "id": "genesis-lab-eval",
+      "schema": "lab-evaluator/1",
+      "sha256": "1f03d1b6499721e6ddae6e600b688c123a8684e34c56f53cde8104d361246f42",
+      "version": "0.1.0"
+    }
+  ],
+  "protocol": {
+    "domain": "genesis-lab",
+    "id": "genesis-lab-exec-lines",
+    "schema": "lab-protocol/1",
+    "sha256": "d3b90c36b32e89b4e3d191dc018717301a4afc386ac915123cf5cf86250c550d",
+    "version": "1"
+  },
+  "records_root": "/home/claude/xwt/aba2r/docs/invention-lab/evidence/rehearsal-aba2-receiving-20261025/a-trial",
+  "runtime": {
+    "domain": "genesis-lab",
+    "id": "python3",
+    "schema": "lab-runtime/1",
+    "sha256": "0b21e795ac528c0f9cbe99e28ca1125af0c4dc5b87f53224abfe2a2ae5a69491",
+    "version": "1"
+  }
+}

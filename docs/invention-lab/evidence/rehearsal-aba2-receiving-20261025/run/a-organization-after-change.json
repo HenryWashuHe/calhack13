@@ -1,0 +1,129 @@
+{
+  "assignments": {
+    "asg_a3fcb6dad8644775bd7775054eea89af": {
+      "assignment_id": "asg_a3fcb6dad8644775bd7775054eea89af",
+      "epoch": 1,
+      "lease_expires_at": null,
+      "responsibility_id": "rsp_ca30ffc106724e79902e9800d8266747",
+      "role_id": "role_3b61358518d54476977f9becca44bffc",
+      "state": "ACTIVE"
+    },
+    "asg_f5fa8d3a0aaf46e9a0a5592e72598585": {
+      "assignment_id": "asg_f5fa8d3a0aaf46e9a0a5592e72598585",
+      "epoch": 1,
+      "lease_expires_at": null,
+      "responsibility_id": "rsp_04950c75e3994af6826daeba6da0a138",
+      "role_id": "role_3b61358518d54476977f9becca44bffc",
+      "state": "ACTIVE"
+    }
+  },
+  "capability_gaps": {},
+  "constitution": {
+    "budget_cents": 1000000,
+    "max_active_contracts": 3,
+    "max_active_roles": 10,
+    "scopes": [
+      "method.develop",
+      "mission.coordinate"
+    ]
+  },
+  "contracts": {},
+  "installations": {},
+  "missions": {
+    "mis_17345dc869ed4b7ea58eab7382ae3ab8": {
+      "constraints": [],
+      "created_at": "2026-10-25T07:38:44.243805614Z",
+      "deadline": null,
+      "goal": "Develop ravine-crossing designs with the best available methods",
+      "mission_id": "mis_17345dc869ed4b7ea58eab7382ae3ab8",
+      "status": "ACTIVE",
+      "success_checks": []
+    }
+  },
+  "name": "org_example_a",
+  "observations": {
+    "obs_2be7c4da88164b34b75bc7dbadd27dc9": {
+      "evidence_ref": "genesis:method-development:3dfed25bfd8c078a86349065be88150bbc1edcb7f50e2ede0bc93f4a2ee88389",
+      "mission_id": "mis_17345dc869ed4b7ea58eab7382ae3ab8",
+      "observation_id": "obs_2be7c4da88164b34b75bc7dbadd27dc9",
+      "observed_at": "2026-10-25T07:38:49.586754254Z",
+      "source": "method-development",
+      "summary": "Receiver-owned capability-development need: Develop ravine-crossing designs with a method another lab published\nDesired acceptance: Beats our current method by one success on twelve fresh public ravine instances\nAn exact network method selection is retained as evidence (3dfed25bfd8c078a86349065be88150bbc1edcb7f50e2ede0bc93f4a2ee88389). It is not an installed Actor capability or an accepted method. Assess continuing responsibility using the existing owners; create a specialist only when distinct continuing work justifies it. Availability alone requires no organizational change."
+    }
+  },
+  "org_id": "org_example_a",
+  "requirements": {
+    "req_8c62dd83ee8c490bb0429b615cdbc5e0": {
+      "acceptance": "Beats our current method by one success on twelve fresh public ravine instances",
+      "mission_id": "mis_17345dc869ed4b7ea58eab7382ae3ab8",
+      "owner": {
+        "id": "role_3b61358518d54476977f9becca44bffc",
+        "kind": "role"
+      },
+      "requirement_id": "req_8c62dd83ee8c490bb0429b615cdbc5e0",
+      "status": "ASSIGNED",
+      "summary": "Develop ravine-crossing designs with a method another lab published",
+      "triggering_evidence": [
+        "obs_2be7c4da88164b34b75bc7dbadd27dc9"
+      ]
+    }
+  },
+  "responsibilities": {
+    "rsp_04950c75e3994af6826daeba6da0a138": {
+      "epoch": 1,
+      "executor": null,
+      "mission_id": "mis_17345dc869ed4b7ea58eab7382ae3ab8",
+      "owner": {
+        "id": "role_3b61358518d54476977f9becca44bffc",
+        "kind": "role"
+      },
+      "purpose": "Ravine-crossing designs",
+      "requirement_id": null,
+      "responsibility_id": "rsp_04950c75e3994af6826daeba6da0a138",
+      "status": "OPEN",
+      "termination": "",
+      "trigger": ""
+    },
+    "rsp_ca30ffc106724e79902e9800d8266747": {
+      "epoch": 1,
+      "executor": null,
+      "mission_id": "mis_17345dc869ed4b7ea58eab7382ae3ab8",
+      "owner": {
+        "id": "role_3b61358518d54476977f9becca44bffc",
+        "kind": "role"
+      },
+      "purpose": "Develop ravine-crossing designs with a method another lab published",
+      "requirement_id": "req_8c62dd83ee8c490bb0429b615cdbc5e0",
+      "responsibility_id": "rsp_ca30ffc106724e79902e9800d8266747",
+      "status": "OPEN",
+      "termination": "Beats our current method by one success on twelve fresh public ravine instances",
+      "trigger": "new method evidence"
+    }
+  },
+  "revision": 4,
+  "roles": {
+    "role_3b61358518d54476977f9becca44bffc": {
+      "authority": {
+        "budget_cents": 10000,
+        "scopes": [
+          "method.develop",
+          "mission.coordinate"
+        ]
+      },
+      "binding": {
+        "config_digest": "9695fc99d6115f8272c49f0641490ac7b182dec834918d2082f1946582123bb0",
+        "conversation_ref": null,
+        "provider": "internal",
+        "provider_agent_id": "kernel:designer"
+      },
+      "capabilities": [],
+      "charter": "Own A's ravine-crossing design work and its methods",
+      "created_in_revision": 1,
+      "name": "Designer",
+      "reports_to": null,
+      "retired_in_revision": null,
+      "role_id": "role_3b61358518d54476977f9becca44bffc",
+      "state": "ACTIVE"
+    }
+  }
+}
