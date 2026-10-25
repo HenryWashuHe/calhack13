@@ -319,6 +319,86 @@ class SpecBinding(unittest.TestCase):
                       r["unbound"])
 
 
+    def test_records_rebound_to_another_seed_panel_are_unbound(self):
+        # Receipts bind to their own (0..11) plans and assess as eligible; only
+        # the frozen-panel check can tell this is not the fresh panel.
+        def shift(p):
+            for i, instance in enumerate(p["development_instances"]):
+                instance["id"] = instance["id"].rsplit("/", 1)[0] + f"/{i}"
+        r = self.reading(overrides={("return-mix", "parent-random"): {"plan": shift}})
+        t = r["families"]["return-mix"]["parent-random"]
+        self.assertTrue(t["control"]["eligible"])
+        self.assertIn("instances are not the frozen fresh panel return-mix/1/1000..1011",
+                      t["problems"])
+        self.assertEqual(r["reading"], "unbound")
+
+    def test_plan_identity_and_slot_shape_are_checked_beyond_the_assessment(self):
+        # Each plan is rebound consistently, so its receipts still assess as
+        # eligible; only the spec binding can refuse it.
+        def other_id(p):
+            p["id"] = "receive-fresh-rough-transport-w-random"
+        def dependency(p):
+            p["slots"][1]["dependencies"] = [dict(p["slots"][1]["method"], id="dep")]
+        cases = {
+            ("rough-transport", "primary", other_id): "plan id is not receive-<trial>",
+            ("ravine-crossing", "f-random", dependency): "control purpose or dependencies differ",
+        }
+        for (fam, name, change), problem in cases.items():
+            with self.subTest(problem):
+                r = self.reading(overrides={(fam, name): {"plan": change}})
+                t = r["families"][fam][name]
+                self.assertIn(problem, t["problems"])
+                self.assertEqual(r["reading"], "unbound")
+
+    def test_unreadable_plans_and_off_roster_trials_are_unbound(self):
+        def garbage(out):
+            Path(out, "fresh-return-mix-w-random", "plan.json").write_text("not json")
+        r = self.reading(edit=garbage)
+        self.assertIn("fresh-return-mix-w-random: plan.json missing or not JSON", r["unbound"])
+
+        def extra_trial(out):
+            path = Path(out, "spec.json")
+            spec = json.loads(path.read_text())
+            spec["trials"].append(dict(spec["trials"][0]))
+            path.write_text(json.dumps(spec))
+        with tempfile.TemporaryDirectory() as out:
+            not_run, _ = stage(out)
+            extra_trial(out)
+            digest = hashlib.sha256(Path(out, "spec.json").read_bytes()).hexdigest()
+            r = pc1.report(out, not_run, digest)
+        self.assertTrue(any(p.startswith("spec has unexpected or repeated trials")
+                            for p in r["unbound"]))
+        listed = self.reading(not_run_edit=lambda nr: nr + [
+            {"trial": "fresh-rough-transport-primary", "reason": "no_candidate: w-rough-transport"}])
+        self.assertIn("fresh-rough-transport-primary is declared not run but the spec has "
+                      "its packages", listed["unbound"])
+
+    def test_a_missing_or_malformed_spec_is_unbound(self):
+        def respec(change):
+            def edit(out):
+                path = Path(out, "spec.json")
+                spec = json.loads(path.read_text())
+                change(spec)
+                path.write_text(json.dumps(spec))
+            return edit
+        cases = {
+            "no retained lab-receive-spec/1 spec.json":
+                lambda out: os.remove(os.path.join(out, "spec.json")),
+            "spec instances must be 12": respec(lambda s: s.update(instances=6)),
+            "spec packages are not the fresh-stage names":
+                respec(lambda s: s["packages"].update(extra=s["packages"]["parent"])),
+        }
+        for problem, edit in cases.items():
+            with self.subTest(problem), tempfile.TemporaryDirectory() as out:
+                not_run, _ = stage(out)
+                edit(out)
+                spec = Path(out, "spec.json")
+                digest = hashlib.sha256(spec.read_bytes() if spec.exists() else b"").hexdigest()
+                r = pc1.report(out, not_run, digest)
+                self.assertIn(problem, r["unbound"])
+                self.assertEqual(r["reading"], "unbound")
+
+
 class RealRecords(unittest.TestCase):
     def test_a_retained_trial_reads_as_its_recorded_verdict(self):
         # #116's primary trial: child 3/6 vs seeded random search 4/6, all usage known.
@@ -348,6 +428,13 @@ class Cli(unittest.TestCase):
                 with self.assertRaises(SystemExit):
                     pc1.main(argv)
             os.remove(nr)
+            # Without a lab-score binary nothing is assessed or reported.
+            saved = os.environ.pop("LAB_SCORE")
+            try:
+                with self.assertRaises(SystemExit):
+                    pc1.main(["pc1_report.py", "--spec-sha256", digest, out])
+            finally:
+                os.environ["LAB_SCORE"] = saved
 
 
 if __name__ == "__main__":
