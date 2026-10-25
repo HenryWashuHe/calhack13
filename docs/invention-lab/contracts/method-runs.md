@@ -30,7 +30,7 @@ adoption is the way back.
 | --- | --- | --- |
 | Prepare | `POST /method-runs` `{client_request_id, request, plan}` | Authorizes, checks the proposed plan, freezes it as `prepared`. Idempotent by key. |
 | Start | `POST /method-runs/{id}/start` | `prepared → started` once if the frozen grant is still current, else `prepared → fenced` (final, nothing runs). |
-| Receipt | `POST /method-runs/{id}/receipt` | The execution receipt, checked against the frozen plan's binding. `completed`, or `completed_after_fence` if the grant changed during the run. Any outcome, `unknown` included, is final. |
+| Receipt | `POST /method-runs/{id}/receipt` | The execution receipt, checked against the frozen plan's binding. `completed`, or `completed_after_fence` if the grant changed during the run or the receiver has since been disabled. Any outcome, `unknown` included, is final. |
 | Read | `GET /method-runs/{id}` | The record. |
 
 A proposed plan is accepted only if all of these hold:
@@ -45,8 +45,9 @@ A proposed plan is accepted only if all of these hold:
 - Its development and scoring grants are no larger than the accepted plan's.
 - Its plan, run, attempt and scoring ids are used by no other run, and its
   run, attempt and scoring ids differ from the accepted trial's.
-- Its frozen record leaves 64 KiB for the receipt, so a run that starts can
-  always be completed.
+- Its frozen record leaves 64 KiB for the receipt, and its binding, which
+  every receipt repeats, takes at most 16 KiB of that. So a run that starts
+  can always be completed.
 
 Its instances are the operator's choice; they are public.
 
