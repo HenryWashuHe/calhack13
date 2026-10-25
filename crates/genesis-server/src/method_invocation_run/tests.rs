@@ -306,6 +306,10 @@ fn keys_sizes_and_stored_records_are_checked() {
             E::InvalidInput
         ));
     }
+    // The longest allowed key is accepted.
+    let mut longest = r.plan();
+    longest.id = "invoke-longest-key".into();
+    assert!(r.prepare(&r.intent(&"k".repeat(256), longest)).is_ok());
     // A plan whose frozen record would exceed the record bound is refused.
     let mut huge = r.plan();
     let first = huge.development_instances[0].clone();
