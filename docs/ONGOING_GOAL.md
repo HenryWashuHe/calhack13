@@ -104,14 +104,25 @@ failures or input that is actually required.
 
 ## Current milestone ledger
 
-**Review checkpoint, October 25, 2026 — main `b141cdcf`:** #144 is merged after
-62/62 inert Node checks; #212 clears #207's shape findings with 12 pure/mocked
-passes. #57/#65 fixups are on their PR branches only; independent Linux assurance
-remains open. #210 retains 51/51 trusted handwritten checks, with original
-calibration files absent locally; #209 is declaration only. [The review snapshot](reviews/pr-queue-2026-10-25.md)
-records exact sources, remaining #199/#203 holds and deferred new submissions.
-G0–G4 stay open; the native app Goal reports `paused`. No new paid run, provider
-call or generated-method execution is authorized or claimed here.
+**Priority checkpoint, October 25, 2026 — main `de453090`:** #220 source
+`96eecb8a` merged into #65 at `d57efc82`; #221 source `6f55d399` merged into
+#57 at `f9c3dc6f`. Both refuse namespace startup without Linux
+`close_range(CLOEXEC)` success, remove the RLIMIT-bounded fallback and change
+the environment-policy identity; Mode None is unchanged. On current-main
+composition `b347f457` root passes scorer all-target compilation, strict all-target
+Clippy for both crates, formatting and seven pure termination tests. The 28 prior
+test files are unchanged. The owner directed merge without waiting for the
+remaining external Linux report: #65 merged at `4a37ffb7` (checked tree `c50d5f87`),
+then #57 at `de453090` (checked composition tree `b28208ed`). Independent Linux
+assurance remains open; the merge decision does not close G0–G4. [The review snapshot](reviews/pr-queue-2026-10-25.md)
+records merged #211/#199/#203 corrections: 21 store, 78 inert Stage and 80 inert
+Stage cases pass in their respective reviewed compositions. Those counts overlap;
+no combined suite or browser validation is claimed. Deferred research and newer
+unreviewed heads remain source-specific. The later Linux report covers only older
+`31001949` / `6c468f5`; its same-host agent provenance and assertion/heartbeat
+limits are recorded in the snapshot. It supplies no current-head assurance.
+G0–G4 remain open; the native app Goal reports `paused`. No namespace, descriptor,
+evaluator, generated-method, provider or paid execution is claimed here.
 
 ### Historical milestone snapshot — main `0cc38e6`
 
