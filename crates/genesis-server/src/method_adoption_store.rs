@@ -390,6 +390,20 @@ impl Store {
         receiver: &MethodReceiver,
         now: DateTime<Utc>,
     ) -> Result<(MethodAdoptionRecord, bool)> {
+        self.create_method_adoption_rescored(intent, package_json, receiver, None, now)
+    }
+
+    /// As [`Self::create_method_adoption`]; when `rescored` is given, an
+    /// adoption's assessment must have read exactly the bytes that rescore
+    /// reproduced, and the evidence records the rescorer.
+    pub fn create_method_adoption_rescored(
+        &self,
+        intent: &CreateMethodAdoption,
+        package_json: &str,
+        receiver: &MethodReceiver,
+        rescored: Option<&crate::method_rescore::RescoredTrial>,
+        now: DateTime<Utc>,
+    ) -> Result<(MethodAdoptionRecord, bool)> {
         let ids = [
             intent.client_request_id.as_str(),
             intent.mission_id.as_str(),
@@ -471,8 +485,12 @@ impl Store {
                     .into());
                 }
                 let pinned = &pin.plan;
-                let evidence =
+                let mut evidence =
                     Box::new(assess_selected(receiver, &state.org_id, &selected, trial)?);
+                if let Some(rescored) = rescored {
+                    rescored.binds(&evidence)?;
+                    evidence.rescorer = Some(rescored.rescorer_sha256.clone());
+                }
                 if evidence.plan != *pinned {
                     return Err(MethodAcceptanceError::Binding(
                         "the trial is not this requirement's pinned acceptance plan".into(),

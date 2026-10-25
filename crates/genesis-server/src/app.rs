@@ -109,6 +109,9 @@ pub struct AppState {
     pub(crate) adoption_gate: Arc<Mutex<()>>,
     /// Trusted receiver configuration for method adoption; off unless set.
     pub method_receiver: Option<Arc<crate::method_adoption::MethodReceiver>>,
+    /// Pinned scorer that must reproduce a trial's scoring before an adoption
+    /// decision; off unless set.
+    pub method_rescorer: Option<Arc<crate::method_rescore::MethodRescorer>>,
 }
 
 /// Result of a kernel mutation.
