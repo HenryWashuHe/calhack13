@@ -61,6 +61,16 @@ impl Run {
         };
         plan
     }
+    /// A distinct invocation plan: its own plan, run, attempt and scoring ids.
+    fn plan_named(&self, name: &str) -> TrialPlan {
+        let mut plan = self.plan();
+        plan.id = format!("invoke-{name}");
+        let slot = &mut plan.slots[0];
+        slot.run_id = format!("run-invoke-{name}");
+        slot.attempt_id = genesis_core::ids::AttemptId::new(format!("att_invoke_{name}"));
+        slot.scoring_request_id = format!("score-invoke-{name}");
+        plan
+    }
     fn intent(&self, key: &str, plan: TrialPlan) -> CreateMethodRun {
         CreateMethodRun {
             client_request_id: key.into(),
@@ -231,9 +241,9 @@ fn a_changed_grant_fences_before_start_and_marks_a_late_receipt() {
         E::Status(MethodRunStatus::Fenced)
     ));
 
-    let mut second = r.plan();
-    second.id = "invoke-second".into();
-    let (late, _) = r.prepare(&r.intent("fence-during", second)).unwrap();
+    let (late, _) = r
+        .prepare(&r.intent("fence-during", r.plan_named("second")))
+        .unwrap();
     r.f.store
         .start_method_run(&late.id, &r.state(), receiver, r.f.now)
         .unwrap();
@@ -307,9 +317,9 @@ fn keys_sizes_and_stored_records_are_checked() {
         ));
     }
     // The longest allowed key is accepted.
-    let mut longest = r.plan();
-    longest.id = "invoke-longest-key".into();
-    assert!(r.prepare(&r.intent(&"k".repeat(256), longest)).is_ok());
+    assert!(r
+        .prepare(&r.intent(&"k".repeat(256), r.plan_named("longest-key")))
+        .is_ok());
     // A plan whose frozen record would exceed the record bound is refused.
     let mut huge = r.plan();
     let first = huge.development_instances[0].clone();
@@ -343,9 +353,8 @@ fn keys_sizes_and_stored_records_are_checked() {
 fn the_run_count_is_bounded() {
     let r = Run::new();
     for n in 0..MAX_METHOD_RUNS {
-        let mut plan = r.plan();
-        plan.id = format!("invoke-{n}");
-        r.prepare(&r.intent(&format!("run-{n}"), plan)).unwrap();
+        r.prepare(&r.intent(&format!("run-{n}"), r.plan_named(&n.to_string())))
+            .unwrap();
     }
     assert!(matches!(
         r.prepare(&r.intent("one-too-many", r.plan())).unwrap_err(),
@@ -361,6 +370,112 @@ fn one_exact_plan_is_frozen_once() {
     r.prepare(&r.intent("first", r.plan())).unwrap();
     assert!(matches!(
         r.prepare(&r.intent("second", r.plan())).unwrap_err(),
+        E::Plan(_)
+    ));
+}
+
+#[test]
+fn a_prepared_run_always_has_room_for_its_receipt() {
+    // Independent review: a record just under the bound at prepare could never
+    // take its receipt, leaving the run `started` for good.
+    let r = Run::new();
+    let receiver = &r.f.records.receiver;
+    let first = r.plan().development_instances[0].clone();
+    let sized = |n: usize, name: &str| {
+        let mut plan = r.plan_named(name);
+        plan.development_instances = (0..n)
+            .map(|i| {
+                let mut instance = first.clone();
+                instance.id = format!("rough-transport/1/{}", 200_000 + i);
+                instance
+            })
+            .collect();
+        plan
+    };
+    // Find the largest plan prepare accepts (each probe is its own run).
+    let (mut lo, mut hi) = (1usize, 12_000usize);
+    while lo + 1 < hi {
+        let mid = (lo + hi) / 2;
+        let name = format!("probe-{mid}");
+        if r.prepare(&r.intent(&name, sized(mid, &name))).is_ok() {
+            lo = mid
+        } else {
+            hi = mid
+        }
+    }
+    let (record, _) = r
+        .prepare(&r.intent("largest", sized(lo, "largest")))
+        .unwrap();
+    r.f.store
+        .start_method_run(&record.id, &r.state(), receiver, r.f.now)
+        .unwrap();
+    let receipt = r.receipt(&record, ExecutionOutcome::OutputGenerated);
+    let done =
+        r.f.store
+            .complete_method_run(&record.id, &receipt, &r.state(), receiver, r.f.now)
+            .unwrap();
+    assert_eq!(done.status, MethodRunStatus::Completed);
+}
+
+#[test]
+fn an_overrun_is_recorded_not_hidden() {
+    let r = Run::new();
+    let receiver = &r.f.records.receiver;
+    let (record, _) = r.prepare(&r.intent("overrun", r.plan())).unwrap();
+    r.f.store
+        .start_method_run(&record.id, &r.state(), receiver, r.f.now)
+        .unwrap();
+    let mut receipt = r.receipt(&record, ExecutionOutcome::OutputGenerated);
+    receipt.usage.simulation_steps = genesis_core::development_method::ResourceUsage::Measured {
+        value: record.plan.development_grant.simulation_steps + 1,
+    };
+    let done =
+        r.f.store
+            .complete_method_run(&record.id, &receipt, &r.state(), receiver, r.f.now)
+            .unwrap();
+    assert_eq!(
+        done.budget,
+        Some(RunBudget::Exceeded {
+            resource: "simulation_steps".into()
+        })
+    );
+    // A compliant receipt is recorded as within limits.
+    let (ok, _) = r
+        .prepare(&r.intent("within", r.plan_named("within")))
+        .unwrap();
+    r.f.store
+        .start_method_run(&ok.id, &r.state(), receiver, r.f.now)
+        .unwrap();
+    let fine =
+        r.f.store
+            .complete_method_run(
+                &ok.id,
+                &r.receipt(&ok, ExecutionOutcome::OutputGenerated),
+                &r.state(),
+                receiver,
+                r.f.now,
+            )
+            .unwrap();
+    assert_eq!(fine.budget, Some(RunBudget::WithinLimits));
+}
+
+#[test]
+fn run_and_attempt_ids_are_never_reused() {
+    let r = Run::new();
+    // The accepted trial's own candidate ids are refused.
+    let accepted = r.accepted();
+    let mut reuse = r.plan_named("reuse");
+    reuse.slots[0].attempt_id = accepted.slots[0].attempt_id.clone();
+    assert!(matches!(
+        r.prepare(&r.intent("reuse-accepted", reuse)).unwrap_err(),
+        E::Plan(_)
+    ));
+    // Two runs can't share ids by varying only the plan id.
+    r.prepare(&r.intent("first", r.plan_named("a"))).unwrap();
+    let mut same_ids = r.plan_named("a");
+    same_ids.id = "invoke-other".into();
+    assert!(matches!(
+        r.prepare(&r.intent("second", same_ids)).unwrap_err(),
         E::Plan(_)
     ));
 }
