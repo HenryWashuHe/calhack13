@@ -152,7 +152,8 @@ fresh, or a decline was justified, is for the owners' evaluation.
 changes no shared configuration. The operator chooses record files or a whole
 evidence folder; they are read in the browser only. Each file is recognized by
 shape or listed with the reason it was not used. A status pairs with the
-checkpoint of the same operation in the same phase, so an evidence folder's
+checkpoint of the same organization, operation and exact request in the same
+phase (operation names can repeat across organizations), so an evidence folder's
 Prepared checkpoint is listed rather than used. Adoption outcomes other than
 `adopted` cannot name their receiver or method and are listed as needing host
 pairing. The operator then picks orgs A and B from those named in the records.
@@ -161,19 +162,23 @@ pairing. The operator then picks orgs A and B from those named in the records.
 
 A run is filed under the method the executor reports it **actually ran**. If
 that differs from the method its frozen binding named, the run is still shown
-there and the mismatch is reported. An evaluation attaches to the single run
-whose outputs include its exact output ref and whose purpose (ordinary,
-acceptance role, or comparison trial/arm) is identical. The view does not
-recompute `execution_sha256`, so the attachment says "matched by output and
-purpose". Zero or several matches leave the evaluation unattached and reported.
+there and the mismatch is reported. An evaluation attaches only to the run its
+request names: the view recomputes each receipt's identity
+(`execution_receipt_identity_hash`, the canonical SHA-256 of the whole receipt
+under `genesis.development_execution_receipt`) and compares it with the
+request's `execution_sha256`. Matching output and purpose alone are not enough,
+since another organization's run can share both. The named run must also
+contain the scored output and have the same purpose; otherwise the evaluation
+stays unattached and is reported. A hash match shows the bytes agree, not who
+produced them.
 
 Execution outcomes read "output generated", "execution failed",
 "execution interrupted" or "unknown — do not replay". "Output generated" is not
 design success. Evaluation outcomes read "scored", "output invalid for
 scoring", "scoring failed" or "scoring unknown"; "scored" means metrics exist,
-while acceptance remains the adoption verdict. Until a model-generated method
-is executed, these paths are exercised only by synthetic receipts shaped like
-the Rust serializers.
+while acceptance remains the adoption verdict. The retained receiver evidence
+(`live-method-20261024-receiver`) is checked to attach by hash; other cases use
+synthetic receipts shaped like the Rust serializers.
 
 ## Generated packages and static inspection
 

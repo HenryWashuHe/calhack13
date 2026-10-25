@@ -52,7 +52,7 @@ describe("first generated package", () => {
     const n = l.nodes[0]!;
     expect(n.package?.ref.sha256).toBe(PACKAGE_SHA);
     expect(n.inspections.map((x) => [x.python_ast_parse, x.imports.join(","), x.execution])).toEqual([["passed", "json,math,sys", "not_performed"]]);
-    expect(l.edges).toEqual([{ kind: "generated", operation_id: "live-a-method-20261024t160859z-75cdf274", to: n.key }]);
+    expect(l.edges).toEqual([{ kind: "generated", org_id: "org_example_a", operation_id: "live-a-method-20261024t160859z-75cdf274", to: n.key }]);
   });
 
   it("totals all three attempts as the #95 README does", async () => {

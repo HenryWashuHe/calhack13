@@ -40,8 +40,8 @@ export interface Execution {
   receipt: ExecutionReceipt;
   /** Node key of the method the executor reports it ran. */
   method: string;
-  /** Evaluations whose scored output is one of this run's outputs, with the same purpose.
-   * Matched by exact output ref; `execution_sha256` is not recomputed here. */
+  /** Evaluations whose request names this run's receipt hash (`execution_sha256`),
+   * with an output among this run's outputs and the same purpose. */
   evaluations: EvaluationReceipt[];
 }
 
@@ -63,7 +63,7 @@ export interface MethodNode {
 }
 
 export type Edge =
-  | { kind: "generated"; operation_id: string; to: string }
+  | { kind: "generated"; org_id: string; operation_id: string; to: string }
   | { kind: "revised_from"; org_id: string; operation_id: string; from: string; to: string; source_changed: boolean }
   | {
       kind: "adoption";
@@ -93,14 +93,22 @@ export function buildLineage(records: LabRecords): Lineage {
     return key;
   };
 
+  // An operation is identified by its organization and operation id together:
+  // two organizations may reuse an operation name.
+  const opKey = (org: string, op: string) => `${org}\u0000${op}`;
   const seen = new Set<string>();
   const attempts = records.generations.map(({ status, checkpoint }): Attempt => {
     const op = status.operation_id;
-    if (seen.has(op)) problems.push(`operation ${op} appears more than once`);
-    seen.add(op);
+    const key = opKey(status.org_id, op);
+    if (seen.has(key)) problems.push(`operation ${op} of ${status.org_id} appears more than once`);
+    seen.add(key);
     let outcome: Attempt["outcome"] = null;
     if (checkpoint) {
-      if (checkpoint.operation_id !== op || checkpoint.request_sha256 !== status.request_sha256) {
+      if (
+        checkpoint.org_id !== status.org_id ||
+        checkpoint.operation_id !== op ||
+        checkpoint.request_sha256 !== status.request_sha256
+      ) {
         problems.push(`checkpoint does not match status for operation ${op}; its outcome is not shown`);
       } else if (checkpoint.phase !== status.phase) {
         problems.push(`checkpoint phase ${checkpoint.phase} differs from status phase ${status.phase} for ${op}`);
@@ -109,7 +117,8 @@ export function buildLineage(records: LabRecords): Lineage {
       }
     }
     if (status.package) {
-      if (status.phase === "generated") edges.push({ kind: "generated", operation_id: op, to: node(status.package) });
+      if (status.phase === "generated")
+        edges.push({ kind: "generated", org_id: status.org_id, operation_id: op, to: node(status.package) });
       else problems.push(`operation ${op} names a package in phase ${status.phase}`);
     }
     const out = status.usage?.output_tokens;
@@ -122,9 +131,9 @@ export function buildLineage(records: LabRecords): Lineage {
   });
 
   for (const r of records.revisions ?? []) {
-    const gen = attempts.find((a) => a.status.operation_id === r.operation_id);
+    const gen = attempts.find((a) => a.status.org_id === r.org_id && a.status.operation_id === r.operation_id);
     if (gen?.status.package && refKey(gen.status.package) !== refKey(r.child))
-      problems.push(`revision child differs from the package of operation ${r.operation_id}`);
+      problems.push(`revision child differs from the package of operation ${r.operation_id} of ${r.org_id}`);
     edges.push({
       kind: "revised_from",
       org_id: r.org_id,
@@ -156,16 +165,20 @@ export function buildLineage(records: LabRecords): Lineage {
       problems.push(`execution ${run} ran a different method than its binding named; shown under the method it ran`);
     executions.push({ receipt, method: node(receipt.actual_method), evaluations: [] });
   }
+  // An evaluation attaches only to the execution its request names by receipt
+  // hash; matching output and purpose alone could be another organization's run.
   for (const ev of records.evaluations ?? []) {
-    const out = refKey(ev.output);
-    const matches = executions.filter(
-      (e) => e.receipt.outputs.some((o) => refKey(o) === out) && samePurpose(e.receipt.purpose, ev.purpose),
-    );
-    if (matches.length === 1) matches[0]!.evaluations.push(ev);
-    else
-      problems.push(
-        `evaluation ${ev.request_id} matches ${matches.length} executions by output and purpose; not attached`,
-      );
+    const named = executions.filter((e) => e.receipt.receipt_sha256 === ev.execution_sha256);
+    const run = named[0];
+    if (!run) {
+      problems.push(`evaluation ${ev.request_id} names execution ${ev.execution_sha256.slice(0, 12)}, which no supplied receipt has; not attached`);
+    } else if (!run.receipt.outputs.some((o) => refKey(o) === refKey(ev.output))) {
+      problems.push(`evaluation ${ev.request_id} scores an output its named execution did not produce; not attached`);
+    } else if (!samePurpose(run.receipt.purpose, ev.purpose)) {
+      problems.push(`evaluation ${ev.request_id} has a different purpose than its named execution; not attached`);
+    } else {
+      run.evaluations.push(ev);
+    }
   }
 
   for (const p of records.packages ?? []) {

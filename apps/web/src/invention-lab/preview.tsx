@@ -22,7 +22,7 @@ export function Preview({ initial }: { initial?: Intake }) {
         return { name: f.webkitRelativePath || f.name, text: new TextDecoder().decode(bytes), bytes };
       }),
     );
-    setLoaded(await intake(files));
+    setLoaded(intake(files));
   }
 
   return (

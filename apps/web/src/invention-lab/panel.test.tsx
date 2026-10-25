@@ -45,7 +45,7 @@ describe("intake of the two failed live attempts", () => {
       "2/generation.json: generation checkpoint (outcome enum only)",
     ]);
     expect(i.skipped.find((n) => n.file === "1/prepared-generation.json")!.note).toBe(
-      "generation checkpoint in phase prepared; the status for live-a-method-20261024t152819z-2a3e0b5a is failed",
+      "generation checkpoint in phase prepared; the status for live-a-method-20261024t152819z-2a3e0b5a of org_example_a is failed",
     );
     expect(i.skipped.find((n) => n.file === "2/README.md")!.note).toBe("not JSON");
     expect(i.skipped.find((n) => n.file === "1/roster.json")!.note).toBe("not a record type this view reads");
@@ -119,6 +119,20 @@ describe("a complete synthetic chain", () => {
     expect(text).toContain("revised by org_b from");
     // Checklist and method sections only; attempt cards quote denials such as "not ... improvement".
     expect(text.split("Generation attempts")[0]).not.toMatch(/improv|better/i);
+  });
+
+  it("credits a generated method to the organization that generated it, even when operation names repeat", () => {
+    const v3 = ref("b-rev", "c");
+    const l = buildLineage({
+      generations: [
+        { status: { ...status("same", "org_a", v1), request_sha256: "a".repeat(64) } },
+        { status: { ...status("same", "org_b", v2), request_sha256: "b".repeat(64) } },
+        { status: status("rev", "org_b", v3) },
+      ],
+      revisions: [decodeRevisionObservation({ schema: "genesis-method-revision-observation/1", parent: v2, child: v3, org_id: "org_b", operation_id: "rev", transport: "loopback_fixture", source_changed: true })],
+    });
+    expect(l.problems).toEqual([]);
+    expect(beats(l, "org_a", "org_b")[2]!.facts[0]!.recorded).toBe(false);
   });
 
   it("does not credit B's revision of a method A never generated", () => {

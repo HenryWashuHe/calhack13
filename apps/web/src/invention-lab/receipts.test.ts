@@ -48,9 +48,10 @@ function execution(o: { run: string; method: ExactRef; ran?: ExactRef; purpose: 
     usage,
   };
 }
-function evaluation(id: string, output: ExactRef, purpose: object, outcome: object) {
+/** Names its execution the way the scorer does: by the decoded receipt's hash. */
+function evaluation(id: string, output: ExactRef, purpose: object, outcome: object, of = "e".repeat(64)) {
   return {
-    request: { request_id: id, execution_sha256: "e".repeat(64), output, context: {}, purpose, budget: {} },
+    request: { request_id: id, execution_sha256: of, output, context: {}, purpose, budget: {} },
     request_sha256: "q".repeat(64),
     observed_context: null,
     outcome,
@@ -93,16 +94,16 @@ describe("receipt decoders", () => {
 });
 
 describe("executions in the lineage", () => {
-  it("attach each evaluation to the one run with that exact output and purpose", () => {
+  const cand = decodeExecutionReceipt(execution({ run: "cand", method, purpose: candidate, output: designA }));
+  const ctrl = decodeExecutionReceipt(execution({ run: "ctrl", method: seed, purpose: control, output: designC }));
+
+  it("attach each evaluation to the run its request names by receipt hash", () => {
     const l = buildLineage({
       generations: [],
-      executions: [
-        decodeExecutionReceipt(execution({ run: "cand", method, purpose: candidate, output: designA })),
-        decodeExecutionReceipt(execution({ run: "ctrl", method: seed, purpose: control, output: designC })),
-      ],
+      executions: [cand, ctrl],
       evaluations: [
-        decodeEvaluationReceipt(evaluation("ev-cand", designA, candidate, { kind: "scored", metrics: ref("metrics", "m") })),
-        decodeEvaluationReceipt(evaluation("ev-ctrl", designC, control, { kind: "unknown", reason: "scorer interrupted" })),
+        decodeEvaluationReceipt(evaluation("ev-cand", designA, candidate, { kind: "scored", metrics: ref("metrics", "m") }, cand.receipt_sha256)),
+        decodeEvaluationReceipt(evaluation("ev-ctrl", designC, control, { kind: "unknown", reason: "scorer interrupted" }, ctrl.receipt_sha256)),
       ],
     });
     expect(l.problems).toEqual([]);
@@ -113,14 +114,29 @@ describe("executions in the lineage", () => {
     ]);
   });
 
-  it("report, rather than attach, an evaluation whose purpose differs from the run", () => {
+  it("report, rather than attach, evaluations that name no run, another output or another purpose", () => {
+    const scored = { kind: "scored", metrics: ref("m", "m") };
     const l = buildLineage({
       generations: [],
-      executions: [decodeExecutionReceipt(execution({ run: "cand", method, purpose: candidate, output: designA }))],
-      evaluations: [decodeEvaluationReceipt(evaluation("ev-x", designA, control, { kind: "scored", metrics: ref("m", "m") }))],
+      executions: [cand],
+      evaluations: [
+        decodeEvaluationReceipt(evaluation("ev-none", designA, candidate, scored)),
+        decodeEvaluationReceipt(evaluation("ev-output", designC, candidate, scored, cand.receipt_sha256)),
+        decodeEvaluationReceipt(evaluation("ev-purpose", designA, control, scored, cand.receipt_sha256)),
+      ],
     });
     expect(l.executions[0]!.evaluations).toEqual([]);
-    expect(l.problems).toEqual(["evaluation ev-x matches 0 executions by output and purpose; not attached"]);
+    expect(l.problems).toEqual([
+      "evaluation ev-none names execution eeeeeeeeeeee, which no supplied receipt has; not attached",
+      "evaluation ev-output scores an output its named execution did not produce; not attached",
+      "evaluation ev-purpose has a different purpose than its named execution; not attached",
+    ]);
+  });
+
+  it("give every field of the receipt a part in its identity", () => {
+    const other = decodeExecutionReceipt({ ...execution({ run: "cand", method, purpose: candidate, output: designA }), transcript: ref("transcript", "y") });
+    expect(other.receipt_sha256).not.toBe(cand.receipt_sha256);
+    expect(cand.receipt_sha256).toMatch(/^[0-9a-f]{64}$/);
   });
 
   it("files a run under the method it actually ran and reports the binding mismatch", () => {
