@@ -90,31 +90,37 @@ and [corrected before running](https://github.com/HenryWashuHe/genesis-history-e
   between concurrent runs in one process, which is also on main. It's fixed in
   #167. No published trial was affected: each `lab-exec` run is its own process.
 
-## What transferred: one design, not per-instance adaptation
+## What transferred: repeated final design, different search paths
 
-On rough-transport the parent submitted the **same design every time**:
+On rough-transport the parent submitted the **same final design**:
 `2483f08f…` on #116's seeds 0..5, on the public 3000..3011 panel here, and in
 both hidden attempts. On ravine-crossing its submissions differ
-(`05eaa4c6…`, `cd7ce079…`). Eric's hand split of the parent
-(`eric/strategy-adapter-split`) shows why. The parent ranks instances by
-`gap + step_height`, and those ravine fields are 0.0 on every rough-transport
-instance, so the ranking does nothing there. Its first admissible grid point
-passes the screen-then-confirm check and is submitted.
+(`05eaa4c6…`, `cd7ce079…`).
 
-So the selective transfer here is real but narrow. A's method reliably lands
-on one design that works across rough-transport, including 12 hidden
-instances, while seeded random search sometimes doesn't. That says the family
-admits a robust single design and the parent's grid order reaches it first. It
-isn't evidence that the method adapts to each instance, and it says nothing
-about families without such a design.
+The repeated output does not imply an identical search path. The public
+rough-transport transcript contains 12 experiments on that one design; hidden
+attempt 1 contains six. Hidden attempt 2 contains **32 experiments over seven
+designs**. Its first experiment tests `c31e23c8…` on instance 5000 and fails
+(result `3c96ee0c…`). The eventually submitted `2483f08f…` also fails on
+instance 5002 (result `b4babee8…`), and the trace continues exploring other
+designs before submitting it. Its later 12/12 hidden score is from a separate
+panel. These records do not support a first-grid-point or immediate-confirmation
+explanation for every run.
+
+The supported observation is narrower: the same final design works across the
+retained rough-transport panels, including the 12 hidden instances in attempt 2,
+while the tested random-search outputs sometimes do not. This is evidence of
+selective transfer in this experimental setup, not per-instance adaptation or a
+proven causal account of how the method found the design. It does not establish
+performance on families or panels outside these records.
 
 ## What this is not
 
 - **Not adoption.** B has a retained, eligible, accepted trial. Turning that
-  into an adoption record and an invocation grant is the receiver-pinned path in
-  #155/#159, which are unmerged. If they merge, this trial's exact plan
-  reference is what a receiver `acceptance_plans` pin would name: the merged
-  #154 assessor (`assess_selected`, run locally on #159 `db0deec` over a copy of
+  into an adoption record and an invocation grant requires the receiver-pinned
+  path introduced by #155/#159 (now merged); this bundle contains neither. This
+  trial's exact plan reference is what a receiver `acceptance_plans` pin would
+  name: the merged #154 assessor (`assess_selected`, run locally on #159 `db0deec` over a copy of
   these records) recomputes `Accepted 12/12 vs 7/12` and plan reference
   `c3207684…a8c11` for `st-rough-transport`, and `Rejected` for
   `st-ravine-crossing`. Adopting is a separate decision.
@@ -129,7 +135,7 @@ about families without such a design.
   post-hoc look at #116. This is its first confirmation on new data, with a
   single family pair and 12 instances each.
 - **Experimental runtime (public trial).** The public trial above ran on
-  unmerged #65 executor (`6636596`) and unmerged #163 `receive.py`
+  #65 executor (`6636596`) and then-unmerged #163 `receive.py`
   (`66118d2`), on one Linux host. The hidden checks ran on different builds;
   see the hidden section and the reproduction prerequisites below. The declared Python 3.14.0
   runtime was used as is; nothing was retagged. The scorer's instance set is
@@ -138,7 +144,14 @@ about families without such a design.
   to the hidden checks, which score on the committed hidden draws.
 
 process-comparison/1 is untouched. Its plan (4), parent vs random search on
-1000..1011, still runs as frozen.
+1000..1011, remains declared as frozen; this bundle does not execute it.
+
+## Review boundary
+
+A separate static review checked the retained hashes, exact record bindings,
+predeclaration bytes and reported counts. It did not rerun the Linux execution
+or scoring, and the timing of private-salt disclosure remains author-reported.
+These records alone create no organization-local adoption or execution authority.
 
 ## Reproduce offline
 
