@@ -66,10 +66,10 @@ an offer that doesn't beat what B already has?
 
 | | B1 | B2 |
 | --- | --- | --- |
-| trial seeds, `parent` | 53000..53011 | 53100..53111 |
-| trial seeds, `same-cart` | 53200..53211 | 53300..53311 |
-| invocation seeds, `parent` | 53400..53411 | 53500..53511 |
-| invocation seeds, `same-cart` (only if adopted) | 53600..53611 | 53700..53711 |
+| trial seeds, `parent` | 54000..54011 | 54100..54111 |
+| trial seeds, `same-cart` | 54200..54211 | 54300..54311 |
+| invocation seeds, `parent` | 54400..54411 | 54500..54511 |
+| invocation seeds, `same-cart` (only if adopted) | 54600..54611 | 54700..54711 |
 | development grant | 72,000 steps, 60,000 ms, zero model allowances | same |
 | scoring grant | 600,000 ms, 12 × 2,400 steps | same |
 | criterion | margin one | same |
@@ -100,10 +100,24 @@ records no token usage; the README records prompt sizes.
 - Failed, interrupted or unknown executions are ineligible, as in
   `process-comparison/1`.
 
+## Harness dry run (disclosed)
+
+Before freezing I ran the driver once end to end with a **fake model
+endpoint** (a loopback server answering every planner call with an
+existing-owner assignment) to check the harness, on seeds 53000..53711. That
+consumed those seeds and I saw their outcomes: on rough-transport the
+`parent` beat the fixed cart 12/12 vs 6/12 (B1) and 11/12 vs 5/12 (B2), and
+`same-cart` tied the fixed cart 5/12 vs 5/12 and was declined. No planner
+judgment was involved. The attempt therefore uses fresh seeds 54000..54711,
+and these numbers are not evidence for it. The dry run's records are not
+retained.
+
 ## Prerequisites before freeze
 
 - Review by Codex (registry/planner contracts) and any objection from Eric.
-- The rehearsal-6 driver generalized to two B instances and two offers, with
-  the lead-control fix (`45ccbe6`), #245's restart ordering, and a
-  `same-cart` package written down here with its sha256.
+- Driver `crates/genesis-planner/tests/g2_attempt_1.rs` (rehearsal 6's,
+  generalized to two B instances and two offers, with the lead-control fix
+  and #245's restart ordering); `same-cart` package
+  `b1a3bc73…`; specs and invocation templates in
+  `docs/invention-lab/evidence/g2-attempt-1/`.
 - The B1/B2 founding requests (above) copied into this directory verbatim.
