@@ -120,10 +120,10 @@ test("presenter mode is a body class with a scene caption; Escape leaves it; a r
   await settle();
   assert.equal(h.body.classes.has("present"), true);
   assert.equal(h.fullscreen(), 1);
-  assert.match(h.get("caption").textContent, /Scene 1 of 8/);
+  assert.match(h.get("caption").textContent, /Scene 1 of 9/);
   assert.match(h.get("caption").textContent, /fixture replay/i);
   h.get("next").handlers.click();
-  assert.match(h.get("caption").textContent, /Scene 2 of 8/);
+  assert.match(h.get("caption").textContent, /Scene 2 of 9/);
   h.key("Escape");
   assert.equal(h.body.classes.has("present"), false);
   h.key("p");
