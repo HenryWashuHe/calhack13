@@ -132,7 +132,10 @@ rough-transport and `same-cart` ties.
    assign, assign, no change and unparseable output, throwaway seeds
    61000..61711. All four paths were recorded without a crash (adopted with an
    attached invocation; `not_applicable`; no change; escalation after three
-   unusable turns), and both controls were refused (401, 409).
+   unusable turns), and both controls were refused (401, 409). The reviewer's
+   re-check then found panics still reachable after spend (server start-up
+   wait, HTTP send); those now return recorded stops, and the same cycle on
+   throwaway seeds 62000..62711 reproduced the four outcomes.
 
 Neither involved planner judgment; neither is evidence; their records are not
 retained.
