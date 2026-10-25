@@ -81,9 +81,10 @@ the engine itself is unchanged except for the root-hydration fix.
 - `cascade.mjs`: asks for 2k proposals and screens them on a separate seeded screening panel before the
   sealed plan exists; keeps the top k. Screening evaluations are reported but are not selection evidence.
 - `sponsors/elastic.mjs`: the verified ledger as one idempotent bulk body (`_id` = record hash); posts
-  only when `ELASTICSEARCH_URL` and `ELASTIC_DATA_API_KEY` are set. With the current data key the post is
-  accepted and every document is refused (`indices:admin/auto_create` unauthorized), which the result
-  records verbatim; the index needs a key with create-index rights.
+  only when `ELASTICSEARCH_URL` and `ELASTIC_DATA_API_KEY` are set. The first data key refused every document
+  (`indices:admin/auto_create` unauthorized), which the results record verbatim; on 2026-10-25 a key with
+  `create_index`/`write`/`read` on `genesis-iteration-ledger` indexed all seven ledgers and the recorded
+  factory run's kernel events (429 documents; see the analysis note).
 - `sponsors/fetch-offer.mjs`: an exported bundle as a `genesis-method-offer/1` chat message and as the
   observation body the ACP mission bridge already posts (`source`, `summary`, `evidence_ref`). The bridge
   does not yet send or parse it; the receiver re-verifies with `adopt` either way.
