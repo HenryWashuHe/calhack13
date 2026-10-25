@@ -38,6 +38,11 @@ operation. Never rerun `prepare` for a stopped run.
 | Apify | `APIFY_TOKEN` + `--allow-billable` | `genesis-forge prepare` + one `step` at a time | actor, build, build number, run, dataset and failure phase | phase `verified` (oracle-checked runs) |
 | CREAO | `CREAO_ACCOUNT_API_KEY` + `--allow-billable` | `genesis-creao prepare` + one `step` at a time | operation, run ID, agent ID | phase `native_completed` |
 
+The CREAO row above exercises the Developer API, not the team's `capi_` API
+Trigger. For a team-agent run using CREAO account credits, see the separate
+[API Trigger smoke](CREAO_TRIGGER_SMOKE.md). It requires an existing app ID and
+does not create an agent or substitute for the Developer API runtime gate.
+
 A gate without credentials or its binary is `not_tested`, never a pass.
 Billable gates need `--allow-billable`: CREAO creates a real agent with no
 delete endpoint, and Apify spends build and run credits.
